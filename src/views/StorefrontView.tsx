@@ -65,12 +65,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [loadingStack, setLoadingStack] = useState(0);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
-    const performAction = useCallback(async (action: () => Promise<any> | void, delayDuration = 300) => {
+    const performAction = useCallback(async (action: () => Promise<any> | void, delayDuration = 400) => {
         // Retour visuel IMMÉDIAT demandé par l'utilisateur
         setLoadingStack(prev => prev + 1);
         
-        // Laisser 30ms pour que React affiche le spinner
-        await new Promise(resolve => setTimeout(resolve, 30));
+        // Garantie absolue (double rAF) que le navigateur a dessiné le loader à l'écran AVANT le blocage du thread
+        await new Promise(resolve => {
+            if (typeof window !== 'undefined') {
+                window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+            } else {
+                setTimeout(resolve, 50);
+            }
+        });
 
         try {
             const result = action();
@@ -80,7 +86,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         } catch (error) {
             console.error("Action orchestration failed:", error);
         } finally {
-            // Maintenir le loader brièvement pour franchir les transitions de page sans clignotement
+            // Maintenir le loader visible suffisamment longtemps pour être vu par le visiteur
             setTimeout(() => {
                 setLoadingStack(prev => Math.max(0, prev - 1));
             }, delayDuration);
@@ -2834,7 +2840,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             {/* 💎 Premium Global Loader Overlay - Luxury Experience (for blocking actions) */}
             {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
                 <div 
-                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white/80 backdrop-blur-xl transition-all duration-700 animate-in fade-in`}
+                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white/70 backdrop-blur-md transition-all duration-75 animate-in fade-in`}
                 >
                     {/* Minimalist Premium Spinner (Neon Style) */}
                     <div className="relative">
