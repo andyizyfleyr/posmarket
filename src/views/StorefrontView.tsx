@@ -535,8 +535,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [loadingReviews, setLoadingReviews] = useState<Record<string, boolean>>({});
     const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
-    const selectedProductDetails = useMemo(() => {
-        if (!selectedProductId || !allProducts.length) return null;
+    const productSlugOrId = splat?.replace('product/', '');
+       const selectedProductDetails = productSlugOrId ? allProducts.find(p => p.id === productSlugOrId || generateProductSlug(p) === productSlugOrId) : null;
         const product = allProducts.find(p => String(p.id) === String(selectedProductId)) || null;
         if (product && productReviews[selectedProductId]) {
             const reviews = productReviews[selectedProductId];
@@ -1419,7 +1419,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
                             {relatedProducts.map(product => (
-                                <div key={`${product.storeId}-${product.id}`} onClick={() => navigate(`/product/${product.id}`)} className="cursor-pointer">
+                                <div key={`${product.storeId}-${product.id}`} onClick={() => navigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${product.storeSlug || id}`)} />
                                 </div>
                             ))}
@@ -2068,7 +2068,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     <div 
                                                         key={product.id}
                                                         onClick={() => {
-                                                            navigate(`/product/${product.id}`);
+                                                            navigate(`/product/${generateProductSlug(product)}`);
                                                             setIsSearchOpen(false);
                                                         }}
                                                         className="cursor-pointer"
@@ -2289,7 +2289,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                         <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 transition-all duration-500 ${isLoadingMore ? 'opacity-30 blur-[1px]' : 'opacity-100 blur-0'}`}>
                                             {pagedProducts.map(product => (
-                                                <div key={`${product.storeId}-${product.id}`} onClick={() => navigate(`/product/${product.id}`)} className="cursor-pointer">
+                                                <div key={`${product.storeId}-${product.id}`} onClick={() => navigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
                                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${product.storeSlug || id}`)} />
                                                 </div>
                                             ))}
@@ -2348,7 +2348,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             <div key={`${product.storeId}-${product.id}`} 
                                                 onClick={() => {
                                                     performAction(() => {
-                                                        navigate(`/product/${product.id}`);
+                                                        navigate(`/product/${generateProductSlug(product)}`);
                                                     }, 300);
                                                 }} 
                                                 className="cursor-pointer"
