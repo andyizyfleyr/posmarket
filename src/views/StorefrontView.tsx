@@ -63,7 +63,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     // 🏛️ Global Loading Semaphore
     const [loadingStack, setLoadingStack] = useState(0);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
     const performAction = useCallback(async (action: () => Promise<any> | void, _delay?: number) => {
@@ -148,8 +147,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
 
-        // ⚡ Vitesse éclair (Cdiscount/Amazon style) : Pas de splash screen artificiel
-        setIsInitialLoading(false);
+        // ⚡ Vitesse éclair (Cdiscount/Amazon style)
     }, []);
 
     // 2. Update cache when fresh props arrive
@@ -2820,17 +2818,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             )}
 
             {/* 🚀 Universal Progress Feedback - Always visible at top when processing */}
-            {(loadingStack > 0 || isInitialLoading) && typeof document !== 'undefined' && createPortal(
+            {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
                 <div className="fixed top-0 left-0 right-0 z-[2147483646] h-[5px] bg-gray-100/30 overflow-hidden pointer-events-none">
                     <div className="h-full bg-gradient-to-r from-[#f56b2a] via-[#ff9d6c] to-[#f56b2a] shadow-[0_0_20px_rgba(245,107,42,1)] animate-progress-slide" />
                 </div>,
                 document.body
             )}
 
-            {/* 💎 Premium Global Loader Overlay - Luxury Experience (for initial load and blocking actions) */}
-            {(loadingStack > 0 || isInitialLoading) && typeof document !== 'undefined' && createPortal(
+            {/* 💎 Premium Global Loader Overlay - Luxury Experience (for blocking actions) */}
+            {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
                 <div 
-                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white backdrop-blur-xl transition-all duration-700 ${isInitialLoading ? 'opacity-100' : 'bg-white/80 animate-in fade-in'}`}
+                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white/80 backdrop-blur-xl transition-all duration-700 animate-in fade-in`}
                 >
                     {/* Minimalist Premium Spinner (Neon Style) */}
                     <div className="relative">
