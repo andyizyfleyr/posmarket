@@ -244,48 +244,47 @@ button:disabled {
     box-shadow: 0 0 15px #f56b2a, 0 0 8px #f56b2a !important;
 }
 
-/* 📊 Dashboard Chart Animations - High Performance SVG Rendering */
-@keyframes chartLineDraw {
-    from { stroke-dashoffset: 300; }
-    to { stroke-dashoffset: 0; }
-}
-
-@keyframes chartFillUp {
+/* 📊 Dashboard Chart Animations - Shopify Polaris Style */
+@keyframes shopifyReveal {
     from { 
-        transform: scaleY(0); 
         opacity: 0; 
+        transform: translateY(12px); 
     }
     to { 
-        transform: scaleY(1); 
         opacity: 1; 
+        transform: translateY(0); 
     }
 }
 
-@keyframes popIn {
-    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-    70% { transform: translate(-50%, -50%) scale(1.1); }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+@keyframes shopifyDot {
+    0% { 
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5) translateY(10px); 
+    }
+    60% {
+        transform: translate(-50%, -50%) scale(1.1) translateY(-2px);
+    }
+    100% { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) translateY(0); 
+    }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.animate-chart-line {
-    animation: chartLineDraw 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.animate-shopify-reveal {
+    animation: shopifyReveal 1s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
-.animate-chart-fill {
-    animation: chartFillUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.animate-pop-in {
+.animate-shopify-dot {
     opacity: 0;
-    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: shopifyDot 0.8s cubic-bezier(0.2, 0, 0.4, 1.2) forwards;
 }
 
 .animate-fade-in {
     opacity: 0;
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.8s ease-out forwards;
 }
