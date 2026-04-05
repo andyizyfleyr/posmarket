@@ -482,19 +482,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 ))}
               </div>
 
-              <div className="relative w-full h-[calc(100%-1.5rem)] z-10 animate-in fade-in duration-700">
+              <div className="relative w-full h-[calc(100%-1.5rem)] z-10">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
                   <defs>
-                    <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="lineFocusGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
                       <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
                     </linearGradient>
                   </defs>
+                  
+                  {/* The Fill Area with vertical reveal */}
                   <path
                     d={`M ${currentData.map((d, i) => `${i * (100 / (currentData.length - 1))},${100 - d.value}`).join(' L ')} L 100,100 L 0,100 Z`}
-                    fill="url(#lineGradient)"
-                    className="transition-all duration-700 ease-in-out"
+                    fill="url(#lineFocusGradient)"
+                    className="origin-bottom animate-chart-fill transition-all duration-700 ease-in-out"
                   />
+                  
+                  {/* The Main Line with drawing effect */}
                   <path
                     d={`M ${currentData.map((d, i) => `${i * (100 / (currentData.length - 1))},${100 - d.value}`).join(' L ')}`}
                     fill="none"
@@ -503,29 +507,39 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                     vectorEffect="non-scaling-stroke"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="transition-all duration-700 ease-in-out"
+                    className="animate-chart-line transition-all duration-700 ease-in-out"
+                    style={{ 
+                        strokeDasharray: '300', 
+                        strokeDashoffset: '300',
+                        animation: 'chartLineDraw 2s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                    }}
                   />
                 </svg>
 
-                {/* Interactive Dots and Tooltips */}
+                {/* Interactive Dots with staggered animation */}
                 {currentData.map((item, index) => {
                   const xPos = index * (100 / (currentData.length - 1));
                   const yPos = 100 - item.value;
                   return (
                     <div
                       key={`${item.label}-${index}`}
-                      className="absolute group z-20"
-                      style={{ left: `${xPos}%`, top: `${yPos}%`, transform: 'translate(-50%, -50%)' }}
+                      className="absolute group z-20 animate-pop-in"
+                      style={{ 
+                        left: `${xPos}%`, 
+                        top: `${yPos}%`, 
+                        transform: 'translate(-50%, -50%)',
+                        animationDelay: `${index * 100 + 1000}ms` // Starts after line starts drawing
+                      }}
                     >
-                      {/* Hover target area (invisible but larger) */}
+                      {/* Hover target area */}
                       <div className="absolute inset-[-20px] bg-transparent cursor-pointer" />
 
                       {/* Dot */}
-                      <div className="relative w-3 h-3 md:w-4 md:h-4 rounded-full bg-white border-[3px] border-[#10b981] shadow-md group-hover:scale-[1.8] transition-transform pointer-events-none" />
+                      <div className="relative w-3 h-3 md:w-5 md:h-5 rounded-full bg-white border-[4px] border-[#10b981] shadow-xl group-hover:scale-[1.5] group-hover:bg-[#10b981] group-hover:border-white transition-all duration-300 pointer-events-none" />
 
                       {/* Tooltip */}
-                      <div className="opacity-0 group-hover:opacity-100 absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black py-1 px-3 rounded-lg shadow-xl pointer-events-none transition-all whitespace-nowrap">
-                        <span className="block text-gray-400 text-[8px] uppercase">{item.label}</span>
+                      <div className="opacity-0 group-hover:opacity-100 absolute bottom-8 left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-md text-white text-[10px] font-black py-2 px-4 rounded-2xl shadow-2xl pointer-events-none transition-all duration-300 whitespace-nowrap translate-y-2 group-hover:translate-y-0 scale-95 group-hover:scale-100 ring-1 ring-white/10">
+                        <span className="block text-gray-400 text-[8px] uppercase tracking-widest mb-1">{item.label}</span>
                         {formatCurrency(item.displayValue)}
                       </div>
                     </div>
@@ -533,7 +547,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 })}
               </div>
 
-              {/* X Axis Labels */}
+              {/* X Axis Labels with staggered fade-in */}
               <div className="absolute bottom-0 left-0 right-0 h-6 translate-y-4">
                 {currentData.map((item, index) => {
                   const xPos = index * (100 / (currentData.length - 1));
@@ -543,10 +557,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                   return (
                     <span
                       key={`label-${item.label}-${index}`}
-                      className="absolute text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-tighter md:tracking-widest whitespace-nowrap"
+                      className="absolute text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-tighter md:tracking-widest whitespace-nowrap animate-fade-in"
                       style={{ 
                         left: `${xPos}%`,
                         transform: `translateX(${isFirst ? '0%' : isLast ? '-100%' : '-50%'})`,
+                        animationDelay: `${index * 50}ms`
                       }}
                     >
                       {item.label}
