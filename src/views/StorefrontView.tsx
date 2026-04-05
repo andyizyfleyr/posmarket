@@ -61,37 +61,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const storeViewTracked = React.useRef<string | null>(null);
     const productViewTracked = React.useRef<string | null>(null);
 
-    // 🏛️ Global Loading Semaphore (Prevents flickering from overlapping actions)
+    // 🏛️ Global Loading Semaphore
     const [loadingStack, setLoadingStack] = useState(0);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
-    const isActionPending = useRef(false);
 
-    const performAction = useCallback((action: () => Promise<any> | void, delay: number = 600) => {
-        if (isActionPending.current) return;
-        isActionPending.current = true;
-
-        // 1. Force the loader state update immediately
+    const performAction = useCallback(async (action: () => Promise<any> | void, _delay?: number) => {
         setLoadingStack(prev => prev + 1);
-        
-        // 2. We MUST wait for a paint cycle (approx 50ms-80ms) 
-        // to ensure the overlay is actually visible BEFORE the JS engine gets busy with action()
-        setTimeout(async () => {
-            try {
-                // Curtain is now closed. Let's do the work.
-                await action();
-                
-                // Keep the curtain closed for a professional duration
-                setTimeout(() => {
-                    setLoadingStack(prev => Math.max(0, prev - 1));
-                    isActionPending.current = false;
-                }, Math.max(delay - 150, 250));
-            } catch (error) {
-                console.error("Action orchestration failed:", error);
-                setLoadingStack(prev => Math.max(0, prev - 1));
-                isActionPending.current = false;
-            }
-        }, 80); // 80ms is the sweet spot for a guaranteed paint on mobile and desktop
+        try {
+            await action();
+        } catch (error) {
+            console.error("Action orchestration failed:", error);
+        } finally {
+            setLoadingStack(prev => Math.max(0, prev - 1));
+        }
     }, []);
 
     const localNotify = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
@@ -160,10 +143,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
 
-        // 🎖️ Premium Entry Experience: Smooth transition from splash to marketplace
-        setTimeout(() => {
-            setIsInitialLoading(false);
-        }, 1200);
+        // 🎖️ Instant Entry Experience
+        setIsInitialLoading(false);
     }, []);
 
     // 2. Update cache when fresh props arrive
@@ -677,24 +658,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             });
     }, [allProducts, searchTerm, selectedCategory, selectedStoreId]);
 
-    // 🔥 Ultra-High Performance Infinite Scroll (Client-Side from Cache)
+    // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
     const loadPagedProducts = useCallback(async (reset: boolean = false) => {
         setIsLoadingMore(true);
-        // 🔥 Decoupled from global semaphore to avoid blocking the user while scrolling
         
-        // Simulating a decent micro-delay for visual impact (Alibaba/Amazon search feel)
-        setTimeout(() => {
-            const nextPage = reset ? 0 : page;
-            const start = nextPage * PAGE_LIMIT;
-            const end = start + PAGE_LIMIT;
-            const nextBatch = filteredProducts.slice(start, end);
-            
-            setPagedProducts(prev => reset ? nextBatch : [...prev, ...nextBatch]);
-            setHasMore(end < filteredProducts.length);
-            setPage(nextPage + 1);
-            setIsLoadingMore(false);
-        }, 400);
-    }, [page, filteredProducts, isLoadingMore, hasMore]);
+        const nextPage = reset ? 0 : page;
+        const start = nextPage * PAGE_LIMIT;
+        const end = start + PAGE_LIMIT;
+        const nextBatch = filteredProducts.slice(start, end);
+        
+        setPagedProducts(prev => reset ? nextBatch : [...prev, ...nextBatch]);
+        setHasMore(end < filteredProducts.length);
+        setPage(nextPage + 1);
+        setIsLoadingMore(false);
+    }, [page, filteredProducts]);
 
     // Reset pagination on filter change
     useEffect(() => {
