@@ -975,9 +975,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             {/* Title and Badge */}
                             <div className="text-center md:text-left flex-grow pt-0 min-w-0">
                                 <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-3 mb-1">
-                                    <h1 className="text-lg md:text-4xl font-black text-gray-900 tracking-tight leading-tight truncate px-2 md:px-0">
+                                    <h2 className="text-lg md:text-4xl font-black text-gray-900 tracking-tight leading-tight truncate px-2 md:px-0">
                                         {selectedStore.settings.name}
-                                    </h1>
+                                    </h2>
                                     <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-1.5 md:gap-2">
                                         <div className="inline-flex items-center gap-1 bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-wider border border-green-100/50">
                                             <ShieldCheck size={12} strokeWidth={3} /> Vérifié
@@ -1174,9 +1174,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 </button>
                             </div>
                             <div className="flex flex-col gap-4 mb-4">
-                                <h1 className="text-xl md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                                <h2 className="text-xl md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
                                     {selectedProductDetails.name}
-                                </h1>
+                                </h2>
 
                                 <div className="flex flex-col items-start flex-shrink-0">
                                     <div className="flex items-baseline gap-2 h-fit">
@@ -2135,6 +2135,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 <Routes>
                     <Route index element={
                         <>
+                            {/* Hidden H1 for SEO - Important for index page */}
+                            <h1 className="sr-only">POS Market - Boutique Marketplace Express Premium</h1>
+                            
                             {/* Hero Bannière Premium - Carousel */}
                             {!searchTerm && selectedCategory === 'all' && (
                                 <div className="mb-10 mt-2 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto">

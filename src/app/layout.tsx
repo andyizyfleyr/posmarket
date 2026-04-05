@@ -7,8 +7,9 @@ import Providers from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "POS Pro Next.js",
-  description: "Système de point de vente",
+  title: "POS Market | Votre Marketplace Express Premium",
+  description: "Découvrez les meilleures boutiques et produits sur notre marketplace ultra-rapide. Vendez et achetez en toute sécurité.",
+  keywords: "marketplace, shopping, e-commerce, boutique en ligne, vente express",
 };
 
 export default function RootLayout({
