@@ -170,7 +170,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
             return d >= start && d <= end && d.getHours() >= hourInt && d.getHours() < hourInt + 2;
           })
           .reduce((sum, o) => sum + o.total, 0);
-        return { label: `${hourInt}h`, value: total };
+        return { label: `${hourInt}h`, value: total, isMajor: false };
       });
     }
 
@@ -196,18 +196,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         const currentMonth = bStart.toLocaleDateString('fr-FR', { month: 'short' });
         
         if (diffDays <= 31) {
-            // Only show month name if it's the first label or if the month changed
             if (i === 0 || i === bucketCount - 1 || currentMonth !== lastMonth) {
                 label = bStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
                 lastMonth = currentMonth;
             } else {
-                label = String(bStart.getDate()); // Just the day number
+                label = String(bStart.getDate());
             }
         } else {
             label = bStart.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
         }
         
-        buckets.push({ label, value: total, isMajor: label.includes(' ') });
+        buckets.push({ 
+            label, 
+            value: total, 
+            isMajor: label.includes(' ') || (diffDays > 31) 
+        });
     }
     
     return buckets;
@@ -220,7 +223,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     return chartDataRaw.map(d => ({
       ...d,
       displayValue: d.value,
-      value: (d.value / maxValue) * 80 + 10 // scale to 10-90 for margins
+      value: (d.value / maxValue) * 80 + 10, // scale to 10-90 for margins
+      isMajor: d.isMajor
     }));
   }, [chartDataRaw]);
 
