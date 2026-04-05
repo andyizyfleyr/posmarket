@@ -2868,20 +2868,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 document.body
             )}
 
-            {/* 🌌 Dashboard-style Subtitle Loader Overlay (for significant actions) */}
+            {/* 🌌 exact copy of (app)/loading.tsx - consistency requested by user */}
             {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center animate-in fade-in duration-200 overflow-hidden pointer-events-none">
-                    {/* Soft Backdrop - focus without full blocking (just like dashboard) */}
-                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
-                    
-                    {/* Minimalist Loader Card */}
-                    <div className="relative bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-orange-50 flex flex-col items-center gap-3 pointer-events-auto">
-                        <Loader2 size={32} className="text-[#f56b2a] animate-spin" />
-                        <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                             <span className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-ping" />
-                             Action en cours
-                        </span>
+                <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[#f56b2a]/20 rounded-full blur-2xl animate-pulse scale-150"></div>
+                        <div className="relative w-24 h-24 bg-white rounded-[32px] shadow-2xl border-4 border-[#f56b2a]/10 flex items-center justify-center">
+                            <Store size={48} className="text-[#f56b2a] animate-bounce" />
+                        </div>
                     </div>
+                    <p className="mt-8 text-slate-500 font-bold animate-pulse uppercase tracking-[0.2em] text-[10px]">Patientez...</p>
 
                     <style>{`
                         @keyframes progress-slide {
