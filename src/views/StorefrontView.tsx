@@ -128,7 +128,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const isCartView = location.pathname.includes('/cart');
     const isFeedView = location.pathname.includes('/feed');
     const selectedStoreParam = storeMatch?.params.storeParam || null;
-    const { "*": splat } = useParams();
+    const { "*": splatParam } = useParams();
+    const splat = Array.isArray(splatParam) ? splatParam[0] : splatParam;
     const isProductDetailPath = splat?.startsWith('product/');
     const rawUrlProductId = productMatch?.params.productId || (isProductDetailPath ? splat?.replace('product/', '') : null);
 
