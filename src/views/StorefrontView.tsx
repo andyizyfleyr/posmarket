@@ -66,18 +66,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [loadingStack, setLoadingStack] = useState(0);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
-    const performAction = useCallback(async (action: () => Promise<any> | void, delayDuration = 400) => {
-        // Retour visuel IMMÉDIAT demandé par l'utilisateur
+    const performAction = useCallback(async (action: () => Promise<any> | void, delayDuration = 0) => {
+        // Increment loading stack immediately
         setLoadingStack(prev => prev + 1);
         
-        // Garantie absolue (double rAF) que le navigateur a dessiné le loader à l'écran AVANT le blocage du thread
-        await new Promise(resolve => {
-            if (typeof window !== 'undefined') {
-                window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
-            } else {
-                setTimeout(resolve, 50);
-            }
-        });
+        // Very short wait to ensure the loader is visible if the action is instant
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         try {
             const result = action();
@@ -85,9 +79,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 await result;
             }
         } catch (error) {
-            console.error("Action orchestration failed:", error);
+            console.error("Action failed:", error);
         } finally {
-            // Maintenir le loader visible suffisamment longtemps pour être vu par le visiteur
+            // No more forced long delay unless explicitly asked
             setTimeout(() => {
                 setLoadingStack(prev => Math.max(0, prev - 1));
             }, delayDuration);
@@ -99,12 +93,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setToastNotifications(prev => [...prev, { id, message, type, title }]);
     }, []);
 
-    // 🚀 Navigation Instantanée - Feedback immédiat demandé par l'utilisateur
-    const safeNavigate = useCallback((path: string, options?: { action?: () => void, delay?: number }) => {
+    // 🚀 Navigation Instante - Légère et réactive (Style Dashboard)
+    const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
         performAction(() => {
             if (options?.action) options.action();
             navigate(path);
-        }, options?.delay || 500); // 500ms pour un feeling premium et laisser le temps de voir la transition
+        }, 0); // Zéro délai forcé pour une fluidité maximale
     }, [navigate, performAction]);
 
     const removeToast = useCallback((id: string) => {
@@ -2874,38 +2868,29 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 document.body
             )}
 
-            {/* 💎 Premium Global Loader Overlay - Luxury Experience (for blocking actions) */}
+            {/* 🌌 Dashboard-style Subtitle Loader Overlay (for significant actions) */}
             {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
-                <div 
-                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white/40 backdrop-blur-xl transition-all duration-150 animate-in fade-in`}
-                >
-                    {/* Minimalist Premium Spinner (Neon Style) with progress feedback */}
-                    <div className="relative flex flex-col items-center">
-                        <div className="absolute inset-0 bg-[#f56b2a] rounded-full blur-[60px] opacity-20 animate-pulse scale-150" />
-                        <div className="relative mb-6 text-[#f56b2a]">
-                            <Loader2 size={72} className="animate-spin" strokeWidth={2} />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <ShoppingBasketIcon size={32} className="opacity-20" />
-                            </div>
-                        </div>
-                        <div className="bg-white/80 backdrop-blur-md px-6 py-2.5 rounded-full border border-orange-100 shadow-xl shadow-orange-100/30 animate-in slide-in-from-bottom-2 duration-500">
-                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.3em] flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-ping" />
-                                Préparation...
-                            </p>
-                        </div>
+                <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center animate-in fade-in duration-200 overflow-hidden pointer-events-none">
+                    {/* Soft Backdrop - focus without full blocking (just like dashboard) */}
+                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+                    
+                    {/* Minimalist Loader Card */}
+                    <div className="relative bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-orange-50 flex flex-col items-center gap-3 pointer-events-auto">
+                        <Loader2 size={32} className="text-[#f56b2a] animate-spin" />
+                        <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                             <span className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-ping" />
+                             Action en cours
+                        </span>
                     </div>
 
                     <style>{`
                         @keyframes progress-slide {
                             0% { width: 0%; left: -100%; }
-                            30% { width: 60%; left: 0%; }
-                            60% { width: 90%; left: 10%; }
                             100% { width: 100%; left: 100%; }
                         }
                         .animate-progress-slide {
                             position: absolute;
-                            animation: progress-slide 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+                            animation: progress-slide 1.5s linear infinite;
                         }
                     `}</style>
                 </div>,
