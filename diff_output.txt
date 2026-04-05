@@ -1,0 +1,37 @@
+=> 'use client';
+=> import { StoreData, Product, Customer, Order, ViewType, NotificationType, Review, Coupon, ToastNotification } from '@/types';
+=> import { MAIN_CATEGORIES } from '@/constants';
+=> import { formatCurrency, playSuccessSound } from '@/utils';
+=> import { Routes, Route, useNavigate, useParams, Link, useLocation, useMatch, useRouter } from '@/components/RouterPolyfill';
+=> import { incrementProductViews, incrementStoreViews } from '@/supabase-api';
+=> import { supabase } from '@/supabase';
+=>     storeSlug?: string;
+=>     const fusionPayApiUrl = process.env.NEXT_PUBLIC_FUSIONPAY_API_URL || '';
+=>                 if (pendingOrderData && pendingCustomerInfo) {
+=>                     onMarketplaceCheckout(pendingOrderData, pendingCustomerInfo);
+=>                 }
+=>                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${id}`)} />
+=>         <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-20 md:pb-0 overflow-x-hidden w-full max-w-[100vw] relative" suppressHydrationWarning>
+=>             {(location.pathname === '/' || !location.pathname || location.pathname === '') && (
+=>                                                 <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+=>                                                     <Store className="text-[#f56b2a]" size={28} />
+=>                                                     <p className="text-[10px] text-gray-400 font-black">{(store.products || []).length} Produits</p>
+=>                                                 </div>
+=>                                             <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${id}`)} />
+=>                                         <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${id}`)} />
+=> 
+<= import { StoreData, Product, Customer, Order, ViewType, NotificationType, Review, Coupon, ToastNotification } from '../types';
+<= import { MAIN_CATEGORIES } from '../constants';
+<= import { formatCurrency, playSuccessSound } from '../utils';
+<= import { Routes, Route, useNavigate, useParams, Link, useLocation, useMatch } from 'react-router-dom';
+<= import { incrementProductViews, incrementStoreViews } from '../supabase-api';
+<= import { supabase } from '../supabase';
+<=     const fusionPayApiUrl = import.meta.env.VITE_FUSIONPAY_API_URL || '';
+<=                 onMarketplaceCheckout(pendingOrderData, pendingCustomerInfo);
+<=                                     <ProductCard product={product} onAddToCart={addToCart} onStoreSelect={(id) => navigate(`/store/${id}`)} />
+<=         <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-20 md:pb-0 overflow-x-hidden w-full max-w-[100vw] relative">
+<=             {location.pathname === '/' && (
+<=                                                 <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><Store className="text-[#f56b2a]" size={28} /></div>
+<=                                                     <p className="text-[10px] text-gray-400 font-black">{store.products?.length || 0} Produits</p>
+<=                                             <ProductCard product={product} onAddToCart={addToCart} onStoreSelect={(id) => navigate(`/store/${id}`)} />
+<=                                         <ProductCard product={product} onAddToCart={addToCart} onStoreSelect={(id) => navigate(`/store/${id}`)} />

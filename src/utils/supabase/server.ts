@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { supabaseFetchWithTimeout } from "./retry";
+
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -8,6 +10,13 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        fetch: supabaseFetchWithTimeout(20000),
+        headers: {
+          'x-client-info': '@supabase/ssr-nextjs',
+          'Connection': 'close',
+        },
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -18,9 +27,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Can be ignored
           }
         },
       },

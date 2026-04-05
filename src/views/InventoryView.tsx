@@ -1,0 +1,1005 @@
+'use client';
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Package,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Download,
+  AlertCircle,
+  List,
+  LayoutGrid,
+  X,
+  Image as ImageIcon,
+  Globe,
+  Monitor,
+  Tag,
+  DollarSign,
+  Check,
+  ChevronRight,
+  ChevronLeft,
+  Store,
+  ShoppingBag,
+  Star,
+  Loader2,
+  Award,
+  Zap
+} from 'lucide-react';
+import { SUBSCRIPTION_PLANS } from '@/constants';
+import { Product, StaffPermissions, StaffRole, UserSubscription } from '@/types';
+import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
+import { formatCurrency } from '@/utils';
+import ProductImage from '../components/ProductImage';
+import Loader from '../components/Loader';
+import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
+import { useRouter } from '@/components/RouterPolyfill';
+import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
+
+interface InventoryViewProps {
+  products: Product[];
+  permissions: StaffPermissions;
+  currentStoreId?: string;
+  userRole?: StaffRole;
+  subscription?: UserSubscription;
+}
+
+const InventoryView: React.FC<InventoryViewProps> = ({
+  products: initialProducts,
+  permissions,
+  currentStoreId,
+  userRole,
+  subscription,
+}) => {
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewType, setViewType] = useState<'grid' | 'table'>('table');
+  const [productType, setProductType] = useState<'all' | 'pos' | 'marketplace'>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Pagination states
+  const [localProducts, setLocalProducts] = useState<Product[]>(initialProducts || []);
+  const [offset, setOffset] = useState(initialProducts?.length || 0);
+  const [hasMore, setHasMore] = useState(initialProducts?.length === 10); // Assume more if we got a full first page
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState<string | null>(null);
+
+  // Sync local state when props change (after router.refresh)
+  useEffect(() => {
+    setLocalProducts(initialProducts || []);
+    setOffset(initialProducts?.length || 0);
+    setHasMore(initialProducts?.length === 10);
+  }, [initialProducts]);
+
+  const [formData, setFormData] = useState<Partial<Product> & { isOnline: boolean, images: string[] }>({
+    name: '',
+    price: undefined,
+    stock: undefined,
+    category: 'Général',
+    mainCategory: 'Divers',
+    image: '',
+    images: [],
+    unit: 'pièce',
+    isOnline: true,
+    wholesalePrice: undefined,
+    wholesaleMinQty: undefined
+  });
+
+  const filteredProducts = useMemo(() => {
+    // Client-side filtering for visibility but search is handled server-side now
+    return localProducts.filter(p => {
+      if (productType === 'pos') return p.isOnline === false;
+      if (productType === 'marketplace') return p.isOnline !== false;
+      return true;
+    });
+  }, [localProducts, productType]);
+
+  // Handle Search with debounce or simple effect
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchTerm.length >= 0) {
+        setIsLoadingMore(true);
+        const res = await getProductsAction(currentStoreId || '', 0, 10, searchTerm);
+        if (res.success) {
+          setLocalProducts(res.products as any);
+          setOffset(res.products?.length || 0);
+          setHasMore(res.hasMore || false);
+        }
+        setIsLoadingMore(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, currentStoreId]);
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const res = await getProductsAction(currentStoreId || '', offset, 10, searchTerm);
+    if (res.success && res.products) {
+      setLocalProducts(prev => [...prev, ...(res.products as any)]);
+      setOffset(prev => prev + (res.products?.length || 0));
+      setHasMore(res.hasMore || false);
+    }
+    setIsLoadingMore(false);
+  };
+
+  const [skipStepOne, setSkipStepOne] = useState(false);
+
+  const handleOpenModal = (product?: Product, type?: 'pos' | 'store') => {
+    // Check product limits for non-edit mode
+    if (!product && subscription) {
+      const plan = SUBSCRIPTION_PLANS[subscription.tier];
+      const maxProducts = plan?.features.maxProducts || 6;
+      if (localProducts.length >= maxProducts) {
+        setShowLimitModal(true);
+        return;
+      }
+    }
+    
+    if (product) {
+      setEditingProduct(product);
+      setSkipStepOne(false);
+      setCurrentStep(1);
+      const initialFormData: Partial<Product> & { isOnline: boolean, images: string[] } = {
+        name: product.name || '',
+        price: product.price ?? undefined,
+        stock: product.stock ?? undefined,
+        category: product.category || 'Général',
+        mainCategory: product.mainCategory || CATEGORY_MAPPING[product.category || ''] || 'Divers',
+        image: product.image || '',
+        images: product.images || (product.image ? [product.image] : []),
+        unit: product.unit || 'pièce',
+        description: product.description || '',
+        isOnline: product.isOnline ?? true,
+        wholesalePrice: product.wholesalePrice,
+        wholesaleMinQty: product.wholesaleMinQty
+      };
+      setFormData(initialFormData);
+    } else {
+      setEditingProduct(null);
+      const isOnline = type === 'store';
+      setFormData({
+        name: '',
+        price: undefined,
+        stock: undefined,
+        category: 'Général',
+        mainCategory: 'Divers',
+        image: '',
+        images: [],
+        unit: 'pièce',
+        description: '',
+        isOnline: isOnline
+      });
+
+      if (type) {
+        setSkipStepOne(true);
+        setCurrentStep(2); // Start directly at info
+      } else {
+        setSkipStepOne(false);
+        setCurrentStep(1);
+      }
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Voulez-vous vraiment supprimer ce produit ?')) {
+      const result = await deleteProductAction(id);
+      if (result.success) {
+        router.refresh();
+        setSelectedIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (confirm(`Voulez-vous vraiment supprimer les ${selectedIds.size} produits sélectionnés ?`)) {
+      setIsSubmitting(true);
+      try {
+        const result = await bulkDeleteProductsAction(Array.from(selectedIds));
+        if (result.success) {
+          router.refresh();
+          setSelectedIds(new Set());
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProducts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const result = await saveProductAction(editingProduct ? { ...editingProduct, ...formData } : formData, currentStoreId || '');
+      if (result.success) {
+        setShowSuccessToast(editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !');
+        setTimeout(() => setShowSuccessToast(null), 3000);
+        router.refresh();
+        setIsModalOpen(false);
+      } else {
+        alert('Erreur: ' + (result.error || 'Impossible d\'enregistrer le produit'));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex-grow overflow-hidden flex flex-col p-3 md:p-8 bg-gray-50/30 relative">
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-[200] bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-white/20 p-1 rounded-full">
+            <Check size={20} />
+          </div>
+          <span className="font-black text-sm">{showSuccessToast}</span>
+        </div>
+      )}
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">Inventaire</h1>
+            <p className="text-gray-500 text-[11px] md:text-sm mt-0.5 md:mt-1 whitespace-nowrap">Gérez vos produits et vos stocks.</p>
+          </div>
+          {selectedIds.size > 0 && permissions.canManageInventory && (
+            <div className="flex items-center gap-2 animate-in slide-in-from-left-4 duration-300">
+              <div className="h-8 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-black border border-red-100 hover:bg-red-100 transition-all shadow-sm"
+              >
+                <Trash2 size={14} /> Supprimer ({selectedIds.size})
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+          <button className="hidden md:flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all bg-white">
+            <Download size={18} /> Exporter
+          </button>
+
+          {permissions.canManageInventory && (
+            <div className="flex items-center gap-2 md:gap-3">
+              <button
+                onClick={() => handleOpenModal(undefined, 'pos')}
+                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#3b82f6] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 whitespace-nowrap"
+              >
+                <Monitor size={14} className="md:size-[18px]" /> + Point de Vente
+              </button>
+              <button
+                onClick={() => handleOpenModal(undefined, 'store')}
+                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
+              >
+                <ShoppingBag size={14} className="md:size-[18px]" /> + Store + POS
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm flex-grow overflow-hidden flex flex-col">
+        {/* Tabs for product type */}
+        <div className="px-3 md:px-4 pt-3 md:pt-4 pb-2 border-b border-gray-100">
+          <div className="flex items-center gap-1.5 md:gap-2 bg-gray-100 p-0.5 md:p-1 rounded-lg md:rounded-xl">
+            <button
+              onClick={() => setProductType('all')}
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap ${productType === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Package size={14} className="md:w-4 md:h-4" /> Tous ({localProducts.length})
+            </button>
+            <button
+              onClick={() => setProductType('pos')}
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap ${productType === 'pos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Monitor size={14} className="md:w-4 md:h-4" /> POS ({localProducts.filter((p: any) => !p.isOnline).length})
+            </button>
+            <button
+              onClick={() => setProductType('marketplace')}
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap ${productType === 'marketplace' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <ShoppingBag size={14} className="md:w-4 md:h-4" /> Store ({localProducts.filter((p: any) => p.isOnline !== false).length})
+            </button>
+          </div>
+        </div>
+
+        <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between gap-3 md:gap-4">
+          <div className="relative flex-grow max-w-md">
+            <Search size={16} className="absolute left-3 top-2.5 md:top-3 text-gray-400 md:w-[18px] md:h-[18px]" />
+            <input
+              type="text"
+              value={searchTerm}
+              placeholder="Rechercher..."
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20"
+            />
+          </div>
+          <div className="hidden md:flex items-center border border-gray-100 rounded-xl p-1 bg-gray-50">
+            <button
+              onClick={() => setViewType('table')}
+              className={`p-1.5 rounded-lg transition-all ${viewType === 'table' ? 'bg-white shadow-sm text-[#f56b2a]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <List size={18} />
+            </button>
+            <button
+              onClick={() => setViewType('grid')}
+              className={`p-1.5 rounded-lg transition-all ${viewType === 'grid' ? 'bg-white shadow-sm text-[#f56b2a]' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-grow custom-scrollbar">
+          {viewType === 'table' ? (
+            <div className="block md:table w-full">
+              <div className="hidden md:table-header-group bg-gray-50/80 backdrop-blur text-gray-400 uppercase text-[10px] font-bold tracking-widest sticky top-0 z-10">
+                <div className="table-row">
+                  <div className="table-cell px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                      checked={filteredProducts.length > 0 && selectedIds.size === filteredProducts.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </div>
+                  <div className="table-cell px-4 py-3">Produit</div>
+                  <div className="table-cell px-4 py-3">Type</div>
+                  <div className="table-cell px-4 py-3">Catégorie</div>
+                  <div className="table-cell px-4 py-3">Prix</div>
+                  <div className="table-cell px-4 py-3">Stock</div>
+                  <div className="table-cell px-4 py-3">Avis</div>
+                  <div className="table-cell px-4 py-3 text-right">Actions</div>
+                </div>
+              </div>
+              <div className="block md:table-row-group divide-y divide-gray-100">
+                {filteredProducts.map(product => (
+                  <div key={product.id} className={`block md:table-row transition-colors group ${selectedIds.has(product.id) ? 'bg-orange-50/60' : 'hover:bg-orange-50/10'}`}>
+                    <div className="hidden md:table-cell px-4 py-2.5 w-10">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                        checked={selectedIds.has(product.id)}
+                        onChange={() => toggleSelect(product.id)}
+                      />
+                    </div>
+                    <div className="block md:table-cell px-2 md:px-4 py-1.5 md:py-2.5">
+                      <div className="flex items-center justify-between gap-2 md:gap-3">
+                        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-grow">
+                          <div className="md:hidden">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                              checked={selectedIds.has(product.id)}
+                              onChange={() => toggleSelect(product.id)}
+                            />
+                          </div>
+                          <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
+                            <ProductImage
+                              src={product.image}
+                              alt={product.name}
+                              containerClassName="rounded-md md:rounded-lg border border-gray-100 shadow-sm"
+                              showZoomEffect={false}
+                            />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5 md:gap-2">
+                              <span className="font-bold text-[10px] md:text-sm text-gray-900 truncate whitespace-nowrap max-w-[120px] md:max-w-[250px] inline-block">{product.name}</span>
+                              <span className={`text-[7px] md:text-[8px] font-black px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {product.isOnline !== false ? 'MAR.' : 'POS'}
+                              </span>
+                            </div>
+                            <div className="flex md:hidden items-center gap-2 mt-0.5 whitespace-nowrap">
+                              <span className="text-[9px] font-black text-[#f56b2a]">
+                                {formatCurrency(product.price)}
+                              </span>
+                              <span className="text-[9px] text-gray-300">|</span>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-[9px] font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-500'}`}>
+                                  {product.stock} {product.unit}
+                                </span>
+                                {product.stock < 10 && <AlertCircle size={9} className="text-red-500" />}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions for Mobile - integrated in the same line */}
+                        <div className="flex md:hidden items-center gap-1.5 flex-shrink-0">
+                          {permissions.canManageInventory && (
+                            <button
+                              onClick={() => handleOpenModal(product)}
+                              className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg active:scale-90"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                          <ChevronRight size={14} className="text-gray-300" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hidden md:table-cell px-4 py-2.5">
+                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                        {product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
+                        {product.isOnline !== false ? 'Marketplace' : 'POS'}
+                      </span>
+                    </div>
+
+                    <div className="hidden md:table-cell px-4 py-2.5">
+                      <span className="text-[9px] font-black px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-lg uppercase tracking-wider">{product.category}</span>
+                    </div>
+
+                    <div className="hidden md:table-cell px-4 py-2.5">
+                      <div className="flex flex-col">
+                        <div className="text-xs font-black text-[#f56b2a]">
+                          {formatCurrency(product.price)}
+                          {product.unit && product.unit !== 'pièce' && <span className="text-[10px] font-bold text-gray-500 ml-1">/{product.unit}</span>}
+                        </div>
+                        {product.wholesalePrice && (
+                          <div className="flex items-center gap-1 mt-0.5 whitespace-nowrap">
+                            <Zap size={8} className="text-[#f56b2a]" fill="currentColor" />
+                            <span className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">
+                              Gros: {formatCurrency(product.wholesalePrice)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="hidden md:table-cell px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
+                        {product.stock < 10 && <AlertCircle size={12} className="text-red-500" />}
+                      </div>
+                    </div>
+
+                    <div className="hidden md:table-cell px-4 py-2.5">
+                      <div className="flex items-center gap-1">
+                        <Star size={10} className={product.rating && product.rating > 0 ? "text-yellow-400 fill-current" : "text-gray-200"} />
+                        <span className="text-xs font-black text-gray-700">{product.rating ? product.rating.toFixed(1) : '—'}</span>
+                        <span className="text-[9px] text-gray-400">({product.reviewCount || 0})</span>
+                      </div>
+                    </div>
+
+                    <div className="hidden md:table-cell px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1 text-right">
+                        {permissions.canManageInventory && (
+                          <>
+                            <button
+                              onClick={() => handleOpenModal(product)}
+                              className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg transition-all active:scale-90"
+                            >
+                              <Edit size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product.id)}
+                              className="p-2 text-red-600 bg-red-50 rounded-lg transition-all active:scale-90"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 p-2">
+              {filteredProducts.map(product => (
+                <div
+                  key={product.id}
+                  onClick={() => toggleSelect(product.id)}
+                  className={`bg-white rounded-lg md:rounded-xl p-1.5 md:p-2 border shadow-sm hover:shadow-lg transition-all group relative flex flex-col min-w-0 cursor-pointer ${selectedIds.has(product.id) ? 'border-[#f56b2a] ring-2 ring-orange-100' : 'border-gray-100'}`}
+                >
+                  <div className="absolute top-1 left-1 z-20">
+                    <input
+                      type="checkbox"
+                      className="w-3.5 h-3.5 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a] shadow-sm"
+                      checked={selectedIds.has(product.id)}
+                      onChange={(e) => { e.stopPropagation(); toggleSelect(product.id); }}
+                    />
+                  </div>
+                  {permissions.canManageInventory && !selectedIds.has(product.id) && (
+                    <div className="absolute top-1 right-1 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <button onClick={(e) => { e.stopPropagation(); handleOpenModal(product); }} className="bg-white/90 backdrop-blur p-1 rounded-full shadow-md text-[#f56b2a] hover:bg-[#f56b2a] hover:text-white transition-colors"><Edit size={10} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="bg-white/90 backdrop-blur p-1 rounded-full shadow-md text-red-600 hover:bg-red-600 hover:text-white transition-colors"><Trash2 size={10} /></button>
+                    </div>
+                  )}
+                  <div className="aspect-square mb-1.5 md:mb-2 relative">
+                    <ProductImage
+                      src={product.image}
+                      alt={product.name}
+                      containerClassName="rounded-md md:rounded-lg border border-gray-50 bg-white"
+                    />
+                    <span className={`absolute bottom-1 right-1 text-[7px] md:text-[8px] font-black px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100/90 text-green-600' : 'bg-blue-100/90 text-blue-600'}`}>
+                      {product.isOnline !== false ? 'MAR.' : 'POS'}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-[10px] md:text-sm truncate whitespace-nowrap w-full">{product.name}</h4>
+                  <p className="text-[8px] md:text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-wider whitespace-nowrap">{product.category}</p>
+                  <div className="flex justify-between items-center mt-auto pt-1.5 md:pt-2">
+                    <span className="text-xs md:text-sm font-black text-[#f56b2a] whitespace-nowrap">
+                      {formatCurrency(product.price)}
+                    </span>
+                    <span className={`text-[8px] md:text-[9px] font-black px-1 py-0.5 rounded-full whitespace-nowrap ${product.stock < 10 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{product.stock}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Load More */}
+          {hasMore && (
+            <div className="p-6 md:p-10 flex justify-center border-t border-gray-100 bg-gray-50/10">
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="flex items-center gap-2 px-8 py-3 bg-white border-2 border-gray-100 rounded-2xl shadow-sm text-sm font-black text-gray-600 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isLoadingMore ? (
+                  <Loader2 size={16} className="animate-spin text-[#f56b2a]" />
+                ) : (
+                  <Plus size={16} className="text-[#f56b2a]" />
+                )}
+                {isLoadingMore ? 'Chargement...' : 'Voir plus de produits'}
+              </button>
+            </div>
+          )}
+
+          {!hasMore && localProducts.length > 5 && (
+            <div className="p-8 text-center text-gray-400 text-[10px] font-black uppercase tracking-widest opacity-50 border-t border-gray-50 bg-gray-50/5">
+              Fin de l'inventaire
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal Produit (Step Form) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header with Step Indicator */}
+            <div className="px-3 md:px-8 pt-3 md:pt-8 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+              <div className="flex items-center justify-between mb-4 md:mb-8">
+                <div>
+                  <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">
+                    {editingProduct ? 'Modifier' : skipStepOne ? (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)') : 'Nouveau Produit'}
+                  </h2>
+                  <p className="text-gray-400 text-[10px] md:text-xs font-bold mt-1 whitespace-nowrap">Étape {currentStep} sur 4</p>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
+                  <X size={18} className="md:size-6" />
+                </button>
+              </div>
+
+              {/* Step Progress Bar */}
+              <div className="flex items-center justify-between relative px-1 md:px-2">
+                <div className="absolute top-1/2 left-0 right-0 h-px md:h-0.5 bg-gray-100 -translate-y-1/2 z-0 mx-6 md:mx-8" />
+                {[
+                  { s: 1, icon: Globe, label: 'Canaux' },
+                  { s: 2, icon: Tag, label: 'Infos' },
+                  { s: 3, icon: DollarSign, label: 'Prix' },
+                  { s: 4, icon: ImageIcon, label: 'Médias' }
+                ].map((step) => (
+                  <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
+                    <div className={`
+                      w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300
+                      ${currentStep === step.s ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100 ring-4 ring-orange-50/50' :
+                        currentStep > step.s ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-100 text-gray-300'}
+                    `}>
+                      {currentStep > step.s ? <Check size={12} className="md:size-[18px]" /> : <step.icon size={12} className="md:size-[18px]" />}
+                    </div>
+                    <span className={`text-[7px] md:text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
+              {currentStep === 1 && (
+                <div className="animate-in slide-in-from-right-4 duration-300">
+                  <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Canaux de vente</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isOnline: false })}
+                      className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${!formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
+                    >
+                      <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${!formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
+                        <Monitor size={18} className="md:size-6" />
+                      </div>
+                      <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Point de Vente</h4>
+                      <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique uniquement.</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isOnline: true })}
+                      className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
+                    >
+                      <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
+                        <Globe size={18} className="md:size-6" />
+                      </div>
+                      <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Store + POS</h4>
+                      <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique et en ligne.</p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 2 && (
+                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Grande Catégorie</label>
+                      <select
+                        value={formData.mainCategory}
+                        onChange={e => setFormData({ ...formData, mainCategory: e.target.value })}
+                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      >
+                        {MAIN_CATEGORIES.map(cat => <option key={cat}>{cat}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Sous-Catégorie</label>
+                      <select
+                        value={formData.category}
+                        onChange={e => {
+                          const newSub = e.target.value;
+                          setFormData({
+                            ...formData,
+                            category: newSub,
+                            mainCategory: CATEGORY_MAPPING[newSub] || formData.mainCategory
+                          });
+                        }}
+                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      >
+                        <option>Électronique</option>
+                        <option>Audio</option>
+                        <option>Gaming</option>
+                        <option>Télévision</option>
+                        <option>Maison</option>
+                        <option>Bureau</option>
+                        <option>Accessoires</option>
+                        <option>Vêtements</option>
+                        <option>Beauté</option>
+                        <option>Alimentation</option>
+                        <option>Boissons</option>
+                        <option>Sport</option>
+                        <option>Loisirs</option>
+                        <option>Auto</option>
+                        <option>Moto</option>
+                        <option>Jouets</option>
+                        <option>Enfants</option>
+                        <option>Bricolage</option>
+                        <option>Jardin</option>
+                        <option>Livres</option>
+                        <option>Papeterie</option>
+                        <option>Général</option>
+                        <option>Autre</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 3 && (
+                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Prix de Vente (XOF)</label>
+                      <div className="relative">
+                        <input
+                          required
+                          type="number"
+                          value={formData.price ?? ''}
+                          onChange={e => setFormData({ ...formData, price: e.target.value ? Math.round(parseFloat(e.target.value)) : undefined })}
+                          placeholder="0"
+                          className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                        />
+                        <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
+                      <input
+                        required
+                        type="number"
+                        value={formData.stock ?? ''}
+                        onChange={e => setFormData({ ...formData, stock: e.target.value ? parseFloat(e.target.value) : undefined })}
+                        placeholder="0"
+                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Unité</label>
+                    <div className="flex flex-wrap gap-1.5 md:gap-2">
+                      {['pièce', 'kg', 'g', 'L', 'ml', 'm'].map(u => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, unit: u })}
+                          className={`px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all ${formData.unit === u ? 'bg-[#f56b2a] text-white shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                        >
+                          {u.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Wholesale Section */}
+                  <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
+                    <div className="flex items-center justify-between mb-4 md:mb-6">
+                      <div>
+                        <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Vente en Gros</h4>
+                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix réduit pour de grandes quantités</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (formData.wholesalePrice !== undefined) {
+                            setFormData({ ...formData, wholesalePrice: undefined, wholesaleMinQty: undefined });
+                          } else {
+                            setFormData({ ...formData, wholesalePrice: (formData.price || 0) * 0.8, wholesaleMinQty: 10 });
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${formData.wholesalePrice !== undefined ? 'bg-orange-50 text-[#f56b2a] border border-orange-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
+                      >
+                        {formData.wholesalePrice !== undefined ? 'ACTIVÉ' : 'DÉSACTIVER'}
+                      </button>
+                    </div>
+
+                    {formData.wholesalePrice !== undefined && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-in slide-in-from-top-4 duration-300">
+                        <div>
+                          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Prix de Gros (XOF)</label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={formData.wholesalePrice ?? ''}
+                              onChange={e => setFormData({ ...formData, wholesalePrice: e.target.value ? Math.round(parseFloat(e.target.value)) : 0 })}
+                              placeholder="0"
+                              className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                            />
+                            <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Qté Minimale</label>
+                          <input
+                            type="number"
+                            value={formData.wholesaleMinQty ?? ''}
+                            onChange={e => setFormData({ ...formData, wholesaleMinQty: e.target.value ? parseInt(e.target.value) : 1 })}
+                            placeholder="10"
+                            className="w-full px-4 md:px-5 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 4 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div className="flex flex-col gap-4">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Images du Produit</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {(formData.images || []).map((img, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = formData.images.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, images: newImages, image: newImages[0] || '' });
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                          {idx === 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-black text-center py-0.5 uppercase">Principale</div>
+                          )}
+                        </div>
+                      ))}
+                      <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl hover:bg-orange-50 hover:border-orange-200 transition-all cursor-pointer group">
+                        <Plus size={18} className="md:size-5 text-gray-300 group-hover:text-[#f56b2a]" />
+                        <span className="text-[7px] md:text-[8px] font-black text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const files = Array.from(e.target.files || []) as File[];
+                            
+                            for (const file of files) {
+                              try {
+                                // Optimisation : Compression + Resolution + WebP
+                                const optimizedFile = await optimizeImage(file);
+                                // Conversion en Base64 pour le stockage actuel
+                                const base64 = await fileToBase64(optimizedFile);
+                                
+                                setFormData(prev => {
+                                  const newImages = [...prev.images, base64];
+                                  return {
+                                    ...prev,
+                                    images: newImages,
+                                    image: prev.image || newImages[0]
+                                  };
+                                });
+                              } catch (err) {
+                                console.error("Erreur lors de l'optimisation:", err);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">La première image sera l'image principale du produit.</p>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>
+                    <textarea
+                      value={formData.description || ''}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none min-h-[80px] md:min-h-[120px] resize-none"
+                    />
+                  </div>
+
+                  {/* Manual Visibility Toggle */}
+                  <div className="flex items-center justify-between p-3 md:p-4 bg-orange-50/50 rounded-xl md:rounded-2xl border border-orange-100">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <div className="bg-[#f56b2a] p-1.5 md:p-2 rounded-lg text-white">
+                        <Globe size={16} className="md:size-[18px]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Publier sur le Store</div>
+                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Visibilité publique</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isOnline: !formData.isOnline })}
+                      className={`w-10 md:w-12 h-5 md:h-6 rounded-full transition-colors relative ${formData.isOnline ? 'bg-[#f56b2a]' : 'bg-gray-200'}`}
+                    >
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${formData.isOnline ? 'left-5.5 md:left-7' : 'left-0.5 md:left-1'}`} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Navigation Footer */}
+            <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between gap-3 md:gap-4">
+              <button
+                type="button"
+                disabled={(skipStepOne ? currentStep === 2 : currentStep === 1) || isSubmitting}
+                onClick={() => setCurrentStep(prev => prev - 1)}
+                className="px-2 md:px-6 py-2.5 md:py-4 flex items-center gap-1 md:gap-2 font-black text-[10px] md:text-sm text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-30 whitespace-nowrap"
+              >
+                <ChevronLeft size={16} className="md:size-5" /> Retour
+              </button>
+
+              <div className="flex gap-2 md:gap-3">
+                {currentStep < 4 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(prev => prev + 1)}
+                    className="px-4 md:px-8 py-2.5 md:py-4 bg-gray-900 text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-1 md:gap-2 whitespace-nowrap"
+                  >
+                    Suivant <ChevronRight size={14} className="md:size-[18px]" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-5 md:px-10 py-2.5 md:py-4 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 disabled:bg-orange-300 flex items-center gap-1 md:gap-2 whitespace-nowrap"
+                  >
+                    {isSubmitting ? <Loader color="text-white" size="sm" /> : null}
+                    {isSubmitting ? 'Envoi...' : 'Enregistrer'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Custom Product Limit Modal */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 ring-1 ring-black/5">
+            <div className="p-8 md:p-10 flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center text-[#f56b2a] mb-6 shadow-sm border border-orange-100 rotate-3">
+                <Award size={40} className="-rotate-3" />
+              </div>
+              
+              <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-2 leading-tight">
+                Limite de produits atteinte !
+              </h3>
+              
+              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-8">
+                Vous avez atteint la limite de <span className="text-[#f56b2a] font-bold">{(subscription && SUBSCRIPTION_PLANS[subscription.tier]?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel. 
+                <br className="hidden md:block" />
+                Passez à la formule <span className="font-bold text-slate-900 underline underline-offset-4 decoration-[#f56b2a]/30">Pro</span> pour continuer à développer votre inventaire.
+              </p>
+              
+              <div className="flex flex-col w-full gap-3">
+                <button
+                  onClick={() => {
+                      // Navigate to subscription page
+                      const subLink = document.querySelector('[data-view-id="subscription"]');
+                      if (subLink) (subLink as HTMLElement).click();
+                      else window.location.href = '/dashboard?view=subscription'; 
+                      setShowLimitModal(false);
+                  }}
+                  className="w-full py-4 bg-[#f56b2a] text-white rounded-2xl font-black text-sm md:text-base hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  Découvrir les Tarifs <ChevronRight size={18} />
+                </button>
+                <button
+                  onClick={() => setShowLimitModal(false)}
+                  className="w-full py-3 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
+                >
+                  Plus tard
+                </button>
+              </div>
+            </div>
+            
+            {/* Minimal Background Decoration */}
+            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 bg-orange-50 rounded-full blur-3xl opacity-50 -z-10" />
+            <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-48 h-48 bg-purple-50 rounded-full blur-3xl opacity-50 -z-10" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default InventoryView;

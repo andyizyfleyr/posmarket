@@ -1,0 +1,478 @@
+import { supabase } from '@/supabase';
+import { Product, Customer, Order, StoreSettings, Invoice, Staff, UserProfile, UserSubscription } from '@/types';
+import { generateSlug } from '@/utils';
+
+export const saveProduct = async (product: Partial<Product>, storeId: string) => {
+    const dataToSave: any = {
+        store_id: storeId,
+        name: product.name,
+        price: product.price,
+        original_price: product.originalPrice,
+        image: product.image,
+        stock: product.stock,
+        category: product.category,
+        main_category: product.mainCategory,
+        unit: product.unit,
+        description: product.description,
+    };
+
+    // Add images and is_online only if they are present in the product object
+    if (product.images !== undefined) dataToSave.images = product.images;
+    if (product.isOnline !== undefined) dataToSave.is_online = product.isOnline;
+
+    // Clean dataToSave to remove any undefined fields that might cause SQL errors
+    Object.keys(dataToSave).forEach(key => {
+        if (dataToSave[key] === undefined) delete dataToSave[key];
+    });
+
+    if (product.id && !product.id.startsWith('temp-')) {
+        const { data, error } = await supabase
+            .from('products')
+            .update(dataToSave)
+            .eq('id', product.id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    } else {
+        const { data, error } = await supabase
+            .from('products')
+            .insert([dataToSave])
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+};
+
+export const deleteProduct = async (id: string) => {
+    const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
+};
+
+export const saveCustomer = async (customer: Partial<Customer>, storeId: string) => {
+    const dataToSave = {
+        store_id: storeId,
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        total_spent: customer.totalSpent,
+        orders_count: customer.ordersCount,
+    };
+
+    console.log(`[API] Saving customer in store ${storeId}...`, dataToSave);
+    if (customer.id && !customer.id.startsWith('temp-')) {
+        const { data, error } = await supabase
+            .from('customers')
+            .update(dataToSave)
+            .eq('id', customer.id)
+            .select()
+            .single();
+        if (error) {
+            console.error('[API] Error updating customer:', error);
+            throw error;
+        }
+        console.log('[API] Customer updated:', data.id);
+        return data;
+    } else {
+        const { data, error } = await supabase
+            .from('customers')
+            .insert([dataToSave])
+            .select()
+            .single();
+        if (error) {
+            console.error('[API] Error inserting customer:', error);
+            throw error;
+        }
+        console.log('[API] Customer created:', data.id);
+        return data;
+    }
+};
+
+export const deleteCustomer = async (id: string) => {
+    const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
+};
+
+export const bulkDeleteCustomers = async (ids: string[]) => {
+    const { error } = await supabase
+        .from('customers')
+        .delete()
+        .in('id', ids);
+    if (error) throw error;
+};
+
+export const createOrder = async (order: Order, storeId: string) => {
+    // Ensure numeric values are valid
+    const cleanOrderData = {
+        store_id: storeId,
+        customer_id: order.customer?.id,
+        subtotal: order.subtotal || 0,
+        total: order.total || 0,
+        discount_amount: order.discountAmount || 0,
+        promo_code: order.promoCode || null,
+        payment_method: order.paymentMethod || 'ESPECES',
+        status: order.status || 'PENDING',
+        type: order.type || 'PICKUP',
+        date: order.date || new Date().toISOString()
+    };
+
+    console.log(`[API] Attempting to create order for store ${storeId}...`, cleanOrderData);
+
+    // 1. Create Order
+    const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert([cleanOrderData])
+        .select()
+        .single();
+
+    if (orderError) {
+        console.error('[API] Error creating order row:', JSON.stringify(orderError, null, 2));
+        throw orderError;
+    }
+    console.log('[API] Order row created:', orderData.id);
+
+    // 2. Create Order Items
+    const orderItems = order.items.map(item => ({
+        order_id: orderData.id,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price
+    }));
+
+    const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+    if (itemsError) {
+        console.error('[API] Error creating order items:', JSON.stringify(itemsError, null, 2));
+        throw itemsError;
+    }
+    console.log('[API] Order items created.');
+
+    // 3. Update Product Stocks
+    for (const item of order.items) {
+        try {
+            const { error: stockError } = await supabase.rpc('decrement_stock', {
+                p_id: item.product.id,
+                p_quantity: item.quantity
+            });
+
+            if (stockError) {
+                console.warn('[API] RPC decrement_stock failed, trying manual update:', stockError.message);
+                const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
+                if (pData) {
+                    await supabase.from('products').update({ stock: Math.max(0, pData.stock - item.quantity) }).eq('id', item.product.id);
+                }
+            }
+        } catch (e) {
+            console.error('[API] Stock update failed:', e);
+        }
+    }
+
+    // 4. Update Customer Stats if any
+    if (order.customer?.id) {
+        try {
+            console.log('[API] Updating customer stats...');
+            const { data: cData } = await supabase.from('customers').select('total_spent, orders_count').eq('id', order.customer.id).single();
+            if (cData) {
+                await supabase.from('customers').update({
+                    total_spent: (cData.total_spent || 0) + (order.total || 0),
+                    orders_count: (cData.orders_count || 0) + 1
+                }).eq('id', order.customer.id);
+            }
+        } catch (e) {
+            console.error('[API] Customer stats update failed:', e);
+        }
+    }
+
+    console.log('[API] Order full process complete.');
+    return orderData;
+};
+
+export const updateOrderStatus = async (orderId: string, status: string) => {
+    const { data, error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId)
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+};
+
+export const bulkUpdateOrderStatus = async (orderIds: string[], status: string) => {
+    const { data, error } = await supabase
+        .from('orders')
+        .update({ status })
+        .in('id', orderIds)
+        .select();
+    if (error) throw error;
+    return data;
+};
+
+export const deleteOrder = async (id: string) => {
+    const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
+};
+
+export const bulkDeleteOrders = async (ids: string[]) => {
+    const { error } = await supabase
+        .from('orders')
+        .delete()
+        .in('id', ids);
+    if (error) throw error;
+};
+
+export const addProductReview = async (storeId: string, productId: string, review: any) => {
+    const dataToInsert: any = {
+        store_id: storeId,
+        product_id: productId,
+        author_name: review.author || 'Anonyme',
+        rating: review.rating,
+        comment: review.comment
+    };
+
+    const { data, error } = await supabase
+        .from('product_reviews')
+        .insert(dataToInsert)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('[API] Error adding review:', error);
+        throw error;
+    }
+    return data;
+};
+
+export const updateStoreSettings = async (settings: StoreSettings, storeId: string) => {
+    const { data, error } = await supabase
+        .from('stores')
+        .update({
+            name: settings.name,
+            slug: generateSlug(settings.name),
+            email: settings.email,
+            phone: settings.phone,
+            address: settings.address,
+            ninea: settings.ninea
+        })
+        .eq('id', storeId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+export const saveInvoice = async (invoice: Invoice, storeId: string) => {
+    const dataToSave = {
+        store_id: storeId,
+        invoice_number: invoice.invoiceNumber,
+        customer_id: invoice.customer?.id,
+        customer_name: invoice.customerName,
+        customer_email: invoice.customerEmail,
+        customer_address: invoice.customerAddress,
+        subtotal: invoice.subtotal,
+        total: invoice.total,
+        status: invoice.status,
+        notes: invoice.notes,
+        date: invoice.date,
+        due_date: invoice.dueDate,
+    };
+
+    let invId = invoice.id;
+
+    if (invoice.id && !invoice.id.startsWith('temp-')) {
+        const { error } = await supabase
+            .from('invoices')
+            .update(dataToSave)
+            .eq('id', invoice.id);
+        if (error) throw error;
+
+        // Delete old items and re-insert
+        await supabase.from('invoice_items').delete().eq('invoice_id', invoice.id);
+    } else {
+        const { data, error } = await supabase
+            .from('invoices')
+            .insert([dataToSave])
+            .select()
+            .single();
+        if (error) throw error;
+        invId = data.id;
+    }
+
+    const invoiceItems = invoice.items.map(item => ({
+        invoice_id: invId,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total: item.total
+    }));
+
+    const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(invoiceItems);
+
+    if (itemsError) throw itemsError;
+
+    return invId;
+};
+
+export const deleteStore = async (id: string) => {
+    const { error } = await supabase
+        .from('stores')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
+};
+
+// Cache flags to prevent repeated 400 requests for missing columns
+export const incrementProductViews = async (id: string) => {
+    try {
+        const { error } = await supabase.rpc('increment_product_views', { p_id: id });
+        if (error) console.warn('[API] increment_product_views failed:', error.message);
+    } catch (e) {
+        console.error('[API] increment_product_views error:', e);
+    }
+};
+
+export const incrementStoreViews = async (storeId: string) => {
+    try {
+        const { error } = await supabase.rpc('increment_store_views', { p_id: storeId });
+        if (error) console.warn('[API] increment_store_views failed:', error.message);
+    } catch (e) {
+        console.error('[API] increment_store_views error:', e);
+    }
+};
+
+export const getUserProfile = async (userId: string) => {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+    if (error) throw error;
+
+    return {
+        id: data.id,
+        email: data.email,
+        fullName: data.full_name,
+        avatarUrl: data.avatar_url,
+        isSuperAdmin: data.is_super_admin,
+        subscriptionTier: data.subscription_tier || 'BASIC',
+        subscriptionStatus: data.subscription_status || 'ACTIVE',
+        subscriptionEndDate: data.subscription_end_date
+    };
+};
+
+export const updateUserProfile = async (userId: string, updates: { full_name?: string; avatar_url?: string }) => {
+    const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+    if (error) throw error;
+    
+    return {
+        id: data.id,
+        email: data.email,
+        fullName: data.full_name,
+        avatarUrl: data.avatar_url
+    };
+};
+
+export const saveStaff = async (staff: any, storeId: string) => {
+    // If we have an email and password, it means we are creating/linking a managed account
+    if (staff.email && staff.password) {
+        try {
+            // Call the Edge Function to create the Auth User and link to store
+            const { data, error: functionError } = await supabase.functions.invoke('create-staff', {
+                body: {
+                    email: staff.email,
+                    password: staff.password,
+                    role: staff.role,
+                    storeId,
+                    permissions: {} // Granular permissions removed
+                }
+            });
+
+            if (functionError) {
+                // If the error message is generic, try to get more from data
+                const message = data?.error || functionError.message;
+
+                // Handle already registered users
+                if (message?.toLowerCase().includes('already registered')) {
+                    const userId = await getProfileByEmail(staff.email);
+                    if (userId) {
+                        const { error } = await supabase
+                            .from('store_staff')
+                            .upsert({ store_id: storeId, user_id: userId, role: staff.role, permissions: {} });
+                        if (error) throw error;
+                        return;
+                    }
+                }
+                throw new Error(message || "L'Edge Function a retourné une erreur (vérifiez vos logs Supabase).");
+            }
+
+            if (data?.error) throw new Error(data.error);
+        } catch (error) {
+            console.error('Staff creation error:', error);
+            throw error;
+        }
+    } else {
+        const { error } = await supabase
+            .from('store_staff')
+            .upsert({
+                id: staff.id || undefined,
+                store_id: storeId,
+                user_id: staff.userId,
+                role: staff.role,
+                permissions: {}
+            });
+
+        if (error) throw error;
+    }
+};
+
+export const getProfileByEmail = async (email: string) => {
+    // We use the RPC function to bypass RLS restrictions for looking up user IDs by email
+    const { data, error } = await supabase
+        .rpc('get_user_id_by_email', { p_email: email });
+
+    if (error) throw error;
+    return data as string | null;
+};
+
+export const deleteStaff = async (id: string) => {
+    const { error } = await supabase
+        .from('store_staff')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
+};
+
+export const updateSubscription = async (userId: string, subscription: UserSubscription) => {
+    const { error } = await supabase
+        .from('profiles')
+        .update({
+            subscription_tier: subscription.tier,
+            subscription_duration: subscription.duration,
+            subscription_start_date: subscription.startDate,
+            subscription_end_date: subscription.endDate,
+            subscription_status: subscription.status
+        })
+        .eq('id', userId);
+
+    if (error) throw error;
+};

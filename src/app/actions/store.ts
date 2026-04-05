@@ -1,0 +1,184 @@
+'use server'
+
+import { createClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { safeSupabaseFetch } from '@/utils/supabase/retry'
+
+export async function fetchStores() {
+  const supabase = await createClient()
+
+  const { data: stores, error } = await safeSupabaseFetch<any[]>(
+    () => supabase
+      .from('stores')
+      .select('id, slug, user_id, name, email, phone, address, ninea, views, settings')
+  )
+
+  if (error) {
+    console.error('Error fetching stores:', error)
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, stores }
+}
+
+export async function fetchStoreData(storeId: string) {
+  const supabase = await createClient()
+  
+  // Paralléliser les requêtes côté serveur avec gestion d'erreur robuste et retries
+  const [productsRes, ordersRes, customersRes, invoicesRes, storeRes, statsRes, profileRes]: any[] = await Promise.all([
+    safeSupabaseFetch(() => supabase.from('products').select('*').eq('store_id', storeId).limit(200)),
+    safeSupabaseFetch(() => supabase.from('orders').select('*, order_items(*, product:products(*)), customer:customers(*)').eq('store_id', storeId).order('date', { ascending: false }).limit(100)),
+    safeSupabaseFetch(() => supabase.from('customers').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).limit(100)),
+    (async () => { try { return await safeSupabaseFetch(() => supabase.from('invoices').select('*').eq('store_id', storeId).limit(100)); } catch { return { data: [] }; } })(),
+    safeSupabaseFetch(() => supabase.from('stores').select('*').eq('id', storeId).single()),
+    (async () => { try { return await safeSupabaseFetch(() => supabase.from('product_stats').select('*').eq('store_id', storeId)); } catch { return { data: [] }; } })(),
+    (async () => {
+      const { data: store } = await (await createClient()).from('stores').select('user_id').eq('id', storeId).maybeSingle();
+      if (store) {
+        return await safeSupabaseFetch(() => (createClient()).then(s => s.from('profiles').select('*').eq('id', store.user_id).single()));
+      }
+      return { data: null };
+    })()
+  ])
+
+  const statsMap = Object.fromEntries((statsRes?.data || []).map((s: any) => [s.product_id, s]));
+
+  // Mapping snake_case -> camelCase and parsing numerics for robustness
+  const products = (productsRes.data || []).map((p: any) => {
+    const stats = statsMap[p.id] || {};
+    return {
+      ...p,
+      price: parseFloat(p.price) || 0,
+      originalPrice: p.original_price ? parseFloat(p.original_price) : undefined,
+      isOnline: p.is_online !== false,
+      salesCount: Number(stats.total_sales) || 0,
+      reviewCount: Number(stats.review_count) || 0,
+      rating: Number(stats.average_rating) || 0,
+      views: Number(p.views) || 0,
+      wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
+      wholesaleMinQty: p.wholesale_min_qty
+    };
+  });
+
+  const orders = (ordersRes.data || []).map((o: any) => ({
+    ...o,
+    total: parseFloat(o.total) || 0,
+    subtotal: parseFloat(o.subtotal) || 0,
+    paymentMethod: o.payment_method,
+    status: o.status,
+    customer: o.customer,
+    discountAmount: o.discount_amount ? parseFloat(o.discount_amount) : 0,
+    items: (o.order_items || []).map((oi: any) => ({
+      product: oi.product,
+      quantity: oi.quantity,
+      unitPrice: oi.unit_price,
+      total: oi.total
+    }))
+  }));
+
+  const customers = (customersRes.data || []).map((c: any) => ({
+    ...c,
+    totalSpent: parseFloat(c.total_spent) || 0,
+    ordersCount: Number(c.orders_count) || 0
+  }));
+
+  return {
+    products: products as any[],
+    orders: orders as any[],
+    customers: customers as any[],
+    invoices: invoicesRes.data || [],
+    store: storeRes.data || null,
+    subscription: profileRes?.data ? {
+      tier: profileRes.data.subscription_tier || 'BASIC',
+      duration: profileRes.data.subscription_duration || 'monthly',
+      status: profileRes.data.subscription_status || 'ACTIVE',
+      startDate: profileRes.data.subscription_start_date || new Date().toISOString(),
+      endDate: profileRes.data.subscription_end_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+    } : null,
+    errors: {
+      products: productsRes.error,
+      orders: ordersRes.error,
+      customers: customersRes.error,
+      invoices: invoicesRes.error,
+      store: storeRes.error
+    }
+  }
+}
+
+/**
+ * Quick store creation from the navbar — only needs a name.
+ * Replicates the old App.tsx handleCreateStore behavior.
+ */
+export async function quickCreateStoreAction(name: string) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    return { success: false, error: 'Non authentifié' }
+  }
+
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
+  const { data, error } = await supabase.from('stores').insert({
+    user_id: session.user.id,
+    name: name,
+    slug,
+    email: '',
+    phone: '',
+    address: '',
+    ninea: '',
+    status: 'PENDING'
+  }).select().single()
+
+  if (error) {
+    console.error('Error creating store:', error)
+    return { success: false, error: error.message }
+  }
+
+  const { cookies } = await import('next/headers');
+  (await cookies()).set('currentStoreId', data.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+
+  revalidatePath('/', 'layout')
+  return { success: true, store: data }
+}
+
+/**
+ * Delete a store — with safety checks.
+ */
+export async function quickDeleteStoreAction(storeId: string) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    return { success: false, error: 'Non authentifié' }
+  }
+
+  // Safety: verify the store belongs to this user
+  const { data: store } = await supabase.from('stores').select('user_id').eq('id', storeId).single()
+  if (!store || store.user_id !== session.user.id) {
+    return { success: false, error: 'Vous ne pouvez supprimer que vos propres boutiques.' }
+  }
+
+  // Safety: check if user has other stores
+  const { count } = await supabase.from('stores').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id)
+  if ((count || 0) <= 1) {
+    return { success: false, error: 'Vous devez avoir au moins une boutique.' }
+  }
+
+  const { error } = await supabase.from('stores').delete().eq('id', storeId)
+
+  if (error) {
+    console.error('Error deleting store:', error)
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath('/', 'layout')
+  return { success: true }
+}
+
+export async function clearStoreCookieAction() {
+  const { cookies } = await import('next/headers');
+  (await cookies()).delete('currentStoreId');
+  revalidatePath('/', 'layout')
+  return { success: true }
+}
