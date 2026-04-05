@@ -54,21 +54,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
               {formatCurrency(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-[7px] md:text-[8px] text-gray-300 line-through">
+              <span className="text-[7px] md:text-[8px] text-gray-500 line-through">
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
           </div>
           <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[12px]">
             {product.salesCount !== undefined && product.salesCount > 0 ? (
-              <div className="text-[8px] md:text-[9px] text-gray-400 font-bold opacity-70">
+              <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-70">
                 {product.salesCount} {product.salesCount > 1 ? 'ventes' : 'vente'}
               </div>
             ) : <div />}
 
             {product.views !== undefined && product.views > 0 && (
-              <div className="text-[8px] md:text-[9px] text-gray-400 font-bold opacity-80 flex items-center gap-1">
-                {product.views} <Eye size={10} className="text-gray-400" strokeWidth={2.5} />
+              <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-80 flex items-center gap-1">
+                {product.views} <Eye size={10} className="text-gray-600" strokeWidth={2.5} />
               </div>
             )}
           </div>

@@ -1011,7 +1011,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         {/* Store Dedicated Search Bar - Compact on Mobile */}
                         <div className="mb-3 md:mb-8 max-w-2xl mx-auto md:mx-0">
                             <div className="relative group">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
                                     <Search size={16} strokeWidth={3} />
                                 </div>
                                 <input
@@ -1031,7 +1031,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <span className="text-xs md:text-3xl font-black leading-none mb-0.5 md:mb-1">
                                     {selectedStore.products?.filter(p => p.isOnline !== false && p.image).length || 0}
                                 </span>
-                                <span className="text-[6.5px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Produits</span>
+                                <span className="text-[6.5px] md:text-[10px] font-black text-gray-600 uppercase tracking-widest whitespace-nowrap">Produits</span>
                             </div>
 
                             {/* Visitors Count */}
@@ -1069,7 +1069,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 setSearchTerm('');
                                 setSelectedCategory('all');
                             }}
-                            className="md:hidden mt-5 w-full flex items-center justify-center gap-2 text-gray-400 py-1 transition-all hover:text-gray-600"
+                            className="md:hidden mt-5 w-full flex items-center justify-center gap-2 text-gray-600 py-1 transition-all hover:text-gray-600"
                         >
                             <ChevronLeft size={14} strokeWidth={3} />
                             <span className="text-[10px] font-black uppercase tracking-[0.15em]">Marché principal</span>
@@ -1100,7 +1100,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     {/* Media Gallery - Professional Layout */}
                     <div className="space-y-4">
                         <div className="relative aspect-square rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor-zoom-in shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100" onClick={() => { setCurrentZoomImage(selectedDetailImage); setIsImageModalOpen(true); }}>
-                            <img
+                            <img loading="lazy" decoding="async"
                                 src={selectedDetailImage || selectedProductDetails.image}
                                 className="relative z-10 w-full h-full object-contain transition-transform duration-700 group-hover/main:scale-110"
                                 alt={selectedProductDetails.name}
@@ -1160,12 +1160,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             {formatCurrency(selectedProductDetails.price)}
                                         </span>
                                         {selectedProductDetails.category === 'Appartements' && (
-                                            <span className="text-xs font-black text-gray-400 uppercase tracking-widest">/ nuit</span>
+                                            <span className="text-xs font-black text-gray-600 uppercase tracking-widest">/ nuit</span>
                                         )}
                                     </div>
                                     {selectedProductDetails.originalPrice && (
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-400 line-through font-medium">{formatCurrency(selectedProductDetails.originalPrice)}</span>
+                                            <span className="text-xs text-gray-600 line-through font-medium">{formatCurrency(selectedProductDetails.originalPrice)}</span>
                                             <span className="text-[10px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
                                                 -{Math.round(((selectedProductDetails.originalPrice - selectedProductDetails.price) / selectedProductDetails.originalPrice) * 100)}%
                                             </span>
@@ -1181,7 +1181,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </div>
                                     <span className="text-[10px] font-black text-yellow-700">{(selectedProductDetails.rating || 0).toFixed(1)}</span>
                                 </div>
-                                <span className="text-[11px] font-bold text-gray-400 border-l border-gray-200 pl-4">{selectedProductDetails.reviewCount || 0} Avis Clients</span>
+                                <span className="text-[11px] font-bold text-gray-600 border-l border-gray-200 pl-4">{selectedProductDetails.reviewCount || 0} Avis Clients</span>
                                 <span className="text-[11px] font-bold text-orange-600 border-l border-gray-200 pl-4 flex items-center gap-1.5">
                                     <ShoppingBag size={12} className="text-orange-500" /> {selectedProductDetails.salesCount || 0} Ventes
                                 </span>
@@ -1199,7 +1199,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         <div className="flex items-center gap-2">
                                             <span className="text-[8px] font-black text-[#f56b2a] uppercase tracking-widest">Prix de Gros</span>
                                             <span className="text-xs font-bold text-gray-900">
-                                                {formatCurrency(selectedProductDetails.wholesalePrice)} <span className="text-[9px] text-gray-400 font-medium">(Min. {selectedProductDetails.wholesaleMinQty})</span>
+                                                {formatCurrency(selectedProductDetails.wholesalePrice)} <span className="text-[9px] text-gray-600 font-medium">(Min. {selectedProductDetails.wholesaleMinQty})</span>
                                             </span>
                                         </div>
                                     </div>
@@ -1313,7 +1313,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     {[1, 2, 3, 4, 5].map(s => <Star key={s} size={12} fill={s <= Math.round(selectedProductDetails.rating || 0) ? "currentColor" : "none"} />)}
                                 </div>
                                 <span className="text-xs font-bold text-gray-600">{(selectedProductDetails.rating || 0).toFixed(1)}/5</span>
-                                <span className="text-[10px] text-gray-400 font-medium">({selectedProductDetails.reviewCount || 0} avis)</span>
+                                <span className="text-[10px] text-gray-600 font-medium">({selectedProductDetails.reviewCount || 0} avis)</span>
                             </div>
                         </div>
                         <button
@@ -1334,12 +1334,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     const pct = Math.round((count / total) * 100);
                                     return (
                                         <div key={star} className="flex items-center gap-2">
-                                            <span className="text-[9px] font-bold text-gray-400 w-3 text-right">{star}</span>
+                                            <span className="text-[9px] font-bold text-gray-600 w-3 text-right">{star}</span>
                                             <Star size={9} className="text-yellow-400" fill="currentColor" />
                                             <div className="flex-grow h-1.5 bg-gray-200/80 rounded-full overflow-hidden">
                                                 <div className="h-full bg-yellow-400 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
                                             </div>
-                                            <span className="text-[9px] font-bold text-gray-400 w-6">{pct}%</span>
+                                            <span className="text-[9px] font-bold text-gray-600 w-6">{pct}%</span>
                                         </div>
                                     );
                                 })}
@@ -1371,7 +1371,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                         {[1, 2, 3, 4, 5].map(s => <Star key={s} size={8} className="text-yellow-400" fill={s <= review.rating ? "currentColor" : "none"} />)}
                                                     </div>
                                                 </div>
-                                                <span className="text-[9px] font-medium text-gray-300 flex-shrink-0">{new Date(review.date).toLocaleDateString()}</span>
+                                                <span className="text-[9px] font-medium text-gray-500 flex-shrink-0">{new Date(review.date).toLocaleDateString()}</span>
                                             </div>
                                             <p className="text-[11px] text-gray-500 leading-relaxed">{review.comment}</p>
                                         </div>
@@ -1390,9 +1390,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             </>
                         ) : (
                             <div className="text-center py-8 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                                <MessageCircle size={20} className="mx-auto mb-2 text-gray-300" />
-                                <p className="text-[11px] text-gray-400 font-bold">Aucun avis pour le moment</p>
-                                <p className="text-[9px] text-gray-300 mt-0.5">Soyez le premier à partager votre expérience !</p>
+                                <MessageCircle size={20} className="mx-auto mb-2 text-gray-500" />
+                                <p className="text-[11px] text-gray-600 font-bold">Aucun avis pour le moment</p>
+                                <p className="text-[9px] text-gray-500 mt-0.5">Soyez le premier à partager votre expérience !</p>
                             </div>
                         )}
                     </div>
@@ -1446,10 +1446,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 return (
                                     <React.Fragment key={stage.id}>
                                         <div className="flex flex-col items-center gap-2 shrink-0">
-                                            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100 scale-110' : isPast ? 'bg-green-100 text-green-600' : 'bg-white border-2 border-gray-100 text-gray-300'}`}>
+                                            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100 scale-110' : isPast ? 'bg-green-100 text-green-600' : 'bg-white border-2 border-gray-100 text-gray-500'}`}>
                                                 {isPast ? <CheckCircle2 size={18} /> : <Icon size={isActive ? 18 : 16} />}
                                             </div>
-                                            <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-gray-900' : isPast ? 'text-green-600' : 'text-gray-300'}`}>{stage.label}</span>
+                                            <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-gray-900' : isPast ? 'text-green-600' : 'text-gray-500'}`}>{stage.label}</span>
                                         </div>
                                         {idx < array.length - 1 && (
                                             <div className="flex-grow h-[2px] mx-2 md:mx-4 bg-gray-100 rounded-full overflow-hidden">
@@ -1471,7 +1471,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <div key={storeId} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
                                         <div className="flex items-center gap-2 mb-3 px-2">
                                             <Store size={12} className="text-[#f56b2a]" />
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vendu par</span>
+                                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Vendu par</span>
                                             <span className="text-[11px] font-black text-gray-900 border-b-2 border-orange-100 pb-0.5">
                                                 {cart.find(i => i.product?.storeId === storeId)?.product.storeName || 'Boutique'}
                                             </span>
@@ -1485,20 +1485,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     <div className="flex-grow flex flex-col justify-between">
                                                         <div className="flex justify-between items-start">
                                                             <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{item.product.name || 'Unknown Product'}</h4>
-                                                            <button onClick={() => removeFromCart(item.product.id, item.product.storeId)} className="text-gray-400 hover:text-red-500 p-1"><X size={14} /></button>
+                                                            <button onClick={() => removeFromCart(item.product.id, item.product.storeId)} className="text-gray-600 hover:text-red-500 p-1"><X size={14} /></button>
                                                         </div>
                                                         <div className="flex items-center justify-between mt-2">
                                                             <div className="flex flex-col">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="font-black text-[#f56b2a] text-xs">{formatCurrency(getEffectiveItemPrice(item))}</span>
                                                                     {item.product.wholesalePrice && Number(item.quantity) >= Number(item.product.wholesaleMinQty) && (
-                                                                        <span className="text-[10px] text-gray-300 line-through font-bold">
+                                                                        <span className="text-[10px] text-gray-500 line-through font-bold">
                                                                             {formatCurrency(Number(item.product.price))}
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                                 {item.product.wholesalePrice && (
-                                                                    <div className={`mt-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${item.quantity >= (item.product.wholesaleMinQty || 0) ? 'text-green-600' : 'text-gray-400'}`}>
+                                                                    <div className={`mt-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${item.quantity >= (item.product.wholesaleMinQty || 0) ? 'text-green-600' : 'text-gray-600'}`}>
                                                                         {item.quantity >= (item.product.wholesaleMinQty || 0) ? (
                                                                             <><CheckCircle2 size={10} /> Tarif de gros appliqué</>
                                                                         ) : (
@@ -1524,7 +1524,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 ))}
                             </div>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center py-20 text-gray-400">
+                            <div className="h-full flex flex-col items-center justify-center py-20 text-gray-600">
                                 <ShoppingCart size={64} className="opacity-20 mb-4" />
                                 <p className="text-lg font-black text-gray-900">Votre panier est vide</p>
                             </div>
@@ -1543,9 +1543,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Nom Complet</label>
+                                                <label className="text-[10px] font-black text-gray-600 uppercase ml-1">Nom Complet</label>
                                                 <div className="relative group">
-                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
                                                         <User size={18} />
                                                     </div>
                                                     <input
@@ -1558,9 +1558,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Téléphone Mobile</label>
+                                                <label className="text-[10px] font-black text-gray-600 uppercase ml-1">Téléphone Mobile</label>
                                                 <div className="relative group">
-                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
                                                         <Phone size={18} />
                                                     </div>
                                                     <input
@@ -1584,9 +1584,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                         <div className="space-y-6">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Adresse (Rue, Quartier...)</label>
+                                                <label className="text-[10px] font-black text-gray-600 uppercase ml-1">Adresse (Rue, Quartier...)</label>
                                                 <div className="relative group">
-                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
                                                         <MapPin size={18} />
                                                     </div>
                                                     <input
@@ -1601,7 +1601,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                             <div className="grid grid-cols-1 gap-6">
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Ville</label>
+                                                    <label className="text-[10px] font-black text-gray-600 uppercase ml-1">Ville</label>
                                                     <input
                                                         required
                                                         type="text"
@@ -1620,11 +1620,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div onClick={() => setPaymentMethod('cod')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-[#f56b2a] bg-orange-50' : 'border-gray-100 bg-white'}`}>
-                                            <Truck size={24} className={paymentMethod === 'cod' ? 'text-[#f56b2a]' : 'text-gray-400'} />
+                                            <Truck size={24} className={paymentMethod === 'cod' ? 'text-[#f56b2a]' : 'text-gray-600'} />
                                             <div className="mt-2 font-black text-sm text-gray-900">Paiement à la livraison</div>
                                         </div>
                                         <div onClick={() => setPaymentMethod('card')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-[#f56b2a] bg-orange-50' : 'border-gray-100 bg-white'}`}>
-                                            <CreditCard size={24} className={paymentMethod === 'card' ? 'text-[#f56b2a]' : 'text-gray-400'} />
+                                            <CreditCard size={24} className={paymentMethod === 'card' ? 'text-[#f56b2a]' : 'text-gray-600'} />
                                             <div className="mt-2 font-black text-sm text-gray-900">Carte Bancaire</div>
                                         </div>
                                     </div>
@@ -1686,7 +1686,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
 
                             <div className="animate-in slide-in-from-bottom-8 duration-700 delay-700 w-full flex flex-col items-center">
-                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-3">
+                                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest text-center mb-3">
                                     Cliquez sur un bouton pour continuer
                                 </p>
                                 <div className="flex gap-3 w-full max-w-sm">
@@ -1757,7 +1757,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         {promoApplied && (
                             <div className="mb-4 flex flex-col sm:flex-row items-center justify-between gap-2 bg-green-50 px-3 sm:px-4 py-2.5 rounded-xl border border-green-100">
                                 <span className="text-green-600 font-bold text-xs sm:text-sm">Code appliqué: {promoApplied.code}</span>
-                                <button onClick={() => setPromoApplied(null)} className="text-gray-400 hover:text-red-500 p-1">
+                                <button onClick={() => setPromoApplied(null)} className="text-gray-600 hover:text-red-500 p-1">
                                     <X size={16} />
                                 </button>
                             </div>
@@ -1788,7 +1788,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </button>
                                     <button
                                         onClick={() => setCheckoutStage(checkoutStage === 'shipping' ? 'cart' : 'shipping')}
-                                        className="w-full py-2 text-gray-400 font-bold text-xs hover:text-gray-600 transition-all"
+                                        className="w-full py-2 text-gray-600 font-bold text-xs hover:text-gray-600 transition-all"
                                     >
                                         ← Retour à l'étape précédente
                                     </button>
@@ -1847,14 +1847,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <span className="text-base md:text-2xl font-black tracking-tight leading-none text-gray-900">
                                         Market<span className="text-[#f56b2a]">Place</span>
                                     </span>
-                                    <span className="hidden md:block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mt-1">Local & Express</span>
+                                    <span className="hidden md:block text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] leading-none mt-1">Local & Express</span>
                                 </div>
                             </div>
 
                             {/* Search Bar - Desktop Only version */}
                             <div className="hidden md:block flex-grow max-w-[600px] mx-8 relative">
                                 <div className="flex items-center bg-white rounded-2xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl focus-within:shadow-orange-100/20 transition-all group">
-                                    <div className="pl-4 text-gray-400 group-focus-within:text-[#f56b2a]">
+                                    <div className="pl-4 text-gray-600 group-focus-within:text-[#f56b2a]">
                                         <Search size={18} strokeWidth={2.5} />
                                     </div>
                                     <input
@@ -1900,7 +1900,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         {/* Full Width Search Bar - Mobile Only */}
                         <div className="md:hidden pb-2">
                             <div className="flex items-center bg-white rounded-xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl transition-all group">
-                                <div className="pl-3 text-gray-400 group-focus-within:text-[#f56b2a]">
+                                <div className="pl-3 text-gray-600 group-focus-within:text-[#f56b2a]">
                                     <Search size={16} strokeWidth={2.5} />
                                 </div>
                                 <input
@@ -1927,7 +1927,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     }}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${selectedCategory === cat
                                             ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md'
-                                            : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                                            : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'
                                         }`}
                                 >
                                     <div className={`w-1.5 h-1.5 rounded-full ${selectedCategory === cat ? 'bg-white' : 'bg-gray-200'}`} />
@@ -1946,7 +1946,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         <div className="p-3">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100 shadow-sm">
-                                    <img src={lastAddedProduct.image} alt={lastAddedProduct.name} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={lastAddedProduct.image} alt={lastAddedProduct.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-grow min-w-0">
                                     <div className="flex items-center gap-1.5 mb-0.5">
@@ -1956,7 +1956,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <p className="text-[11px] font-bold text-gray-900 truncate leading-snug">{lastAddedProduct.name}</p>
                                     <p className="text-[11px] font-black text-[#f56b2a] mt-0.5">{formatCurrency(Number(lastAddedProduct.price) || 0)}</p>
                                 </div>
-                                <button onClick={() => setCartNotif(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 self-start">
+                                <button onClick={() => setCartNotif(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-600 self-start">
                                     <X size={16} />
                                 </button>
                             </div>
@@ -1976,7 +1976,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         <button 
                             onClick={() => setIsSearchOpen(false)}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-                        >
+                         aria-label="Fermer la recherche">
                             <ChevronLeft size={24} />
                         </button>
                         <div className="flex-grow relative">
@@ -1992,7 +1992,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             {searchTerm && (
                                 <button 
                                     onClick={() => setSearchTerm('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-600"
                                 >
                                     <X size={16} />
                                 </button>
@@ -2006,7 +2006,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 {/* Stores Results */}
                                 {globalSearchStores.length > 0 && (
                                     <div className="animate-in slide-in-from-bottom-4 duration-500">
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                                             <Store size={12} /> Boutiques ({globalSearchStores.length})
                                         </h3>
                                         <div className="grid grid-cols-2 gap-3 pb-4">
@@ -2023,14 +2023,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 >
                                                     <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50">
                                                         {store.settings?.logo ? (
-                                                            <img src={store.settings.logo} alt={store.name} className="w-full h-full object-cover" />
+                                                            <img loading="lazy" decoding="async" src={store.settings.logo} alt={store.name} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <Store className="text-[#f56b2a]" size={28} />
                                                         )}
                                                     </div>
                                                     <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">{store.settings?.name || 'Boutique'}</h3>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                                                        <p className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter">
                                                             {(store.products || []).filter(p => p.isOnline !== false && p.image).length} PROD.
                                                         </p>
                                                         <p className="text-[9px] text-[#f56b2a] font-black tracking-wider">
@@ -2046,7 +2046,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 {/* Products Results */}
                                 {filteredProducts.length > 0 ? (
                                     <div className="animate-in slide-in-from-bottom-4 duration-500 delay-100">
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                                             <ShoppingCart size={12} /> Produits
                                         </h3>
                                         <div className="grid grid-cols-2 gap-4">
@@ -2075,17 +2075,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </div>
                                 ) : globalSearchStores.length === 0 && (
                                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-500">
                                             <Search size={32} />
                                         </div>
                                         <p className="text-gray-900 font-black">Pas de résultats pour "{searchTerm}"</p>
-                                        <p className="text-gray-400 text-xs mt-1 font-bold">Vérifiez l'orthographe ou essayez un autre mot.</p>
+                                        <p className="text-gray-600 text-xs mt-1 font-bold">Vérifiez l'orthographe ou essayez un autre mot.</p>
                                     </div>
                                 )}
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-2">
                                     <Zap size={12} className="text-orange-500" fill="currentColor" /> Recherches Populaires
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
@@ -2206,7 +2206,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 </div>
                                                 <h3 className="font-bold text-gray-800 text-xs mb-1">{store.settings?.name || 'Boutique'}</h3>
                                                 <div className="flex flex-col gap-0.5">
-                                                    <p className="text-[10px] text-gray-400 font-black">
+                                                    <p className="text-[10px] text-gray-600 font-black">
                                                         {(store.products || []).filter(p => p.isOnline !== false && p.image).length} Produits
                                                     </p>
                                                     <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-wider">
@@ -2230,14 +2230,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             <div key={store.id} onClick={() => navigate(`/store/${store.slug || store.id}`)} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]">
                                                 <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50">
                                                     {store.settings?.logo ? (
-                                                        <img src={store.settings.logo} alt={store.name} className="w-full h-full object-cover" />
+                                                        <img loading="lazy" decoding="async" src={store.settings.logo} alt={store.name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <Store className="text-[#f56b2a]" size={28} />
                                                     )}
                                                 </div>
                                                 <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">{store.settings?.name || 'Boutique'}</h3>
                                                 <div className="flex flex-col gap-0.5">
-                                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-tighter">
+                                                    <p className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">
                                                         {(store.products || []).filter(p => p.isOnline !== false && p.image).length} PROD.
                                                     </p>
                                                     <p className="text-[9px] text-[#f56b2a] font-black tracking-wider">
@@ -2270,7 +2270,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-start pt-32 bg-gray-50/20 backdrop-blur-[2px] animate-in fade-in duration-300">
                                                 <div className="bg-white/90 backdrop-blur-md p-5 rounded-[32px] shadow-2xl shadow-orange-100/50 border border-white flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200">
                                                     <Loader2 size={36} className="text-[#f56b2a] animate-spin" strokeWidth={3} />
-                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] animate-pulse">Chargement</p>
+                                                    <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] animate-pulse">Chargement</p>
                                                 </div>
                                             </div>
                                         )}
@@ -2289,7 +2289,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         {isLoadingMore && (
                                             <div className="flex flex-col items-center gap-3">
                                                 <Loader2 size={32} className="text-[#f56b2a] animate-spin" />
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chargement en cours...</p>
+                                                <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Chargement en cours...</p>
                                             </div>
                                         )}
                                         {!hasMore && pagedProducts.length > 0 && (
@@ -2298,7 +2298,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </div>
                                 </>
                             ) : !isLoadingMore ? (
-                                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                                <div className="flex flex-col items-center justify-center py-20 text-gray-600">
                                     <Search size={64} className="opacity-20 mb-4" />
                                     <p className="text-xl font-black text-gray-600">Aucun produit trouvé.</p>
                                 </div>
@@ -2317,13 +2317,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             <div className="flex items-center gap-1 p-1 bg-gray-100/50 rounded-[20px] mb-6 max-w-fit mx-auto md:mx-0 border border-gray-100/50">
                                 <button 
                                     onClick={() => setStoreTab('products')}
-                                    className={`px-6 py-2.5 rounded-[16px] font-black text-[11px] md:text-sm transition-all flex items-center gap-2 ${storeTab === 'products' ? 'bg-white text-gray-900 shadow-md shadow-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`px-6 py-2.5 rounded-[16px] font-black text-[11px] md:text-sm transition-all flex items-center gap-2 ${storeTab === 'products' ? 'bg-white text-gray-900 shadow-md shadow-gray-200/50' : 'text-gray-600 hover:text-gray-600'}`}
                                 >
                                     <ShoppingBasketIcon size={14} /> Produits
                                 </button>
                                 <button 
                                     onClick={() => setStoreTab('reviews')}
-                                    className={`px-6 py-2.5 rounded-[16px] font-black text-[11px] md:text-sm transition-all flex items-center gap-2 ${storeTab === 'reviews' ? 'bg-white text-gray-900 shadow-md shadow-gray-200/50' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`px-6 py-2.5 rounded-[16px] font-black text-[11px] md:text-sm transition-all flex items-center gap-2 ${storeTab === 'reviews' ? 'bg-white text-gray-900 shadow-md shadow-gray-200/50' : 'text-gray-600 hover:text-gray-600'}`}
                                 >
                                     <Star size={14} className={storeTab === 'reviews' ? 'text-yellow-500' : ''} fill={storeTab === 'reviews' ? 'currentColor' : 'none'} /> Avis
                                 </button>
@@ -2350,7 +2350,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         )) : !isLoadingMore ? (
                                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                                                 <Search size={48} className="text-gray-200 mb-4" />
-                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest text-center">Aucun produit trouvé</p>
+                                                <p className="text-sm font-bold text-gray-600 uppercase tracking-widest text-center">Aucun produit trouvé</p>
                                             </div>
                                         ) : null}
                                     </div>
@@ -2360,7 +2360,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         {isLoadingMore && (
                                             <div className="flex flex-col items-center gap-3">
                                                 <Loader2 size={32} className="text-[#f56b2a] animate-spin" />
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chargement des produits...</p>
+                                                <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Chargement des produits...</p>
                                             </div>
                                         )}
                                     </div>
@@ -2370,7 +2370,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     {loadingStoreReviews ? (
                                         <div className="flex flex-col items-center justify-center py-20">
                                             <Loader2 size={32} className="text-[#f56b2a] animate-spin mb-4" />
-                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Chargement des avis...</p>
+                                            <p className="text-xs font-black text-gray-600 uppercase tracking-widest">Chargement des avis...</p>
                                         </div>
                                     ) : storeReviews.length > 0 ? (
                                         <div className="flex flex-col gap-4">
@@ -2391,7 +2391,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <span className="text-[9px] font-bold text-gray-300">
+                                                            <span className="text-[9px] font-bold text-gray-500">
                                                                 {new Date(review.date).toLocaleDateString()}
                                                             </span>
                                                         </div>
@@ -2402,7 +2402,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                                 className="flex items-center gap-3 bg-gray-50/50 p-2 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-all"
                                                             >
                                                                 <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-gray-100">
-                                                                    <img 
+                                                                    <img loading="lazy" decoding="async" 
                                                                         src={allProducts.find(p => p.id === review.productId)?.image || ""} 
                                                                         alt="" 
                                                                         className="w-full h-full object-cover"
@@ -2413,9 +2413,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                                     <p className="text-[10px] font-black text-gray-900 truncate">
                                                                         {allProducts.find(p => p.id === review.productId)?.name || "Produit"}
                                                                     </p>
-                                                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Voir le produit</p>
+                                                                    <p className="text-[9px] font-bold text-gray-600 uppercase tracking-wider">Voir le produit</p>
                                                                 </div>
-                                                                <ChevronRight size={14} className="text-gray-300 mr-1" />
+                                                                <ChevronRight size={14} className="text-gray-500 mr-1" />
                                                             </div>
                                                         )}
                                                     </div>
@@ -2437,8 +2437,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-6">
                                                 <Star size={32} className="text-gray-200" />
                                             </div>
-                                            <p className="text-sm font-black text-gray-400 uppercase tracking-widest text-center">Aucun avis pour le moment</p>
-                                            <p className="text-[11px] text-gray-300 mt-2 text-center max-w-[200px]">Les avis des clients sur les produits s'afficheront ici.</p>
+                                            <p className="text-sm font-black text-gray-600 uppercase tracking-widest text-center">Aucun avis pour le moment</p>
+                                            <p className="text-[11px] text-gray-500 mt-2 text-center max-w-[200px]">Les avis des clients sur les produits s'afficheront ici.</p>
                                         </div>
                                     )}
                                 </div>
@@ -2487,8 +2487,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 relative">
                         <button
                             onClick={() => setShowAuthModal(false)}
-                            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 z-10"
-                        >
+                            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
+                         aria-label="Fermer">
                             <X size={24} />
                         </button>
 
@@ -2508,7 +2508,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             <form onSubmit={handleAuthSubmit} className="space-y-4">
                                 {authMode === 'register' && (
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Nom Complet</label>
+                                        <label className="text-[10px] font-black text-gray-600 uppercase ml-2">Nom Complet</label>
                                         <input
                                             required
                                             type="text"
@@ -2519,7 +2519,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </div>
                                 )}
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Adresse Email</label>
+                                    <label className="text-[10px] font-black text-gray-600 uppercase ml-2">Adresse Email</label>
                                     <input
                                         required
                                         type="email"
@@ -2529,7 +2529,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Mot de passe</label>
+                                    <label className="text-[10px] font-black text-gray-600 uppercase ml-2">Mot de passe</label>
                                     <input
                                         required
                                         type="password"
@@ -2567,8 +2567,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     <div className="bg-white w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 relative">
                         <button
                             onClick={() => setShowPropulseModal(false)}
-                            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 z-10"
-                        >
+                            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
+                         aria-label="Fermer propulser">
                             <X size={24} />
                         </button>
 
@@ -2636,7 +2636,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <Zap size={24} fill="currentColor" />
                                 Devenir une Boutique Premium
                             </button>
-                            <p className="text-center mt-6 text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+                            <p className="text-center mt-6 text-gray-600 text-[10px] font-bold uppercase tracking-widest">
                                 Essai gratuit de 14 jours • Sans engagement
                             </p>
                         </div>
@@ -2653,7 +2653,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         {/* Close Button */}
                         <button
                             onClick={() => { setShowReviewForm(false); setReviewStep(1); setNewReview({ author: '', rating: 5, comment: '' }); }}
-                            className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 z-10"
+                            className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
                         >
                             <X size={18} />
                         </button>
@@ -2668,7 +2668,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         </div>
                                     ))}
                                 </div>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Étape {reviewStep}/3</p>
+                                <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest text-right">Étape {reviewStep}/3</p>
                             </div>
                         )}
 
@@ -2681,14 +2681,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         <Star size={24} fill="currentColor" />
                                     </div>
                                     <h3 className="text-base font-black text-gray-900 mb-1">Quelle note donnez-vous ?</h3>
-                                    <p className="text-[11px] text-gray-400 font-medium mb-6">Touchez une étoile pour noter ce produit</p>
+                                    <p className="text-[11px] text-gray-600 font-medium mb-6">Touchez une étoile pour noter ce produit</p>
 
                                     <div className="flex items-center justify-center gap-3 mb-8">
                                         {[1, 2, 3, 4, 5].map(num => (
                                             <button
                                                 key={num}
                                                 onClick={() => setNewReview({ ...newReview, rating: num })}
-                                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 ${newReview.rating >= num ? 'bg-yellow-400 text-white shadow-lg shadow-yellow-200 scale-110' : 'bg-gray-50 text-gray-300 border border-gray-100 hover:bg-yellow-50 hover:text-yellow-400'}`}
+                                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 ${newReview.rating >= num ? 'bg-yellow-400 text-white shadow-lg shadow-yellow-200 scale-110' : 'bg-gray-50 text-gray-500 border border-gray-100 hover:bg-yellow-50 hover:text-yellow-400'}`}
                                             >
                                                 <Star size={22} fill={newReview.rating >= num ? "currentColor" : "none"} />
                                             </button>
@@ -2713,7 +2713,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         <User size={24} />
                                     </div>
                                     <h3 className="text-base font-black text-gray-900 mb-1">Comment vous appelez-vous ?</h3>
-                                    <p className="text-[11px] text-gray-400 font-medium mb-6">Votre prénom sera affiché avec votre avis</p>
+                                    <p className="text-[11px] text-gray-600 font-medium mb-6">Votre prénom sera affiché avec votre avis</p>
 
                                     <input
                                         type="text"
@@ -2748,7 +2748,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         <MessageCircle size={24} />
                                     </div>
                                     <h3 className="text-base font-black text-gray-900 mb-1">Partagez votre expérience</h3>
-                                    <p className="text-[11px] text-gray-400 font-medium mb-6">Décrivez ce que vous avez aimé ou non</p>
+                                    <p className="text-[11px] text-gray-600 font-medium mb-6">Décrivez ce que vous avez aimé ou non</p>
 
                                     <textarea
                                         rows={4}
@@ -2758,7 +2758,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-medium text-xs text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-2 resize-none"
                                         autoFocus
                                     />
-                                    <p className="text-[9px] text-gray-300 font-medium mb-5">{newReview.comment.length}/500 caractères</p>
+                                    <p className="text-[9px] text-gray-500 font-medium mb-5">{newReview.comment.length}/500 caractères</p>
 
                                     <div className="flex gap-3">
                                         <button
@@ -2788,7 +2788,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         </div>
                                     </div>
                                     <h3 className="text-lg font-black text-gray-900 mb-1">Merci ! 🎉</h3>
-                                    <p className="text-[11px] text-gray-400 font-medium">Votre avis a été publié avec succès</p>
+                                    <p className="text-[11px] text-gray-600 font-medium">Votre avis a été publié avec succès</p>
                                 </div>
                             )}
                         </div>
@@ -2804,11 +2804,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     <button 
                         onClick={() => setIsImageModalOpen(false)}
                         className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all active:scale-95 z-50"
-                    >
+                     aria-label="Fermer l image">
                         <X size={24} />
                     </button>
                     <div className="w-full h-full p-4 md:p-10 flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                        <img 
+                        <img loading="lazy" decoding="async" 
                             src={currentZoomImage || selectedDetailImage || selectedProductDetails?.image || ''} 
                             className="max-w-full max-h-full object-contain shadow-2xl rounded-2xl animate-in zoom-in-95 duration-500"
                             alt="Full Size Product"
