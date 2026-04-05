@@ -388,6 +388,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const loadMoreRef = useRef<HTMLDivElement>(null);
     const PAGE_LIMIT = 20;
 
+    // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
+    useEffect(() => {
+        // Déclencher un court chargement à chaque changement de page pour confirmer l'action au visiteur
+        setLoadingStack(prev => prev + 1);
+        const timer = setTimeout(() => {
+            setLoadingStack(prev => Math.max(0, prev - 1));
+        }, 400); // 400ms is the sweet spot for feeling "real" but not slow
+        return () => clearTimeout(timer);
+    }, [location.pathname]);
 
     const fusionPayApiUrl = process.env.NEXT_PUBLIC_FUSIONPAY_API_URL || '';
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -2304,8 +2313,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                         <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 transition-all duration-500 ${isLoadingMore ? 'opacity-30 blur-[1px]' : 'opacity-100 blur-0'}`}>
                                             {pagedProducts.map(product => (
-                                                <div key={`${product.storeId}-${product.id}`} onClick={() => navigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
-                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${product.storeSlug || id}`)} />
+                                                <div key={`${product.storeId}-${product.id}`} onClick={() => performAction(() => navigate(`/product/${generateProductSlug(product)}`), 400)} className="cursor-pointer">
+                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => performAction(() => navigate(`/store/${product.storeSlug || id}`), 400)} />
                                                 </div>
                                             ))}
                                         </div>
@@ -2497,7 +2506,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         <div className="relative flex items-center gap-3">
                             <div className="relative">
                                 <ShoppingCart size={20} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
-                                <span key={cartItemsCount} className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in duration-300">
+                                <span key={cartItemsCount} className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in-105 duration-300 shadow-lg shadow-orange-100">
                                     {cartItemsCount}
                                 </span>
                             </div>
@@ -2846,8 +2855,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
             {/* 🚀 Universal Progress Feedback - Always visible at top when processing */}
             {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
-                <div className="fixed top-0 left-0 right-0 z-[2147483646] h-[5px] bg-gray-100/30 overflow-hidden pointer-events-none">
-                    <div className="h-full bg-gradient-to-r from-[#f56b2a] via-[#ff9d6c] to-[#f56b2a] shadow-[0_0_20px_rgba(245,107,42,1)] animate-progress-slide" />
+                <div className="fixed top-0 left-0 right-0 z-[2147483646] h-[6px] bg-gray-100/30 overflow-hidden pointer-events-none">
+                    <div className="h-full bg-gradient-to-r from-[#f56b2a] via-[#ff9d6c] to-[#f56b2a] shadow-[0_0_25px_rgba(245,107,42,1)] animate-progress-slide" />
                 </div>,
                 document.body
             )}
@@ -2855,29 +2864,35 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             {/* 💎 Premium Global Loader Overlay - Luxury Experience (for blocking actions) */}
             {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
                 <div 
-                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white/70 backdrop-blur-md transition-all duration-75 animate-in fade-in`}
+                    className={`fixed inset-0 z-[2147483647] flex flex-col items-center justify-center bg-white/40 backdrop-blur-xl transition-all duration-150 animate-in fade-in`}
                 >
-                    {/* Minimalist Premium Spinner (Neon Style) */}
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[#f56b2a] rounded-full blur-3xl opacity-40 animate-pulse scale-150" />
-                        <div className="relative">
-                            <Loader2 size={64} className="text-[#f56b2a] animate-spin" strokeWidth={2.5} />
+                    {/* Minimalist Premium Spinner (Neon Style) with progress feedback */}
+                    <div className="relative flex flex-col items-center">
+                        <div className="absolute inset-0 bg-[#f56b2a] rounded-full blur-[60px] opacity-20 animate-pulse scale-150" />
+                        <div className="relative mb-6 text-[#f56b2a]">
+                            <Loader2 size={72} className="animate-spin" strokeWidth={2} />
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <ShoppingBasketIcon size={28} className="text-[#f56b2a]/30" />
+                                <ShoppingBasketIcon size={32} className="opacity-20" />
                             </div>
+                        </div>
+                        <div className="bg-white/80 backdrop-blur-md px-6 py-2.5 rounded-full border border-orange-100 shadow-xl shadow-orange-100/30 animate-in slide-in-from-bottom-2 duration-500">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.3em] flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-ping" />
+                                Préparation...
+                            </p>
                         </div>
                     </div>
 
                     <style>{`
                         @keyframes progress-slide {
                             0% { width: 0%; left: -100%; }
-                            25% { width: 50%; left: 0%; }
-                            50% { width: 80%; left: 20%; }
+                            30% { width: 60%; left: 0%; }
+                            60% { width: 90%; left: 10%; }
                             100% { width: 100%; left: 100%; }
                         }
                         .animate-progress-slide {
                             position: absolute;
-                            animation: progress-slide 1s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+                            animation: progress-slide 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
                         }
                     `}</style>
                 </div>,

@@ -24,12 +24,12 @@ export default function RootLayout({
           color="#f56b2a"
           initialPosition={0.08}
           crawlSpeed={200}
-          height={3}
+          height={4}
           crawl={true}
-          showSpinner={true}
-          easing="ease"
-          speed={200}
-          shadow="0 0 10px #f56b2a, 0 0 5px #f56b2a"
+          showSpinner={false}
+          easing="ease-in-out"
+          speed={400}
+          shadow="0 0 15px #f56b2a, 0 0 5px #f56b2a"
         />
         <Providers>
           {children}
