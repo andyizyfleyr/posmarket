@@ -62,16 +62,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const storeViewTracked = React.useRef<string | null>(null);
     const productViewTracked = React.useRef<string | null>(null);
 
-    // 🏛️ Global Loading Semaphore
-    const [loadingStack, setLoadingStack] = useState(0);
+    // 🏛️ Global Loading Semaphores (Dashboard approach)
+    const [navigationStack, setNavigationStack] = useState(0); // For page transitions (bounce icon)
+    const [actionStack, setActionStack] = useState(0);         // For button actions (discreet card)
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
-    const performAction = useCallback(async (action: () => Promise<any> | void, delayDuration = 0) => {
-        // Increment loading stack immediately
-        setLoadingStack(prev => prev + 1);
+    const performAction = useCallback(async (action: () => Promise<any> | void, type: 'navigation' | 'action' = 'action', delayDuration = 0) => {
+        const setStack = type === 'navigation' ? setNavigationStack : setActionStack;
         
-        // Very short wait to ensure the loader is visible if the action is instant
-        await new Promise(resolve => setTimeout(resolve, 10));
+        setStack(prev => prev + 1);
+        
+        // Short delay to let the UI paint the loader
+        await new Promise(resolve => setTimeout(resolve, 30));
 
         try {
             const result = action();
@@ -81,10 +83,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         } catch (error) {
             console.error("Action failed:", error);
         } finally {
-            // No more forced long delay unless explicitly asked
-            setTimeout(() => {
-                setLoadingStack(prev => Math.max(0, prev - 1));
-            }, delayDuration);
+            // Option to hold the loader if needed, but default to instant for fluidity
+            if (delayDuration > 0) {
+                setTimeout(() => {
+                    setStack(prev => Math.max(0, prev - 1));
+                }, delayDuration);
+            } else {
+                setStack(prev => Math.max(0, prev - 1));
+            }
         }
     }, []);
 
@@ -93,12 +99,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setToastNotifications(prev => [...prev, { id, message, type, title }]);
     }, []);
 
-    // 🚀 Navigation Instante - Légère et réactive (Style Dashboard)
+    // 🚀 Navigation Instante - Utilise le loader de (app)/loading.tsx (Store bounce)
     const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
         performAction(() => {
             if (options?.action) options.action();
             navigate(path);
-        }, 0); // Zéro délai forcé pour une fluidité maximale
+        }, 'navigation');
     }, [navigate, performAction]);
 
     const removeToast = useCallback((id: string) => {
@@ -392,11 +398,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
     useEffect(() => {
-        // Déclencher un court chargement à chaque changement de page pour confirmer l'action au visiteur
-        setLoadingStack(prev => prev + 1);
+        // Déclenche le loader de navigation (bounce) lors du changement d'URL
+        setNavigationStack(prev => prev + 1);
         const timer = setTimeout(() => {
-            setLoadingStack(prev => Math.max(0, prev - 1));
-        }, 400); // 400ms is the sweet spot for feeling "real" but not slow
+            setNavigationStack(prev => Math.max(0, prev - 1));
+        }, 300);
         return () => clearTimeout(timer);
     }, [location.pathname]);
 
@@ -522,7 +528,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 name: authMode === 'register' ? authForm.name : 'Utilisateur'
             }));
             setAuthForm({ name: '', email: '', password: '' });
-        }, 600);
+        }, 'action', 600);
     };
 
     const handleLogout = () => {
@@ -531,7 +537,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 setUser(null);
                 setCustomerInfo({ name: '', phone: '', address: '', city: '', zip: '' });
                 localNotify('Déconnexion réussie', 'info');
-            }, 500);
+            }, 'action', 500);
         }
     };
 
@@ -829,7 +835,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 console.log('Code not found in coupons', inputCode, coupons);
                 localNotify('Ce code promo n\'existe pas pour cette boutique.', 'error');
             }
-        }, 400);
+        }, 'action', 400);
     };
 
     const handleCheckoutSubmit = (e: React.FormEvent) => {
@@ -948,7 +954,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 localNotify('Une erreur est survenue lors de l\'envoi de votre avis.', 'error');
                 console.error('Review submission error:', error);
             }
-        }, 800); // More delay for review to feel like work was done
+        }, 'action', 800); // More delay for review to feel like work was done
     };
 
     const openPostOrderReview = (storeId: string, productId: string, productName: string) => {
@@ -1807,7 +1813,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <button onClick={() => {
                                     performAction(() => {
                                         setCheckoutStage('shipping');
-                                    }, 400);
+                                    }, 'action', 400);
                                 }} className="w-full py-4 bg-[#f56b2a] text-white rounded-2xl font-black text-lg shadow-lg shadow-red-100 hover:bg-red-600 transition-all flex items-center justify-center gap-2">Continuer la commande <ChevronLeft size={20} className="rotate-180" /></button>
                             )}
                             {(checkoutStage === 'shipping' || checkoutStage === 'payment') && (
@@ -2860,17 +2866,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 </div>
             )}
 
-            {/* 🚀 Universal Progress Feedback - Always visible at top when processing */}
-            {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
-                <div className="fixed top-0 left-0 right-0 z-[2147483646] h-[6px] bg-gray-100/30 overflow-hidden pointer-events-none">
-                    <div className="h-full bg-gradient-to-r from-[#f56b2a] via-[#ff9d6c] to-[#f56b2a] shadow-[0_0_25px_rgba(245,107,42,1)] animate-progress-slide" />
-                </div>,
-                document.body
-            )}
-
-            {/* 🌌 exact copy of (app)/loading.tsx - consistency requested by user */}
-            {loadingStack > 0 && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto">
+            {/* 🏰 NAVIGATION LOADER - Exact copy of (app)/loading.tsx */}
+            {navigationStack > 0 && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-white animate-in fade-in duration-200 pointer-events-auto">
                     <div className="relative">
                         <div className="absolute inset-0 bg-[#f56b2a]/20 rounded-full blur-2xl animate-pulse scale-150"></div>
                         <div className="relative w-24 h-24 bg-white rounded-[32px] shadow-2xl border-4 border-[#f56b2a]/10 flex items-center justify-center">
@@ -2878,20 +2876,39 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         </div>
                     </div>
                     <p className="mt-8 text-slate-500 font-bold animate-pulse uppercase tracking-[0.2em] text-[10px]">Patientez...</p>
-
-                    <style>{`
-                        @keyframes progress-slide {
-                            0% { width: 0%; left: -100%; }
-                            100% { width: 100%; left: 100%; }
-                        }
-                        .animate-progress-slide {
-                            position: absolute;
-                            animation: progress-slide 1.5s linear infinite;
-                        }
-                    `}</style>
                 </div>,
                 document.body
             )}
+
+            {/* 🛠️ ACTION LOADER - Exact copy of MainLayout.tsx card loader */}
+            {actionStack > 0 && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[10000] bg-slate-900/20 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-200 pointer-events-auto">
+                    <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4">
+                        <Loader2 size={32} className="text-[#f56b2a] animate-spin" />
+                        <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Action en cours...</p>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* 🚀 Universal Progress Feedback - Always visible at top when processing */}
+            {(navigationStack > 0 || actionStack > 0) && typeof document !== 'undefined' && createPortal(
+                <div className="fixed top-0 left-0 right-0 z-[2147483646] h-[6px] bg-gray-100/30 overflow-hidden pointer-events-none">
+                    <div className="h-full bg-gradient-to-r from-[#f56b2a] via-[#ff9d6c] to-[#f56b2a] shadow-[0_0_25px_rgba(245,107,42,1)] animate-progress-slide" />
+                </div>,
+                document.body
+            )}
+
+            <style>{`
+                @keyframes progress-slide {
+                    0% { width: 0%; left: -100%; }
+                    100% { width: 100%; left: 100%; }
+                }
+                .animate-progress-slide {
+                    position: absolute;
+                    animation: progress-slide 1.5s linear infinite;
+                }
+            `}</style>
         </div>
     );
 };
