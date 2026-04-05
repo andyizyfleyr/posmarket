@@ -175,10 +175,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     }
 
     // Dynamic bucketing (aim for ~7-10 points)
-    const bucketCount = Math.min(Math.max(diffDays, 1), 10);
-    const msPerBucket = diffMs / bucketCount;
+    const bucketCount = Math.min(Math.max(diffDays, 1), diffDays < 7 ? diffDays + 1 : 10);
+    const msPerBucket = diffMs / (bucketCount - 1 || 1);
     
     const buckets = [];
+    let lastMonth = '';
+    
     for (let i = 0; i < bucketCount; i++) {
         const bStart = new Date(start.getTime() + (i * msPerBucket));
         const bEnd = new Date(start.getTime() + ((i + 1) * msPerBucket) - 1);
@@ -186,18 +188,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         const total = orders
           .filter(o => {
             const orderDate = new Date(o.date);
-            return orderDate >= bStart && orderDate <= bEnd;
+            return orderDate >= bStart && orderDate <= (i === bucketCount - 1 ? end : bEnd);
           })
           .reduce((sum, o) => sum + o.total, 0);
         
         let label = '';
+        const currentMonth = bStart.toLocaleDateString('fr-FR', { month: 'short' });
+        
         if (diffDays <= 31) {
-            label = bStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            // Only show month name if it's the first label or if the month changed
+            if (i === 0 || i === bucketCount - 1 || currentMonth !== lastMonth) {
+                label = bStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                lastMonth = currentMonth;
+            } else {
+                label = String(bStart.getDate()); // Just the day number
+            }
         } else {
             label = bStart.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
         }
         
-        buckets.push({ label, value: total });
+        buckets.push({ label, value: total, isMajor: label.includes(' ') });
     }
     
     return buckets;
@@ -565,10 +575,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                   const isFirst = index === 0;
                   const isLast = index === currentData.length - 1;
                   
+                  // Mobile optimization: show fewer labels on small screens to prevent overlap
+                  const isHiddenOnMobile = !isFirst && !isLast && (index % 2 !== 0);
+
                   return (
                     <span
                       key={`label-${startDate}-${endDate}-${item.label}-${index}`}
-                      className="absolute text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap animate-fade-in"
+                      className={`absolute text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter md:tracking-widest whitespace-nowrap animate-fade-in
+                        ${isHiddenOnMobile ? 'hidden md:block' : ''}
+                        ${item.isMajor ? 'text-gray-600' : ''}
+                      `}
                       style={{ 
                         left: `${xPos}%`,
                         transform: `translateX(${isFirst ? '0%' : isLast ? '-100%' : '-50%'})`,
