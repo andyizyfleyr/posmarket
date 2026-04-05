@@ -65,19 +65,25 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [loadingStack, setLoadingStack] = useState(0);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
-    const performAction = useCallback(async (action: () => Promise<any> | void, _delay?: number) => {
+    const performAction = useCallback(async (action: () => Promise<any> | void, delayDuration = 300) => {
+        // Retour visuel IMMÉDIAT demandé par l'utilisateur
+        setLoadingStack(prev => prev + 1);
+        
+        // Laisser 30ms pour que React affiche le spinner
+        await new Promise(resolve => setTimeout(resolve, 30));
+
         try {
             const result = action();
-            // Ultra-rapide: n'affiche le loader QUE si c'est une vraie action réseau asynchrone (Promesse)
             if (result instanceof Promise) {
-                setLoadingStack(prev => prev + 1);
                 await result;
-                setLoadingStack(prev => Math.max(0, prev - 1));
             }
-            // Si c'est juste une navigation (navigate), c'est instantané, pas de loader !
         } catch (error) {
             console.error("Action orchestration failed:", error);
-            setLoadingStack(0);
+        } finally {
+            // Maintenir le loader brièvement pour franchir les transitions de page sans clignotement
+            setTimeout(() => {
+                setLoadingStack(prev => Math.max(0, prev - 1));
+            }, delayDuration);
         }
     }, []);
 
