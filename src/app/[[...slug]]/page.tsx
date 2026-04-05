@@ -1,9 +1,8 @@
 import { fetchMarketplaceData, submitCheckoutAction, saveProductReviewAction } from '@/app/actions/marketplace';
 import { StorefrontWrapper } from '@/components/StorefrontWrapper';
 
-// Next.js 15: No longer need force-dynamic if using cookies/headers correctly, 
-// but for storefront data we want it fresh.
-export const dynamic = 'force-dynamic';
+// Next.js ISR: Cache the page on Vercel CDN for 60 seconds to eliminate Server TTFB delay.
+export const revalidate = 60;
 
 export default async function MarketplacePage() {
     const stores = await fetchMarketplaceData();
