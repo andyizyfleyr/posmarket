@@ -66,14 +66,26 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
-    const performAction = useCallback(async (action: () => Promise<any> | void, _delay?: number) => {
+    const performAction = useCallback(async (action: () => Promise<any> | void, delayDelay: number = 400) => {
+        // 1. Affiche le loader immédiatement
         setLoadingStack(prev => prev + 1);
+        
+        // 2. Laisse le temps au navigateur de dessiner le loader AVANT de bloquer le thread avec l'action
+        await new Promise(resolve => setTimeout(resolve, 50));
+
         try {
-            await action();
+            const result = action();
+            // Si c'est une promesse complexe, on l'attend
+            if (result instanceof Promise) {
+                await result;
+            }
         } catch (error) {
             console.error("Action orchestration failed:", error);
         } finally {
-            setLoadingStack(prev => Math.max(0, prev - 1));
+            // 3. Masque le loader après un délai minimum pour couvrir les transitions de route Next.js (naviguer ne retourne pas de promesse)
+            setTimeout(() => {
+                setLoadingStack(prev => Math.max(0, prev - 1));
+            }, delayDelay);
         }
     }, []);
 
@@ -143,8 +155,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
 
-        // 🎖️ Instant Entry Experience
-        setIsInitialLoading(false);
+        // 🎖️ Premium Entry Splash Experience: Let the UI stabilize
+        setTimeout(() => {
+            setIsInitialLoading(false);
+        }, 800);
     }, []);
 
     // 2. Update cache when fresh props arrive
