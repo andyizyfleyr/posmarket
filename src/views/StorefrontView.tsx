@@ -66,26 +66,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
 
-    const performAction = useCallback(async (action: () => Promise<any> | void, delayDelay: number = 400) => {
-        // 1. Affiche le loader immédiatement
-        setLoadingStack(prev => prev + 1);
-        
-        // 2. Laisse le temps au navigateur de dessiner le loader AVANT de bloquer le thread avec l'action
-        await new Promise(resolve => setTimeout(resolve, 50));
-
+    const performAction = useCallback(async (action: () => Promise<any> | void, _delay?: number) => {
         try {
             const result = action();
-            // Si c'est une promesse complexe, on l'attend
+            // Ultra-rapide: n'affiche le loader QUE si c'est une vraie action réseau asynchrone (Promesse)
             if (result instanceof Promise) {
+                setLoadingStack(prev => prev + 1);
                 await result;
+                setLoadingStack(prev => Math.max(0, prev - 1));
             }
+            // Si c'est juste une navigation (navigate), c'est instantané, pas de loader !
         } catch (error) {
             console.error("Action orchestration failed:", error);
-        } finally {
-            // 3. Masque le loader après un délai minimum pour couvrir les transitions de route Next.js (naviguer ne retourne pas de promesse)
-            setTimeout(() => {
-                setLoadingStack(prev => Math.max(0, prev - 1));
-            }, delayDelay);
+            setLoadingStack(0);
         }
     }, []);
 
@@ -155,10 +148,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
 
-        // 🎖️ Premium Entry Splash Experience: Let the UI stabilize
-        setTimeout(() => {
-            setIsInitialLoading(false);
-        }, 800);
+        // ⚡ Vitesse éclair (Cdiscount/Amazon style) : Pas de splash screen artificiel
+        setIsInitialLoading(false);
     }, []);
 
     // 2. Update cache when fresh props arrive
