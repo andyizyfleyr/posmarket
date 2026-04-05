@@ -482,8 +482,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 ))}
               </div>
 
-              <div className="relative w-full h-[calc(100%-1.5rem)] z-10 animate-shopify-reveal">
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
+              <div key={`${startDate}-${endDate}`} className="relative w-full h-[calc(100%-1.5rem)] z-10 animate-shopify-reveal">
+                <svg key={`svg-${startDate}-${endDate}`} viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
                   <defs>
                     <linearGradient id="shopifyGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
@@ -498,7 +498,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                           to="100" 
                           dur="1.2s" 
                           fill="freeze" 
-                          begin="0.2s"
+                          begin="0.1s"
                           calcMode="spline"
                           keySplines="0.4 0 0.2 1"
                           keyTimes="0;1"
@@ -535,13 +535,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                   const yPos = 100 - item.value;
                   return (
                     <div
-                      key={`${item.label}-${index}`}
+                      key={`${startDate}-${endDate}-${item.label}-${index}`}
                       className="absolute group z-20 animate-shopify-dot"
                       style={{ 
                         left: `${xPos}%`, 
                         top: `${yPos}%`, 
                         transform: 'translate(-50%, -50%)',
-                        animationDelay: `${index * 80 + 400}ms`
+                        animationDelay: `${index * 80 + 300}ms`
                       }}
                     >
                       <div className="absolute inset-[-20px] bg-transparent cursor-pointer" />
@@ -559,7 +559,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
               </div>
 
               {/* X Axis Labels */}
-              <div className="absolute bottom-0 left-0 right-0 h-6 translate-y-4">
+              <div key={`labels-${startDate}-${endDate}`} className="absolute bottom-0 left-0 right-0 h-6 translate-y-4">
                 {currentData.map((item, index) => {
                   const xPos = index * (100 / (currentData.length - 1));
                   const isFirst = index === 0;
@@ -567,12 +567,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                   
                   return (
                     <span
-                      key={`label-${item.label}-${index}`}
+                      key={`label-${startDate}-${endDate}-${item.label}-${index}`}
                       className="absolute text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap animate-fade-in"
                       style={{ 
                         left: `${xPos}%`,
                         transform: `translateX(${isFirst ? '0%' : isLast ? '-100%' : '-50%'})`,
-                        animationDelay: `${index * 40 + 800}ms`
+                        animationDelay: `${index * 40 + 700}ms`
                       }}
                     >
                       {item.label}
