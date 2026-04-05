@@ -99,6 +99,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setToastNotifications(prev => [...prev, { id, message, type, title }]);
     }, []);
 
+    // 🚀 Navigation Instantanée - Feedback immédiat demandé par l'utilisateur
+    const safeNavigate = useCallback((path: string, options?: { action?: () => void, delay?: number }) => {
+        performAction(() => {
+            if (options?.action) options.action();
+            navigate(path);
+        }, options?.delay || 500); // 500ms pour un feeling premium et laisser le temps de voir la transition
+    }, [navigate, performAction]);
+
     const removeToast = useCallback((id: string) => {
         setToastNotifications(prev => prev.filter(n => n.id !== id));
     }, []);
@@ -1029,11 +1037,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             {/* Marketplace Return - Desktop Only */}
                             <button
                                 onClick={() => {
-                                    performAction(() => {
-                                        navigate('/');
-                                        setSearchTerm('');
-                                        setSelectedCategory('all');
-                                    }, 300);
+                                    safeNavigate('/', {
+                                        action: () => {
+                                            setSearchTerm('');
+                                            setSelectedCategory('all');
+                                        }
+                                    });
                                 }}
                                 className="hidden md:flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-2xl font-black text-sm hover:bg-[#f56b2a] transition-all shadow-lg active:scale-95"
                             >
@@ -1098,9 +1107,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         {/* Mobile Return Link - Cleaner look */}
                         <button
                             onClick={() => {
-                                navigate('/');
-                                setSearchTerm('');
-                                setSelectedCategory('all');
+                                safeNavigate('/', {
+                                    action: () => {
+                                        setSearchTerm('');
+                                        setSelectedCategory('all');
+                                    }
+                                });
                             }}
                             className="md:hidden mt-5 w-full flex items-center justify-center gap-2 text-gray-600 py-1 transition-all hover:text-gray-600"
                         >
@@ -1176,7 +1188,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         <div className="mb-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <button
-                                    onClick={() => navigate(`/store/${selectedProductDetails.storeSlug || selectedProductDetails.storeId}`)}
+                                    onClick={() => safeNavigate(`/store/${selectedProductDetails.storeSlug || selectedProductDetails.storeId}`)}
                                     className="px-3 py-1 bg-orange-50 text-[#f56b2a] text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-orange-100 transition-colors border border-orange-100"
                                 >
                                     Vendu par {selectedProductDetails.storeName}
@@ -1440,8 +1452,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
                             {relatedProducts.map(product => (
-                                <div key={`${product.storeId}-${product.id}`} onClick={() => navigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
-                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => navigate(`/store/${product.storeSlug || id}`)} />
+                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
                                 </div>
                             ))}
                         </div>
@@ -1459,7 +1471,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         {checkoutStage === 'cart' ? <ShoppingCart className="text-[#f56b2a]" size={16} /> : <ShieldCheck className="text-green-500" size={16} />}
                         <span className="truncate">{checkoutStage === 'cart' ? 'Mon Panier' : checkoutStage === 'shipping' ? 'Livraison' : checkoutStage === 'payment' ? 'Paiement' : 'Commande Validée'}</span>
                     </h2>
-                    <button onClick={() => { navigate('/'); setCheckoutStage('cart'); setCompletedOrderStores([]); setCompletedOrderItems([]); setCompletedOrderTotal(0); }} className="px-2.5 py-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-black text-[9px] uppercase tracking-tighter flex items-center gap-1 whitespace-nowrap">
+                    <button onClick={() => { safeNavigate('/', { action: () => { setCheckoutStage('cart'); setCompletedOrderStores([]); setCompletedOrderItems([]); setCompletedOrderTotal(0); } }); }} className="px-2.5 py-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-black text-[9px] uppercase tracking-tighter flex items-center gap-1 whitespace-nowrap">
                         <ChevronLeft size={12} /> Continuer les achats
                     </button>
                 </div>
@@ -1725,7 +1737,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <div className="flex gap-3 w-full max-w-sm">
                                     <button
                                         onClick={() => {
-                                            navigate('/');
+                                            safeNavigate('/');
                                         }}
                                         className="flex-1 bg-gray-900 hover:bg-black text-white px-2 py-3.5 rounded-2xl font-black text-[10px] transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-1 group whitespace-nowrap"
                                     >
@@ -1849,7 +1861,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 onSearchClick={() => {
                     setIsSearchOpen(true);
                 }}
-                onHomeClick={() => setIsSearchOpen(false)}
+                onHomeClick={() => {
+                    setIsSearchOpen(false);
+                    safeNavigate('/');
+                }}
             />
 
             {/* Premium Sticky Header */}
@@ -1865,11 +1880,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             <div
                                 className="flex items-center cursor-pointer group flex-shrink-0"
                                 onClick={() => {
-                                    performAction(() => {
-                                        navigate('/');
-                                        setSearchTerm('');
-                                        setSelectedCategory('all');
-                                    }, 400);
+                                    safeNavigate('/', {
+                                        action: () => {
+                                            setSearchTerm('');
+                                            setSelectedCategory('all');
+                                        }
+                                    });
                                 }}
                             >
                                 <div className="w-8 h-8 md:w-10 md:h-10 bg-[#f56b2a] rounded-2xl flex items-center justify-center shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform mr-2 md:mr-3">
@@ -1914,7 +1930,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 setCompletedOrderItems([]);
                                                 setCompletedOrderTotal(0);
                                             }
-                                            navigate('/cart');
+                                            safeNavigate('/cart');
                                         }}
                                         className="w-9 h-9 md:w-12 md:h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 group-hover:bg-[#f56b2a] group-hover:text-white transition-all active:scale-90"
                                     >
@@ -1955,7 +1971,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     onClick={() => {
                                         setSelectedCategory(cat);
                                         if (location.pathname.includes('/product/') || location.pathname.includes('/cart')) {
-                                            navigate('/');
+                                            safeNavigate('/');
                                         }
                                     }}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${selectedCategory === cat
@@ -2007,7 +2023,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 <div className="fixed inset-0 z-[1000] bg-white animate-in fade-in duration-300 flex flex-col">
                     <div className="p-4 border-b border-gray-100 flex items-center gap-3">
                         <button 
-                            onClick={() => setIsSearchOpen(false)}
+                            onClick={() => safeNavigate('/')}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
                          aria-label="Fermer la recherche">
                             <ChevronLeft size={24} />
@@ -2047,10 +2063,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <div 
                                                     key={store.id}
                                                     onClick={() => {
-                                                        performAction(() => {
-                                                            navigate(`/store/${store.slug || store.id}`);
-                                                            setIsSearchOpen(false);
-                                                        }, 400);
+                                                        safeNavigate(`/store/${store.slug || store.id}`, {
+                                                            action: () => setIsSearchOpen(false)
+                                                        });
                                                     }}
                                                     className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]"
                                                 >
@@ -2063,7 +2078,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     </div>
                                                     <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">{store.settings?.name || 'Boutique'}</h3>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <p className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter">
+                                                        <p className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">
                                                             {(store.products || []).filter(p => p.isOnline !== false && p.image).length} PROD.
                                                         </p>
                                                         <p className="text-[9px] text-[#f56b2a] font-black tracking-wider">
@@ -2089,8 +2104,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     <div 
                                                         key={product.id}
                                                         onClick={() => {
-                                                            navigate(`/product/${generateProductSlug(product)}`);
-                                                            setIsSearchOpen(false);
+                                                            safeNavigate(`/product/${generateProductSlug(product)}`, {
+                                                                action: () => setIsSearchOpen(false)
+                                                            });
                                                         }}
                                                         className="cursor-pointer"
                                                     >
@@ -2098,8 +2114,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                             product={product as any}
                                                             onAddToCart={addToCart as any}
                                                             onStoreSelect={(id) => {
-                                                                navigate(`/store/${product.storeSlug || id}`);
-                                                                setIsSearchOpen(false);
+                                                                safeNavigate(`/store/${product.storeSlug || id}`, {
+                                                                    action: () => setIsSearchOpen(false)
+                                                                });
                                                             }}
                                                         />
                                                     </div>
@@ -2236,7 +2253,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Boutiques partenaires</h2>
                                     <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
                                         {partnerStores.slice(0, 6).map(store => (
-                                            <div key={store.id} onClick={() => navigate(`/store/${store.slug || store.id}`)} className="min-w-[180px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group">
+                                            <div key={store.id} onClick={() => safeNavigate(`/store/${store.slug || store.id}`)} className="min-w-[180px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group">
                                                 <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                                     <Store className="text-[#f56b2a]" size={28} />
                                                 </div>
@@ -2263,7 +2280,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </h2>
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                         {globalSearchStores.slice(0, 12).map(store => (
-                                            <div key={store.id} onClick={() => navigate(`/store/${store.slug || store.id}`)} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]">
+                                            <div key={store.id} onClick={() => safeNavigate(`/store/${store.slug || store.id}`)} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]">
                                                 <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50">
                                                     {store.settings?.logo ? (
                                                         <img loading="lazy" decoding="async" src={store.settings.logo} alt={store.name} className="w-full h-full object-cover" />
@@ -2313,8 +2330,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                         <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 transition-all duration-500 ${isLoadingMore ? 'opacity-30 blur-[1px]' : 'opacity-100 blur-0'}`}>
                                             {pagedProducts.map(product => (
-                                                <div key={`${product.storeId}-${product.id}`} onClick={() => performAction(() => navigate(`/product/${generateProductSlug(product)}`), 400)} className="cursor-pointer">
-                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => performAction(() => navigate(`/store/${product.storeSlug || id}`), 400)} />
+                                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
                                                 </div>
                                             ))}
                                         </div>
@@ -2371,16 +2388,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         {pagedProducts.length > 0 ? pagedProducts.map(product => (
                                             <div key={`${product.storeId}-${product.id}`} 
                                                 onClick={() => {
-                                                    performAction(() => {
-                                                        navigate(`/product/${generateProductSlug(product)}`);
-                                                    }, 300);
+                                                    safeNavigate(`/product/${generateProductSlug(product)}`);
                                                 }} 
                                                 className="cursor-pointer"
                                             >
                                                 <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => {
-                                                    performAction(() => {
-                                                        navigate(`/store/${product.storeSlug || id}`);
-                                                    }, 300);
+                                                    safeNavigate(`/store/${product.storeSlug || id}`);
                                                 }} />
                                             </div>
                                         )) : !isLoadingMore ? (
@@ -2434,7 +2447,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                         <p className="text-gray-500 text-[11px] leading-relaxed mb-3 line-clamp-3">{review.comment}</p>
                                                         {review.productId && (
                                                             <div 
-                                                                onClick={() => navigate(`/product/${review.productId}`)}
+                                                                onClick={() => safeNavigate(`/product/${review.productId}`)}
                                                                 className="flex items-center gap-3 bg-gray-50/50 p-2 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-all"
                                                             >
                                                                 <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-gray-100">

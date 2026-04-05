@@ -29,7 +29,6 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
         <button
           onClick={() => {
             if (onHomeClick) onHomeClick();
-            navigate('/');
           }}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-all ${isHome ? 'text-[#f56b2a]' : 'text-gray-400'}`}
         >
