@@ -8,6 +8,7 @@ import {
     Eye, ShoppingBag
 } from 'lucide-react';
 import { StoreData, Product, Customer, Order, ViewType, NotificationType, Review, Coupon, ToastNotification } from '@/types';
+import { generateProductSlug } from '@/utils/slug';
 import { MAIN_CATEGORIES } from '@/constants';
 import { formatCurrency, playSuccessSound } from '@/utils';
 import ProductImage from '../components/ProductImage';
@@ -127,7 +128,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const isCartView = location.pathname.includes('/cart');
     const isFeedView = location.pathname.includes('/feed');
     const selectedStoreParam = storeMatch?.params.storeParam || null;
-    const selectedProductId = productMatch?.params.productId || null;
+    const { "*": splat } = useParams();
+    const isProductDetailPath = splat?.startsWith('product/');
+    const rawUrlProductId = productMatch?.params.productId || (isProductDetailPath ? splat?.replace('product/', '') : null);
 
     // Persistence Cache: Instant load from localStorage
     const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
@@ -535,16 +538,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [loadingReviews, setLoadingReviews] = useState<Record<string, boolean>>({});
     const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
-    const productSlugOrId = splat?.replace('product/', '');
-       const selectedProductDetails = productSlugOrId ? allProducts.find(p => p.id === productSlugOrId || generateProductSlug(p) === productSlugOrId) : null;
-        const product = allProducts.find(p => String(p.id) === String(selectedProductId)) || null;
-        if (product && productReviews[selectedProductId]) {
-            const reviews = productReviews[selectedProductId];
+    const selectedProductDetails = useMemo(() => {
+        if (!rawUrlProductId) return null;
+        
+        const matched = allProducts.find(p => String(p.id) === rawUrlProductId || generateProductSlug(p) === rawUrlProductId);
+        if (!matched) return null;
+        
+        const product = matched;
+        const resolvedId = product.id;
+
+        if (productReviews[resolvedId]) {
+            const reviews = productReviews[resolvedId];
             const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
             return { ...product, reviews, rating: avgRating, reviewCount: reviews.length };
         }
         return product;
-    }, [allProducts, selectedProductId, productReviews]);
+    }, [allProducts, rawUrlProductId, productReviews]);
+
+    const selectedProductId = selectedProductDetails?.id || null;
 
     // Track product views - only increment once per product per session
     useEffect(() => {
