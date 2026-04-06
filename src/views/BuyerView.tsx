@@ -35,29 +35,56 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
 
+  const [isSlowConnection, setIsSlowConnection] = useState(false);
+
   useEffect(() => {
-    loadData();
-  }, [activeTab]);
+    if (userEmail) {
+      loadData();
+    }
+  }, [userEmail, activeTab]);
 
   const loadData = async () => {
     setLoading(true);
+    setIsSlowConnection(false);
+    
+    // Set a timeout to detect slow connection (e.g., 3 seconds)
+    const timer = setTimeout(() => {
+      setIsSlowConnection(true);
+    }, 3000);
+
     try {
       if (activeTab === 'orders') {
-        const res = await fetchBuyerOrdersAction();
-        if (res.success) setOrders(res.orders || []);
+        const data = await fetchBuyerOrdersAction();
+        setOrders(data || []);
       } else if (activeTab === 'addresses') {
-        const res = await fetchBuyerAddressesAction();
-        if (res.success) setAddresses(res.addresses || []);
+        const data = await fetchBuyerAddressesAction();
+        setAddresses(data || []);
       } else if (activeTab === 'reviews') {
-        const res = await fetchBuyerReviewsAction();
-        if (res.success) setReviews(res.reviews || []);
+        const data = await fetchBuyerReviewsAction();
+        setReviews(data || []);
       }
     } catch (err) {
-      console.error('Error loading buyer data:', err);
+      console.error("Fetch Error:", err);
+      notify?.("Erreur de connexion au serveur", "error");
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   };
+
+  const renderSkeleton = () => (
+    <div className="space-y-3 animate-pulse">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="bg-white rounded-2xl h-32 border border-gray-100" />
+      ))}
+      {isSlowConnection && (
+        <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex items-center gap-2">
+          <Clock size={16} className="text-[#f56b2a] animate-pulse" />
+          <p className="text-[10px] font-bold text-[#f56b2a] uppercase">Connexion lente détectée...</p>
+        </div>
+      )}
+    </div>
+  );
 
   const handleSaveAddress = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -219,9 +246,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
                 <h2 className="text-base font-bold text-[#002f34] px-1">Mes Commandes</h2>
                 
-                {loading ? (
-                  <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-orange-200 border-t-[#f56b2a] rounded-full animate-spin" /></div>
-                ) : orders.length === 0 ? (
+                {loading ? renderSkeleton() : orders.length === 0 ? (
                   <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">Aucune commande.</div>
                 ) : (
                   orders.map((order) => (
@@ -273,7 +298,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                   <h2 className="text-base font-bold text-[#002f34]">Adresses</h2>
                   <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-lg text-[10px] font-bold">+ Ajouter</button>
                 </div>
-                {loading ? <div className="py-12 flex justify-center">...</div> : (
+                {loading ? renderSkeleton() : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {addresses.map((addr) => (
                       <div key={addr.id} className={`bg-white p-3.5 rounded-2xl border ${addr.is_default ? 'border-[#f56b2a] shadow-md' : 'border-gray-100 shadow-sm'}`}>
