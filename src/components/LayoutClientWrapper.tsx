@@ -33,6 +33,15 @@ export default function LayoutClientWrapper({
   const [toastNotifications, setToastNotifications] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  
+  // Notify Flutter App if we are running inside the WebView
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).FlutterNotifications) {
+      if (currentStore?.id) {
+        (window as any).FlutterNotifications.postMessage(`subscribe:${currentStore.id}`);
+      }
+    }
+  }, [currentStore?.id]);
 
   const notify = useCallback((message: string, type = 'info', title?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -41,6 +50,9 @@ export default function LayoutClientWrapper({
 
   const handleLogout = async () => {
     const supabase = createClient();
+    if (typeof window !== 'undefined' && (window as any).FlutterNotifications && currentStore?.id) {
+      (window as any).FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
+    }
     await supabase.auth.signOut();
     await clearStoreCookieAction();
     router.push('/login');

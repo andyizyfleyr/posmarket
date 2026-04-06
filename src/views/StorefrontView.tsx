@@ -51,11 +51,12 @@ interface StorefrontViewProps {
     onBackToApp: () => void | Promise<any>;
     onMarketplaceCheckout: (ordersData: Record<string, any>, customerData: any) => Promise<any>;
     onAddReview: (storeId: string, productId: string, review: any) => Promise<any>;
+    onNotifyCartInterest: (storeId: string, productName: string) => Promise<any>;
     notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
 
-export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, notify }) => {
+export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, notify }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const params = useParams();
@@ -717,6 +718,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         });
         setLastAddedProduct(product);
         setCartNotif(true);
+        // Alert the store owner that someone is interested
+        onNotifyCartInterest(product.storeId, product.name);
         setTimeout(() => setCartNotif(false), 4000);
     };
 
@@ -735,6 +738,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setLastAddedProduct(product);
         setCartNotif(true);
         setCheckoutStage('cart'); // Go straight to cart to see savings
+        // Alert the store owner
+        onNotifyCartInterest(product.storeId, product.name);
         setTimeout(() => setCartNotif(false), 4000);
     };
 

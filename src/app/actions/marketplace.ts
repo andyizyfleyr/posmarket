@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { StoreData, Product } from '@/types'
 import { safeSupabaseFetch } from '@/utils/supabase/retry'
-import { sendOrderNotification } from '@/utils/firebase-admin'
+import { sendOrderNotification, sendPushNotification } from '@/utils/firebase-admin'
 
 export async function fetchMarketplaceData() {
   const supabase = await createClient()
@@ -188,16 +188,42 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
             }).eq('id', item.product.id);
           }
         }
+
+        // Check for Low Stock after order
+        try {
+          const { data: updatedProduct } = await supabase.from('products').select('name, stock').eq('id', item.product.id).single();
+          if (updatedProduct && updatedProduct.stock <= 5) {
+            await sendPushNotification(
+              `store_${storeId}`,
+              '⚠️ Alerte Stock Bas',
+              `Le stock de "${updatedProduct.name}" est dangereusement bas (${updatedProduct.stock} restant).`,
+              { type: 'LOW_STOCK', store_id: storeId, product_id: item.product.id }
+            );
+          }
+        } catch (stockCheckErr) {
+          console.warn('Low stock notification check failed', stockCheckErr);
+        }
       }
 
       // 4. Send Push Notification to Seller
       try {
         const { data: store } = await supabase.from('stores').select('name').eq('id', storeId).maybeSingle();
         if (store) {
-          await sendOrderNotification(store.name || 'Ma Boutique', storeOrderData.total);
+          await sendOrderNotification(store.name || 'Ma Boutique', storeOrderData.total, storeId);
+          
+          // 5. Check Milestones (Performance)
+          const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('store_id', storeId);
+          if (count && count > 0 && (count % 10 === 0 || count === 1)) {
+             await sendPushNotification(
+               `store_${storeId}`, 
+               '🏆 Record de Performance !', 
+               `Félicitations ! Vous venez d'atteindre ${count} commandes au total sur votre boutique ${store.name}.`,
+               { type: 'MILESTONE', store_id: storeId, milestone_count: count.toString() }
+             );
+          }
         }
       } catch (err) {
-        console.warn('Failed to send push notification:', err);
+        console.warn('Failed to send push/milestone notification:', err);
       }
     }
 
@@ -223,6 +249,22 @@ export async function saveProductReviewAction(storeId: string, productId: string
 
     if (error) throw error;
 
+    // Send Notification for New Review
+    try {
+      const { data: store } = await supabase.from('stores').select('name').eq('id', storeId).maybeSingle();
+      const { data: product } = await supabase.from('products').select('name').eq('id', productId).maybeSingle();
+      if (store) {
+        await sendPushNotification(
+          `store_${storeId}`,
+          '⭐️ Nouvel Avis Client',
+          `Un avis a été laissé sur "${product?.name || 'votre produit'}" : "${review.comment?.substring(0, 50)}..."`,
+          { type: 'NEW_REVIEW', store_id: storeId, product_id: productId }
+        );
+      }
+    } catch (notifErr) {
+      console.warn('New review notification failed', notifErr);
+    }
+
     return { success: true }
   } catch (error: any) {
     console.error('Review error:', error)
@@ -238,4 +280,23 @@ export async function incrementProductViews(productId: string) {
 export async function incrementStoreViews(storeId: string) {
   const supabase = await createClient()
   await supabase.rpc('increment_store_views', { p_id: storeId })
+}
+
+export async function notifyCartInterestAction(storeId: string, productName: string) {
+  try {
+    const supabase = await createClient();
+    const { data: store } = await supabase.from('stores').select('name').eq('id', storeId).maybeSingle();
+    if (store) {
+      await sendPushNotification(
+        `store_${storeId}`,
+        '🛒 Intérêt Panier !',
+        `Quelqu'un regarde votre "[${productName}]" et vient de l'ajouter à son panier sur la marketplace !`,
+        { type: 'CART_ALERT', store_id: storeId, product_name: productName }
+      );
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('Failed to send cart interest notification:', err);
+    return { success: false }
+  }
 }

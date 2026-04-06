@@ -23,29 +23,46 @@ if (!admin.apps.length) {
   }
 }
 
-export async function sendOrderNotification(storeName: string, total: number) {
+export interface NotificationData {
+  type: 'NEW_ORDER' | 'LOW_STOCK' | 'NEW_REVIEW' | 'SUBSCRIPTION_EXPIRING' | 'MILESTONE' | 'CART_ALERT';
+  store_id: string;
+  [key: string]: string;
+}
+
+export async function sendPushNotification(
+  topic: string, 
+  title: string, 
+  body: string, 
+  data: NotificationData
+) {
   if (!admin.apps.length) return;
 
   const message = {
-    notification: {
-      title: 'Nouvelle Commande ! 🛍️',
-      body: `Une commande de ${total.toLocaleString()} CFA a été placée sur la boutique ${storeName}.`
-    },
+    notification: { title, body },
     data: {
-      type: 'NEW_ORDER',
+      ...data,
       click_action: 'FLUTTER_NOTIFICATION_CLICK'
     },
-    // On envoie au topic pour simplifier (tous les vendeurs qui ont l'app reçoivent)
-    // On peut ensuite segmenter par topic "store_${storeId}" pour être plus précis.
-    topic: 'marketplace_orders' 
+    topic: topic.startsWith('store_') ? topic : `store_${data.store_id}`
   };
 
   try {
     const response = await admin.messaging().send(message);
-    console.log('Successfully sent notification:', response);
+    console.log(`Successfully sent ${data.type} notification:`, response);
+    return response;
   } catch (error) {
-    console.error('Error sending notification:', error);
+    console.error(`Error sending ${data.type} notification:`, error);
+    throw error;
   }
+}
+
+export async function sendOrderNotification(storeName: string, total: number, storeId: string) {
+  return sendPushNotification(
+    `store_${storeId}`,
+    'Nouvelle Commande ! 🛍️',
+    `Une commande de ${total.toLocaleString()} CFA a été placée sur la boutique ${storeName}.`,
+    { type: 'NEW_ORDER', store_id: storeId }
+  );
 }
 
 export { admin };
