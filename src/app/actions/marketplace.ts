@@ -19,10 +19,16 @@ export async function fetchMarketplaceData() {
       .or('status.eq.APPROVED,status.is.null')
   )
 
-  // 2. Fetch all products
+  // 2. Fetch all ONLINE products (limited to 150 for initial speed)
+  // Subsequent products will be loaded via pagination/infinite scroll on the client if implemented
   const { data: productsData, error: productsError } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('products').select('*')
+    () => supabase
+      .from('products')
+      .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty')
+      .eq('is_online', true)
+      .limit(150)
   )
+
 
   if (productsError) {
     console.error('Error fetching products:', productsError)
