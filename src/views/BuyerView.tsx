@@ -58,43 +58,55 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     setLoading(true);
     setIsSlowConnection(false);
     
-    // Set a timeout to detect slow connection (e.g., 3 seconds)
-    const timer = setTimeout(() => {
-      setIsSlowConnection(true);
-    }, 3000);
-
     try {
-      if (forceAll) {
-        const [ordersRes, addressesRes, reviewsRes] = await Promise.all([
-          fetchBuyerOrdersAction(),
-          fetchBuyerAddressesAction(),
-          fetchBuyerReviewsAction()
-        ]);
+      // Manual timeout promise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+      );
 
-        if (ordersRes.success && 'orders' in ordersRes) setOrders(ordersRes.orders || []);
-        if (addressesRes.success && 'addresses' in addressesRes) setAddresses(addressesRes.addresses || []);
-        if (reviewsRes.success && 'reviews' in reviewsRes) setReviews(reviewsRes.reviews || []);
-      } else {
-        // Just refresh the active tab
-        if (activeTab === 'orders') {
-          const res = await fetchBuyerOrdersAction();
-          if (res.success && 'orders' in res) setOrders(res.orders || []);
-        } else if (activeTab === 'addresses') {
-          const res = await fetchBuyerAddressesAction();
-          if (res.success && 'addresses' in res) setAddresses(res.addresses || []);
-        } else if (activeTab === 'reviews') {
-          const res = await fetchBuyerReviewsAction();
-          if (res.success && 'reviews' in res) setReviews(res.reviews || []);
+      // Race against timeout
+      const loadPromise = (async () => {
+        if (forceAll) {
+          const [ordersRes, addressesRes, reviewsRes] = await Promise.all([
+            fetchBuyerOrdersAction(),
+            fetchBuyerAddressesAction(),
+            fetchBuyerReviewsAction()
+          ]);
+
+          if (ordersRes.success && 'orders' in ordersRes) setOrders(ordersRes.orders || []);
+          else if (ordersRes.error === 'Unauthorized') notify?.("Veuillez vous reconnecter pour voir vos données", "info");
+          
+          if (addressesRes.success && 'addresses' in addressesRes) setAddresses(addressesRes.addresses || []);
+          if (reviewsRes.success && 'reviews' in reviewsRes) setReviews(reviewsRes.reviews || []);
+        } else {
+          if (activeTab === 'orders') {
+            const res = await fetchBuyerOrdersAction();
+            if (res.success && 'orders' in res) setOrders(res.orders || []);
+            else if (res.error === 'Unauthorized') notify?.("Veuillez vous reconnecter", "info");
+          } else if (activeTab === 'addresses') {
+            const res = await fetchBuyerAddressesAction();
+            if (res.success && 'addresses' in res) setAddresses(res.addresses || []);
+          } else if (activeTab === 'reviews') {
+            const res = await fetchBuyerReviewsAction();
+            if (res.success && 'reviews' in res) setReviews(res.reviews || []);
+          }
         }
+      })();
+
+      await Promise.race([loadPromise, timeoutPromise]);
+    } catch (err: any) {
+      console.error("Erreur de chargement:", err);
+      if (err.message === 'TIMEOUT') {
+        setIsSlowConnection(true);
+      } else {
+        notify?.("Erreur lors de la récupération des données", "error");
       }
-    } catch (err) {
-      console.error("Fetch Error:", err);
-      notify?.("Erreur de connexion au serveur", "error");
     } finally {
-      clearTimeout(timer);
       setLoading(false);
-      setIsSlowConnection(false);
+      setInternalLoading(false);
+      // We don't reset isSlowConnection to false immediately so the tip stays visible if it was slow
     }
+
   };
 
   const renderSkeleton = () => (
@@ -272,8 +284,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 <h2 className="text-base font-bold text-[#002f34] px-1">Mes commandes</h2>
                 
                 {loading ? renderSkeleton() : orders.length === 0 ? (
-                  <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">
-                    {internalLoading ? "Chargement..." : "Aucune commande trouvée."}
+                  <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
+                    <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                    <p className="text-sm font-bold text-gray-600">Aucune commande trouvée</p>
+                    <p className="text-xs mt-1">Vos commandes apparaîtront ici une fois validées.</p>
                   </div>
                 ) : (
                   orders.map((order) => (
