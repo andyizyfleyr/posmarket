@@ -1845,19 +1845,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         );
     };
 
-    if (isAccountView && user) {
-        return (
-            <BuyerView 
-                userEmail={user.email} 
-                onBack={() => setIsAccountView(false)}
-                notify={notify}
-                onLogout={handleLogout}
-            />
-        );
-    }
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-[100px] md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+            {/* BuyerView Overlay (Full screen for mobile/desktop) */}
+            {isAccountView && user && (
+                <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
+                    <BuyerView 
+                        userEmail={user.email} 
+                        onBack={() => setIsAccountView(false)}
+                        notify={notify}
+                        onLogout={handleLogout}
+                    />
+                </div>
+            )}
 
             {/* Global Notifications (Toasts) */}
             <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-4 pointer-events-none items-end">

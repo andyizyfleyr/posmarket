@@ -145,8 +145,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                   {userEmail[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-sm md:text-base font-bold text-[#002f34] truncate">{userEmail.split('@')[0]}</h2>
-                  <p className="text-[10px] text-gray-500">{userEmail}</p>
+                  <h2 className="text-base md:text-lg font-bold text-[#002f34] truncate">{userEmail.split('@')[0]}</h2>
+                  <p className="text-xs text-gray-500">{userEmail}</p>
                   <div className="flex md:justify-center items-center gap-3 mt-2">
                     <div className="text-center">
                        <p className="text-xs font-bold text-[#002f34]">{orders.length}</p>
@@ -162,8 +162,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
               </div>
             </div>
 
-            {/* Compact Mobile Nav */}
-            <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 pb-2 -mx-4">
+            {/* Improved Mobile Nav Sizing */}
+            <div className="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar px-4 pb-2">
               {[
                 { id: 'orders', label: 'Commandes', icon: Package },
                 { id: 'addresses', label: 'Adresses', icon: MapPin },
@@ -173,13 +173,13 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as TabType)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl whitespace-nowrap text-[10px] font-bold transition-all border ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl whitespace-nowrap text-xs font-bold transition-all border-2 ${
                     activeTab === item.id 
-                      ? 'bg-[#f56b2a] border-[#f56b2a] text-white' 
-                      : 'bg-white border-gray-100 text-gray-500 shadow-sm'
+                      ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' 
+                      : 'bg-white border-gray-100 text-gray-500 shadow-sm active:bg-gray-50'
                   }`}
                 >
-                  <item.icon size={12} fill={activeTab === item.id ? "currentColor" : "none"} />
+                  <item.icon size={16} fill={activeTab === item.id ? "currentColor" : "none"} />
                   {item.label}
                 </button>
               ))}
@@ -257,8 +257,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                           );
                         })}
                       </div>
-                      <div className="px-3 py-2 bg-gray-50/20 flex items-center justify-between border-t border-gray-50 text-xs font-bold">
-                         <span className="text-gray-400 text-[10px]">Total</span>
+                      <div className="px-3 py-2.5 bg-gray-50/20 flex items-center justify-between border-t border-gray-50 text-sm font-bold">
+                         <span className="text-gray-400 text-xs">Total</span>
                          <span className="text-[#002f34]">{formatCurrency(order.total)}</span>
                       </div>
                     </div>
@@ -315,11 +315,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                               <Mail size={14} /> {userEmail}
                            </div>
                          </div>
-                         <button className="flex items-center gap-2 w-full py-3 px-4 bg-gray-900 text-white font-bold text-[10px] rounded-xl">
-                            <ShieldCheck size={14} className="text-green-400" /> Changer le mot de passe
+                         <button onClick={handleLogout} className="flex items-center gap-2 w-full py-4 px-4 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-lg active:scale-95 transition-all">
+                            <ShieldCheck size={18} className="text-green-400" /> Changer le mot de passe
                          </button>
-                         <button onClick={handleLogout} className="flex items-center gap-2 w-full py-3 px-4 bg-red-50 text-red-500 font-bold text-[10px] rounded-xl border border-red-100">
-                            <LogOut size={14} /> Se déconnecter
+                         <button onClick={handleLogout} className="flex items-center gap-2 w-full py-4 px-4 bg-red-50 text-red-500 font-bold text-xs rounded-xl border border-red-100 active:bg-red-100">
+                            <LogOut size={18} /> Se déconnecter
                          </button>
                        </div>
                   </div>
@@ -368,45 +368,54 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       {showAddressModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
            <div className="absolute inset-0 bg-[#002f34]/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95">
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+           <div className="relative bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                 <h3 className="text-sm font-bold text-[#002f34]">{editingAddress ? 'Modifier' : 'Ajouter'} une adresse</h3>
-                <button onClick={() => setShowAddressModal(false)} className="text-gray-400"><X size={20} /></button>
-              </div>
-              
-              <form onSubmit={handleSaveAddress} className="p-4 space-y-3">
-                 <div className="grid grid-cols-2 gap-3">
-                   <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 px-1">Label</label>
-                      <input name="name" defaultValue={editingAddress?.name} required className="w-full px-3 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold" />
-                   </div>
-                   <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 px-1">Nom Complet</label>
-                      <input name="fullName" defaultValue={editingAddress?.full_name} required className="w-full px-3 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold" />
-                   </div>
-                 </div>
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 px-1">Téléphone</label>
-                    <input name="phone" defaultValue={editingAddress?.phone} required className="w-full px-3 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold" />
-                 </div>
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 px-1">Adresse</label>
-                    <input name="address" defaultValue={editingAddress?.address} required className="w-full px-3 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold" />
-                 </div>
-                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 px-1">Ville</label>
-                    <input name="city" defaultValue={editingAddress?.city} required className="w-full px-3 py-2 bg-gray-50 border-none rounded-lg text-xs font-bold" />
-                 </div>
-                 <label className="flex items-center gap-2 cursor-pointer py-1">
-                    <input type="checkbox" name="isDefault" defaultChecked={editingAddress?.is_default} className="w-4 h-4 rounded text-[#f56b2a]" />
-                    <span className="text-[11px] font-bold text-[#002f34]">Adresse par défaut</span>
-                 </label>
-                 <div className="flex gap-2 pt-2">
-                   <button type="button" onClick={() => setShowAddressModal(false)} className="flex-1 py-3 text-gray-400 font-bold text-xs">Annuler</button>
-                   <button type="submit" className="flex-2 px-6 py-3 bg-[#f56b2a] text-white font-bold rounded-xl text-xs">Enregistrer</button>
-                 </div>
-              </form>
-           </div>
+                <button onClick={() => setShowAddressModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
+            </div>
+            
+            <form onSubmit={handleSaveAddress} className="p-6 space-y-4 overflow-y-auto">
+                <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Label (ex: Maison, Bureau)</label>
+                      <input name="name" defaultValue={editingAddress?.name} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Nom complet</label>
+                      <input name="fullName" defaultValue={editingAddress?.full_name} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">Téléphone</label>
+                        <input name="phone" defaultValue={editingAddress?.phone} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">Ville</label>
+                        <input name="city" defaultValue={editingAddress?.city} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Adresse exacte</label>
+                      <input name="address" defaultValue={editingAddress?.address} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
+                    </div>
+
+                    <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                      <input type="checkbox" name="isDefault" defaultChecked={editingAddress?.is_default} className="w-5 h-5 rounded text-[#f56b2a]" />
+                      <span className="text-xs font-bold text-gray-600">Définir par défaut</span>
+                    </label>
+                </div>
+
+                <div className="flex gap-3 pt-2 shrink-0">
+                    <button type="button" onClick={() => setShowAddressModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs active:bg-gray-200">Annuler</button>
+                    <button type="submit" className="flex-[2] py-4 bg-[#f56b2a] text-white font-bold rounded-xl text-xs shadow-lg shadow-orange-100 active:scale-95 transition-all">Enregistrer</button>
+                </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
