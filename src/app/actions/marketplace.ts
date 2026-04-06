@@ -189,8 +189,6 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
           }
         }
       }
-        }
-      }
 
       // 4. Send Push Notification to Seller
       try {
