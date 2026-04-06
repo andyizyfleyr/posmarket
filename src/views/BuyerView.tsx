@@ -39,11 +39,19 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
   useEffect(() => {
     if (userEmail) {
-      loadData();
+      // On initial mount, fetch all data to populate counts
+      loadData(true);
     }
-  }, [userEmail, activeTab]);
+  }, [userEmail]);
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (userEmail && activeTab) {
+      // On tab change, refresh just that tab
+      loadData(false);
+    }
+  }, [activeTab]);
+
+  const loadData = async (forceAll = false) => {
     setLoading(true);
     setIsSlowConnection(false);
     
@@ -53,15 +61,30 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     }, 3000);
 
     try {
-      if (activeTab === 'orders') {
-        const res = await fetchBuyerOrdersAction();
-        if (res.success) setOrders(res.orders || []);
-      } else if (activeTab === 'addresses') {
-        const res = await fetchBuyerAddressesAction();
-        if (res.success) setAddresses(res.addresses || []);
-      } else if (activeTab === 'reviews') {
-        const res = await fetchBuyerReviewsAction();
-        if (res.success) setReviews(res.reviews || []);
+      // If forceAll is true, fetch everything to populate counts in the header
+      // This is crucial for initial mount so the header doesn't show 0/0
+      if (forceAll) {
+        const [ordersRes, addressesRes, reviewsRes] = await Promise.all([
+          fetchBuyerOrdersAction(),
+          fetchBuyerAddressesAction(),
+          fetchBuyerReviewsAction()
+        ]);
+
+        if (ordersRes.success) setOrders(ordersRes.orders || []);
+        if (addressesRes.success) setAddresses(addressesRes.addresses || []);
+        if (reviewsRes.success) setReviews(reviewsRes.reviews || []);
+      } else {
+        // Just refresh the active tab
+        if (activeTab === 'orders') {
+          const res = await fetchBuyerOrdersAction();
+          if (res.success) setOrders(res.orders || []);
+        } else if (activeTab === 'addresses') {
+          const res = await fetchBuyerAddressesAction();
+          if (res.success) setAddresses(res.addresses || []);
+        } else if (activeTab === 'reviews') {
+          const res = await fetchBuyerReviewsAction();
+          if (res.success) setReviews(res.reviews || []);
+        }
       }
     } catch (err) {
       console.error("Fetch Error:", err);
