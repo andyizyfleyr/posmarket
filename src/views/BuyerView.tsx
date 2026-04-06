@@ -163,7 +163,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             </div>
 
             {/* Improved Mobile Nav Sizing */}
-            <div className="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar px-4 pb-2">
+            <div className="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar px-4 pb-2 snap-x snap-mandatory">
               {[
                 { id: 'orders', label: 'Commandes', icon: Package },
                 { id: 'addresses', label: 'Adresses', icon: MapPin },
@@ -173,7 +173,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as TabType)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl whitespace-nowrap text-xs font-bold transition-all border-2 ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl whitespace-nowrap text-xs font-bold transition-all border-2 snap-start active:scale-95 ${
                     activeTab === item.id 
                       ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' 
                       : 'bg-white border-gray-100 text-gray-500 shadow-sm active:bg-gray-50'
