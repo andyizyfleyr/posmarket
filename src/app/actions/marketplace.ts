@@ -442,3 +442,25 @@ export async function fetchBuyerReviewsAction() {
   if (error) return { success: false, error: error.message };
   return { success: true, reviews: data };
 }
+
+export async function fetchUserPurchasedProductIdsAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, productIds: [] };
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('status, order_items(product_id)')
+    .eq('buyer_id', user.id)
+    .in('status', ['COMPLETED', 'READY', 'PAID', 'DELIVERED']); // Ensure they actually paid/received
+
+
+  if (error || !orders) return { success: false, productIds: [] };
+
+  const productIds = Array.from(new Set(
+    orders.flatMap(order => (order.order_items as any[] || []).map(item => item.product_id))
+  ));
+
+  return { success: true, productIds };
+}
+

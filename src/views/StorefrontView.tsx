@@ -18,6 +18,7 @@ import Toast from '../components/Toast';
 import { Routes, Route, useNavigate, useParams, Link, useLocation, useMatch, useRouter } from '@/components/RouterPolyfill';
 import { incrementProductViews, incrementStoreViews } from '@/supabase-api';
 import { fetchMarketplaceProducts, fetchProductReviews } from '@/hooks/useSupabaseData';
+import { fetchUserPurchasedProductIdsAction } from '@/app/actions/marketplace';
 import { MarketplaceBottomNav } from '@/components/MarketplaceBottomNav';
 import { supabase } from '@/supabase';
 import { BuyerView } from './BuyerView';
@@ -248,6 +249,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     // User Accounts State
     const { isOnline, isSlow } = useNetworkStatus();
     const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
+    const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>([]);
+
 
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -264,10 +267,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     name: session.user.user_metadata?.full_name || 'Utilisateur',
                     email: session.user.email || ''
                 });
+                
+                // Fetch purchased status
+                const res = await fetchUserPurchasedProductIdsAction();
+                if (res.success) setPurchasedProductIds(res.productIds);
             }
         };
         checkSession();
     }, []);
+
 
     // Load customer info from localStorage (24h expiration)
     const loadCustomerInfoFromStorage = (): { name: string, phone: string, address: string, city: string, zip: string } => {
@@ -529,6 +537,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             }
             setShowAuthModal(false);
             setAuthForm({ name: '', email: '', password: '' });
+            
+            // Refresh purchased status
+            const res = await fetchUserPurchasedProductIdsAction();
+            if (res.success) setPurchasedProductIds(res.productIds);
+
         } catch (err: any) {
             notify(err.message || 'Erreur d\'authentification', 'error');
         } finally {
@@ -1365,6 +1378,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             </div>
                         </div>
                         <button
+                            disabled={!!user && !purchasedProductIds.includes(selectedProductDetails.id)}
+
                             onClick={() => { 
                                 if (!user) {
                                     setAuthMode('login');
@@ -1374,10 +1389,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 setShowReviewForm(true); 
                                 setReviewStep(1); 
                             }}
-                            className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-[11px] hover:bg-[#f56b2a] transition-all flex items-center gap-1.5 active:scale-95"
+                            className={`px-4 py-2 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1.5 active:scale-95 ${user && !purchasedProductIds.includes(selectedProductDetails.id) ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-gray-900 text-white hover:bg-[#f56b2a]'}`}
                         >
-                            <MessageCircle size={13} /> Laisser une note
+                            <MessageCircle size={13} /> 
+                            {user && !purchasedProductIds.includes(selectedProductDetails.id) ? 'Reservé aux acheteurs' : 'Laisser une note'}
                         </button>
+
 
                     </div>
 
