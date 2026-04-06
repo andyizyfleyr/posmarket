@@ -246,7 +246,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
 
     // User Accounts State
-    const [isAccountView, setIsAccountView] = useState(false);
+    const [isFeedView, setIsFeedView] = useState(false);
     const { isOnline, isSlow } = useNetworkStatus();
     const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -1871,17 +1871,43 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     Connexion lente détectée • Optimisation de l'affichage...
                 </div>
             )}
-            {/* BuyerView Overlay (Full screen for mobile/desktop) */}
-            {isAccountView && user && (
-                <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
-                    <BuyerView 
-                        userEmail={user.email} 
-                        onBack={() => setIsAccountView(false)}
-                        notify={notify}
-                        onLogout={handleLogout}
-                    />
-                </div>
-            )}
+            {/* BuyerView Route Overlay */}
+            <Routes>
+                <Route path="account" element={
+                    user ? (
+                        <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
+                            <BuyerView 
+                                userEmail={user.email} 
+                                onBack={() => safeNavigate('/')}
+                                notify={notify}
+                                onLogout={handleLogout}
+                            />
+                        </div>
+                    ) : ( 
+                        <div className="flex items-center justify-center min-h-[50vh]">
+                            <button 
+                                onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                                className="bg-[#f56b2a] text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl"
+                            >
+                                Connectez-vous pour voir votre compte
+                            </button>
+                        </div>
+                    )
+                } />
+                <Route path="account/:tab" element={
+                    user ? (
+                        <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
+                            <BuyerView 
+                                userEmail={user.email} 
+                                onBack={() => safeNavigate('/')}
+                                notify={notify}
+                                onLogout={handleLogout}
+                            />
+                        </div>
+                    ) : null
+                } />
+            </Routes>
+
 
             {/* Global Notifications (Toasts) */}
             <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-4 pointer-events-none items-end">
@@ -1902,12 +1928,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 }}
                 onAccountClick={() => {
                     if (user) {
-                        setIsAccountView(true);
+                        safeNavigate('/account');
                     } else {
                         setAuthMode('login');
                         setShowAuthModal(true);
                     }
                 }}
+
             />
 
             {/* Premium Sticky Header */}
@@ -1992,12 +2019,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <button
                                         onClick={() => {
                                             if (user) {
-                                                setIsAccountView(true);
+                                                safeNavigate('/account');
                                             } else {
                                                 setAuthMode('login');
                                                 setShowAuthModal(true);
                                             }
                                         }}
+
                                         className={`flex items-center gap-2.5 p-1.5 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-[#f56b2a]/10 hover:text-[#f56b2a] hover:border-[#f56b2a]/20'}`}
                                     >
                                         <div className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? 'bg-[#f56b2a] text-white' : 'bg-white text-gray-400 group-hover/auth:bg-[#f56b2a] group-hover/auth:text-white'}`}>
