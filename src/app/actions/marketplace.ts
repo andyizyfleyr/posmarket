@@ -24,10 +24,12 @@ export async function fetchMarketplaceData() {
   const { data: productsData, error: productsError } = await safeSupabaseFetch<any[]>(
     () => supabase
       .from('products')
-      .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty')
+      .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty, created_at')
       .eq('is_online', true)
+      .order('created_at', { ascending: false })
       .limit(150)
   )
+
 
 
   if (productsError) {

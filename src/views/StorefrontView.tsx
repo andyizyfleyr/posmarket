@@ -126,11 +126,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             const storedMarketplace = localStorage.getItem('marketplace_cache');
             if (storedMarketplace) {
                 const { data, timestamp } = JSON.parse(storedMarketplace);
-                // Cache valid for 30 minutes
-                const isFresh = Date.now() - timestamp < 30 * 60 * 1000;
-                if (data && data.length > 0) {
+                // Cache valid for 3 minutes for better freshness
+                const isFresh = Date.now() - timestamp < 3 * 60 * 1000;
+                if (data && data.length > 0 && isFresh) {
                     setCachedStores(data);
                 }
+
             }
         } catch (e) {
             console.warn('Marketplace cache load failed', e);
