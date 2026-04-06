@@ -2132,8 +2132,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
                                                     Boostez votre visibilité et attirez plus de clients dès aujourd'hui sur notre plateforme express.
                                                 </p>
-                                                <button onClick={() => setShowPropulseModal(true)} className="bg-gray-900 hover:bg-[#f56b2a] text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
-                                                    Propulser ma boutique
+                                                <button onClick={() => safeNavigate('/login')} className="bg-gray-900 hover:bg-[#f56b2a] text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
+                                                    Commencer maintenant
                                                 </button>
                                             </div>
                                         </div>
@@ -2153,8 +2153,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
                                                     Un inventaire synchronisé et des alertes automatiques pour ne jamais manquer une vente.
                                                 </p>
-                                                <button onClick={onBackToApp} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
-                                                    Accéder au Dashboard
+                                                <button onClick={() => safeNavigate('/login')} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
+                                                    Commencer maintenant
                                                 </button>
                                             </div>
                                         </div>
@@ -2174,8 +2174,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
                                                     Faites partie des 500+ commerçants qui ont déjà transformé leur manière de vendre.
                                                 </p>
-                                                <button onClick={() => setShowPropulseModal(true)} className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
-                                                    Créer mon compte
+                                                <button onClick={() => safeNavigate('/login')} className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
+                                                    Commencer maintenant
                                                 </button>
                                             </div>
                                         </div>
