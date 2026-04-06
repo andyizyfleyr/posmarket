@@ -1,11 +1,14 @@
 'use server'
 
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@/utils/supabase/server'
 import { StoreData, Product } from '@/types'
 import { safeSupabaseFetch } from '@/utils/supabase/retry'
 import { sendOrderNotification, sendPushNotification } from '@/utils/firebase-admin'
 
 export async function fetchMarketplaceData() {
+  console.log('[DEBUG] fetchMarketplaceData called');
   const supabase = await createClient()
 
   // 1. Fetch BASIC Stores List
@@ -319,6 +322,7 @@ export async function notifyCartInterestAction(storeId: string, productName: str
 export async function fetchBuyerOrdersAction() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  console.log('[DEBUG] fetchBuyerOrdersAction - User:', user?.id || 'NULL', 'Email:', user?.email || 'NULL');
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const { data, error } = await supabase
@@ -338,6 +342,7 @@ export async function fetchBuyerOrdersAction() {
 export async function fetchBuyerAddressesAction() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  console.log('[DEBUG] fetchBuyerAddressesAction - User:', user?.id || 'NULL');
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const { data, error } = await supabase
@@ -395,6 +400,7 @@ export async function deleteBuyerAddressAction(addressId: string) {
 export async function fetchBuyerReviewsAction() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  console.log('[DEBUG] fetchBuyerReviewsAction - User:', user?.id || 'NULL');
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const { data, error } = await supabase

@@ -16,6 +16,7 @@ import {
   fetchBuyerReviewsAction
 } from '@/app/actions/marketplace';
 import { NotificationType } from '@/types';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface BuyerViewProps {
   userEmail: string;
@@ -35,6 +36,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
 
+  const { isOnline, isSlow } = useNetworkStatus();
+  const [internalLoading, setInternalLoading] = useState(false);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
 
   useEffect(() => {
@@ -61,8 +64,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     }, 3000);
 
     try {
-      // If forceAll is true, fetch everything to populate counts in the header
-      // This is crucial for initial mount so the header doesn't show 0/0
       if (forceAll) {
         const [ordersRes, addressesRes, reviewsRes] = await Promise.all([
           fetchBuyerOrdersAction(),
@@ -70,20 +71,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
           fetchBuyerReviewsAction()
         ]);
 
-        if (ordersRes.success) setOrders(ordersRes.orders || []);
-        if (addressesRes.success) setAddresses(addressesRes.addresses || []);
-        if (reviewsRes.success) setReviews(reviewsRes.reviews || []);
+        if (ordersRes.success && 'orders' in ordersRes) setOrders(ordersRes.orders || []);
+        if (addressesRes.success && 'addresses' in addressesRes) setAddresses(addressesRes.addresses || []);
+        if (reviewsRes.success && 'reviews' in reviewsRes) setReviews(reviewsRes.reviews || []);
       } else {
         // Just refresh the active tab
         if (activeTab === 'orders') {
           const res = await fetchBuyerOrdersAction();
-          if (res.success) setOrders(res.orders || []);
+          if (res.success && 'orders' in res) setOrders(res.orders || []);
         } else if (activeTab === 'addresses') {
           const res = await fetchBuyerAddressesAction();
-          if (res.success) setAddresses(res.addresses || []);
+          if (res.success && 'addresses' in res) setAddresses(res.addresses || []);
         } else if (activeTab === 'reviews') {
           const res = await fetchBuyerReviewsAction();
-          if (res.success) setReviews(res.reviews || []);
+          if (res.success && 'reviews' in res) setReviews(res.reviews || []);
         }
       }
     } catch (err) {
@@ -92,6 +93,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     } finally {
       clearTimeout(timer);
       setLoading(false);
+      setIsSlowConnection(false);
     }
   };
 
@@ -100,10 +102,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       {[1, 2, 3].map(i => (
         <div key={i} className="bg-white rounded-2xl h-32 border border-gray-100" />
       ))}
-      {isSlowConnection && (
+      {(isSlow || isSlowConnection || loading) && (
         <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex items-center gap-2">
           <Clock size={16} className="text-[#f56b2a] animate-pulse" />
-          <p className="text-[10px] font-bold text-[#f56b2a] uppercase">Connexion lente détectée...</p>
+          <p className="text-[10px] font-bold text-[#f56b2a] uppercase">Connexion lente ou chargement en cours...</p>
         </div>
       )}
     </div>
@@ -171,23 +173,26 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-12">
-      {/* Small compact Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a]">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-sm font-bold text-[#002f34]">Mon Compte</h1>
-          <button className="p-2 text-gray-400">
-             <Bell size={20} />
-          </button>
+          <h1 className="text-sm font-bold text-[#002f34]">Mon compte</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => loadData(true)} className="p-2 text-gray-400 hover:text-[#f56b2a]">
+              <Clock size={20} className={loading ? "animate-spin" : ""} />
+            </button>
+            <button className="p-2 text-gray-400">
+               <Bell size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto md:px-4 md:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          {/* Sidebar / Profile Header */}
           <div className="space-y-4">
             <div className="bg-white md:rounded-3xl p-4 md:p-6 border-b md:border border-gray-100 shadow-sm relative overflow-hidden">
               <div className="relative flex md:flex-col items-center gap-3 md:gap-4 md:text-center">
@@ -212,7 +217,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
               </div>
             </div>
 
-            {/* Improved Mobile Nav Sizing */}
             <div className="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar px-4 pb-2 snap-x snap-mandatory">
               {[
                 { id: 'orders', label: 'Commandes', icon: Package },
@@ -235,12 +239,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
               ))}
             </div>
 
-            {/* Desktop Nav */}
             <div className="hidden lg:block space-y-1">
               {[
-                { id: 'orders', label: 'Mes Commandes', icon: Package },
-                { id: 'addresses', label: 'Mes Adresses', icon: MapPin },
-                { id: 'reviews', label: 'Mes Avis', icon: Star },
+                { id: 'orders', label: 'Mes commandes', icon: Package },
+                { id: 'addresses', label: 'Mes adresses', icon: MapPin },
+                { id: 'reviews', label: 'Mes avis', icon: Star },
                 { id: 'profile', label: 'Paramètres', icon: User },
               ].map((item) => (
                 <button
@@ -263,14 +266,15 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             </div>
           </div>
 
-          {/* Main Space */}
           <div className="lg:col-span-3 px-4 md:px-0">
             {activeTab === 'orders' && (
               <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                <h2 className="text-base font-bold text-[#002f34] px-1">Mes Commandes</h2>
+                <h2 className="text-base font-bold text-[#002f34] px-1">Mes commandes</h2>
                 
                 {loading ? renderSkeleton() : orders.length === 0 ? (
-                  <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">Aucune commande.</div>
+                  <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">
+                    {internalLoading ? "Chargement..." : "Aucune commande trouvée."}
+                  </div>
                 ) : (
                   orders.map((order) => (
                     <div key={order.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
@@ -358,7 +362,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                        </div>
                        <div className="space-y-3">
                          <div className="space-y-1">
-                           <label className="text-[9px] text-gray-400 font-bold uppercase tracking-widest px-1">E-mail</label>
+                           <label className="text-[9px] text-gray-400 font-bold px-1">E-mail</label>
                            <div className="px-3 py-2.5 bg-gray-50 rounded-lg text-xs font-semibold text-gray-500 flex items-center gap-2">
                               <Mail size={14} /> {userEmail}
                            </div>
@@ -376,8 +380,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
             {activeTab === 'reviews' && (
               <div className="space-y-3 animate-in fade-in">
-                <h2 className="text-base font-bold text-[#002f34] px-1">Mes Avis</h2>
-                {loading ? <div className="py-12 flex justify-center">...</div> : reviews.length === 0 ? (
+                <h2 className="text-base font-bold text-[#002f34] px-1">Mes avis</h2>
+                {loading ? renderSkeleton() : reviews.length === 0 ? (
                   <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">Aucun avis publié.</div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3">
@@ -412,7 +416,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
         </div>
       </div>
 
-      {/* Address Modal */}
       {showAddressModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
            <div className="absolute inset-0 bg-[#002f34]/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
@@ -427,40 +430,40 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             <form onSubmit={handleSaveAddress} className="p-6 space-y-4 overflow-y-auto">
                 <div className="space-y-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase">Label (ex: Maison, Bureau)</label>
+                      <label className="text-[10px] font-bold text-gray-400">Label (ex: Maison, Bureau)</label>
                       <input name="name" defaultValue={editingAddress?.name} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
                     </div>
                     
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase">Nom complet</label>
+                      <label className="text-[10px] font-bold text-gray-400">Nom complet</label>
                       <input name="fullName" defaultValue={editingAddress?.full_name} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">Téléphone</label>
+                        <label className="text-[10px] font-bold text-gray-400">Téléphone</label>
                         <input name="phone" defaultValue={editingAddress?.phone} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">Ville</label>
+                        <label className="text-[10px] font-bold text-gray-400">Ville</label>
                         <input name="city" defaultValue={editingAddress?.city} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase">Adresse exacte</label>
+                      <label className="text-[10px] font-bold text-gray-400">Adresse exacte</label>
                       <input name="address" defaultValue={editingAddress?.address} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
                     </div>
 
-                    <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                    <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer" id="default-address-toggle">
                       <input type="checkbox" name="isDefault" defaultChecked={editingAddress?.is_default} className="w-5 h-5 rounded text-[#f56b2a]" />
                       <span className="text-xs font-bold text-gray-600">Définir par défaut</span>
                     </label>
                 </div>
 
                 <div className="flex gap-3 pt-2 shrink-0">
-                    <button type="button" onClick={() => setShowAddressModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs active:bg-gray-200">Annuler</button>
-                    <button type="submit" className="flex-[2] py-4 bg-[#f56b2a] text-white font-bold rounded-xl text-xs shadow-lg shadow-orange-100 active:scale-95 transition-all">Enregistrer</button>
+                    <button type="button" id="cancel-address-btn" onClick={() => setShowAddressModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs active:bg-gray-200">Annuler</button>
+                    <button type="submit" id="save-address-btn" className="flex-[2] py-4 bg-[#f56b2a] text-white font-bold rounded-xl text-xs shadow-lg shadow-orange-100 active:scale-95 transition-all">Enregistrer</button>
                 </div>
             </form>
           </div>
@@ -469,3 +472,5 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     </div>
   );
 };
+
+export default BuyerView;
