@@ -248,9 +248,12 @@ export async function saveProductReviewAction(storeId: string, productId: string
   const supabase = await createClient()
 
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { error } = await supabase.from('product_reviews').insert({
       product_id: productId,
       store_id: storeId,
+      user_id: user?.id, // Link to the logged-in buyer
       author_name: review.author || 'Anonyme',
       rating: review.rating || 5,
       comment: review.comment || '',
@@ -396,7 +399,7 @@ export async function fetchBuyerReviewsAction() {
 
   const { data, error } = await supabase
     .from('product_reviews')
-    .select('*, products(name, image)')
+    .select('*, products(name, image), stores(name)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 

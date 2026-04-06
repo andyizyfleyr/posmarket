@@ -534,10 +534,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+            await supabase.auth.signOut();
             setUser(null);
             setCustomerInfo({ name: '', phone: '', address: '', city: '', zip: '' });
+            setIsAccountView(false);
             localNotify('Déconnexion réussie', 'info');
         }
     };
@@ -1849,6 +1851,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 userEmail={user.email} 
                 onBack={() => setIsAccountView(false)}
                 notify={notify}
+                onLogout={handleLogout}
             />
         );
     }

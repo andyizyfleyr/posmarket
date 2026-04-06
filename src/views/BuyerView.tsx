@@ -21,11 +21,12 @@ interface BuyerViewProps {
   userEmail: string;
   onBack: () => void;
   notify: (msg: string, type: NotificationType) => void;
+  onLogout: () => void;
 }
 
 type TabType = 'orders' | 'addresses' | 'profile' | 'reviews';
 
-export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify }) => {
+export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
@@ -73,12 +74,17 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
 
     const res = await saveBuyerAddressAction(data);
     if (res.success) {
-      notify('Adresse enregistrée avec succès', 'success');
+      notify('Adresse enregistrée', 'success');
       setShowAddressModal(false);
       loadData();
     } else {
-      notify(res.error || 'Erreur lors de l\'enregistrement', 'error');
+      console.error('Save address error:', res.error);
+      notify(res.error || 'Erreur', 'error');
     }
+  };
+
+  const handleLogout = async () => {
+    onLogout();
   };
 
   const handleDeleteAddress = async (id: string) => {
@@ -87,6 +93,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
       if (res.success) {
         notify('Adresse supprimée', 'info');
         loadData();
+      } else {
+        console.error('Delete address error:', res.error);
       }
     }
   };
@@ -198,7 +206,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
                   {item.label}
                 </button>
               ))}
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 text-xs font-bold hover:bg-red-50 mt-4 transition-all">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 text-xs font-bold hover:bg-red-50 mt-4 transition-all">
                 <LogOut size={16} />
                 Déconnexion
               </button>
@@ -225,7 +233,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
                            </div>
                            <div>
                              <p className="text-[9px] text-gray-400 font-bold">#{order.id.slice(-6)} • {new Date(order.date).toLocaleDateString()}</p>
-                             <p className="text-xs font-bold text-[#002f34]">{order.stores?.name}</p>
+                             <p className="text-xs font-bold text-[#002f34]">{Array.isArray(order.stores) ? order.stores[0]?.name : order.stores?.name}</p>
                            </div>
                         </div>
                         <div className={`px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 ${getStatusColor(order.status)}`}>
@@ -234,17 +242,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
                         </div>
                       </div>
                       <div className="p-3 space-y-2">
-                        {order.order_items?.map((item: any) => (
-                          <div key={item.id} className="flex gap-3 items-center">
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden">
-                               <img src={item.products?.image} className="w-full h-full object-cover" />
+                        {order.order_items?.map((item: any) => {
+                          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+                          return (
+                            <div key={item.id} className="flex gap-3 items-center">
+                              <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden">
+                                 <img src={product?.image} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1">
+                                 <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
+                                 <p className="text-[10px] text-gray-400">{item.quantity} x {formatCurrency(item.price)}</p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                               <p className="text-xs font-semibold text-[#002f34] truncate">{item.products?.name}</p>
-                               <p className="text-[10px] text-gray-400">{item.quantity} x {formatCurrency(item.price)}</p>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="px-3 py-2 bg-gray-50/20 flex items-center justify-between border-t border-gray-50 text-xs font-bold">
                          <span className="text-gray-400 text-[10px]">Total</span>
@@ -307,7 +318,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
                          <button className="flex items-center gap-2 w-full py-3 px-4 bg-gray-900 text-white font-bold text-[10px] rounded-xl">
                             <ShieldCheck size={14} className="text-green-400" /> Changer le mot de passe
                          </button>
-                         <button onClick={onBack} className="flex items-center gap-2 w-full py-3 px-4 bg-red-50 text-red-500 font-bold text-[10px] rounded-xl border border-red-100">
+                         <button onClick={handleLogout} className="flex items-center gap-2 w-full py-3 px-4 bg-red-50 text-red-500 font-bold text-[10px] rounded-xl border border-red-100">
                             <LogOut size={14} /> Se déconnecter
                          </button>
                        </div>
@@ -322,25 +333,29 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify 
                   <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">Aucun avis publié.</div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3">
-                    {reviews.map((rev) => (
-                      <div key={rev.id} className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-                         <div className="flex gap-3 mb-2">
-                           <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                             <img src={rev.products?.image} className="w-full h-full object-cover" />
+                    {reviews.map((rev) => {
+                      const product = Array.isArray(rev.products) ? rev.products[0] : rev.products;
+                      const store = Array.isArray(rev.stores) ? rev.stores[0] : rev.stores;
+                      return (
+                        <div key={rev.id} className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                           <div className="flex gap-3 mb-2">
+                             <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                               <img src={product?.image} className="w-full h-full object-cover" />
+                             </div>
+                             <div className="flex-1">
+                                <p className="text-[8px] text-gray-400 font-bold uppercase">{store?.name || 'Boutique'}</p>
+                                <p className="text-xs font-bold text-[#002f34] truncate">{product?.name}</p>
+                                <div className="flex gap-0.5 mt-0.5">
+                                   {[...Array(5)].map((_, i) => (
+                                     <Star key={i} size={10} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} />
+                                   ))}
+                                </div>
+                             </div>
                            </div>
-                           <div className="flex-1">
-                              <p className="text-[8px] text-gray-400 font-bold uppercase">{rev.stores?.name}</p>
-                              <p className="text-xs font-bold text-[#002f34] truncate">{rev.products?.name}</p>
-                              <div className="flex gap-0.5 mt-0.5">
-                                 {[...Array(5)].map((_, i) => (
-                                   <Star key={i} size={10} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} />
-                                 ))}
-                              </div>
-                           </div>
-                         </div>
-                         <p className="text-[11px] text-gray-600 bg-gray-50/50 p-2.5 rounded-lg italic">"{rev.comment}"</p>
-                      </div>
-                    ))}
+                           <p className="text-[11px] text-gray-600 bg-gray-50/50 p-2.5 rounded-lg italic">"{rev.comment}"</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
