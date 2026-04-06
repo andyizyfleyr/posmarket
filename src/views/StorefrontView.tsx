@@ -246,9 +246,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
 
     // User Accounts State
-    const [isFeedView, setIsFeedView] = useState(false);
     const { isOnline, isSlow } = useNetworkStatus();
     const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
+
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
     const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
@@ -541,8 +541,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             await supabase.auth.signOut();
             setUser(null);
             setCustomerInfo({ name: '', phone: '', address: '', city: '', zip: '' });
-            setIsAccountView(false);
             localNotify('Déconnexion réussie', 'info');
+
         }
     };
 
@@ -1866,12 +1866,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     Vous êtes hors ligne • Reconnexion en cours...
                 </div>
             )}
-            {isOnline && isSlow && (
-                <div className="bg-orange-400 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center animate-in slide-in-from-top-full duration-300 z-[10001]">
-                    Connexion lente détectée • Optimisation de l'affichage...
-                </div>
-            )}
             {/* BuyerView Route Overlay */}
+
             <Routes>
                 <Route path="account" element={
                     user ? (
@@ -1923,9 +1919,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 }}
                 onHomeClick={() => {
                     setIsSearchOpen(false);
-                    setIsAccountView(false);
                     safeNavigate('/');
                 }}
+
                 onAccountClick={() => {
                     if (user) {
                         safeNavigate('/account');
