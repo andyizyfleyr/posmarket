@@ -1,19 +1,21 @@
 'use client';
 
 import React from 'react';
-import { Home, Search } from 'lucide-react';
+import { Home, Search, ShoppingBag, User } from 'lucide-react';
 import { useLocation, useNavigate } from '@/components/RouterPolyfill';
 
 interface MarketplaceBottomNavProps {
   cartItemsCount: number;
   onSearchClick: () => void;
   onHomeClick?: () => void;
+  onAccountClick: () => void;
 }
 
 export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({ 
   cartItemsCount, 
   onSearchClick,
-  onHomeClick
+  onHomeClick,
+  onAccountClick
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,8 +34,8 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           }}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-all ${isHome ? 'text-[#f56b2a]' : 'text-gray-400'}`}
         >
-          <Home size={24} strokeWidth={isHome ? 2.5 : 2} />
-          <span className={`text-[10px] mt-1 font-bold tracking-tight ${isHome ? 'text-[#f56b2a]' : 'text-gray-400'}`}>Accueil</span>
+          <Home size={22} strokeWidth={isHome ? 2.5 : 2} />
+          <span className={`text-[9px] mt-1 font-bold tracking-tight ${isHome ? 'text-[#f56b2a]' : 'text-gray-400'}`}>Accueil</span>
         </button>
 
         {/* Rechercher */}
@@ -41,8 +43,33 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           onClick={onSearchClick}
           className="flex flex-col items-center justify-center flex-1 h-full text-gray-400 active:text-[#f56b2a] transition-all"
         >
-          <Search size={24} strokeWidth={2} />
-          <span className="text-[10px] mt-1 font-bold tracking-tight">Recherche</span>
+          <Search size={22} strokeWidth={2} />
+          <span className="text-[9px] mt-1 font-bold tracking-tight">Recherche</span>
+        </button>
+
+        {/* Panier */}
+        <button
+          onClick={() => navigate('/cart')}
+          className={`flex flex-col items-center justify-center flex-1 h-full relative ${pathname === '/cart' ? 'text-[#f56b2a]' : 'text-gray-400'}`}
+        >
+          <div className="relative">
+             <ShoppingBag size={22} strokeWidth={pathname === '/cart' ? 2.5 : 2} />
+             {cartItemsCount > 0 && (
+               <span className="absolute -top-1.5 -right-1.5 bg-[#f56b2a] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
+                 {cartItemsCount}
+               </span>
+             )}
+          </div>
+          <span className="text-[9px] mt-1 font-bold tracking-tight">Panier</span>
+        </button>
+
+        {/* Compte */}
+        <button
+          onClick={onAccountClick}
+          className="flex flex-col items-center justify-center flex-1 h-full text-gray-400 active:text-[#f56b2a] transition-all"
+        >
+          <User size={22} strokeWidth={2} />
+          <span className="text-[9px] mt-1 font-bold tracking-tight">Compte</span>
         </button>
 
       </div>

@@ -141,10 +141,14 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
         customerId = newCustomer.id
       }
 
+      // 1. Get current buyer user if logged in
+      const { data: { user: buyer } } = await supabase.auth.getUser();
+
       // 2. Create Order
       const { data: order, error: orderErr } = await supabase.from('orders').insert({
         store_id: storeId,
         customer_id: customerId,
+        buyer_id: buyer?.id, // Link to the logged-in buyer user
         date: new Date().toISOString(),
         status: 'PENDING',
         type: 'PICKUP',
@@ -305,4 +309,97 @@ export async function notifyCartInterestAction(storeId: string, productName: str
     console.error('Failed to send cart interest notification:', err);
     return { success: false }
   }
+}
+
+// --- BUYER SPACE ACTIONS ---
+
+export async function fetchBuyerOrdersAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      stores (name, address, phone),
+      order_items!inner (*, products(name, image, price))
+    `)
+    .eq('buyer_id', user.id)
+    .order('date', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, orders: data };
+}
+
+export async function fetchBuyerAddressesAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data, error } = await supabase
+    .from('buyer_addresses')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('is_default', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, addresses: data };
+}
+
+export async function saveBuyerAddressAction(formData: any) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const addressData = {
+    user_id: user.id,
+    name: formData.name,
+    full_name: formData.fullName,
+    phone: formData.phone,
+    email: formData.email,
+    address: formData.address,
+    city: formData.city,
+    is_default: formData.isDefault || false
+  };
+
+  if (formData.isDefault) {
+    // Unset other defaults before setting this one
+    await supabase.from('buyer_addresses').update({ is_default: false }).eq('user_id', user.id);
+  }
+
+  let result;
+  if (formData.id) {
+    result = await supabase.from('buyer_addresses').update(addressData).eq('id', formData.id);
+  } else {
+    result = await supabase.from('buyer_addresses').insert(addressData);
+  }
+
+  if (result.error) return { success: false, error: result.error.message };
+  return { success: true };
+}
+
+export async function deleteBuyerAddressAction(addressId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { error } = await supabase.from('buyer_addresses').delete().eq('id', addressId).eq('user_id', user.id);
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function fetchBuyerReviewsAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data, error } = await supabase
+    .from('product_reviews')
+    .select('*, products(name, image)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, reviews: data };
 }

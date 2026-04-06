@@ -5,7 +5,7 @@ import {
     ShoppingCart, Search, Store, MapPin, CreditCard, ChevronLeft,
     Star, Heart, X, CheckCircle2, User, Phone, Mail, Truck, ShieldCheck,
     Gift, Zap, Bell, MessageCircle, Plus, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, Globe,
-    Eye, ShoppingBag
+    Package, Edit2, Trash2, Home, Briefcase, LogOut, ArrowLeft, AlertCircle, Clock, ShoppingBag
 } from 'lucide-react';
 import { StoreData, Product, Customer, Order, ViewType, NotificationType, Review, Coupon, ToastNotification } from '@/types';
 import { generateProductSlug } from '@/utils/slug';
@@ -19,6 +19,7 @@ import { incrementProductViews, incrementStoreViews } from '@/supabase-api';
 import { fetchMarketplaceProducts, fetchProductReviews } from '@/hooks/useSupabaseData';
 import { MarketplaceBottomNav } from '@/components/MarketplaceBottomNav';
 import { supabase } from '@/supabase';
+import { BuyerView } from './BuyerView';
 
 interface StorefrontProduct extends Product {
     storeId: string;
@@ -244,11 +245,27 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
 
     // User Accounts State
-    const [user, setUser] = useState<{ name: string, email: string } | null>(null);
+    const [isAccountView, setIsAccountView] = useState(false);
+    const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
     const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
     const [showPropulseModal, setShowPropulseModal] = useState(false);
+
+    // RESTORE USER SESSION
+    useEffect(() => {
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUser({
+                    id: session.user.id,
+                    name: session.user.user_metadata?.full_name || 'Utilisateur',
+                    email: session.user.email || ''
+                });
+            }
+        };
+        checkSession();
+    }, []);
 
     // Load customer info from localStorage (24h expiration)
     const loadCustomerInfoFromStorage = (): { name: string, phone: string, address: string, city: string, zip: string } => {
@@ -485,15 +502,36 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         }
     };
 
-    const handleAuthSubmit = (e: React.FormEvent) => {
+    const handleAuthSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setUser({ name: authMode === 'register' ? authForm.name : 'Utilisateur', email: authForm.email });
-        setShowAuthModal(false);
-        setCustomerInfo(prev => ({
-            ...prev,
-            name: authMode === 'register' ? authForm.name : 'Utilisateur'
-        }));
-        setAuthForm({ name: '', email: '', password: '' });
+        setIsProcessingPayment(true); // Reuse loading state for auth
+        
+        try {
+            if (authMode === 'register') {
+                const { data, error } = await supabase.auth.signUp({
+                    email: authForm.email,
+                    password: authForm.password,
+                    options: { data: { full_name: authForm.name } }
+                });
+                if (error) throw error;
+                setUser({ id: data.user?.id, name: authForm.name, email: authForm.email });
+                notify('Compte créé ! Bienvenue.', 'success');
+            } else {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: authForm.email,
+                    password: authForm.password,
+                });
+                if (error) throw error;
+                setUser({ id: data.user?.id, name: data.user?.user_metadata?.full_name || 'Utilisateur', email: authForm.email });
+                notify('Connexion réussie !', 'success');
+            }
+            setShowAuthModal(false);
+            setAuthForm({ name: '', email: '', password: '' });
+        } catch (err: any) {
+            notify(err.message || 'Erreur d\'authentification', 'error');
+        } finally {
+            setIsProcessingPayment(false);
+        }
     };
 
     const handleLogout = () => {
@@ -1805,6 +1843,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         );
     };
 
+    if (isAccountView && user) {
+        return (
+            <BuyerView 
+                userEmail={user.email} 
+                onBack={() => setIsAccountView(false)}
+                notify={notify}
+            />
+        );
+    }
+
     return (
         <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-[100px] md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
 
@@ -1822,7 +1870,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 }}
                 onHomeClick={() => {
                     setIsSearchOpen(false);
+                    setIsAccountView(false);
                     safeNavigate('/');
+                }}
+                onAccountClick={() => {
+                    if (user) {
+                        setIsAccountView(true);
+                    } else {
+                        setAuthMode('login');
+                        setShowAuthModal(true);
+                    }
                 }}
             />
 
@@ -1900,6 +1957,33 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 {cartItemsCount}
                                             </div>
                                         )}
+                                    </button>
+                                </div>
+
+                                {/* User Profile Button */}
+                                <div className="ml-1 md:ml-3">
+                                    <button
+                                        onClick={() => {
+                                            if (user) {
+                                                setIsAccountView(true);
+                                            } else {
+                                                setAuthMode('login');
+                                                setShowAuthModal(true);
+                                            }
+                                        }}
+                                        className={`flex items-center gap-2.5 p-1.5 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-[#f56b2a]/10 hover:text-[#f56b2a] hover:border-[#f56b2a]/20'}`}
+                                    >
+                                        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? 'bg-[#f56b2a] text-white' : 'bg-white text-gray-400 group-hover/auth:bg-[#f56b2a] group-hover/auth:text-white'}`}>
+                                            <User size={18} strokeWidth={3} />
+                                        </div>
+                                        <div className="hidden md:flex flex-col items-start leading-none pr-1">
+                                            <span className="text-[9px] font-black uppercase tracking-wider opacity-60 mb-0.5">
+                                                {user ? 'Mon Compte' : 'Bienvenue'}
+                                            </span>
+                                            <span className="text-xs font-black truncate max-w-[100px]">
+                                                {user ? user.name : 'Se connecter'}
+                                            </span>
+                                        </div>
                                     </button>
                                 </div>
                             </div>
