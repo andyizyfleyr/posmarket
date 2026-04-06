@@ -52,11 +52,12 @@ interface StorefrontViewProps {
     onMarketplaceCheckout: (ordersData: Record<string, any>, customerData: any) => Promise<any>;
     onAddReview: (storeId: string, productId: string, review: any) => Promise<any>;
     onNotifyCartInterest: (storeId: string, productName: string) => Promise<any>;
+    onNotifyPostCheckout: (ordersData: Record<string, any>) => Promise<any>;
     notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
 
-export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, notify }) => {
+export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout, notify }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const params = useParams();
@@ -461,6 +462,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 setPromoApplied(null);
                 setPromoCodeInput('');
                 setCheckoutStage('success');
+                // Send notifications after success screen is triggered
+                if (pendingOrderData) {
+                    onNotifyPostCheckout(pendingOrderData);
+                }
                 setPendingOrderData(null);
                 setPendingCustomerInfo(null);
                 window.history.replaceState({}, '', window.location.pathname);
@@ -863,6 +868,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         setPromoCodeInput('');
                         setCheckoutStage('success');
                         setCart([]);
+                        onNotifyPostCheckout(ordersData);
                     } else {
                         localNotify(response?.error || "Erreur lors de la validation de la commande", 'error');
                     }
