@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { StoreData, Product } from '@/types'
 import { safeSupabaseFetch } from '@/utils/supabase/retry'
+import { sendOrderNotification } from '@/utils/firebase-admin'
 
 export async function fetchMarketplaceData() {
   const supabase = await createClient()
@@ -187,6 +188,18 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
             }).eq('id', item.product.id);
           }
         }
+      }
+        }
+      }
+
+      // 4. Send Push Notification to Seller
+      try {
+        const { data: store } = await supabase.from('stores').select('name').eq('id', storeId).maybeSingle();
+        if (store) {
+          await sendOrderNotification(store.name || 'Ma Boutique', storeOrderData.total);
+        }
+      } catch (err) {
+        console.warn('Failed to send push notification:', err);
       }
     }
 
