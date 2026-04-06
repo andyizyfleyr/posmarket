@@ -18,7 +18,6 @@ import Toast from '../components/Toast';
 import { Routes, Route, useNavigate, useParams, Link, useLocation, useMatch, useRouter } from '@/components/RouterPolyfill';
 import { incrementProductViews, incrementStoreViews } from '@/supabase-api';
 import { fetchMarketplaceProducts, fetchProductReviews } from '@/hooks/useSupabaseData';
-import { fetchUserPurchasedProductIdsAction } from '@/app/actions/marketplace';
 import { MarketplaceBottomNav } from '@/components/MarketplaceBottomNav';
 import { supabase } from '@/supabase';
 import { BuyerView } from './BuyerView';
@@ -126,12 +125,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             const storedMarketplace = localStorage.getItem('marketplace_cache');
             if (storedMarketplace) {
                 const { data, timestamp } = JSON.parse(storedMarketplace);
-                // Cache valid for 3 minutes for better freshness
-                const isFresh = Date.now() - timestamp < 3 * 60 * 1000;
-                if (data && data.length > 0 && isFresh) {
+                // Cache valid for 30 minutes
+                const isFresh = Date.now() - timestamp < 30 * 60 * 1000;
+                if (data && data.length > 0) {
                     setCachedStores(data);
                 }
-
             }
         } catch (e) {
             console.warn('Marketplace cache load failed', e);
@@ -163,10 +161,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     // Use cached data as fallback for UI
     const activeStores = stores && stores.length > 0 ? stores : cachedStores;
-
-    useEffect(() => {
-        console.log('[DEBUG] StorefrontView activeStores:', activeStores?.length || 0, activeStores);
-    }, [activeStores]);
 
     // 2. Update cache when fresh props arrive
     React.useEffect(() => {
@@ -210,7 +204,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 });
             }
         });
-        console.log('[DEBUG] StorefrontView allProducts:', products.length, products);
         return products;
     }, [activeStores]);
 
@@ -253,11 +246,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
 
     // User Accounts State
+    const [isAccountView, setIsAccountView] = useState(false);
     const { isOnline, isSlow } = useNetworkStatus();
     const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
-    const [purchasedProductIds, setPurchasedProductIds] = useState<string[]>([]);
-
-
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
     const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' });
@@ -273,15 +264,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     name: session.user.user_metadata?.full_name || 'Utilisateur',
                     email: session.user.email || ''
                 });
-                
-                // Fetch purchased status
-                const res = await fetchUserPurchasedProductIdsAction();
-                if (res.success) setPurchasedProductIds(res.productIds);
             }
         };
         checkSession();
     }, []);
-
 
     // Load customer info from localStorage (24h expiration)
     const loadCustomerInfoFromStorage = (): { name: string, phone: string, address: string, city: string, zip: string } => {
@@ -543,11 +529,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             }
             setShowAuthModal(false);
             setAuthForm({ name: '', email: '', password: '' });
-            
-            // Refresh purchased status
-            const res = await fetchUserPurchasedProductIdsAction();
-            if (res.success) setPurchasedProductIds(res.productIds);
-
         } catch (err: any) {
             notify(err.message || 'Erreur d\'authentification', 'error');
         } finally {
@@ -560,8 +541,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             await supabase.auth.signOut();
             setUser(null);
             setCustomerInfo({ name: '', phone: '', address: '', city: '', zip: '' });
+            setIsAccountView(false);
             localNotify('Déconnexion réussie', 'info');
-
         }
     };
 
@@ -1384,8 +1365,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             </div>
                         </div>
                         <button
-                            disabled={!!user && !purchasedProductIds.includes(selectedProductDetails.id)}
-
                             onClick={() => { 
                                 if (!user) {
                                     setAuthMode('login');
@@ -1395,12 +1374,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 setShowReviewForm(true); 
                                 setReviewStep(1); 
                             }}
-                            className={`px-4 py-2 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1.5 active:scale-95 ${user && !purchasedProductIds.includes(selectedProductDetails.id) ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-gray-900 text-white hover:bg-[#f56b2a]'}`}
+                            className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-[11px] hover:bg-[#f56b2a] transition-all flex items-center gap-1.5 active:scale-95"
                         >
-                            <MessageCircle size={13} /> 
-                            {user && !purchasedProductIds.includes(selectedProductDetails.id) ? 'Reservé aux acheteurs' : 'Laisser une note'}
+                            <MessageCircle size={13} /> Laisser une note
                         </button>
-
 
                     </div>
 
@@ -1889,44 +1866,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     Vous êtes hors ligne • Reconnexion en cours...
                 </div>
             )}
-            {/* BuyerView Route Overlay */}
-
-            <Routes>
-                <Route path="account" element={
-                    user ? (
-                        <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
-                            <BuyerView 
-                                userEmail={user.email} 
-                                onBack={() => safeNavigate('/')}
-                                notify={notify}
-                                onLogout={handleLogout}
-                            />
-                        </div>
-                    ) : ( 
-                        <div className="flex items-center justify-center min-h-[50vh]">
-                            <button 
-                                onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-                                className="bg-[#f56b2a] text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl"
-                            >
-                                Connectez-vous pour voir votre compte
-                            </button>
-                        </div>
-                    )
-                } />
-                <Route path="account/:tab" element={
-                    user ? (
-                        <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
-                            <BuyerView 
-                                userEmail={user.email} 
-                                onBack={() => safeNavigate('/')}
-                                notify={notify}
-                                onLogout={handleLogout}
-                            />
-                        </div>
-                    ) : null
-                } />
-            </Routes>
-
+            {isOnline && isSlow && (
+                <div className="bg-orange-400 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center animate-in slide-in-from-top-full duration-300 z-[10001]">
+                    Connexion lente détectée • Optimisation de l'affichage...
+                </div>
+            )}
+            {/* BuyerView Overlay (Full screen for mobile/desktop) */}
+            {isAccountView && user && (
+                <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
+                    <BuyerView 
+                        userEmail={user.email} 
+                        onBack={() => setIsAccountView(false)}
+                        notify={notify}
+                        onLogout={handleLogout}
+                    />
+                </div>
+            )}
 
             {/* Global Notifications (Toasts) */}
             <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-4 pointer-events-none items-end">
@@ -1942,18 +1897,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 }}
                 onHomeClick={() => {
                     setIsSearchOpen(false);
+                    setIsAccountView(false);
                     safeNavigate('/');
                 }}
-
                 onAccountClick={() => {
                     if (user) {
-                        safeNavigate('/account');
+                        setIsAccountView(true);
                     } else {
                         setAuthMode('login');
                         setShowAuthModal(true);
                     }
                 }}
-
             />
 
             {/* Premium Sticky Header */}
@@ -2038,13 +1992,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <button
                                         onClick={() => {
                                             if (user) {
-                                                safeNavigate('/account');
+                                                setIsAccountView(true);
                                             } else {
                                                 setAuthMode('login');
                                                 setShowAuthModal(true);
                                             }
                                         }}
-
                                         className={`flex items-center gap-2.5 p-1.5 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-[#f56b2a]/10 hover:text-[#f56b2a] hover:border-[#f56b2a]/20'}`}
                                     >
                                         <div className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? 'bg-[#f56b2a] text-white' : 'bg-white text-gray-400 group-hover/auth:bg-[#f56b2a] group-hover/auth:text-white'}`}>

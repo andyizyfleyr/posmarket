@@ -66,12 +66,11 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
         {/* Compte */}
         <button
           onClick={onAccountClick}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-all ${pathname.startsWith('/account') ? 'text-[#f56b2a]' : 'text-gray-400'}`}
+          className="flex flex-col items-center justify-center flex-1 h-full text-gray-400 active:text-[#f56b2a] transition-all"
         >
-          <User size={22} strokeWidth={pathname.startsWith('/account') ? 2.5 : 2} />
-          <span className={`text-[9px] mt-1 font-bold tracking-tight ${pathname.startsWith('/account') ? 'text-[#f56b2a]' : 'text-gray-400'}`}>Compte</span>
+          <User size={22} strokeWidth={2} />
+          <span className="text-[9px] mt-1 font-bold tracking-tight">Compte</span>
         </button>
-
 
       </div>
     </nav>

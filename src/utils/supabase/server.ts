@@ -11,12 +11,12 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       global: {
-        fetch: supabaseFetchWithTimeout(10000),
+        fetch: supabaseFetchWithTimeout(20000),
         headers: {
           'x-client-info': '@supabase/ssr-nextjs',
+          'Connection': 'close',
         },
       },
-
       cookies: {
         getAll() {
           return cookieStore.getAll();

@@ -19,8 +19,6 @@ import {
 } from '@/app/actions/marketplace';
 import { NotificationType } from '@/types';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-import { useParams, useNavigate } from '@/components/RouterPolyfill';
-
 
 interface BuyerViewProps {
   userEmail: string;
@@ -32,12 +30,8 @@ interface BuyerViewProps {
 type TabType = 'orders' | 'addresses' | 'profile' | 'reviews';
 
 export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout }) => {
-  const params = useParams();
-  const navigate = useNavigate();
-  const activeTab: TabType = (params.tab as TabType) || 'orders';
-  
+  const [activeTab, setActiveTab] = useState<TabType>('orders');
   const [orders, setOrders] = useState<any[]>([]);
-
   const [addresses, setAddresses] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,12 +196,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     }
   };
 
-  const setActiveTab = (tab: TabType) => {
-    navigate(`/account/${tab}`);
-  };
-
   const getStatusColor = (status: string) => {
-
     switch (status) {
       case 'COMPLETED': return 'bg-green-100 text-green-700';
       case 'READY': return 'bg-blue-100 text-blue-700';

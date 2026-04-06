@@ -11,28 +11,22 @@ export async function fetchMarketplaceData() {
   console.log('[DEBUG] fetchMarketplaceData called');
   const supabase = await createClient()
 
-  // 1. Fetch BASIC Stores List (Remove filter for debug)
+  // 1. Fetch BASIC Stores List
   const { data: storesData, error: storesError } = await safeSupabaseFetch<any[]>(
     () => supabase
       .from('stores')
       .select('id, slug, user_id, name, email, phone, address, ninea, views, description, settings, status')
+      .or('status.eq.APPROVED,status.is.null')
   )
 
-  if (storesError) {
-    console.error('[DEBUG] Error fetching stores:', storesError);
-  }
-
-  // 2. Fetch all products (Remove is_online filter for debug)
+  // 2. Fetch all products
   const { data: productsData, error: productsError } = await safeSupabaseFetch<any[]>(
-    () => supabase
-      .from('products')
-      .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty, created_at, status, is_online')
-      .order('created_at', { ascending: false })
-      .limit(150)
+    () => supabase.from('products').select('*')
   )
 
   if (productsError) {
-    console.error('[DEBUG] Error fetching products:', productsError)
+    console.error('Error fetching products:', productsError)
+    return []
   }
 
   // 3. Fetch product stats
@@ -107,33 +101,8 @@ export async function fetchMarketplaceData() {
     } as any;
   })
 
-  if (!marketplaceStores || marketplaceStores.length === 0) {
-    console.log('[DEBUG] No stores found in fetchMarketplaceData - Providing dummy fallback');
-    // For debugging ONLY: Hardcoded dummy store to verify UI rendering
-    return [
-      {
-        id: 'debug-store-1',
-        slug: 'boutique-test',
-        name: 'Boutique de Test (DEBUG)',
-        settings: { name: 'Boutique de Test (DEBUG)' },
-        products: [
-          {
-            id: 'debug-prod-1',
-            name: 'Produit de Test Debug',
-            price: 1000,
-            image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
-            isOnline: true
-          }
-        ]
-      }
-    ] as any;
-  } else {
-    console.log(`[DEBUG] Returning ${marketplaceStores.length} stores from fetchMarketplaceData`);
-  }
-
   return marketplaceStores
 }
-
 
 export async function submitCheckoutAction(ordersData: Record<string, any>, customerData: any) {
   const supabase = await createClient()
@@ -467,25 +436,3 @@ export async function fetchBuyerReviewsAction() {
   if (error) return { success: false, error: error.message };
   return { success: true, reviews: data };
 }
-
-export async function fetchUserPurchasedProductIdsAction() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, productIds: [] };
-
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('status, order_items(product_id)')
-    .eq('buyer_id', user.id)
-    .in('status', ['COMPLETED', 'READY', 'PAID', 'DELIVERED']); // Ensure they actually paid/received
-
-
-  if (error || !orders) return { success: false, productIds: [] };
-
-  const productIds = Array.from(new Set(
-    orders.flatMap(order => (order.order_items as any[] || []).map(item => item.product_id))
-  ));
-
-  return { success: true, productIds };
-}
-
