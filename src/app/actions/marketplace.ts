@@ -11,24 +11,22 @@ export async function fetchMarketplaceData() {
   console.log('[DEBUG] fetchMarketplaceData called');
   const supabase = await createClient()
 
-  // 1. Fetch BASIC Stores List
+  // 1. Fetch BASIC Stores List (Remove filter for debug)
   const { data: storesData, error: storesError } = await safeSupabaseFetch<any[]>(
     () => supabase
       .from('stores')
       .select('id, slug, user_id, name, email, phone, address, ninea, views, description, settings, status')
-      .or('status.eq.APPROVED,status.is.null')
   )
 
-  // 2. Fetch all ONLINE products (limited to 150 for initial speed)
-  // Subsequent products will be loaded via pagination/infinite scroll on the client if implemented
+  // 2. Fetch all products (Remove is_online filter for debug)
   const { data: productsData, error: productsError } = await safeSupabaseFetch<any[]>(
     () => supabase
       .from('products')
       .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty, created_at')
-      .eq('is_online', true)
       .order('created_at', { ascending: false })
       .limit(150)
   )
+
 
 
 
