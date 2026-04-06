@@ -54,14 +54,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
     try {
       if (activeTab === 'orders') {
-        const data = await fetchBuyerOrdersAction();
-        setOrders(data || []);
+        const res = await fetchBuyerOrdersAction();
+        if (res.success) setOrders(res.orders || []);
       } else if (activeTab === 'addresses') {
-        const data = await fetchBuyerAddressesAction();
-        setAddresses(data || []);
+        const res = await fetchBuyerAddressesAction();
+        if (res.success) setAddresses(res.addresses || []);
       } else if (activeTab === 'reviews') {
-        const data = await fetchBuyerReviewsAction();
-        setReviews(data || []);
+        const res = await fetchBuyerReviewsAction();
+        if (res.success) setReviews(res.reviews || []);
       }
     } catch (err) {
       console.error("Fetch Error:", err);
