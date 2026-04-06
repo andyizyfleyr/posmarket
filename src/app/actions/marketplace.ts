@@ -18,21 +18,21 @@ export async function fetchMarketplaceData() {
       .select('id, slug, user_id, name, email, phone, address, ninea, views, description, settings, status')
   )
 
+  if (storesError) {
+    console.error('[DEBUG] Error fetching stores:', storesError);
+  }
+
   // 2. Fetch all products (Remove is_online filter for debug)
   const { data: productsData, error: productsError } = await safeSupabaseFetch<any[]>(
     () => supabase
       .from('products')
-      .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty, created_at')
+      .select('id, name, price, original_price, image, images, category, stock, store_id, views, rating, review_count, sales_count, wholesale_price, wholesale_min_qty, created_at, status, is_online')
       .order('created_at', { ascending: false })
       .limit(150)
   )
 
-
-
-
   if (productsError) {
-    console.error('Error fetching products:', productsError)
-    return []
+    console.error('[DEBUG] Error fetching products:', productsError)
   }
 
   // 3. Fetch product stats
@@ -107,8 +107,33 @@ export async function fetchMarketplaceData() {
     } as any;
   })
 
+  if (!marketplaceStores || marketplaceStores.length === 0) {
+    console.log('[DEBUG] No stores found in fetchMarketplaceData - Providing dummy fallback');
+    // For debugging ONLY: Hardcoded dummy store to verify UI rendering
+    return [
+      {
+        id: 'debug-store-1',
+        slug: 'boutique-test',
+        name: 'Boutique de Test (DEBUG)',
+        settings: { name: 'Boutique de Test (DEBUG)' },
+        products: [
+          {
+            id: 'debug-prod-1',
+            name: 'Produit de Test Debug',
+            price: 1000,
+            image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
+            isOnline: true
+          }
+        ]
+      }
+    ] as any;
+  } else {
+    console.log(`[DEBUG] Returning ${marketplaceStores.length} stores from fetchMarketplaceData`);
+  }
+
   return marketplaceStores
 }
+
 
 export async function submitCheckoutAction(ordersData: Record<string, any>, customerData: any) {
   const supabase = await createClient()

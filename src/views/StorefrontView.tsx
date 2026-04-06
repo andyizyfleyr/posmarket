@@ -164,6 +164,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     // Use cached data as fallback for UI
     const activeStores = stores && stores.length > 0 ? stores : cachedStores;
 
+    useEffect(() => {
+        console.log('[DEBUG] StorefrontView activeStores:', activeStores?.length || 0, activeStores);
+    }, [activeStores]);
+
     // 2. Update cache when fresh props arrive
     React.useEffect(() => {
         if (!isMounted || !stores || stores.length === 0) return;
@@ -206,6 +210,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 });
             }
         });
+        console.log('[DEBUG] StorefrontView allProducts:', products.length, products);
         return products;
     }, [activeStores]);
 
