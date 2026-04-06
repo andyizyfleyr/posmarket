@@ -8,43 +8,41 @@ import { safeSupabaseFetch } from '@/utils/supabase/retry'
 import { sendOrderNotification, sendPushNotification } from '@/utils/firebase-admin'
 
 export async function fetchMarketplaceData() {
-  console.log('[DEBUG] fetchMarketplaceData called');
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  // 1. Fetch BASIC Stores List
-  const { data: storesData, error: storesError } = await safeSupabaseFetch<any[]>(
-    () => supabase
-      .from('stores')
-      .select('id, slug, user_id, name, email, phone, address, ninea, views, description, settings, status')
-      .or('status.eq.APPROVED,status.is.null')
-  )
+  // 1-4. Fetch all essential data in PARALLEL to reduce latency
 
-  // 2. Fetch all products
-  const { data: productsData, error: productsError } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('products').select('*')
-  )
+  const [storesRes, productsRes, productStatsRes, storeStatsRes] = await Promise.all([
+    safeSupabaseFetch<any[]>(() => 
+      supabase
+        .from('stores')
+        .select('id, slug, user_id, name, email, phone, address, ninea, views, description, settings, status')
+        .or('status.eq.APPROVED,status.is.null')),
+    safeSupabaseFetch<any[]>(() => 
+      supabase.from('products').select('*').eq('is_online', true)), // Only fetch online products for the marketplace
+    safeSupabaseFetch<any[]>(() => 
+      supabase.from('product_stats').select('*')),
+    safeSupabaseFetch<any[]>(() => 
+      supabase.from('store_stats').select('store_id, average_rating, total_reviews'))
+  ]);
 
-  if (productsError) {
-    console.error('Error fetching products:', productsError)
-    return []
-  }
+  const storesData = storesRes.data || [];
+  const productsData = productsRes.data || [];
+  const productStatsData = productStatsRes.data || [];
+  const storeStatsData = storeStatsRes.data || [];
 
-  // 3. Fetch product stats
-  const { data: productStatsData } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('product_stats').select('*')
-  )
+  const productStatsMap = Object.fromEntries(productStatsData.map((s: any) => [s.product_id, s]));
+  const storeStatsMap = Object.fromEntries(storeStatsData.map((s: any) => [s.store_id, s]));
 
-  const productStatsMap = Object.fromEntries(((productStatsData as any[]) || []).map((s: any) => [s.product_id, s]));
 
-  // 3.1 Fetch store stats
-  const { data: storeStatsData } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('store_stats').select('store_id, average_rating, total_reviews')
-  )
-
-  const storeStatsMap = Object.fromEntries(((storeStatsData as any[]) || []).map((s: any) => [s.store_id, s]));
+  const productsByStoreMap: Record<string, any[]> = {};
+  productsData.forEach((p: any) => {
+    if (!productsByStoreMap[p.store_id]) productsByStoreMap[p.store_id] = [];
+    productsByStoreMap[p.store_id].push(p);
+  });
 
   // 4. Merge exactly like the old project
-  const marketplaceStores: StoreData[] = ((storesData as any[]) || []).map((s: any) => {
+  const marketplaceStores: StoreData[] = storesData.map((s: any) => {
     const storeStats = storeStatsMap[s.id] || {};
     const settingsObj = s.settings || {};
     const description = s.description || settingsObj.description || '';
@@ -66,9 +64,9 @@ export async function fetchMarketplaceData() {
         description: description,
         ...settingsObj
       },
-      products: ((productsData as any[]) || [])
-        .filter((p: any) => p.store_id === s.id)
+      products: (productsByStoreMap[s.id] || [])
         .map((p: any) => {
+
           const stats = productStatsMap[p.id] || {};
           return {
             id: p.id,
