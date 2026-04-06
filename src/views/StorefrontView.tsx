@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { createPortal } from 'react-dom';
 import {
     ShoppingCart, Search, Store, MapPin, CreditCard, ChevronLeft,
@@ -246,6 +247,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     // User Accounts State
     const [isAccountView, setIsAccountView] = useState(false);
+    const { isOnline, isSlow } = useNetworkStatus();
     const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -1848,6 +1850,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-[100px] md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+            
+            {/* Global Connectivity Banner */}
+            {!isOnline && (
+                <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center animate-in slide-in-from-top-full duration-300 z-[10001]">
+                    Vous êtes hors ligne • Reconnexion en cours...
+                </div>
+            )}
+            {isOnline && isSlow && (
+                <div className="bg-orange-400 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center animate-in slide-in-from-top-full duration-300 z-[10001]">
+                    Connexion lente détectée • Optimisation de l'affichage...
+                </div>
+            )}
             {/* BuyerView Overlay (Full screen for mobile/desktop) */}
             {isAccountView && user && (
                 <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
