@@ -2579,16 +2579,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             )}
 
             {showAuthModal && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 relative">
-                        <button
-                            onClick={() => setShowAuthModal(false)}
-                            className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
-                         aria-label="Fermer">
-                            <X size={20} />
-                        </button>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+                    <div className="fixed inset-0 bg-[#002f34]/60 backdrop-blur-md" onClick={() => setShowAuthModal(false)} />
+                    <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 my-auto">
+                        <div className="p-6 md:p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
+                            <button
+                                onClick={() => setShowAuthModal(false)}
+                                className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
+                             aria-label="Fermer">
+                                <X size={20} />
+                            </button>
 
-                        <div className="p-6 md:p-8">
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#ffe8e0] text-[#f56b2a] mb-4 shadow-sm">
                                     <User size={24} strokeWidth={2.5} />
@@ -2647,8 +2648,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <p className="text-gray-500 font-medium text-xs md:text-sm">
                                     {authMode === 'login' ? 'Pas encore de compte ?' : 'Vous avez déjà un compte ?'}
                                     <button
+                                        type="button"
                                         onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                                        className="ml-2 text-[#f56b2a] font-black hover:underline underline-offset-4"
+                                        className="text-[#f56b2a] font-black hover:underline underline-offset-4 ml-1"
                                     >
                                         {authMode === 'login' ? 'Inscrivez-vous' : 'Connectez-vous'}
                                     </button>
