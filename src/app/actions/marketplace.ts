@@ -253,10 +253,34 @@ export async function saveProductReviewAction(storeId: string, productId: string
   try {
     const { data: { user } } = await supabase.auth.getUser();
 
+    if (!user) {
+      return { success: false, error: 'Vous devez être connecté pour laisser un avis.' }
+    }
+
+    // --- PURCHASE VERIFICATION ---
+    // Check if this user (buyer_id) has an order that includes this product
+    const { data: userOrders, error: orderCheckErr } = await supabase
+      .from('orders')
+      .select('id, order_items!inner(product_id)')
+      .eq('buyer_id', user.id)
+      .eq('order_items.product_id', productId)
+      .limit(1)
+      .maybeSingle();
+
+    if (orderCheckErr) {
+      console.error('Error checking user purchase history:', orderCheckErr);
+      return { success: false, error: 'Impossible de vérifier votre historique d\'achat.' };
+    }
+
+    if (!userOrders) {
+      return { success: false, error: 'Vous ne pouvez laisser un avis que sur les produits que vous avez achetés.' };
+    }
+    // --- END VERIFICATION ---
+
     const { error } = await supabase.from('product_reviews').insert({
       product_id: productId,
       store_id: storeId,
-      user_id: user?.id, // Link to the logged-in buyer
+      user_id: user.id, // Securely use the authenticated user ID
       author_name: review.author || 'Anonyme',
       rating: review.rating || 5,
       comment: review.comment || '',

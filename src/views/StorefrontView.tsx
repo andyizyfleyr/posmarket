@@ -1365,11 +1365,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             </div>
                         </div>
                         <button
-                            onClick={() => { setShowReviewForm(true); setReviewStep(1); }}
+                            onClick={() => { 
+                                if (!user) {
+                                    setAuthMode('login');
+                                    setShowAuthModal(true);
+                                    return;
+                                }
+                                setShowReviewForm(true); 
+                                setReviewStep(1); 
+                            }}
                             className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-[11px] hover:bg-[#f56b2a] transition-all flex items-center gap-1.5 active:scale-95"
                         >
                             <MessageCircle size={13} /> Laisser une note
                         </button>
+
                     </div>
 
                     {/* Rating Distribution */}

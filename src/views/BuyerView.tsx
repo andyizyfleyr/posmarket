@@ -5,7 +5,8 @@ import {
   Package, MapPin, User, Star, ChevronRight, 
   Clock, CheckCircle2, Truck, AlertCircle, ShoppingBag, 
   Plus, Edit2, Trash2, Home, Briefcase, Bell, LogOut, 
-  ArrowLeft, X, Phone, Mail, MessageCircle, ShieldCheck
+  ArrowLeft, X, Phone, Mail, MessageCircle, ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
 import { formatCurrency } from '@/utils';
 import { 
@@ -13,7 +14,8 @@ import {
   fetchBuyerAddressesAction, 
   saveBuyerAddressAction, 
   deleteBuyerAddressAction,
-  fetchBuyerReviewsAction
+  fetchBuyerReviewsAction,
+  saveProductReviewAction
 } from '@/app/actions/marketplace';
 import { NotificationType } from '@/types';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -39,6 +41,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const { isOnline, isSlow } = useNetworkStatus();
   const [internalLoading, setInternalLoading] = useState(false);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product: null as any });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (userEmail) {
@@ -56,6 +61,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
   const loadData = async (forceAll = false) => {
     setLoading(true);
+    setInternalLoading(true);
     setIsSlowConnection(false);
     
     try {
@@ -160,6 +166,33 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       } else {
         console.error('Delete address error:', res.error);
       }
+    }
+  };
+
+  const handleSaveReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewData.product) return;
+    
+    setIsSubmittingReview(true);
+    try {
+      const res = await saveProductReviewAction(
+        reviewData.product.store_id, 
+        reviewData.product.id, 
+        { rating: reviewData.rating, comment: reviewData.comment, author: userEmail.split('@')[0] }
+      );
+      
+      if (res.success) {
+        notify?.("Avis publié avec succès !", "success");
+        setShowReviewModal(false);
+        setReviewData({ rating: 5, comment: '', product: null });
+        loadData(true); // Refresh all data to update review counts/list
+      } else {
+        notify?.(res.error || "Erreur lors de la publication", "error");
+      }
+    } catch (err) {
+      notify?.("Erreur de connexion", "error");
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -311,14 +344,29 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                         {order.order_items?.map((item: any) => {
                           const product = Array.isArray(item.products) ? item.products[0] : item.products;
                           return (
-                            <div key={item.id} className="flex gap-3 items-center">
-                              <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden">
-                                 <img src={product?.image} className="w-full h-full object-cover" />
+                            <div key={item.id} className="flex gap-3 items-center justify-between group/item">
+                              <div className="flex gap-3 items-center flex-1 min-w-0">
+                                <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                                   <img src={product?.image} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                   <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
+                                   <p className="text-[10px] text-gray-400">{item.quantity} x {formatCurrency(item.price)}</p>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                 <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
-                                 <p className="text-[10px] text-gray-400">{item.quantity} x {formatCurrency(item.price)}</p>
-                              </div>
+                              <button 
+                                onClick={() => {
+                                  setReviewData({ 
+                                    rating: 5, 
+                                    comment: '', 
+                                    product: { ...product, store_id: order.store_id } 
+                                  });
+                                  setShowReviewModal(true);
+                                }}
+                                className="shrink-0 px-3 py-1.5 bg-gray-50 hover:bg-[#f56b2a] hover:text-white text-[#f56b2a] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                              >
+                                Laisser un avis
+                              </button>
                             </div>
                           );
                         })}
@@ -483,8 +531,77 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
           </div>
         </div>
       )}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+           <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md" onClick={() => !isSubmittingReview && setShowReviewModal(false)} />
+           <div className="relative bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white relative">
+                  <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f56b2a] mr-3">
+                    <Star size={20} fill="currentColor" />
+                  </div>
+                  <div className="flex-1">
+                      <h3 className="text-sm font-black text-[#002f34] uppercase tracking-tight">Noter le produit</h3>
+                      <p className="text-[10px] text-gray-400 font-bold truncate max-w-[200px]">{reviewData.product?.name}</p>
+                  </div>
+                  <button onClick={() => setShowReviewModal(false)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <X size={20} />
+                  </button>
+              </div>
+              
+              <form onSubmit={handleSaveReview} className="p-8 space-y-8">
+                  <div className="flex flex-col items-center gap-4 py-4 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Votre note</p>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewData({ ...reviewData, rating: star })}
+                            className="p-1 transition-transform active:scale-90"
+                          >
+                            <Star 
+                              size={32} 
+                              fill={star <= reviewData.rating ? "#fbbf24" : "none"} 
+                              className={star <= reviewData.rating ? "text-amber-400 drop-shadow-md" : "text-gray-200"} 
+                              strokeWidth={star <= reviewData.rating ? 0 : 2}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs font-black text-[#f56b2a] uppercase tracking-widest">
+                        {reviewData.rating === 5 ? 'Excellent !' : reviewData.rating >= 4 ? 'Très bien' : reviewData.rating >= 3 ? 'Bien' : 'Moyen'}
+                      </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Commentaire</label>
+                    <textarea 
+                       required
+                       placeholder="Partagez votre expérience avec ce produit..."
+                       value={reviewData.comment}
+                       onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                       className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold min-h-[120px] focus:ring-2 focus:ring-[#f56b2a]/20 transition-all no-global-border resize-none"
+                    />
+                  </div>
+                  
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingReview}
+                    className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    {isSubmittingReview ? (
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>Publier mon avis <ArrowRight size={16} /></>
+                    )}
+                  </button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default BuyerView;
