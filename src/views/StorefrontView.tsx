@@ -2579,25 +2579,25 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 relative">
                         <button
                             onClick={() => setShowAuthModal(false)}
-                            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
+                            className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
                          aria-label="Fermer">
-                            <X size={24} />
+                            <X size={20} />
                         </button>
 
-                        <div className="p-8 md:p-10">
-                            <div className="text-center mb-10">
-                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-[#ffe8e0] text-[#f56b2a] mb-6 shadow-sm">
-                                    <User size={32} strokeWidth={2.5} />
+                        <div className="p-6 md:p-8">
+                            <div className="text-center mb-6">
+                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#ffe8e0] text-[#f56b2a] mb-4 shadow-sm">
+                                    <User size={24} strokeWidth={2.5} />
                                 </div>
-                                <h2 className="text-3xl font-black text-gray-900 mb-2 leading-tight">
+                                <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-1 leading-tight">
                                     {authMode === 'login' ? 'Ravi de vous revoir !' : 'Bienvenue parmi nous'}
                                 </h2>
-                                <p className="text-gray-500 font-medium text-sm">
+                                <p className="text-gray-500 font-medium text-xs md:text-sm">
                                     {authMode === 'login' ? 'Connectez-vous pour continuer vos achats.' : 'Créez votre compte en quelques secondes.'}
                                 </p>
                             </div>
 
-                            <form onSubmit={handleAuthSubmit} className="space-y-4">
+                            <form onSubmit={handleAuthSubmit} className="space-y-3">
                                 {authMode === 'register' && (
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-gray-600 uppercase ml-2">Nom Complet</label>
@@ -2606,7 +2606,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             type="text"
                                             value={authForm.name}
                                             onChange={e => setAuthForm({ ...authForm, name: e.target.value })}
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all"
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                                         />
                                     </div>
                                 )}
@@ -2617,7 +2617,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         type="email"
                                         value={authForm.email}
                                         onChange={e => setAuthForm({ ...authForm, email: e.target.value })}
-                                        className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -2627,20 +2627,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         type="password"
                                         value={authForm.password}
                                         onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
-                                        className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full py-4 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-2xl font-black text-lg shadow-xl shadow-orange-100 transition-all mt-4"
+                                    className="w-full py-3 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-xl font-black text-base shadow-lg shadow-orange-100 transition-all mt-2"
                                 >
                                     {authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}
                                 </button>
                             </form>
 
-                            <div className="mt-8 pt-8 border-t border-gray-50 text-center">
-                                <p className="text-gray-500 font-medium text-sm">
+                            <div className="mt-6 pt-6 border-t border-gray-50 text-center">
+                                <p className="text-gray-500 font-medium text-xs md:text-sm">
                                     {authMode === 'login' ? 'Pas encore de compte ?' : 'Vous avez déjà un compte ?'}
                                     <button
                                         onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
@@ -2664,56 +2664,56 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             <X size={24} />
                         </button>
 
-                        <div className="relative h-48 bg-gradient-to-br from-[#f56b2a] to-[#f56b2a] p-10 flex items-center justify-center overflow-hidden">
+                        <div className="relative h-32 md:h-40 bg-gradient-to-br from-[#f56b2a] to-[#f56b2a] p-6 flex items-center justify-center overflow-hidden">
                             <div className="absolute inset-0 opacity-10 pointer-events-none">
                                 <Zap className="w-full h-full scale-150 rotate-12" />
                             </div>
                             <div className="relative text-center">
-                                <Zap size={64} className="text-white mx-auto mb-4 drop-shadow-lg" fill="currentColor" />
-                                <h3 className="text-3xl font-black text-white leading-tight">Propulsez votre Boutique</h3>
+                                <Zap size={40} className="text-white mx-auto mb-2 drop-shadow-lg" fill="currentColor" />
+                                <h3 className="text-xl md:text-2xl font-black text-white leading-tight">Propulsez votre Boutique</h3>
                             </div>
                         </div>
 
-                        <div className="p-10">
-                            <p className="text-gray-600 font-medium text-lg leading-relaxed mb-8 text-center">
+                        <div className="p-6 md:p-8">
+                            <p className="text-gray-600 font-medium text-sm md:text-base leading-relaxed mb-6 text-center">
                                 Rejoignez nos commerçants d'élite et bénéficiez d'une visibilité exceptionnelle sur leboncoin marketplace.
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                                <div className="flex items-start gap-4 p-4 bg-orange-50 rounded-2xl">
-                                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                                        <Zap size={20} className="text-[#f56b2a]" fill="currentColor" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-2xl">
+                                    <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                                        <Zap size={16} className="text-[#f56b2a]" fill="currentColor" />
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-gray-900 text-sm mb-1 uppercase tracking-tight">Top Ranking</h4>
-                                        <p className="text-xs text-gray-500 font-medium">Vos produits apparaissent en tête des recherches et recommandations.</p>
+                                        <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">Top Ranking</h4>
+                                        <p className="text-[10px] text-gray-500 font-medium">Vos produits apparaissent en tête des recherches et recommandations.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-4 p-4 bg-orange-50 rounded-2xl">
-                                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                                        <ShieldCheck size={20} className="text-[#f56b2a]" />
+                                <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-2xl">
+                                    <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                                        <ShieldCheck size={16} className="text-[#f56b2a]" />
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-gray-900 text-sm mb-1 uppercase tracking-tight">Badge de Confiance</h4>
-                                        <p className="text-xs text-gray-500 font-medium">Bénéficiez d'un badge exclusif qui rassure vos acheteurs.</p>
+                                        <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">Badge de Confiance</h4>
+                                        <p className="text-[10px] text-gray-500 font-medium">Bénéficiez d'un badge exclusif qui rassure vos acheteurs.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-4 p-4 bg-green-50 rounded-2xl">
-                                    <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-                                        <Bell size={20} className="text-green-600" />
+                                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
+                                    <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                                        <Bell size={16} className="text-green-600" />
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-gray-900 text-sm mb-1 uppercase tracking-tight">Alertes Mobiles</h4>
-                                        <p className="text-xs text-gray-500 font-medium">Vos fidèles clients sont notifiés à chaque nouvel arrivage.</p>
+                                        <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">Alertes Mobiles</h4>
+                                        <p className="text-[10px] text-gray-500 font-medium">Vos fidèles clients sont notifiés à chaque nouvel arrivage.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-4 p-4 bg-purple-50 rounded-2xl">
-                                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                        <Store size={20} className="text-purple-600" />
+                                <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-2xl">
+                                    <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                        <Store size={16} className="text-purple-600" />
                                     </div>
                                     <div>
-                                        <h4 className="font-black text-gray-900 text-sm mb-1 uppercase tracking-tight">Page Premium</h4>
-                                        <p className="text-xs text-gray-500 font-medium">Personnalisez votre boutique aux couleurs de votre marque.</p>
+                                        <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">Page Premium</h4>
+                                        <p className="text-[10px] text-gray-500 font-medium">Personnalisez votre boutique aux couleurs de votre marque.</p>
                                     </div>
                                 </div>
                             </div>
@@ -2723,12 +2723,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     setShowPropulseModal(false);
                                     onBackToApp();
                                 }}
-                                className="w-full py-5 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-[24px] font-black text-xl shadow-2xl shadow-orange-200 transition-all flex items-center justify-center gap-3"
+                                className="w-full py-4 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-[20px] font-black text-lg shadow-xl shadow-orange-200 transition-all flex items-center justify-center gap-3"
                             >
-                                <Zap size={24} fill="currentColor" />
+                                <Zap size={20} fill="currentColor" />
                                 Devenir une Boutique Premium
                             </button>
-                            <p className="text-center mt-6 text-gray-600 text-[10px] font-bold uppercase tracking-widest">
+                            <p className="text-center mt-4 text-gray-600 text-[10px] font-bold uppercase tracking-widest">
                                 Essai gratuit de 14 jours • Sans engagement
                             </p>
                         </div>
