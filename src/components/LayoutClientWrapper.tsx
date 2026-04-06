@@ -36,11 +36,47 @@ export default function LayoutClientWrapper({
   
   // Notify Flutter App if we are running inside the WebView
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).FlutterNotifications) {
-      if (currentStore?.id) {
-        (window as any).FlutterNotifications.postMessage(`subscribe:${currentStore.id}`);
+    const supabase = createClient();
+    
+    // 1. Listen for commands FROM the mobile app
+    const handleMobileMessage = async (event: MessageEvent) => {
+      // Note: In typical WebView setup, messages from native don't come via window.postMessage 
+      // unless we inject them that way. We'll provide a global function for Flutter to call.
+    };
+
+    (window as any).restoreSession = async (sessionJson: string) => {
+      try {
+        const session = JSON.parse(sessionJson);
+        await supabase.auth.setSession(session);
+        // Refresh the page to apply changes
+        router.refresh();
+      } catch (err) {
+        console.error('Error restoring session:', err);
       }
+    };
+
+    const syncSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if ((window as any).FlutterNotifications) {
+        if (session) {
+          (window as any).FlutterNotifications.postMessage(`setSession:${JSON.stringify(session)}`);
+        }
+        if (user?.id) {
+          (window as any).FlutterNotifications.postMessage(`subscribe:${user.id}`);
+        } else if (currentStore?.id) {
+          (window as any).FlutterNotifications.postMessage(`subscribe:${currentStore.id}`);
+        }
+      }
+    };
+
+    // 2. Request session from mobile app on startup
+    if ((window as any).FlutterNotifications) {
+       (window as any).FlutterNotifications.postMessage('requestSession');
     }
+
+    syncSession();
   }, [currentStore?.id]);
 
   const notify = useCallback((message: string, type = 'info', title?: string) => {
@@ -50,8 +86,11 @@ export default function LayoutClientWrapper({
 
   const handleLogout = async () => {
     const supabase = createClient();
-    if (typeof window !== 'undefined' && (window as any).FlutterNotifications && currentStore?.id) {
-      (window as any).FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
+    if (typeof window !== 'undefined' && (window as any).FlutterNotifications) {
+      if (currentStore?.id) {
+        (window as any).FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
+      }
+      (window as any).FlutterNotifications.postMessage(`clearSession`);
     }
     await supabase.auth.signOut();
     await clearStoreCookieAction();

@@ -1,4 +1,4 @@
-import { fetchMarketplaceData, submitCheckoutAction, saveProductReviewAction, notifyCartInterestAction } from '@/app/actions/marketplace';
+import { fetchMarketplaceData, submitCheckoutAction, saveProductReviewAction, notifyCartInterestAction, notifyPostCheckoutAction } from '@/app/actions/marketplace';
 import { StorefrontWrapper } from '@/components/StorefrontWrapper';
 
 // Next.js ISR: Cache the page on Vercel CDN for 60 seconds to eliminate Server TTFB delay.
@@ -17,6 +17,7 @@ export default async function MarketplacePage() {
             onMarketplaceCheckout={submitCheckoutAction}
             onAddReview={saveProductReviewAction}
             onNotifyCartInterest={notifyCartInterestAction}
+            onNotifyPostCheckout={notifyPostCheckoutAction}
         />
     );
 }

@@ -10,9 +10,10 @@ interface StorefrontWrapperProps {
   onMarketplaceCheckout: (ordersData: any, customerData: any) => Promise<any>;
   onAddReview: (storeId: string, productId: string, review: any) => Promise<any>;
   onNotifyCartInterest: (storeId: string, productName: string) => Promise<any>;
+  onNotifyPostCheckout: (ordersData: any) => Promise<any>;
 }
 
-export function StorefrontWrapper({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest }: StorefrontWrapperProps) {
+export function StorefrontWrapper({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const router = useRouter();
 
   return (
@@ -34,6 +35,7 @@ export function StorefrontWrapper({ stores, onBackToApp, onMarketplaceCheckout, 
         return result;
       }}
       onNotifyCartInterest={onNotifyCartInterest}
+      onNotifyPostCheckout={onNotifyPostCheckout}
       notify={(msg, type) => {
           // You could use a global toast here if you have one, 
           // but StorefrontView has its own local toast system too.

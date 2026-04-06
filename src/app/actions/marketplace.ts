@@ -204,33 +204,39 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
           console.warn('Low stock notification check failed', stockCheckErr);
         }
       }
-
-      // 4. Send Push Notification to Seller
-      try {
-        const { data: store } = await supabase.from('stores').select('name').eq('id', storeId).maybeSingle();
-        if (store) {
-          await sendOrderNotification(store.name || 'Ma Boutique', storeOrderData.total, storeId);
-          
-          // 5. Check Milestones (Performance)
-          const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('store_id', storeId);
-          if (count && count > 0 && (count % 10 === 0 || count === 1)) {
-             await sendPushNotification(
-               `store_${storeId}`, 
-               '🏆 Record de Performance !', 
-               `Félicitations ! Vous venez d'atteindre ${count} commandes au total sur votre boutique ${store.name}.`,
-               { type: 'MILESTONE', store_id: storeId, milestone_count: count.toString() }
-             );
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to send push/milestone notification:', err);
-      }
     }
 
     return { success: true }
   } catch (error: any) {
     console.error('Checkout error:', error)
     return { success: false, error: error.message }
+  }
+}
+
+export async function notifyPostCheckoutAction(ordersData: Record<string, any>) {
+  const supabase = await createClient()
+  try {
+    for (const storeId of Object.keys(ordersData)) {
+      const storeOrderData = ordersData[storeId]
+      
+      const { data: store } = await supabase.from('stores').select('name').eq('id', storeId).maybeSingle();
+      if (store) {
+        await sendOrderNotification(store.name || 'Ma Boutique', storeOrderData.total, storeId);
+        
+        // Milestones
+        const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('store_id', storeId);
+        if (count && count > 0 && (count % 10 === 0 || count === 1)) {
+           await sendPushNotification(
+             `store_${storeId}`, 
+             '🏆 Record de Performance !', 
+             `Félicitations ! Vous venez d'atteindre ${count} commandes au total sur votre boutique ${store.name}.`,
+             { type: 'MILESTONE', store_id: storeId, milestone_count: count.toString() }
+           );
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to send post-checkout notifications:', err);
   }
 }
 
