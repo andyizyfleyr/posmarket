@@ -17,7 +17,7 @@ import {
     Trash2,
     Loader2
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Invoice, InvoiceItem, StoreSettings, Customer, Product, StaffPermissions, StaffRole, NotificationType } from '@/types';
 import { formatCurrency } from '@/utils';
@@ -111,15 +111,14 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
             backgroundColor: '#ffffff',
             useCORS: true,
             allowTaint: true,
+            logging: false,
             onclone: (clonedDoc) => {
                 const el = clonedDoc.getElementById('invoice-print');
                 if (el) {
+                    el.style.opacity = '1';
                     el.style.visibility = 'visible';
-                    el.style.width = '794px'; // A4 width at 96 DPI
-                    el.style.maxWidth = 'none';
-                    el.style.padding = '60px'; // Professional margins
-                    el.style.boxShadow = 'none';
-                    el.style.border = 'none';
+                    el.style.width = '794px';
+                    el.style.padding = '60px';
                 }
             }
         });

@@ -22,7 +22,7 @@ import {
   ArrowRight,
   Tag
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import { playSuccessSound } from '@/utils';
 import html2canvas from 'html2canvas';
 import { formatCurrency } from '@/utils';
@@ -215,13 +215,10 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     if (!receiptRef.current) return;
     const canvas = await html2canvas(receiptRef.current, { 
       scale: 2, 
-      backgroundColor: '#ffffff',
+      logging: false,
       useCORS: true,
       allowTaint: true,
-      onclone: (clonedDoc) => {
-        const el = clonedDoc.getElementById('receipt-print');
-        if (el) el.style.visibility = 'visible';
-      }
+      backgroundColor: '#ffffff'
     });
     const imgData = canvas.toDataURL('image/png');
     

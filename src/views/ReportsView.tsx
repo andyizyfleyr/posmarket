@@ -14,7 +14,7 @@ import {
   Package,
   CheckCircle2
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Order, Customer, StoreSettings } from '@/types';
 import { formatCurrency } from '@/utils';
@@ -40,13 +40,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
     if (!receiptRef.current) return;
     const canvas = await html2canvas(receiptRef.current, { 
       scale: 2, 
-      backgroundColor: '#ffffff',
+      logging: false,
       useCORS: true, 
       allowTaint: true,
-      onclone: (clonedDoc) => {
-        const el = clonedDoc.getElementById('receipt-print');
-        if (el) el.style.visibility = 'visible';
-      }
+      backgroundColor: '#ffffff'
     });
     const imgData = canvas.toDataURL('image/png');
     
