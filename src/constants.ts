@@ -21,6 +21,7 @@ export const MAIN_CATEGORIES = [
   'Bricolage & Jardin',
   'Livres & Papeterie',
   'Immobilier',
+  'Restaurants & Gastronomie',
   'Divers'
 ];
 
@@ -47,6 +48,12 @@ export const CATEGORY_MAPPING: Record<string, string> = {
   'Livres': 'Livres & Papeterie',
   'Papeterie': 'Livres & Papeterie',
   'Appartements': 'Immobilier',
+  'Petit Déjeuner': 'Restaurants & Gastronomie',
+  'Déjeuner': 'Restaurants & Gastronomie',
+  'Dîner': 'Restaurants & Gastronomie',
+  'Fast-Food': 'Restaurants & Gastronomie',
+  'Desserts': 'Restaurants & Gastronomie',
+  'Boissons Resto': 'Restaurants & Gastronomie',
   'Général': 'Divers'
 };
 
