@@ -673,56 +673,32 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                     />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Grande Catégorie</label>
-                      <select
-                        value={formData.mainCategory}
-                        onChange={e => setFormData({ ...formData, mainCategory: e.target.value })}
-                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                      >
-                        {MAIN_CATEGORIES.map(cat => <option key={cat}>{cat}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Sous-Catégorie</label>
-                      <select
-                        value={formData.category}
-                        onChange={e => {
-                          const newSub = e.target.value;
-                          setFormData({
-                            ...formData,
-                            category: newSub,
-                            mainCategory: CATEGORY_MAPPING[newSub] || formData.mainCategory
-                          });
-                        }}
-                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                      >
-                        <option>Électronique</option>
-                        <option>Audio</option>
-                        <option>Gaming</option>
-                        <option>Télévision</option>
-                        <option>Maison</option>
-                        <option>Bureau</option>
-                        <option>Accessoires</option>
-                        <option>Vêtements</option>
-                        <option>Beauté</option>
-                        <option>Alimentation</option>
-                        <option>Boissons</option>
-                        <option>Sport</option>
-                        <option>Loisirs</option>
-                        <option>Auto</option>
-                        <option>Moto</option>
-                        <option>Jouets</option>
-                        <option>Enfants</option>
-                        <option>Bricolage</option>
-                        <option>Jardin</option>
-                        <option>Livres</option>
-                        <option>Papeterie</option>
-                        <option>Général</option>
-                        <option>Autre</option>
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Catégorie du Produit</label>
+                    <select
+                      value={formData.category}
+                      onChange={e => {
+                        const newSub = e.target.value;
+                        setFormData({
+                          ...formData,
+                          category: newSub,
+                          mainCategory: CATEGORY_MAPPING[newSub] || 'Divers'
+                        });
+                      }}
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                    >
+                      {MAIN_CATEGORIES.map(mainCat => {
+                        const subCats = Object.keys(CATEGORY_MAPPING).filter(sub => CATEGORY_MAPPING[sub] === mainCat);
+                        if (subCats.length === 0) return <option key={mainCat} value={mainCat}>{mainCat}</option>;
+                        return (
+                          <optgroup key={mainCat} label={mainCat}>
+                            {subCats.map(sub => (
+                              <option key={sub} value={sub}>{sub}</option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
+                    </select>
                   </div>
                 </div>
               )}
