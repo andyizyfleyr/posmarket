@@ -708,30 +708,31 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 30-45 min, 24h, 3 jours..."
+                    <select
                       value={formData.deliveryTime}
                       onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
                       className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                    />
-                    <div className="flex flex-wrap gap-2 mt-3">
-                        {['15 min', '30 min', '45 min', '1h', '24h', '48h', '3-5 jours', '1 semaine'].map(time => (
-                            <button
-                                key={time}
-                                type="button"
-                                onClick={() => setFormData({ ...formData, deliveryTime: time })}
-                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                                    formData.deliveryTime === time 
-                                    ? 'bg-orange-100 border-orange-200 text-[#f56b2a]' 
-                                    : 'bg-white border-gray-100 text-gray-400 hover:border-orange-100 hover:text-orange-400'
-                                }`}
-                            >
-                                {time}
-                            </button>
-                        ))}
-                    </div>
-                    <p className="text-[9px] text-gray-500 mt-2 font-medium italic">Cliquez sur une suggestion ou tapez votre durée personnalisée.</p>
+                    >
+                        <option value="">Sélectionnez une durée...</option>
+                        <optgroup label="Restauration / Immédiat">
+                            <option value="15 min">15 minutes</option>
+                            <option value="30 min">30 minutes</option>
+                            <option value="45 min">45 minutes</option>
+                            <option value="1h">1 heure</option>
+                        </optgroup>
+                        <optgroup label="Livraison Courte">
+                            <option value="24h">24 heures</option>
+                            <option value="48h">48 heures</option>
+                            <option value="72h">72 heures</option>
+                        </optgroup>
+                        <optgroup label="Livraison Longue">
+                            <option value="3-5 jours">3 à 5 jours</option>
+                            <option value="1 semaine">1 semaine</option>
+                            <option value="2 semaines">2 semaines</option>
+                            <option value="Sur commande">Sur commande/Mesure</option>
+                        </optgroup>
+                    </select>
+                    <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
                   </div>
                 </div>
               )}
