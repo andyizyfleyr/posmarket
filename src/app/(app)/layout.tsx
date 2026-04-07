@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Fetch stores that this user owns or staff in
   console.log('[Layout] Fetching stores...');
   const { data: ownedStores } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('stores').select('*').eq('user_id', user.id)
+    () => supabase.from('stores').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
   );
 
   console.log('[Layout] Fetching staff entries...');
@@ -58,7 +58,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const allRawStores = [
     ...(ownedStores || []),
     ...(staffStores || [])
-  ].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i); // Deduplicate
+  ]
+  .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) // Deduplicate
+  .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()); // Ensure oldest first
 
   const stores = allRawStores.map(s => {
     const staffEntry = staffEntries?.find(entry => entry.store_id === s.id);
