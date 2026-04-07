@@ -2702,19 +2702,42 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                             {storeTab === 'products' ? (
                                 <>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                                        {pagedProducts.length > 0 ? pagedProducts.map(product => (
-                                            <div key={`${product.storeId}-${product.id}`} 
-                                                onClick={() => {
-                                                    safeNavigate(`/product/${generateProductSlug(product)}`);
-                                                }} 
-                                                className="cursor-pointer"
-                                            >
-                                                <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => {
-                                                    safeNavigate(`/store/${product.storeSlug || id}`);
-                                                }} />
-                                            </div>
-                                        )) : !isLoadingMore ? (
+                                    <div className="relative space-y-12">
+                                        {pagedProducts.length > 0 ? (
+                                            /* Grouped sections for store products */
+                                            (() => {
+                                                const groups: Record<string, typeof pagedProducts> = {};
+                                                pagedProducts.forEach(p => {
+                                                    const cat = p.mainCategory || p.category || 'Autre';
+                                                    if (!groups[cat]) groups[cat] = [];
+                                                    groups[cat].push(p);
+                                                });
+                                                
+                                                // Maintain MAIN_CATEGORIES order
+                                                const sortedCats = Object.keys(groups).sort((a, b) => {
+                                                    const idxA = MAIN_CATEGORIES.indexOf(a);
+                                                    const idxB = MAIN_CATEGORIES.indexOf(b);
+                                                    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                                                });
+
+                                                return sortedCats.map(cat => (
+                                                    <div key={cat} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                                        <div className="flex items-center gap-3 mb-6">
+                                                            <div className="h-0.5 w-8 bg-[#f56b2a]" />
+                                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-[0.15em]">{cat}</h3>
+                                                            <div className="flex-grow h-px bg-gray-100" />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                                            {groups[cat].map(product => (
+                                                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()
+                                        ) : !isLoadingMore ? (
                                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                                                 <Search size={48} className="text-gray-200 mb-4" />
                                                 <p className="text-sm font-bold text-gray-600 uppercase tracking-widest text-center">Aucun produit trouvé</p>
