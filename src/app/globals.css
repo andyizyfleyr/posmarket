@@ -44,30 +44,39 @@ html, body {
 }
 
 /* Print Styles */
-@media print {
+  @media print {
     body * {
-        visibility: hidden;
+      visibility: hidden;
     }
 
     #receipt-print,
-    #receipt-print * {
-        visibility: visible;
+    #receipt-print *,
+    #invoice-print,
+    #invoice-print * {
+      visibility: visible;
     }
 
     #receipt-print {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 80mm;
-        /* Standard receipt width */
-        padding: 10px;
-        background: white;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 80mm;
+      padding: 10px;
+      background: white;
+    }
+
+    #invoice-print {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 210mm; /* A4 width */
+      background: white;
     }
 
     .no-print {
-        display: none !important;
+      display: none !important;
     }
-}
+  }
 /* Custom Animations */
 @keyframes bounce-subtle {
     0%, 100% { transform: translateY(0); }

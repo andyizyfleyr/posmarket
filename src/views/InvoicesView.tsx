@@ -105,8 +105,9 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
             useCORS: true,
             allowTaint: true,
             onclone: (clonedDoc) => {
-                const el = clonedDoc.querySelector('[data-invoice-container="true"]') as HTMLElement;
+                const el = clonedDoc.getElementById('invoice-print');
                 if (el) {
+                    el.style.visibility = 'visible';
                     el.style.width = '850px';
                     el.style.maxWidth = 'none';
                     el.style.padding = '40px';
@@ -644,6 +645,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                         <div className="flex-grow overflow-y-auto p-2 md:p-8 custom-scrollbar bg-gray-50/50">
                             <div
                                 ref={invoiceRef}
+                                id="invoice-print"
                                 data-invoice-container="true"
                                 className="bg-white mx-auto shadow-xl md:shadow-sm border border-gray-100 md:border-gray-200 !max-w-[800px] w-full min-h-[500px] p-6 md:p-12 relative print:shadow-none print:border-none rounded-xl md:rounded-none overflow-x-auto"
                             >

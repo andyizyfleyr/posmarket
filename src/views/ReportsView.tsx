@@ -39,7 +39,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
       scale: 2, 
       backgroundColor: '#ffffff',
       useCORS: true, 
-      allowTaint: true 
+      allowTaint: true,
+      onclone: (clonedDoc) => {
+        const el = clonedDoc.getElementById('receipt-print');
+        if (el) el.style.visibility = 'visible';
+      }
     });
     const imgData = canvas.toDataURL('image/png');
     
@@ -257,6 +261,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
  
                 <div
                    ref={receiptRef}
+                   id="receipt-print"
                    className="bg-white p-4 md:p-6 shadow-2xl border border-gray-100 w-full text-[9pt] font-mono leading-tight rounded-sm"
                 >
                   <div className="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
