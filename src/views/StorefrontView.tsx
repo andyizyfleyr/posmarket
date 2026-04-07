@@ -87,6 +87,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const prefetchedProducts = useRef<Set<string>>(new Set());
 
     // ⚡ Helpers defined early for use in effects
     const loadCartFromStorage = useCallback((): CartItem[] => {
@@ -588,14 +589,39 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     }, [selectedProductId, reviewRefreshKey]);
 
 
-
-    // Update selectedOptions when selectedProductId changes
+    // Update selectedOptions when selectedProductDetails changes
     React.useEffect(() => {
         if (selectedProductDetails) {
             setSelectedDetailImage(selectedProductDetails.image || (selectedProductDetails.images && selectedProductDetails.images[0]) || null);
             setSelectedOptions({}); // Reset selections
         }
     }, [selectedProductDetails]);
+
+
+    // 🔮 Predictive Cache Utility
+    const prefetchProduct = useCallback(async (productId: string) => {
+        if (!productId || prefetchedProducts.current.has(productId)) return;
+        prefetchedProducts.current.add(productId);
+        
+        // Fetch reviews early as they are the most expensive dynamic part of product view
+        // Our Service Worker already handles image caching, so we focus on data/reviews
+        fetchProductReviews(productId).then(reviews => {
+            if (reviews && reviews.length > 0) {
+                setProductReviews(prev => ({ ...prev, [productId]: reviews }));
+            }
+        }).catch(() => {});
+    }, []);
+
+    // 🚀 Predictive Init: Prefetch top recommendations
+    useEffect(() => {
+        if (isMounted && allProducts.length > 0) {
+            // Delay slightly to not block initial render
+            const timer = setTimeout(() => {
+                allProducts.slice(0, 10).forEach(p => prefetchProduct(p.id));
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isMounted, allProducts.length, prefetchProduct]);
 
 
     // Track store views - only increment once per store per session
@@ -2585,7 +2611,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             /* Simple grid for search results */
                                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                                                 {pagedProducts.map(product => (
-                                                    <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                    <div key={`${product.storeId}-${product.id}`} 
+                                                         onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
+                                                         onMouseEnter={() => prefetchProduct(product.id)}
+                                                         className="cursor-pointer">
                                                         <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
                                                     </div>
                                                 ))}
@@ -2620,6 +2649,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                             {groups[cat].map(product => (
                                                                 <div key={`${product.storeId}-${product.id}`} 
                                                                     onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
+                                                                    onMouseEnter={() => prefetchProduct(product.id)}
                                                                     className="cursor-pointer w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
                                                                 >
                                                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
@@ -2715,6 +2745,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                             {groups[cat].map(product => (
                                                                 <div key={`${product.storeId}-${product.id}`} 
                                                                     onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
+                                                                    onMouseEnter={() => prefetchProduct(product.id)}
                                                                     className="cursor-pointer w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
                                                                 >
                                                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
