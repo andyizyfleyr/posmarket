@@ -767,19 +767,45 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Unité</label>
-                    <div className="flex flex-wrap gap-1.5 md:gap-2">
-                      {['pièce', 'kg', 'g', 'L', 'ml', 'm'].map(u => (
-                        <button
-                          key={u}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, unit: u })}
-                          className={`px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all ${formData.unit === u ? 'bg-[#f56b2a] text-white shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                        >
-                          {u.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                        <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
+                    </label>
+                    <select
+                      value={formData.unit}
+                      onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                    >
+                        <optgroup label="Standard">
+                            <option value="pièce">Pièce (pcs)</option>
+                            <option value="unité">Unité (u)</option>
+                            <option value="paquet">Paquet</option>
+                            <option value="carton">Carton</option>
+                            <option value="boîte">Boîte / Box</option>
+                            <option value="sac">Sac</option>
+                            <option value="bouteille">Bouteille</option>
+                            <option value="lot">Lot</option>
+                        </optgroup>
+                        <optgroup label="Poids">
+                            <option value="kg">Kilogramme (kg)</option>
+                            <option value="g">Gramme (g)</option>
+                            <option value="tonne">Tonne (t)</option>
+                        </optgroup>
+                        <optgroup label="Volume & Taille">
+                            <option value="L">Litre (L)</option>
+                            <option value="ml">Millilitre (ml)</option>
+                            <option value="cl">Centilitre (cl)</option>
+                            <option value="m">Mètre (m)</option>
+                            <option value="cm">Centimètre (cm)</option>
+                            <option value="m²">Mètre Carré (m²)</option>
+                        </optgroup>
+                        <optgroup label="Services & Séjours">
+                            <option value="nuitée">Nuitée (Airbnb style)</option>
+                            <option value="heure">Heure</option>
+                            <option value="jour">Jour</option>
+                            <option value="service">Service / Forfait</option>
+                            <option value="ticket">Ticket / Entrée</option>
+                        </optgroup>
+                    </select>
                   </div>
 
                   {/* Wholesale Section */}
