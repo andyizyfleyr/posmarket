@@ -1210,7 +1210,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             </button>
                                             {isFood && (
                                                 <span className="flex items-center gap-1 text-[9px] font-black text-gray-500 uppercase tracking-tighter bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                                                    <Clock size={10} className="text-green-500" /> 20-35 min
+                                                    <Clock size={10} className="text-green-500" /> {selectedProductDetails.deliveryTime || '30-45 min'}
                                                 </span>
                                             )}
                                         </div>

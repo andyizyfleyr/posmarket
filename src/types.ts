@@ -31,6 +31,7 @@ export interface Product {
   views?: number;
   wholesalePrice?: number;
   wholesaleMinQty?: number;
+  deliveryTime?: string; // Delivery/Preparation time: "30-45 min", "2 jours", etc.
 }
 
 export interface CartItem {

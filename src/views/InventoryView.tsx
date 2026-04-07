@@ -87,7 +87,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     unit: 'pièce',
     isOnline: true,
     wholesalePrice: undefined,
-    wholesaleMinQty: undefined
+    wholesaleMinQty: undefined,
+    deliveryTime: ''
   });
 
   const filteredProducts = useMemo(() => {
@@ -158,7 +159,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         description: product.description || '',
         isOnline: product.isOnline ?? true,
         wholesalePrice: product.wholesalePrice,
-        wholesaleMinQty: product.wholesaleMinQty
+        wholesaleMinQty: product.wholesaleMinQty,
+        deliveryTime: product.deliveryTime || ''
       };
       setFormData(initialFormData);
     } else {
@@ -174,7 +176,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         images: [],
         unit: 'pièce',
         description: '',
-        isOnline: isOnline
+        isOnline: isOnline,
+        deliveryTime: ''
       });
 
       if (type) {
@@ -699,6 +702,19 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         );
                       })}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                        <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 30-45 min, 24h, 3 jours..."
+                      value={formData.deliveryTime}
+                      onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                    />
+                    <p className="text-[9px] text-gray-500 mt-1 font-medium">S'affichera sur votre boutique en ligne.</p>
                   </div>
                 </div>
               )}
