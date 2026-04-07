@@ -661,7 +661,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                 ref={invoiceRef}
                                 id="invoice-print"
                                 data-invoice-container="true"
-                                className="bg-white mx-auto shadow-xl md:shadow-sm border border-gray-100 md:border-gray-200 !max-w-[800px] w-full min-h-[500px] p-6 md:p-12 relative print:shadow-none print:border-none rounded-xl md:rounded-none overflow-x-auto"
+                                className="print-only bg-white mx-auto shadow-xl md:shadow-sm border border-gray-100 md:border-gray-200 !max-w-[800px] w-full min-h-[500px] p-6 md:p-12 relative print:shadow-none print:border-none rounded-xl md:rounded-none overflow-x-auto"
                             >
                                 {/* Decorative Header */}
                                 <div className="absolute top-0 left-0 w-full h-2 bg-[#f56b2a]"></div>

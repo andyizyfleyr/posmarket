@@ -45,36 +45,25 @@ html, body {
 
 /* Print Styles */
   @media print {
-    body * {
-      visibility: hidden;
+    body > *:not(.print-only) {
+      display: none !important;
     }
 
-    #receipt-print,
-    #receipt-print *,
-    #invoice-print,
-    #invoice-print * {
-      visibility: visible;
+    .print-only {
+      visibility: visible !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      background: white !important;
     }
 
     #receipt-print {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 80mm;
-      padding: 10px;
-      background: white;
+      width: 80mm !important;
+      padding: 10px !important;
     }
 
     #invoice-print {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 210mm; /* A4 width */
-      background: white;
-    }
-
-    .no-print {
-      display: none !important;
+      width: 210mm !important;
     }
   }
 /* Custom Animations */

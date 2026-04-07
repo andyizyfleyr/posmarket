@@ -509,7 +509,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               <p className="text-gray-500 text-sm">Commande {currentOrderId.slice(-8).toUpperCase()} validée.</p>
             </div>
             <div className="flex-grow overflow-y-auto p-6 bg-gray-50">
-              <div ref={receiptRef} id="receipt-print" className="bg-white p-6 shadow-sm border border-gray-200 mx-auto w-[80mm] text-[10pt] font-mono">
+              <div ref={receiptRef} id="receipt-print" className="print-only bg-white p-6 shadow-sm border border-gray-200 mx-auto w-[80mm] text-[10pt] font-mono">
                 <div className="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
                   <h1 className="text-xl font-black uppercase tracking-tighter text-gray-900">{storeSettings.name}</h1>
                   <p className="text-[8pt] text-gray-600 mt-1">{storeSettings.address}</p>
