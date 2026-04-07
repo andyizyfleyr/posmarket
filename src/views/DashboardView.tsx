@@ -27,6 +27,7 @@ interface DashboardViewProps {
   userRole?: StaffRole;
   permissions: StaffPermissions;
   userName?: string;
+  store?: any;
 }
 
 const StatCard = ({ title, value, icon, trend, trendValue, color, compact }: any) => (
@@ -57,7 +58,7 @@ const StatCard = ({ title, value, icon, trend, trendValue, color, compact }: any
   </div>
 );
 
-const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, customers, userRole, permissions, userName }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, customers, userRole, permissions, userName, store }) => {
   const router = useRouter();
   const getLocalYMD = (d: Date) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -117,12 +118,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     const prevBasket = prevCount > 0 ? prevRev / prevCount : 0;
     const basketTrendValue = prevBasket === 0 ? (currentBasket > 0 ? 100 : 0) : Math.round(((currentBasket - prevBasket) / prevBasket) * 100);
 
+    const totalTraffic = (store?.views || 0) + (products || []).reduce((sum, p) => sum + (p.views || 0), 0);
+
     return {
       revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
       orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
-      basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) }
+      basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
+      traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' }
     };
-  }, [orders, startDate, endDate]);
+  }, [orders, products, store, startDate, endDate]);
 
   // Custom Date Picker Logic
   const [showPicker, setShowPicker] = useState<'start' | 'end' | null>(null);
@@ -316,12 +320,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
           compact={true}
         />
         <StatCard
-          title="Panier Moyen"
-          value={formatCurrency(filteredMetrics.basket.current)}
-          icon={<TrendingUp size={14} />}
-          trend={filteredMetrics.basket.trend}
-          trendValue={`${filteredMetrics.basket.pct}%`}
-          color="bg-green-600"
+          title="Trafic Total"
+          value={filteredMetrics.traffic.current.toLocaleString()}
+          icon={<Eye size={14} />}
+          trend={filteredMetrics.traffic.trend}
+          trendValue={filteredMetrics.traffic.pct}
+          color="bg-blue-600"
           compact={true}
         />
         <StatCard
