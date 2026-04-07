@@ -145,35 +145,30 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
 
-        // ⚡ Vitesse éclair (Cdiscount/Amazon style)
+        // ⚡ LOAD CACHE ON MOUNT (Data Cache Reserve)
+        try {
+            const cached = localStorage.getItem('marketplace_data_cache');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.stores) setStores(parsed.stores);
+                if (parsed.products) setAllProducts(parsed.products);
+            }
+        } catch (e) {}
     }, []);
 
-    // 2. Update cache when fresh props arrive
+    // 2. Update Data Cache when fresh props arrive (Data Cache)
     React.useEffect(() => {
-        if (!isMounted || !stores || stores.length === 0) return;
+        if (!isMounted) return;
+        if ((!stores || stores.length === 0) && (!allProducts || allProducts.length === 0)) return;
         
         try {
-            localStorage.setItem('marketplace_cache', JSON.stringify({
-                data: stores,
+            localStorage.setItem('marketplace_data_cache', JSON.stringify({
+                stores: stores || [],
+                products: allProducts || [],
                 timestamp: Date.now()
             }));
         } catch (e) { }
-    }, [stores, isMounted]);
-
-    // Use cached data as fallback for UI
-    const activeStores = stores && stores.length > 0 ? stores : cachedStores;
-
-    // 2. Update cache when fresh props arrive
-    React.useEffect(() => {
-        if (!isMounted || !stores || stores.length === 0) return;
-        
-        try {
-            localStorage.setItem('marketplace_cache', JSON.stringify({
-                data: stores,
-                timestamp: Date.now()
-            }));
-        } catch (e) { }
-    }, [stores, isMounted]);
+    }, [stores, allProducts, isMounted]);
 
     // 3. Save cart to localStorage when it changes (only after mounting)
     React.useEffect(() => {
