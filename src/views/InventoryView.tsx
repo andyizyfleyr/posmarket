@@ -89,7 +89,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     isOnline: true,
     wholesalePrice: undefined,
     wholesaleMinQty: undefined,
-    deliveryTime: ''
+    deliveryTime: '',
+    variants: []
   });
 
   const filteredProducts = useMemo(() => {
@@ -161,7 +162,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         isOnline: product.isOnline ?? true,
         wholesalePrice: product.wholesalePrice,
         wholesaleMinQty: product.wholesaleMinQty,
-        deliveryTime: product.deliveryTime || ''
+        deliveryTime: product.deliveryTime || '',
+        variants: product.variants || []
       };
       setFormData(initialFormData);
     } else {
@@ -178,7 +180,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         unit: 'pièce',
         description: '',
         isOnline: isOnline,
-        deliveryTime: ''
+        deliveryTime: '',
+        variants: []
       });
 
       if (type) {
@@ -820,6 +823,100 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             </div>
                         )}
                     </div>
+                  </div>
+
+                  {/* Variants Section - Professional Mode */}
+                  <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
+                    <div className="flex items-center justify-between mb-4 md:mb-6">
+                      <div>
+                        <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Variantes de Produit</h4>
+                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Gérez différentes tailles, couleurs ou formats</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newVariants = [...(formData.variants || [])];
+                          if (newVariants.length === 0) {
+                              // If first variant, add one based on main info
+                              newVariants.push({ id: Math.random().toString(36).substr(2, 9), name: '', price: formData.price || 0, stock: 0 });
+                          } else {
+                              newVariants.push({ id: Math.random().toString(36).substr(2, 9), name: '', price: newVariants[newVariants.length-1].price, stock: 0 });
+                          }
+                          setFormData({ ...formData, variants: newVariants });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-black hover:bg-[#f56b2a] transition-all active:scale-95"
+                      >
+                        <Plus size={12} strokeWidth={3} /> AJOUTER UNE VARIANTE
+                      </button>
+                    </div>
+
+                    {(formData.variants || []).length > 0 && (
+                        <div className="space-y-3 animate-in slide-in-from-top-4 duration-500">
+                            <div className="hidden md:grid grid-cols-12 gap-4 px-2 mb-2">
+                                <div className="col-span-5 text-[8px] font-black text-gray-400 uppercase">Nom de la variante (ex: XL, Rouge, Pack de 12)</div>
+                                <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Prix (XOF)</div>
+                                <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Stock</div>
+                                <div className="col-span-1"></div>
+                            </div>
+                            {formData.variants?.map((variant, idx) => (
+                                <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-3 bg-white border border-gray-100 rounded-xl md:rounded-2xl shadow-sm hover:border-orange-100 transition-all relative group/variant">
+                                    <div className="col-span-1 md:col-span-5">
+                                        <label className="md:hidden block text-[8px] font-black text-gray-400 uppercase mb-1">Nom</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Douzaine, XL, Inox..."
+                                            value={variant.name}
+                                            onChange={e => {
+                                                const newVariants = [...formData.variants!];
+                                                newVariants[idx].name = e.target.value;
+                                                setFormData({ ...formData, variants: newVariants });
+                                            }}
+                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-1 md:col-span-3">
+                                        <label className="md:hidden block text-[8px] font-black text-gray-400 uppercase mb-1">Prix</label>
+                                        <input
+                                            type="number"
+                                            value={variant.price}
+                                            onChange={e => {
+                                                const newVariants = [...formData.variants!];
+                                                newVariants[idx].price = parseFloat(e.target.value) || 0;
+                                                setFormData({ ...formData, variants: newVariants });
+                                            }}
+                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-[#f56b2a] focus:border-[#f56b2a] outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-1 md:col-span-3">
+                                        <label className="md:hidden block text-[8px] font-black text-gray-400 uppercase mb-1">Stock</label>
+                                        <input
+                                            type="number"
+                                            value={variant.stock}
+                                            onChange={e => {
+                                                const newVariants = [...formData.variants!];
+                                                newVariants[idx].stock = parseFloat(e.target.value) || 0;
+                                                setFormData({ ...formData, variants: newVariants });
+                                            }}
+                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-700 focus:border-[#f56b2a] outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-1 flex items-center justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newVariants = formData.variants?.filter((_, i) => i !== idx);
+                                                setFormData({ ...formData, variants: newVariants });
+                                            }}
+                                            className="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                            <p className="text-[9px] text-gray-400 font-medium italic mt-2">💡 Les prix des variantes remplacent le prix principal si elles sont sélectionnées par le client.</p>
+                        </div>
+                    )}
                   </div>
 
                   {/* Wholesale Section */}

@@ -46,6 +46,7 @@ const categoryImages: Record<string, string> = {
 interface CartItem {
     product: StorefrontProduct;
     quantity: number;
+    variantId?: string;
 }
 
 interface StorefrontViewProps {
@@ -222,6 +223,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [cartNotif, setCartNotif] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
     // Carousel auto-play
     React.useEffect(() => {
@@ -752,20 +754,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             });
     }, [stores]);
 
-    const addToCart = (product: StorefrontProduct) => {
+    const addToCart = (product: StorefrontProduct, variantId?: string) => {
         setCart(prev => {
-            const existing = prev.find(item => item.product.id === product.id && item.product.storeId === product.storeId);
+            const vid = variantId || null;
+            const existing = prev.find(item => 
+                item.product.id === product.id && 
+                item.product.storeId === product.storeId && 
+                (item.variantId === vid || (!item.variantId && !vid))
+            );
             if (existing) {
                 return prev.map(item =>
-                    (item.product.id === product.id && item.product.storeId === product.storeId)
+                    (item.product.id === product.id && item.product.storeId === product.storeId && (item.variantId === vid || (!item.variantId && !vid)))
                         ? { ...item, quantity: item.quantity + 1 } : item
                 );
             }
-            return [...prev, { product, quantity: 1 }];
+            return [...prev, { product, quantity: 1, variantId: vid || undefined }];
         });
         setLastAddedProduct(product);
         setCartNotif(true);
-        // Alert the store owner that someone is interested
         onNotifyCartInterest(product.storeId, product.name);
         setTimeout(() => setCartNotif(false), 4000);
     };
@@ -790,13 +796,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setTimeout(() => setCartNotif(false), 4000);
     };
 
-    const removeFromCart = (productId: string, storeId: string) => {
-        setCart(prev => prev.filter(item => !(item.product.id === productId && item.product.storeId === storeId)));
+    const removeFromCart = (productId: string, storeId: string, variantId?: string) => {
+        setCart(prev => prev.filter(item => !(item.product.id === productId && item.product.storeId === storeId && item.variantId === variantId)));
     };
 
-    const updateQuantity = (productId: string, storeId: string, delta: number) => {
+    const updateQuantity = (productId: string, storeId: string, delta: number, variantId?: string) => {
         setCart(prev => prev.map(item => {
-            if (item.product.id === productId && item.product.storeId === storeId) {
+            if (item.product.id === productId && item.product.storeId === storeId && item.variantId === variantId) {
                 const newQ = Math.max(1, item.quantity + delta);
                 return { ...item, quantity: newQ };
             }
@@ -807,7 +813,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const shippingCost = 0;
 
     const getEffectiveItemPrice = useCallback((item: CartItem) => {
-        const { product, quantity } = item;
+        const { product, quantity, variantId } = item;
+        
+        // If variant selected, use its price
+        if (variantId && product.variants) {
+            const variant = product.variants.find(v => v.id === variantId);
+            if (variant) return Number(variant.price);
+        }
+
         if (product.wholesalePrice && product.wholesaleMinQty && quantity >= product.wholesaleMinQty) {
             return Number(product.wholesalePrice);
         }
@@ -1225,7 +1238,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     <span className={`text-2xl md:text-3xl font-black tracking-tighter whitespace-nowrap ${
                                                         isFood ? 'text-green-600' : isStay ? 'text-blue-600' : 'text-[#f56b2a]'
                                                     }`}>
-                                                        {formatCurrency(selectedProductDetails.price)}
+                                                        {(() => {
+                                                            if (selectedVariantId && selectedProductDetails.variants) {
+                                                                const v = selectedProductDetails.variants.find(v => v.id === selectedVariantId);
+                                                                if (v) return formatCurrency(v.price);
+                                                            }
+                                                            return formatCurrency(selectedProductDetails.price);
+                                                        })()}
                                                     </span>
                                                     {isStay && (
                                                         <span className="text-xs font-black text-gray-600 uppercase tracking-widest">/ nuit</span>
@@ -1261,6 +1280,42 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                     {/* --- MODE SPECIFIC OPTIONS --- */}
                                     
+                                    {/* Variants Selection - Pro Feature */}
+                                    {selectedProductDetails.variants && selectedProductDetails.variants.length > 0 && (
+                                        <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+                                                <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <Tag size={12} className="text-[#f56b2a]" /> Choisissez votre option
+                                                </h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedProductDetails.variants.map((v) => (
+                                                        <button
+                                                            key={v.id}
+                                                            onClick={() => setSelectedVariantId(v.id)}
+                                                            className={`px-4 py-2 rounded-xl text-[11px] font-bold transition-all border ${
+                                                                selectedVariantId === v.id
+                                                                    ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-105'
+                                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'
+                                                            }`}
+                                                        >
+                                                            <div className="flex flex-col items-center">
+                                                                <span>{v.name}</span>
+                                                                <span className={`text-[9px] ${selectedVariantId === v.id ? 'text-gray-400' : 'text-[#f56b2a]'} font-black`}>
+                                                                    {formatCurrency(v.price)}
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                {!selectedVariantId && (
+                                                    <p className="text-[9px] text-orange-500 mt-2 font-black uppercase tracking-tighter flex items-center gap-1">
+                                                        <AlertCircle size={10} /> Veuillez sélectionner une option
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {isFood && (
                                         <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                             <div className="bg-green-50/30 rounded-2xl p-4 border border-green-50">
@@ -1409,7 +1464,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </div>
 
                                     <button
-                                        onClick={() => addToCart(selectedProductDetails)}
+                                        onClick={() => {
+                                            if (selectedProductDetails.variants && selectedProductDetails.variants.length > 0 && !selectedVariantId) {
+                                                localNotify('Veuillez sélectionner une variante', 'warning');
+                                                return;
+                                            }
+                                            addToCart(selectedProductDetails, selectedVariantId || undefined);
+                                        }}
                                         className={`flex w-full py-4 text-white rounded-[20px] font-black text-base shadow-xl transition-all items-center justify-center gap-3 active:scale-[0.98] ${
                                             isFood ? 'bg-green-600 shadow-green-100 hover:bg-green-700' : 
                                             isStay ? 'bg-blue-600 shadow-blue-100 hover:bg-blue-700' : 
@@ -1615,14 +1676,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         </div>
                                         <div className="space-y-4">
                                             {cart.filter(item => item.product?.storeId === storeId).map((item) => (
-                                                <div key={item.product.id} className="flex gap-3">
+                                                <div key={`${item.product.id}-${item.variantId || 'base'}`} className="flex gap-3">
                                                     <div className="w-16 h-16 flex-shrink-0">
                                                         <ProductImage src={item.product.image} alt={item.product.name || 'Product Image'} containerClassName="rounded-xl border border-gray-100 shadow-sm" showZoomEffect={false} />
                                                     </div>
                                                     <div className="flex-grow flex flex-col justify-between">
                                                         <div className="flex justify-between items-start">
-                                                            <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{item.product.name || 'Unknown Product'}</h4>
-                                                            <button onClick={() => removeFromCart(item.product.id, item.product.storeId)} className="text-gray-600 hover:text-red-500 p-1"><X size={14} /></button>
+                                                            <div>
+                                                                <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{item.product.name || 'Unknown Product'}</h4>
+                                                                {item.variantId && item.product.variants && (
+                                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                                        <Tag size={10} className="text-gray-400" />
+                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                                                                            {item.product.variants.find(v => v.id === item.variantId)?.name}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <button onClick={() => removeFromCart(item.product.id, item.product.storeId, item.variantId)} className="text-gray-600 hover:text-red-500 p-1"><X size={14} /></button>
                                                         </div>
                                                         <div className="flex items-center justify-between mt-2">
                                                             <div className="flex flex-col">
@@ -1646,11 +1717,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                                 {promoApplied && promoApplied.storeId === item.product.storeId && (
                                                                     <span className="text-[10px] text-green-600 font-bold">Coupon appliqué</span>
                                                                 )}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner">
-                                                                <button onClick={() => updateQuantity(item.product.id, item.product.storeId, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold">-</button>
-                                                                <span className="text-xs font-black text-gray-900 w-4 text-center">{item.quantity}</span>
-                                                                <button onClick={() => updateQuantity(item.product.id, item.product.storeId, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold">+</button>
+                                                                <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner">
+                                                                    <button onClick={() => updateQuantity(item.product.id, item.product.storeId, -1, item.variantId)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold">-</button>
+                                                                    <span className="text-xs font-black text-gray-900 w-4 text-center">{item.quantity}</span>
+                                                                    <button onClick={() => updateQuantity(item.product.id, item.product.storeId, 1, item.variantId)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold">+</button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

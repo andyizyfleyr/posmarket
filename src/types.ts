@@ -32,6 +32,16 @@ export interface Product {
   wholesalePrice?: number;
   wholesaleMinQty?: number;
   deliveryTime?: string; // Delivery/Preparation time: "30-45 min", "2 jours", etc.
+  variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string; // e.g., "Rouge", "XL", "Pack de 100"
+  price: number;
+  stock: number;
+  sku?: string;
+  image?: string;
 }
 
 export interface CartItem {
