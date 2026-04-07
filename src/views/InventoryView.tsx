@@ -24,7 +24,8 @@ import {
   Star,
   Loader2,
   Award,
-  Zap
+  Zap,
+  Clock
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '@/constants';
 import { Product, StaffPermissions, StaffRole, UserSubscription } from '@/types';
