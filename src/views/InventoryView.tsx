@@ -770,42 +770,56 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
                     </label>
-                    <select
-                      value={formData.unit}
-                      onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                    >
-                        <optgroup label="Standard">
-                            <option value="pièce">Pièce (pcs)</option>
-                            <option value="unité">Unité (u)</option>
-                            <option value="paquet">Paquet</option>
-                            <option value="carton">Carton</option>
-                            <option value="boîte">Boîte / Box</option>
-                            <option value="sac">Sac</option>
-                            <option value="bouteille">Bouteille</option>
-                            <option value="lot">Lot</option>
-                        </optgroup>
-                        <optgroup label="Poids">
-                            <option value="kg">Kilogramme (kg)</option>
-                            <option value="g">Gramme (g)</option>
-                            <option value="tonne">Tonne (t)</option>
-                        </optgroup>
-                        <optgroup label="Volume & Taille">
-                            <option value="L">Litre (L)</option>
-                            <option value="ml">Millilitre (ml)</option>
-                            <option value="cl">Centilitre (cl)</option>
-                            <option value="m">Mètre (m)</option>
-                            <option value="cm">Centimètre (cm)</option>
-                            <option value="m²">Mètre Carré (m²)</option>
-                        </optgroup>
-                        <optgroup label="Services & Séjours">
-                            <option value="nuitée">Nuitée (Airbnb style)</option>
-                            <option value="heure">Heure</option>
-                            <option value="jour">Jour</option>
-                            <option value="service">Service / Forfait</option>
-                            <option value="ticket">Ticket / Entrée</option>
-                        </optgroup>
-                    </select>
+                    <div className="space-y-3">
+                        <select
+                          value={['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') ? formData.unit : (formData.unit ? 'custom' : 'pièce')}
+                          onChange={e => {
+                            if (e.target.value === 'custom') {
+                                setFormData({ ...formData, unit: '' });
+                            } else {
+                                setFormData({ ...formData, unit: e.target.value });
+                            }
+                          }}
+                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                        >
+                            <optgroup label="Standard">
+                                <option value="pièce">Pièce (pcs)</option>
+                                <option value="unité">Unité (u)</option>
+                                <option value="douzaine">Douzaine</option>
+                                <option value="paquet">Paquet</option>
+                                <option value="carton">Carton</option>
+                                <option value="boîte">Boîte / Box</option>
+                                <option value="sac">Sac</option>
+                                <option value="bouteille">Bouteille</option>
+                                <option value="lot">Lot</option>
+                            </optgroup>
+                            <optgroup label="Poids & Mesures">
+                                <option value="kg">Kilogramme (kg)</option>
+                                <option value="g">Gramme (g)</option>
+                                <option value="L">Litre (L)</option>
+                                <option value="m">Mètre (m)</option>
+                                <option value="m²">Mètre Carré (m²)</option>
+                            </optgroup>
+                            <optgroup label="Services">
+                                <option value="nuitée">Nuitée</option>
+                                <option value="service">Service / Forfait</option>
+                            </optgroup>
+                            <option value="custom">✨ Autre (Saisie libre)...</option>
+                        </select>
+
+                        {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
+                            <div className="animate-in slide-in-from-top-2 duration-300">
+                                <input
+                                    type="text"
+                                    placeholder="Ex: Pack de 100, Fagot, Douzaine..."
+                                    value={formData.unit}
+                                    onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                                    className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                                />
+                                <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
+                            </div>
+                        )}
+                    </div>
                   </div>
 
                   {/* Wholesale Section */}
