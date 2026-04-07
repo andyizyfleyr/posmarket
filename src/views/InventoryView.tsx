@@ -90,6 +90,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     wholesalePrice: undefined,
     wholesaleMinQty: undefined,
     deliveryTime: '',
+    options: [],
     variants: []
   });
 
@@ -163,6 +164,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         wholesalePrice: product.wholesalePrice,
         wholesaleMinQty: product.wholesaleMinQty,
         deliveryTime: product.deliveryTime || '',
+        options: product.options || [],
         variants: product.variants || []
       };
       setFormData(initialFormData);
@@ -181,6 +183,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         description: '',
         isOnline: isOnline,
         deliveryTime: '',
+        options: [],
         variants: []
       });
 
@@ -825,57 +828,138 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Variants Section - Professional Mode */}
+                  {/* Variants & Options Section - AliExpress Style */}
                   <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
                     <div className="flex items-center justify-between mb-4 md:mb-6">
                       <div>
-                        <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Variantes de Produit</h4>
-                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Gérez différentes tailles, couleurs ou formats</p>
+                        <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Options & Variantes</h4>
+                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Combinez Tailles, Couleurs, etc. (Matrix Mode)</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => {
-                          const newVariants = [...(formData.variants || [])];
-                          if (newVariants.length === 0) {
-                              // If first variant, add one based on main info
-                              newVariants.push({ id: Math.random().toString(36).substr(2, 9), name: '', price: formData.price || 0, stock: 0 });
-                          } else {
-                              newVariants.push({ id: Math.random().toString(36).substr(2, 9), name: '', price: newVariants[newVariants.length-1].price, stock: 0 });
-                          }
-                          setFormData({ ...formData, variants: newVariants });
+                          const newOptions = [...(formData.options || [])];
+                          newOptions.push({ id: Math.random().toString(36).substr(2, 9), name: '', values: [] });
+                          setFormData({ ...formData, options: newOptions });
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-black hover:bg-[#f56b2a] transition-all active:scale-95"
                       >
-                        <Plus size={12} strokeWidth={3} /> AJOUTER UNE VARIANTE
+                        <Plus size={12} strokeWidth={3} /> AJOUTER UNE OPTION
                       </button>
                     </div>
 
+                    {/* Options Management */}
+                    <div className="space-y-4 mb-8">
+                        {(formData.options || []).map((option, optIdx) => (
+                            <div key={option.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/option">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newOptions = formData.options?.filter((_, i) => i !== optIdx);
+                                        setFormData({ ...formData, options: newOptions });
+                                    }}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-white shadow-md border border-gray-100 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/option:opacity-100 transition-all hover:bg-red-50"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="col-span-1">
+                                        <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Nom (ex: Couleur)</label>
+                                        <input
+                                            type="text"
+                                            value={option.name}
+                                            onChange={e => {
+                                                const newOptions = [...formData.options!];
+                                                newOptions[optIdx].name = e.target.value;
+                                                setFormData({ ...formData, options: newOptions });
+                                            }}
+                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                                            placeholder="Taille, Couleur..."
+                                        />
+                                    </div>
+                                    <div className="col-span-1 md:col-span-3">
+                                        <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Valeurs (Séparez par des virgules)</label>
+                                        <input
+                                            type="text"
+                                            value={option.values.join(', ')}
+                                            onChange={e => {
+                                                const newOptions = [...formData.options!];
+                                                newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');
+                                                setFormData({ ...formData, options: newOptions });
+                                            }}
+                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                                            placeholder="Rouge, Bleu, Vert..."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Generate Button Logic */}
+                    {(formData.options || []).length > 0 && formData.options?.every(o => o.name && o.values.length > 0) && (
+                        <div className="mb-8 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Cartesian product generator
+                                    const options = formData.options!;
+                                    const combinations: any[] = [];
+                                    
+                                    const combine = (optIdx: number, current: any) => {
+                                        if (optIdx === options.length) {
+                                            combinations.push(current);
+                                            return;
+                                        }
+                                        const option = options[optIdx];
+                                        option.values.forEach(val => {
+                                            combine(optIdx + 1, { ...current, [option.id]: val });
+                                        });
+                                    };
+                                    
+                                    combine(0, {});
+                                    
+                                    const newVariants = combinations.map(combo => {
+                                        const name = Object.values(combo).join(' / ');
+                                        const existing = formData.variants?.find(v => JSON.stringify(v.optionValues) === JSON.stringify(combo));
+                                        
+                                        return {
+                                            id: existing?.id || Math.random().toString(36).substr(2, 9),
+                                            name,
+                                            optionValues: combo,
+                                            price: existing?.price || formData.price || 0,
+                                            stock: existing?.stock || 0
+                                        };
+                                    });
+                                    
+                                    setFormData({ ...formData, variants: newVariants });
+                                }}
+                                className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl text-[10px] font-black shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                            >
+                                <Zap size={14} fill="currentColor" /> GÉNÉRER LES COMBINAISONS
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Variants Grid */}
                     {(formData.variants || []).length > 0 && (
-                        <div className="space-y-3 animate-in slide-in-from-top-4 duration-500">
+                        <div className="space-y-2.5 animate-in slide-in-from-top-4 duration-500">
                             <div className="hidden md:grid grid-cols-12 gap-4 px-2 mb-2">
-                                <div className="col-span-5 text-[8px] font-black text-gray-400 uppercase">Nom de la variante (ex: XL, Rouge, Pack de 12)</div>
+                                <div className="col-span-5 text-[8px] font-black text-gray-400 uppercase">Combinaison</div>
                                 <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Prix (XOF)</div>
                                 <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Stock</div>
                                 <div className="col-span-1"></div>
                             </div>
                             {formData.variants?.map((variant, idx) => (
-                                <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-3 bg-white border border-gray-100 rounded-xl md:rounded-2xl shadow-sm hover:border-orange-100 transition-all relative group/variant">
-                                    <div className="col-span-1 md:col-span-5">
-                                        <label className="md:hidden block text-[8px] font-black text-gray-400 uppercase mb-1">Nom</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Ex: Douzaine, XL, Inox..."
-                                            value={variant.name}
-                                            onChange={e => {
-                                                const newVariants = [...formData.variants!];
-                                                newVariants[idx].name = e.target.value;
-                                                setFormData({ ...formData, variants: newVariants });
-                                            }}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none"
-                                        />
+                                <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-3 bg-white border border-gray-100 rounded-xl md:rounded-2xl shadow-sm hover:border-orange-100 transition-all group/variant">
+                                    <div className="col-span-1 md:col-span-5 flex items-center">
+                                        <div className="flex flex-wrap gap-1">
+                                            {variant.name.split(' / ').map((val, i) => (
+                                                <span key={i} className="text-[10px] font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{val}</span>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div className="col-span-1 md:col-span-3">
-                                        <label className="md:hidden block text-[8px] font-black text-gray-400 uppercase mb-1">Prix</label>
                                         <input
                                             type="number"
                                             value={variant.price}
@@ -884,11 +968,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 newVariants[idx].price = parseFloat(e.target.value) || 0;
                                                 setFormData({ ...formData, variants: newVariants });
                                             }}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-[#f56b2a] focus:border-[#f56b2a] outline-none"
+                                            className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
                                         />
                                     </div>
                                     <div className="col-span-1 md:col-span-3">
-                                        <label className="md:hidden block text-[8px] font-black text-gray-400 uppercase mb-1">Stock</label>
                                         <input
                                             type="number"
                                             value={variant.stock}
@@ -897,7 +980,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 newVariants[idx].stock = parseFloat(e.target.value) || 0;
                                                 setFormData({ ...formData, variants: newVariants });
                                             }}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-700 focus:border-[#f56b2a] outline-none"
+                                            className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
                                         />
                                     </div>
                                     <div className="col-span-1 flex items-center justify-end">
@@ -907,14 +990,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 const newVariants = formData.variants?.filter((_, i) => i !== idx);
                                                 setFormData({ ...formData, variants: newVariants });
                                             }}
-                                            className="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-1 px-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                         >
-                                            <Trash2 size={14} />
+                                            <Trash2 size={12} />
                                         </button>
                                     </div>
                                 </div>
                             ))}
-                            <p className="text-[9px] text-gray-400 font-medium italic mt-2">💡 Les prix des variantes remplacent le prix principal si elles sont sélectionnées par le client.</p>
                         </div>
                     )}
                   </div>

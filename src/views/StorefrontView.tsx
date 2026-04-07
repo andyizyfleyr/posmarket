@@ -223,7 +223,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [cartNotif, setCartNotif] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
     // Carousel auto-play
     React.useEffect(() => {
@@ -608,10 +608,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
 
 
-    // Update selectedDetailImage when selectedProductId changes
+    // Update selectedOptions when selectedProductId changes
     React.useEffect(() => {
         if (selectedProductDetails) {
             setSelectedDetailImage(selectedProductDetails.image || (selectedProductDetails.images && selectedProductDetails.images[0]) || null);
+            setSelectedOptions({}); // Reset selections
         }
     }, [selectedProductDetails]);
 
@@ -1239,9 +1240,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                         isFood ? 'text-green-600' : isStay ? 'text-blue-600' : 'text-[#f56b2a]'
                                                     }`}>
                                                         {(() => {
-                                                            if (selectedVariantId && selectedProductDetails.variants) {
-                                                                const v = selectedProductDetails.variants.find(v => v.id === selectedVariantId);
-                                                                if (v) return formatCurrency(v.price);
+                                                            if (selectedProductDetails.options && selectedProductDetails.options.length > 0) {
+                                                                const variant = selectedProductDetails.variants?.find(v => 
+                                                                    JSON.stringify(v.optionValues) === JSON.stringify(selectedOptions)
+                                                                );
+                                                                if (variant) return formatCurrency(variant.price);
+                                                                return `À partir de ${formatCurrency(selectedProductDetails.price)}`;
                                                             }
                                                             return formatCurrency(selectedProductDetails.price);
                                                         })()}
@@ -1280,39 +1284,52 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                     {/* --- MODE SPECIFIC OPTIONS --- */}
                                     
-                                    {/* Variants Selection - Pro Feature */}
-                                    {selectedProductDetails.variants && selectedProductDetails.variants.length > 0 && (
-                                        <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
-                                                <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                    <Tag size={12} className="text-[#f56b2a]" /> Choisissez votre option
-                                                </h4>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {selectedProductDetails.variants.map((v) => (
-                                                        <button
-                                                            key={v.id}
-                                                            onClick={() => setSelectedVariantId(v.id)}
-                                                            className={`px-4 py-2 rounded-xl text-[11px] font-bold transition-all border ${
-                                                                selectedVariantId === v.id
-                                                                    ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-105'
-                                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'
-                                                            }`}
-                                                        >
-                                                            <div className="flex flex-col items-center">
-                                                                <span>{v.name}</span>
-                                                                <span className={`text-[9px] ${selectedVariantId === v.id ? 'text-gray-400' : 'text-[#f56b2a]'} font-black`}>
-                                                                    {formatCurrency(v.price)}
-                                                                </span>
-                                                            </div>
-                                                        </button>
-                                                    ))}
+                                    {/* Multi-Options Selection - AliExpress Style */}
+                                    {selectedProductDetails.options && selectedProductDetails.options.length > 0 && (
+                                        <div className="mb-6 space-y-5 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            {selectedProductDetails.options.map((option) => (
+                                                <div key={option.id} className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                            {option.name}
+                                                        </h4>
+                                                        {selectedOptions[option.id] && (
+                                                            <span className="text-[10px] font-black text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full">{selectedOptions[option.id]}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {option.values.map((val) => {
+                                                            const isSelected = selectedOptions[option.id] === val;
+                                                            return (
+                                                                <button
+                                                                    key={val}
+                                                                    onClick={() => setSelectedOptions(prev => ({ ...prev, [option.id]: val }))}
+                                                                    className={`px-4 py-2 rounded-xl text-[11px] font-bold transition-all border ${
+                                                                        isSelected
+                                                                            ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-105'
+                                                                            : 'bg-white text-gray-600 border-gray-100 hover:border-gray-900'
+                                                                    }`}
+                                                                >
+                                                                    {val}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                                {!selectedVariantId && (
-                                                    <p className="text-[9px] text-orange-500 mt-2 font-black uppercase tracking-tighter flex items-center gap-1">
-                                                        <AlertCircle size={10} /> Veuillez sélectionner une option
-                                                    </p>
-                                                )}
-                                            </div>
+                                            ))}
+
+                                            {/* Selection Status */}
+                                            {(() => {
+                                                const allSelected = selectedProductDetails.options.every(o => !!selectedOptions[o.id]);
+                                                if (!allSelected) {
+                                                    return (
+                                                        <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-tighter flex items-center gap-1.5 bg-orange-50/50 p-2 rounded-lg border border-orange-50">
+                                                            <AlertCircle size={12} /> Veuillez choisir toutes les options pour voir le prix exact
+                                                        </p>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                     )}
 
@@ -1465,11 +1482,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                     <button
                                         onClick={() => {
-                                            if (selectedProductDetails.variants && selectedProductDetails.variants.length > 0 && !selectedVariantId) {
-                                                localNotify('Veuillez sélectionner une variante', 'warning');
+                                            const options = selectedProductDetails.options || [];
+                                            const allSelected = options.every(o => !!selectedOptions[o.id]);
+                                            
+                                            if (options.length > 0 && !allSelected) {
+                                                localNotify('Veuillez sélectionner toutes les options', 'warning');
                                                 return;
                                             }
-                                            addToCart(selectedProductDetails, selectedVariantId || undefined);
+
+                                            // Find matching variant
+                                            let variantId = undefined;
+                                            if (options.length > 0 && selectedProductDetails.variants) {
+                                                const variant = selectedProductDetails.variants.find(v => 
+                                                    JSON.stringify(v.optionValues) === JSON.stringify(selectedOptions)
+                                                );
+                                                variantId = variant?.id;
+                                            }
+
+                                            addToCart(selectedProductDetails, variantId);
                                         }}
                                         className={`flex w-full py-4 text-white rounded-[20px] font-black text-base shadow-xl transition-all items-center justify-center gap-3 active:scale-[0.98] ${
                                             isFood ? 'bg-green-600 shadow-green-100 hover:bg-green-700' : 

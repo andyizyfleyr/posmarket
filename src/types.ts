@@ -32,12 +32,20 @@ export interface Product {
   wholesalePrice?: number;
   wholesaleMinQty?: number;
   deliveryTime?: string; // Delivery/Preparation time: "30-45 min", "2 jours", etc.
+  options?: ProductOption[];
   variants?: ProductVariant[];
+}
+
+export interface ProductOption {
+  id: string;
+  name: string; // e.g., "Taille", "Couleur", "Format"
+  values: string[]; // e.g., ["S", "M", "L"] or ["Rouge", "Bleu"]
 }
 
 export interface ProductVariant {
   id: string;
-  name: string; // e.g., "Rouge", "XL", "Pack de 100"
+  name: string; // Combined name: "Rouge / XL"
+  optionValues: Record<string, string>; // Maps optionId to value string: { 'opt1id': 'XL', 'opt2id': 'Rouge' }
   price: number;
   stock: number;
   sku?: string;
