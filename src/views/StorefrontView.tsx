@@ -2635,9 +2635,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                                 <div className="flex-grow h-px bg-gray-100" />
                                                             </div>
                                                         )}
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                                        <div className="flex overflow-x-auto no-scrollbar gap-3 pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                                                             {groups[cat].map(product => (
-                                                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                                <div key={`${product.storeId}-${product.id}`} 
+                                                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
+                                                                    className="cursor-pointer min-w-[170px] md:min-w-0 flex-shrink-0 md:flex-shrink"
+                                                                >
                                                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
                                                                 </div>
                                                             ))}
@@ -2727,9 +2730,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                             <h3 className="text-base font-black text-gray-900 uppercase tracking-[0.15em]">{cat}</h3>
                                                             <div className="flex-grow h-px bg-gray-100" />
                                                         </div>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                                        <div className="flex overflow-x-auto no-scrollbar gap-3 pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                                                             {groups[cat].map(product => (
-                                                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                                <div key={`${product.storeId}-${product.id}`} 
+                                                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
+                                                                    className="cursor-pointer min-w-[170px] md:min-w-0 flex-shrink-0 md:flex-shrink"
+                                                                >
                                                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
                                                                 </div>
                                                             ))}
