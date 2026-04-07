@@ -742,10 +742,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         }, 100);
     }, [filteredProducts]);
 
-    // Reset pagination on filter change
+    // Reset pagination on filter change or navigation
     useEffect(() => {
         loadPagedProducts(true);
-    }, [selectedStoreId, selectedCategory, searchTerm, filteredProducts]); // Stable dependencies
+    }, [selectedStoreId, selectedCategory, searchTerm, filteredProducts, location.pathname]); // Stable dependencies
 
     // Intersection Observer for Infinite Scroll
     useEffect(() => {
@@ -759,7 +759,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         
         observer.observe(loadMoreRef.current);
         return () => observer.disconnect();
-    }, [loadPagedProducts, hasMore]);
+    }, [loadPagedProducts, hasMore, pagedProducts.length, location.pathname]); // Re-run when products appear or path changes
 
 
     const partnerStores = useMemo(() => {
