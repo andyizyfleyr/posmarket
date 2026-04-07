@@ -95,7 +95,12 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
         }
     };
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        const originalTitle = document.title;
+        document.title = storeSettings.name;
+        window.print();
+        document.title = originalTitle;
+    };
 
     const handleDownloadPDF = async () => {
         if (!invoiceRef.current) return;
@@ -667,7 +672,6 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                         <div className="mt-2 space-y-0.5">
                                             <p className="text-gray-700 font-bold">{storeSettings.phone}</p>
                                             <p className="text-gray-500">{storeSettings.email}</p>
-                                            <p className="text-[#f56b2a] uppercase tracking-widest text-[8px] md:text-[10px] mt-2 font-black bg-orange-50 inline-block px-2 py-0.5 rounded">NINEA: {storeSettings.ninea}</p>
                                         </div>
                                     </div>
                                 </div>

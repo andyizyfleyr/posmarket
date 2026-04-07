@@ -204,7 +204,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     }, 600); // Small delay for UX "feel"
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = storeSettings.name;
+    window.print();
+    document.title = originalTitle;
+  };
 
   const handleDownloadPDF = async () => {
     if (!receiptRef.current) return;
@@ -512,7 +517,6 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                   <h1 className="text-xl font-black uppercase tracking-tighter text-gray-900">{storeSettings.name}</h1>
                   <p className="text-[8pt] text-gray-600 mt-1">{storeSettings.address}</p>
                   <p className="text-[8pt] text-gray-500 font-mono mt-0.5">{storeSettings.phone} • {storeSettings.email}</p>
-                  <p className="text-[7pt] text-gray-400 mt-1 uppercase tracking-widest">NINEA: {storeSettings.ninea}</p>
                 </div>
                 <div className="border-b border-dashed border-gray-300 pb-2 mb-2 space-y-1">
                   <div className="flex justify-between"><span>DATE:</span><span>{new Date().toLocaleDateString('fr-FR')}</span></div>

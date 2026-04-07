@@ -30,7 +30,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = storeSettings.name;
     window.print();
+    document.title = originalTitle;
   };
 
   const handleDownloadPDF = async () => {
@@ -268,7 +271,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
                     <h1 className="font-black text-sm uppercase tracking-tighter">{storeSettings.name}</h1>
                     <p className="text-[7pt] text-gray-600 mt-1">{storeSettings.address}</p>
                     <p className="text-[7pt] text-gray-500 font-mono mt-0.5">{storeSettings.phone} • {storeSettings.email}</p>
-                    <p className="text-[6pt] text-gray-400 mt-1 uppercase tracking-widest">NINEA: {storeSettings.ninea}</p>
                     <div className="mt-3 text-[7pt] text-gray-500">
                       <p>CMD #{selectedOrder.id}</p>
                       <p>{new Date(selectedOrder.date).toLocaleString('fr-FR')}</p>
@@ -292,7 +294,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
  
                   <div className="mt-6 text-center text-[7pt] text-gray-400 border-t border-dashed border-gray-300 pt-4">
                     <p className="font-bold">MERCI DE VOTRE VISITE !</p>
-                    <p className="mt-1">pospro.example.com</p>
                   </div>
                 </div>
 
