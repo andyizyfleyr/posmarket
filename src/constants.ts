@@ -22,6 +22,7 @@ export const MAIN_CATEGORIES = [
   'Livres & Papeterie',
   'Immobilier',
   'Restaurants & Gastronomie',
+  'Produits Digitaux & Services',
   'Divers'
 ];
 
@@ -54,6 +55,12 @@ export const CATEGORY_MAPPING: Record<string, string> = {
   'Fast-Food': 'Restaurants & Gastronomie',
   'Desserts': 'Restaurants & Gastronomie',
   'Boissons Resto': 'Restaurants & Gastronomie',
+  'E-books': 'Produits Digitaux & Services',
+  'Logiciels': 'Produits Digitaux & Services',
+  'Formations Online': 'Produits Digitaux & Services',
+  'Cartes Cadeaux': 'Produits Digitaux & Services',
+  'Abonnements': 'Produits Digitaux & Services',
+  'Services (Freelance)': 'Produits Digitaux & Services',
   'Général': 'Divers'
 };
 
