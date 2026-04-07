@@ -1188,165 +1188,245 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                     {/* Product Info - Premium Typography */}
                     <div className="flex flex-col h-full py-2 px-4 md:px-0">
-                        <div className="mb-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <button
-                                    onClick={() => safeNavigate(`/store/${selectedProductDetails.storeSlug || selectedProductDetails.storeId}`)}
-                                    className="px-3 py-1 bg-orange-50 text-[#f56b2a] text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-orange-100 transition-colors border border-orange-100"
-                                >
-                                    Vendu par {selectedProductDetails.storeName}
-                                </button>
-                            </div>
-                            <div className="flex flex-col gap-4 mb-4">
-                                <h2 className="text-xl md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
-                                    {selectedProductDetails.name}
-                                </h2>
+                        {(() => {
+                            const mainCat = selectedProductDetails.mainCategory;
+                            const isFood = mainCat === 'Restauration & Livraison Rapide';
+                            const isStay = mainCat === 'Séjours, Expériences & Immobilier';
+                            const isProduct = !isFood && !isStay;
 
-                                <div className="flex flex-col items-start flex-shrink-0">
-                                    <div className="flex items-baseline gap-2 h-fit">
-                                        <span className="text-2xl md:text-3xl font-black text-[#f56b2a] tracking-tighter whitespace-nowrap">
-                                            {formatCurrency(selectedProductDetails.price)}
-                                        </span>
-                                        {selectedProductDetails.category === 'Appartements' && (
-                                            <span className="text-xs font-black text-gray-600 uppercase tracking-widest">/ nuit</span>
-                                        )}
-                                    </div>
-                                    {selectedProductDetails.originalPrice && (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-600 line-through font-medium">{formatCurrency(selectedProductDetails.originalPrice)}</span>
-                                            <span className="text-[10px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                                                -{Math.round(((selectedProductDetails.originalPrice - selectedProductDetails.price) / selectedProductDetails.originalPrice) * 100)}%
+                            return (
+                                <>
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <button
+                                                onClick={() => safeNavigate(`/store/${selectedProductDetails.storeSlug || selectedProductDetails.storeId}`)}
+                                                className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full transition-colors border ${
+                                                    isFood ? 'bg-green-50 text-green-600 border-green-100' : 
+                                                    isStay ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                                                    'bg-orange-50 text-[#f56b2a] border-orange-100'
+                                                }`}
+                                            >
+                                                {isFood ? '🧑‍🍳 Préparé par ' : isStay ? '🏠 Hôte : ' : '📦 Vendu par '} {selectedProductDetails.storeName}
+                                            </button>
+                                            {isFood && (
+                                                <span className="flex items-center gap-1 text-[9px] font-black text-gray-500 uppercase tracking-tighter bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                                                    <Clock size={10} className="text-green-500" /> 20-35 min
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col gap-4 mb-4">
+                                            <h2 className="text-xl md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                                                {selectedProductDetails.name}
+                                            </h2>
+
+                                            <div className="flex flex-col items-start flex-shrink-0">
+                                                <div className="flex items-baseline gap-2 h-fit">
+                                                    <span className={`text-2xl md:text-3xl font-black tracking-tighter whitespace-nowrap ${
+                                                        isFood ? 'text-green-600' : isStay ? 'text-blue-600' : 'text-[#f56b2a]'
+                                                    }`}>
+                                                        {formatCurrency(selectedProductDetails.price)}
+                                                    </span>
+                                                    {isStay && (
+                                                        <span className="text-xs font-black text-gray-600 uppercase tracking-widest">/ nuit</span>
+                                                    )}
+                                                </div>
+                                                {selectedProductDetails.originalPrice && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-gray-600 line-through font-medium">{formatCurrency(selectedProductDetails.originalPrice)}</span>
+                                                        <span className="text-[10px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                                            -{Math.round(((selectedProductDetails.originalPrice - selectedProductDetails.price) / selectedProductDetails.originalPrice) * 100)}%
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                                <div className="flex text-yellow-500">
+                                                    {[1, 2, 3, 4, 5].map(s => <Star key={s} size={10} fill={s <= Math.round(selectedProductDetails.rating || 0) ? "currentColor" : "none"} />)}
+                                                </div>
+                                                <span className="text-[10px] font-black text-yellow-700">{(selectedProductDetails.rating || 0).toFixed(1)}</span>
+                                            </div>
+                                            <span className="text-[11px] font-bold text-gray-600 border-l border-gray-200 pl-4">{selectedProductDetails.reviewCount || 0} Avis</span>
+                                            <span className={`text-[11px] font-bold border-l border-gray-200 pl-4 flex items-center gap-1.5 ${
+                                                isFood ? 'text-green-600' : isStay ? 'text-blue-600' : 'text-orange-600'
+                                            }`}>
+                                                {isFood ? <CheckCircle2 size={12} /> : isStay ? <MapPin size={12} /> : <ShoppingBag size={12} />}
+                                                {isFood ? 'Cuisiné frais' : isStay ? 'Emplacement vérifié' : `${selectedProductDetails.salesCount || 0} Commandes`}
                                             </span>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
-                                    <div className="flex text-yellow-500">
-                                        {[1, 2, 3, 4, 5].map(s => <Star key={s} size={10} fill={s <= Math.round(selectedProductDetails.rating || 0) ? "currentColor" : "none"} />)}
                                     </div>
-                                    <span className="text-[10px] font-black text-yellow-700">{(selectedProductDetails.rating || 0).toFixed(1)}</span>
-                                </div>
-                                <span className="text-[11px] font-bold text-gray-600 border-l border-gray-200 pl-4">{selectedProductDetails.reviewCount || 0} Avis Clients</span>
-                                <span className="text-[11px] font-bold text-orange-600 border-l border-gray-200 pl-4 flex items-center gap-1.5">
-                                    <ShoppingBag size={12} className="text-orange-500" /> {selectedProductDetails.salesCount || 0} Ventes
-                                </span>
-                            </div>
-                        </div>
 
-                        {selectedProductDetails.wholesalePrice && 
-                            <div className="bg-gray-50/50 rounded-[32px] p-4 md:p-8 border border-gray-100 mb-6 backdrop-blur-sm relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/20 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-orange-200/30 transition-colors duration-700" />
-                                <button 
-                                    onClick={() => addWholesaleToCart(selectedProductDetails)}
-                                    className="relative w-full bg-white/80 hover:bg-white border border-orange-100 rounded-2xl p-4 flex items-center justify-between transition-all hover:shadow-md hover:scale-[1.01] group/wholesale"
-                                >
-                                    <div className="flex flex-col items-start gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[8px] font-black text-[#f56b2a] uppercase tracking-widest">Prix de Gros</span>
-                                            <span className="text-xs font-bold text-gray-900">
-                                                {formatCurrency(selectedProductDetails.wholesalePrice)} <span className="text-[9px] text-gray-600 font-medium">(Min. {selectedProductDetails.wholesaleMinQty})</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="text-[#f56b2a] font-black text-[9px] uppercase">Acheter <ArrowRight size={12} className="inline ml-1" /></div>
-                                </button>
-                            </div>
-                        }
-
-                        {/* Product Description - Collapsible & Formatted */}
-                        <div className="mb-4 relative">
-                            {(() => {
-                                const isApartment = selectedProductDetails.category === 'Appartements';
-                                let descriptionText = selectedProductDetails.description || "Découvrez ce produit exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
-                                let amenities: Record<string, boolean> | null = null;
-
-                                if (isApartment && selectedProductDetails.description?.startsWith('{')) {
-                                    try {
-                                        const parsed = JSON.parse(selectedProductDetails.description);
-                                        descriptionText = parsed.text || "";
-                                        amenities = parsed.amenities || null;
-                                    } catch (e) {}
-                                }
-
-                                return (
-                                    <>
-                                        <div 
-                                            className={`text-gray-500 text-xs md:text-[15px] leading-relaxed font-medium transition-all duration-300 ${!isDescriptionExpanded ? 'line-clamp-3 md:line-clamp-none' : ''}`}
-                                            style={{ whiteSpace: 'pre-line' }}
-                                        >
-                                            {descriptionText}
-                                        </div>
-
-                                        {amenities && (
-                                            <div className="mt-6 pt-6 border-t border-gray-50">
-                                                <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-4">Ce que propose ce logement</h4>
-                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                    {[
-                                                        { id: 'wifi', label: 'Wi-Fi', icon: '📶' },
-                                                        { id: 'ac', label: 'Climatisation', icon: '❄️' },
-                                                        { id: 'generator', label: 'Groupe Électrogène', icon: '⚡' },
-                                                        { id: 'water_reserve', label: 'Réserve d\'eau', icon: '🚰' },
-                                                        { id: 'canalplus', label: 'Canal+ / DSTV', icon: '📡' },
-                                                        { id: 'cleaning', label: 'Ménage', icon: '🧹' },
-                                                        { id: 'balcony', label: 'Balcon', icon: '🌇' },
-                                                        { id: 'parking', label: 'Parking', icon: '🚗' },
-                                                        { id: 'pool', label: 'Piscine', icon: '🏊' },
-                                                        { id: 'kitchen', label: 'Cuisine', icon: '🍳' },
-                                                        { id: 'microwave', label: 'Micro-onde', icon: '⏲️' },
-                                                        { id: 'security', label: 'Gardiennage', icon: '🛡️' }
-                                                    ].filter(a => amenities![a.id]).map(amenity => (
-                                                        <div key={amenity.id} className="flex items-center gap-2 bg-gray-50/50 p-2 rounded-xl border border-gray-50 transition-all hover:bg-white hover:shadow-sm group">
-                                                            <span className="text-sm group-hover:scale-110 transition-transform">{amenity.icon}</span>
-                                                            <span className="text-[10px] font-bold text-gray-600">{amenity.label}</span>
+                                    {/* --- MODE SPECIFIC OPTIONS --- */}
+                                    
+                                    {isFood && (
+                                        <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="bg-green-50/30 rounded-2xl p-4 border border-green-50">
+                                                <h4 className="text-[10px] font-black text-green-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <Zap size={12} /> Personnalisez votre plat
+                                                </h4>
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">Cuisson / Température</label>
+                                                        <div className="flex gap-2">
+                                                            {['Normal', 'Bien chaud'].map(opt => (
+                                                                <button key={opt} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[10px] font-bold text-gray-700 hover:border-green-500 transition-all">{opt}</button>
+                                                            ))}
                                                         </div>
-                                                    ))}
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">Suppléments (Optionnel)</label>
+                                                        <div className="flex gap-2">
+                                                            {['Sauce piquante', 'Fromage extra', 'Boisson'].map(opt => (
+                                                                <button key={opt} className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[10px] font-bold text-gray-700 hover:border-green-500 transition-all">+ {opt}</button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        )}
-                                        
-                                        {(descriptionText && descriptionText.length > 150) && (
+                                        </div>
+                                    )}
+
+                                    {isStay && (
+                                        <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="bg-blue-50/30 rounded-2xl p-4 border border-blue-50">
+                                                <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <Clock size={12} /> Planifiez votre séjour
+                                                </h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">Arrivée</label>
+                                                        <input type="date" className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[10px] font-bold outline-none focus:border-blue-500" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">Départ</label>
+                                                        <input type="date" className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[10px] font-bold outline-none focus:border-blue-500" />
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3">
+                                                    <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">Nombre de voyageurs</label>
+                                                    <select className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[10px] font-bold outline-none">
+                                                        {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} {n > 1 ? 'personnes' : 'personne'}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {isProduct && selectedProductDetails.wholesalePrice && 
+                                        <div className="bg-gray-50/50 rounded-[32px] p-4 md:p-8 border border-gray-100 mb-6 backdrop-blur-sm relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/20 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-orange-200/30 transition-colors duration-700" />
                                             <button 
-                                                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                                                className="mt-2 text-[#f56b2a] font-black text-[10px] md:hidden uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all"
+                                                onClick={() => addWholesaleToCart(selectedProductDetails)}
+                                                className="relative w-full bg-white/80 hover:bg-white border border-orange-100 rounded-2xl p-4 flex items-center justify-between transition-all hover:shadow-md hover:scale-[1.01] group/wholesale"
                                             >
-                                                {isDescriptionExpanded ? 'Voir moins' : 'Lire la suite'}
-                                                <ChevronRight size={10} className={`transition-transform duration-300 ${isDescriptionExpanded ? '-rotate-90' : 'rotate-90'}`} />
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[8px] font-black text-[#f56b2a] uppercase tracking-widest">Prix de Gros Amazon Style</span>
+                                                        <span className="text-xs font-bold text-gray-900">
+                                                            {formatCurrency(selectedProductDetails.wholesalePrice)} <span className="text-[9px] text-gray-600 font-medium">(Min. {selectedProductDetails.wholesaleMinQty})</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[#f56b2a] font-black text-[9px] uppercase">Acheter en lot <ArrowRight size={12} className="inline ml-1" /></div>
                                             </button>
+                                        </div>
+                                    }
+
+                                    {/* Product Description - Collapsible & Formatted */}
+                                    <div className="mb-4 relative">
+                                        {(() => {
+                                            let descriptionText = selectedProductDetails.description || "Découvrez cet article exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
+                                            let amenities: Record<string, boolean> | null = null;
+
+                                            if (isStay && selectedProductDetails.description?.startsWith('{')) {
+                                                try {
+                                                    const parsed = JSON.parse(selectedProductDetails.description);
+                                                    descriptionText = parsed.text || "";
+                                                    amenities = parsed.amenities || null;
+                                                } catch (e) {}
+                                            }
+
+                                            return (
+                                                <>
+                                                    <div 
+                                                        className={`text-gray-500 text-xs md:text-[15px] leading-relaxed font-medium transition-all duration-300 ${!isDescriptionExpanded ? 'line-clamp-3 md:line-clamp-none' : ''}`}
+                                                        style={{ whiteSpace: 'pre-line' }}
+                                                    >
+                                                        {descriptionText}
+                                                    </div>
+
+                                                    {isStay && amenities && (
+                                                        <div className="mt-6 pt-6 border-t border-gray-50">
+                                                            <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-4">Équipements inclus (Style Airbnb)</h4>
+                                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                                {[
+                                                                    { id: 'wifi', label: 'Wi-Fi', icon: '📶' },
+                                                                    { id: 'ac', label: 'Climatisation', icon: '❄️' },
+                                                                    { id: 'generator', label: 'Groupe Électrogène', icon: '⚡' },
+                                                                    { id: 'canalplus', label: 'Canal+', icon: '📡' },
+                                                                    { id: 'cleaning', label: 'Ménage', icon: '🧹' },
+                                                                    { id: 'pool', label: 'Piscine', icon: '🏊' },
+                                                                    { id: 'kitchen', label: 'Cuisine', icon: '🍳' },
+                                                                    { id: 'security', label: 'Gardiennage', icon: '🛡️' }
+                                                                ].filter(a => amenities![a.id]).map(amenity => (
+                                                                    <div key={amenity.id} className="flex items-center gap-2 bg-gray-50/50 p-2 rounded-xl border border-gray-50 transition-all hover:bg-white hover:shadow-sm group">
+                                                                        <span className="text-sm group-hover:scale-110 transition-transform">{amenity.icon}</span>
+                                                                        <span className="text-[10px] font-bold text-gray-600">{amenity.label}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {(descriptionText && descriptionText.length > 150) && (
+                                                        <button 
+                                                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                                                            className={`mt-2 font-black text-[10px] md:hidden uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all ${
+                                                                isFood ? 'text-green-600' : isStay ? 'text-blue-600' : 'text-[#f56b2a]'
+                                                            }`}
+                                                        >
+                                                            {isDescriptionExpanded ? 'Voir moins' : 'Lire la suite'}
+                                                            <ChevronRight size={10} className={`transition-transform duration-300 ${isDescriptionExpanded ? '-rotate-90' : 'rotate-90'}`} />
+                                                        </button>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div className="mb-4 flex gap-4 overflow-x-auto no-scrollbar py-1">
+                                        <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
+                                            <ShieldCheck size={16} className={isFood ? 'text-green-500' : isStay ? 'text-blue-500' : 'text-[#f56b2a]'} />
+                                            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">{isFood ? 'Fraîcheur' : isStay ? 'Vérifié' : 'Garantie'}</span>
+                                        </div>
+                                        <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
+                                            <Truck size={16} className={isFood ? 'text-green-500' : isStay ? 'text-blue-500' : 'text-[#f56b2a]'} />
+                                            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">{isFood ? 'Livraison 🚀' : isStay ? 'Check-in' : 'Livraison'}</span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => addToCart(selectedProductDetails)}
+                                        className={`flex w-full py-4 text-white rounded-[20px] font-black text-base shadow-xl transition-all items-center justify-center gap-3 active:scale-[0.98] ${
+                                            isFood ? 'bg-green-600 shadow-green-100 hover:bg-green-700' : 
+                                            isStay ? 'bg-blue-600 shadow-blue-100 hover:bg-blue-700' : 
+                                            'bg-[#f56b2a] shadow-orange-100 hover:bg-[#d55a20]'
+                                        }`}
+                                    >
+                                        {isFood ? (
+                                            <><ShoppingBasketIcon size={20} strokeWidth={3} /> Commander ce plat (UberEats Style)</>
+                                        ) : isStay ? (
+                                            <><CheckCircle2 size={20} strokeWidth={3} /> Réserver mon séjour (Airbnb Style)</>
+                                        ) : (
+                                            <><ShoppingCart size={20} strokeWidth={3} /> Ajouter au panier (Amazon Style)</>
                                         )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-
-                        <div className="mb-4 flex gap-4 overflow-x-auto no-scrollbar py-1">
-                            <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
-                                <ShieldCheck size={16} className="text-[#f56b2a]" />
-                                <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Garantie</span>
-                            </div>
-                            <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
-                                <Truck size={16} className="text-[#f56b2a]" />
-                                <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Livraison</span>
-                            </div>
-                            <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
-                                <CheckCircle2 size={16} className="text-[#f56b2a]" />
-                                <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Retours</span>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => addToCart(selectedProductDetails)}
-                            className="flex w-full py-4 bg-[#f56b2a] text-white rounded-[20px] font-black text-base shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all items-center justify-center gap-3 active:scale-[0.98]"
-                        >
-                            {selectedProductDetails.category === 'Appartements' ? (
-                                <><CheckCircle2 size={20} strokeWidth={3} /> Réserver cet Appartement</>
-                            ) : (
-                                <><ShoppingCart size={20} strokeWidth={3} /> Ajouter au panier</>
-                            )}
-                        </button>
-
+                                    </button>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 
