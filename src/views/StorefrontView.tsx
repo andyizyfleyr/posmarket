@@ -88,23 +88,51 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-    // Load cart from localStorage (24h expiration)
-    const loadCartFromStorage = (): CartItem[] => {
+    // ⚡ Helpers defined early for use in effects
+    const loadCartFromStorage = useCallback((): CartItem[] => {
         try {
             const stored = localStorage.getItem('storefront_cart');
+            if (stored) {
+                const { data, timestamp } = JSON.parse(stored);
+                // 24h expiration
+                const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
+                if (!expired) return data;
+            }
+        } catch (e) { }
+        return [];
+    }, []);
+
+    const loadCustomerInfoFromStorage = useCallback(() => {
+        try {
+            const stored = localStorage.getItem('storefront_customer');
             if (stored) {
                 const { data, timestamp } = JSON.parse(stored);
                 const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
                 if (!expired) return data;
             }
         } catch (e) { }
-        return [];
-    };
+        return { name: '', phone: '', address: '', city: '', zip: '' };
+    }, []);
+
+    const loadPromoFromStorage = useCallback(() => {
+        try {
+            const stored = localStorage.getItem('storefront_promo');
+            if (stored) {
+                const { data, timestamp } = JSON.parse(stored);
+                const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
+                if (!expired) return data;
+            }
+        } catch (e) { }
+        return null;
+    }, []);
 
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '', city: '', zip: '' });
+    const [promoApplied, setPromoApplied] = useState<Coupon | null>(null);
     const [isMounted, setIsMounted] = useState(false);
-    
-    // 0. URL Params Detection (Moved to top to prevent 'used before declaration')
+    const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
+
+    // 0. URL Params Detection
     const storeMatch = useMatch('/store/:storeParam');
     const productMatch = useMatch('/product/:productId');
     const isCartView = location.pathname.includes('/cart');
@@ -115,26 +143,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const isProductDetailPath = splat?.startsWith('product/');
     const rawUrlProductId = productMatch?.params.productId || (isProductDetailPath ? splat?.replace('product/', '') : null);
 
-    // Persistence Cache: Instant load from localStorage
-    const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
-
     // 1. Load cache IMMEDIATELY on mount
     React.useEffect(() => {
         setIsMounted(true);
         
         try {
-            const storedMarketplace = localStorage.getItem('marketplace_cache');
-            if (storedMarketplace) {
-                const { data, timestamp } = JSON.parse(storedMarketplace);
-                // Cache valid for 30 minutes
-                const isFresh = Date.now() - timestamp < 30 * 60 * 1000;
-                if (data && data.length > 0) {
-                    setCachedStores(data);
-                }
+            const cached = localStorage.getItem('marketplace_data_cache');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.stores) setCachedStores(parsed.stores);
             }
-        } catch (e) {
-            console.warn('Marketplace cache load failed', e);
-        }
+        } catch (e) {}
 
         const savedCart = loadCartFromStorage();
         if (savedCart.length > 0) setCart(savedCart);
@@ -144,17 +163,32 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
+    }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage]);
 
-        // ⚡ LOAD CACHE ON MOUNT (Data Cache Reserve)
-        try {
-            const cached = localStorage.getItem('marketplace_data_cache');
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed.stores) setStores(parsed.stores);
-                if (parsed.products) setAllProducts(parsed.products);
+    // ⚡ Derive active data from props or cache
+    const activeStores = useMemo(() => {
+        return (stores && stores.length > 0) ? stores : cachedStores;
+    }, [stores, cachedStores]);
+
+    const allProducts = useMemo(() => {
+        const products: StorefrontProduct[] = [];
+        activeStores.forEach((store: any) => {
+            if (store.products) {
+                store.products.forEach((product: any) => {
+                    // Only include products that are marked as online
+                    if (product.isOnline !== false) {
+                        products.push({
+                            ...product,
+                            storeId: store.id || '',
+                            storeName: store.settings?.name || store.name || 'Boutique',
+                            storeSlug: store.slug || undefined
+                        });
+                    }
+                });
             }
-        } catch (e) {}
-    }, []);
+        });
+        return products;
+    }, [activeStores]);
 
     // 2. Update Data Cache when fresh props arrive (Data Cache)
     React.useEffect(() => {
@@ -183,25 +217,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         }
     }, [cart, isMounted]);
 
-    const allProducts = useMemo(() => {
-        const products: StorefrontProduct[] = [];
-        activeStores.forEach(store => {
-            if (store.products) {
-                store.products.forEach(product => {
-                    // Only include products that are marked as online
-                    if (product.isOnline !== false) {
-                        products.push({
-                            ...product,
-                            storeId: store.id || '',
-                            storeName: store.settings?.name || store.name || 'Boutique',
-                            storeSlug: store.slug || undefined
-                        });
-                    }
-                });
-            }
-        });
-        return products;
-    }, [activeStores]);
+
 
     const selectedStoreId = useMemo(() => {
         if (!selectedStoreParam) return null;
@@ -266,20 +282,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         checkSession();
     }, []);
 
-    // Load customer info from localStorage (24h expiration)
-    const loadCustomerInfoFromStorage = (): { name: string, phone: string, address: string, city: string, zip: string } => {
-        try {
-            const stored = localStorage.getItem('storefront_customer');
-            if (stored) {
-                const { data, timestamp } = JSON.parse(stored);
-                const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-                if (!expired) return data;
-            }
-        } catch (e) { }
-        return { name: '', phone: '', address: '', city: '', zip: '' };
-    };
-
-    const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '', city: '', zip: '' });
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [rememberMe, setRememberMe] = useState(true);
+    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card'>('cod');
+    const [cardInfo, setCardInfo] = useState({ number: '', expiry: '', cvc: '' });
+    const [promoCodeInput, setPromoCodeInput] = useState('');
 
     // Save customer info to localStorage when it changes
     React.useEffect(() => {
@@ -292,25 +299,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         } catch (e) {
             console.warn('Could not save customer info to localStorage', e);
         }
-    }, [customerInfo]);
-    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card'>('cod');
-    const [cardInfo, setCardInfo] = useState({ number: '', expiry: '', cvc: '' });
-    const [promoCodeInput, setPromoCodeInput] = useState('');
-
-    // Load promo from localStorage (24h expiration)
-    const loadPromoFromStorage = () => {
-        try {
-            const stored = localStorage.getItem('storefront_promo');
-            if (stored) {
-                const { data, timestamp } = JSON.parse(stored);
-                const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-                if (!expired) return data;
-            }
-        } catch (e) { }
-        return null;
-    };
-
-    const [promoApplied, setPromoApplied] = useState<{ code: string, discountPct: number, storeId: string } | null>(null);
+    }, [customerInfo, isMounted]);
 
     // Save promo to localStorage when it changes
     React.useEffect(() => {
@@ -327,10 +316,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         } catch (e) {
             console.warn('Could not save promo to localStorage', e);
         }
-    }, [promoApplied]);
-    const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [rememberMe, setRememberMe] = useState(true);
-
+    }, [promoApplied, isMounted]);
     // Load coupons from Supabase - for all stores in cart or current store
     React.useEffect(() => {
         const loadCoupons = async () => {
@@ -858,8 +844,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     // Calculate discount only for products from the store that has the coupon
     const discountAmount = promoApplied
         ? cart
-            .filter(item => item.product.storeId === promoApplied.storeId)
-            .reduce((sum, item) => sum + (getEffectiveItemPrice(item) * (item.quantity || 1)), 0) * (promoApplied.discountPct / 100)
+            .filter(item => item.product.storeId === promoApplied.store_id)
+            .reduce((sum, item) => sum + (getEffectiveItemPrice(item) * (item.quantity || 1)), 0) * (promoApplied.discount_pct / 100)
         : 0;
     const cartTotal = baseCartTotal - discountAmount + shippingCost;
     const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -871,7 +857,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         const matchedCoupon = coupons.find(c => c.code === inputCode && c.active);
 
         if (matchedCoupon) {
-            setPromoApplied({ code: matchedCoupon.code, discountPct: matchedCoupon.discount_pct, storeId: matchedCoupon.store_id });
+            setPromoApplied({ ...matchedCoupon });
             setPromoCodeInput('');
             localNotify(`Code promo appliqué: ${matchedCoupon.discount_pct}% de réduction!`, 'success');
         } else if (coupons.length === 0) {
@@ -903,8 +889,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     return sum + (price * i.quantity);
                 }, 0);
                 // Only apply discount to the store that has the coupon
-                storeOrder.discountAmount = (promoApplied && promoApplied.storeId === storeId) ? storeOrder.subtotal * (promoApplied.discountPct / 100) : 0;
-                storeOrder.promoCode = (promoApplied && promoApplied.storeId === storeId) ? promoApplied.code : undefined;
+                storeOrder.discountAmount = (promoApplied && promoApplied.store_id === storeId) ? storeOrder.subtotal * (promoApplied.discount_pct / 100) : 0;
+                storeOrder.promoCode = (promoApplied && promoApplied.store_id === storeId) ? promoApplied.code : undefined;
                 const discountedSubtotal = storeOrder.subtotal - storeOrder.discountAmount;
                 const proportionalShipping = baseCartTotal > 0 ? (storeOrder.subtotal / baseCartTotal) * shippingCost : 0;
                 storeOrder.shippingCost = proportionalShipping;
@@ -1769,10 +1755,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                                         )}
                                                                     </div>
                                                                 )}
-                                                                {promoApplied && promoApplied.storeId === item.product.storeId && (
+                                                                {promoApplied && promoApplied.store_id === item.product.storeId && (
                                                                     <span className="text-[10px] text-green-600 font-bold">Coupon appliqué</span>
                                                                 )}
-                                                                <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner">
+                                                                <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner mt-2">
                                                                     <button onClick={() => updateQuantity(item.product.id, item.product.storeId, -1, item.variantId)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold">-</button>
                                                                     <span className="text-xs font-black text-gray-900 w-4 text-center">{item.quantity}</span>
                                                                     <button onClick={() => updateQuantity(item.product.id, item.product.storeId, 1, item.variantId)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold">+</button>
@@ -2608,14 +2594,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             /* Grouped sections for browsing */
                                             (() => {
                                                 const groups: Record<string, typeof pagedProducts> = {};
-                                                pagedProducts.forEach(p => {
+                                                pagedProducts.forEach((p: any) => {
                                                     const cat = p.mainCategory || p.category || 'Autre';
                                                     if (!groups[cat]) groups[cat] = [];
                                                     groups[cat].push(p);
                                                 });
                                                 
                                                 // Maintain MAIN_CATEGORIES order
-                                                const sortedCats = Object.keys(groups).sort((a, b) => {
+                                                const sortedCats = Object.keys(groups).sort((a: string, b: string) => {
                                                     const idxA = MAIN_CATEGORIES.indexOf(a);
                                                     const idxB = MAIN_CATEGORIES.indexOf(b);
                                                     return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
@@ -2705,14 +2691,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             /* Grouped sections for store products */
                                             (() => {
                                                 const groups: Record<string, typeof pagedProducts> = {};
-                                                pagedProducts.forEach(p => {
+                                                pagedProducts.forEach((p: any) => {
                                                     const cat = p.mainCategory || p.category || 'Autre';
                                                     if (!groups[cat]) groups[cat] = [];
                                                     groups[cat].push(p);
                                                 });
                                                 
                                                 // Maintain MAIN_CATEGORIES order
-                                                const sortedCats = Object.keys(groups).sort((a, b) => {
+                                                const sortedCats = Object.keys(groups).sort((a: string, b: string) => {
                                                     const idxA = MAIN_CATEGORIES.indexOf(a);
                                                     const idxB = MAIN_CATEGORIES.indexOf(b);
                                                     return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
