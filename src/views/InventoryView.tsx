@@ -909,7 +909,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                         ) : null}
                                     </div>
                                     <div className="col-span-1 md:col-span-3">
-                                        <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Valeurs (Séparez par des virgules)</label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-[8px] font-black text-gray-400 uppercase">Valeurs (Séparez par des virgules)</label>
+                                            <span className="text-[7px] font-bold text-orange-400 uppercase tracking-tighter">Astuce: cliquez sur les suggestions</span>
+                                        </div>
                                         <input
                                             type="text"
                                             value={option.values.join(', ')}
@@ -918,9 +921,56 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');
                                                 setFormData({ ...formData, options: newOptions });
                                             }}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
                                             placeholder="Rouge, Bleu, Vert..."
                                         />
+                                        
+                                        {/* Suggestions de valeurs */}
+                                        {(() => {
+                                            const suggestions: Record<string, string[]> = {
+                                                'Taille': ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'Taille Unique', 'Enfant', 'Adulte'],
+                                                'Couleur': ['Noir', 'Blanc', 'Rouge', 'Bleu', 'Marine', 'Vert', 'Kaki', 'Jaune', 'Orange', 'Rose', 'Violet', 'Gris', 'Beige', 'Marron', 'Bordeaux', 'Corail', 'Menthe', 'Or', 'Argent'],
+                                                'Pointure': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'],
+                                                'Format': ['Petit', 'Moyen', 'Grand', 'S', 'M', 'L', 'XL', 'Standard', 'Pack', 'Unité', 'Douzaine', '100ml', '250ml', '500ml', '1L', '2L', '5L'],
+                                                'Modèle': ['Standard', 'Pro', 'Max', 'Mini', 'Lite', 'Slim', 'Luxe', 'Sport', 'Classic', 'Premium', 'Edition Limitée'],
+                                                'Saveur': ['Vanille', 'Chocolat', 'Fraise', 'Citron', 'Caramel', 'Banane', 'Pistache', 'Menthe', 'Pimenté', 'Nature', 'Salé', 'Sucré', 'Épicé', 'Grillé'],
+                                                'Matière': ['Coton', 'Cuir', 'Bois', 'Acier', 'Aluminium', 'Or', 'Argent', 'Plastique', 'Verre', 'Céramique', 'Soie', 'Laine', 'Nylon', 'Polyester'],
+                                                'Poids': ['50g', '100g', '200g', '250g', '500g', '1kg', '2kg', '5kg', '10kg', '25kg', '50kg']
+                                            };
+                                            
+                                            const currentName = option.name;
+                                            if (!suggestions[currentName]) return null;
+                                            
+                                            return (
+                                                <div className="flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                    {suggestions[currentName].map(suggest => {
+                                                        const isAlreadyAdded = option.values.includes(suggest);
+                                                        return (
+                                                            <button
+                                                                key={suggest}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newOptions = [...formData.options!];
+                                                                    if (isAlreadyAdded) {
+                                                                        newOptions[optIdx].values = option.values.filter(v => v !== suggest);
+                                                                    } else {
+                                                                        newOptions[optIdx].values = [...option.values, suggest];
+                                                                    }
+                                                                    setFormData({ ...formData, options: newOptions });
+                                                                }}
+                                                                className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all border ${
+                                                                    isAlreadyAdded 
+                                                                        ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm' 
+                                                                        : 'bg-white text-gray-400 border-gray-100 hover:border-orange-200 hover:text-orange-500'
+                                                                }`}
+                                                            >
+                                                                {isAlreadyAdded ? '✓ ' : '+ '}{suggest}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </div>
