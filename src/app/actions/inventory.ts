@@ -40,10 +40,12 @@ export async function saveProductAction(product: any, storeId: string) {
     main_category: product.mainCategory || product.main_category,
     unit: product.unit,
     description: product.description,
-    is_online: product.isOnline !== undefined ? product.isOnline : product.is_online,
+    is_online: product.isOnline !== undefined ? product.isOnline : (product.is_online !== undefined ? product.is_online : true),
     views: product.views || 0,
     wholesale_price: product.wholesalePrice,
-    wholesale_min_qty: product.wholesaleMinQty
+    wholesale_min_qty: product.wholesaleMinQty,
+    options: product.options || [],
+    variants: product.variants || []
   }
 
   const { data, error } = await supabase.from('products').upsert(dbProduct).select()
@@ -115,9 +117,13 @@ export async function getProductsAction(storeId: string, offset: number = 0, lim
     products: (data || []).map((p: any) => ({
       ...p,
       price: parseFloat(p.price) || 0,
+      originalPrice: p.original_price ? parseFloat(p.original_price) : undefined,
       isOnline: p.is_online !== false,
       wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
-      wholesaleMinQty: p.wholesale_min_qty
+      wholesaleMinQty: p.wholesale_min_qty,
+      mainCategory: p.main_category,
+      options: p.options || [],
+      variants: p.variants || []
     })),
     hasMore: (count || 0) > (offset + (data?.length || 0)),
     total: count

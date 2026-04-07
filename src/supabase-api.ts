@@ -14,6 +14,8 @@ export const saveProduct = async (product: Partial<Product>, storeId: string) =>
         main_category: product.mainCategory,
         unit: product.unit,
         description: product.description,
+        options: product.options || [],
+        variants: product.variants || []
     };
 
     // Add images and is_online only if they are present in the product object

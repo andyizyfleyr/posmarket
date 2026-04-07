@@ -34,6 +34,8 @@ export interface Product {
   deliveryTime?: string; // Delivery/Preparation time: "30-45 min", "2 jours", etc.
   options?: ProductOption[];
   variants?: ProductVariant[];
+  isDigital?: boolean;
+  digitalUrl?: string; // URL for the downloadable file
 }
 
 export interface ProductOption {
