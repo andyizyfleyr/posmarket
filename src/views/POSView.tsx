@@ -208,12 +208,22 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
   const handleDownloadPDF = async () => {
     if (!receiptRef.current) return;
-    const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: '#ffffff' });
+    const canvas = await html2canvas(receiptRef.current, { 
+      scale: 2, 
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      allowTaint: true
+    });
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 200] });
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
+    
+    const imgProps = {
+      width: canvas.width,
+      height: canvas.height
+    };
+    const pdfWidth = 80;
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     pdf.save(`Recu-${currentOrderId}.pdf`);
   };

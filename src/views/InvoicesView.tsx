@@ -99,13 +99,35 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
 
     const handleDownloadPDF = async () => {
         if (!invoiceRef.current) return;
-        const canvas = await html2canvas(invoiceRef.current, { scale: 2, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(invoiceRef.current, { 
+            scale: 2, 
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            onclone: (clonedDoc) => {
+                const el = clonedDoc.querySelector('[data-invoice-container="true"]') as HTMLElement;
+                if (el) {
+                    el.style.width = '850px';
+                    el.style.maxWidth = 'none';
+                    el.style.padding = '40px';
+                }
+            }
+        });
         const imgData = canvas.toDataURL('image/png');
-        // A4 Portrait
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
+        
+        const imgProps = {
+            width: canvas.width,
+            height: canvas.height
+        };
+        const pdfWidth = 210; // A4 Width in mm
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        const pdf = new jsPDF({ 
+            orientation: 'portrait', 
+            unit: 'mm', 
+            format: [pdfWidth, Math.max(297, pdfHeight)] // Minimum A4 height 
+        });
+        
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`Facture-${selectedInvoice?.invoiceNumber || selectedInvoice?.id}.pdf`);
     };
@@ -622,6 +644,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                         <div className="flex-grow overflow-y-auto p-2 md:p-8 custom-scrollbar bg-gray-50/50">
                             <div
                                 ref={invoiceRef}
+                                data-invoice-container="true"
                                 className="bg-white mx-auto shadow-xl md:shadow-sm border border-gray-100 md:border-gray-200 !max-w-[800px] w-full min-h-[500px] p-6 md:p-12 relative print:shadow-none print:border-none rounded-xl md:rounded-none overflow-x-auto"
                             >
                                 {/* Decorative Header */}
