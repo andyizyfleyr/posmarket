@@ -864,18 +864,49 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                 </button>
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div className="col-span-1">
-                                        <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Nom (ex: Couleur)</label>
-                                        <input
-                                            type="text"
-                                            value={option.name}
+                                        <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Type d'Option</label>
+                                        <select
+                                            value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as any).isCustom ? '' : 'custom')}
                                             onChange={e => {
+                                                const val = e.target.value;
                                                 const newOptions = [...formData.options!];
-                                                newOptions[optIdx].name = e.target.value;
+                                                if (val === 'custom') {
+                                                    newOptions[optIdx].name = '';
+                                                    (newOptions[optIdx] as any).isCustom = true;
+                                                } else {
+                                                    newOptions[optIdx].name = val;
+                                                    (newOptions[optIdx] as any).isCustom = false;
+                                                }
                                                 setFormData({ ...formData, options: newOptions });
                                             }}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm"
-                                            placeholder="Taille, Couleur..."
-                                        />
+                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
+                                        >
+                                            <option value="">Sélectionner...</option>
+                                            <option value="Taille">Taille</option>
+                                            <option value="Couleur">Couleur</option>
+                                            <option value="Pointure">Pointure</option>
+                                            <option value="Format">Format</option>
+                                            <option value="Modèle">Modèle</option>
+                                            <option value="Saveur">Saveur / Goût</option>
+                                            <option value="Matière">Matière</option>
+                                            <option value="Poids">Poids</option>
+                                            <option value="custom">✨ Autre...</option>
+                                        </select>
+                                        
+                                        {((option as any).isCustom || (!['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids', ''].includes(option.name))) ? (
+                                            <input
+                                                type="text"
+                                                value={option.name}
+                                                autoFocus
+                                                onChange={e => {
+                                                    const newOptions = [...formData.options!];
+                                                    newOptions[optIdx].name = e.target.value;
+                                                    setFormData({ ...formData, options: newOptions });
+                                                }}
+                                                className="w-full px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm animate-in slide-in-from-top-1"
+                                                placeholder="Nom de l'option..."
+                                            />
+                                        ) : null}
                                     </div>
                                     <div className="col-span-1 md:col-span-3">
                                         <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Valeurs (Séparez par des virgules)</label>
