@@ -6,7 +6,7 @@ import {
     ShoppingCart, Search, Store, MapPin, CreditCard, ChevronLeft,
     Star, Heart, X, CheckCircle2, User, Phone, Mail, Truck, ShieldCheck,
     Gift, Zap, Bell, MessageCircle, Plus, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, Globe,
-    Package, Edit2, Trash2, Home, Briefcase, LogOut, ArrowLeft, AlertCircle, Clock, ShoppingBag
+    Package, Edit2, Trash2, Home, Briefcase, LogOut, ArrowLeft, AlertCircle, Clock, ShoppingBag, Tag
 } from 'lucide-react';
 import { StoreData, Product, Customer, Order, ViewType, NotificationType, Review, Coupon, ToastNotification } from '@/types';
 import { generateProductSlug } from '@/utils/slug';
