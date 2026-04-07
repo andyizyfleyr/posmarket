@@ -272,7 +272,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
                     <p className="text-[7pt] text-gray-600 mt-1">{storeSettings.address}</p>
                     <p className="text-[7pt] text-gray-500 font-mono mt-0.5">{storeSettings.phone} • {storeSettings.email}</p>
                     <div className="mt-3 text-[7pt] text-gray-500">
-                      <p>CMD #{selectedOrder.id}</p>
+                      <p>CMD #{selectedOrder.id.slice(-8).toUpperCase()}</p>
                       <p>{new Date(selectedOrder.date).toLocaleString('fr-FR')}</p>
                     </div>
                   </div>

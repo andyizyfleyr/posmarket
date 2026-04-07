@@ -509,7 +509,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             <div className="p-6 text-center border-b border-gray-100">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 size={32} /></div>
               <h2 className="text-2xl font-bold text-gray-800">Succès !</h2>
-              <p className="text-gray-500 text-sm">Commande {currentOrderId} validée.</p>
+              <p className="text-gray-500 text-sm">Commande {currentOrderId.slice(-8).toUpperCase()} validée.</p>
             </div>
             <div className="flex-grow overflow-y-auto p-6 bg-gray-50">
               <div ref={receiptRef} id="receipt-print" className="bg-white p-6 shadow-sm border border-gray-200 mx-auto w-[80mm] text-[10pt] font-mono">
@@ -520,7 +520,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 </div>
                 <div className="border-b border-dashed border-gray-300 pb-2 mb-2 space-y-1">
                   <div className="flex justify-between"><span>DATE:</span><span>{new Date().toLocaleDateString('fr-FR')}</span></div>
-                  <div className="flex justify-between"><span>CMD:</span><span>{currentOrderId}</span></div>
+                  <div className="flex justify-between"><span>CMD:</span><span>{currentOrderId.slice(-8).toUpperCase()}</span></div>
                   <div className="flex justify-between"><span>TYPE:</span><span>{orderType === 'PICKUP' ? 'CLICK & COLLECT' : 'EN MAGASIN'}</span></div>
                 </div>
                 <table className="w-full text-left">
