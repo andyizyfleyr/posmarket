@@ -710,39 +710,56 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             });
     }, [allProducts, searchTerm, selectedCategory, selectedStoreId]);
 
+    const loadingRef = useRef(false);
+    const currentPageRef = useRef(0);
+
     // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
     const loadPagedProducts = useCallback(async (reset: boolean = false) => {
+        if (loadingRef.current && !reset) return;
+        
+        loadingRef.current = true;
         setIsLoadingMore(true);
         
-        const nextPage = reset ? 0 : page;
-        const start = nextPage * PAGE_LIMIT;
+        if (reset) {
+            currentPageRef.current = 0;
+            setPage(0);
+        }
+
+        const start = currentPageRef.current * PAGE_LIMIT;
         const end = start + PAGE_LIMIT;
         const nextBatch = filteredProducts.slice(start, end);
         
         setPagedProducts(prev => reset ? nextBatch : [...prev, ...nextBatch]);
         setHasMore(end < filteredProducts.length);
-        setPage(nextPage + 1);
-        setIsLoadingMore(false);
-    }, [page, filteredProducts]);
+        
+        currentPageRef.current += 1;
+        setPage(currentPageRef.current);
+        
+        // Small delay to allow DOM to update and avoid instant double-trigger
+        setTimeout(() => {
+            setIsLoadingMore(false);
+            loadingRef.current = false;
+        }, 100);
+    }, [filteredProducts]);
 
     // Reset pagination on filter change
     useEffect(() => {
         loadPagedProducts(true);
-    }, [selectedStoreId, selectedCategory, searchTerm, loadPagedProducts]);
+    }, [selectedStoreId, selectedCategory, searchTerm, filteredProducts]); // Stable dependencies
 
     // Intersection Observer for Infinite Scroll
     useEffect(() => {
         if (!loadMoreRef.current) return;
         
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && !isLoadingMore && hasMore) {
+            if (entries[0].isIntersecting && !loadingRef.current && hasMore) {
                 loadPagedProducts();
             }
         }, { threshold: 0.1 });
         
         observer.observe(loadMoreRef.current);
         return () => observer.disconnect();
-    }, [loadPagedProducts, isLoadingMore, hasMore]);
+    }, [loadPagedProducts, hasMore]);
 
 
     const partnerStores = useMemo(() => {
@@ -2569,17 +2586,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             {pagedProducts.length > 0 ? (
                                 <>
                                     <div className="relative">
-                                        {/* Localized Grid Loader - Professional Feedback */}
-                                        {isLoadingMore && (
-                                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-start pt-32 bg-gray-50/20 backdrop-blur-[2px] animate-in fade-in duration-300">
-                                                <div className="bg-white/90 backdrop-blur-md p-5 rounded-[32px] shadow-2xl shadow-orange-100/50 border border-white flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200">
-                                                    <Loader2 size={36} className="text-[#f56b2a] animate-spin" strokeWidth={3} />
-                                                    <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] animate-pulse">Chargement</p>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 transition-all duration-500 ${isLoadingMore ? 'opacity-30 blur-[1px]' : 'opacity-100 blur-0'}`}>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 transition-all duration-500">
                                             {pagedProducts.map(product => (
                                                 <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
                                                     <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
