@@ -104,6 +104,8 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
 
     const handleDownloadPDF = async () => {
         if (!invoiceRef.current) return;
+        
+        // Force the element to have A4-proportional width during capture
         const canvas = await html2canvas(invoiceRef.current, { 
             scale: 2, 
             backgroundColor: '#ffffff',
@@ -113,28 +115,36 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                 const el = clonedDoc.getElementById('invoice-print');
                 if (el) {
                     el.style.visibility = 'visible';
-                    el.style.width = '850px';
+                    el.style.width = '794px'; // A4 width at 96 DPI
                     el.style.maxWidth = 'none';
-                    el.style.padding = '40px';
+                    el.style.padding = '60px'; // Professional margins
+                    el.style.boxShadow = 'none';
+                    el.style.border = 'none';
                 }
             }
         });
+        
         const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
         
-        const imgProps = {
-            width: canvas.width,
-            height: canvas.height
-        };
-        const pdfWidth = 210; // A4 Width in mm
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        const pdf = new jsPDF({ 
-            orientation: 'portrait', 
-            unit: 'mm', 
-            format: [pdfWidth, Math.max(297, pdfHeight)] // Minimum A4 height 
-        });
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // First page
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        // Subsequent pages if content overflows A4 height
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
         pdf.save(`Facture-${selectedInvoice?.invoiceNumber || selectedInvoice?.id}.pdf`);
     };
 
