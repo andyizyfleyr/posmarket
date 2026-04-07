@@ -698,14 +698,27 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 return isFromStore && matchesSearch && matchesCategory;
             })
             .sort((a, b) => {
-                // 1. Most sold first
+                if (searchTerm) return 0;
+                
+                // 1. Group by Category first for the Home sections
+                const catA = a.mainCategory || a.category || 'Autre';
+                const catB = b.mainCategory || b.category || 'Autre';
+                if (catA !== catB) {
+                    const idxA = MAIN_CATEGORIES.indexOf(catA);
+                    const idxB = MAIN_CATEGORIES.indexOf(catB);
+                    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                }
+                
+                // 2. Within category: Top performers first
+                // Most sold
                 const salesDiff = (b.salesCount || 0) - (a.salesCount || 0);
                 if (salesDiff !== 0) return salesDiff;
-                // 2. Best rated
+                
+                // Best rated
                 const ratingDiff = (b.rating || 0) - (a.rating || 0);
                 if (ratingDiff !== 0) return ratingDiff;
-                // 3. Most reviews
-    // 4. Most views
+                
+                // Most views
                 return (b.views || 0) - (a.views || 0);
             });
     }, [allProducts, searchTerm, selectedCategory, selectedStoreId]);
@@ -2571,40 +2584,87 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 </div>
                             )}
 
-                            {/* Grid title */}
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                                     {searchTerm ? (
                                         <><ShoppingCart className="text-[#f56b2a]" size={20} /> Résultats produits</>
+                                    ) : selectedCategory !== 'all' ? (
+                                        <><Zap className="text-yellow-500" /> {selectedCategory}</>
                                     ) : (
                                         <><Zap className="text-yellow-500" /> Recommandations</>
                                     )}
                                 </h2>
                             </div>
 
-                            {/* Grid */}
+                            {/* Grid (Grouped by Category if no search) */}
                             {pagedProducts.length > 0 ? (
                                 <>
-                                    <div className="relative">
-                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 transition-all duration-500">
-                                            {pagedProducts.map(product => (
-                                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
-                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
-                                                </div>
-                                            ))}
-                                        </div>
+                                    <div className="relative space-y-12">
+                                        {searchTerm ? (
+                                            /* Simple grid for search results */
+                                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                                {pagedProducts.map(product => (
+                                                    <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                        <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            /* Grouped sections for browsing */
+                                            (() => {
+                                                const groups: Record<string, typeof pagedProducts> = {};
+                                                pagedProducts.forEach(p => {
+                                                    const cat = p.mainCategory || p.category || 'Autre';
+                                                    if (!groups[cat]) groups[cat] = [];
+                                                    groups[cat].push(p);
+                                                });
+                                                
+                                                // Maintain MAIN_CATEGORIES order
+                                                const sortedCats = Object.keys(groups).sort((a, b) => {
+                                                    const idxA = MAIN_CATEGORIES.indexOf(a);
+                                                    const idxB = MAIN_CATEGORIES.indexOf(b);
+                                                    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                                                });
+
+                                                return sortedCats.map(cat => (
+                                                    <div key={cat} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                                        {selectedCategory === 'all' && (
+                                                            <div className="flex items-center gap-3 mb-6">
+                                                                <div className="h-0.5 w-8 bg-[#f56b2a]" />
+                                                                <h3 className="text-base font-black text-gray-900 uppercase tracking-[0.15em]">{cat}</h3>
+                                                                <div className="flex-grow h-px bg-gray-100" />
+                                                            </div>
+                                                        )}
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                                            {groups[cat].map(product => (
+                                                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
+                                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()
+                                        )}
                                     </div>
                                     
                                     {/* Load More Trigger */}
-                                    <div ref={loadMoreRef} className="py-10 flex flex-col items-center justify-center">
+                                    <div ref={loadMoreRef} className="py-20 flex flex-col items-center justify-center">
                                         {isLoadingMore && (
                                             <div className="flex flex-col items-center gap-3">
-                                                <Loader2 size={32} className="text-[#f56b2a] animate-spin" />
-                                                <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Chargement en cours...</p>
+                                                <div className="flex gap-1.5">
+                                                    <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                                    <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                                    <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce" />
+                                                </div>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Expansion du catalogue...</p>
                                             </div>
                                         )}
                                         {!hasMore && pagedProducts.length > 0 && (
-                                            <div className="w-10 h-1 bg-gray-100 rounded-full" />
+                                            <div className="flex flex-col items-center gap-4">
+                                                <div className="w-12 h-1 bg-gray-100 rounded-full" />
+                                                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Vous avez atteint la fin</p>
+                                            </div>
                                         )}
                                     </div>
                                 </>
