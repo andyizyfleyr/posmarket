@@ -58,6 +58,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [productType, setProductType] = useState<'all' | 'pos' | 'marketplace'>('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
