@@ -290,7 +290,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     // User Accounts State
     const [isAccountView, setIsAccountView] = useState(false);
-    const { isOnline, isSlow } = useNetworkStatus();
     const [user, setUser] = useState<{ id?: string, name: string, email: string } | null>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
