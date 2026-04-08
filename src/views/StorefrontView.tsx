@@ -2118,11 +2118,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     Vous êtes hors ligne • Reconnexion en cours...
                 </div>
             )}
-            {isOnline && isSlow && (
-                <div className="bg-orange-400 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center animate-in slide-in-from-top-full duration-300 z-[10001]">
-                    Connexion lente détectée • Optimisation de l'affichage...
-                </div>
-            )}
             {/* BuyerView Overlay (Full screen for mobile/desktop) */}
             {isAccountView && user && (
                 <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
@@ -2572,7 +2567,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             {/* Super App Verticals - Big Tiles Style */}
                             {!searchTerm && selectedCategory === 'all' && (
                                 <div className="mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
-                                    <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Nos services</h2>
+                                    <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Que voulez-vous faire aujourd'hui ?</h2>
                                     <div className="grid grid-cols-3 gap-3 md:gap-6">
                                         {[
                                             { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange', desc: 'Amazon' },
@@ -2612,16 +2607,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         ))}
                                     </div>
                                     
-                                    {selectedVertical !== 'all' && (
-                                        <div className="flex justify-center mt-4">
-                                            <button 
-                                                onClick={() => setSelectedVertical('all')}
-                                                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-[#f56b2a] transition-colors"
-                                            >
-                                                Voir tous les services
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
@@ -2731,7 +2716,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                         {selectedCategory === 'all' && (
                                                             <div className="flex items-center gap-3 mb-6">
                                                                 <div className="h-0.5 w-8 bg-[#f56b2a]" />
-                                                                <h3 className="text-base font-black text-gray-900 uppercase tracking-[0.15em]">{cat}</h3>
+                                                                <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em] whitespace-nowrap">{cat}</h3>
                                                                 <div className="flex-grow h-px bg-gray-100" />
                                                             </div>
                                                         )}
@@ -2828,7 +2813,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     <div key={cat} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                                         <div className="flex items-center gap-3 mb-6">
                                                             <div className="h-0.5 w-8 bg-[#f56b2a]" />
-                                                            <h3 className="text-base font-black text-gray-900 uppercase tracking-[0.15em]">{cat}</h3>
+                                                            <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em] whitespace-nowrap">{cat}</h3>
                                                             <div className="flex-grow h-px bg-gray-100" />
                                                         </div>
                                                         <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
