@@ -43,6 +43,13 @@ const categoryImages: Record<string, string> = {
     'Divers': 'https://images.unsplash.com/photo-1456324504439-367921d17449?w=300&q=80'
 };
 
+const getOptimizedImageUrl = (url: string, isSlow: boolean) => {
+    if (!url || !url.includes('unsplash.com')) return url;
+    const size = isSlow ? '150' : '400';
+    const quality = isSlow ? '50' : '80';
+    return url.replace(/w=\d+/, `w=${size}`).replace(/q=\d+/, `q=${quality}`);
+};
+
 interface CartItem {
     product: StorefrontProduct;
     quantity: number;
@@ -144,6 +151,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const splat = Array.isArray(splatParam) ? splatParam[0] : splatParam;
     const isProductDetailPath = splat?.startsWith('product/');
     const rawUrlProductId = productMatch?.params.productId || (isProductDetailPath ? splat?.replace('product/', '') : null);
+    
+    // ⚡ Performance: Loading state for Skeletons
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     // 1. Load cache IMMEDIATELY on mount
     React.useEffect(() => {
@@ -165,7 +175,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         
         const savedPromo = loadPromoFromStorage();
         if (savedPromo) setPromoApplied(savedPromo);
+
+        // Turn off skeleton quickly if we have cache, otherwise wait for props
+        if (cachedStores && cachedStores.length > 0) {
+           setIsInitialLoading(false);
+        }
     }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage]);
+
+    // Handle initial loading finish when props arrive
+    useEffect(() => {
+        if (stores && stores.length > 0) {
+            setIsInitialLoading(false);
+        }
+        // Safety timeout
+        const timer = setTimeout(() => setIsInitialLoading(false), 3000);
+        return () => clearTimeout(timer);
+    }, [stores]);
 
     // ⚡ Derive active data from props or cache
     const activeStores = useMemo(() => {
@@ -181,6 +206,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     if (product.isOnline !== false) {
                         products.push({
                             ...product,
+                            image: getOptimizedImageUrl(product.image, isSlow),
+                            images: product.images?.map((img: string) => getOptimizedImageUrl(img, isSlow)),
                             storeId: store.id || '',
                             storeName: store.settings?.name || store.name || 'Boutique',
                             storeSlug: store.slug || undefined
@@ -190,7 +217,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             }
         });
         return products;
-    }, [activeStores]);
+    }, [activeStores, isSlow]);
 
     // 2. Update Data Cache when fresh props arrive (Data Cache)
     React.useEffect(() => {
@@ -2677,6 +2704,33 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     )}
                                 </h2>
                             </div>
+
+                             {/* Skeleton Grid when loading and no data */}
+                             {isInitialLoading && pagedProducts.length === 0 && (
+                                 <div className="space-y-12">
+                                     {[1, 2].map(row => (
+                                         <div key={row} className="animate-pulse">
+                                             <div className="flex items-center gap-3 mb-6">
+                                                 <div className="h-0.5 w-8 bg-gray-200" />
+                                                 <div className="h-4 w-32 bg-gray-200 rounded" />
+                                                 <div className="flex-grow h-px bg-gray-100" />
+                                             </div>
+                                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                                                 {[1, 2, 3, 4, 5].map(i => (
+                                                     <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-64 flex flex-col">
+                                                         <div className="aspect-square bg-gray-50 animate-pulse" />
+                                                         <div className="p-3 space-y-2">
+                                                             <div className="h-3 w-3/4 bg-gray-100 rounded" />
+                                                             <div className="h-4 w-1/2 bg-gray-200 rounded" />
+                                                             <div className="h-8 w-full bg-gray-50 rounded-xl mt-2" />
+                                                         </div>
+                                                     </div>
+                                                 ))}
+                                             </div>
+                                         </div>
+                                     ))}
+                                 </div>
+                             )}
 
                             {/* Grid (Grouped by Category if no search) */}
                             {pagedProducts.length > 0 ? (

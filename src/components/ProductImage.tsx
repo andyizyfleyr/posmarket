@@ -23,22 +23,26 @@ const ProductImage: React.FC<ProductImageProps> = ({
     children
 }) => {
     const [error, setError] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     const isImageValid = src && src.trim() !== "" && !error;
 
-    const shouldApplyAspectSquare = !containerClassName.includes('aspect') && !containerClassName.includes('h-full');
-
     return (
-        <div className={`relative overflow-hidden bg-white flex items-center justify-center w-full h-full ${shouldApplyAspectSquare ? 'aspect-square' : ''} ${containerClassName}`}>
+        <div className={`relative overflow-hidden bg-gray-50 flex items-center justify-center w-full h-full ${shouldApplyAspectSquare ? 'aspect-square' : ''} ${containerClassName}`}>
             {isImageValid ? (
                 <>
+                    {/* Skeleton Pulse during loading */}
+                    {!isLoaded && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] animate-[shimmer_2s_infinite_linear]" />
+                    )}
                     <img
                         src={src}
                         alt={alt}
+                        onLoad={() => setIsLoaded(true)}
                         onError={() => setError(true)}
-                        className={`relative z-10 w-full h-full object-contain transition-transform duration-700 ease-in-out ${
-                            showZoomEffect ? 'group-hover:scale-110' : ''
-                        } ${className}`}
+                        className={`relative z-10 w-full h-full object-contain transition-all duration-700 ease-in-out ${
+                            isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                        } ${showZoomEffect && isLoaded ? 'group-hover:scale-110' : ''} ${className}`}
                         loading="lazy"
                         decoding="async"
                     />
