@@ -130,6 +130,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [cart, setCart] = useState<CartItem[]>([]);
     const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '', city: '', zip: '' });
     const [promoApplied, setPromoApplied] = useState<Coupon | null>(null);
+    const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
     const [isMounted, setIsMounted] = useState(false);
     const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
 
@@ -688,8 +689,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
 
     const categories = useMemo(() => {
-        return ['all', ...MAIN_CATEGORIES];
-    }, []);
+        const all = ['all', ...MAIN_CATEGORIES];
+        if (selectedVertical === 'all') return all;
+        
+        // Define which categories belong to which vertical
+        const verticalMap: Record<string, string[]> = {
+            food: ['Alimentation & Boissons', 'Restauration & Livraison Rapide'],
+            stay: ['Séjours, Expériences & Immobilier', 'Maison & Bureau'],
+            shopping: MAIN_CATEGORIES.filter(cat => 
+                cat !== 'Alimentation & Boissons' && 
+                cat !== 'Restauration & Livraison Rapide' && 
+                cat !== 'Séjours, Expériences & Immobilier'
+            )
+        };
+        
+        return ['all', ...(verticalMap[selectedVertical] || [])];
+    }, [selectedVertical]);
 
     const filteredProducts = useMemo(() => {
         return allProducts
@@ -702,7 +717,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     storeName.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesCategory = selectedCategory === 'all' || category === selectedCategory || mCategory === selectedCategory;
-                return isFromStore && matchesSearch && matchesCategory;
+                
+                // Vertical Filtering
+                let matchesVertical = true;
+                if (selectedVertical !== 'all') {
+                    const v = p.businessType || (p.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : p.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+                    matchesVertical = v === selectedVertical;
+                }
+
+                return isFromStore && matchesSearch && matchesCategory && matchesVertical;
             })
             .sort((a, b) => {
                 if (searchTerm) return 0;
@@ -728,7 +751,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 // Most views
                 return (b.views || 0) - (a.views || 0);
             });
-    }, [allProducts, searchTerm, selectedCategory, selectedStoreId]);
+    }, [allProducts, searchTerm, selectedCategory, selectedStoreId, selectedVertical]);
 
     const loadingRef = useRef(false);
     const currentPageRef = useRef(0);
@@ -784,13 +807,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     const partnerStores = useMemo(() => {
         return stores
+            .filter(s => {
+                if (selectedVertical === 'all') return true;
+                // A store matches a vertical if it has products of that vertical 
+                // or if its main category matches. Usually, stores are specialized.
+                const storeProducts = s.products || [];
+                if (storeProducts.length === 0) return true; // Keep empty stores for now
+                
+                const firstProd = storeProducts[0];
+                const v = firstProd.businessType || (firstProd.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : firstProd.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+                return v === selectedVertical;
+            })
             .sort((a, b) => {
                 const visitsA = (a.views || 0) + (a.products?.filter(p => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0);
                 const visitsB = (b.views || 0) + (b.products?.filter(p => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0);
                 if (visitsB !== visitsA) return visitsB - visitsA;
                 return (b.rating || 0) - (a.rating || 0);
             });
-    }, [stores]);
+    }, [stores, selectedVertical]);
 
     const addToCart = (product: StorefrontProduct, variantId?: string) => {
         setCart(prev => {
@@ -2534,6 +2568,62 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 </div>
                             )}
 
+
+                            {/* Super App Verticals - Big Tiles Style */}
+                            {!searchTerm && selectedCategory === 'all' && (
+                                <div className="mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                                    <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Nos services</h2>
+                                    <div className="grid grid-cols-3 gap-3 md:gap-6">
+                                        {[
+                                            { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange', desc: 'Amazon' },
+                                            { id: 'food', label: 'Resto', icon: Zap, color: 'yellow', desc: 'UberEats' },
+                                            { id: 'stay', label: 'Séjours', icon: Store, color: 'blue', desc: 'Airbnb' }
+                                        ].map(v => (
+                                            <button
+                                                key={v.id}
+                                                onClick={() => {
+                                                    setSelectedVertical(v.id as any);
+                                                    setSelectedCategory('all');
+                                                }}
+                                                className={`relative flex flex-col items-center justify-center p-4 md:p-8 rounded-[32px] md:rounded-[40px] transition-all border-4 group active:scale-95 overflow-hidden ${
+                                                    selectedVertical === v.id 
+                                                        ? `border-${v.color}-500 bg-${v.color}-500 text-white shadow-xl shadow-${v.color}-200` 
+                                                        : 'bg-white border-gray-100 text-gray-900 hover:border-gray-200 hover:shadow-lg'
+                                                }`}
+                                            >
+                                                {/* Background Decorative Icon */}
+                                                <v.icon className={`absolute -right-4 -bottom-4 w-24 h-24 opacity-10 transition-transform duration-700 group-hover:scale-125 group-hover:rotate-12 ${selectedVertical === v.id ? 'text-white' : `text-${v.color}-500`}`} />
+                                                
+                                                <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center mb-3 md:mb-4 transition-all ${
+                                                    selectedVertical === v.id ? 'bg-white/20' : `bg-${v.color}-50`
+                                                }`}>
+                                                    <v.icon size={28} className={`md:hidden ${selectedVertical === v.id ? 'text-white' : `text-${v.color}-500`}`} strokeWidth={2.5} />
+                                                    <v.icon size={44} className={`hidden md:block ${selectedVertical === v.id ? 'text-white' : `text-${v.color}-500`}`} strokeWidth={2.5} />
+                                                </div>
+                                                <span className="text-[10px] md:text-lg font-black uppercase tracking-widest md:tracking-normal">{v.label}</span>
+                                                <span className={`text-[8px] md:text-sm font-bold opacity-60 ${selectedVertical === v.id ? 'text-white' : 'text-gray-400'}`}>{v.desc}</span>
+                                                
+                                                {selectedVertical === v.id && (
+                                                    <div className="absolute top-2 right-2 md:top-4 md:right-4">
+                                                        <div className="w-2 h-2 md:w-3 md:h-3 bg-white rounded-full animate-ping" />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    {selectedVertical !== 'all' && (
+                                        <div className="flex justify-center mt-4">
+                                            <button 
+                                                onClick={() => setSelectedVertical('all')}
+                                                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-[#f56b2a] transition-colors"
+                                            >
+                                                Voir tous les services
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Partners */}
                             {!searchTerm && selectedCategory === 'all' && partnerStores.length > 0 && (

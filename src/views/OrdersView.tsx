@@ -16,7 +16,9 @@ import {
     AlertCircle,
     Loader2,
     Trash2,
-    Calendar
+    Calendar,
+    Zap,
+    Store
 } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
@@ -50,6 +52,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [loadingOrderItems, setLoadingOrderItems] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>('ALL');
     const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+    const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
 
@@ -108,7 +111,22 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         return () => setSelectedOrderItems([]);
     }, [selectedOrder?.id]);
 
-    const filteredOrders = localOrders;
+    const filteredOrders = useMemo(() => {
+        return localOrders.filter(order => {
+            if (selectedVertical === 'all') return true;
+            
+            // Infer vertical from items if not present on order
+            const items = order.items || [];
+            if (items.length === 0) return true;
+            
+            // Check the first item's product businessType
+            const vertical = items[0]?.product?.businessType || 
+                            (items[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
+                             items[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+                             
+            return vertical === selectedVertical;
+        });
+    }, [localOrders, selectedVertical]);
 
     const getStatusColor = (status?: string) => {
         switch (status) {
@@ -183,7 +201,22 @@ const OrdersView: React.FC<OrdersViewProps> = ({
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-8 gap-3 md:gap-4">
                 <div className="whitespace-nowrap overflow-hidden">
                     <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight truncate">Commandes</h1>
-                    <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">Gérez vos ventes en temps réel.</p>
+                    <div className="flex items-center gap-2 mt-1 md:mt-2">
+                         {[
+                            { id: 'all', label: 'Toutes', icon: Package, color: 'gray' },
+                            { id: 'shopping', label: 'Amazon', icon: ShoppingBag, color: 'orange' },
+                            { id: 'food', label: 'UberEats', icon: Zap, color: 'yellow' },
+                            { id: 'stay', label: 'Airbnb', icon: Store, color: 'blue' }
+                        ].map(v => (
+                            <button
+                                key={v.id}
+                                onClick={() => setSelectedVertical(v.id as any)}
+                                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black transition-all border-2 ${selectedVertical === v.id ? `bg-${v.color}-500 border-${v.color}-500 text-white` : 'bg-white border-gray-100 text-gray-400'}`}
+                            >
+                                <v.icon size={12} /> {v.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative flex-grow md:flex-none">

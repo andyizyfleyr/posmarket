@@ -56,8 +56,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [viewType, setViewType] = useState<'grid' | 'table'>('table');
   const [productType, setProductType] = useState<'all' | 'pos' | 'marketplace'>('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -90,18 +90,38 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     wholesalePrice: undefined,
     wholesaleMinQty: undefined,
     deliveryTime: '',
+    preparationTime: '',
+    businessType: 'shopping',
+    amenities: [],
+    maxGuests: undefined,
+    bedrooms: undefined,
+    location: '',
     options: [],
     variants: []
   });
 
   const filteredProducts = useMemo(() => {
-    // Client-side filtering for visibility but search is handled server-side now
     return localProducts.filter(p => {
-      if (productType === 'pos') return p.isOnline === false;
-      if (productType === 'marketplace') return p.isOnline !== false;
-      return true;
+      // Filter by Channel
+      const channelMatch = productType === 'all' || 
+        (productType === 'pos' && p.isOnline === false) || 
+        (productType === 'marketplace' && p.isOnline !== false);
+        
+      if (!channelMatch) return false;
+
+      // Filter by Vertical
+      if (selectedVertical === 'all') return true;
+      
+      // Auto-matching based on category if businessType is not set
+      if (!p.businessType) {
+        if (p.mainCategory === 'Restauration & Livraison Rapide') return selectedVertical === 'food';
+        if (p.mainCategory === 'Séjours, Expériences & Immobilier') return selectedVertical === 'stay';
+        return selectedVertical === 'shopping';
+      }
+
+      return p.businessType === selectedVertical;
     });
-  }, [localProducts, productType]);
+  }, [localProducts, productType, selectedVertical]);
 
   // Handle Search with debounce or simple effect
   useEffect(() => {
@@ -164,6 +184,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         wholesalePrice: product.wholesalePrice,
         wholesaleMinQty: product.wholesaleMinQty,
         deliveryTime: product.deliveryTime || '',
+        preparationTime: product.preparationTime || '',
+        businessType: product.businessType || (product.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : product.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping'),
+        amenities: product.amenities || [],
+        maxGuests: product.maxGuests,
+        bedrooms: product.bedrooms,
+        location: product.location || '',
         options: product.options || [],
         variants: product.variants || []
       };
@@ -183,6 +209,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         description: '',
         isOnline: isOnline,
         deliveryTime: '',
+        preparationTime: '',
+        businessType: selectedVertical === 'all' ? 'shopping' : (selectedVertical as any),
+        amenities: [],
+        maxGuests: undefined,
+        bedrooms: undefined,
+        location: '',
         options: [],
         variants: []
       });
@@ -318,26 +350,49 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       <div className="bg-white border border-gray-100 rounded-3xl shadow-sm flex-grow overflow-hidden flex flex-col">
-        {/* Tabs for product type */}
-        <div className="px-3 md:px-4 pt-3 md:pt-4 pb-2 border-b border-gray-100">
-          <div className="flex items-center gap-1.5 md:gap-2 bg-gray-100 p-0.5 md:p-1 rounded-lg md:rounded-xl">
+        {/* Verticals Tabs - The core request separator */}
+        <div className="px-3 md:px-4 pt-4 md:pt-6 pb-0 flex flex-col gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {[
+              { id: 'all', label: 'Tous les flux', icon: Package, color: 'gray' },
+              { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange' },
+              { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow' },
+              { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue' }
+            ].map(v => (
+              <button
+                key={v.id}
+                onClick={() => setSelectedVertical(v.id as any)}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-black transition-all whitespace-nowrap border-2
+                  ${selectedVertical === v.id 
+                    ? `bg-white border-${v.color}-500 text-${v.color}-600 shadow-lg shadow-${v.color}-100` 
+                    : 'bg-white border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'}
+                `}
+              >
+                <v.icon size={16} className={selectedVertical === v.id ? `text-${v.color}-500` : ''} />
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 md:gap-2 bg-gray-100 p-0.5 md:p-1 rounded-lg md:rounded-xl w-fit">
             <button
               onClick={() => setProductType('all')}
-              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap ${productType === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${productType === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Package size={14} className="md:w-4 md:h-4" /> Tous ({localProducts.length})
+              Mode Mixte
             </button>
             <button
               onClick={() => setProductType('pos')}
-              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap ${productType === 'pos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${productType === 'pos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Monitor size={14} className="md:w-4 md:h-4" /> POS ({localProducts.filter((p: any) => !p.isOnline).length})
+              POS Uniquement
             </button>
             <button
               onClick={() => setProductType('marketplace')}
-              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap ${productType === 'marketplace' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${productType === 'marketplace' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <ShoppingBag size={14} className="md:w-4 md:h-4" /> Store ({localProducts.filter((p: any) => p.isOnline !== false).length})
+              En ligne (Store)
             </button>
           </div>
         </div>
@@ -642,6 +697,25 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
               {currentStep === 1 && (
                 <div className="animate-in slide-in-from-right-4 duration-300">
+                  <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Type de Publication</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+                    {[
+                      { id: 'shopping', label: 'Produit (Amazon)', icon: ShoppingBag, color: 'orange' },
+                      { id: 'food', label: 'Plat (UberEats)', icon: Zap, color: 'yellow' },
+                      { id: 'stay', label: 'Séjour (Airbnb)', icon: Store, color: 'blue' }
+                    ].map(v => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, businessType: v.id as any })}
+                        className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `border-${v.color}-500 bg-${v.color}-50/30` : 'border-gray-100'}`}
+                      >
+                        <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? `text-${v.color}-500` : 'text-gray-400'}`} />
+                        <span className="text-[10px] font-black uppercase">{v.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
                   <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Canaux de vente</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <button
@@ -740,6 +814,57 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </select>
                     <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
                   </div>
+
+                  {formData.businessType === 'food' && (
+                    <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 space-y-4">
+                      <h4 className="text-xs font-black text-yellow-700 uppercase">Infos Cuisine</h4>
+                      <div>
+                        <label className="block text-[10px] font-black text-yellow-600 uppercase mb-1">Temps de préparation</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: 15-20 min"
+                          value={formData.preparationTime}
+                          onChange={e => setFormData({...formData, preparationTime: e.target.value})}
+                          className="w-full px-4 py-2 bg-white border border-yellow-200 rounded-xl text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.businessType === 'stay' && (
+                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
+                      <h4 className="text-xs font-black text-blue-700 uppercase">Détails de l'hébergement</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Voyageurs max</label>
+                          <input 
+                            type="number" 
+                            value={formData.maxGuests ?? ''}
+                            onChange={e => setFormData({...formData, maxGuests: parseInt(e.target.value)})}
+                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Chambres</label>
+                          <input 
+                            type="number" 
+                            value={formData.bedrooms ?? ''}
+                            onChange={e => setFormData({...formData, bedrooms: parseInt(e.target.value)})}
+                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Localisation (Ville/Quartier)</label>
+                        <input 
+                          type="text" 
+                          value={formData.location}
+                          onChange={e => setFormData({...formData, location: e.target.value})}
+                          className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

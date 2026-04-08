@@ -8,6 +8,8 @@ export interface Review {
   productId?: string;
 }
 
+export type BusinessVertical = 'shopping' | 'food' | 'stay';
+
 export interface Product {
   id: string;
   sku?: string;
@@ -36,6 +38,13 @@ export interface Product {
   variants?: ProductVariant[];
   isDigital?: boolean;
   digitalUrl?: string; // URL for the downloadable file
+  businessType?: BusinessVertical;
+  // Specific fields for different verticals
+  preparationTime?: string; // for 'food'
+  amenities?: string[]; // for 'stay' (Wifi, Pool, etc.)
+  maxGuests?: number; // for 'stay'
+  bedrooms?: number; // for 'stay'
+  location?: string; // for 'stay'
 }
 
 export interface ProductOption {

@@ -15,7 +15,10 @@ import {
   Eye,
   Flame,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Package,
+  Store
 } from 'lucide-react';
 import { Order, Product, Customer, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency } from '@/utils';
@@ -70,6 +73,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     return getLocalYMD(d);
   });
   const [endDate, setEndDate] = useState<string>(() => getLocalYMD(new Date()));
+  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {
@@ -120,13 +124,38 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
 
     const totalTraffic = (store?.views || 0) + (products || []).reduce((sum, p) => sum + (p.views || 0), 0);
 
+    // Apply Vertical Filter to metrics
+    const finalOrders = orders.filter(o => {
+        if (selectedVertical === 'all') return true;
+        const items = o.items || [];
+        if (items.length === 0) return true;
+        const vertical = items[0]?.product?.businessType || 
+                        (items[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
+                         items[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+        return vertical === selectedVertical;
+    });
+
+    const currentFinalOrders = finalOrders.filter(o => {
+      const d = new Date(o.date);
+      return d >= start && d <= end;
+    });
+
+    const prevFinalOrders = finalOrders.filter(o => {
+      const d = new Date(o.date);
+      return d >= prevStart && d <= prevEnd;
+    });
+
+    const finalRev = currentFinalOrders.reduce((sum, o) => sum + o.total, 0);
+    const prevFinalRev = prevFinalOrders.reduce((sum, o) => sum + o.total, 0);
+    const finalRevTrend = prevFinalRev === 0 ? (finalRev > 0 ? 100 : 0) : Math.round(((finalRev - prevFinalRev) / prevFinalRev) * 100);
+
     return {
-      revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
-      orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
-      basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
+      revenue: { current: finalRev, trend: finalRevTrend >= 0 ? 'up' : 'down', pct: Math.abs(finalRevTrend) },
+      orders: { current: currentFinalOrders.length, trend: 'up', pct: 0 },
+      basket: { current: currentFinalOrders.length > 0 ? finalRev / currentFinalOrders.length : 0, trend: 'up', pct: 0 },
       traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' }
     };
-  }, [orders, products, store, startDate, endDate]);
+  }, [orders, products, store, startDate, endDate, selectedVertical]);
 
   // Custom Date Picker Logic
   const [showPicker, setShowPicker] = useState<'start' | 'end' | null>(null);
@@ -234,10 +263,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
 
   const mostVisited = useMemo(() => {
     return [...products]
-      .filter(p => (p.views || 0) > 0)
+      .filter(p => {
+        const match = (p.views || 0) > 0;
+        if (!match) return false;
+        if (selectedVertical === 'all') return true;
+        const vertical = p.businessType || (p.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : p.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+        return vertical === selectedVertical;
+      })
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 5);
-  }, [products]);
+  }, [products, selectedVertical]);
 
   const topSelling = useMemo(() => {
     // Calculate total sales from the orders list for better accuracy
@@ -257,10 +292,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         // Override salesCount with the one calculated from actual orders
         salesCount: (salesMap[p.id] || 0) + (p.salesCount || 0) 
       }))
-      .filter(p => p.salesCount > 0)
+      .filter(p => {
+        const match = p.salesCount > 0;
+        if (!match) return false;
+        if (selectedVertical === 'all') return true;
+        const vertical = p.businessType || (p.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : p.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+        return vertical === selectedVertical;
+      })
       .sort((a, b) => b.salesCount - a.salesCount)
       .slice(0, 5);
-  }, [products, orders]);
+  }, [products, orders, selectedVertical]);
 
 
 
@@ -275,10 +316,22 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
             <h1 className="text-base md:text-3xl font-black text-gray-900 tracking-tight leading-none truncate">
               Salut, {userName || 'Utilisateur'} 👋
             </h1>
-            <p className="text-gray-400 text-[8px] md:text-sm font-bold mt-0.5 md:mt-2 flex items-center gap-1 whitespace-nowrap">
-              <Calendar size={10} className="text-[#f56b2a] md:w-3.5 md:h-3.5" />
-              {mounted ? new Date().toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '...'}
-            </p>
+            <div className="flex items-center gap-2 mt-2 md:mt-4 overflow-x-auto no-scrollbar pb-1">
+                {[
+                    { id: 'all', label: 'Global', icon: Package, color: 'gray' },
+                    { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange' },
+                    { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' },
+                    { id: 'stay', label: 'Séjours', icon: Store, color: 'blue' }
+                ].map(v => (
+                    <button
+                        key={v.id}
+                        onClick={() => setSelectedVertical(v.id as any)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? `bg-${v.color}-500 border-${v.color}-500 text-white shadow-lg` : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                    >
+                        <v.icon size={14} /> {v.label}
+                    </button>
+                ))}
+            </div>
           </div>
         </div>
         
