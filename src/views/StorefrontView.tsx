@@ -71,6 +71,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const navigate = useNavigate();
     const location = useLocation();
     const params = useParams();
+    const { isOnline, isSlow } = useNetworkStatus();
     const storeViewTracked = React.useRef<string | null>(null);
     const productViewTracked = React.useRef<string | null>(null);
 
