@@ -118,16 +118,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       if (!channelMatch) return false;
 
       // Filter by Vertical
+      const isStay = p.businessType === 'stay' || p.mainCategory === 'Séjours, Expériences & Immobilier';
+      const isFood = p.businessType === 'food' || p.mainCategory === 'Restauration & Livraison Rapide';
+      const isShopping = p.businessType === 'shopping' || (!isStay && !isFood);
+
       if (selectedVertical === 'all') return true;
-
-      // Auto-matching based on category if businessType is not set
-      if (!p.businessType) {
-        if (p.mainCategory === 'Restauration & Livraison Rapide') return selectedVertical === 'food';
-        if (p.mainCategory === 'Séjours, Expériences & Immobilier') return selectedVertical === 'stay';
-        return selectedVertical === 'shopping';
-      }
-
-      return p.businessType === selectedVertical;
+      if (selectedVertical === 'stay') return isStay;
+      if (selectedVertical === 'food') return isFood;
+      if (selectedVertical === 'shopping') return isShopping;
+      return true;
     });
   }, [localProducts, productType, selectedVertical]);
 
@@ -573,16 +572,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-2 text-right">
-                        {product.businessType === 'stay' && (
+                      {(() => {
+                        const isStay = product.businessType === 'stay' || product.mainCategory === 'Séjours, Expériences & Immobilier';
+                        return isStay && (
                           <button
                             onClick={() => setManagingAvailability(product)}
-                            className="p-2.5 text-blue-600 bg-blue-50 rounded-xl transition-all active:scale-90 hover:bg-blue-100"
+                            className="p-2.5 text-blue-600 bg-blue-50 rounded-xl transition-all active:scale-90 hover:bg-blue-100 mr-2"
                             title="Gérer la disponibilité"
                           >
                             <Calendar size={16} />
                           </button>
-                        )}
+                        );
+                      })()}
                         {permissions.canManageInventory && (
                           <>
                             <button
@@ -1712,9 +1713,21 @@ const AvailabilityModal: React.FC<{
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
       <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[95vh] border border-gray-100">
         <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white sticky top-0">
-          <div>
-            <h3 className="text-xl font-black text-gray-900 tracking-tight">{product.name}</h3>
-            <p className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest">Calendrier des Disponibilités</p>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+               <Calendar size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight leading-none">{product.name}</h3>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest bg-orange-50 px-2 py-0.5 rounded-full">Planning</span>
+                {product.location && (
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                    <MapPin size={10} /> {product.location}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors bg-gray-50 rounded-xl">
             <X size={24} />
@@ -1727,6 +1740,15 @@ const AvailabilityModal: React.FC<{
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-sm font-black text-gray-900 border-l-4 border-[#f56b2a] pl-3 capitalize">{monthName}</h4>
               <div className="flex gap-2">
+                <button
+                  onClick={fetchSlots}
+                  disabled={loading}
+                  className="p-2 bg-white border border-gray-100 rounded-xl hover:text-blue-500 transition-all active:scale-90"
+                  title="Rafraîchir"
+                >
+                  <Loader2 size={18} className={loading ? 'animate-spin' : ''} />
+                </button>
+                <div className="w-px h-8 bg-gray-100 mx-1" />
                 <button
                   onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
                   className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
