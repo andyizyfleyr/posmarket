@@ -520,9 +520,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
-                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
-                        {product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
-                        {product.isOnline !== false ? 'Marketplace' : 'POS'}
+                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${
+                        product.businessType === 'stay' ? 'bg-blue-100 text-blue-700' : 
+                        product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        {product.businessType === 'stay' ? <Store size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
+                        {product.businessType === 'stay' ? 'Séjour (Pro)' : product.isOnline !== false ? 'Marketplace' : 'POS'}
                       </span>
                     </div>
 
@@ -848,7 +851,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                   {formData.businessType === 'stay' && (
                     <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
-                      <h4 className="text-xs font-black text-blue-700 uppercase">Détails de l'hébergement</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black text-blue-700 uppercase">Détails de l'hébergement</h4>
+                        <span className="px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded-full uppercase">Mode Pro</span>
+                      </div>
+                      
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Voyageurs max</label>
@@ -856,7 +863,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             type="number" 
                             value={formData.maxGuests ?? ''}
                             onChange={e => setFormData({...formData, maxGuests: parseInt(e.target.value)})}
-                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
+                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
                           />
                         </div>
                         <div>
@@ -865,19 +872,58 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             type="number" 
                             value={formData.bedrooms ?? ''}
                             onChange={e => setFormData({...formData, bedrooms: parseInt(e.target.value)})}
-                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
+                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
                           />
                         </div>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Frais ménage (XOF)</label>
+                          <input 
+                            type="number" 
+                            value={(formData as any).cleaningFee ?? ''}
+                            onChange={e => setFormData({...formData, cleaningFee: parseInt(e.target.value)} as any)}
+                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold text-orange-600"
+                            placeholder="Optionnel"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Caution (XOF)</label>
+                          <input 
+                            type="number" 
+                            value={(formData as any).securityDeposit ?? ''}
+                            onChange={e => setFormData({...formData, securityDeposit: parseInt(e.target.value)} as any)}
+                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold text-red-600"
+                            placeholder="Optionnel"
+                          />
+                        </div>
+                      </div>
+
                       <div>
                         <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Localisation (Ville/Quartier)</label>
                         <input 
                           type="text" 
                           value={formData.location}
                           onChange={e => setFormData({...formData, location: e.target.value})}
-                          className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
+                          className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
+                          placeholder="Ex: Abidjan, Cocody"
                         />
                       </div>
+
+                      <div>
+                        <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Politique d'annulation</label>
+                        <select 
+                          value={(formData as any).cancellationPolicy || ''}
+                          onChange={e => setFormData({...formData, cancellationPolicy: e.target.value} as any)}
+                          className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
+                        >
+                          <option value="flexible">Flexible (1j avant)</option>
+                          <option value="moderate">Modérée (5j avant)</option>
+                          <option value="strict">Stricte (Ferme)</option>
+                        </select>
+                      </div>
+
                       <div>
                         <label className="block text-[10px] font-black text-blue-600 uppercase mb-2">Équipements (Amenities)</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -889,7 +935,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             { id: 'kitchen', label: 'Cuisine', icon: '🍳' },
                             { id: 'security', label: 'Gardiennage', icon: '🛡️' },
                             { id: 'canalplus', label: 'Canal+', icon: '📡' },
-                            { id: 'cleaning', label: 'Ménage', icon: '🧹' }
+                            { id: 'cleaning', label: 'Ménage inclus', icon: '🧹' }
                           ].map(amenity => (
                             <button
                               key={amenity.id}
@@ -1516,6 +1562,7 @@ const AvailabilityModal: React.FC<{
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     fetchSlots();
@@ -1545,7 +1592,6 @@ const AvailabilityModal: React.FC<{
         datesToUpdate.push(new Date(d).toISOString().split('T')[0]);
       }
 
-      // Perform updates
       for (const dateStr of datesToUpdate) {
         const { error } = await supabase.from('availability_slots').upsert({
           product_id: product.id,
@@ -1558,7 +1604,8 @@ const AvailabilityModal: React.FC<{
 
       onUpdate();
       fetchSlots();
-      alert('Disponibilité mise à jour avec succès');
+      setStartDate('');
+      setEndDate('');
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     } finally {
@@ -1566,89 +1613,148 @@ const AvailabilityModal: React.FC<{
     }
   };
 
+  const toggleDate = async (dateStr: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('availability_slots').upsert({
+      product_id: product.id,
+      date: dateStr,
+      is_available: !currentStatus,
+    }, { onConflict: 'product_id,date' });
+    if (!error) {
+      fetchSlots();
+      onUpdate();
+    }
+  };
+
+  // Calendar Logic
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  
+  const monthData = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const totalDays = daysInMonth(year, month);
+    const startDay = (firstDayOfMonth(year, month) + 6) % 7; // Adjust for Monday start
+    
+    const days = [];
+    for (let i = 0; i < startDay; i++) days.push(null);
+    for (let i = 1; i <= totalDays; i++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const slot = slots.find(s => s.date === dateStr);
+        days.push({
+            day: i,
+            date: dateStr,
+            isAvailable: slot ? slot.is_available : true,
+            isBlocked: slot ? !slot.is_available : false,
+            hasBooking: slot?.booking_id ? true : false
+        });
+    }
+    return days;
+  }, [currentMonth, slots]);
+
+  const monthName = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[95vh] border border-gray-100">
+        <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white sticky top-0">
           <div>
-            <h3 className="text-xl font-black text-gray-900">Disponibilité : {product.name}</h3>
-            <p className="text-xs text-gray-400 font-bold">Gérez manuellement les blocages du calendrier</p>
+            <h3 className="text-xl font-black text-gray-900 tracking-tight">{product.name}</h3>
+            <p className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest">Calendrier des Disponibilités</p>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors bg-gray-50 rounded-xl">
             <X size={24} />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Date de début</label>
-              <input 
-                type="date" 
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold"
-              />
+        <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
+          {/* Pro Calendar Grid */}
+          <div className="bg-gray-50/50 rounded-3xl p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+                <h4 className="text-sm font-black text-gray-900 border-l-4 border-[#f56b2a] pl-3 capitalize">{monthName}</h4>
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+                        className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <button 
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+                        className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Date de fin</label>
-              <input 
-                type="date" 
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold"
-              />
+
+            <div className="grid grid-cols-7 gap-1.5">
+                {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
+                    <div key={d} className="text-[9px] font-black text-gray-400 uppercase text-center pb-2 tracking-tighter">{d}</div>
+                ))}
+                {monthData.map((d, i) => (
+                    <div key={i} className="aspect-square relative">
+                        {d ? (
+                            <button
+                                onClick={() => toggleDate(d.date, d.isAvailable)}
+                                className={`w-full h-full rounded-xl border flex flex-col items-center justify-center transition-all relative overflow-hidden group ${
+                                    d.hasBooking ? 'bg-orange-50 border-orange-200 cursor-default' : 
+                                    !d.isAvailable ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:border-[#f56b2a]/30'
+                                }`}
+                            >
+                                <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
+                                    {d.day}
+                                </span>
+                                {!d.isAvailable && !d.hasBooking && <div className="w-1 h-1 bg-red-400 rounded-full mt-0.5" />}
+                                {d.hasBooking && <span className="text-[6px] font-black uppercase text-orange-500 mt-0.5 leading-none">Occupe</span>}
+                            </button>
+                        ) : <div className="w-full h-full" />}
+                    </div>
+                ))}
+            </div>
+            
+            <div className="flex items-center gap-4 mt-6 pt-4 border-t border-gray-100/50 justify-center">
+                <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
+                    <div className="w-2.5 h-2.5 bg-white border border-gray-100 rounded-full" /> Disponible
+                </div>
+                <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
+                    <div className="w-2.5 h-2.5 bg-red-50 border border-red-100 rounded-full" /> Bloqué Manuel
+                </div>
+                <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
+                    <div className="w-2.5 h-2.5 bg-orange-50 border border-orange-200 rounded-full" /> Réservé (Client)
+                </div>
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <button 
-              onClick={() => setIsAvailable(true)}
-              className={`flex-1 p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${isAvailable ? 'border-green-500 bg-green-50' : 'border-gray-100'}`}
-            >
-              <CheckCircle2 size={24} className={isAvailable ? 'text-green-500' : 'text-gray-300'} />
-              <span className="text-[10px] font-black uppercase">Marquer Disponible</span>
-            </button>
-            <button 
-              onClick={() => setIsAvailable(false)}
-              className={`flex-1 p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${!isAvailable ? 'border-red-500 bg-red-50' : 'border-gray-100'}`}
-            >
-              <X size={24} className={!isAvailable ? 'text-red-500' : 'text-gray-300'} />
-              <span className="text-[10px] font-black uppercase">Marquer Indisponible</span>
-            </button>
-          </div>
+          {/* Quick Actions */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Actions Rapides</h4>
+            <div className="bg-white p-5 rounded-3xl border border-gray-100 space-y-5 shadow-sm">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Blocage Du</label>
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
+                    </div>
+                    <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Au</label>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
+                    </div>
+                </div>
 
-          <Button 
-            fullWidth 
-            onClick={handleSave} 
-            loading={isSubmitting}
-            disabled={!startDate || !endDate}
-          >
-            Mettre à jour le calendrier
-          </Button>
+                <div className="flex gap-4">
+                    <button onClick={() => setIsAvailable(true)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${isAvailable ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
+                        <CheckCircle2 size={18} />
+                        <span className="text-[9px] font-black uppercase">Ouvrir</span>
+                    </button>
+                    <button onClick={() => setIsAvailable(false)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${!isAvailable ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-100 text-gray-400'}`}>
+                        <X size={18} />
+                        <span className="text-[9px] font-black uppercase">Fermer</span>
+                    </button>
+                </div>
 
-          <div className="pt-6 border-t border-gray-100">
-             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Dates actuellement bloquées</h4>
-             {loading ? <Loader2 className="animate-spin mx-auto text-gray-300" /> : (
-               <div className="space-y-2">
-                 {slots.filter(s => !s.is_available).length === 0 ? (
-                   <p className="text-xs text-gray-400 italic text-center py-4">Aucun blocage manuel enregistré.</p>
-                 ) : (
-                   <div className="grid grid-cols-2 gap-2">
-                     {slots.filter(s => !s.is_available).map(s => (
-                       <div key={s.id} className="flex items-center justify-between p-2 bg-red-50 text-red-700 rounded-lg border border-red-100">
-                         <span className="text-[10px] font-bold">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
-                         <X size={10} className="cursor-pointer hover:scale-125" onClick={async () => {
-                           await supabase.from('availability_slots').delete().eq('id', s.id);
-                           fetchSlots();
-                           onUpdate();
-                         }} />
-                       </div>
-                     ))}
-                   </div>
-                 )}
-               </div>
-             )}
+                <Button fullWidth onClick={handleSave} loading={isSubmitting} disabled={!startDate || !endDate}>
+                    Appliquer le changement
+                </Button>
+            </div>
           </div>
         </div>
       </div>

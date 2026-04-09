@@ -165,7 +165,10 @@ export async function getOrdersAction(storeId: string, offset: number = 0, limit
         paymentMethod: o.payment_method,
         items: (o.order_items || []).map((oi: any) => ({
             ...oi,
-            product: oi.product
+            product: oi.product,
+            checkIn: oi.check_in,
+            checkOut: oi.check_out,
+            guests: oi.guests
         }))
       })), 
       hasMore: (count || 0) > (offset + (data?.length || 0)),

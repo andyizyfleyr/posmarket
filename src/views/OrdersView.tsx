@@ -351,6 +351,28 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                     <span className="flex items-center gap-1"><Calendar size={10} className="md:w-3 md:h-3 text-[#f56b2a]" /> {new Date(order.date).toLocaleDateString('fr-FR')}</span>
                                                     <span className="flex items-center gap-1"><Clock size={10} className="md:w-3 md:h-3 text-gray-400" /> {new Date(order.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
+
+                                                {/* Stay Info Summary in List */}
+                                                {order.items?.some((i: any) => i.checkIn) && (
+                                                    <div className="mt-1 flex items-center gap-2">
+                                                        <div className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1 border border-blue-100/50">
+                                                            <Calendar size={8} />
+                                                            {(() => {
+                                                                const stayItem = order.items.find((i: any) => i.checkIn);
+                                                                const cin = stayItem?.checkIn;
+                                                                const cout = stayItem?.checkOut;
+                                                                if (!cin) return 'Dates non spécifiées';
+                                                                return `Du ${new Date(cin).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})} au ${new Date(cout || cin).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})}`;
+                                                            })()}
+                                                        </div>
+                                                        {order.items.find((i: any) => i.guests)?.guests && (
+                                                            <div className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1 border border-blue-100/50">
+                                                                 <User size={8} />
+                                                                 {order.items.find((i: any) => i.guests)?.guests} pers.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
  
                                             <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
