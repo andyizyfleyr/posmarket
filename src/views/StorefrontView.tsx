@@ -248,6 +248,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [guestsNum, setGuestsNum] = useState<number>(1);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   // 0. URL Params Detection
   const storeMatch = useMatch("/store/:storeParam");
@@ -2224,88 +2225,110 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     </div>
                   )}
 
-                  {isStay && (
-                    <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                      <div className="bg-blue-50/30 rounded-2xl p-4 border border-blue-50">
-                        <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Clock size={12} /> Planifiez votre séjour
-                        </h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">
-                              Arrivée
-                            </label>
-                            <input
-                              type="date"
-                              value={checkIn}
-                              onChange={(e) => setCheckIn(e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[10px] font-bold outline-none focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">
-                              Départ
-                            </label>
-                            <input
-                              type="date"
-                              value={checkOut}
-                              onChange={(e) => setCheckOut(e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[10px] font-bold outline-none focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">
-                            Nombre de voyageurs
-                          </label>
-                          <select
-                            value={guestsNum}
-                            onChange={(e) =>
-                              setGuestsNum(parseInt(e.target.value))
-                            }
-                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[10px] font-bold outline-none"
-                          >
-                            {[1, 2, 3, 4, 5, 6].map((n) => (
-                              <option key={n} value={n}>
-                                {n} {n > 1 ? "personnes" : "personne"}
-                              </option>
-                            ))}
-                          </select>
+                  {/* Booking Modal (Popup) */}
+                  {isStay && showBookingModal && createPortal(
+                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-300">
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBookingModal(false)} />
+                      <div className="relative w-full max-w-md bg-white rounded-t-[32px] md:rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full md:slide-in-from-scale-95 duration-500">
+                        <div className="p-6 pb-2 flex items-center justify-between border-b border-gray-50">
+                          <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                             <Calendar size={16} className="text-blue-600" /> Planifiez votre séjour
+                          </h4>
+                          <button onClick={() => setShowBookingModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <X size={20} />
+                          </button>
                         </div>
 
-                        {/* Booking Feedback & Summary */}
-                        {checkIn && checkOut && (
-                          <div className="mt-4 pt-4 border-t border-blue-100/50 flex flex-col gap-2">
-                            {isCheckingAvailability ? (
-                              <div className="flex items-center gap-2 text-[9px] font-black text-blue-500 uppercase">
-                                <Loader2 size={10} className="animate-spin" /> Vérification...
-                              </div>
-                            ) : isAvailable === false ? (
-                              <div className="flex items-center gap-2 text-[9px] font-black text-red-500 uppercase bg-red-50 p-2 rounded-lg">
-                                <AlertCircle size={10} /> Indisponible aux dates choisies
-                              </div>
-                            ) : isAvailable === true ? (
-                              <div className="flex flex-col gap-1.5 bg-green-50/50 p-3 rounded-xl border border-green-100/50">
-                                <div className="flex items-center gap-2 text-[9px] font-black text-green-600 uppercase">
-                                  <CheckCircle2 size={10} /> Disponible !
-                                </div>
-                                <div className="flex justify-between items-center text-[10px] font-black text-gray-700">
-                                  <span className="uppercase tracking-tighter opacity-60">Estimation</span>
-                                  <span>
-                                    {(() => {
-                                      const start = new Date(checkIn);
-                                      const end = new Date(checkOut);
-                                      const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-                                      return `${nights} nuits x ${formatCurrency(selectedProductDetails.price)} = ${formatCurrency(nights * selectedProductDetails.price)}`;
-                                    })()}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : null}
+                        <div className="p-6 space-y-6">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Arrivée</label>
+                              <input 
+                                type="date" 
+                                value={checkIn}
+                                onChange={(e) => setCheckIn(e.target.value)}
+                                className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Départ</label>
+                              <input 
+                                type="date" 
+                                value={checkOut}
+                                onChange={(e) => setCheckOut(e.target.value)}
+                                className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
+                              />
+                            </div>
                           </div>
-                        )}
+
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Nombre de voyageurs</label>
+                            <select
+                              value={guestsNum}
+                              onChange={(e) => setGuestsNum(parseInt(e.target.value))}
+                              className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black appearance-none focus:border-blue-500 focus:bg-white transition-all outline-none"
+                            >
+                              {[1, 2, 3, 4, 5, 6].map((n) => (
+                                <option key={n} value={n}>{n} {n > 1 ? "voyageurs" : "voyageur"}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Dynamic Feedback in Modal */}
+                          {checkIn && checkOut && (
+                            <div className="space-y-3">
+                               {isCheckingAvailability ? (
+                                 <div className="flex items-center gap-2 text-[10px] font-black text-blue-500 uppercase justify-center py-2 bg-blue-50/50 rounded-xl animate-pulse">
+                                   <Loader2 size={12} className="animate-spin" /> Vérification...
+                                 </div>
+                               ) : isAvailable === false ? (
+                                 <div className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase bg-red-50 p-3 rounded-xl border border-red-100">
+                                   <AlertCircle size={14} /> Indisponible aux dates choisies
+                                 </div>
+                               ) : isAvailable === true ? (
+                                 <div className="flex flex-col gap-2 bg-green-50/50 p-4 rounded-2xl border border-green-100/50">
+                                   <div className="flex items-center gap-2 text-[10px] font-black text-green-600 uppercase">
+                                     <CheckCircle2 size={12} /> Logement disponible !
+                                   </div>
+                                   <div className="flex justify-between items-center text-sm font-black text-gray-900 pt-2 border-t border-green-100">
+                                      {(() => {
+                                        const start = new Date(checkIn);
+                                        const end = new Date(checkOut);
+                                        const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                                        return (
+                                          <>
+                                            <span className="text-[10px] uppercase text-gray-400 tracking-tighter">{nights} nuits</span>
+                                            <span>{formatCurrency(nights * selectedProductDetails.price)}</span>
+                                          </>
+                                        );
+                                      })()}
+                                   </div>
+                                 </div>
+                               ) : null}
+                            </div>
+                          )}
+
+                          <Button
+                            onClick={() => {
+                              if (!checkIn || !checkOut || isAvailable === false) {
+                                localNotify("Veuillez sélectionner des dates valides", "warning");
+                                return;
+                              }
+                              addToCart(selectedProductDetails, undefined, { checkIn, checkOut, guests: guestsNum });
+                              setShowBookingModal(false);
+                            }}
+                            fullWidth
+                            size="xl"
+                            variant="secondary"
+                            disabled={!checkIn || !checkOut || isAvailable === false || isCheckingAvailability}
+                            className="h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-100 active:scale-95"
+                          >
+                            Confirmer la réservation
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    </div>,
+                    document.body
                   )}
 
                   {isProduct && selectedProductDetails.wholesalePrice && (
@@ -2496,104 +2519,77 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           ? "Livraison 🚀"
                           : isStay
                             ? "Check-in"
-                            : "Livraison"}
-                      </span>
-                    </div>
-                  </div>
+                     <Button
+                      onClick={() => {
+                        if (isStay) {
+                          setShowBookingModal(true);
+                          return;
+                        }
 
-                  <Button
-                    onClick={() => {
-                      if (
-                        isStay &&
-                        (isAvailable === false || !checkIn || !checkOut)
-                      ) {
-                        localNotify(
-                          "Veuillez sélectionner des dates disponibles",
-                          "warning",
+                        const options = selectedProductDetails.options || [];
+                        const allSelected = options.every(
+                          (o) => !!selectedOptions[o.id],
                         );
-                        return;
-                      }
 
-                      const options = selectedProductDetails.options || [];
-                      const allSelected = options.every(
-                        (o) => !!selectedOptions[o.id],
-                      );
+                        if (options.length > 0 && !allSelected) {
+                          localNotify(
+                            "Veuillez sélectionner toutes les options",
+                            "warning",
+                          );
+                          return;
+                        }
 
-                      if (options.length > 0 && !allSelected) {
-                        localNotify(
-                          "Veuillez sélectionner toutes les options",
-                          "warning",
+                        // Find matching variant
+                        let variantId = undefined;
+                        if (
+                          options.length > 0 &&
+                          selectedProductDetails.variants
+                        ) {
+                          const variant = selectedProductDetails.variants.find(
+                            (v) =>
+                              JSON.stringify(v.optionValues) ===
+                              JSON.stringify(selectedOptions),
+                          );
+                          variantId = variant?.id;
+                        }
+
+                        addToCart(
+                          selectedProductDetails,
+                          variantId
                         );
-                        return;
+                      }}
+                      variant={
+                        isFood ? "primary" : isStay ? "secondary" : "primary"
                       }
-
-                      // Find matching variant
-                      let variantId = undefined;
-                      if (
-                        options.length > 0 &&
-                        selectedProductDetails.variants
-                      ) {
-                        const variant = selectedProductDetails.variants.find(
-                          (v) =>
-                            JSON.stringify(v.optionValues) ===
-                            JSON.stringify(selectedOptions),
-                        );
-                        variantId = variant?.id;
+                      fullWidth
+                      size="xl"
+                      className={
+                        isFood
+                          ? "bg-green-600 hover:bg-green-700"
+                          : isStay
+                            ? "bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100"
+                            : ""
                       }
-
-                      addToCart(
-                        selectedProductDetails,
-                        variantId,
-                        isStay
-                          ? { checkIn, checkOut, guests: guestsNum }
-                          : undefined,
-                      );
-                    }}
-                    variant={
-                      isFood ? "primary" : isStay ? "secondary" : "primary"
-                    }
-                    fullWidth
-                    size="xl"
-                    disabled={
-                      isStay &&
-                      (isAvailable === false ||
-                        isCheckingAvailability ||
-                        !checkIn ||
-                        !checkOut)
-                    }
-                    className={
-                      isFood
-                        ? "bg-green-600 hover:bg-green-700"
+                      icon={
+                        isCheckingAvailability ? (
+                          <Loader2 className="animate-spin" size={20} />
+                        ) : isFood ? (
+                          <ShoppingBasketIcon size={20} strokeWidth={3} />
+                        ) : isStay ? (
+                          <Calendar size={20} strokeWidth={3} />
+                        ) : (
+                          <ShoppingCart size={20} strokeWidth={3} />
+                        )
+                      }
+                    >
+                      {isCheckingAvailability
+                        ? "Vérification..."
                         : isStay
-                          ? isAvailable === false
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-blue-600 hover:bg-blue-700"
-                          : ""
-                    }
-                    icon={
-                      isCheckingAvailability ? (
-                        <Loader2 className="animate-spin" size={20} />
-                      ) : isFood ? (
-                        <ShoppingBasketIcon size={20} strokeWidth={3} />
-                      ) : isStay ? (
-                        <CheckCircle2 size={20} strokeWidth={3} />
-                      ) : (
-                        <ShoppingCart size={20} strokeWidth={3} />
-                      )
-                    }
-                  >
-                    {isCheckingAvailability
-                      ? "Vérification..."
-                      : isStay
-                        ? isAvailable === false
-                          ? "Dates indisponibles"
-                          : isAvailable === true
-                            ? "Réserver maintenant"
-                            : "Choisir mes dates"
-                        : isFood
-                          ? "Commander ce plat"
-                          : "Ajouter au panier"}
-                  </Button>
+                          ? "Réserver"
+                          : isFood
+                            ? "Commander ce plat"
+                            : "Ajouter au panier"}
+                    </Button>
                 </>
               );
             })()}
