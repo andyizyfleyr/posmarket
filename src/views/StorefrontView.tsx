@@ -2228,9 +2228,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                   {/* Booking Modal (Popup) */}
                   {isStay && showBookingModal && createPortal(
-                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-300">
+                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] md:pb-6 animate-in fade-in duration-300">
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBookingModal(false)} />
-                      <div className="relative w-full max-w-md bg-white rounded-t-[32px] md:rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full md:slide-in-from-scale-95 duration-500">
+                      <div className="relative w-full max-w-md mx-4 md:mx-0 bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full md:slide-in-from-scale-95 duration-500">
                         <div className="p-6 pb-2 flex items-center justify-between border-b border-gray-50">
                           <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                              <Calendar size={16} className="text-blue-600" /> Planifiez votre séjour
