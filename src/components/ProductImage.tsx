@@ -10,6 +10,7 @@ interface ProductImageProps {
     containerClassName?: string;
     showZoomEffect?: boolean;
     objectFit?: 'cover' | 'contain';
+    shouldApplyAspectSquare?: boolean;
     children?: React.ReactNode;
 }
 
@@ -20,6 +21,7 @@ const ProductImage: React.FC<ProductImageProps> = ({
     containerClassName = "",
     showZoomEffect = true,
     objectFit = 'cover',
+    shouldApplyAspectSquare = true,
     children
 }) => {
     const [error, setError] = useState(false);
