@@ -45,6 +45,7 @@ import {
   Clock,
   ShoppingBag,
   Tag,
+  Calendar,
 } from "lucide-react";
 import {
   StoreData,
@@ -2519,7 +2520,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           ? "Livraison 🚀"
                           : isStay
                             ? "Check-in"
-                     <Button
+                            : "Livraison"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
                       onClick={() => {
                         if (isStay) {
                           setShowBookingModal(true);
@@ -2611,7 +2617,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       key={s}
                       size={12}
                       fill={
-                        s <= Math.round(selectedProductDetails.rating || 0)
+                        s <= Math.round(selectedProductDetails?.rating || 0)
                           ? "currentColor"
                           : "none"
                       }
@@ -2619,10 +2625,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   ))}
                 </div>
                 <span className="text-xs font-bold text-gray-600">
-                  {(selectedProductDetails.rating || 0).toFixed(1)}/5
+                  {(selectedProductDetails?.rating || 0).toFixed(1)}/5
                 </span>
                 <span className="text-[10px] text-gray-600 font-medium">
-                  ({selectedProductDetails.reviewCount || 0} avis)
+                  ({selectedProductDetails?.reviewCount || 0} avis)
                 </span>
               </div>
             </div>
