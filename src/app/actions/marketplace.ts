@@ -200,7 +200,9 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
           quantity: item.quantity,
           price: (item.product.wholesalePrice && item.product.wholesaleMinQty && item.quantity >= item.product.wholesaleMinQty) 
             ? item.product.wholesalePrice 
-            : item.product.price
+            : item.product.price,
+          check_in: item.checkIn,
+          check_out: item.checkOut
         });
 
         if (itemErr) throw itemErr;
@@ -397,24 +399,28 @@ export async function notifyCartInterestAction(storeId: string, productName: str
 
 // --- BUYER SPACE ACTIONS ---
 
-export async function fetchBuyerOrdersAction() {
+export async function fetchBuyerOrdersAction(page = 1, limit = 3) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('[DEBUG] fetchBuyerOrdersAction - User:', user?.id || 'NULL', 'Email:', user?.email || 'NULL');
+  
   if (!user) return { success: false, error: 'Unauthorized' };
 
-  const { data, error } = await supabase
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error, count } = await supabase
     .from('orders')
     .select(`
       *,
       stores (name, address, phone),
-      order_items!inner (*, products(name, image, price))
-    `)
+      order_items!inner (*, products(name, image, price, business_type))
+    `, { count: 'exact' })
     .eq('buyer_id', user.id)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .range(from, to);
 
   if (error) return { success: false, error: error.message };
-  return { success: true, orders: data };
+  return { success: true, orders: data, totalCount: count };
 }
 
 export async function fetchBuyerAddressesAction() {

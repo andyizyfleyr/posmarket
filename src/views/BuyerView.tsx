@@ -47,6 +47,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isDeletingAddress, setIsDeletingAddress] = useState(false);
+  const [orderPage, setOrderPage] = useState(1);
+  const [hasMoreOrders, setHasMoreOrders] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   useEffect(() => {
     if (userEmail) {
@@ -57,7 +61,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
   useEffect(() => {
     if (userEmail && activeTab) {
-      // On tab change, refresh just that tab
+      // On tab change, refresh just that tab and reset pagination
+      setOrderPage(1);
+      setHasMoreOrders(true);
       loadData(false);
     }
   }, [activeTab]);
@@ -77,21 +83,31 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       const loadPromise = (async () => {
         if (forceAll) {
           const [ordersRes, addressesRes, reviewsRes] = await Promise.all([
-            fetchBuyerOrdersAction(),
+            fetchBuyerOrdersAction(1, 3), // Initial batch of 3
             fetchBuyerAddressesAction(),
             fetchBuyerReviewsAction()
           ]);
 
-          if (ordersRes.success && 'orders' in ordersRes) setOrders(ordersRes.orders || []);
-          else if (ordersRes.error === 'Unauthorized') notify?.("Veuillez vous reconnecter pour voir vos données", "info");
+          if (ordersRes.success && 'orders' in ordersRes) {
+            setOrders(ordersRes.orders || []);
+            setTotalOrders(ordersRes.totalCount || 0);
+            setHasMoreOrders((ordersRes.orders?.length || 0) < (ordersRes.totalCount || 0));
+          } else if (ordersRes.error === 'Unauthorized') {
+             notify?.("Veuillez vous reconnecter pour voir vos données", "info");
+          }
           
           if (addressesRes.success && 'addresses' in addressesRes) setAddresses(addressesRes.addresses || []);
           if (reviewsRes.success && 'reviews' in reviewsRes) setReviews(reviewsRes.reviews || []);
         } else {
           if (activeTab === 'orders') {
-            const res = await fetchBuyerOrdersAction();
-            if (res.success && 'orders' in res) setOrders(res.orders || []);
-            else if (res.error === 'Unauthorized') notify?.("Veuillez vous reconnecter", "info");
+            const res = await fetchBuyerOrdersAction(1, 3);
+            if (res.success && 'orders' in res) {
+              setOrders(res.orders || []);
+              setTotalOrders(res.totalCount || 0);
+              setHasMoreOrders((res.orders?.length || 0) < (res.totalCount || 0));
+            } else if (res.error === 'Unauthorized') {
+               notify?.("Veuillez vous reconnecter", "info");
+            }
           } else if (activeTab === 'addresses') {
             const res = await fetchBuyerAddressesAction();
             if (res.success && 'addresses' in res) setAddresses(res.addresses || []);
@@ -116,6 +132,26 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       // We don't reset isSlowConnection to false immediately so the tip stays visible if it was slow
     }
 
+  };
+
+  const loadMoreOrders = async () => {
+    if (loadingMore || !hasMoreOrders) return;
+    
+    setLoadingMore(true);
+    const nextPage = orderPage + 1;
+    
+    try {
+      const res = await fetchBuyerOrdersAction(nextPage, 3);
+      if (res.success && 'orders' in res) {
+        setOrders(prev => [...prev, ...res.orders]);
+        setOrderPage(nextPage);
+        setHasMoreOrders((orders.length + res.orders.length) < (res.totalCount || 0));
+      }
+    } catch (err) {
+      console.error("Load more error:", err);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const renderSkeleton = () => (
@@ -257,7 +293,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                   <p className="text-xs text-gray-500">{userEmail}</p>
                   <div className="flex md:justify-center items-center gap-3 mt-2">
                     <div className="text-center">
-                       <p className="text-xs font-bold text-[#002f34]">{orders.length}</p>
+                       <p className="text-xs font-bold text-[#002f34]">{totalOrders}</p>
                        <p className="text-[9px] text-gray-400">Commandes</p>
                     </div>
                     <div className="w-px h-5 bg-gray-100" />
@@ -351,30 +387,83 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                       <div className="p-3 space-y-2">
                         {order.order_items?.map((item: any) => {
                           const product = Array.isArray(item.products) ? item.products[0] : item.products;
+                          const isStay = product?.business_type === 'stay';
+                          
+                          // Calculate duration info for stays
+                          let stayInfo = null;
+                          if (isStay && item.check_in && item.check_out) {
+                            const start = new Date(item.check_in);
+                            const end = new Date(item.check_out);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            const totalNights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                            const remainingNights = Math.max(0, Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+                            const isPast = today > end;
+                            const isFuture = today < start;
+                            const isOngoing = today >= start && today <= end;
+                            
+                            stayInfo = { totalNights, remainingNights, isPast, isFuture, isOngoing };
+                          }
+
                           return (
-                            <div key={item.id} className="flex gap-3 items-center justify-between group/item">
-                              <div className="flex gap-3 items-center flex-1 min-w-0">
-                                <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0">
-                                   <img src={product?.image} className="w-full h-full object-cover" />
+                            <div key={item.id} className="group/item border-b border-gray-50 last:border-0 pb-3 last:pb-0">
+                              <div className="flex gap-3 items-center justify-between mb-2">
+                                <div className="flex gap-3 items-center flex-1 min-w-0">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100">
+                                    <img src={product?.image} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
+                                    <p className="text-[10px] text-gray-400">
+                                       {isStay ? `${stayInfo?.totalNights} nuits` : `${item.quantity} x ${formatCurrency(item.price)}`}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                   <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
-                                   <p className="text-[10px] text-gray-400">{item.quantity} x {formatCurrency(item.price)}</p>
-                                </div>
+                                <button 
+                                  onClick={() => {
+                                    setReviewData({ 
+                                      rating: 5, 
+                                      comment: '', 
+                                      product: { ...product, store_id: order.store_id } 
+                                    });
+                                    setShowReviewModal(true);
+                                  }}
+                                  className="shrink-0 px-3 py-1.5 bg-gray-50 hover:bg-[#f56b2a] hover:text-white text-[#f56b2a] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                >
+                                  Laisser un avis
+                                </button>
                               </div>
-                              <button 
-                                onClick={() => {
-                                  setReviewData({ 
-                                    rating: 5, 
-                                    comment: '', 
-                                    product: { ...product, store_id: order.store_id } 
-                                  });
-                                  setShowReviewModal(true);
-                                }}
-                                className="shrink-0 px-3 py-1.5 bg-gray-50 hover:bg-[#f56b2a] hover:text-white text-[#f56b2a] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
-                              >
-                                Laisser un avis
-                              </button>
+                              
+                              {isStay && item.check_in && (
+                                <div className="ml-[52px] bg-gray-50/50 rounded-xl p-2.5 space-y-2">
+                                  <div className="flex items-center justify-between text-[10px] font-bold">
+                                     <div className="flex items-center gap-1.5 text-gray-500">
+                                        <Clock size={12} />
+                                        <span>Du {new Date(item.check_in).toLocaleDateString('fr-FR')} au {new Date(item.check_out).toLocaleDateString('fr-FR')}</span>
+                                     </div>
+                                     {stayInfo?.isOngoing && (
+                                       <span className="text-[#f56b2a] animate-pulse">En cours</span>
+                                     )}
+                                  </div>
+                                  
+                                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                     <div 
+                                       className="h-full bg-[#f56b2a] transition-all duration-1000" 
+                                       style={{ 
+                                         width: stayInfo?.isPast ? '100%' : stayInfo?.isFuture ? '0%' : `${((stayInfo?.totalNights! - stayInfo?.remainingNights!) / stayInfo?.totalNights!) * 100}%` 
+                                       }} 
+                                     />
+                                  </div>
+                                  
+                                  <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
+                                     <span className="text-gray-400">{stayInfo?.isPast ? 'Terminé' : stayInfo?.isFuture ? 'À venir' : 'Séjour en cours'}</span>
+                                     <span className="text-[#f56b2a]">
+                                       {stayInfo?.isPast ? 'Déjà passé' : `${stayInfo?.remainingNights} JOURS RESTANTS`}
+                                     </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -385,6 +474,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                       </div>
                     </div>
                   ))
+                )}
+
+                {hasMoreOrders && orders.length > 0 && (
+                  <div className="pt-4 flex justify-center">
+                    <Button 
+                      onClick={loadMoreOrders} 
+                      loading={loadingMore}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full px-8 text-[10px] font-black uppercase tracking-widest border-gray-200"
+                    >
+                      Voir plus de commandes
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
