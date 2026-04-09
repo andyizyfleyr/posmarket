@@ -84,10 +84,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setToastNotifications(prev => [...prev, { id, message, type, title }]);
     }, []);
 
-    // 🚀 Navigation Directe (Sans loader)
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
     const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
+        setIsNavigating(true);
         if (options?.action) options.action();
-        navigate(path);
+        
+        // Artificial delay for premium feel if navigating to complex views
+        setTimeout(() => {
+            navigate(path);
+            // We don't reset isNavigating because the component will unmount/remount
+            // and we want the spinner to stay until the new page is ready.
+        }, 300);
     }, [navigate]);
 
     const removeToast = useCallback((id: string) => {
@@ -2549,6 +2559,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 </p>
                                                 <Button 
                                                     onClick={() => safeNavigate('/login')} 
+                                                    loading={isNavigating}
                                                     variant="secondary"
                                                     size="xl"
                                                 >
@@ -2574,6 +2585,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 </p>
                                                 <Button 
                                                     onClick={() => safeNavigate('/login')} 
+                                                    loading={isNavigating}
                                                     variant="secondary"
                                                     size="xl"
                                                     className="bg-blue-600 hover:bg-blue-700"

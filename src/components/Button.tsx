@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import Loader from './Loader';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
@@ -11,6 +11,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
+  form?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -26,7 +27,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-black transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none rounded-2xl';
+  const baseStyles = 'inline-flex items-center justify-center font-black transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed rounded-2xl relative overflow-hidden';
   
   const variants = {
     primary: 'bg-[#f56b2a] text-white hover:bg-[#e55a1b] shadow-md shadow-orange-100',
@@ -42,7 +43,7 @@ const Button: React.FC<ButtonProps> = ({
     sm: 'px-3 py-1.5 text-[10px] gap-1.5',
     md: 'px-4 py-2.5 text-xs gap-2',
     lg: 'px-6 py-3.5 text-sm gap-2.5',
-    xl: 'px-8 py-4 text-base gap-3',
+    xl: 'px-8 py-5 text-base gap-3',
     icon: 'p-2',
   };
 
@@ -55,16 +56,25 @@ const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {loading ? (
-        <>
-          <Loader2 className="animate-spin" size={size === 'xs' || size === 'sm' || size === 'icon' ? 14 : 18} />
-          {loadingText ? <span>{loadingText}</span> : children}
-        </>
+        <div className="flex items-center justify-center gap-2 animate-in fade-in duration-300">
+          <Loader size="sm" color="text-current" className="!w-4 !h-4" />
+          {loadingText ? (
+             <span className="animate-in slide-in-from-bottom-1 duration-300">{loadingText}</span>
+          ) : (
+             <span className="opacity-0">{children}</span> 
+          )}
+          {!loadingText && (
+            <div className="absolute inset-0 flex items-center justify-center">
+               <Loader size="sm" color="text-current" />
+            </div>
+          )}
+        </div>
       ) : (
-        <>
-          {icon && iconPosition === 'left' && icon}
-          {children}
-          {icon && iconPosition === 'right' && icon}
-        </>
+        <div className="flex items-center justify-center gap-2">
+          {icon && iconPosition === 'left' && <span className="flex-shrink-0">{icon}</span>}
+          <span className="truncate">{children}</span>
+          {icon && iconPosition === 'right' && <span className="flex-shrink-0">{icon}</span>}
+        </div>
       )}
     </button>
   );
