@@ -142,8 +142,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     
     try {
       const res = await fetchBuyerOrdersAction(nextPage, 3);
-      if (res.success && 'orders' in res) {
-        setOrders(prev => [...prev, ...res.orders]);
+      if (res.success && res.orders) {
+        setOrders(prev => [...prev, ...res.orders!]);
         setOrderPage(nextPage);
         setHasMoreOrders((orders.length + res.orders.length) < (res.totalCount || 0));
       }
