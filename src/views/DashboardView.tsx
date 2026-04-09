@@ -100,22 +100,36 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     const prevStart = new Date(start.getTime() - diffMs - 1);
     const prevEnd = new Date(start.getTime() - 1);
 
-    const currentOrders = orders.filter(o => {
+    const currentFinalOrders = orders.filter(o => {
       const d = new Date(o.date);
-      return d >= start && d <= end;
+      const inDateRange = d >= start && d <= end;
+      if (!inDateRange) return false;
+      
+      if (selectedVertical === 'all') return true;
+      const vertical = o.items?.[0]?.product?.businessType || 
+                      (o.items?.[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
+                       o.items?.[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+      return vertical === selectedVertical;
     });
 
-    const prevOrders = orders.filter(o => {
+    const prevFinalOrders = orders.filter(o => {
       const d = new Date(o.date);
-      return d >= prevStart && d <= prevEnd;
+      const inDateRange = d >= prevStart && d <= prevEnd;
+      if (!inDateRange) return false;
+
+      if (selectedVertical === 'all') return true;
+      const vertical = o.items?.[0]?.product?.businessType || 
+                      (o.items?.[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
+                       o.items?.[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+      return vertical === selectedVertical;
     });
 
-    const currentRev = currentOrders.reduce((sum, o) => sum + o.total, 0);
-    const prevRev = prevOrders.reduce((sum, o) => sum + o.total, 0);
+    const currentRev = currentFinalOrders.reduce((sum, o) => sum + o.total, 0);
+    const prevRev = prevFinalOrders.reduce((sum, o) => sum + o.total, 0);
     const revTrendValue = prevRev === 0 ? (currentRev > 0 ? 100 : 0) : Math.round(((currentRev - prevRev) / prevRev) * 100);
 
-    const currentCount = currentOrders.length;
-    const prevCount = prevOrders.length;
+    const currentCount = currentFinalOrders.length;
+    const prevCount = prevFinalOrders.length;
     const countTrendValue = prevCount === 0 ? (currentCount > 0 ? 100 : 0) : Math.round(((currentCount - prevCount) / prevCount) * 100);
 
     const currentBasket = currentCount > 0 ? currentRev / currentCount : 0;
@@ -124,35 +138,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
 
     const totalTraffic = (store?.views || 0) + (products || []).reduce((sum, p) => sum + (p.views || 0), 0);
 
-    // Apply Vertical Filter to metrics
-    const finalOrders = orders.filter(o => {
-        if (selectedVertical === 'all') return true;
-        const items = o.items || [];
-        if (items.length === 0) return true;
-        const vertical = items[0]?.product?.businessType || 
-                        (items[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
-                         items[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
-        return vertical === selectedVertical;
-    });
-
-    const currentFinalOrders = finalOrders.filter(o => {
-      const d = new Date(o.date);
-      return d >= start && d <= end;
-    });
-
-    const prevFinalOrders = finalOrders.filter(o => {
-      const d = new Date(o.date);
-      return d >= prevStart && d <= prevEnd;
-    });
-
-    const finalRev = currentFinalOrders.reduce((sum, o) => sum + o.total, 0);
-    const prevFinalRev = prevFinalOrders.reduce((sum, o) => sum + o.total, 0);
-    const finalRevTrend = prevFinalRev === 0 ? (finalRev > 0 ? 100 : 0) : Math.round(((finalRev - prevFinalRev) / prevFinalRev) * 100);
-
     return {
-      revenue: { current: finalRev, trend: finalRevTrend >= 0 ? 'up' : 'down', pct: Math.abs(finalRevTrend) },
-      orders: { current: currentFinalOrders.length, trend: 'up', pct: 0 },
-      basket: { current: currentFinalOrders.length > 0 ? finalRev / currentFinalOrders.length : 0, trend: 'up', pct: 0 },
+      revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
+      orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
+      basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
       traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' }
     };
   }, [orders, products, store, startDate, endDate, selectedVertical]);
@@ -327,22 +316,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-2 md:mt-4 overflow-x-auto no-scrollbar pb-1">
-                {[
-                    { id: 'all', label: 'Global', icon: Package, color: 'gray' },
-                    { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange' },
-                    { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' },
-                    { id: 'stay', label: 'Séjours', icon: Store, color: 'blue' }
-                ].filter(v => v.id === 'all' || !store?.business_type || v.id === store.business_type).map(v => (
-                    <button
-                        key={v.id}
-                        onClick={() => setSelectedVertical(v.id as any)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? `bg-${v.color}-500 border-${v.color}-500 text-white shadow-lg` : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                    >
-                        <v.icon size={14} /> {v.label}
-                    </button>
-                ))}
-            </div>
+                {/* Only show vertical filter if store type is not restricted */}
+                {!store?.business_type && (
+                  <div className="flex items-center gap-2 mt-2 md:mt-4 overflow-x-auto no-scrollbar pb-1">
+                      {[
+                          { id: 'all', label: 'Global', icon: Package, color: 'gray' },
+                          { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange' },
+                          { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' },
+                          { id: 'stay', label: 'Séjours', icon: Store, color: 'blue' }
+                      ].map(v => (
+                          <button
+                              key={v.id}
+                              onClick={() => setSelectedVertical(v.id as any)}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? `bg-${v.color}-500 border-${v.color}-500 text-white shadow-lg` : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                          >
+                              <v.icon size={14} /> {v.label}
+                          </button>
+                      ))}
+                  </div>
+                )}
           </div>
         </div>
         
@@ -366,7 +358,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
 
       <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 md:gap-6 mb-2 md:mb-8">
         <StatCard
-          title="Ventes effectuées"
+          title={store?.business_type === 'stay' ? "Revenus Locatifs" : store?.business_type === 'food' ? "Ventes Resto" : "Ventes effectuées"}
           value={formatCurrency(filteredMetrics.revenue.current)}
           icon={<DollarSign size={14} />}
           trend={filteredMetrics.revenue.trend}
@@ -375,29 +367,29 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
           compact={true}
         />
         <StatCard
-          title="Commandes"
+          title={store?.business_type === 'stay' ? "Nuits réservées" : store?.business_type === 'food' ? "Plats servis" : "Commandes"}
           value={filteredMetrics.orders.current}
-          icon={<ShoppingBag size={14} />}
+          icon={store?.business_type === 'stay' ? <Calendar size={14} /> : <ShoppingBag size={14} />}
           trend={filteredMetrics.orders.trend}
           trendValue={`${filteredMetrics.orders.pct}%`}
           color="bg-purple-600"
           compact={true}
         />
         <StatCard
-          title="Trafic Total"
-          value={filteredMetrics.traffic.current.toLocaleString()}
-          icon={<Eye size={14} />}
-          trend={filteredMetrics.traffic.trend}
-          trendValue={filteredMetrics.traffic.pct}
+          title={store?.business_type === 'stay' ? "Prix / Nuit" : "Panier Moyen"}
+          value={formatCurrency(filteredMetrics.basket.current)}
+          icon={<Zap size={14} />}
+          trend={filteredMetrics.basket.trend}
+          trendValue={`${filteredMetrics.basket.pct}%`}
           color="bg-blue-600"
           compact={true}
         />
         <StatCard
-          title="Total Clients"
-          value={customers.length}
-          icon={<Users size={14} />}
-          trend="up"
-          trendValue="Live"
+          title="Trafic Boutique"
+          value={filteredMetrics.traffic.current.toLocaleString()}
+          icon={<Eye size={14} />}
+          trend={filteredMetrics.traffic.trend}
+          trendValue={filteredMetrics.traffic.pct}
           color="bg-orange-600"
           compact={true}
         />

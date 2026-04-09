@@ -423,9 +423,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       }
 
       setIsNavigating(true);
+      
+      // Safety timeout: if navigation doesn't happen, clear it anyway
+      const safetyHandle = setTimeout(() => setIsNavigating(false), 2000);
+      
       setTimeout(() => {
         navigate(path);
       }, 300);
+
+      return () => clearTimeout(safetyHandle);
     },
     [navigate, location.pathname],
   );
@@ -452,6 +458,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       prevPathRef.current = location.pathname;
     }
   }, [location.pathname]);
+
+  // Fail-safe to prevent stuck loader
+  useEffect(() => {
+    if (isNavigating) {
+      const timer = setTimeout(() => {
+        setIsNavigating(false);
+      }, 3000); // 3 seconds max for Any transition
+      return () => clearTimeout(timer);
+    }
+  }, [isNavigating]);
   const [lastAddedProduct, setLastAddedProduct] =
     useState<StorefrontProduct | null>(null);
   const [cartNotif, setCartNotif] = useState(false);

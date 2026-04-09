@@ -52,21 +52,13 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalOrders, setTotalOrders] = useState(0);
 
+  // Handle initial data fetch and subsequent tab changes
   useEffect(() => {
     if (userEmail) {
-      // On initial mount, fetch all data to populate counts
-      loadData(true);
+      const isInitialMount = !orders.length && !addresses.length && !reviews.length;
+      loadData(isInitialMount);
     }
-  }, [userEmail]);
-
-  useEffect(() => {
-    if (userEmail && activeTab) {
-      // On tab change, refresh just that tab and reset pagination
-      setOrderPage(1);
-      setHasMoreOrders(true);
-      loadData(false);
-    }
-  }, [activeTab]);
+  }, [userEmail, activeTab]);
 
   const loadData = async (forceAll = false) => {
     setLoading(true);
