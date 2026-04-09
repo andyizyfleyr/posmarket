@@ -950,7 +950,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Prix de Vente (XOF)</label>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente (Par Nuitée)
+                      </label>
                       <div className="relative">
                         <input
                           required
@@ -963,7 +965,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
                       </div>
                     </div>
-                    {formData.businessType !== 'stay' && (
+
+                    {formData.businessType !== 'stay' ? (
                       <div>
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
@@ -974,6 +977,22 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           placeholder="0"
                           className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
+                      </div>
+                    ) : (
+                      <div className="bg-blue-50/50 rounded-2xl md:rounded-3xl p-4 md:p-6 border border-blue-100/50 flex flex-col justify-center animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                <Store size={20} />
+                            </div>
+                            <div>
+                                <h4 className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Configuration Séjour</h4>
+                                <p className="text-[11px] text-blue-900/70 font-bold leading-tight">Le prix indiqué ci-contre sera appliqué par <span className="text-blue-700 underline decoration-2 underline-offset-2">nuitée</span> réservée.</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="px-2 py-1 bg-white border border-blue-100 rounded-lg text-[9px] font-black text-blue-600 uppercase tracking-tighter">Unité : Nuitée</span>
+                            <span className="px-2 py-1 bg-white border border-blue-100 rounded-lg text-[9px] font-black text-blue-600 uppercase tracking-tighter">Gestion : Calendrier</span>
+                        </div>
                       </div>
                     )}
                   </div>
