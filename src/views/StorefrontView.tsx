@@ -2110,7 +2110,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         {isFood
                           ? "Cuisiné frais"
                           : isStay
-                            ? "Emplacement vérifié"
+                            ? (selectedProductDetails.location || "Emplacement vérifié")
                             : `${selectedProductDetails.salesCount || 0} Commandes`}
                       </span>
                     </div>

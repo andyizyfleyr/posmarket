@@ -108,6 +108,11 @@ export const useSupabaseData = (session: any, activeStoreId?: string) => {
                     id: p.id, name: p.name, price: p.price, originalPrice: p.original_price, image: p.image,
                     images: p.images || [p.image], stock: p.stock || 0, category: p.category || '', mainCategory: p.main_category || '',
                     unit: p.unit || 'pièce', description: p.description || '', isOnline: p.is_online !== false, views: p.views || 0,
+                    businessType: p.business_type,
+                    amenities: p.amenities || [],
+                    maxGuests: p.max_guests,
+                    bedrooms: p.bedrooms,
+                    location: p.location || '',
                     reviews: [], 
                     rating: statsMap[p.id] ? (parseFloat(statsMap[p.id].average_rating) || 0) : 0, 
                     reviewCount: statsMap[p.id] ? (parseInt(statsMap[p.id].review_count) || 0) : 0, 
@@ -289,6 +294,7 @@ export const fetchMarketplaceProducts = async (options: {
         .from('products')
         .select(`
             id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views,
+            business_type, amenities, location, max_guests, bedrooms,
             stores!inner(id, name, slug, address)
         `, { count: 'exact' })
         .eq('is_online', true)
@@ -325,6 +331,11 @@ export const fetchMarketplaceProducts = async (options: {
         description: p.description || '',
         isOnline: p.is_online !== false,
         views: p.views || 0,
+        businessType: p.business_type,
+        amenities: p.amenities || [],
+        location: p.location || '',
+        maxGuests: p.max_guests,
+        bedrooms: p.bedrooms,
         storeId: p.stores?.id,
         storeName: p.stores?.name,
         storeSlug: p.stores?.slug,
