@@ -2646,18 +2646,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     </div>
                   </div>
 
-                  {isStay && selectedProductDetails.currentBooking && (
-                    <div className="mb-4 bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top-2 duration-500">
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0 animate-pulse">
-                        <Clock size={20} />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-bold text-orange-400 uppercase tracking-widest leading-none mb-1">Actuellement occupé</p>
-                        <p className="text-xs font-bold text-orange-700">Occupé jusqu'au {new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
-                      </div>
-                    </div>
-                  )}
-
                   <Button
                       onClick={() => {
                         if (isStay) {
@@ -2708,7 +2696,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         isFood
                           ? "bg-green-600 hover:bg-green-700"
                           : isStay
-                            ? `${selectedProductDetails.currentBooking ? 'bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100'}`
+                            ? `${selectedProductDetails.currentBooking ? 'bg-orange-50 text-orange-600 border-orange-200 cursor-not-allowed shadow-none uppercase' : 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100'}`
                             : ""
                       }
                       icon={
@@ -2717,7 +2705,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         ) : isFood ? (
                           <ShoppingBasketIcon size={20} strokeWidth={3} />
                         ) : isStay ? (
-                          <Calendar size={20} strokeWidth={3} />
+                           selectedProductDetails.currentBooking ? <Clock size={20} strokeWidth={3} /> : <Calendar size={20} strokeWidth={3} />
                         ) : (
                           <ShoppingCart size={20} strokeWidth={3} />
                         )

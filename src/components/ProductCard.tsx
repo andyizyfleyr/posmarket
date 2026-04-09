@@ -42,13 +42,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
                 -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
               </div>
             )}
-            {/* Occupied Badge for Stays */}
-            {(product as any).currentBooking && (
-              <div className="bg-orange-500 text-white px-2 py-1 rounded-md text-[7px] font-bold shadow-lg border border-white/20 animate-in zoom-in duration-300 flex items-center gap-1.5 whitespace-nowrap">
-                <div className="w-1 h-1 bg-white rounded-full animate-ping" />
-                Occupé jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-              </div>
-            )}
           </div>
           
           {/* Hover Gradient Overlay */}
@@ -99,14 +92,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
             e.preventDefault();
             onAddToCart(product); 
           }}
-          disabled={((product as any).currentBooking)}
-          className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[10px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
-            ((product.businessType === 'stay' || product.category === 'Appartements') && product.stock === 0)
-              ? 'bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed'
+          disabled={!!(product as any).currentBooking}
+          className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
+            (product as any).currentBooking
+              ? 'bg-orange-50 text-orange-600 border-orange-100 cursor-not-allowed uppercase'
               : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
           }`}
         >
-          {((product as any).currentBooking) 
+          {(product as any).currentBooking 
             ? `Occupé jusqu'au ${new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
             : product.category === 'Appartements' || product.businessType === 'stay' 
               ? 'Réserver séjour' 
