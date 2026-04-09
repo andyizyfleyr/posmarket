@@ -1790,9 +1790,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
                             {relatedProducts.map(product => (
-                                <div key={`${product.storeId}-${product.id}`} onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} className="cursor-pointer">
-                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
-                                </div>
+                                <ProductCard 
+                                    key={`${product.storeId}-${product.id}`}
+                                    product={product as any} 
+                                    onAddToCart={addToCart as any} 
+                                    onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} 
+                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)}
+                                />
                             ))}
                         </div>
                     </div>
@@ -2253,20 +2257,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
             <MarketplaceBottomNav 
                 cartItemsCount={cartItemsCount}
+                loading={isNavigating}
                 onSearchClick={() => {
                     setIsSearchOpen(true);
                 }}
                 onHomeClick={() => {
+                    if (isNavigating) return;
                     setIsSearchOpen(false);
                     setIsAccountView(false);
                     safeNavigate('/');
                 }}
                 onCartClick={() => {
+                    if (isNavigating) return;
                     setIsSearchOpen(false);
                     setIsAccountView(false);
                     safeNavigate('/cart');
                 }}
                 onAccountClick={() => {
+                    if (isNavigating) return;
                     if (user) {
                         setIsAccountView(true);
                     } else {
@@ -2276,17 +2284,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 }}
             />
 
-            {/* 🌀 Global Navigation Loading Overlay */}
+            {/* 🌀 Global Navigation Loading Overlay - More prominent for feedback */}
             {isNavigating && (
-                <div className="fixed inset-0 z-[9998] bg-white/70 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200">
-                    <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300">
+                    <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
                         <div className="relative">
-                            <div className="w-12 h-12 border-[3px] border-gray-200 border-t-[#f56b2a] rounded-full animate-spin" />
+                            <div className="w-20 h-20 border-[4px] border-gray-100 border-t-[#f56b2a] rounded-full animate-spin shadow-inner" />
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-5 h-5 bg-[#f56b2a] rounded-full animate-pulse opacity-30" />
+                                <ShoppingBasketIcon size={32} className="text-[#f56b2a]/20 animate-pulse" />
                             </div>
                         </div>
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Chargement...</span>
+                        <div className="flex flex-col items-center gap-2">
+                            <span className="text-[11px] font-black text-gray-900 uppercase tracking-[0.3em] animate-pulse">Chargement</span>
+                            <div className="flex gap-1.5">
+                                <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-bounce" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -2863,12 +2878,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             /* Simple grid for search results */
                                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                                                 {pagedProducts.map(product => (
-                                                    <div key={`${product.storeId}-${product.id}`} 
-                                                         onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
-                                                         onMouseEnter={() => prefetchProduct(product.id)}
-                                                         className="cursor-pointer">
-                                                        <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
-                                                    </div>
+                                                    <ProductCard 
+                                                        key={`${product.storeId}-${product.id}`}
+                                                        product={product as any} 
+                                                        onAddToCart={addToCart as any} 
+                                                        onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} 
+                                                        onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)}
+                                                    />
                                                 ))}
                                             </div>
                                         ) : (
@@ -2899,13 +2915,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                         )}
                                                         <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
                                                             {groups[cat].map(product => (
-                                                                <div key={`${product.storeId}-${product.id}`} 
-                                                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
-                                                                    onMouseEnter={() => prefetchProduct(product.id)}
-                                                                    className="cursor-pointer w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
-                                                                >
-                                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
-                                                                </div>
+                                                                <ProductCard 
+                                                                    key={`${product.storeId}-${product.id}`}
+                                                                    product={product as any} 
+                                                                    onAddToCart={addToCart as any} 
+                                                                    onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)}
+                                                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)}
+                                                                    className="w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
+                                                                />
                                                             ))}
                                                         </div>
                                                     </div>
@@ -2995,13 +3012,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                         </div>
                                                         <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
                                                             {groups[cat].map(product => (
-                                                                <div key={`${product.storeId}-${product.id}`} 
-                                                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)} 
-                                                                    onMouseEnter={() => prefetchProduct(product.id)}
-                                                                    className="cursor-pointer w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
-                                                                >
-                                                                    <ProductCard product={product as any} onAddToCart={addToCart as any} onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)} />
-                                                                </div>
+                                                                <ProductCard 
+                                                                    key={`${product.storeId}-${product.id}`}
+                                                                    product={product as any} 
+                                                                    onAddToCart={addToCart as any} 
+                                                                    onStoreSelect={(id) => safeNavigate(`/store/${product.storeSlug || id}`)}
+                                                                    onClick={() => safeNavigate(`/product/${generateProductSlug(product)}`)}
+                                                                    className="w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
+                                                                />
                                                             ))}
                                                         </div>
                                                     </div>
@@ -3111,7 +3129,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             </main>
 
             {cartItemsCount > 0 && !isCartView && !isFeedView && (
-                <div className="fixed left-4 right-4 z-[201] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 20px)' }}>
+                <div className="fixed left-4 right-4 z-[1001] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 30px)' }}>
                     <button
                         onClick={() => {
                             setIsCartButtonLoading(true);
