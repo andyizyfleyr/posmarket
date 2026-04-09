@@ -58,15 +58,8 @@ const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <div className="flex items-center justify-center gap-2 animate-in fade-in duration-300">
           <Loader size="sm" color="text-current" className="!w-4 !h-4" />
-          {loadingText ? (
+          {loadingText && (
              <span className="animate-in slide-in-from-bottom-1 duration-300">{loadingText}</span>
-          ) : (
-             <span className="opacity-0">{children}</span> 
-          )}
-          {!loadingText && (
-            <div className="absolute inset-0 flex items-center justify-center">
-               <Loader size="sm" color="text-current" />
-            </div>
           )}
         </div>
       ) : (

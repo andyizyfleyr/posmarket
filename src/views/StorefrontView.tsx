@@ -85,18 +85,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     }, []);
 
     const [isNavigating, setIsNavigating] = useState(false);
-    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
+    const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
+    const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
 
     // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
     const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
         setIsNavigating(true);
         if (options?.action) options.action();
         
-        // Artificial delay for premium feel if navigating to complex views
+        // Artificial delay for premium feel
         setTimeout(() => {
             navigate(path);
-            // We don't reset isNavigating because the component will unmount/remount
-            // and we want the spinner to stay until the new page is ready.
+            // Reset after navigation completes (SPA stays mounted)
+            setTimeout(() => setIsNavigating(false), 100);
         }, 300);
     }, [navigate]);
 
@@ -2078,13 +2080,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                             return (
                                                 <Button
                                                     onClick={() => {
-                                                        setIsTransitioning(true);
+                                                        setIsWhatsAppLoading(true);
                                                         setTimeout(() => {
                                                             window.open(waUrl, '_blank');
-                                                            setIsTransitioning(false);
+                                                            setIsWhatsAppLoading(false);
                                                         }, 500);
                                                     }}
-                                                    loading={isTransitioning}
+                                                    loading={isWhatsAppLoading}
                                                     variant="primary"
                                                     size="md"
                                                     fullWidth
@@ -2148,13 +2150,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             {checkoutStage === 'cart' && (
                                 <Button
                                     onClick={() => {
-                                        setIsTransitioning(true);
+                                        setIsCheckoutTransitioning(true);
                                         setTimeout(() => {
                                             setCheckoutStage('shipping');
-                                            setIsTransitioning(false);
+                                            setIsCheckoutTransitioning(false);
                                         }, 400);
                                     }}
-                                    loading={isTransitioning}
+                                    loading={isCheckoutTransitioning}
+                                    loadingText="Chargement..."
                                     fullWidth
                                     size="xl"
                                     icon={<ChevronLeft size={20} className="rotate-180" />}
@@ -2168,15 +2171,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <Button
                                         form="checkout-form"
                                         type="submit"
-                                        loading={isProcessingPayment || (checkoutStage === 'shipping' && isTransitioning)}
-                                        loadingText={isProcessingPayment ? "Traitement en cours..." : "Passage au paiement..."}
-                                        onClick={() => {
-                                          if (checkoutStage === 'shipping') {
-                                            // Handle local transition feedback
-                                            setIsTransitioning(true);
-                                            setTimeout(() => setIsTransitioning(false), 600);
-                                          }
-                                        }}
+                                        loading={isProcessingPayment}
+                                        loadingText={checkoutStage === 'payment' ? "Traitement en cours..." : "Passage au paiement..."}
                                         fullWidth
                                         size="xl"
                                         variant="secondary"
@@ -2185,13 +2181,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     </Button>
                                     <Button
                                         onClick={() => {
-                                          setIsTransitioning(true);
+                                          setIsCheckoutTransitioning(true);
                                           setTimeout(() => {
                                             setCheckoutStage(checkoutStage === 'shipping' ? 'cart' : 'shipping');
-                                            setIsTransitioning(false);
+                                            setIsCheckoutTransitioning(false);
                                           }, 300);
                                         }}
-                                        loading={isTransitioning}
+                                        loading={isCheckoutTransitioning}
                                         variant="ghost"
                                         size="sm"
                                         fullWidth
@@ -3077,9 +3073,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
             {cartItemsCount > 0 && !isCartView && !isFeedView && (
                 <div className="fixed bottom-[80px] left-4 right-4 z-50 md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0">
-                    <Button
+                    <button
                         onClick={() => {
-                            setIsTransitioning(true);
+                            setIsCartButtonLoading(true);
                             if (checkoutStage === 'success') {
                                 setCheckoutStage('cart');
                                 setCompletedOrderStores([]);
@@ -3087,23 +3083,30 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 setCompletedOrderTotal(0);
                             }
                             safeNavigate('/cart');
-                            setTimeout(() => setIsTransitioning(false), 500);
+                            setTimeout(() => setIsCartButtonLoading(false), 600);
                         }}
-                        loading={isTransitioning || isNavigating}
-                        variant="secondary"
-                        size="xl"
-                        className="pointer-events-auto shadow-2xl shadow-orange-100 flex items-center gap-3 backdrop-blur-md bg-gray-900/95"
+                        disabled={isCartButtonLoading}
+                        className="pointer-events-auto w-full max-w-sm md:w-auto bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_15px_40px_rgba(245,107,42,0.4)] md:shadow-2xl flex items-center justify-center gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
                     >
-                        <div className="relative">
-                            <ShoppingCart size={20} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
-                            <span key={cartItemsCount} className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in-105 duration-300 shadow-lg shadow-orange-100">
-                                {cartItemsCount}
-                            </span>
-                        </div>
-                        <span className="text-sm uppercase tracking-wider font-black">
-                            VOIR MON PANIER <span className="opacity-40 mx-1.5">•</span> {formatCurrency(Number(cartTotal) || 0)}
-                        </span>
-                    </Button>
+                        {isCartButtonLoading ? (
+                            <div className="flex items-center gap-3 animate-in fade-in duration-200">
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span className="text-sm uppercase tracking-wider font-black">Chargement...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="relative">
+                                    <ShoppingCart size={20} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
+                                    <span key={cartItemsCount} className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in-105 duration-300 shadow-lg shadow-orange-100">
+                                        {cartItemsCount}
+                                    </span>
+                                </div>
+                                <span className="text-sm uppercase tracking-wider font-black">
+                                    VOIR MON PANIER <span className="opacity-40 mx-1.5">•</span> {formatCurrency(Number(cartTotal) || 0)}
+                                </span>
+                            </>
+                        )}
+                    </button>
                 </div>
             )}
 
