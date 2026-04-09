@@ -416,22 +416,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       // Run any cleanup action first
       if (options?.action) options.action();
 
-      // If navigating to the current path, skip the global overlay to avoid blocking bugs
+      // If navigating to the current path, skip the global overlay
       if (location.pathname === path) {
         navigate(path);
         return;
       }
 
       setIsNavigating(true);
-      
-      // Safety timeout: if navigation doesn't happen, clear it anyway
-      const safetyHandle = setTimeout(() => setIsNavigating(false), 2000);
-      
-      setTimeout(() => {
-        navigate(path);
-      }, 300);
-
-      return () => clearTimeout(safetyHandle);
+      navigate(path);
     },
     [navigate, location.pathname],
   );
@@ -440,11 +432,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
       setIsNavigating(true);
-      setTimeout(() => {
-        setCheckoutStage(newStage);
-        // Since pathname might not change (SPA step), manually reset after short delay or instantly
-        setTimeout(() => setIsNavigating(false), 300);
-      }, 300);
+      setCheckoutStage(newStage);
+      // For internal stage changes, the path doesn't change, so we reset manually after a natural delay
+      setTimeout(() => setIsNavigating(false), 500);
     },
     [checkoutStage],
   );
