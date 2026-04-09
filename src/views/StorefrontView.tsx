@@ -2276,7 +2276,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                               onChange={(e) => setGuestsNum(parseInt(e.target.value))}
                               className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black appearance-none focus:border-blue-500 focus:bg-white transition-all outline-none"
                             >
-                              {[1, 2, 3, 4, 5, 6].map((n) => (
+                              {Array.from({ length: selectedProductDetails.maxGuests || 6 }, (_, i) => i + 1).map((n) => (
                                 <option key={n} value={n}>{n} {n > 1 ? "personnes" : "personne"}</option>
                               ))}
                             </select>
