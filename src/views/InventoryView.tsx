@@ -111,15 +111,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const filteredProducts = useMemo(() => {
     return localProducts.filter(p => {
       // Filter by Channel
-      const channelMatch = productType === 'all' || 
-        (productType === 'pos' && p.isOnline === false) || 
+      const channelMatch = productType === 'all' ||
+        (productType === 'pos' && p.isOnline === false) ||
         (productType === 'marketplace' && p.isOnline !== false);
-        
+
       if (!channelMatch) return false;
 
       // Filter by Vertical
       if (selectedVertical === 'all') return true;
-      
+
       // Auto-matching based on category if businessType is not set
       if (!p.businessType) {
         if (p.mainCategory === 'Restauration & Livraison Rapide') return selectedVertical === 'food';
@@ -173,7 +173,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         return;
       }
     }
-    
+
     if (product) {
       setEditingProduct(product);
       setSkipStepOne(false);
@@ -372,8 +372,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 onClick={() => setSelectedVertical(v.id as any)}
                 className={`
                   flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-black transition-all whitespace-nowrap border-2
-                  ${selectedVertical === v.id 
-                    ? `bg-white border-${v.color}-500 text-${v.color}-600 shadow-lg shadow-${v.color}-100` 
+                  ${selectedVertical === v.id
+                    ? `bg-white border-${v.color}-500 text-${v.color}-600 shadow-lg shadow-${v.color}-100`
                     : 'bg-white border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'}
                 `}
               >
@@ -522,10 +522,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
-                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${
-                        product.businessType === 'stay' ? 'bg-blue-100 text-blue-700' : 
-                        product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                      }`}>
+                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'stay' ? 'bg-blue-100 text-blue-700' :
+                          product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                        }`}>
                         {product.businessType === 'stay' ? <Store size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
                         {product.businessType === 'stay' ? 'Séjour (Pro)' : product.isOnline !== false ? 'Marketplace' : 'POS'}
                       </span>
@@ -574,33 +573,33 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5 text-right">
-                        <div className="flex items-center justify-end gap-1 text-right">
-                          {product.businessType === 'stay' && (
+                      <div className="flex items-center justify-end gap-1 text-right">
+                        {product.businessType === 'stay' && (
+                          <button
+                            onClick={() => setManagingAvailability(product)}
+                            className="p-2 text-blue-600 bg-blue-50 rounded-lg transition-all active:scale-90"
+                            title="Gérer la disponibilité"
+                          >
+                            <Calendar size={12} />
+                          </button>
+                        )}
+                        {permissions.canManageInventory && (
+                          <>
                             <button
-                              onClick={() => setManagingAvailability(product)}
-                              className="p-2 text-blue-600 bg-blue-50 rounded-lg transition-all active:scale-90"
-                              title="Gérer la disponibilité"
+                              onClick={() => handleOpenModal(product)}
+                              className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg transition-all active:scale-90"
                             >
-                              <Calendar size={12} />
+                              <Edit size={12} />
                             </button>
-                          )}
-                          {permissions.canManageInventory && (
-                            <>
-                              <button
-                                onClick={() => handleOpenModal(product)}
-                                className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg transition-all active:scale-90"
-                              >
-                                <Edit size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(product.id)}
-                                className="p-2 text-red-600 bg-red-50 rounded-lg transition-all active:scale-90"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                            <button
+                              onClick={() => handleDelete(product.id)}
+                              className="p-2 text-red-600 bg-red-50 rounded-lg transition-all active:scale-90"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -821,31 +820,31 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   {formData.businessType !== 'stay' && (
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                          <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
+                        <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
                       </label>
                       <select
                         value={formData.deliveryTime}
                         onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
                         className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                       >
-                          <option value="">Sélectionnez une durée...</option>
-                          <optgroup label="Restauration / Immédiat">
-                              <option value="15 min">15 minutes</option>
-                              <option value="30 min">30 minutes</option>
-                              <option value="45 min">45 minutes</option>
-                              <option value="1h">1 heure</option>
-                          </optgroup>
-                          <optgroup label="Livraison Courte">
-                              <option value="24h">24 heures</option>
-                              <option value="48h">48 heures</option>
-                              <option value="72h">72 heures</option>
-                          </optgroup>
-                          <optgroup label="Livraison Longue">
-                              <option value="3-5 jours">3 à 5 jours</option>
-                              <option value="1 semaine">1 semaine</option>
-                              <option value="2 semaines">2 semaines</option>
-                              <option value="Sur commande">Sur commande/Mesure</option>
-                          </optgroup>
+                        <option value="">Sélectionnez une durée...</option>
+                        <optgroup label="Restauration / Immédiat">
+                          <option value="15 min">15 minutes</option>
+                          <option value="30 min">30 minutes</option>
+                          <option value="45 min">45 minutes</option>
+                          <option value="1h">1 heure</option>
+                        </optgroup>
+                        <optgroup label="Livraison Courte">
+                          <option value="24h">24 heures</option>
+                          <option value="48h">48 heures</option>
+                          <option value="72h">72 heures</option>
+                        </optgroup>
+                        <optgroup label="Livraison Longue">
+                          <option value="3-5 jours">3 à 5 jours</option>
+                          <option value="1 semaine">1 semaine</option>
+                          <option value="2 semaines">2 semaines</option>
+                          <option value="Sur commande">Sur commande/Mesure</option>
+                        </optgroup>
                       </select>
                       <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
                     </div>
@@ -856,11 +855,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <h4 className="text-xs font-black text-yellow-700 uppercase">Infos Cuisine</h4>
                       <div>
                         <label className="block text-[10px] font-black text-yellow-600 uppercase mb-1">Temps de préparation</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Ex: 15-20 min"
                           value={formData.preparationTime}
-                          onChange={e => setFormData({...formData, preparationTime: e.target.value})}
+                          onChange={e => setFormData({ ...formData, preparationTime: e.target.value })}
                           className="w-full px-4 py-2 bg-white border border-yellow-200 rounded-xl text-sm"
                         />
                       </div>
@@ -873,15 +872,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <h4 className="text-xs font-black text-blue-700 uppercase">Détails de l'hébergement</h4>
                         <span className="px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded-full uppercase">Mode Pro</span>
                       </div>
-                      
+
 
 
                       <div>
                         <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Localisation (Ville/Quartier)</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.location}
-                          onChange={e => setFormData({...formData, location: e.target.value})}
+                          onChange={e => setFormData({ ...formData, location: e.target.value })}
                           className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
                           placeholder="Ex: Abidjan, Cocody"
                         />
@@ -906,16 +905,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               type="button"
                               onClick={() => {
                                 const current = formData.amenities || [];
-                                const next = current.includes(amenity.id) 
+                                const next = current.includes(amenity.id)
                                   ? current.filter(id => id !== amenity.id)
                                   : [...current, amenity.id];
                                 setFormData({ ...formData, amenities: next });
                               }}
-                              className={`flex items-center gap-2 p-2 rounded-xl border text-[10px] font-bold transition-all ${
-                                (formData.amenities || []).includes(amenity.id)
+                              className={`flex items-center gap-2 p-2 rounded-xl border text-[10px] font-bold transition-all ${(formData.amenities || []).includes(amenity.id)
                                   ? 'bg-blue-600 text-white border-blue-600 shadow-md'
                                   : 'bg-white text-gray-600 border-blue-100 hover:border-blue-300'
-                              }`}
+                                }`}
                             >
                               <span>{amenity.icon}</span>
                               <span>{amenity.label}</span>
@@ -964,24 +962,24 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
-                             <Users size={12} /> Personnes max
+                            <Users size={12} /> Personnes max
                           </label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={formData.maxGuests ?? ''}
-                            onChange={e => setFormData({...formData, maxGuests: e.target.value ? parseInt(e.target.value) : undefined})}
+                            onChange={e => setFormData({ ...formData, maxGuests: e.target.value ? parseInt(e.target.value) : undefined })}
                             className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
                             placeholder="Ex: 4"
                           />
                         </div>
                         <div>
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
-                             <Home size={12} /> Chambres
+                            <Home size={12} /> Chambres
                           </label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={formData.bedrooms ?? ''}
-                            onChange={e => setFormData({...formData, bedrooms: e.target.value ? parseInt(e.target.value) : undefined})}
+                            onChange={e => setFormData({ ...formData, bedrooms: e.target.value ? parseInt(e.target.value) : undefined })}
                             className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
                             placeholder="Ex: 2"
                           />
@@ -992,316 +990,315 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   {formData.businessType !== 'stay' && (
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                          <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
+                        <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
                       </label>
                       <div className="space-y-3">
-                          <select
-                            value={['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') ? formData.unit : (formData.unit ? 'custom' : 'pièce')}
-                            onChange={e => {
-                              if (e.target.value === 'custom') {
-                                  setFormData({ ...formData, unit: '' });
-                              } else {
-                                  setFormData({ ...formData, unit: e.target.value });
-                              }
-                            }}
-                            className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                          >
-                              <optgroup label="Standard">
-                                  <option value="pièce">Pièce (pcs)</option>
-                                  <option value="unité">Unité (u)</option>
-                                  <option value="douzaine">Douzaine</option>
-                                  <option value="paquet">Paquet</option>
-                                  <option value="carton">Carton</option>
-                                  <option value="boîte">Boîte / Box</option>
-                                  <option value="sac">Sac</option>
-                                  <option value="bouteille">Bouteille</option>
-                                  <option value="lot">Lot</option>
-                              </optgroup>
-                              <optgroup label="Poids & Mesures">
-                                  <option value="kg">Kilogramme (kg)</option>
-                                  <option value="g">Gramme (g)</option>
-                                  <option value="L">Litre (L)</option>
-                                  <option value="m">Mètre (m)</option>
-                                  <option value="m²">Mètre Carré (m²)</option>
-                              </optgroup>
-                              <optgroup label="Services">
-                                  <option value="nuitée">Nuitée</option>
-                                  <option value="service">Service / Forfait</option>
-                              </optgroup>
-                              <option value="custom">✨ Autre (Saisie libre)...</option>
-                          </select>
+                        <select
+                          value={['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') ? formData.unit : (formData.unit ? 'custom' : 'pièce')}
+                          onChange={e => {
+                            if (e.target.value === 'custom') {
+                              setFormData({ ...formData, unit: '' });
+                            } else {
+                              setFormData({ ...formData, unit: e.target.value });
+                            }
+                          }}
+                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                        >
+                          <optgroup label="Standard">
+                            <option value="pièce">Pièce (pcs)</option>
+                            <option value="unité">Unité (u)</option>
+                            <option value="douzaine">Douzaine</option>
+                            <option value="paquet">Paquet</option>
+                            <option value="carton">Carton</option>
+                            <option value="boîte">Boîte / Box</option>
+                            <option value="sac">Sac</option>
+                            <option value="bouteille">Bouteille</option>
+                            <option value="lot">Lot</option>
+                          </optgroup>
+                          <optgroup label="Poids & Mesures">
+                            <option value="kg">Kilogramme (kg)</option>
+                            <option value="g">Gramme (g)</option>
+                            <option value="L">Litre (L)</option>
+                            <option value="m">Mètre (m)</option>
+                            <option value="m²">Mètre Carré (m²)</option>
+                          </optgroup>
+                          <optgroup label="Services">
+                            <option value="nuitée">Nuitée</option>
+                            <option value="service">Service / Forfait</option>
+                          </optgroup>
+                          <option value="custom">✨ Autre (Saisie libre)...</option>
+                        </select>
 
-                          {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
-                              <div className="animate-in slide-in-from-top-2 duration-300">
-                                  <input
-                                      type="text"
-                                      placeholder="Ex: Pack de 100, Fagot, Douzaine..."
-                                      value={formData.unit}
-                                      onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-bold focus:border-[#f56b2a] outline-none shadow-sm"
-                                  />
-                                  <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
-                              </div>
-                          )}
+                        {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
+                          <div className="animate-in slide-in-from-top-2 duration-300">
+                            <input
+                              type="text"
+                              placeholder="Ex: Pack de 100, Fagot, Douzaine..."
+                              value={formData.unit}
+                              onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                            />
+                            <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
 
                   {/* Variants & Options Section - AliExpress Style */}
                   {formData.businessType !== 'stay' && (
-                  <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
-                    <div className="flex items-center justify-between mb-4 md:mb-6">
-                      <div>
-                        <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Options & Variantes</h4>
-                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Combinez Tailles, Couleurs, etc. (Matrix Mode)</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newOptions = [...(formData.options || [])];
-                          newOptions.push({ id: Math.random().toString(36).substr(2, 9), name: '', values: [] });
-                          setFormData({ ...formData, options: newOptions });
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-black hover:bg-[#f56b2a] transition-all active:scale-95"
-                      >
-                        <Plus size={12} strokeWidth={3} /> AJOUTER UNE OPTION
-                      </button>
-                    </div>
-
-                    {/* Options Management */}
-                    <div className="space-y-4 mb-8">
-                        {(formData.options || []).map((option, optIdx) => (
-                            <div key={option.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/option">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const newOptions = formData.options?.filter((_, i) => i !== optIdx);
-                                        setFormData({ ...formData, options: newOptions });
-                                    }}
-                                    className="absolute -top-2 -right-2 w-6 h-6 bg-white shadow-md border border-gray-100 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/option:opacity-100 transition-all hover:bg-red-50"
-                                >
-                                    <Trash2 size={12} />
-                                </button>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="col-span-1">
-                                        <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Type d'Option</label>
-                                        <select
-                                            value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as any).isCustom ? '' : 'custom')}
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                const newOptions = [...formData.options!];
-                                                if (val === 'custom') {
-                                                    newOptions[optIdx].name = '';
-                                                    (newOptions[optIdx] as any).isCustom = true;
-                                                } else {
-                                                    newOptions[optIdx].name = val;
-                                                    (newOptions[optIdx] as any).isCustom = false;
-                                                }
-                                                setFormData({ ...formData, options: newOptions });
-                                            }}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
-                                        >
-                                            <option value="">Sélectionner...</option>
-                                            <option value="Taille">Taille</option>
-                                            <option value="Couleur">Couleur</option>
-                                            <option value="Pointure">Pointure</option>
-                                            <option value="Format">Format</option>
-                                            <option value="Modèle">Modèle</option>
-                                            <option value="Saveur">Saveur / Goût</option>
-                                            <option value="Matière">Matière</option>
-                                            <option value="Poids">Poids</option>
-                                            <option value="custom">✨ Autre...</option>
-                                        </select>
-                                        
-                                        {((option as any).isCustom || (!['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids', ''].includes(option.name))) ? (
-                                            <input
-                                                type="text"
-                                                value={option.name}
-                                                autoFocus
-                                                onChange={e => {
-                                                    const newOptions = [...formData.options!];
-                                                    newOptions[optIdx].name = e.target.value;
-                                                    setFormData({ ...formData, options: newOptions });
-                                                }}
-                                                className="w-full px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm animate-in slide-in-from-top-1"
-                                                placeholder="Nom de l'option..."
-                                            />
-                                        ) : null}
-                                    </div>
-                                    <div className="col-span-1 md:col-span-3">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <label className="block text-[8px] font-black text-gray-400 uppercase">Valeurs (Séparez par des virgules)</label>
-                                            <span className="text-[7px] font-bold text-orange-400 uppercase tracking-tighter">Astuce: cliquez sur les suggestions</span>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={option.values.join(', ')}
-                                            onChange={e => {
-                                                const newOptions = [...formData.options!];
-                                                newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');
-                                                setFormData({ ...formData, options: newOptions });
-                                            }}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
-                                            placeholder="Rouge, Bleu, Vert..."
-                                        />
-                                        
-                                        {/* Suggestions de valeurs */}
-                                        {(() => {
-                                            const suggestions: Record<string, string[]> = {
-                                                'Taille': ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'Taille Unique', 'Enfant', 'Adulte'],
-                                                'Couleur': ['Noir', 'Blanc', 'Rouge', 'Bleu', 'Marine', 'Vert', 'Kaki', 'Jaune', 'Orange', 'Rose', 'Violet', 'Gris', 'Beige', 'Marron', 'Bordeaux', 'Corail', 'Menthe', 'Or', 'Argent'],
-                                                'Pointure': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'],
-                                                'Format': ['Petit', 'Moyen', 'Grand', 'S', 'M', 'L', 'XL', 'Standard', 'Pack', 'Unité', 'Douzaine', '100ml', '250ml', '500ml', '1L', '2L', '5L'],
-                                                'Modèle': ['Standard', 'Pro', 'Max', 'Mini', 'Lite', 'Slim', 'Luxe', 'Sport', 'Classic', 'Premium', 'Edition Limitée'],
-                                                'Saveur': ['Vanille', 'Chocolat', 'Fraise', 'Citron', 'Caramel', 'Banane', 'Pistache', 'Menthe', 'Pimenté', 'Nature', 'Salé', 'Sucré', 'Épicé', 'Grillé'],
-                                                'Matière': ['Coton', 'Cuir', 'Bois', 'Acier', 'Aluminium', 'Or', 'Argent', 'Plastique', 'Verre', 'Céramique', 'Soie', 'Laine', 'Nylon', 'Polyester'],
-                                                'Poids': ['50g', '100g', '200g', '250g', '500g', '1kg', '2kg', '5kg', '10kg', '25kg', '50kg']
-                                            };
-                                            
-                                            const currentName = option.name;
-                                            if (!suggestions[currentName]) return null;
-                                            
-                                            return (
-                                                <div className="flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
-                                                    {suggestions[currentName].map(suggest => {
-                                                        const isAlreadyAdded = option.values.includes(suggest);
-                                                        return (
-                                                            <button
-                                                                key={suggest}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const newOptions = [...formData.options!];
-                                                                    if (isAlreadyAdded) {
-                                                                        newOptions[optIdx].values = option.values.filter(v => v !== suggest);
-                                                                    } else {
-                                                                        newOptions[optIdx].values = [...option.values, suggest];
-                                                                    }
-                                                                    setFormData({ ...formData, options: newOptions });
-                                                                }}
-                                                                className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all border ${
-                                                                    isAlreadyAdded 
-                                                                        ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm' 
-                                                                        : 'bg-white text-gray-400 border-gray-100 hover:border-orange-200 hover:text-orange-500'
-                                                                }`}
-                                                            >
-                                                                {isAlreadyAdded ? '✓ ' : '+ '}{suggest}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Generate Button Logic */}
-                    {(formData.options || []).length > 0 && formData.options?.every(o => o.name && o.values.length > 0) && (
-                        <div className="mb-8 flex justify-center">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    // Cartesian product generator
-                                    const options = formData.options!;
-                                    const combinations: any[] = [];
-                                    
-                                    const combine = (optIdx: number, current: any) => {
-                                        if (optIdx === options.length) {
-                                            combinations.push(current);
-                                            return;
-                                        }
-                                        const option = options[optIdx];
-                                        option.values.forEach(val => {
-                                            combine(optIdx + 1, { ...current, [option.id]: val });
-                                        });
-                                    };
-                                    
-                                    combine(0, {});
-                                    
-                                    const newVariants = combinations.map(combo => {
-                                        const name = Object.values(combo).join(' / ');
-                                        const existing = formData.variants?.find(v => JSON.stringify(v.optionValues) === JSON.stringify(combo));
-                                        
-                                        return {
-                                            id: existing?.id || Math.random().toString(36).substr(2, 9),
-                                            name,
-                                            optionValues: combo,
-                                            price: existing?.price || formData.price || 0,
-                                            stock: existing?.stock || 0
-                                        };
-                                    });
-                                    
-                                    setFormData({ ...formData, variants: newVariants });
-                                }}
-                                className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl text-[10px] font-black shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                            >
-                                <Zap size={14} fill="currentColor" /> GÉNÉRER LES COMBINAISONS
-                            </button>
+                    <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
+                      <div className="flex items-center justify-between mb-4 md:mb-6">
+                        <div>
+                          <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Options & Variantes</h4>
+                          <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Combinez Tailles, Couleurs, etc. (Matrix Mode)</p>
                         </div>
-                    )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newOptions = [...(formData.options || [])];
+                            newOptions.push({ id: Math.random().toString(36).substr(2, 9), name: '', values: [] });
+                            setFormData({ ...formData, options: newOptions });
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-black hover:bg-[#f56b2a] transition-all active:scale-95"
+                        >
+                          <Plus size={12} strokeWidth={3} /> AJOUTER UNE OPTION
+                        </button>
+                      </div>
 
-                    {/* Variants Grid */}
-                    {(formData.variants || []).length > 0 && (
-                        <div className="space-y-2.5 animate-in slide-in-from-top-4 duration-500">
-                            <div className="hidden md:grid grid-cols-12 gap-4 px-2 mb-2">
-                                <div className="col-span-5 text-[8px] font-black text-gray-400 uppercase">Combinaison</div>
-                                <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Prix (XOF)</div>
-                                <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Stock</div>
-                                <div className="col-span-1"></div>
-                            </div>
-                            {formData.variants?.map((variant, idx) => (
-                                <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-3 bg-white border border-gray-100 rounded-xl md:rounded-2xl shadow-sm hover:border-orange-100 transition-all group/variant">
-                                    <div className="col-span-1 md:col-span-5 flex items-center">
-                                        <div className="flex flex-wrap gap-1">
-                                            {variant.name.split(' / ').map((val, i) => (
-                                                <span key={i} className="text-[10px] font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{val}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="col-span-1 md:col-span-3">
-                                        <input
-                                            type="number"
-                                            value={variant.price}
-                                            onChange={e => {
-                                                const newVariants = [...formData.variants!];
-                                                newVariants[idx].price = parseFloat(e.target.value) || 0;
-                                                setFormData({ ...formData, variants: newVariants });
-                                            }}
-                                            className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
-                                        />
-                                    </div>
-                                    <div className="col-span-1 md:col-span-3">
-                                        <input
-                                            type="number"
-                                            value={variant.stock}
-                                            onChange={e => {
-                                                const newVariants = [...formData.variants!];
-                                                newVariants[idx].stock = parseFloat(e.target.value) || 0;
-                                                setFormData({ ...formData, variants: newVariants });
-                                            }}
-                                            className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
-                                        />
-                                    </div>
-                                    <div className="col-span-1 flex items-center justify-end">
-                                        <button
+                      {/* Options Management */}
+                      <div className="space-y-4 mb-8">
+                        {(formData.options || []).map((option, optIdx) => (
+                          <div key={option.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/option">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOptions = formData.options?.filter((_, i) => i !== optIdx);
+                                setFormData({ ...formData, options: newOptions });
+                              }}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-white shadow-md border border-gray-100 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/option:opacity-100 transition-all hover:bg-red-50"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div className="col-span-1">
+                                <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Type d'Option</label>
+                                <select
+                                  value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as any).isCustom ? '' : 'custom')}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    const newOptions = [...formData.options!];
+                                    if (val === 'custom') {
+                                      newOptions[optIdx].name = '';
+                                      (newOptions[optIdx] as any).isCustom = true;
+                                    } else {
+                                      newOptions[optIdx].name = val;
+                                      (newOptions[optIdx] as any).isCustom = false;
+                                    }
+                                    setFormData({ ...formData, options: newOptions });
+                                  }}
+                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
+                                >
+                                  <option value="">Sélectionner...</option>
+                                  <option value="Taille">Taille</option>
+                                  <option value="Couleur">Couleur</option>
+                                  <option value="Pointure">Pointure</option>
+                                  <option value="Format">Format</option>
+                                  <option value="Modèle">Modèle</option>
+                                  <option value="Saveur">Saveur / Goût</option>
+                                  <option value="Matière">Matière</option>
+                                  <option value="Poids">Poids</option>
+                                  <option value="custom">✨ Autre...</option>
+                                </select>
+
+                                {((option as any).isCustom || (!['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids', ''].includes(option.name))) ? (
+                                  <input
+                                    type="text"
+                                    value={option.name}
+                                    autoFocus
+                                    onChange={e => {
+                                      const newOptions = [...formData.options!];
+                                      newOptions[optIdx].name = e.target.value;
+                                      setFormData({ ...formData, options: newOptions });
+                                    }}
+                                    className="w-full px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm animate-in slide-in-from-top-1"
+                                    placeholder="Nom de l'option..."
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="col-span-1 md:col-span-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-[8px] font-black text-gray-400 uppercase">Valeurs (Séparez par des virgules)</label>
+                                  <span className="text-[7px] font-bold text-orange-400 uppercase tracking-tighter">Astuce: cliquez sur les suggestions</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={option.values.join(', ')}
+                                  onChange={e => {
+                                    const newOptions = [...formData.options!];
+                                    newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');
+                                    setFormData({ ...formData, options: newOptions });
+                                  }}
+                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
+                                  placeholder="Rouge, Bleu, Vert..."
+                                />
+
+                                {/* Suggestions de valeurs */}
+                                {(() => {
+                                  const suggestions: Record<string, string[]> = {
+                                    'Taille': ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'Taille Unique', 'Enfant', 'Adulte'],
+                                    'Couleur': ['Noir', 'Blanc', 'Rouge', 'Bleu', 'Marine', 'Vert', 'Kaki', 'Jaune', 'Orange', 'Rose', 'Violet', 'Gris', 'Beige', 'Marron', 'Bordeaux', 'Corail', 'Menthe', 'Or', 'Argent'],
+                                    'Pointure': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'],
+                                    'Format': ['Petit', 'Moyen', 'Grand', 'S', 'M', 'L', 'XL', 'Standard', 'Pack', 'Unité', 'Douzaine', '100ml', '250ml', '500ml', '1L', '2L', '5L'],
+                                    'Modèle': ['Standard', 'Pro', 'Max', 'Mini', 'Lite', 'Slim', 'Luxe', 'Sport', 'Classic', 'Premium', 'Edition Limitée'],
+                                    'Saveur': ['Vanille', 'Chocolat', 'Fraise', 'Citron', 'Caramel', 'Banane', 'Pistache', 'Menthe', 'Pimenté', 'Nature', 'Salé', 'Sucré', 'Épicé', 'Grillé'],
+                                    'Matière': ['Coton', 'Cuir', 'Bois', 'Acier', 'Aluminium', 'Or', 'Argent', 'Plastique', 'Verre', 'Céramique', 'Soie', 'Laine', 'Nylon', 'Polyester'],
+                                    'Poids': ['50g', '100g', '200g', '250g', '500g', '1kg', '2kg', '5kg', '10kg', '25kg', '50kg']
+                                  };
+
+                                  const currentName = option.name;
+                                  if (!suggestions[currentName]) return null;
+
+                                  return (
+                                    <div className="flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+                                      {suggestions[currentName].map(suggest => {
+                                        const isAlreadyAdded = option.values.includes(suggest);
+                                        return (
+                                          <button
+                                            key={suggest}
                                             type="button"
                                             onClick={() => {
-                                                const newVariants = formData.variants?.filter((_, i) => i !== idx);
-                                                setFormData({ ...formData, variants: newVariants });
+                                              const newOptions = [...formData.options!];
+                                              if (isAlreadyAdded) {
+                                                newOptions[optIdx].values = option.values.filter(v => v !== suggest);
+                                              } else {
+                                                newOptions[optIdx].values = [...option.values, suggest];
+                                              }
+                                              setFormData({ ...formData, options: newOptions });
                                             }}
-                                            className="p-1 px-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
+                                            className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all border ${isAlreadyAdded
+                                                ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm'
+                                                : 'bg-white text-gray-400 border-gray-100 hover:border-orange-200 hover:text-orange-500'
+                                              }`}
+                                          >
+                                            {isAlreadyAdded ? '✓ ' : '+ '}{suggest}
+                                          </button>
+                                        );
+                                      })}
                                     </div>
-                                </div>
-                            ))}
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Generate Button Logic */}
+                      {(formData.options || []).length > 0 && formData.options?.every(o => o.name && o.values.length > 0) && (
+                        <div className="mb-8 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Cartesian product generator
+                              const options = formData.options!;
+                              const combinations: any[] = [];
+
+                              const combine = (optIdx: number, current: any) => {
+                                if (optIdx === options.length) {
+                                  combinations.push(current);
+                                  return;
+                                }
+                                const option = options[optIdx];
+                                option.values.forEach(val => {
+                                  combine(optIdx + 1, { ...current, [option.id]: val });
+                                });
+                              };
+
+                              combine(0, {});
+
+                              const newVariants = combinations.map(combo => {
+                                const name = Object.values(combo).join(' / ');
+                                const existing = formData.variants?.find(v => JSON.stringify(v.optionValues) === JSON.stringify(combo));
+
+                                return {
+                                  id: existing?.id || Math.random().toString(36).substr(2, 9),
+                                  name,
+                                  optionValues: combo,
+                                  price: existing?.price || formData.price || 0,
+                                  stock: existing?.stock || 0
+                                };
+                              });
+
+                              setFormData({ ...formData, variants: newVariants });
+                            }}
+                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl text-[10px] font-black shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                          >
+                            <Zap size={14} fill="currentColor" /> GÉNÉRER LES COMBINAISONS
+                          </button>
                         </div>
-                    )}
-                  </div>
-                )}
+                      )}
+
+                      {/* Variants Grid */}
+                      {(formData.variants || []).length > 0 && (
+                        <div className="space-y-2.5 animate-in slide-in-from-top-4 duration-500">
+                          <div className="hidden md:grid grid-cols-12 gap-4 px-2 mb-2">
+                            <div className="col-span-5 text-[8px] font-black text-gray-400 uppercase">Combinaison</div>
+                            <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Prix (XOF)</div>
+                            <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Stock</div>
+                            <div className="col-span-1"></div>
+                          </div>
+                          {formData.variants?.map((variant, idx) => (
+                            <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-3 bg-white border border-gray-100 rounded-xl md:rounded-2xl shadow-sm hover:border-orange-100 transition-all group/variant">
+                              <div className="col-span-1 md:col-span-5 flex items-center">
+                                <div className="flex flex-wrap gap-1">
+                                  {variant.name.split(' / ').map((val, i) => (
+                                    <span key={i} className="text-[10px] font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{val}</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="col-span-1 md:col-span-3">
+                                <input
+                                  type="number"
+                                  value={variant.price}
+                                  onChange={e => {
+                                    const newVariants = [...formData.variants!];
+                                    newVariants[idx].price = parseFloat(e.target.value) || 0;
+                                    setFormData({ ...formData, variants: newVariants });
+                                  }}
+                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
+                                />
+                              </div>
+                              <div className="col-span-1 md:col-span-3">
+                                <input
+                                  type="number"
+                                  value={variant.stock}
+                                  onChange={e => {
+                                    const newVariants = [...formData.variants!];
+                                    newVariants[idx].stock = parseFloat(e.target.value) || 0;
+                                    setFormData({ ...formData, variants: newVariants });
+                                  }}
+                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
+                                />
+                              </div>
+                              <div className="col-span-1 flex items-center justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newVariants = formData.variants?.filter((_, i) => i !== idx);
+                                    setFormData({ ...formData, variants: newVariants });
+                                  }}
+                                  className="p-1 px-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Wholesale Section */}
                   {formData.businessType !== 'stay' && (
@@ -1391,14 +1388,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           className="hidden"
                           onChange={async (e) => {
                             const files = Array.from(e.target.files || []) as File[];
-                            
+
                             for (const file of files) {
                               try {
                                 // Optimisation : Compression + Resolution + WebP
                                 const optimizedFile = await optimizeImage(file);
                                 // Conversion en Base64 pour le stockage actuel
                                 const base64 = await fileToBase64(optimizedFile);
-                                
+
                                 setFormData(prev => {
                                   const newImages = [...prev.images, base64];
                                   return {
@@ -1501,25 +1498,25 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center text-[#f56b2a] mb-6 shadow-sm border border-orange-100 rotate-3">
                 <Award size={40} className="-rotate-3" />
               </div>
-              
+
               <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-2 leading-tight">
                 Limite de produits atteinte !
               </h3>
-              
+
               <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-8">
-                Vous avez atteint la limite de <span className="text-[#f56b2a] font-bold">{(subscription && SUBSCRIPTION_PLANS[subscription.tier]?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel. 
+                Vous avez atteint la limite de <span className="text-[#f56b2a] font-bold">{(subscription && SUBSCRIPTION_PLANS[subscription.tier]?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel.
                 <br className="hidden md:block" />
                 Passez à la formule <span className="font-bold text-slate-900 underline underline-offset-4 decoration-[#f56b2a]/30">Pro</span> pour continuer à développer votre inventaire.
               </p>
-              
+
               <div className="flex flex-col w-full gap-3">
                 <button
                   onClick={() => {
-                      // Navigate to subscription page
-                      const subLink = document.querySelector('[data-view-id="subscription"]');
-                      if (subLink) (subLink as HTMLElement).click();
-                      else window.location.href = '/dashboard?view=subscription'; 
-                      setShowLimitModal(false);
+                    // Navigate to subscription page
+                    const subLink = document.querySelector('[data-view-id="subscription"]');
+                    if (subLink) (subLink as HTMLElement).click();
+                    else window.location.href = '/dashboard?view=subscription';
+                    setShowLimitModal(false);
                   }}
                   className="w-full py-4 bg-[#f56b2a] text-white rounded-2xl font-black text-sm md:text-base hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center gap-2"
                 >
@@ -1533,7 +1530,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 </button>
               </div>
             </div>
-            
+
             {/* Minimal Background Decoration */}
             <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 bg-orange-50 rounded-full blur-3xl opacity-50 -z-10" />
             <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-48 h-48 bg-purple-50 rounded-full blur-3xl opacity-50 -z-10" />
@@ -1553,10 +1550,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 };
 
 // Internal component for Availability Management
-const AvailabilityModal: React.FC<{ 
-  product: Product, 
+const AvailabilityModal: React.FC<{
+  product: Product,
   onClose: () => void,
-  onUpdate: () => void 
+  onUpdate: () => void
 }> = ({ product, onClose, onUpdate }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -1600,7 +1597,7 @@ const AvailabilityModal: React.FC<{
           date: dateStr,
           is_available: isAvailable,
         }, { onConflict: 'product_id,date' });
-        
+
         if (error) throw error;
       }
 
@@ -1630,25 +1627,25 @@ const AvailabilityModal: React.FC<{
   // Calendar Logic
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
-  
+
   const monthData = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const totalDays = daysInMonth(year, month);
     const startDay = (firstDayOfMonth(year, month) + 6) % 7; // Adjust for Monday start
-    
+
     const days = [];
     for (let i = 0; i < startDay; i++) days.push(null);
     for (let i = 1; i <= totalDays; i++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const slot = slots.find(s => s.date === dateStr);
-        days.push({
-            day: i,
-            date: dateStr,
-            isAvailable: slot ? slot.is_available : true,
-            isBlocked: slot ? !slot.is_available : false,
-            hasBooking: slot?.booking_id ? true : false
-        });
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const slot = slots.find(s => s.date === dateStr);
+      days.push({
+        day: i,
+        date: dateStr,
+        isAvailable: slot ? slot.is_available : true,
+        isBlocked: slot ? !slot.is_available : false,
+        hasBooking: slot?.booking_id ? true : false
+      });
     }
     return days;
   }, [currentMonth, slots]);
@@ -1672,58 +1669,57 @@ const AvailabilityModal: React.FC<{
           {/* Pro Calendar Grid */}
           <div className="bg-gray-50/50 rounded-3xl p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-                <h4 className="text-sm font-black text-gray-900 border-l-4 border-[#f56b2a] pl-3 capitalize">{monthName}</h4>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                        className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                    <button 
-                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                        className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
-                    >
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
+              <h4 className="text-sm font-black text-gray-900 border-l-4 border-[#f56b2a] pl-3 capitalize">{monthName}</h4>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+                  className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+                  className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-7 gap-1.5">
-                {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
-                    <div key={d} className="text-[9px] font-black text-gray-400 uppercase text-center pb-2 tracking-tighter">{d}</div>
-                ))}
-                {monthData.map((d, i) => (
-                    <div key={i} className="aspect-square relative">
-                        {d ? (
-                            <button
-                                onClick={() => toggleDate(d.date, d.isAvailable)}
-                                className={`w-full h-full rounded-xl border flex flex-col items-center justify-center transition-all relative overflow-hidden group ${
-                                    d.hasBooking ? 'bg-orange-50 border-orange-200 cursor-default' : 
-                                    !d.isAvailable ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:border-[#f56b2a]/30'
-                                }`}
-                            >
-                                <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
-                                    {d.day}
-                                </span>
-                                {!d.isAvailable && !d.hasBooking && <div className="w-1 h-1 bg-red-400 rounded-full mt-0.5" />}
-                                {d.hasBooking && <span className="text-[6px] font-black uppercase text-orange-500 mt-0.5 leading-none">Occupe</span>}
-                            </button>
-                        ) : <div className="w-full h-full" />}
-                    </div>
-                ))}
+              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
+                <div key={d} className="text-[9px] font-black text-gray-400 uppercase text-center pb-2 tracking-tighter">{d}</div>
+              ))}
+              {monthData.map((d, i) => (
+                <div key={i} className="aspect-square relative">
+                  {d ? (
+                    <button
+                      onClick={() => toggleDate(d.date, d.isAvailable)}
+                      className={`w-full h-full rounded-xl border flex flex-col items-center justify-center transition-all relative overflow-hidden group ${d.hasBooking ? 'bg-orange-50 border-orange-200 cursor-default' :
+                          !d.isAvailable ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:border-[#f56b2a]/30'
+                        }`}
+                    >
+                      <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
+                        {d.day}
+                      </span>
+                      {!d.isAvailable && !d.hasBooking && <div className="w-1 h-1 bg-red-400 rounded-full mt-0.5" />}
+                      {d.hasBooking && <span className="text-[6px] font-black uppercase text-orange-500 mt-0.5 leading-none">Occupe</span>}
+                    </button>
+                  ) : <div className="w-full h-full" />}
+                </div>
+              ))}
             </div>
-            
+
             <div className="flex items-center gap-4 mt-6 pt-4 border-t border-gray-100/50 justify-center">
-                <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
-                    <div className="w-2.5 h-2.5 bg-white border border-gray-100 rounded-full" /> Disponible
-                </div>
-                <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
-                    <div className="w-2.5 h-2.5 bg-red-50 border border-red-100 rounded-full" /> Bloqué Manuel
-                </div>
-                <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
-                    <div className="w-2.5 h-2.5 bg-orange-50 border border-orange-200 rounded-full" /> Réservé (Client)
-                </div>
+              <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
+                <div className="w-2.5 h-2.5 bg-white border border-gray-100 rounded-full" /> Disponible
+              </div>
+              <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
+                <div className="w-2.5 h-2.5 bg-red-50 border border-red-100 rounded-full" /> Bloqué Manuel
+              </div>
+              <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
+                <div className="w-2.5 h-2.5 bg-orange-50 border border-orange-200 rounded-full" /> Réservé (Client)
+              </div>
             </div>
           </div>
 
@@ -1731,31 +1727,31 @@ const AvailabilityModal: React.FC<{
           <div className="space-y-4">
             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Actions Rapides</h4>
             <div className="bg-white p-5 rounded-3xl border border-gray-100 space-y-5 shadow-sm">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Blocage Du</label>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
-                    </div>
-                    <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Au</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
-                    </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Blocage Du</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
                 </div>
-
-                <div className="flex gap-4">
-                    <button onClick={() => setIsAvailable(true)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${isAvailable ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
-                        <CheckCircle2 size={18} />
-                        <span className="text-[9px] font-black uppercase">Ouvrir</span>
-                    </button>
-                    <button onClick={() => setIsAvailable(false)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${!isAvailable ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-100 text-gray-400'}`}>
-                        <X size={18} />
-                        <span className="text-[9px] font-black uppercase">Fermer</span>
-                    </button>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Au</label>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
                 </div>
+              </div>
 
-                <Button fullWidth onClick={handleSave} loading={isSubmitting} disabled={!startDate || !endDate}>
-                    Appliquer le changement
-                </Button>
+              <div className="flex gap-4">
+                <button onClick={() => setIsAvailable(true)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${isAvailable ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
+                  <CheckCircle2 size={18} />
+                  <span className="text-[9px] font-black uppercase">Ouvrir</span>
+                </button>
+                <button onClick={() => setIsAvailable(false)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${!isAvailable ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-100 text-gray-400'}`}>
+                  <X size={18} />
+                  <span className="text-[9px] font-black uppercase">Fermer</span>
+                </button>
+              </div>
+
+              <Button fullWidth onClick={handleSave} loading={isSubmitting} disabled={!startDate || !endDate}>
+                Appliquer le changement
+              </Button>
             </div>
           </div>
         </div>
