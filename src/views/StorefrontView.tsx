@@ -84,31 +84,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         setToastNotifications(prev => [...prev, { id, message, type, title }]);
     }, []);
 
-    const [isNavigating, setIsNavigating] = useState(false);
-    const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
-    const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
-    const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
-    const prevPathRef = useRef(location.pathname);
 
-    // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
-    const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
-        setIsNavigating(true);
-        if (options?.action) options.action();
-        
-        setTimeout(() => {
-            navigate(path);
-        }, 300);
-    }, [navigate]);
-
-    // 🔄 Reset all loading states when the route actually changes
-    useEffect(() => {
-        if (prevPathRef.current !== location.pathname) {
-            setIsNavigating(false);
-            setIsCartButtonLoading(false);
-            setIsCheckoutTransitioning(false);
-            prevPathRef.current = location.pathname;
-        }
-    }, [location.pathname]);
 
     const removeToast = useCallback((id: string) => {
         setToastNotifications(prev => prev.filter(n => n.id !== id));
@@ -281,6 +257,49 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     }, [selectedStoreId, activeStores]);
 
     const [checkoutStage, setCheckoutStage] = useState<'cart' | 'shipping' | 'payment' | 'success'>('cart');
+
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
+    const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
+    const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
+    const prevPathRef = useRef(location.pathname);
+
+    // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
+    const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
+        // Run any cleanup action first
+        if (options?.action) options.action();
+        
+        // If navigating to the current path, skip the global overlay to avoid blocking bugs
+        if (location.pathname === path) {
+            navigate(path);
+            return;
+        }
+
+        setIsNavigating(true);
+        setTimeout(() => {
+            navigate(path);
+        }, 300);
+    }, [navigate, location.pathname]);
+
+    // 🔄 Smooth Checkout Stage Transitions
+    const handleStageChange = useCallback((newStage: typeof checkoutStage) => {
+        setIsNavigating(true);
+        setTimeout(() => {
+            setCheckoutStage(newStage);
+            // Since pathname might not change (SPA step), manually reset after short delay or instantly
+            setTimeout(() => setIsNavigating(false), 300);
+        }, 300);
+    }, [checkoutStage]);
+
+    // 🔄 Reset all loading states when the route actually changes
+    useEffect(() => {
+        if (prevPathRef.current !== location.pathname) {
+            setIsNavigating(false);
+            setIsCartButtonLoading(false);
+            setIsCheckoutTransitioning(false);
+            prevPathRef.current = location.pathname;
+        }
+    }, [location.pathname]);
     const [lastAddedProduct, setLastAddedProduct] = useState<StorefrontProduct | null>(null);
     const [cartNotif, setCartNotif] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -986,7 +1005,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     const handleCheckoutSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (checkoutStage === 'shipping') setCheckoutStage('payment');
+        if (checkoutStage === 'shipping') handleStageChange('payment');
         else if (checkoutStage === 'payment') {
             if (isProcessingPayment) return;
 
@@ -2186,14 +2205,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         {checkoutStage === 'shipping' ? 'Passer au paiement' : 'Confirmer la commande'}
                                     </Button>
                                     <Button
-                                        onClick={() => {
-                                          setIsCheckoutTransitioning(true);
-                                          setTimeout(() => {
-                                            setCheckoutStage(checkoutStage === 'shipping' ? 'cart' : 'shipping');
-                                            setIsCheckoutTransitioning(false);
-                                          }, 300);
-                                        }}
-                                        loading={isCheckoutTransitioning}
+                                        onClick={() => handleStageChange(checkoutStage === 'shipping' ? 'cart' : 'shipping')}
+                                        loading={isNavigating}
                                         variant="ghost"
                                         size="sm"
                                         fullWidth
@@ -2461,7 +2474,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                 <div className="fixed inset-0 z-[1000] bg-white animate-in fade-in duration-300 flex flex-col">
                     <div className="p-4 border-b border-gray-100 flex items-center gap-3">
                         <button 
-                            onClick={() => safeNavigate('/')}
+                            onClick={() => setIsSearchOpen(false)}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
                          aria-label="Fermer la recherche">
                             <ChevronLeft size={24} />
@@ -3098,7 +3111,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             </main>
 
             {cartItemsCount > 0 && !isCartView && !isFeedView && (
-                <div className="fixed left-4 right-4 z-[201] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)' }}>
+                <div className="fixed left-4 right-4 z-[201] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 20px)' }}>
                     <button
                         onClick={() => {
                             setIsCartButtonLoading(true);
