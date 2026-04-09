@@ -474,6 +474,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [buyerDataCache, setBuyerDataCache] = useState<any>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   // Load cached buyer data on mount
   useEffect(() => {
@@ -489,8 +490,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       localStorage.setItem("buyer_data_cache", JSON.stringify(newData));
     } catch (e) {}
   }, []);
-    Record<string, string>
-  >({});
 
   // Carousel auto-play
   React.useEffect(() => {

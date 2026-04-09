@@ -30,7 +30,7 @@ interface BuyerViewProps {
   onUpdateCache?: (data: any) => void;
 }
 
-type TabType = 'orders' | 'addresses' | 'reviews' | 'settings';
+type TabType = 'orders' | 'addresses' | 'reviews' | 'profile';
 
 export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
@@ -187,12 +187,12 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     try {
       const res = await saveBuyerAddressAction(data);
       if (res.success) {
-        notify('Adresse enregistrée', 'success');
+        notify?.('Adresse enregistrée', 'success');
         setShowAddressModal(false);
         loadData();
       } else {
         console.error('Save address error:', res.error);
-        notify(res.error || 'Erreur', 'error');
+        notify?.(res.error || 'Erreur', 'error');
       }
     } finally {
       setIsSavingAddress(false);
@@ -207,7 +207,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     if (confirm('Supprimer cette adresse ?')) {
       const res = await deleteBuyerAddressAction(id);
       if (res.success) {
-        notify('Adresse supprimée', 'info');
+        notify?.('Adresse supprimée', 'info');
         loadData();
       } else {
         console.error('Delete address error:', res.error);
