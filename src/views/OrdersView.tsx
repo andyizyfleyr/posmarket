@@ -477,7 +477,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                 <div className="flex-grow min-w-0">
                                                     <div className="text-xs md:text-sm font-black text-gray-900 truncate">{item.product.name}</div>
                                                     <div className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                                        {item.quantity} {item.product.unit || 'unité(s)'}
+                                                        {item.quantity} {item.product.businessType === 'stay' ? 'nuit(s)' : (item.product.unit || 'unité(s)')}
                                                     </div>
                                                     
                                                     {/* Booking Details for Merchant */}
@@ -497,6 +497,10 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                                     </span>
                                                                 </div>
                                                             )}
+                                                            <div className="mt-1 pt-1 border-t border-blue-100/50 flex justify-between items-center">
+                                                                <span className="text-[8px] font-bold text-blue-400 uppercase">Total Nuitées</span>
+                                                                <span className="text-[10px] font-black text-blue-700">{item.quantity} nuits x {formatCurrency(item.product.price)}</span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
