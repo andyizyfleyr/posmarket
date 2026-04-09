@@ -95,7 +95,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
           disabled={!!(product as any).currentBooking}
           className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
             (product as any).currentBooking
-              ? 'bg-orange-50 text-orange-600 border-orange-100 cursor-not-allowed uppercase'
+              ? 'bg-orange-600 text-white border-orange-600 cursor-not-allowed uppercase !opacity-100 shadow-none'
               : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
           }`}
         >

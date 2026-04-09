@@ -2696,7 +2696,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         isFood
                           ? "bg-green-600 hover:bg-green-700"
                           : isStay
-                            ? `${selectedProductDetails.currentBooking ? 'bg-orange-50 text-orange-600 border-orange-200 cursor-not-allowed shadow-none uppercase' : 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100'}`
+                            ? `${selectedProductDetails.currentBooking ? 'bg-orange-600 text-white border-none cursor-not-allowed shadow-none uppercase !opacity-100' : 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100'}`
                             : ""
                       }
                       icon={
