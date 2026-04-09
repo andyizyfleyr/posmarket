@@ -403,6 +403,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     const fusionPayApiUrl = process.env.NEXT_PUBLIC_FUSIONPAY_API_URL || '';
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+    const [isProcessingAuth, setIsProcessingAuth] = useState(false);
     const [pendingOrderData, setPendingOrderData] = useState<Record<string, any> | null>(null);
     const [pendingCustomerInfo, setPendingCustomerInfo] = useState<any>(null);
 
@@ -519,7 +522,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     const handleAuthSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsProcessingPayment(true); // Reuse loading state for auth
+        setIsProcessingAuth(true);
         
         try {
             if (authMode === 'register') {
@@ -545,7 +548,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         } catch (err: any) {
             notify(err.message || 'Erreur d\'authentification', 'error');
         } finally {
-            setIsProcessingPayment(false);
+            setIsProcessingAuth(false);
         }
     };
 
@@ -938,20 +941,26 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const cartTotal = baseCartTotal - discountAmount + shippingCost;
     const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-    const handlePromoApply = () => {
+    const handlePromoApply = async () => {
         console.log('handlePromoApply called', { promoCodeInput, coupons });
         const inputCode = promoCodeInput.trim().toUpperCase();
+        setIsApplyingPromo(true);
 
-        const matchedCoupon = coupons.find(c => c.code === inputCode && c.active);
+        try {
+            await new Promise(r => setTimeout(r, 600)); // Dynamic feel
+            const matchedCoupon = coupons.find(c => c.code === inputCode && c.active);
 
-        if (matchedCoupon) {
-            setPromoApplied({ ...matchedCoupon });
-            setPromoCodeInput('');
-            localNotify(`Code promo appliqué: ${matchedCoupon.discount_pct}% de réduction!`, 'success');
-        } else if (coupons.length === 0) {
-            localNotify('Aucun code promo disponible pour cette boutique.', 'error');
-        } else {
-            localNotify('Ce code promo n\'existe pas pour cette boutique.', 'error');
+            if (matchedCoupon) {
+                setPromoApplied({ ...matchedCoupon });
+                setPromoCodeInput('');
+                localNotify(`Code promo appliqué: ${matchedCoupon.discount_pct}% de réduction!`, 'success');
+            } else if (coupons.length === 0) {
+                localNotify('Aucun code promo disponible pour cette boutique.', 'error');
+            } else {
+                localNotify('Ce code promo n\'existe pas pour cette boutique.', 'error');
+            }
+        } finally {
+            setIsApplyingPromo(false);
         }
     };
 
@@ -988,9 +997,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
             if (paymentMethod === 'card') {
                 setIsProcessingPayment(true);
-                setPendingOrderData(ordersData);
-                setPendingCustomerInfo({ ...customerInfo, address: `${customerInfo.address}, ${customerInfo.city}` });
-                const totalAmount = Object.values(ordersData).reduce((sum: number, order: any) => sum + order.total, 0);
                 initiateFusionPayPayment(
                     Math.round(totalAmount),
                     'Commande sur ' + (stores[0]?.name || 'POS Pro'),
@@ -1000,9 +1006,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     }
                 );
             } else {
+                setIsProcessingPayment(true);
                 (async () => {
-                    const response = await onMarketplaceCheckout(ordersData, { ...customerInfo, address: `${customerInfo.address}, ${customerInfo.city}` });
-                    if (response?.success) {
+                    try {
+                        const response = await onMarketplaceCheckout(ordersData, { ...customerInfo, address: `${customerInfo.address}, ${customerInfo.city}` });
+                        if (response?.success) {
                         playSuccessSound();
 
                         const storeMap: Record<string, { storeId: string, storeName: string, products: Array<{ id: string, name: string, image: string }> }> = {};
@@ -1033,6 +1041,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     };
 
     const handleSubmitReview = async () => {
+        setIsSubmittingReview(true);
         const reviewToSubmit = {
             id: `rev-${Date.now()}`,
             author: newReview.author || 'Anonyme',
@@ -1070,6 +1079,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
         } catch (error) {
             localNotify('Une erreur est survenue lors de l\'envoi de votre avis.', 'error');
             console.error('Review submission error:', error);
+        } finally {
+            setIsSubmittingReview(false);
         }
     };
 
@@ -2079,6 +2090,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <Button
                                         onClick={handlePromoApply}
                                         disabled={!promoCodeInput.trim()}
+                                        loading={isApplyingPromo}
+                                        loadingText="Vérification..."
                                         variant="secondary"
                                         size="sm"
                                     >
@@ -3087,12 +3100,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     />
                                 </div>
 
-                                <button
+                                <Button
                                     type="submit"
-                                    className="w-full py-3 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-xl font-black text-base shadow-lg shadow-orange-100 transition-all mt-2"
+                                    loading={isProcessingAuth}
+                                    loadingText={authMode === 'login' ? 'Connexion...' : 'Inscription...'}
+                                    fullWidth
+                                    size="lg"
+                                    className="mt-2"
                                 >
                                     {authMode === 'login' ? 'Se connecter' : 'Créer mon compte'}
-                                </button>
+                                </Button>
                             </form>
 
                             <div className="mt-6 pt-6 border-t border-gray-50 text-center">
@@ -3310,19 +3327,27 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                     <p className="text-[9px] text-gray-500 font-medium mb-5">{newReview.comment.length}/500 caractères</p>
 
                                     <div className="flex gap-3">
-                                        <button
+                                        <Button
                                             onClick={() => setReviewStep(2)}
-                                            className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-2xl font-bold text-xs hover:bg-gray-200 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                                            variant="ghost"
+                                            size="md"
+                                            className="flex-1"
+                                            icon={<ChevronLeft size={14} />}
                                         >
-                                            <ChevronLeft size={14} /> Retour
-                                        </button>
-                                        <button
-                                            onClick={() => handleSubmitReview()}
+                                            Retour
+                                        </Button>
+                                        <Button
+                                            onClick={handleSubmitReview}
                                             disabled={!newReview.comment.trim()}
-                                            className="flex-[2] py-3.5 bg-[#f56b2a] text-white rounded-2xl font-bold text-xs hover:bg-[#d55a20] transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-orange-100"
+                                            loading={isSubmittingReview}
+                                            loadingText="Publication..."
+                                            variant="primary"
+                                            size="md"
+                                            className="flex-[2]"
+                                            icon={<Star size={14} />}
                                         >
-                                            <Star size={14} /> Publier mon avis
-                                        </button>
+                                            Publier mon avis
+                                        </Button>
                                     </div>
                                 </div>
                             )}

@@ -45,6 +45,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product: null as any });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isDeletingAddress, setIsDeletingAddress] = useState(false);
 
   useEffect(() => {
     if (userEmail) {
@@ -132,6 +134,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
   const handleSaveAddress = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSavingAddress(true);
     const formData = new FormData(e.currentTarget);
     const data = {
       id: editingAddress?.id,
@@ -143,14 +146,18 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       isDefault: formData.get('isDefault') === 'on'
     };
 
-    const res = await saveBuyerAddressAction(data);
-    if (res.success) {
-      notify('Adresse enregistrée', 'success');
-      setShowAddressModal(false);
-      loadData();
-    } else {
-      console.error('Save address error:', res.error);
-      notify(res.error || 'Erreur', 'error');
+    try {
+      const res = await saveBuyerAddressAction(data);
+      if (res.success) {
+        notify('Adresse enregistrée', 'success');
+        setShowAddressModal(false);
+        loadData();
+      } else {
+        console.error('Save address error:', res.error);
+        notify(res.error || 'Erreur', 'error');
+      }
+    } finally {
+      setIsSavingAddress(false);
     }
   };
 
@@ -526,7 +533,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
                 <div className="flex gap-3 pt-2 shrink-0">
                     <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} fullWidth>Annuler</Button>
-                    <Button type="submit" loading={internalLoading} fullWidth className="flex-[2]">Enregistrer</Button>
+                    <Button type="submit" loading={isSavingAddress} fullWidth className="flex-[2]">Enregistrer</Button>
                 </div>
             </form>
           </div>
