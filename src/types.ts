@@ -67,6 +67,10 @@ export interface CartItem {
   id?: string;
   product: Product;
   quantity: number;
+  // Booking specific info
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
 }
 
 export interface Customer {

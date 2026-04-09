@@ -14,6 +14,11 @@ export const saveProduct = async (product: Partial<Product>, storeId: string) =>
         main_category: product.mainCategory,
         unit: product.unit,
         description: product.description,
+        amenities: product.amenities || [],
+        max_guests: product.maxGuests,
+        bedrooms: product.bedrooms,
+        location: product.location,
+        business_type: product.businessType || 'shopping',
         options: product.options || [],
         variants: product.variants || []
     };
@@ -127,6 +132,16 @@ export const createOrder = async (order: Order, storeId: string) => {
 
     console.log(`[API] Attempting to create order for store ${storeId}...`, cleanOrderData);
 
+    // 0. CHECK AVAILABILITY AGAIN FOR STAYS (Anti-conflict)
+    for (const item of order.items) {
+        if (item.product.businessType === 'stay' && item.checkIn && item.checkOut) {
+            const isRangeStillAvailable = await checkDateRangeAvailable(item.product.id, item.checkIn, item.checkOut);
+            if (!isRangeStillAvailable) {
+                throw new Error(`Désolé, les dates sélectionnées pour "${item.product.name}" ne sont plus disponibles.`);
+            }
+        }
+    }
+
     // 1. Create Order
     const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -145,7 +160,10 @@ export const createOrder = async (order: Order, storeId: string) => {
         order_id: orderData.id,
         product_id: item.product.id,
         quantity: item.quantity,
-        price: item.product.price
+        price: item.product.price,
+        check_in: item.checkIn,
+        check_out: item.checkOut,
+        guests: item.guests
     }));
 
     const { error: itemsError } = await supabase
@@ -158,23 +176,36 @@ export const createOrder = async (order: Order, storeId: string) => {
     }
     console.log('[API] Order items created.');
 
-    // 3. Update Product Stocks
+    // 3. Update Product Stocks / Block Availability for Stays
     for (const item of order.items) {
         try {
-            const { error: stockError } = await supabase.rpc('decrement_stock', {
-                p_id: item.product.id,
-                p_quantity: item.quantity
-            });
+            if (item.product.businessType === 'stay' && item.checkIn && item.checkOut) {
+                // Block availability slots
+                const dates = [];
+                let curr = new Date(item.checkIn);
+                const end = new Date(item.checkOut);
+                while (curr < end) {
+                    dates.push(curr.toISOString().split('T')[0]);
+                    curr.setDate(curr.getDate() + 1);
+                }
+                await updateAvailability(item.product.id, dates, false, orderData.id);
+            } else {
+                // Standard stock decrement
+                const { error: stockError } = await supabase.rpc('decrement_stock', {
+                    p_id: item.product.id,
+                    p_quantity: item.quantity
+                });
 
-            if (stockError) {
-                console.warn('[API] RPC decrement_stock failed, trying manual update:', stockError.message);
-                const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
-                if (pData) {
-                    await supabase.from('products').update({ stock: Math.max(0, pData.stock - item.quantity) }).eq('id', item.product.id);
+                if (stockError) {
+                    console.warn('[API] RPC decrement_stock failed, trying manual update:', stockError.message);
+                    const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
+                    if (pData) {
+                        await supabase.from('products').update({ stock: Math.max(0, pData.stock - item.quantity) }).eq('id', item.product.id);
+                    }
                 }
             }
         } catch (e) {
-            console.error('[API] Stock update failed:', e);
+            console.error('[API] Stock/Availability update failed:', e);
         }
     }
 
@@ -477,4 +508,58 @@ export const updateSubscription = async (userId: string, subscription: UserSubsc
         .eq('id', userId);
 
     if (error) throw error;
+};
+
+// --- STAY / AIRBNB AVAILABILITY ENGINE ---
+
+/**
+ * Get availability for a specific listing within a date range
+ */
+export const getProductAvailability = async (productId: string, startDate: string, endDate: string) => {
+    const { data, error } = await supabase
+        .from('availability_slots')
+        .select('*')
+        .eq('product_id', productId)
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+    if (error) throw error;
+    return data;
+};
+
+/**
+ * Block dates for a listing (Hôte manual block or Booking)
+ */
+export const updateAvailability = async (productId: string, dates: string[], isAvailable: boolean, bookingId?: string) => {
+    const records = dates.map(date => ({
+        product_id: productId,
+        date,
+        is_available: isAvailable,
+        booking_id: bookingId
+    }));
+
+    const { error } = await supabase
+        .from('availability_slots')
+        .upsert(records, { onConflict: 'product_id,date' });
+
+    if (error) throw error;
+};
+
+/**
+ * Check if a range of dates is fully available
+ */
+export const checkDateRangeAvailable = async (productId: string, startDate: string, endDate: string) => {
+    // 1. Get all slots in range that are NOT available
+    const { data, error } = await supabase
+        .from('availability_slots')
+        .select('date')
+        .eq('product_id', productId)
+        .eq('is_available', false)
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+    if (error) throw error;
+    
+    // If we found any blocked slots, it's not available
+    return data.length === 0;
 };

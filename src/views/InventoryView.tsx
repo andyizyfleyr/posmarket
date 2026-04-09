@@ -865,6 +865,41 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm"
                         />
                       </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-blue-600 uppercase mb-2">Équipements (Amenities)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'wifi', label: 'Wi-Fi', icon: '📶' },
+                            { id: 'ac', label: 'Climatisation', icon: '❄️' },
+                            { id: 'pool', label: 'Piscine', icon: '🏊' },
+                            { id: 'generator', label: 'Groupe Électrogène', icon: '⚡' },
+                            { id: 'kitchen', label: 'Cuisine', icon: '🍳' },
+                            { id: 'security', label: 'Gardiennage', icon: '🛡️' },
+                            { id: 'canalplus', label: 'Canal+', icon: '📡' },
+                            { id: 'cleaning', label: 'Ménage', icon: '🧹' }
+                          ].map(amenity => (
+                            <button
+                              key={amenity.id}
+                              type="button"
+                              onClick={() => {
+                                const current = formData.amenities || [];
+                                const next = current.includes(amenity.id) 
+                                  ? current.filter(id => id !== amenity.id)
+                                  : [...current, amenity.id];
+                                setFormData({ ...formData, amenities: next });
+                              }}
+                              className={`flex items-center gap-2 p-2 rounded-xl border text-[10px] font-bold transition-all ${
+                                (formData.amenities || []).includes(amenity.id)
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                  : 'bg-white text-gray-600 border-blue-100 hover:border-blue-300'
+                              }`}
+                            >
+                              <span>{amenity.icon}</span>
+                              <span>{amenity.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
