@@ -27,7 +27,9 @@ import {
   Zap,
   Clock,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  Users,
+  Home
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { SUBSCRIPTION_PLANS } from '@/constants';
