@@ -21,26 +21,27 @@ export async function fetchStores() {
   return { success: true, stores }
 }
 
-export async function fetchStoreData(storeId: string) {
+export async function fetchStoreData(storeId: string, ownerId?: string) {
   const supabase = await createClient()
   
   // Paralléliser les requêtes côté serveur avec gestion d'erreur robuste et retries
-  const [productsRes, ordersRes, customersRes, invoicesRes, storeRes, statsRes, profileRes, availabilitySlotsRes]: any[] = await Promise.all([
+  const [productsRes, ordersRes, customersRes, invoicesRes, storeRes, statsRes, availabilitySlotsRes, profileRes]: any[] = await Promise.all([
     safeSupabaseFetch(() => supabase.from('products').select('*').eq('store_id', storeId).limit(200)),
     safeSupabaseFetch(() => supabase.from('orders').select('*, order_items(*, product:products(*)), customer:customers(*)').eq('store_id', storeId).order('date', { ascending: false }).limit(100)),
     safeSupabaseFetch(() => supabase.from('customers').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).limit(100)),
     (async () => { try { return await safeSupabaseFetch(() => supabase.from('invoices').select('*').eq('store_id', storeId).limit(100)); } catch { return { data: [] }; } })(),
     safeSupabaseFetch(() => supabase.from('stores').select('*').eq('id', storeId).single()),
     (async () => { try { return await safeSupabaseFetch(() => supabase.from('product_stats').select('*').eq('store_id', storeId)); } catch { return { data: [] }; } })(),
-    (async () => {
-      const { data: store } = await (await createClient()).from('stores').select('user_id').eq('id', storeId).maybeSingle();
-      if (store) {
-        return await safeSupabaseFetch(() => (createClient()).then(s => s.from('profiles').select('*').eq('id', store.user_id).single()));
-      }
-      return { data: null };
-    })(),
-    safeSupabaseFetch(() => supabase.from('availability_slots').select('*, product:products!inner(store_id)').eq('product.store_id', storeId).gte('date', new Date().toISOString().split('T')[0]))
+    safeSupabaseFetch(() => supabase.from('availability_slots').select('*, product:products!inner(store_id)').eq('product.store_id', storeId).gte('date', new Date().toISOString().split('T')[0])),
+    ownerId ? safeSupabaseFetch(() => supabase.from('profiles').select('*').eq('id', ownerId).single()) : Promise.resolve({ data: null })
   ])
+
+  let profileData = profileRes?.data;
+  if (!profileData && storeRes.data?.user_id) {
+    // Fallback if ownerId wasn't passed but we got it from store
+    const { data: p } = await safeSupabaseFetch(() => supabase.from('profiles').select('*').eq('id', storeRes.data.user_id).single());
+    profileData = p;
+  }
 
   const statsMap = Object.fromEntries((statsRes?.data || []).map((s: any) => [s.product_id, s]));
   const slotsData = availabilitySlotsRes?.data || [];
@@ -124,12 +125,12 @@ export async function fetchStoreData(storeId: string) {
     customers: customers as any[],
     invoices: invoicesRes.data || [],
     store: storeRes.data || null,
-    subscription: profileRes?.data ? {
-      tier: profileRes.data.subscription_tier || 'BASIC',
-      duration: profileRes.data.subscription_duration || 'monthly',
-      status: profileRes.data.subscription_status || 'ACTIVE',
-      startDate: profileRes.data.subscription_start_date || new Date().toISOString(),
-      endDate: profileRes.data.subscription_end_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+    subscription: profileData ? {
+      tier: profileData.subscription_tier || 'BASIC',
+      duration: profileData.subscription_duration || 'monthly',
+      status: profileData.subscription_status || 'ACTIVE',
+      startDate: profileData.subscription_start_date || new Date().toISOString(),
+      endDate: profileData.subscription_end_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
     } : null,
     errors: {
       products: productsRes.error,

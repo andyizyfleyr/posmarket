@@ -24,18 +24,20 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 interface BuyerViewProps {
   userEmail: string;
   onBack: () => void;
-  notify: (msg: string, type: NotificationType) => void;
+  notify?: (message: string, type: 'success' | 'error' | 'info' | 'warning', title?: string) => void;
   onLogout: () => void;
+  cachedData?: any;
+  onUpdateCache?: (data: any) => void;
 }
 
-type TabType = 'orders' | 'addresses' | 'profile' | 'reviews';
+type TabType = 'orders' | 'addresses' | 'reviews' | 'settings';
 
-export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout }) => {
+export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [addresses, setAddresses] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<any[]>(cachedData?.orders || []);
+  const [addresses, setAddresses] = useState<any[]>(cachedData?.addresses || []);
+  const [reviews, setReviews] = useState<any[]>(cachedData?.reviews || []);
+  const [loading, setLoading] = useState(!cachedData);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
 
@@ -121,7 +123,15 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     } finally {
       setLoading(false);
       setInternalLoading(false);
-      // We don't reset isSlowConnection to false immediately so the tip stays visible if it was slow
+      
+      // Update cache
+      if (onUpdateCache) {
+        onUpdateCache({
+            orders: forceAll ? orders : (activeTab === 'orders' ? orders : cachedData?.orders),
+            addresses: forceAll ? addresses : (activeTab === 'addresses' ? addresses : cachedData?.addresses),
+            reviews: forceAll ? reviews : (activeTab === 'reviews' ? reviews : cachedData?.reviews)
+        });
+      }
     }
 
   };

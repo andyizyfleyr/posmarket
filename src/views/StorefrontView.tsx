@@ -473,7 +473,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [cartNotif, setCartNotif] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<
+  const [buyerDataCache, setBuyerDataCache] = useState<any>(null);
+
+  // Load cached buyer data on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("buyer_data_cache");
+      if (saved) setBuyerDataCache(JSON.parse(saved));
+    } catch (e) {}
+  }, []);
+
+  const updateBuyerCache = useCallback((newData: any) => {
+    setBuyerDataCache(newData);
+    try {
+      localStorage.setItem("buyer_data_cache", JSON.stringify(newData));
+    } catch (e) {}
+  }, []);
     Record<string, string>
   >({});
 
@@ -3680,6 +3695,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             onBack={() => setIsAccountView(false)}
             notify={notify}
             onLogout={handleLogout}
+            cachedData={buyerDataCache}
+            onUpdateCache={updateBuyerCache}
           />
         </div>
       )}

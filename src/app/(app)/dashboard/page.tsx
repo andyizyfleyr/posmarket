@@ -16,10 +16,7 @@ export default async function DashboardPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, orders, customers, store } = await fetchStoreData(storeId);
-  const { data: profile } = await safeSupabaseFetch<any>(
-    () => supabase.from('profiles').select('*').eq('id', user.id).single()
-  );
+  const { products, orders, customers, store } = await fetchStoreData(storeId, user.id);
   const { permissions, role } = await getPermissionsForUser(supabase, user.id, storeId);
 
   return (
@@ -28,7 +25,7 @@ export default async function DashboardPage() {
       orders={orders as any} 
       customers={customers as any} 
       store={store}
-      userName={profile?.full_name || user.email?.split('@')[0]}
+      userName={store?.name || user.email?.split('@')[0]}
       userRole={role as any}
       permissions={permissions as any}
     />
