@@ -83,6 +83,19 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
   const isSeller = userRole === 'SELLER';
   const totalStock = useMemo(() => (products || []).reduce((s, p) => s + p.stock, 0), [products]);
 
+  // Helper : détecte le vertical d'un produit (gère les deux conventions snake_case / camelCase)
+  const getVertical = (product: any): string => {
+    if (!product) return 'shopping';
+    // Champ direct
+    const bt = product.businessType || product.business_type;
+    if (bt) return bt;
+    // Fallback via la catégorie principale
+    const mc = product.mainCategory || product.main_category;
+    if (mc === 'Restauration & Livraison Rapide') return 'food';
+    if (mc === 'Séjours, Expériences & Immobilier') return 'stay';
+    return 'shopping';
+  };
+
   // Enhanced Metrics based on selected date range
   const filteredMetrics = useMemo(() => {
     const parseLocal = (dStr: string) => {
@@ -106,10 +119,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
       if (!inDateRange) return false;
       
       if (selectedVertical === 'all') return true;
-      const vertical = o.items?.[0]?.product?.businessType || 
-                      (o.items?.[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
-                       o.items?.[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
-      return vertical === selectedVertical;
+      return getVertical(o.items?.[0]?.product) === selectedVertical;
     });
 
     const prevFinalOrders = orders.filter(o => {
@@ -118,10 +128,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
       if (!inDateRange) return false;
 
       if (selectedVertical === 'all') return true;
-      const vertical = o.items?.[0]?.product?.businessType || 
-                      (o.items?.[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
-                       o.items?.[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
-      return vertical === selectedVertical;
+      return getVertical(o.items?.[0]?.product) === selectedVertical;
     });
 
     const currentRev = currentFinalOrders.reduce((sum, o) => sum + o.total, 0);
@@ -283,8 +290,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         const match = (p.views || 0) > 0;
         if (!match) return false;
         if (selectedVertical === 'all') return true;
-        const vertical = p.businessType || (p.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : p.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
-        return vertical === selectedVertical;
+        return getVertical(p) === selectedVertical;
       })
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 5);
@@ -313,8 +319,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         const match = p.salesCount > 0;
         if (!match) return false;
         if (selectedVertical === 'all') return true;
-        const vertical = p.businessType || (p.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : p.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
-        return vertical === selectedVertical;
+        return getVertical(p) === selectedVertical;
       })
       .sort((a, b) => b.salesCount - a.salesCount)
       .slice(0, 5);
