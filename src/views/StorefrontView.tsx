@@ -1289,7 +1289,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         return;
       }
       // With dates: skip cart and go to shipping (checkout)
-      handleStageChange('shipping');
+      safeNavigate('/cart');
+      setTimeout(() => setCheckoutStage('shipping'), 800);
       return;
     }
 
