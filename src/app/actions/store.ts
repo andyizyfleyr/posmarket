@@ -109,7 +109,9 @@ export async function fetchStoreData(storeId: string, ownerId?: string) {
       product: oi.product,
       quantity: oi.quantity,
       unitPrice: oi.unit_price,
-      total: oi.total
+      total: oi.total,
+      checkIn: oi.check_in,
+      checkOut: oi.check_out
     }))
   }));
 

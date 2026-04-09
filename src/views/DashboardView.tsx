@@ -138,11 +138,38 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
 
     const totalTraffic = (store?.views || 0) + (products || []).reduce((sum, p) => sum + (p.views || 0), 0);
 
+    // 🏨 Calcul des nuits réservées pour les boutiques de type 'stay'
+    const calcNights = (ordersList: Order[]) => {
+      let totalNights = 0;
+      ordersList.forEach(o => {
+        (o.items || []).forEach((item: any) => {
+          const ci = item.checkIn || item.check_in;
+          const co = item.checkOut || item.check_out;
+          if (ci && co) {
+            const nights = Math.max(1, Math.round((new Date(co).getTime() - new Date(ci).getTime()) / (1000 * 60 * 60 * 24)));
+            totalNights += nights;
+          }
+        });
+      });
+      return totalNights;
+    };
+
+    const isStayStore = store?.business_type === 'stay';
+    const currentNights = isStayStore ? calcNights(currentFinalOrders) : 0;
+    const prevNights = isStayStore ? calcNights(prevFinalOrders) : 0;
+    const nightsTrendValue = prevNights === 0 ? (currentNights > 0 ? 100 : 0) : Math.round(((currentNights - prevNights) / prevNights) * 100);
+    const pricePerNight = currentNights > 0 ? currentRev / currentNights : 0;
+    const prevPricePerNight = prevNights > 0 ? prevRev / prevNights : 0;
+    const ppnTrendValue = prevPricePerNight === 0 ? (pricePerNight > 0 ? 100 : 0) : Math.round(((pricePerNight - prevPricePerNight) / prevPricePerNight) * 100);
+
     return {
       revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
       orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
       basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
-      traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' }
+      traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' },
+      // Stats spécifiques 'stay'
+      nights: { current: currentNights, trend: nightsTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(nightsTrendValue) },
+      pricePerNight: { current: pricePerNight, trend: ppnTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(ppnTrendValue) },
     };
   }, [orders, products, store, startDate, endDate, selectedVertical]);
 
@@ -264,7 +291,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
   }, [products, selectedVertical]);
 
   const topSelling = useMemo(() => {
-    // Calculate total sales from the orders list for better accuracy
+    // Calculer les ventes UNIQUEMENT à partir des commandes réelles
+    // (p.salesCount vient de product_stats qui reflète déjà ces mêmes orders — ne pas additionner les deux)
     const salesMap: Record<string, number> = {};
     (orders || []).forEach(order => {
       (order.items || []).forEach((item: any) => {
@@ -278,8 +306,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     return [...products]
       .map(p => ({
         ...p,
-        // Override salesCount with the one calculated from actual orders
-        salesCount: (salesMap[p.id] || 0) + (p.salesCount || 0) 
+        // Utiliser les ventes calculées depuis les orders si disponibles, sinon fallback vers product_stats
+        salesCount: salesMap[p.id] || p.salesCount || 0
       }))
       .filter(p => {
         const match = p.salesCount > 0;
@@ -368,19 +396,19 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         />
         <StatCard
           title={store?.business_type === 'stay' ? "Nuits réservées" : store?.business_type === 'food' ? "Plats servis" : "Commandes"}
-          value={filteredMetrics.orders.current}
+          value={store?.business_type === 'stay' ? filteredMetrics.nights.current : filteredMetrics.orders.current}
           icon={store?.business_type === 'stay' ? <Calendar size={14} /> : <ShoppingBag size={14} />}
-          trend={filteredMetrics.orders.trend}
-          trendValue={`${filteredMetrics.orders.pct}%`}
+          trend={store?.business_type === 'stay' ? filteredMetrics.nights.trend : filteredMetrics.orders.trend}
+          trendValue={`${store?.business_type === 'stay' ? filteredMetrics.nights.pct : filteredMetrics.orders.pct}%`}
           color="bg-purple-600"
           compact={true}
         />
         <StatCard
           title={store?.business_type === 'stay' ? "Prix / Nuit" : "Panier Moyen"}
-          value={formatCurrency(filteredMetrics.basket.current)}
+          value={formatCurrency(store?.business_type === 'stay' ? filteredMetrics.pricePerNight.current : filteredMetrics.basket.current)}
           icon={<Zap size={14} />}
-          trend={filteredMetrics.basket.trend}
-          trendValue={`${filteredMetrics.basket.pct}%`}
+          trend={store?.business_type === 'stay' ? filteredMetrics.pricePerNight.trend : filteredMetrics.basket.trend}
+          trendValue={`${store?.business_type === 'stay' ? filteredMetrics.pricePerNight.pct : filteredMetrics.basket.pct}%`}
           color="bg-blue-600"
           compact={true}
         />
