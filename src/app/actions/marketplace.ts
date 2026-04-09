@@ -89,7 +89,12 @@ export async function fetchMarketplaceData() {
             reviewCount: stats.review_count ? parseInt(stats.review_count) : 0,
             salesCount: stats.total_sales ? parseInt(stats.total_sales) : 0,
             wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
-            wholesaleMinQty: p.wholesale_min_qty
+            wholesaleMinQty: p.wholesale_min_qty,
+            businessType: p.business_type,
+            amenities: p.amenities || [],
+            location: p.location || '',
+            maxGuests: p.max_guests,
+            bedrooms: p.bedrooms
           };
         }),
       customers: [],

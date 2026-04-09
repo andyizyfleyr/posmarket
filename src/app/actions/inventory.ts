@@ -44,6 +44,11 @@ export async function saveProductAction(product: any, storeId: string) {
     views: product.views || 0,
     wholesale_price: product.wholesalePrice,
     wholesale_min_qty: product.wholesaleMinQty,
+    business_type: product.businessType || 'shopping',
+    amenities: product.amenities || [],
+    max_guests: product.maxGuests,
+    bedrooms: product.bedrooms,
+    location: product.location,
     options: product.options || [],
     variants: product.variants || []
   }
@@ -122,6 +127,11 @@ export async function getProductsAction(storeId: string, offset: number = 0, lim
       wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
       wholesaleMinQty: p.wholesale_min_qty,
       mainCategory: p.main_category,
+      businessType: p.business_type,
+      amenities: p.amenities || [],
+      maxGuests: p.max_guests,
+      bedrooms: p.bedrooms,
+      location: p.location,
       options: p.options || [],
       variants: p.variants || []
     })),

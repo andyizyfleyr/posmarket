@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/supabase';
 import { StoreData, Product, Customer, Order, Invoice, UserSubscription, Staff } from '@/types';
 
-const CACHE_PREFIX = 'pos_cache_';
+const CACHE_PREFIX = 'pos_cache_v2_';
 
 const cacheService = {
   get<T>(key: string, userId?: string): T | null {
