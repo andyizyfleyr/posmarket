@@ -507,16 +507,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
 
                         {/* Actions for Mobile - integrated in the same line */}
-                        <div className="flex md:hidden items-center gap-1.5 flex-shrink-0">
+                        <div className="flex md:hidden items-center gap-2 flex-shrink-0">
                           {permissions.canManageInventory && (
                             <button
                               onClick={() => handleOpenModal(product)}
-                              className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg active:scale-90"
+                              className="p-2.5 text-[#f56b2a] bg-orange-50 rounded-xl active:scale-90 shadow-sm"
                             >
-                              <Edit size={14} />
+                              <Edit size={16} />
                             </button>
                           )}
-                          <ChevronRight size={14} className="text-gray-300" />
+                          <ChevronRight size={18} className="text-gray-300" />
                         </div>
                       </div>
                     </div>
@@ -573,29 +573,29 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1 text-right">
+                      <div className="flex items-center justify-end gap-2 text-right">
                         {product.businessType === 'stay' && (
                           <button
                             onClick={() => setManagingAvailability(product)}
-                            className="p-2 text-blue-600 bg-blue-50 rounded-lg transition-all active:scale-90"
+                            className="p-2.5 text-blue-600 bg-blue-50 rounded-xl transition-all active:scale-90 hover:bg-blue-100"
                             title="Gérer la disponibilité"
                           >
-                            <Calendar size={12} />
+                            <Calendar size={16} />
                           </button>
                         )}
                         {permissions.canManageInventory && (
                           <>
                             <button
                               onClick={() => handleOpenModal(product)}
-                              className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg transition-all active:scale-90"
+                              className="p-2.5 text-[#f56b2a] bg-orange-50 rounded-xl transition-all active:scale-90 hover:bg-orange-100"
                             >
-                              <Edit size={12} />
+                              <Edit size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(product.id)}
-                              className="p-2 text-red-600 bg-red-50 rounded-lg transition-all active:scale-90"
+                              className="p-2.5 text-red-600 bg-red-50 rounded-xl transition-all active:scale-90 hover:bg-red-100"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={16} />
                             </button>
                           </>
                         )}
@@ -637,8 +637,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       {product.isOnline !== false ? 'MAR.' : 'POS'}
                     </span>
                   </div>
-                  <h4 className="font-bold text-gray-900 text-[10px] md:text-sm truncate whitespace-nowrap w-full">{product.name}</h4>
-                  <p className="text-[8px] md:text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-wider whitespace-nowrap">{product.category}</p>
+                  <h4 className="font-bold text-gray-900 text-[11px] md:text-sm truncate whitespace-nowrap w-full">{product.name}</h4>
+                  <p className="text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-wider whitespace-nowrap">{product.category}</p>
                   <div className="flex justify-between items-center mt-auto pt-1.5 md:pt-2">
                     <span className="text-xs md:text-sm font-black text-[#f56b2a] whitespace-nowrap">
                       {formatCurrency(product.price)}
@@ -711,7 +711,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     `}>
                       {currentStep > step.s ? <Check size={12} className="md:size-[18px]" /> : <step.icon size={12} className="md:size-[18px]" />}
                     </div>
-                    <span className={`text-[7px] md:text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
+                    <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
                       {step.label}
                     </span>
                   </div>
