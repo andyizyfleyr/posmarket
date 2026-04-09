@@ -2263,14 +2263,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Nombre de voyageurs</label>
+                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Nombre de personnes</label>
                             <select
                               value={guestsNum}
                               onChange={(e) => setGuestsNum(parseInt(e.target.value))}
                               className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black appearance-none focus:border-blue-500 focus:bg-white transition-all outline-none"
                             >
                               {[1, 2, 3, 4, 5, 6].map((n) => (
-                                <option key={n} value={n}>{n} {n > 1 ? "voyageurs" : "voyageur"}</option>
+                                <option key={n} value={n}>{n} {n > 1 ? "personnes" : "personne"}</option>
                               ))}
                             </select>
                           </div>
@@ -2447,7 +2447,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                     <div className="flex items-center gap-4">
                                       <div className="flex flex-col">
                                         <span className="text-lg font-black text-blue-700">{selectedProductDetails.maxGuests}</span>
-                                        <span className="text-[8px] font-bold text-blue-400 uppercase">Voyageurs max</span>
+                                        <span className="text-[8px] font-bold text-blue-400 uppercase">Personnes max</span>
                                       </div>
                                       <div className="w-px h-8 bg-blue-100" />
                                       <div className="flex flex-col">
