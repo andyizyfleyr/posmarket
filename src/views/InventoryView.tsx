@@ -27,6 +27,7 @@ import {
   Zap,
   Clock,
   Calendar,
+  MapPin,
   CheckCircle2,
   Users,
   Home
@@ -584,23 +585,22 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           </button>
                         );
                       })()}
-                        {permissions.canManageInventory && (
-                          <>
-                            <button
-                              onClick={() => handleOpenModal(product)}
-                              className="p-2.5 text-[#f56b2a] bg-orange-50 rounded-xl transition-all active:scale-90 hover:bg-orange-100"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product.id)}
-                              className="p-2.5 text-red-600 bg-red-50 rounded-xl transition-all active:scale-90 hover:bg-red-100"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      {permissions.canManageInventory && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenModal(product)}
+                            className="p-2.5 text-[#f56b2a] bg-orange-50 rounded-xl transition-all active:scale-90 hover:bg-orange-100"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="p-2.5 text-red-600 bg-red-50 rounded-xl transition-all active:scale-90 hover:bg-red-100"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1550,12 +1550,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   );
 };
 
-// Internal component for Availability Management
-const AvailabilityModal: React.FC<{
-  product: Product,
-  onClose: () => void,
-  onUpdate: () => void
-}> = ({ product, onClose, onUpdate }) => {
+interface AvailabilityModalProps {
+  product: Product;
+  onClose: () => void;
+  onUpdate: () => void;
+}
+
+const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose, onUpdate }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isAvailable, setIsAvailable] = useState(false);
