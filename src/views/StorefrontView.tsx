@@ -245,9 +245,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isMounted, setIsMounted] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
 
-  // 🗓️ Booking Engine State
   const [checkIn, setCheckIn] = useState<string>("");
   const [checkOut, setCheckOut] = useState<string>("");
+
+  // 🔄 Sync vertical with specific store type
+  useEffect(() => {
+    if (selectedStoreId && isMounted) {
+      const activeStore = stores.find(s => s.id === selectedStoreId);
+      if (activeStore?.business_type) {
+        setSelectedVertical(activeStore.business_type);
+      }
+    } else if (!selectedStoreId && isMounted) {
+       // Reset or keep? User wants separation. 
+       // If no store selected, it's the global marketplace, keep 'all' or let user choose.
+    }
+  }, [selectedStoreId, stores, isMounted]);
   const [guestsNum, setGuestsNum] = useState<number>(1);
   const [expandedStaySection, setExpandedStaySection] = useState<string | null>("amenities");
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
@@ -4250,7 +4262,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 )}
 
                 {/* Super App Verticals - Big Tiles Style */}
-                {!searchTerm && selectedCategory === "all" && (
+                {!searchTerm && selectedCategory === "all" && !selectedStoreId && (
                   <div className="mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
                     <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">
                       Que voulez-vous faire aujourd'hui ?

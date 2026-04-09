@@ -33,7 +33,7 @@ interface MainLayoutProps {
   currentStore: StoreData;
   currentPlan: SubscriptionPlan;
   onStoreChange: (id: string) => void;
-  onCreateStore: (name: string) => Promise<void>;
+  onCreateStore: (name: string, businessType: string) => Promise<void>;
   onDeleteStore: (id: string) => Promise<void>;
   userEmail?: string;
   userSubscription: UserSubscription;

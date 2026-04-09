@@ -73,7 +73,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     return getLocalYMD(d);
   });
   const [endDate, setEndDate] = useState<string>(() => getLocalYMD(new Date()));
-  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
+  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>(store?.business_type || 'all');
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {
@@ -313,16 +313,27 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userRole || 'Admin'}`} className="w-full h-full object-cover bg-orange-50" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base md:text-3xl font-black text-gray-900 tracking-tight leading-none truncate">
-              Salut, {userName || 'Utilisateur'} 👋
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-base md:text-3xl font-black text-gray-900 tracking-tight leading-none truncate">
+                Salut, {userName || 'Utilisateur'} 👋
+              </h1>
+              {store?.business_type && (
+                <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                  store.business_type === 'food' ? 'bg-yellow-100 text-yellow-700' : 
+                  store.business_type === 'stay' ? 'bg-blue-100 text-blue-700' : 
+                  'bg-orange-100 text-orange-700'
+                }`}>
+                  Modèle {store.business_type === 'food' ? 'UberEats' : store.business_type === 'stay' ? 'Airbnb' : 'Amazon'}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-2 md:mt-4 overflow-x-auto no-scrollbar pb-1">
                 {[
                     { id: 'all', label: 'Global', icon: Package, color: 'gray' },
                     { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange' },
                     { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' },
                     { id: 'stay', label: 'Séjours', icon: Store, color: 'blue' }
-                ].map(v => (
+                ].filter(v => v.id === 'all' || !store?.business_type || v.id === store.business_type).map(v => (
                     <button
                         key={v.id}
                         onClick={() => setSelectedVertical(v.id as any)}

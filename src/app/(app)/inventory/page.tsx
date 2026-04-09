@@ -16,7 +16,7 @@ export default async function InventoryPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, subscription } = await fetchStoreData(storeId);
+  const { products, subscription, store } = await fetchStoreData(storeId);
   const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   return (
@@ -26,6 +26,7 @@ export default async function InventoryPage() {
       userRole={role as any}
       currentStoreId={storeId}
       subscription={subscription || undefined}
+      businessType={store?.business_type}
     />
   );
 }

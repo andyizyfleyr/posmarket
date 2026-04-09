@@ -50,6 +50,7 @@ interface InventoryViewProps {
   currentStoreId?: string;
   userRole?: StaffRole;
   subscription?: UserSubscription;
+  businessType?: BusinessVertical;
 }
 
 const InventoryView: React.FC<InventoryViewProps> = ({
@@ -58,6 +59,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   currentStoreId,
   userRole,
   subscription,
+  businessType = 'shopping',
 }) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,7 +102,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     wholesaleMinQty: undefined,
     deliveryTime: '',
     preparationTime: '',
-    businessType: 'shopping',
+    businessType: businessType || 'shopping',
     amenities: [],
     maxGuests: undefined,
     bedrooms: undefined,
@@ -108,6 +110,22 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     options: [],
     variants: []
   });
+
+  const filteredMainCategories = useMemo(() => {
+    if (businessType === 'food') return ['Restauration & Livraison Rapide'];
+    if (businessType === 'stay') return ['Séjours, Expériences & Immobilier'];
+    return MAIN_CATEGORIES.filter(c => c !== 'Restauration & Livraison Rapide' && c !== 'Séjours, Expériences & Immobilier');
+  }, [businessType]);
+
+  const filteredCategoryMapping = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    Object.entries(CATEGORY_MAPPING).forEach(([sub, main]) => {
+      if (filteredMainCategories.includes(main)) {
+        mapping[sub] = main;
+      }
+    });
+    return mapping;
+  }, [filteredMainCategories]);
 
   const filteredProducts = useMemo(() => {
     return localProducts.filter(p => {
@@ -209,16 +227,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         name: '',
         price: undefined,
         stock: undefined,
-        category: 'Général',
-        mainCategory: 'Divers',
+        category: businessType === 'food' ? 'Plats Cuisinés' : (businessType === 'stay' ? 'Appartements de Vacances' : 'Général'),
+        mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : (businessType === 'stay' ? 'Séjours, Expériences & Immobilier' : 'Divers'),
         image: '',
         images: [],
-        unit: 'pièce',
+        unit: businessType === 'stay' ? 'nuitée' : 'pièce',
         description: '',
         isOnline: isOnline,
         deliveryTime: '',
         preparationTime: '',
-        businessType: selectedVertical === 'all' ? 'shopping' : (selectedVertical as any),
+        businessType: businessType,
         amenities: [],
         maxGuests: undefined,
         bedrooms: undefined,
@@ -318,7 +336,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
         <div className="flex items-center gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">Inventaire</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">Inventaire</h1>
+              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                businessType === 'food' ? 'bg-yellow-100 text-yellow-700' : 
+                businessType === 'stay' ? 'bg-blue-100 text-blue-700' : 
+                'bg-orange-100 text-orange-700'
+              }`}>
+                Flux {businessType === 'food' ? 'UberEats' : businessType === 'stay' ? 'Airbnb' : 'Amazon'}
+              </span>
+            </div>
             <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">Gérez vos produits et vos stocks.</p>
           </div>
           {selectedIds.size > 0 && permissions.canManageInventory && (
@@ -366,7 +393,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', text: 'text-orange-600', shadow: 'shadow-orange-100' },
               { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow', border: 'border-yellow-500', text: 'text-yellow-600', shadow: 'shadow-yellow-100' },
               { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue', border: 'border-blue-500', text: 'text-blue-600', shadow: 'shadow-blue-100' }
-            ].map(v => (
+            ].filter(v => v.id === 'all' || v.id === businessType).map(v => (
               <button
                 key={v.id}
                 onClick={() => setSelectedVertical(v.id as any)}
@@ -815,8 +842,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       }}
                       className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                     >
-                      {MAIN_CATEGORIES.map(mainCat => {
-                        const subCats = Object.keys(CATEGORY_MAPPING).filter(sub => CATEGORY_MAPPING[sub] === mainCat);
+                      {filteredMainCategories.map(mainCat => {
+                        const subCats = Object.keys(filteredCategoryMapping).filter(sub => filteredCategoryMapping[sub] === mainCat);
                         if (subCats.length === 0) return <option key={mainCat} value={mainCat}>{mainCat}</option>;
                         return (
                           <optgroup key={mainCat} label={mainCat}>

@@ -170,6 +170,7 @@ export interface StoreData {
   reviewCount?: number;
   user_id?: string;
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DISABLED';
+  business_type?: BusinessVertical;
 }
 
 export type SubscriptionDuration = 'demo' | 'monthly' | 'quarterly' | 'annual';

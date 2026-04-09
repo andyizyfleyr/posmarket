@@ -103,12 +103,12 @@ export default function LayoutClientWrapper({
       .then(() => router.refresh());
   };
 
-  const handleCreateStore = async (name: string) => {
+  const handleCreateStore = async (name: string, businessType: string) => {
     if (!name.trim()) return;
 
     try {
       setIsSaving(true);
-      const result = await quickCreateStoreAction(name.trim());
+      const result = await quickCreateStoreAction(name.trim(), businessType);
 
       if (result.success && result.store) {
         // Switch to the newly created store

@@ -145,7 +145,7 @@ export async function fetchStoreData(storeId: string) {
  * Quick store creation from the navbar — only needs a name.
  * Replicates the old App.tsx handleCreateStore behavior.
  */
-export async function quickCreateStoreAction(name: string) {
+export async function quickCreateStoreAction(name: string, businessType: string) {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
   
@@ -163,7 +163,8 @@ export async function quickCreateStoreAction(name: string) {
     phone: '',
     address: '',
     ninea: '',
-    status: 'PENDING'
+    status: 'PENDING',
+    business_type: businessType
   }).select().single()
 
   if (error) {
