@@ -731,7 +731,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         key={v.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, businessType: v.id as any })}
+                        onClick={() => {
+                          const updates: any = { businessType: v.id };
+                          if (v.id === 'stay') {
+                            updates.unit = 'nuitée';
+                            updates.mainCategory = 'Séjours, Expériences & Immobilier';
+                            updates.stock = 1; // Stock is hidden but better set to 1
+                          }
+                          setFormData({ ...formData, ...updates });
+                        }}
                         className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `border-${v.color}-500 bg-${v.color}-50/30` : 'border-gray-100'}`}
                       >
                         <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? `text-${v.color}-500` : 'text-gray-400'}`} />
@@ -808,36 +816,38 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       })}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
-                    </label>
-                    <select
-                      value={formData.deliveryTime}
-                      onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                    >
-                        <option value="">Sélectionnez une durée...</option>
-                        <optgroup label="Restauration / Immédiat">
-                            <option value="15 min">15 minutes</option>
-                            <option value="30 min">30 minutes</option>
-                            <option value="45 min">45 minutes</option>
-                            <option value="1h">1 heure</option>
-                        </optgroup>
-                        <optgroup label="Livraison Courte">
-                            <option value="24h">24 heures</option>
-                            <option value="48h">48 heures</option>
-                            <option value="72h">72 heures</option>
-                        </optgroup>
-                        <optgroup label="Livraison Longue">
-                            <option value="3-5 jours">3 à 5 jours</option>
-                            <option value="1 semaine">1 semaine</option>
-                            <option value="2 semaines">2 semaines</option>
-                            <option value="Sur commande">Sur commande/Mesure</option>
-                        </optgroup>
-                    </select>
-                    <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
-                  </div>
+                  {formData.businessType !== 'stay' && (
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                          <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
+                      </label>
+                      <select
+                        value={formData.deliveryTime}
+                        onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
+                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      >
+                          <option value="">Sélectionnez une durée...</option>
+                          <optgroup label="Restauration / Immédiat">
+                              <option value="15 min">15 minutes</option>
+                              <option value="30 min">30 minutes</option>
+                              <option value="45 min">45 minutes</option>
+                              <option value="1h">1 heure</option>
+                          </optgroup>
+                          <optgroup label="Livraison Courte">
+                              <option value="24h">24 heures</option>
+                              <option value="48h">48 heures</option>
+                              <option value="72h">72 heures</option>
+                          </optgroup>
+                          <optgroup label="Livraison Longue">
+                              <option value="3-5 jours">3 à 5 jours</option>
+                              <option value="1 semaine">1 semaine</option>
+                              <option value="2 semaines">2 semaines</option>
+                              <option value="Sur commande">Sur commande/Mesure</option>
+                          </optgroup>
+                      </select>
+                      <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
+                    </div>
+                  )}
 
                   {formData.businessType === 'food' && (
                     <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 space-y-4">
@@ -1001,63 +1011,63 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
-                    </label>
-                    <div className="space-y-3">
-                        <select
-                          value={['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') ? formData.unit : (formData.unit ? 'custom' : 'pièce')}
-                          onChange={e => {
-                            if (e.target.value === 'custom') {
-                                setFormData({ ...formData, unit: '' });
-                            } else {
-                                setFormData({ ...formData, unit: e.target.value });
-                            }
-                          }}
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                        >
-                            <optgroup label="Standard">
-                                <option value="pièce">Pièce (pcs)</option>
-                                <option value="unité">Unité (u)</option>
-                                <option value="douzaine">Douzaine</option>
-                                <option value="paquet">Paquet</option>
-                                <option value="carton">Carton</option>
-                                <option value="boîte">Boîte / Box</option>
-                                <option value="sac">Sac</option>
-                                <option value="bouteille">Bouteille</option>
-                                <option value="lot">Lot</option>
-                            </optgroup>
-                            <optgroup label="Poids & Mesures">
-                                <option value="kg">Kilogramme (kg)</option>
-                                <option value="g">Gramme (g)</option>
-                                <option value="L">Litre (L)</option>
-                                <option value="m">Mètre (m)</option>
-                                <option value="m²">Mètre Carré (m²)</option>
-                            </optgroup>
-                            <optgroup label="Services">
-                                <option value="nuitée">Nuitée</option>
-                                <option value="service">Service / Forfait</option>
-                            </optgroup>
-                            <option value="custom">✨ Autre (Saisie libre)...</option>
-                        </select>
+                  {formData.businessType !== 'stay' && (
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                          <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
+                      </label>
+                      <div className="space-y-3">
+                          <select
+                            value={['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') ? formData.unit : (formData.unit ? 'custom' : 'pièce')}
+                            onChange={e => {
+                              if (e.target.value === 'custom') {
+                                  setFormData({ ...formData, unit: '' });
+                              } else {
+                                  setFormData({ ...formData, unit: e.target.value });
+                              }
+                            }}
+                            className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          >
+                              <optgroup label="Standard">
+                                  <option value="pièce">Pièce (pcs)</option>
+                                  <option value="unité">Unité (u)</option>
+                                  <option value="douzaine">Douzaine</option>
+                                  <option value="paquet">Paquet</option>
+                                  <option value="carton">Carton</option>
+                                  <option value="boîte">Boîte / Box</option>
+                                  <option value="sac">Sac</option>
+                                  <option value="bouteille">Bouteille</option>
+                                  <option value="lot">Lot</option>
+                              </optgroup>
+                              <optgroup label="Poids & Mesures">
+                                  <option value="kg">Kilogramme (kg)</option>
+                                  <option value="g">Gramme (g)</option>
+                                  <option value="L">Litre (L)</option>
+                                  <option value="m">Mètre (m)</option>
+                                  <option value="m²">Mètre Carré (m²)</option>
+                              </optgroup>
+                              <optgroup label="Services">
+                                  <option value="nuitée">Nuitée</option>
+                                  <option value="service">Service / Forfait</option>
+                              </optgroup>
+                              <option value="custom">✨ Autre (Saisie libre)...</option>
+                          </select>
 
-                        {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
-                            <div className="animate-in slide-in-from-top-2 duration-300">
-                                <input
-                                    type="text"
-                                    placeholder="Ex: Pack de 100, Fagot, Douzaine..."
-                                    value={formData.unit}
-                                    onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                                    className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-bold focus:border-[#f56b2a] outline-none shadow-sm"
-                                />
-                                <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
-                            </div>
-                        )}
+                          {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
+                              <div className="animate-in slide-in-from-top-2 duration-300">
+                                  <input
+                                      type="text"
+                                      placeholder="Ex: Pack de 100, Fagot, Douzaine..."
+                                      value={formData.unit}
+                                  <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
+                              </div>
+                          )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Variants & Options Section - AliExpress Style */}
+                  {formData.businessType !== 'stay' && (
                   <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
                     <div className="flex items-center justify-between mb-4 md:mb-6">
                       <div>
@@ -1312,55 +1322,57 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
 
                   {/* Wholesale Section */}
-                  <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
-                    <div className="flex items-center justify-between mb-4 md:mb-6">
-                      <div>
-                        <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Vente en Gros</h4>
-                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix réduit pour de grandes quantités</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (formData.wholesalePrice !== undefined) {
-                            setFormData({ ...formData, wholesalePrice: undefined, wholesaleMinQty: undefined });
-                          } else {
-                            setFormData({ ...formData, wholesalePrice: (formData.price || 0) * 0.8, wholesaleMinQty: 10 });
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${formData.wholesalePrice !== undefined ? 'bg-orange-50 text-[#f56b2a] border border-orange-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
-                      >
-                        {formData.wholesalePrice !== undefined ? 'ACTIVÉ' : 'DÉSACTIVER'}
-                      </button>
-                    </div>
-
-                    {formData.wholesalePrice !== undefined && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-in slide-in-from-top-4 duration-300">
+                  {formData.businessType !== 'stay' && (
+                    <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
+                      <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
-                          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Prix de Gros (XOF)</label>
-                          <div className="relative">
+                          <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Vente en Gros</h4>
+                          <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix réduit pour de grandes quantités</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (formData.wholesalePrice !== undefined) {
+                              setFormData({ ...formData, wholesalePrice: undefined, wholesaleMinQty: undefined });
+                            } else {
+                              setFormData({ ...formData, wholesalePrice: (formData.price || 0) * 0.8, wholesaleMinQty: 10 });
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${formData.wholesalePrice !== undefined ? 'bg-orange-50 text-[#f56b2a] border border-orange-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
+                        >
+                          {formData.wholesalePrice !== undefined ? 'ACTIVÉ' : 'DÉSACTIVER'}
+                        </button>
+                      </div>
+
+                      {formData.wholesalePrice !== undefined && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-in slide-in-from-top-4 duration-300">
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Prix de Gros (XOF)</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                value={formData.wholesalePrice ?? ''}
+                                onChange={e => setFormData({ ...formData, wholesalePrice: e.target.value ? Math.round(parseFloat(e.target.value)) : 0 })}
+                                placeholder="0"
+                                className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                              />
+                              <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Qté Minimale</label>
                             <input
                               type="number"
-                              value={formData.wholesalePrice ?? ''}
-                              onChange={e => setFormData({ ...formData, wholesalePrice: e.target.value ? Math.round(parseFloat(e.target.value)) : 0 })}
-                              placeholder="0"
-                              className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                              value={formData.wholesaleMinQty ?? ''}
+                              onChange={e => setFormData({ ...formData, wholesaleMinQty: e.target.value ? parseInt(e.target.value) : 1 })}
+                              placeholder="10"
+                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                             />
-                            <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Qté Minimale</label>
-                          <input
-                            type="number"
-                            value={formData.wholesaleMinQty ?? ''}
-                            onChange={e => setFormData({ ...formData, wholesaleMinQty: e.target.value ? parseInt(e.target.value) : 1 })}
-                            placeholder="10"
-                            className="w-full px-4 md:px-5 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
