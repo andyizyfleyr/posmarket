@@ -2646,9 +2646,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     </div>
                   </div>
 
+                  {isStay && selectedProductDetails.currentBooking && (
+                    <div className="mb-4 bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top-2 duration-500">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0 animate-pulse">
+                        <Clock size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none mb-1">Actuellement occupé</p>
+                        <p className="text-sm font-black text-orange-700">Disponible à partir du {new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <Button
                       onClick={() => {
                         if (isStay) {
+                          if (selectedProductDetails.currentBooking) return;
                           setShowBookingModal(true);
                           return;
                         }
@@ -2685,6 +2698,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           variantId
                         );
                       }}
+                      disabled={!!(isStay && selectedProductDetails.currentBooking)}
                       variant={
                         isFood ? "primary" : isStay ? "secondary" : "primary"
                       }
@@ -2694,7 +2708,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         isFood
                           ? "bg-green-600 hover:bg-green-700"
                           : isStay
-                            ? "bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100"
+                            ? `${selectedProductDetails.currentBooking ? 'bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100'}`
                             : ""
                       }
                       icon={
@@ -2712,7 +2726,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       {isCheckingAvailability
                         ? "Vérification..."
                         : isStay
-                          ? "Réserver"
+                          ? (selectedProductDetails.currentBooking ? "Déjà réservé" : "Réserver séjour")
                           : isFood
                             ? "Commander ce plat"
                             : "Ajouter au panier"}

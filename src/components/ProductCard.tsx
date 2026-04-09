@@ -43,9 +43,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
               </div>
             )}
             {/* Occupied Badge for Stays */}
-            {(product.businessType === 'stay' || product.category === 'Appartements' || product.mainCategory?.includes('Séjour')) && product.stock === 0 && (
-              <div className="bg-red-600 text-white px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shadow-lg border border-white/20 animate-pulse flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" /> Occupé
+            {(product as any).currentBooking && (
+              <div className="bg-orange-500 text-white px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest shadow-lg border border-white/20 animate-in zoom-in duration-300 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+                Derniers jours : Occupé jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
               </div>
             )}
           </div>
@@ -93,22 +94,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
       <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
         <button
           onClick={(e) => { 
-            if (((product.businessType === 'stay' || product.category === 'Appartements') && product.stock === 0)) return;
+            if ((product as any).currentBooking) return;
             e.stopPropagation(); 
             e.preventDefault();
             onAddToCart(product); 
           }}
-          disabled={((product.businessType === 'stay' || product.category === 'Appartements') && product.stock === 0)}
+          disabled={((product as any).currentBooking)}
           className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[10px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
             ((product.businessType === 'stay' || product.category === 'Appartements') && product.stock === 0)
               ? 'bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed'
               : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
           }`}
         >
-          {((product.businessType === 'stay' || product.category === 'Appartements') && product.stock === 0) 
-            ? 'Complet' 
+          {((product as any).currentBooking) 
+            ? 'Déjà réservé' 
             : product.category === 'Appartements' || product.businessType === 'stay' 
-              ? 'Réserver' 
+              ? 'Réserver séjour' 
               : 'Ajouter au panier'}
         </button>
       </div>

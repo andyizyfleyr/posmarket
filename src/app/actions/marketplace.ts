@@ -12,7 +12,7 @@ export async function fetchMarketplaceData() {
 
   // 1-4. Fetch all essential data in PARALLEL to reduce latency
 
-  const [storesRes, productsRes, productStatsRes, storeStatsRes] = await Promise.all([
+  const [storesRes, productsRes, productStatsRes, storeStatsRes, availabilitySlotsRes] = await Promise.all([
     safeSupabaseFetch<any[]>(() => 
       supabase
         .from('stores')
@@ -23,13 +23,16 @@ export async function fetchMarketplaceData() {
     safeSupabaseFetch<any[]>(() => 
       supabase.from('product_stats').select('*')),
     safeSupabaseFetch<any[]>(() => 
-      supabase.from('store_stats').select('store_id, average_rating, total_reviews'))
+      supabase.from('store_stats').select('store_id, average_rating, total_reviews')),
+    safeSupabaseFetch<any[]>(() => 
+      supabase.from('availability_slots').select('*').gte('date', new Date().toISOString().split('T')[0]))
   ]);
 
   const storesData = storesRes.data || [];
   const productsData = productsRes.data || [];
   const productStatsData = productStatsRes.data || [];
   const storeStatsData = storeStatsRes.data || [];
+  const slotsData = availabilitySlotsRes?.data || [];
 
   const productStatsMap = Object.fromEntries(productStatsData.map((s: any) => [s.product_id, s]));
   const storeStatsMap = Object.fromEntries(storeStatsData.map((s: any) => [s.store_id, s]));
@@ -94,7 +97,27 @@ export async function fetchMarketplaceData() {
             amenities: p.amenities || [],
             location: p.location || '',
             maxGuests: p.max_guests,
-            bedrooms: p.bedrooms
+            bedrooms: p.bedrooms,
+            currentBooking: (() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const pSlots = slotsData.filter((s: any) => s.product_id === p.id).sort((a: any, b: any) => a.date.localeCompare(b.date));
+              const todaySlot = pSlots.find((s: any) => s.date === todayStr);
+
+              if (todaySlot && !todaySlot.is_available) {
+                let endDate = todayStr;
+                const todayIdx = pSlots.indexOf(todaySlot);
+                for (let i = todayIdx; i < pSlots.length; i++) {
+                  if (!pSlots[i].is_available) endDate = pSlots[i].date;
+                  else break;
+                }
+                return {
+                  startDate: todaySlot.booking_id ? 'Occupe' : todayStr,
+                  endDate,
+                  isManualBlock: !todaySlot.booking_id
+                };
+              }
+              return null;
+            })()
           };
         }),
       customers: [],

@@ -25,7 +25,7 @@ export async function fetchStoreData(storeId: string) {
   const supabase = await createClient()
   
   // Paralléliser les requêtes côté serveur avec gestion d'erreur robuste et retries
-  const [productsRes, ordersRes, customersRes, invoicesRes, storeRes, statsRes, profileRes]: any[] = await Promise.all([
+  const [productsRes, ordersRes, customersRes, invoicesRes, storeRes, statsRes, profileRes, availabilitySlotsRes]: any[] = await Promise.all([
     safeSupabaseFetch(() => supabase.from('products').select('*').eq('store_id', storeId).limit(200)),
     safeSupabaseFetch(() => supabase.from('orders').select('*, order_items(*, product:products(*)), customer:customers(*)').eq('store_id', storeId).order('date', { ascending: false }).limit(100)),
     safeSupabaseFetch(() => supabase.from('customers').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).limit(100)),
@@ -38,10 +38,12 @@ export async function fetchStoreData(storeId: string) {
         return await safeSupabaseFetch(() => (createClient()).then(s => s.from('profiles').select('*').eq('id', store.user_id).single()));
       }
       return { data: null };
-    })()
+    })(),
+    safeSupabaseFetch(() => supabase.from('availability_slots').select('*, product:products!inner(store_id)').eq('product.store_id', storeId).gte('date', new Date().toISOString().split('T')[0]))
   ])
 
   const statsMap = Object.fromEntries((statsRes?.data || []).map((s: any) => [s.product_id, s]));
+  const slotsData = availabilitySlotsRes?.data || [];
 
   // Mapping snake_case -> camelCase and parsing numerics for robustness
   const products = (productsRes.data || []).map((p: any) => {
@@ -64,8 +66,34 @@ export async function fetchStoreData(storeId: string) {
       bedrooms: p.bedrooms,
       location: p.location,
       options: p.options || [],
-      variants: p.variants || []
+      variants: p.variants || [],
     };
+  }).map((p: any) => {
+    // Determine current occupancy
+    const todayStr = new Date().toISOString().split('T')[0];
+    const pSlots = slotsData.filter((s: any) => s.product_id === p.id).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    const todaySlot = pSlots.find((s: any) => s.date === todayStr);
+
+    if (todaySlot && !todaySlot.is_available) {
+      // Find the end of this specific booking
+      let endDate = todayStr;
+      const todayIdx = pSlots.indexOf(todaySlot);
+      for (let i = todayIdx; i < pSlots.length; i++) {
+        if (!pSlots[i].is_available) endDate = pSlots[i].date;
+        else break;
+      }
+
+      // Also find the start (look back) - wait, we only fetched from today
+      return {
+        ...p,
+        currentBooking: {
+          startDate: todaySlot.booking_id ? 'Calculé...' : todayStr, // simplified
+          endDate,
+          isManualBlock: !todaySlot.booking_id
+        }
+      };
+    }
+    return p;
   });
 
   const orders = (ordersRes.data || []).map((o: any) => ({

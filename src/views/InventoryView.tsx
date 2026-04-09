@@ -554,7 +554,17 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex items-center gap-2">
                         {product.businessType === 'stay' ? (
-                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Calendrier</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Calendrier</span>
+                            {(product as any).currentBooking && (
+                              <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-2 py-0.5 rounded-lg border border-orange-100 animate-pulse">
+                                <Clock size={10} />
+                                <span className="text-[9px] font-black uppercase whitespace-nowrap">
+                                  Occupé jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <>
                             <span className={`text-xs font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
