@@ -317,9 +317,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
         <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">Inventaire</h1>
-            <p className="text-gray-500 text-[11px] md:text-sm mt-0.5 md:mt-1 whitespace-nowrap">Gérez vos produits et vos stocks.</p>
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">Inventaire</h1>
+            <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">Gérez vos produits et vos stocks.</p>
           </div>
           {selectedIds.size > 0 && permissions.canManageInventory && (
             <div className="flex items-center gap-2 animate-in slide-in-from-left-4 duration-300">
@@ -362,10 +362,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="px-3 md:px-4 pt-4 md:pt-6 pb-0 flex flex-col gap-4">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             {[
-              { id: 'all', label: 'Tous les flux', icon: Package, color: 'gray' },
-              { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange' },
-              { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow' },
-              { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue' }
+              { id: 'all', label: 'Tous les flux', icon: Package, color: 'gray', border: 'border-gray-500', text: 'text-gray-600', shadow: 'shadow-gray-100' },
+              { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', text: 'text-orange-600', shadow: 'shadow-orange-100' },
+              { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow', border: 'border-yellow-500', text: 'text-yellow-600', shadow: 'shadow-yellow-100' },
+              { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue', border: 'border-blue-500', text: 'text-blue-600', shadow: 'shadow-blue-100' }
             ].map(v => (
               <button
                 key={v.id}
@@ -373,11 +373,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 className={`
                   flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-black transition-all whitespace-nowrap border-2
                   ${selectedVertical === v.id
-                    ? `bg-white border-${v.color}-500 text-${v.color}-600 shadow-lg shadow-${v.color}-100`
+                    ? `bg-white ${v.border} ${v.text} shadow-lg ${v.shadow}`
                     : 'bg-white border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'}
                 `}
               >
-                <v.icon size={16} className={selectedVertical === v.id ? `text-${v.color}-500` : ''} />
+                <v.icon size={16} />
                 {v.label}
               </button>
             ))}
@@ -725,9 +725,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Type de Publication</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
                     {[
-                      { id: 'shopping', label: 'Produit (Amazon)', icon: ShoppingBag, color: 'orange' },
-                      { id: 'food', label: 'Plat (UberEats)', icon: Zap, color: 'yellow' },
-                      { id: 'stay', label: 'Séjour (Airbnb)', icon: Store, color: 'blue' }
+                      { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', bg: 'bg-orange-50/30', text: 'text-orange-500' },
+                      { id: 'food', label: 'Resto', icon: Zap, color: 'yellow', border: 'border-yellow-500', bg: 'bg-yellow-50/30', text: 'text-yellow-500' },
+                      { id: 'stay', label: 'Séjour', icon: Store, color: 'blue', border: 'border-blue-500', bg: 'bg-blue-50/30', text: 'text-blue-500' }
                     ].map(v => (
                       <button
                         key={v.id}
@@ -737,13 +737,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           if (v.id === 'stay') {
                             updates.unit = 'nuitée';
                             updates.mainCategory = 'Séjours, Expériences & Immobilier';
-                            updates.stock = 1; // Stock is hidden but better set to 1
+                            updates.stock = 1; 
                           }
                           setFormData({ ...formData, ...updates });
                         }}
-                        className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `border-${v.color}-500 bg-${v.color}-50/30` : 'border-gray-100'}`}
+                        className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `${v.border} ${v.bg}` : 'border-gray-100'}`}
                       >
-                        <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? `text-${v.color}-500` : 'text-gray-400'}`} />
+                        <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? v.text : 'text-gray-400'}`} />
                         <span className="text-[10px] font-black uppercase">{v.label}</span>
                       </button>
                     ))}
@@ -891,14 +891,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <label className="block text-[10px] font-black text-blue-600 uppercase mb-2">Équipements (Amenities)</label>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { id: 'wifi', label: 'Wi-Fi', icon: '📶' },
-                            { id: 'ac', label: 'Climatisation', icon: '❄️' },
-                            { id: 'pool', label: 'Piscine', icon: '🏊' },
-                            { id: 'generator', label: 'Groupe Électrogène', icon: '⚡' },
-                            { id: 'kitchen', label: 'Cuisine', icon: '🍳' },
-                            { id: 'security', label: 'Gardiennage', icon: '🛡️' },
-                            { id: 'canalplus', label: 'Canal+', icon: '📡' },
-                            { id: 'cleaning', label: 'Ménage inclus', icon: '🧹' }
+                            { id: 'wifi', label: 'Wi-Fi', icon: <Globe size={14} /> },
+                            { id: 'ac', label: 'Climatisation', icon: <Clock size={14} /> },
+                            { id: 'pool', label: 'Piscine', icon: <Zap size={14} /> },
+                            { id: 'generator', label: 'Électricité 24/7', icon: <Zap size={14} /> },
+                            { id: 'kitchen', label: 'Cuisine', icon: <Home size={14} /> },
+                            { id: 'security', label: 'Gardiennage', icon: <CheckCircle2 size={14} /> },
+                            { id: 'canalplus', label: 'Canal+', icon: <Monitor size={14} /> },
+                            { id: 'cleaning', label: 'Ménage inclus', icon: <CheckCircle2 size={14} /> }
                           ].map(amenity => (
                             <button
                               key={amenity.id}
@@ -915,8 +915,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   : 'bg-white text-gray-600 border-blue-100 hover:border-blue-300'
                                 }`}
                             >
-                              <span>{amenity.icon}</span>
-                              <span>{amenity.label}</span>
+                              <span className="flex-shrink-0">{amenity.icon}</span>
+                              <span className="truncate">{amenity.label}</span>
                             </button>
                           ))}
                         </div>
