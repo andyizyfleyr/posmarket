@@ -560,7 +560,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-2 py-0.5 rounded-lg border border-orange-100 animate-pulse">
                                 <Clock size={10} />
                                 <span className="text-[9px] font-black uppercase whitespace-nowrap">
-                                  Occupé jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                  Jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                                 </span>
                               </div>
                             )}

@@ -2653,7 +2653,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none mb-1">Actuellement occupé</p>
-                        <p className="text-sm font-black text-orange-700">Disponible à partir du {new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
+                        <p className="text-sm font-black text-orange-700">Jusqu'au {new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
                       </div>
                     </div>
                   )}
