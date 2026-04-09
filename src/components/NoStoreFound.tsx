@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 
 export default function NoStoreFound() {
   const [storeName, setStoreName] = useState('');
+  const [businessType, setBusinessType] = useState<'shopping' | 'food' | 'stay'>('shopping');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function NoStoreFound() {
     setError(null);
 
     try {
-      const result = await quickCreateStoreAction(storeName.trim());
+      const result = await quickCreateStoreAction(storeName.trim(), businessType);
       if (result.success) {
         // Success! Re-validate and reload
         window.location.href = '/dashboard';
@@ -75,6 +76,30 @@ export default function NoStoreFound() {
               required
               disabled={isCreating}
             />
+          </div>
+
+          <div className="space-y-3">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left ml-2">Modèle de boutique</p>
+             <div className="grid grid-cols-1 gap-2">
+                {[
+                  { id: 'shopping', label: 'AMAZON', desc: 'Shopping & E-commerce', color: 'orange' },
+                  { id: 'food', label: 'UBEREATS', desc: 'Cuisine & Restauration', color: 'yellow' },
+                  { id: 'stay', label: 'AIRBNB', desc: 'Séjours & Logements', color: 'blue' }
+                ].map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setBusinessType(type.id as any)}
+                    className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${businessType === type.id ? 'border-[#f56b2a] bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                  >
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-slate-900 leading-none mb-1">{type.label}</p>
+                      <p className="text-[9px] font-bold text-slate-400 leading-none">{type.desc}</p>
+                    </div>
+                    {businessType === type.id && <div className="w-2 h-2 rounded-full bg-[#f56b2a]" />}
+                  </button>
+                ))}
+             </div>
           </div>
 
           {error && (
