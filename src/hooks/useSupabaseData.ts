@@ -246,11 +246,21 @@ export const fetchProductReviews = async (productId: string) => {
 
 export const fetchOrderItems = async (orderId: string) => {
     try {
-        const { data, error } = await supabase.from('order_items').select('id, product_id, quantity, price, products!inner(id, name, image, price, unit)').eq('order_id', orderId);
+        const { data, error } = await supabase.from('order_items').select('id, product_id, quantity, price, check_in, check_out, guests, products!inner(id, name, image, price, unit)').eq('order_id', orderId);
         if (error) return [];
         return data?.map((i: any) => ({ 
-            id: i.id, product: { id: i.products?.id, name: i.products?.name || 'Produit supprimé', image: i.products?.image || '', price: i.products?.price || 0, unit: i.products?.unit || 'pièce' }, 
-            quantity: i.quantity || 1 
+            id: i.id, 
+            product: { 
+                id: i.products?.id, 
+                name: i.products?.name || 'Produit supprimé', 
+                image: i.products?.image || '', 
+                price: i.products?.price || 0, 
+                unit: i.products?.unit || 'pièce' 
+            }, 
+            quantity: i.quantity || 1,
+            checkIn: i.check_in,
+            checkOut: i.check_out,
+            guests: i.guests
         })) || [];
     } catch { return []; }
 };

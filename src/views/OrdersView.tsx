@@ -476,7 +476,29 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                 </div>
                                                 <div className="flex-grow min-w-0">
                                                     <div className="text-xs md:text-sm font-black text-gray-900 truncate">{item.product.name}</div>
-                                                    <div className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase mt-0.5">{item.quantity} {item.product.unit || 'unité(s)'}</div>
+                                                    <div className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase mt-0.5">
+                                                        {item.quantity} {item.product.unit || 'unité(s)'}
+                                                    </div>
+                                                    
+                                                    {/* Booking Details for Merchant */}
+                                                    {item.checkIn && item.checkOut && (
+                                                        <div className="mt-1.5 p-2 bg-blue-50 rounded-xl border border-blue-100/50 flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <Calendar size={10} className="text-blue-500" />
+                                                                <span className="text-[9px] font-black text-blue-700 uppercase tracking-tight">
+                                                                    Du {new Date(item.checkIn).toLocaleDateString('fr-FR')} au {new Date(item.checkOut).toLocaleDateString('fr-FR')}
+                                                                </span>
+                                                            </div>
+                                                            {item.guests && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <User size={10} className="text-blue-400" />
+                                                                    <span className="text-[9px] font-bold text-blue-600">
+                                                                        {item.guests} voyageur(s)
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-xs md:text-sm font-black text-gray-900">{formatCurrency(item.quantity * (item.product.price || 0))}</div>

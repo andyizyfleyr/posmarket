@@ -25,8 +25,11 @@ import {
   Loader2,
   Award,
   Zap,
-  Clock
+  Clock,
+  Calendar,
+  CheckCircle2
 } from 'lucide-react';
+import { supabase } from '@/supabase';
 import { SUBSCRIPTION_PLANS } from '@/constants';
 import { Product, StaffPermissions, StaffRole, UserSubscription } from '@/types';
 import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
@@ -60,6 +63,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [managingAvailability, setManagingAvailability] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -559,24 +563,33 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1 text-right">
-                        {permissions.canManageInventory && (
-                          <>
+                        <div className="flex items-center justify-end gap-1 text-right">
+                          {product.businessType === 'stay' && (
                             <button
-                              onClick={() => handleOpenModal(product)}
-                              className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg transition-all active:scale-90"
+                              onClick={() => setManagingAvailability(product)}
+                              className="p-2 text-blue-600 bg-blue-50 rounded-lg transition-all active:scale-90"
+                              title="Gérer la disponibilité"
                             >
-                              <Edit size={12} />
+                              <Calendar size={12} />
                             </button>
-                            <button
-                              onClick={() => handleDelete(product.id)}
-                              className="p-2 text-red-600 bg-red-50 rounded-lg transition-all active:scale-90"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                          )}
+                          {permissions.canManageInventory && (
+                            <>
+                              <button
+                                onClick={() => handleOpenModal(product)}
+                                className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg transition-all active:scale-90"
+                              >
+                                <Edit size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(product.id)}
+                                className="p-2 text-red-600 bg-red-50 rounded-lg transition-all active:scale-90"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                     </div>
                   </div>
                 ))}
@@ -1479,6 +1492,166 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         </div>
       )}
+      {/* Availability Management Modal */}
+      {managingAvailability && (
+        <AvailabilityModal
+          product={managingAvailability}
+          onClose={() => setManagingAvailability(null)}
+          onUpdate={() => router.refresh()}
+        />
+      )}
+    </div>
+  );
+};
+
+// Internal component for Availability Management
+const AvailabilityModal: React.FC<{ 
+  product: Product, 
+  onClose: () => void,
+  onUpdate: () => void 
+}> = ({ product, onClose, onUpdate }) => {
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isAvailable, setIsAvailable] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [slots, setSlots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSlots();
+  }, [product.id]);
+
+  const fetchSlots = async () => {
+    try {
+      const { data } = await supabase
+        .from('availability_slots')
+        .select('*')
+        .eq('product_id', product.id)
+        .order('date', { ascending: true });
+      setSlots(data || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!startDate || !endDate) return;
+    setIsSubmitting(true);
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const datesToUpdate = [];
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        datesToUpdate.push(new Date(d).toISOString().split('T')[0]);
+      }
+
+      // Perform updates
+      for (const dateStr of datesToUpdate) {
+        const { error } = await supabase.from('availability_slots').upsert({
+          product_id: product.id,
+          date: dateStr,
+          is_available: isAvailable,
+        }, { onConflict: 'product_id,date' });
+        
+        if (error) throw error;
+      }
+
+      onUpdate();
+      fetchSlots();
+      alert('Disponibilité mise à jour avec succès');
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-black text-gray-900">Disponibilité : {product.name}</h3>
+            <p className="text-xs text-gray-400 font-bold">Gérez manuellement les blocages du calendrier</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Date de début</label>
+              <input 
+                type="date" 
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Date de fin</label>
+              <input 
+                type="date" 
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setIsAvailable(true)}
+              className={`flex-1 p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${isAvailable ? 'border-green-500 bg-green-50' : 'border-gray-100'}`}
+            >
+              <CheckCircle2 size={24} className={isAvailable ? 'text-green-500' : 'text-gray-300'} />
+              <span className="text-[10px] font-black uppercase">Marquer Disponible</span>
+            </button>
+            <button 
+              onClick={() => setIsAvailable(false)}
+              className={`flex-1 p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${!isAvailable ? 'border-red-500 bg-red-50' : 'border-gray-100'}`}
+            >
+              <X size={24} className={!isAvailable ? 'text-red-500' : 'text-gray-300'} />
+              <span className="text-[10px] font-black uppercase">Marquer Indisponible</span>
+            </button>
+          </div>
+
+          <Button 
+            fullWidth 
+            onClick={handleSave} 
+            loading={isSubmitting}
+            disabled={!startDate || !endDate}
+          >
+            Mettre à jour le calendrier
+          </Button>
+
+          <div className="pt-6 border-t border-gray-100">
+             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Dates actuellement bloquées</h4>
+             {loading ? <Loader2 className="animate-spin mx-auto text-gray-300" /> : (
+               <div className="space-y-2">
+                 {slots.filter(s => !s.is_available).length === 0 ? (
+                   <p className="text-xs text-gray-400 italic text-center py-4">Aucun blocage manuel enregistré.</p>
+                 ) : (
+                   <div className="grid grid-cols-2 gap-2">
+                     {slots.filter(s => !s.is_available).map(s => (
+                       <div key={s.id} className="flex items-center justify-between p-2 bg-red-50 text-red-700 rounded-lg border border-red-100">
+                         <span className="text-[10px] font-bold">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                         <X size={10} className="cursor-pointer hover:scale-125" onClick={async () => {
+                           await supabase.from('availability_slots').delete().eq('id', s.id);
+                           fetchSlots();
+                           onUpdate();
+                         }} />
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

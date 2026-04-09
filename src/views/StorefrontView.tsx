@@ -1278,6 +1278,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       ];
     });
     setLastAddedProduct(product);
+    
+    // Direct Checkout for Stays (Airbnb Style) - One-click booking
+    const isStay = product.businessType === 'stay' || product.category === 'Appartements' || product.mainCategory === "Séjours, Expériences & Immobilier";
+    
+    if (isStay) {
+      if (!bookingInfo?.checkIn || !bookingInfo?.checkOut) {
+        // From a thumbnail or search: Open details to pick dates
+        safeNavigate(`/product/${generateProductSlug(product)}`);
+        return;
+      }
+      // With dates: skip cart and go to shipping (checkout)
+      handleStageChange('shipping');
+      return;
+    }
+
     setCartNotif(true);
     onNotifyCartInterest(product.storeId, product.name);
     setTimeout(() => setCartNotif(false), 4000);
