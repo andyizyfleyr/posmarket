@@ -1956,8 +1956,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           <div className="flex flex-col h-full py-2 px-4 md:px-0">
             {(() => {
               const mainCat = selectedProductDetails.mainCategory;
-              const isFood = mainCat === "Restauration & Livraison Rapide";
-              const isStay = mainCat === "Séjours, Expériences & Immobilier";
+              const isFood = selectedProductDetails.businessType === "food" || mainCat === "Restauration & Livraison Rapide";
+              const isStay = selectedProductDetails.businessType === "stay" || mainCat === "Séjours, Expériences & Immobilier";
               const isProduct = !isFood && !isStay;
 
               return (
@@ -1997,6 +1997,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       <h2 className="text-xl md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
                         {selectedProductDetails.name}
                       </h2>
+
+                      {isStay && selectedProductDetails.location && (
+                        <div className="flex items-center gap-1.5 -mt-2">
+                          <MapPin size={14} className="text-blue-500" />
+                          <span className="text-[11px] md:text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
+                            {selectedProductDetails.location}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex flex-col items-start flex-shrink-0">
                         <div className="flex items-baseline gap-2 h-fit">
@@ -2263,6 +2272,38 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             ))}
                           </select>
                         </div>
+
+                        {/* Booking Feedback & Summary */}
+                        {checkIn && checkOut && (
+                          <div className="mt-4 pt-4 border-t border-blue-100/50 flex flex-col gap-2">
+                            {isCheckingAvailability ? (
+                              <div className="flex items-center gap-2 text-[9px] font-black text-blue-500 uppercase">
+                                <Loader2 size={10} className="animate-spin" /> Vérification...
+                              </div>
+                            ) : isAvailable === false ? (
+                              <div className="flex items-center gap-2 text-[9px] font-black text-red-500 uppercase bg-red-50 p-2 rounded-lg">
+                                <AlertCircle size={10} /> Indisponible aux dates choisies
+                              </div>
+                            ) : isAvailable === true ? (
+                              <div className="flex flex-col gap-1.5 bg-green-50/50 p-3 rounded-xl border border-green-100/50">
+                                <div className="flex items-center gap-2 text-[9px] font-black text-green-600 uppercase">
+                                  <CheckCircle2 size={10} /> Disponible !
+                                </div>
+                                <div className="flex justify-between items-center text-[10px] font-black text-gray-700">
+                                  <span className="uppercase tracking-tighter opacity-60">Estimation</span>
+                                  <span>
+                                    {(() => {
+                                      const start = new Date(checkIn);
+                                      const end = new Date(checkOut);
+                                      const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                                      return `${nights} nuits x ${formatCurrency(selectedProductDetails.price)} = ${formatCurrency(nights * selectedProductDetails.price)}`;
+                                    })()}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2317,60 +2358,81 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             {descriptionText}
                           </div>
 
-                          {isStay && amenitiesList.length > 0 && (
-                            <div className="mt-6 pt-6 border-t border-gray-50">
-                              <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-4">
-                                Équipements inclus
-                              </h4>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {[
-                                  { id: "wifi", label: "Wi-Fi", icon: "📶" },
-                                  {
-                                    id: "ac",
-                                    label: "Climatisation",
-                                    icon: "❄️",
-                                  },
-                                  {
-                                    id: "generator",
-                                    label: "Groupe Électrogène",
-                                    icon: "⚡",
-                                  },
-                                  {
-                                    id: "canalplus",
-                                    label: "Canal+",
-                                    icon: "📡",
-                                  },
-                                  {
-                                    id: "cleaning",
-                                    label: "Ménage",
-                                    icon: "🧹",
-                                  },
-                                  { id: "pool", label: "Piscine", icon: "🏊" },
-                                  {
-                                    id: "kitchen",
-                                    label: "Cuisine",
-                                    icon: "🍳",
-                                  },
-                                  {
-                                    id: "security",
-                                    label: "Gardiennage",
-                                    icon: "🛡️",
-                                  },
-                                ]
-                                  .filter((a) => amenitiesList.includes(a.id))
-                                  .map((amenity) => (
-                                    <div
-                                      key={amenity.id}
-                                      className="flex items-center gap-2 bg-gray-50/50 p-2 rounded-xl border border-gray-50 transition-all hover:bg-white hover:shadow-sm group"
-                                    >
-                                      <span className="text-sm group-hover:scale-110 transition-transform">
-                                        {amenity.icon}
-                                      </span>
-                                      <span className="text-[10px] font-bold text-gray-600">
-                                        {amenity.label}
-                                      </span>
+                          {isStay && (
+                            <div className="mt-6 pt-6 border-t border-gray-50 space-y-6">
+                              {/* Amenities Grid */}
+                              {amenitiesList.length > 0 && (
+                                <div>
+                                  <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Zap size={12} className="text-blue-500" /> Équipements inclus
+                                  </h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {[
+                                      { id: "wifi", label: "Wi-Fi", icon: <Globe size={14} /> },
+                                      { id: "ac", label: "Climatisation", icon: <Clock size={14} /> },
+                                      { id: "generator", label: "Électricité H24", icon: <Zap size={14} /> },
+                                      { id: "canalplus", label: "Canal+", icon: <Zap size={14} /> },
+                                      { id: "cleaning", label: "Ménage", icon: <CheckCircle2 size={14} /> },
+                                      { id: "pool", label: "Piscine", icon: <MapPin size={14} /> },
+                                      { id: "kitchen", label: "Cuisine", icon: <Package size={14} /> },
+                                      { id: "security", label: "Sécurité", icon: <ShieldCheck size={14} /> },
+                                    ].filter(a => amenitiesList.includes(a.id)).map((amenity) => (
+                                      <div
+                                        key={amenity.id}
+                                        className="flex items-center gap-2 p-2 rounded-xl bg-gray-50/50 border border-gray-100"
+                                      >
+                                        <span className="text-blue-500">
+                                          {amenity.icon}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-tight">
+                                          {amenity.label}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Policy & Additional Fees */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 rounded-2xl bg-gray-50/50 border border-gray-100 space-y-2">
+                                  <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Politique & Frais</h5>
+                                  <div className="space-y-1.5">
+                                    {(selectedProductDetails as any).cleaningFee > 0 && (
+                                      <div className="flex justify-between text-[10px] font-bold">
+                                         <span className="text-gray-500">Frais de ménage</span>
+                                         <span className="text-gray-900">{formatCurrency((selectedProductDetails as any).cleaningFee)}</span>
+                                      </div>
+                                    )}
+                                    {(selectedProductDetails as any).securityDeposit > 0 && (
+                                      <div className="flex justify-between text-[10px] font-bold">
+                                         <span className="text-gray-500">Caution</span>
+                                         <span className="text-red-500">{formatCurrency((selectedProductDetails as any).securityDeposit)}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between text-[10px] font-bold">
+                                         <span className="text-gray-500">Annulation</span>
+                                         <span className="text-blue-600 capitalize">{(selectedProductDetails as any).cancellationPolicy || 'Flexible'}</span>
                                     </div>
-                                  ))}
+                                  </div>
+                                </div>
+                                
+                                {selectedProductDetails.maxGuests && (
+                                  <div className="p-4 rounded-2xl bg-blue-50/30 border border-blue-50 space-y-2">
+                                    <h5 className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Capacité</h5>
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex flex-col">
+                                        <span className="text-lg font-black text-blue-700">{selectedProductDetails.maxGuests}</span>
+                                        <span className="text-[8px] font-bold text-blue-400 uppercase">Voyageurs max</span>
+                                      </div>
+                                      <div className="w-px h-8 bg-blue-100" />
+                                      <div className="flex flex-col">
+                                        <span className="text-lg font-black text-blue-700">{selectedProductDetails.bedrooms || 1}</span>
+                                        <span className="text-[8px] font-bold text-blue-400 uppercase">Chambres</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
