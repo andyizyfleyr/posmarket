@@ -182,13 +182,12 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
 
         if (itemErr) throw itemErr;
 
-        // Update product stock atomically via RPC
+        // 4. Update Stock (for physical products)
         const { error: stockErr } = await supabase.rpc('decrement_stock', {
           p_id: item.product.id,
           p_quantity: item.quantity
         });
 
-        // Fallback to manual update if RPC fails (backward compatibility)
         if (stockErr) {
           console.warn('RPC decrement_stock failed, falling back to manual update:', stockErr.message);
           const { data: product } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
@@ -199,10 +198,39 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
           }
         }
 
-        // Check for Low Stock after order
+        // 5. Handle Stay Bookings - Block availability slots in DB
+        if (item.checkIn && item.checkOut) {
+          try {
+            const start = new Date(item.checkIn);
+            const end = new Date(item.checkOut);
+            const slotsToUpsert = [];
+            
+            // Loop through dates
+            const current = new Date(start);
+            while (current <= end) {
+              slotsToUpsert.push({
+                product_id: item.product.id,
+                date: current.toISOString().split('T')[0],
+                is_available: false,
+                booking_id: order.id
+              });
+              current.setDate(current.getDate() + 1);
+            }
+            
+            if (slotsToUpsert.length > 0) {
+              await supabase
+                .from('availability_slots')
+                .upsert(slotsToUpsert, { onConflict: 'product_id,date' });
+            }
+          } catch (slotErr) {
+            console.warn('Failed to block availability slots for booking:', slotErr);
+          }
+        }
+
+        // 6. Check for Low Stock after order (for physical products)
         try {
-          const { data: updatedProduct } = await supabase.from('products').select('name, stock').eq('id', item.product.id).single();
-          if (updatedProduct && updatedProduct.stock <= 5) {
+          const { data: updatedProduct } = await supabase.from('products').select('name, stock, business_type').eq('id', item.product.id).single();
+          if (updatedProduct && updatedProduct.business_type !== 'stay' && updatedProduct.stock <= 5) {
             await sendPushNotification(
               `store_${storeId}`,
               '⚠️ Alerte Stock Bas',
