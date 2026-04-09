@@ -88,14 +88,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
     const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
     const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
     const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
+    const prevPathRef = useRef(location.pathname);
 
     // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
     const safeNavigate = useCallback((path: string, options?: { action?: () => void }) => {
         setIsNavigating(true);
-        setIsCartButtonLoading(true);
         if (options?.action) options.action();
         
-        // Small delay for premium feel before actual route change
         setTimeout(() => {
             navigate(path);
         }, 300);
@@ -103,9 +102,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
     // 🔄 Reset all loading states when the route actually changes
     useEffect(() => {
-        setIsNavigating(false);
-        setIsCartButtonLoading(false);
-        setIsCheckoutTransitioning(false);
+        if (prevPathRef.current !== location.pathname) {
+            setIsNavigating(false);
+            setIsCartButtonLoading(false);
+            setIsCheckoutTransitioning(false);
+            prevPathRef.current = location.pathname;
+        }
     }, [location.pathname]);
 
     const removeToast = useCallback((id: string) => {
@@ -3076,9 +3078,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             </main>
 
             {cartItemsCount > 0 && !isCartView && !isFeedView && (
-                <div className="fixed bottom-[70px] left-4 right-4 z-50 md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0">
+                <div className="fixed left-4 right-4 z-[201] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)' }}>
                     <button
                         onClick={() => {
+                            setIsCartButtonLoading(true);
                             if (checkoutStage === 'success') {
                                 setCheckoutStage('cart');
                                 setCompletedOrderStores([]);
