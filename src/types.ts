@@ -45,6 +45,11 @@ export interface Product {
   maxGuests?: number; // for 'stay'
   bedrooms?: number; // for 'stay'
   location?: string; // for 'stay'
+  currentBooking?: {
+    startDate: string;
+    endDate: string;
+    isManualBlock?: boolean;
+  };
 }
 
 export interface ProductOption {
