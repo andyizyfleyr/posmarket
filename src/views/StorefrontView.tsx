@@ -997,6 +997,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
             if (paymentMethod === 'card') {
                 setIsProcessingPayment(true);
+                setPendingOrderData(ordersData);
+                setPendingCustomerInfo({ ...customerInfo, address: `${customerInfo.address}, ${customerInfo.city}` });
+                const totalAmount = Object.values(ordersData).reduce((sum: number, order: any) => sum + order.total, 0);
+                
                 initiateFusionPayPayment(
                     Math.round(totalAmount),
                     'Commande sur ' + (stores[0]?.name || 'POS Pro'),
