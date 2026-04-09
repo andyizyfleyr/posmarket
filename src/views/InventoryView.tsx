@@ -119,15 +119,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       if (!channelMatch) return false;
 
       // Filter by Vertical
-      const isStay = p.businessType === 'stay' || p.mainCategory === 'Séjours, Expériences & Immobilier';
-      const isFood = p.businessType === 'food' || p.mainCategory === 'Restauration & Livraison Rapide';
-      const isShopping = p.businessType === 'shopping' || (!isStay && !isFood);
+      const mainCat = p.mainCategory || '';
+      const isStay = p.businessType === 'stay' || mainCat.includes('Séjour') || mainCat.includes('Immobilier');
+      const isFood = p.businessType === 'food' || mainCat.includes('Resto') || mainCat.includes('Alimentation');
+      
+      // Final categorization to prevent overlaps
+      const actualVertical = isStay ? 'stay' : isFood ? 'food' : 'shopping';
 
       if (selectedVertical === 'all') return true;
-      if (selectedVertical === 'stay') return isStay;
-      if (selectedVertical === 'food') return isFood;
-      if (selectedVertical === 'shopping') return isShopping;
-      return true;
+      return selectedVertical === actualVertical;
     });
   }, [localProducts, productType, selectedVertical]);
 

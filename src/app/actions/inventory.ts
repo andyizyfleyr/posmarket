@@ -44,7 +44,11 @@ export async function saveProductAction(product: any, storeId: string) {
     views: product.views || 0,
     wholesale_price: product.wholesalePrice,
     wholesale_min_qty: product.wholesaleMinQty,
-    business_type: product.businessType || 'shopping',
+    business_type: product.businessType || (
+      (product.mainCategory || '').includes('Séjour') || (product.mainCategory || '').includes('Immobilier') ? 'stay' :
+      (product.mainCategory || '').includes('Resto') || (product.mainCategory || '').includes('Alimentation') ? 'food' :
+      'shopping'
+    ),
     amenities: product.amenities || [],
     max_guests: product.maxGuests,
     bedrooms: product.bedrooms,
