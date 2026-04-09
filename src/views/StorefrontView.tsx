@@ -1964,6 +1964,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               const isFood = selectedProductDetails.businessType === "food" || mainCat === "Restauration & Livraison Rapide";
               const isStay = selectedProductDetails.businessType === "stay" || mainCat === "Séjours, Expériences & Immobilier";
               const isProduct = !isFood && !isStay;
+              const descriptionText = selectedProductDetails.description || "Découvrez cet article exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
+              const amenitiesList = selectedProductDetails.amenities || [];
 
               return (
                 <>
@@ -2369,209 +2371,234 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                   {/* Product Description - Collapsible & Formatted */}
                   <div className="mb-4 relative">
-                    {(() => {
-                      const descriptionText =
-                        selectedProductDetails.description ||
-                        "Découvrez cet article exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
-                      const amenitiesList =
-                        selectedProductDetails.amenities || [];
+                    <div
+                      className={`text-gray-500 text-xs md:text-[15px] leading-relaxed font-medium transition-all duration-300 ${!isDescriptionExpanded ? "line-clamp-3 md:line-clamp-none" : ""}`}
+                      style={{ whiteSpace: "pre-line" }}
+                    >
+                      {descriptionText}
+                    </div>
 
-                      return (
-                        <>
-                          <div
-                            className={`text-gray-500 text-xs md:text-[15px] leading-relaxed font-medium transition-all duration-300 ${!isDescriptionExpanded ? "line-clamp-3 md:line-clamp-none" : ""}`}
-                            style={{ whiteSpace: "pre-line" }}
+                    {isStay && (
+                      <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                        {/* --- ACCORDION 1: CAPACITY --- */}
+                        <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
+                          <button
+                            onClick={() =>
+                              setExpandedStaySection(
+                                expandedStaySection === "capacity"
+                                  ? null
+                                  : "capacity",
+                              )
+                            }
+                            className="w-full px-6 py-5 flex items-center justify-between text-left group"
                           >
-                            {descriptionText}
-                          </div>
-
-                          {isStay && (
-                            <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                              
-                              {/* --- ACCORDION 1: CAPACITY --- */}
-                              <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
-                                <button 
-                                  onClick={() => setExpandedStaySection(expandedStaySection === 'capacity' ? null : 'capacity')}
-                                  className="w-full px-6 py-5 flex items-center justify-between text-left group"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                                      <Users size={18} strokeWidth={2.5} />
-                                    </div>
-                                    <div>
-                                      <h4 className="text-sm font-black text-gray-900 leading-tight">Détails du Logement</h4>
-                                      <p className="text-[9px] text-blue-400 font-extrabold uppercase tracking-widest mt-0.5">Capacité & Espaces</p>
-                                    </div>
-                                  </div>
-                                  <ChevronDown 
-                                    size={18} 
-                                    className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === 'capacity' ? 'rotate-180 text-blue-500' : ''}`} 
-                                  />
-                                </button>
-                                
-                                <div className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === 'capacity' ? 'pb-6 max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                                    {selectedProductDetails.maxGuests && (
-                                      <div className="flex items-center gap-3 bg-blue-50/50 border border-blue-100/30 px-4 py-3 rounded-2xl">
-                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
-                                          <Users size={16} />
-                                        </div>
-                                        <div className="flex flex-col">
-                                          <span className="text-xs font-black text-blue-900 leading-none">{selectedProductDetails.maxGuests}</span>
-                                          <span className="text-[8px] font-black text-blue-400 uppercase mt-0.5">Personnes</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-3 bg-indigo-50/50 border border-indigo-100/30 px-4 py-3 rounded-2xl">
-                                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600 shadow-sm">
-                                        <Home size={16} />
-                                      </div>
-                                      <div className="flex flex-col">
-                                        <span className="text-xs font-black text-indigo-900 leading-none">{selectedProductDetails.bedrooms || 1}</span>
-                                        <span className="text-[8px] font-black text-indigo-400 uppercase mt-0.5">Chambre(s)</span>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-emerald-50/50 border border-emerald-100/30 px-4 py-3 rounded-2xl">
-                                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
-                                        <ShieldCheck size={16} />
-                                      </div>
-                                      <div className="flex flex-col">
-                                        <span className="text-[9px] font-black text-emerald-900 leading-none">Vérifié</span>
-                                        <span className="text-[8px] font-black text-emerald-400 uppercase mt-0.5">Hébergement</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                <Users size={18} strokeWidth={2.5} />
                               </div>
+                              <div>
+                                <h4 className="text-sm font-black text-gray-900 leading-tight">
+                                  Détails du Logement
+                                </h4>
+                                <p className="text-[9px] text-blue-400 font-extrabold uppercase tracking-widest mt-0.5">
+                                  Capacité & Espaces
+                                </p>
+                              </div>
+                            </div>
+                            <ChevronDown
+                              size={18}
+                              className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === "capacity" ? "rotate-180 text-blue-500" : ""}`}
+                            />
+                          </button>
 
-                              {/* --- ACCORDION 2: AMENITIES --- */}
-                              {amenitiesList.length > 0 && (
-                                <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
-                                  <button 
-                                    onClick={() => setExpandedStaySection(expandedStaySection === 'amenities' ? null : 'amenities')}
-                                    className="w-full px-6 py-5 flex items-center justify-between text-left group"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                                        <Zap size={18} strokeWidth={2.5} />
-                                      </div>
-                                      <div>
-                                        <h4 className="text-sm font-black text-gray-900 leading-tight">Équipements & Confort</h4>
-                                        <p className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest mt-0.5">{amenitiesList.length} services inclus</p>
-                                      </div>
-                                    </div>
-                                    <ChevronDown 
-                                      size={18} 
-                                      className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === 'amenities' ? 'rotate-180 text-indigo-500' : ''}`} 
-                                    />
-                                  </button>
-                                  
-                                  <div className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === 'amenities' ? 'pb-6 max-h-[1000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                                      {[
-                                        { id: "wifi", label: "Wi-Fi Haut Débit", icon: <Globe size={16} />, color: "text-blue-500", bg: "bg-blue-50/50" },
-                                        { id: "ac", label: "Climatisation", icon: <Clock size={16} />, color: "text-indigo-500", bg: "bg-indigo-50/50" },
-                                        { id: "generator", label: "Électricité H24", icon: <Zap size={16} />, color: "text-yellow-500", bg: "bg-yellow-50/50" },
-                                        { id: "canalplus", label: "Canal+ / Smart TV", icon: <Package size={16} />, color: "text-blue-600", bg: "bg-blue-500/10" },
-                                        { id: "cleaning", label: "Ménage Inclus", icon: <CheckCircle2 size={16} />, color: "text-emerald-500", bg: "bg-emerald-50/50" },
-                                        { id: "pool", label: "Piscine Privée", icon: <MapPin size={16} />, color: "text-cyan-500", bg: "bg-cyan-50/50" },
-                                        { id: "kitchen", label: "Cuisine Équipée", icon: <Package size={16} />, color: "text-orange-500", bg: "bg-orange-50/50" },
-                                        { id: "security", label: "Gardiennage 24/7", icon: <ShieldCheck size={16} />, color: "text-slate-600", bg: "bg-slate-100/50" },
-                                      ].filter(a => amenitiesList.includes(a.id)).map((amenity) => (
-                                        <div
-                                          key={amenity.id}
-                                          className="flex flex-col items-center text-center gap-2 p-3 rounded-2xl bg-gray-50/50 border border-gray-100/50 transition-all hover:bg-white hover:shadow-sm"
-                                        >
-                                          <div className={`p-2 rounded-xl ${amenity.bg} ${amenity.color}`}>
-                                            {amenity.icon}
-                                          </div>
-                                          <span className="text-[10px] font-black text-gray-700 uppercase tracking-tight leading-tight">
-                                            {amenity.label}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
+                          <div
+                            className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === "capacity" ? "pb-6 max-h-[500px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
+                          >
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+                              {selectedProductDetails.maxGuests && (
+                                <div className="flex items-center gap-3 bg-blue-50/50 border border-blue-100/30 px-4 py-3 rounded-2xl">
+                                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
+                                    <Users size={16} />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-black text-blue-900 leading-none">
+                                      {selectedProductDetails.maxGuests}
+                                    </span>
+                                    <span className="text-[8px] font-black text-blue-400 uppercase mt-0.5">
+                                      Personnes
+                                    </span>
                                   </div>
                                 </div>
                               )}
-
-                              {/* --- ACCORDION 3: POLICY --- */}
-                              <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
-                                <button 
-                                  onClick={() => setExpandedStaySection(expandedStaySection === 'policy' ? null : 'policy')}
-                                  className="w-full px-6 py-5 flex items-center justify-between text-left group"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-600 group-hover:scale-110 transition-transform">
-                                      <AlertCircle size={18} strokeWidth={2.5} />
-                                    </div>
-                                    <div>
-                                      <h4 className="text-sm font-black text-gray-900 leading-tight">Conditions du Séjour</h4>
-                                      <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest mt-0.5">Annulation & Caution</p>
-                                    </div>
-                                  </div>
-                                  <ChevronDown 
-                                    size={18} 
-                                    className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === 'policy' ? 'rotate-180 text-slate-500' : ''}`} 
-                                  />
-                                </button>
-                                
-                                <div className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === 'policy' ? 'pb-6 max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                                  <div className="p-5 rounded-3xl bg-gray-50/50 border border-gray-100/50 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-3">
-                                      <div className="flex items-center justify-between text-[11px] font-bold">
-                                         <span className="text-gray-500">Annulation</span>
-                                         <span className="text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-md capitalize">{(selectedProductDetails as any).cancellationPolicy || 'Flexible'}</span>
-                                      </div>
-                                      <div className="flex items-center justify-between text-[11px] font-bold">
-                                         <span className="text-gray-500">Check-in / out</span>
-                                         <span className="text-gray-900 font-black">14h00 / 12h00</span>
-                                      </div>
-                                    </div>
-
-                                    <div className="pt-4 md:pt-0 md:pl-6 border-t md:border-t-0 md:border-l border-gray-200/50 space-y-3">
-                                      {(selectedProductDetails as any).securityDeposit > 0 && (
-                                        <div className="flex items-center justify-between text-[11px] font-bold">
-                                           <span className="text-gray-500">Caution Séjour</span>
-                                           <span className="text-red-500 font-black">{formatCurrency((selectedProductDetails as any).securityDeposit)}</span>
-                                        </div>
-                                      )}
-                                      <div className="flex items-center justify-between text-[11px] font-bold">
-                                         <span className="text-gray-500">Vérification ID</span>
-                                         <span className="text-emerald-600 font-black flex items-center gap-1">Exigée <CheckCircle2 size={10} /></span>
-                                      </div>
-                                    </div>
-                                  </div>
+                              <div className="flex items-center gap-3 bg-indigo-50/50 border border-indigo-100/30 px-4 py-3 rounded-2xl">
+                                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600 shadow-sm">
+                                  <Home size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-black text-indigo-900 leading-none">
+                                    {selectedProductDetails.bedrooms || 1}
+                                  </span>
+                                  <span className="text-[8px] font-black text-indigo-400 uppercase mt-0.5">
+                                    Chambre(s)
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 bg-emerald-50/50 border border-emerald-100/30 px-4 py-3 rounded-2xl">
+                                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
+                                  <ShieldCheck size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-[9px] font-black text-emerald-900 leading-none">
+                                    Vérifié
+                                  </span>
+                                  <span className="text-[8px] font-black text-emerald-400 uppercase mt-0.5">
+                                    Hébergement
+                                  </span>
                                 </div>
                               </div>
                             </div>
-                          )}
+                          </div>
+                        </div>
 
-                          {descriptionText && descriptionText.length > 150 && (
+                        {/* --- ACCORDION 2: AMENITIES --- */}
+                        {amenitiesList.length > 0 && (
+                          <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
                             <button
                               onClick={() =>
-                                setIsDescriptionExpanded(!isDescriptionExpanded)
+                                setExpandedStaySection(
+                                  expandedStaySection === "amenities"
+                                    ? null
+                                    : "amenities",
+                                )
                               }
-                              className={`mt-2 font-black text-[10px] md:hidden uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all ${
-                                isFood
-                                  ? "text-green-600"
-                                  : isStay
-                                    ? "text-blue-600"
-                                    : "text-[#f56b2a]"
-                              }`}
+                              className="w-full px-6 py-5 flex items-center justify-between text-left group"
                             >
-                              {isDescriptionExpanded
-                                ? "Voir moins"
-                                : "Lire la suite"}
-                              <ChevronRight
-                                size={10}
-                                className={`transition-transform duration-300 ${isDescriptionExpanded ? "-rotate-90" : "rotate-90"}`}
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                                  <Zap size={18} strokeWidth={2.5} />
+                                </div>
+                                <div className="">
+                                  <h4 className="text-sm font-black text-gray-900 leading-tight">
+                                    Équipements & Confort
+                                  </h4>
+                                  <p className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest mt-0.5">
+                                    {amenitiesList.length} services inclus
+                                  </p>
+                                </div>
+                              </div>
+                              <ChevronDown
+                                size={18}
+                                className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === "amenities" ? "rotate-180 text-indigo-500" : ""}`}
                               />
                             </button>
-                          )}
-                        </>
-                      );
-                    })()}
+
+                            <div
+                              className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === "amenities" ? "pb-6 max-h-[1000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
+                            >
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                                {[
+                                  {
+                                    id: "wifi",
+                                    label: "Wi-Fi Haut Débit",
+                                    icon: <Globe size={16} />,
+                                    color: "text-blue-500",
+                                    bg: "bg-blue-50/50",
+                                  },
+                                  {
+                                    id: "ac",
+                                    label: "Climatisation",
+                                    icon: <Clock size={16} />,
+                                    color: "text-indigo-500",
+                                    bg: "bg-indigo-50/50",
+                                  },
+                                  {
+                                    id: "generator",
+                                    label: "Électricité H24",
+                                    icon: <Zap size={16} />,
+                                    color: "text-yellow-500",
+                                    bg: "bg-yellow-50/50",
+                                  },
+                                  {
+                                    id: "canalplus",
+                                    label: "Canal+ / Smart TV",
+                                    icon: <Package size={16} />,
+                                    color: "text-blue-600",
+                                    bg: "bg-blue-500/10",
+                                  },
+                                  {
+                                    id: "cleaning",
+                                    label: "Ménage Inclus",
+                                    icon: <CheckCircle2 size={16} />,
+                                    color: "text-emerald-500",
+                                    bg: "bg-emerald-50/50",
+                                  },
+                                  {
+                                    id: "pool",
+                                    label: "Piscine Privée",
+                                    icon: <MapPin size={16} />,
+                                    color: "text-cyan-500",
+                                    bg: "bg-cyan-50/50",
+                                  },
+                                  {
+                                    id: "kitchen",
+                                    label: "Cuisine Équipée",
+                                    icon: <Package size={16} />,
+                                    color: "text-orange-500",
+                                    bg: "bg-orange-50/50",
+                                  },
+                                  {
+                                    id: "security",
+                                    label: "Gardiennage 24/7",
+                                    icon: <ShieldCheck size={16} />,
+                                    color: "text-slate-600",
+                                    bg: "bg-slate-100/50",
+                                  },
+                                ]
+                                  .filter((a) => amenitiesList.includes(a.id))
+                                  .map((amenity) => (
+                                    <div
+                                      key={amenity.id}
+                                      className="flex flex-col items-center text-center gap-2 p-3 rounded-2xl bg-gray-50/50 border border-gray-100/50 transition-all hover:bg-white hover:shadow-sm"
+                                    >
+                                      <div
+                                        className={`p-2 rounded-xl ${amenity.bg} ${amenity.color}`}
+                                      >
+                                        {amenity.icon}
+                                      </div>
+                                      <span className="text-[10px] font-black text-gray-700 uppercase tracking-tight leading-tight">
+                                        {amenity.label}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {descriptionText && descriptionText.length > 150 && (
+                      <button
+                        onClick={() =>
+                          setIsDescriptionExpanded(!isDescriptionExpanded)
+                        }
+                        className={`mt-4 font-black text-[10px] md:hidden uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all ${
+                          isFood
+                            ? "text-green-600"
+                            : isStay
+                              ? "text-blue-600"
+                              : "text-[#f56b2a]"
+                        }`}
+                      >
+                        {isDescriptionExpanded
+                          ? "Voir moins"
+                          : "Lire la suite"}
+                        <ChevronRight
+                          size={10}
+                          className={`transition-transform duration-300 ${isDescriptionExpanded ? "-rotate-90" : "rotate-90"}`}
+                        />
+                      </button>
+                    )}
                   </div>
 
                   <div className="mb-4 flex gap-4 overflow-x-auto no-scrollbar py-1">
