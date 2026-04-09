@@ -2651,7 +2651,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     Boostez votre visibilité et attirez plus de clients dès aujourd'hui sur notre plateforme express.
                                                 </p>
                                                 <Button 
-                                                    onClick={() => safeNavigate('/login')} 
+                                                    onClick={() => safeNavigate(user ? '/dashboard' : '/login')} 
                                                     loading={isNavigating}
                                                     variant="secondary"
                                                     size="xl"
@@ -2677,7 +2677,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     Un inventaire synchronisé et des alertes automatiques pour ne jamais manquer une vente.
                                                 </p>
                                                 <Button 
-                                                    onClick={() => safeNavigate('/login')} 
+                                                    onClick={() => safeNavigate(user ? '/dashboard' : '/login')} 
                                                     loading={isNavigating}
                                                     variant="secondary"
                                                     size="xl"
@@ -2704,7 +2704,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                     Faites partie des 500+ commerçants qui ont déjà transformé leur manière de vendre.
                                                 </p>
                                                 <Button 
-                                                    onClick={() => safeNavigate('/login')} 
+                                                    onClick={() => safeNavigate(user ? '/dashboard' : '/login')} 
                                                     variant="secondary"
                                                     size="xl"
                                                     className="bg-red-600 hover:bg-red-700"
