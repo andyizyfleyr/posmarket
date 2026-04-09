@@ -3129,7 +3129,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
             </main>
 
             {cartItemsCount > 0 && !isCartView && !isFeedView && (
-                <div className="fixed left-4 right-4 z-[1001] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 30px)' }}>
+                <div className="fixed left-4 right-4 z-[1001] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 12px)' }}>
                     <button
                         onClick={() => {
                             setIsCartButtonLoading(true);
