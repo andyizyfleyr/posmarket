@@ -2252,6 +2252,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                               <input 
                                 type="date" 
                                 value={checkIn}
+                                min={new Date().toISOString().split('T')[0]}
                                 onChange={(e) => setCheckIn(e.target.value)}
                                 className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
                               />
@@ -2261,6 +2262,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                               <input 
                                 type="date" 
                                 value={checkOut}
+                                min={checkIn || new Date().toISOString().split('T')[0]}
                                 onChange={(e) => setCheckOut(e.target.value)}
                                 className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
                               />
@@ -2316,6 +2318,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                           <Button
                             onClick={() => {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              if (new Date(checkIn) < today) {
+                                localNotify("La date d'arrivée ne peut pas être dans le passé", "error");
+                                return;
+                              }
                               if (!checkIn || !checkOut || isAvailable === false) {
                                 localNotify("Veuillez sélectionner des dates valides", "warning");
                                 return;
