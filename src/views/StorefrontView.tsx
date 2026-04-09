@@ -46,6 +46,7 @@ import {
   ShoppingBag,
   Tag,
   Calendar,
+  Users,
 } from "lucide-react";
 import {
   StoreData,
@@ -2383,32 +2384,74 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           </div>
 
                           {isStay && (
-                            <div className="mt-6 pt-6 border-t border-gray-50 space-y-6">
-                              {/* Amenities Grid */}
+                            <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                              
+                              {/* --- PREMIUM CAPACITY HIGHLIGHTS --- */}
+                              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+                                {selectedProductDetails.maxGuests && (
+                                  <div className="flex-shrink-0 flex items-center gap-3 bg-blue-50/50 border border-blue-100/50 px-4 py-3 rounded-2xl shadow-sm">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+                                      <Users size={20} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-black text-blue-900 leading-none">{selectedProductDetails.maxGuests}</span>
+                                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-1">Personnes</span>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <div className="flex-shrink-0 flex items-center gap-3 bg-indigo-50/50 border border-indigo-100/50 px-4 py-3 rounded-2xl shadow-sm">
+                                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                                    <Home size={20} strokeWidth={2.5} />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-black text-indigo-900 leading-none">{selectedProductDetails.bedrooms || 1}</span>
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mt-1">Chambre(s)</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex-shrink-0 flex items-center gap-3 bg-emerald-50/50 border border-emerald-100/50 px-4 py-3 rounded-2xl shadow-sm">
+                                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm">
+                                    <ShieldCheck size={20} strokeWidth={2.5} />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-emerald-900 leading-none">Sécurisé</span>
+                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mt-1">Vérifié</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* --- AMENITIES GRID --- */}
                               {amenitiesList.length > 0 && (
-                                <div>
-                                  <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Zap size={12} className="text-blue-500" /> Équipements inclus
-                                  </h4>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                      <Zap size={14} className="text-blue-500" /> Équipements & Confort
+                                    </h4>
+                                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                                      {amenitiesList.length} Inclus
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     {[
-                                      { id: "wifi", label: "Wi-Fi", icon: <Globe size={14} /> },
-                                      { id: "ac", label: "Climatisation", icon: <Clock size={14} /> },
-                                      { id: "generator", label: "Électricité H24", icon: <Zap size={14} /> },
-                                      { id: "canalplus", label: "Canal+", icon: <Zap size={14} /> },
-                                      { id: "cleaning", label: "Ménage", icon: <CheckCircle2 size={14} /> },
-                                      { id: "pool", label: "Piscine", icon: <MapPin size={14} /> },
-                                      { id: "kitchen", label: "Cuisine", icon: <Package size={14} /> },
-                                      { id: "security", label: "Sécurité", icon: <ShieldCheck size={14} /> },
+                                      { id: "wifi", label: "Wi-Fi Haut Débit", icon: <Globe size={16} />, color: "text-blue-500", bg: "bg-blue-50/50" },
+                                      { id: "ac", label: "Climatisation", icon: <Clock size={16} />, color: "text-indigo-500", bg: "bg-indigo-50/50" },
+                                      { id: "generator", label: "Électricité H24", icon: <Zap size={16} />, color: "text-yellow-500", bg: "bg-yellow-50/50" },
+                                      { id: "canalplus", label: "Canal+ / Smart TV", icon: <Package size={16} />, color: "text-blue-600", bg: "bg-blue-500/10" },
+                                      { id: "cleaning", label: "Ménage Inclus", icon: <CheckCircle2 size={16} />, color: "text-emerald-500", bg: "bg-emerald-50/50" },
+                                      { id: "pool", label: "Piscine Privée", icon: <MapPin size={16} />, color: "text-cyan-500", bg: "bg-cyan-50/50" },
+                                      { id: "kitchen", label: "Cuisine Équipée", icon: <Package size={16} />, color: "text-orange-500", bg: "bg-orange-50/50" },
+                                      { id: "security", label: "Gardiennage 24/7", icon: <ShieldCheck size={16} />, color: "text-slate-600", bg: "bg-slate-100/50" },
                                     ].filter(a => amenitiesList.includes(a.id)).map((amenity) => (
                                       <div
                                         key={amenity.id}
-                                        className="flex items-center gap-2 p-2 rounded-xl bg-gray-50/50 border border-gray-100"
+                                        className="flex flex-col items-start gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all active:scale-95 group"
                                       >
-                                        <span className="text-blue-500">
+                                        <div className={`p-2.5 rounded-xl ${amenity.bg} ${amenity.color} transition-colors group-hover:bg-opacity-80`}>
                                           {amenity.icon}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-tight">
+                                        </div>
+                                        <span className="text-[10px] font-black text-gray-700 uppercase tracking-tight leading-tight">
                                           {amenity.label}
                                         </span>
                                       </div>
@@ -2417,46 +2460,37 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                 </div>
                               )}
 
-                              {/* Policy & Additional Fees */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 rounded-2xl bg-gray-50/50 border border-gray-100 space-y-2">
-                                  <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Politique & Frais</h5>
-                                  <div className="space-y-1.5">
-                                    {(selectedProductDetails as any).cleaningFee > 0 && (
-                                      <div className="flex justify-between text-[10px] font-bold">
-                                         <span className="text-gray-500">Frais de ménage</span>
-                                         <span className="text-gray-900">{formatCurrency((selectedProductDetails as any).cleaningFee)}</span>
-                                      </div>
-                                    )}
+                              {/* --- POLICY & TERMS --- */}
+                              <div className="p-6 rounded-[32px] bg-gray-50/50 border border-gray-100 space-y-4">
+                                <h5 className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                  <AlertCircle size={14} className="text-gray-400" /> Conditions du Séjour
+                                </h5>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-[11px] font-bold">
+                                       <span className="text-gray-500">Annulation</span>
+                                       <span className="text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-md capitalize">{(selectedProductDetails as any).cancellationPolicy || 'Flexible'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[11px] font-bold">
+                                       <span className="text-gray-500">Check-in / out</span>
+                                       <span className="text-gray-900 font-black">14h00 / 12h00</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-4 md:pt-0 md:pl-4 border-t md:border-t-0 md:border-l border-gray-100 space-y-3">
                                     {(selectedProductDetails as any).securityDeposit > 0 && (
-                                      <div className="flex justify-between text-[10px] font-bold">
-                                         <span className="text-gray-500">Caution</span>
-                                         <span className="text-red-500">{formatCurrency((selectedProductDetails as any).securityDeposit)}</span>
+                                      <div className="flex items-center justify-between text-[11px] font-bold">
+                                         <span className="text-gray-500">Caution Séjour</span>
+                                         <span className="text-red-500 font-black">{formatCurrency((selectedProductDetails as any).securityDeposit)}</span>
                                       </div>
                                     )}
-                                    <div className="flex justify-between text-[10px] font-bold">
-                                         <span className="text-gray-500">Annulation</span>
-                                         <span className="text-blue-600 capitalize">{(selectedProductDetails as any).cancellationPolicy || 'Flexible'}</span>
+                                    <div className="flex items-center justify-between text-[11px] font-bold">
+                                       <span className="text-gray-500">Vérification ID</span>
+                                       <span className="text-emerald-600 font-black flex items-center gap-1">Exigée <CheckCircle2 size={10} /></span>
                                     </div>
                                   </div>
                                 </div>
-                                
-                                {selectedProductDetails.maxGuests && (
-                                  <div className="p-4 rounded-2xl bg-blue-50/30 border border-blue-50 space-y-2">
-                                    <h5 className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Capacité</h5>
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex flex-col">
-                                        <span className="text-lg font-black text-blue-700">{selectedProductDetails.maxGuests}</span>
-                                        <span className="text-[8px] font-bold text-blue-400 uppercase">Personnes max</span>
-                                      </div>
-                                      <div className="w-px h-8 bg-blue-100" />
-                                      <div className="flex flex-col">
-                                        <span className="text-lg font-black text-blue-700">{selectedProductDetails.bedrooms || 1}</span>
-                                        <span className="text-[8px] font-bold text-blue-400 uppercase">Chambres</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             </div>
                           )}
