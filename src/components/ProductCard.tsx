@@ -44,9 +44,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
             )}
             {/* Occupied Badge for Stays */}
             {(product as any).currentBooking && (
-              <div className="bg-orange-500 text-white px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest shadow-lg border border-white/20 animate-in zoom-in duration-300 flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
-                Jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              <div className="bg-orange-500 text-white px-2 py-1 rounded-md text-[7px] font-bold shadow-lg border border-white/20 animate-in zoom-in duration-300 flex items-center gap-1.5 whitespace-nowrap">
+                <div className="w-1 h-1 bg-white rounded-full animate-ping" />
+                Occupé jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
               </div>
             )}
           </div>

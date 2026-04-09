@@ -2652,8 +2652,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         <Clock size={20} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none mb-1">Actuellement occupé</p>
-                        <p className="text-sm font-black text-orange-700">Jusqu'au {new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
+                        <p className="text-[9px] font-bold text-orange-400 uppercase tracking-widest leading-none mb-1">Actuellement occupé</p>
+                        <p className="text-xs font-bold text-orange-700">Occupé jusqu'au {new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</p>
                       </div>
                     </div>
                   )}
