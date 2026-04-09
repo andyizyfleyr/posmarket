@@ -56,7 +56,15 @@ export async function fetchStoreData(storeId: string) {
       rating: Number(stats.average_rating) || 0,
       views: Number(p.views) || 0,
       wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
-      wholesaleMinQty: p.wholesale_min_qty
+      wholesaleMinQty: p.wholesale_min_qty,
+      mainCategory: p.main_category,
+      businessType: p.business_type,
+      amenities: p.amenities || [],
+      maxGuests: p.max_guests,
+      bedrooms: p.bedrooms,
+      location: p.location,
+      options: p.options || [],
+      variants: p.variants || []
     };
   });
 
