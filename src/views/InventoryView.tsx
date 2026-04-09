@@ -552,8 +552,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
-                        {product.stock < 10 && <AlertCircle size={12} className="text-red-500" />}
+                        {product.businessType === 'stay' ? (
+                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Calendrier</span>
+                        ) : (
+                          <>
+                            <span className={`text-xs font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
+                            {product.stock < 10 && <AlertCircle size={12} className="text-red-500" />}
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -981,17 +987,19 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
-                      <input
-                        required
-                        type="number"
-                        value={formData.stock ?? ''}
-                        onChange={e => setFormData({ ...formData, stock: e.target.value ? parseFloat(e.target.value) : undefined })}
-                        placeholder="0"
-                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                      />
-                    </div>
+                    {formData.businessType !== 'stay' && (
+                      <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
+                        <input
+                          required
+                          type="number"
+                          value={formData.stock ?? ''}
+                          onChange={e => setFormData({ ...formData, stock: e.target.value ? parseFloat(e.target.value) : undefined })}
+                          placeholder="0"
+                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
