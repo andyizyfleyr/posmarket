@@ -1059,6 +1059,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                       type="text"
                                       placeholder="Ex: Pack de 100, Fagot, Douzaine..."
                                       value={formData.unit}
+                                      onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                                  />
                                   <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
                               </div>
                           )}
@@ -1320,6 +1323,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                     )}
                   </div>
+                )}
 
                   {/* Wholesale Section */}
                   {formData.businessType !== 'stay' && (
