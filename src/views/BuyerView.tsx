@@ -8,6 +8,7 @@ import {
   ArrowLeft, X, Phone, Mail, MessageCircle, ShieldCheck,
   ArrowRight
 } from 'lucide-react';
+import Button from '@/components/Button';
 import { formatCurrency } from '@/utils';
 import { 
   fetchBuyerOrdersAction, 
@@ -524,8 +525,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 </div>
 
                 <div className="flex gap-3 pt-2 shrink-0">
-                    <button type="button" id="cancel-address-btn" onClick={() => setShowAddressModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs active:bg-gray-200">Annuler</button>
-                    <button type="submit" id="save-address-btn" className="flex-[2] py-4 bg-[#f56b2a] text-white font-bold rounded-xl text-xs shadow-lg shadow-orange-100 active:scale-95 transition-all">Enregistrer</button>
+                    <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} fullWidth>Annuler</Button>
+                    <Button type="submit" loading={internalLoading} fullWidth className="flex-[2]">Enregistrer</Button>
                 </div>
             </form>
           </div>
@@ -584,17 +585,17 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                     />
                   </div>
                   
-                  <button 
+                  <Button 
                     type="submit" 
-                    disabled={isSubmittingReview}
-                    className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                    loading={isSubmittingReview}
+                    variant="secondary"
+                    fullWidth
+                    size="lg"
+                    icon={<ArrowRight size={16} />}
+                    iconPosition="right"
                   >
-                    {isSubmittingReview ? (
-                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>Publier mon avis <ArrowRight size={16} /></>
-                    )}
-                  </button>
+                    Publier mon avis
+                  </Button>
               </form>
            </div>
         </div>

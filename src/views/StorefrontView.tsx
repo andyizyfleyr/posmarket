@@ -15,6 +15,7 @@ import { formatCurrency, playSuccessSound } from '@/utils';
 import ProductImage from '../components/ProductImage';
 import ProductCard from '../components/ProductCard';
 import Toast from '../components/Toast';
+import Button from '../components/Button';
 import { Routes, Route, useNavigate, useParams, Link, useLocation, useMatch, useRouter } from '@/components/RouterPolyfill';
 import { incrementProductViews, incrementStoreViews } from '@/supabase-api';
 import { fetchMarketplaceProducts, fetchProductReviews } from '@/hooks/useSupabaseData';
@@ -1578,7 +1579,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         </div>
                                     </div>
 
-                                    <button
+                                    <Button
                                         onClick={() => {
                                             const options = selectedProductDetails.options || [];
                                             const allSelected = options.every(o => !!selectedOptions[o.id]);
@@ -1599,20 +1600,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                                             addToCart(selectedProductDetails, variantId);
                                         }}
-                                        className={`flex w-full py-4 text-white rounded-[20px] font-black text-base shadow-xl transition-all items-center justify-center gap-3 active:scale-[0.98] ${
-                                            isFood ? 'bg-green-600 shadow-green-100 hover:bg-green-700' : 
-                                            isStay ? 'bg-blue-600 shadow-blue-100 hover:bg-blue-700' : 
-                                            'bg-[#f56b2a] shadow-orange-100 hover:bg-[#d55a20]'
-                                        }`}
+                                        variant={isFood ? 'primary' : isStay ? 'secondary' : 'primary'}
+                                        fullWidth
+                                        size="xl"
+                                        className={isFood ? 'bg-green-600 hover:bg-green-700' : isStay ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                                        icon={isFood ? <ShoppingBasketIcon size={20} strokeWidth={3} /> : isStay ? <CheckCircle2 size={20} strokeWidth={3} /> : <ShoppingCart size={20} strokeWidth={3} />}
                                     >
-                                        {isFood ? (
-                                            <><ShoppingBasketIcon size={20} strokeWidth={3} /> Commander ce plat (UberEats Style)</>
-                                        ) : isStay ? (
-                                            <><CheckCircle2 size={20} strokeWidth={3} /> Réserver mon séjour (Airbnb Style)</>
-                                        ) : (
-                                            <><ShoppingCart size={20} strokeWidth={3} /> Ajouter au panier (Amazon Style)</>
-                                        )}
-                                    </button>
+                                        {isFood ? 'Commander ce plat' : isStay ? 'Réserver mon séjour' : 'Ajouter au panier'}
+                                    </Button>
                                 </>
                             );
                         })()}
@@ -1633,7 +1628,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 <span className="text-[10px] text-gray-600 font-medium">({selectedProductDetails.reviewCount || 0} avis)</span>
                             </div>
                         </div>
-                        <button
+                        <Button
                             onClick={() => { 
                                 if (!user) {
                                     setAuthMode('login');
@@ -1643,10 +1638,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                 setShowReviewForm(true); 
                                 setReviewStep(1); 
                             }}
-                            className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-[11px] hover:bg-[#f56b2a] transition-all flex items-center gap-1.5 active:scale-95"
+                            variant="secondary"
+                            size="sm"
+                            icon={<MessageCircle size={13} />}
                         >
-                            <MessageCircle size={13} /> Laisser une note
-                        </button>
+                            Laisser une note
+                        </Button>
 
                     </div>
 
@@ -2079,13 +2076,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                         placeholder="Code promo"
                                         className="flex-grow px-3 py-2.5 sm:px-4 sm:py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-xs sm:text-sm uppercase w-full"
                                     />
-                                    <button
+                                    <Button
                                         onClick={handlePromoApply}
                                         disabled={!promoCodeInput.trim()}
-                                        className="px-4 py-2.5 bg-gray-900 text-white rounded-xl font-black text-xs sm:text-sm disabled:opacity-50 whitespace-nowrap"
+                                        variant="secondary"
+                                        size="sm"
                                     >
                                         Appliquer
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -2101,31 +2099,29 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
 
                         <div className="flex flex-col gap-3">
                             {checkoutStage === 'cart' && (
-                                <button onClick={() => {
-                                    setCheckoutStage('shipping');
-                                }} className="w-full py-4 bg-[#f56b2a] text-white rounded-2xl font-black text-lg shadow-lg shadow-red-100 hover:bg-red-600 transition-all flex items-center justify-center gap-2">Continuer la commande <ChevronLeft size={20} className="rotate-180" /></button>
+                                <Button onClick={() => setCheckoutStage('shipping')} fullWidth size="xl" icon={<ChevronLeft size={20} className="rotate-180" />} iconPosition="right">Continuer la commande</Button>
                             )}
                             {(checkoutStage === 'shipping' || checkoutStage === 'payment') && (
                                 <>
-                                    <button
+                                    <Button
                                         form="checkout-form"
                                         type="submit"
-                                        disabled={isProcessingPayment}
-                                        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        loading={isProcessingPayment}
+                                        loadingText="Traitement en cours..."
+                                        fullWidth
+                                        size="xl"
+                                        variant="secondary"
                                     >
-                                        {isProcessingPayment ? (
-                                            <>
-                                                <Loader2 size={20} className="animate-spin" />
-                                                Traitement en cours...
-                                            </>
-                                        ) : checkoutStage === 'shipping' ? 'Passer au paiement' : 'Confirmer la commande'}
-                                    </button>
-                                    <button
+                                        {checkoutStage === 'shipping' ? 'Passer au paiement' : 'Confirmer la commande'}
+                                    </Button>
+                                    <Button
                                         onClick={() => setCheckoutStage(checkoutStage === 'shipping' ? 'cart' : 'shipping')}
-                                        className="w-full py-2 text-gray-600 font-bold text-xs hover:text-gray-600 transition-all"
+                                        variant="ghost"
+                                        size="sm"
+                                        fullWidth
                                     >
                                         ← Retour à l'étape précédente
-                                    </button>
+                                    </Button>
                                 </>
                             )}
                         </div>
@@ -2528,9 +2524,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
                                                     Boostez votre visibilité et attirez plus de clients dès aujourd'hui sur notre plateforme express.
                                                 </p>
-                                                <button onClick={() => safeNavigate('/login')} className="bg-gray-900 hover:bg-[#f56b2a] text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
+                                                <Button 
+                                                    onClick={() => safeNavigate('/login')} 
+                                                    variant="secondary"
+                                                    size="xl"
+                                                >
                                                     Commencer maintenant
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
 
@@ -2549,9 +2549,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
                                                     Un inventaire synchronisé et des alertes automatiques pour ne jamais manquer une vente.
                                                 </p>
-                                                <button onClick={() => safeNavigate('/login')} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
+                                                <Button 
+                                                    onClick={() => safeNavigate('/login')} 
+                                                    variant="secondary"
+                                                    size="xl"
+                                                    className="bg-blue-600 hover:bg-blue-700"
+                                                >
                                                     Commencer maintenant
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
 
@@ -2570,9 +2575,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                                                 <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
                                                     Faites partie des 500+ commerçants qui ont déjà transformé leur manière de vendre.
                                                 </p>
-                                                <button onClick={() => safeNavigate('/login')} className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95">
+                                                <Button 
+                                                    onClick={() => safeNavigate('/login')} 
+                                                    variant="secondary"
+                                                    size="xl"
+                                                    className="bg-red-600 hover:bg-red-700"
+                                                >
                                                     Commencer maintenant
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>

@@ -4,6 +4,7 @@ import { Mail, Lock, User, ArrowRight, Store, ShoppingCart, Zap, Car, Shirt, Ten
 import { createClient } from '@/utils/supabase/client';
 import { loginAction, signupAction } from '@/app/actions/auth';
 import { NotificationType } from '@/types';
+import Button from '@/components/Button';
 
 interface AuthViewProps {
     onLogin: (user: any) => void;
@@ -136,17 +137,16 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                             </div>
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
-                            disabled={loading}
-                            className="w-full py-3.5 bg-[#f56b2a] hover:bg-[#e55a1b] text-white font-extrabold text-base md:text-lg rounded-full transition-all active:scale-[0.98] shadow-md disabled:opacity-50"
+                            loading={loading}
+                            loadingText={isLogin ? 'Connexion en cours...' : 'Inscription en cours...'}
+                            fullWidth
+                            size="lg"
+                            className="rounded-full"
                         >
-                            {loading ? (
-                                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
-                            ) : (
-                                'Continuer'
-                            )}
-                        </button>
+                            Continuer
+                        </Button>
                     </form>
 
                     <div className="mt-8 text-center text-[#002f34]">

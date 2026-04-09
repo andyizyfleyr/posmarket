@@ -33,6 +33,7 @@ import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { formatCurrency } from '@/utils';
 import ProductImage from '../components/ProductImage';
 import Loader from '../components/Loader';
+import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
 import { useRouter } from '@/components/RouterPolyfill';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
@@ -1354,33 +1355,42 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
             {/* Sticky Navigation Footer */}
             <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between gap-3 md:gap-4">
-              <button
+              <Button
                 type="button"
                 disabled={(skipStepOne ? currentStep === 2 : currentStep === 1) || isSubmitting}
                 onClick={() => setCurrentStep(prev => prev - 1)}
-                className="px-2 md:px-6 py-2.5 md:py-4 flex items-center gap-1 md:gap-2 font-black text-[10px] md:text-sm text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-30 whitespace-nowrap"
+                variant="ghost"
+                size="md"
+                className="text-gray-400 hover:text-gray-700 font-black text-[10px] md:text-sm"
+                icon={<ChevronLeft size={16} className="md:size-5" />}
               >
-                <ChevronLeft size={16} className="md:size-5" /> Retour
-              </button>
+                Retour
+              </Button>
 
               <div className="flex gap-2 md:gap-3">
                 {currentStep < 4 ? (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setCurrentStep(prev => prev + 1)}
-                    className="px-4 md:px-8 py-2.5 md:py-4 bg-gray-900 text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-1 md:gap-2 whitespace-nowrap"
+                    variant="secondary"
+                    size="md"
+                    className="font-black text-[10px] md:text-sm"
+                    icon={<ChevronRight size={14} className="md:size-[18px]" />}
+                    iconPosition="right"
                   >
-                    Suivant <ChevronRight size={14} className="md:size-[18px]" />
-                  </button>
+                    Suivant
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="px-5 md:px-10 py-2.5 md:py-4 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 disabled:bg-orange-300 flex items-center gap-1 md:gap-2 whitespace-nowrap"
+                    loading={isSubmitting}
+                    loadingText="Envoi..."
+                    variant="primary"
+                    size="md"
+                    className="font-black text-[10px] md:text-sm"
                   >
-                    {isSubmitting ? <Loader color="text-white" size="sm" /> : null}
-                    {isSubmitting ? 'Envoi...' : 'Enregistrer'}
-                  </button>
+                    Enregistrer
+                  </Button>
                 )}
               </div>
             </div>
