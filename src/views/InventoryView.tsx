@@ -1608,24 +1608,33 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
 
   const handleSave = async () => {
     if (!startDate || !endDate) return;
-    setIsSubmitting(true);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     try {
-      const start = new Date(startDate);
+      const dates = [];
+      let curr = new Date(startDate);
       const end = new Date(endDate);
-      const upsertData = [];
-      
-      // Generate days between start and end
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        upsertData.push({
-          product_id: product.id,
-          date: new Date(d).toISOString().split('T')[0],
-          is_available: isAvailable,
-        });
+      while (curr <= end) {
+        if (curr >= today) {
+          dates.push({
+            product_id: product.id,
+            date: new Date(curr).toISOString().split('T')[0],
+            is_available: isAvailable,
+          });
+        }
+        curr.setDate(curr.getDate() + 1);
       }
 
+      if (dates.length === 0) {
+        alert("Veuillez sélectionner des dates futures.");
+        return;
+      }
+
+      setIsSubmitting(true);
       const { error } = await supabase
         .from('availability_slots')
-        .upsert(upsertData, { onConflict: 'product_id,date' });
+        .upsert(dates, { onConflict: 'product_id,date' });
 
       if (error) throw error;
 
@@ -1641,6 +1650,10 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
   };
 
   const toggleDate = async (dateStr: string, currentStatus: boolean) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(dateStr) < today) return; // Ignore past dates
+
     // Optimistic update
     const previousSlots = [...slots];
     const newStatus = !currentStatus;
@@ -1694,7 +1707,12 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
 
     const days = [];
     for (let i = 0; i < startDay; i++) days.push(null);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (let i = 1; i <= totalDays; i++) {
+      const date = new Date(year, month, i);
+      const isPast = date < today;
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       const slot = slots.find(s => s.date === dateStr);
       days.push({
@@ -1702,7 +1720,8 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
         date: dateStr,
         isAvailable: slot ? slot.is_available : true,
         isBlocked: slot ? !slot.is_available : false,
-        hasBooking: slot?.booking_id ? true : false
+        hasBooking: slot?.booking_id ? true : false,
+        isPast
       });
     }
     return days;
@@ -1773,9 +1792,10 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
                 <div key={i} className="aspect-square relative">
                   {d ? (
                     <button
-                      onClick={() => !d.hasBooking && toggleDate(d.date, d.isAvailable)}
-                      disabled={d.hasBooking || processingDates.has(d.date)}
+                      onClick={() => !d.hasBooking && !d.isPast && toggleDate(d.date, d.isAvailable)}
+                      disabled={d.hasBooking || d.isPast || processingDates.has(d.date)}
                       className={`w-full h-full rounded-xl border flex flex-col items-center justify-center transition-all relative overflow-hidden group ${d.hasBooking ? 'bg-orange-50 border-orange-200 cursor-default' :
+                          d.isPast ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed' :
                           !d.isAvailable ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:border-[#f56b2a]/30'
                         } ${processingDates.has(d.date) ? 'opacity-50 grayscale' : ''}`}
                     >
@@ -1784,10 +1804,10 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
                           <Loader2 size={10} className="animate-spin text-[#f56b2a]" />
                         </div>
                       )}
-                      <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
+                      <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : d.isPast ? 'text-gray-400' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
                         {d.day}
                       </span>
-                      {!d.isAvailable && !d.hasBooking && <div className="w-1 h-1 bg-red-400 rounded-full mt-0.5" />}
+                      {!d.isAvailable && !d.hasBooking && !d.isPast && <div className="w-1 h-1 bg-red-400 rounded-full mt-0.5" />}
                       {d.hasBooking && <span className="text-[6px] font-black uppercase text-orange-500 mt-0.5 leading-none">Occupe</span>}
                     </button>
                   ) : <div className="w-full h-full" />}
@@ -1815,11 +1835,23 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose,
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Blocage Du</label>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setStartDate(e.target.value)} 
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" 
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Au</label>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" />
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    min={startDate || new Date().toISOString().split('T')[0]}
+                    onChange={e => setEndDate(e.target.value)} 
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" 
+                  />
                 </div>
               </div>
 
