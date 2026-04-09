@@ -107,7 +107,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
           }`}
         >
           {((product as any).currentBooking) 
-            ? 'Déjà réservé' 
+            ? `Occupé jusqu'au ${new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
             : product.category === 'Appartements' || product.businessType === 'stay' 
               ? 'Réserver séjour' 
               : 'Ajouter au panier'}

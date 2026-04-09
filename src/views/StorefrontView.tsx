@@ -2726,7 +2726,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       {isCheckingAvailability
                         ? "Vérification..."
                         : isStay
-                          ? (selectedProductDetails.currentBooking ? "Déjà réservé" : "Réserver séjour")
+                          ? (selectedProductDetails.currentBooking 
+                              ? `Occupé jusqu'au ${new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` 
+                              : "Réserver séjour")
                           : isFood
                             ? "Commander ce plat"
                             : "Ajouter au panier"}
