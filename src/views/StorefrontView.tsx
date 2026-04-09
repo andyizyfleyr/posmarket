@@ -1032,8 +1032,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                         setCheckoutStage('success');
                         setCart([]);
                         onNotifyPostCheckout(ordersData);
-                    } else {
-                        localNotify(response?.error || "Erreur lors de la validation de la commande", 'error');
+                        } else {
+                            localNotify(response?.error || "Erreur lors de la validation de la commande", 'error');
+                        }
+                    } catch (error) {
+                        console.error('Checkout error:', error);
+                        localNotify('Une erreur est survenue lors de la validation.', 'error');
+                    } finally {
+                        setIsProcessingPayment(false);
                     }
                 })();
             }
