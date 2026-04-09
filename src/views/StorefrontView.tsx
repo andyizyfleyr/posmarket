@@ -59,6 +59,7 @@ import {
   Review,
   Coupon,
   ToastNotification,
+  BusinessVertical,
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
@@ -245,27 +246,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isMounted, setIsMounted] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
 
-  const [checkIn, setCheckIn] = useState<string>("");
-  const [checkOut, setCheckOut] = useState<string>("");
-
-  // 🔄 Sync vertical with specific store type
-  useEffect(() => {
-    if (selectedStoreId && isMounted) {
-      const activeStore = stores.find(s => s.id === selectedStoreId);
-      if (activeStore?.business_type) {
-        setSelectedVertical(activeStore.business_type);
-      }
-    } else if (!selectedStoreId && isMounted) {
-       // Reset or keep? User wants separation. 
-       // If no store selected, it's the global marketplace, keep 'all' or let user choose.
-    }
-  }, [selectedStoreId, stores, isMounted]);
-  const [guestsNum, setGuestsNum] = useState<number>(1);
-  const [expandedStaySection, setExpandedStaySection] = useState<string | null>("amenities");
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-
   // 0. URL Params Detection
   const storeMatch = useMatch("/store/:storeParam");
   const productMatch = useMatch("/product/:productId");
@@ -278,6 +258,42 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const rawUrlProductId =
     productMatch?.params.productId ||
     (isProductDetailPath ? splat?.replace("product/", "") : null);
+
+  // ⚡ Derive active data from props or cache
+  const activeStores = useMemo(() => {
+    return stores && stores.length > 0 ? stores : cachedStores;
+  }, [stores, cachedStores]);
+
+  const selectedStoreId = useMemo(() => {
+    if (!selectedStoreParam) return null;
+    const store = activeStores.find(
+      (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
+    );
+    return store?.id || null;
+  }, [selectedStoreParam, activeStores]);
+
+  const selectedStore = useMemo(() => {
+    return activeStores.find((s) => s.id === selectedStoreId) || null;
+  }, [selectedStoreId, activeStores]);
+
+  const [checkIn, setCheckIn] = useState<string>("");
+  const [checkOut, setCheckOut] = useState<string>("");
+
+  // 🔄 Sync vertical with specific store type
+  useEffect(() => {
+    if (selectedStoreId && isMounted) {
+      const activeStore = activeStores.find(s => s.id === selectedStoreId);
+      if (activeStore?.business_type) {
+        setSelectedVertical(activeStore.business_type);
+      }
+    }
+  }, [selectedStoreId, activeStores, isMounted]);
+  const [guestsNum, setGuestsNum] = useState<number>(1);
+  const [expandedStaySection, setExpandedStaySection] = useState<string | null>("amenities");
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+
 
   // ⚡ Performance: Loading state for Skeletons
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -318,11 +334,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     const timer = setTimeout(() => setIsInitialLoading(false), 3000);
     return () => clearTimeout(timer);
   }, [stores]);
-
-  // ⚡ Derive active data from props or cache
-  const activeStores = useMemo(() => {
-    return stores && stores.length > 0 ? stores : cachedStores;
-  }, [stores, cachedStores]);
 
   const allProducts = useMemo(() => {
     const products: StorefrontProduct[] = [];
@@ -384,18 +395,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       console.warn("Could not save cart to localStorage (Quota exceeded?)", e);
     }
   }, [cart, isMounted]);
-
-  const selectedStoreId = useMemo(() => {
-    if (!selectedStoreParam) return null;
-    const store = activeStores.find(
-      (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
-    );
-    return store?.id || null;
-  }, [selectedStoreParam, activeStores]);
-
-  const selectedStore = useMemo(() => {
-    return activeStores.find((s) => s.id === selectedStoreId) || null;
-  }, [selectedStoreId, activeStores]);
 
   const [checkoutStage, setCheckoutStage] = useState<
     "cart" | "shipping" | "payment" | "success"

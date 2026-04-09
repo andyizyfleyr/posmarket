@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { SUBSCRIPTION_PLANS } from '@/constants';
-import { Product, StaffPermissions, StaffRole, UserSubscription } from '@/types';
+import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertical } from '@/types';
 import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { formatCurrency } from '@/utils';
 import ProductImage from '../components/ProductImage';

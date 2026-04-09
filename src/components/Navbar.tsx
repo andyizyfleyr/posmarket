@@ -17,7 +17,8 @@ import {
   User as UserIcon,
   Trash2,
   HelpCircle,
-  Shield
+  Shield,
+  ShoppingBag
 } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
