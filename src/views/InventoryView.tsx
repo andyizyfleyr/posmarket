@@ -872,26 +872,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <span className="px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded-full uppercase">Mode Pro</span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Voyageurs max</label>
-                          <input 
-                            type="number" 
-                            value={formData.maxGuests ?? ''}
-                            onChange={e => setFormData({...formData, maxGuests: parseInt(e.target.value)})}
-                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Chambres</label>
-                          <input 
-                            type="number" 
-                            value={formData.bedrooms ?? ''}
-                            onChange={e => setFormData({...formData, bedrooms: parseInt(e.target.value)})}
-                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
-                          />
-                        </div>
-                      </div>
 
 
                       <div>
@@ -979,19 +959,30 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="bg-blue-50/50 rounded-2xl md:rounded-3xl p-4 md:p-6 border border-blue-100/50 flex flex-col justify-center animate-in fade-in zoom-in duration-500">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                                <Store size={20} />
-                            </div>
-                            <div>
-                                <h4 className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Configuration Séjour</h4>
-                                <p className="text-[11px] text-blue-900/70 font-bold leading-tight">Le prix indiqué ci-contre sera appliqué par <span className="text-blue-700 underline decoration-2 underline-offset-2">nuitée</span> réservée.</p>
-                            </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
+                             <Users size={12} /> Personnes max
+                          </label>
+                          <input 
+                            type="number" 
+                            value={formData.maxGuests ?? ''}
+                            onChange={e => setFormData({...formData, maxGuests: e.target.value ? parseInt(e.target.value) : undefined})}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
+                            placeholder="Ex: 4"
+                          />
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            <span className="px-2 py-1 bg-white border border-blue-100 rounded-lg text-[9px] font-black text-blue-600 uppercase tracking-tighter">Unité : Nuitée</span>
-                            <span className="px-2 py-1 bg-white border border-blue-100 rounded-lg text-[9px] font-black text-blue-600 uppercase tracking-tighter">Gestion : Calendrier</span>
+                        <div>
+                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
+                             <Home size={12} /> Chambres
+                          </label>
+                          <input 
+                            type="number" 
+                            value={formData.bedrooms ?? ''}
+                            onChange={e => setFormData({...formData, bedrooms: e.target.value ? parseInt(e.target.value) : undefined})}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
+                            placeholder="Ex: 2"
+                          />
                         </div>
                       </div>
                     )}
