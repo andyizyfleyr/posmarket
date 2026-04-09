@@ -3089,17 +3089,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                             safeNavigate('/cart');
                             setTimeout(() => setIsTransitioning(false), 500);
                         }}
-                            <div className="relative">
-                                <ShoppingCart size={20} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
-                                <span key={cartItemsCount} className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in-105 duration-300 shadow-lg shadow-orange-100">
-                                    {cartItemsCount}
-                                </span>
-                            </div>
-                            <span className="text-sm uppercase tracking-wider font-black">
-                                VOIR MON PANIER <span className="opacity-40 mx-1.5">•</span> {formatCurrency(Number(cartTotal) || 0)}
+                        loading={isTransitioning || isNavigating}
+                        variant="secondary"
+                        size="xl"
+                        className="pointer-events-auto shadow-2xl shadow-orange-100 flex items-center gap-3 backdrop-blur-md bg-gray-900/95"
+                    >
+                        <div className="relative">
+                            <ShoppingCart size={20} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
+                            <span key={cartItemsCount} className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in-105 duration-300 shadow-lg shadow-orange-100">
+                                {cartItemsCount}
                             </span>
                         </div>
-                    </button>
+                        <span className="text-sm uppercase tracking-wider font-black">
+                            VOIR MON PANIER <span className="opacity-40 mx-1.5">•</span> {formatCurrency(Number(cartTotal) || 0)}
+                        </span>
+                    </Button>
                 </div>
             )}
 
