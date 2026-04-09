@@ -893,28 +893,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Frais ménage (XOF)</label>
-                          <input 
-                            type="number" 
-                            value={(formData as any).cleaningFee ?? ''}
-                            onChange={e => setFormData({...formData, cleaningFee: parseInt(e.target.value)} as any)}
-                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold text-orange-600"
-                            placeholder="Optionnel"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Caution (XOF)</label>
-                          <input 
-                            type="number" 
-                            value={(formData as any).securityDeposit ?? ''}
-                            onChange={e => setFormData({...formData, securityDeposit: parseInt(e.target.value)} as any)}
-                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold text-red-600"
-                            placeholder="Optionnel"
-                          />
-                        </div>
-                      </div>
 
                       <div>
                         <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Localisation (Ville/Quartier)</label>
@@ -927,18 +905,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Politique d'annulation</label>
-                        <select 
-                          value={(formData as any).cancellationPolicy || ''}
-                          onChange={e => setFormData({...formData, cancellationPolicy: e.target.value} as any)}
-                          className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
-                        >
-                          <option value="flexible">Flexible (1j avant)</option>
-                          <option value="moderate">Modérée (5j avant)</option>
-                          <option value="strict">Stricte (Ferme)</option>
-                        </select>
-                      </div>
 
                       <div>
                         <label className="block text-[10px] font-black text-blue-600 uppercase mb-2">Équipements (Amenities)</label>
