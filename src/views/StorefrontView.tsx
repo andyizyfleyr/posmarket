@@ -98,21 +98,25 @@ interface StorefrontProduct extends Product {
 }
 
 const categoryImages: Record<string, string> = {
-  all: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=150&q=80",
+  all: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80",
   "Électronique & High-Tech":
-    "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=300&q=80",
+    "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&q=80",
   "Maison & Bureau":
-    "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=300&q=80",
+    "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=80",
   "Mode & Beauté":
-    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80",
+    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80",
   "Alimentation & Boissons":
-    "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=300&q=80",
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80",
   "Santé & Bien-être":
-    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&q=80",
+    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80",
   "Sport & Loisirs":
-    "https://images.unsplash.com/photo-1517836357463-d25dfeac00dc?w=300&q=80",
+    "https://images.unsplash.com/photo-1517836357463-d25dfeac00dc?w=600&q=80",
   "Auto & Moto":
-    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&q=80",
+    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=80",
+  "Restauration & Livraison Rapide":
+    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80",
+  "Séjours, Expériences & Immobilier":
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
   "Jouets & Enfants":
     "https://images.unsplash.com/photo-1532330393533-443990a51d10?w=300&q=80",
   "Bricolage & Jardin":
@@ -1901,7 +1905,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     const relatedProducts = allProducts
       .filter(
         (p) =>
-          (p.category === selectedProductDetails.category ||
+          ((p.category && p.category === selectedProductDetails.category) ||
             p.storeId === selectedProductDetails.storeId) &&
           p.id !== selectedProductDetails.id &&
           p.isOnline !== false,

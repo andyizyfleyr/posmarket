@@ -240,23 +240,47 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return 'bg-green-100 text-green-700';
-      case 'READY': return 'bg-blue-100 text-blue-700';
-      case 'PENDING': return 'bg-amber-100 text-amber-700';
-      case 'SHIPPED': return 'bg-purple-100 text-purple-700';
-      case 'CANCELLED': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
+  const getStatusInfo = (status: string, businessType?: string) => {
+    const isStay = businessType === 'stay';
+    const isFood = businessType === 'food';
 
-  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'COMPLETED': return <CheckCircle2 size={12} />;
-      case 'SHIPPED': return <Truck size={12} />;
-      case 'PENDING': return <Clock size={12} />;
-      default: return <AlertCircle size={12} />;
+      case 'COMPLETED': 
+        return { 
+          label: isStay ? 'Terminé' : isFood ? 'Dégusté' : 'Livré', 
+          color: 'bg-green-100 text-green-700', 
+          icon: <CheckCircle2 size={12} /> 
+        };
+      case 'READY': 
+        return { 
+          label: isFood ? 'Prêt' : 'Prêt pour retrait', 
+          color: 'bg-blue-100 text-blue-700', 
+          icon: <Clock size={12} /> 
+        };
+      case 'SHIPPED': 
+        return { 
+          label: isFood ? 'En cours de livraison' : 'Expédié', 
+          color: 'bg-purple-100 text-purple-700', 
+          icon: <Truck size={12} /> 
+        };
+      case 'PENDING': 
+        return { 
+          label: isStay ? 'Réservé' : isFood ? 'En cuisine' : 'En attente', 
+          color: 'bg-amber-100 text-amber-700', 
+          icon: <Clock size={12} /> 
+        };
+      case 'CANCELLED': 
+        return { 
+          label: 'Annulé', 
+          color: 'bg-red-100 text-red-700', 
+          icon: <X size={12} /> 
+        };
+      default: 
+        return { 
+          label: 'Statut inconnu', 
+          color: 'bg-gray-100 text-gray-700', 
+          icon: <AlertCircle size={12} /> 
+        };
     }
   };
 
@@ -378,10 +402,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                              <p className="text-[9px] text-gray-400 font-bold">#{order.id.slice(-6)} • {new Date(order.date).toLocaleDateString()}</p>
                              <p className="text-xs font-bold text-[#002f34]">{Array.isArray(order.stores) ? order.stores[0]?.name : order.stores?.name}</p>
                            </div>
-                        </div>
-                        <div className={`px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
-                          {order.status === 'COMPLETED' ? 'Livré' : 'Attente'}
+                         </div>
+                        <div className={`px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 ${getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).color}`}>
+                          {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).icon}
+                          {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).label}
                         </div>
                       </div>
                       <div className="p-3 space-y-2">
@@ -425,7 +449,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                                     setReviewData({ 
                                       rating: 5, 
                                       comment: '', 
-                                      product: { ...product, store_id: order.store_id } 
+                                      product: { ...product, store_id: order.store_id, business_type: product?.business_type } 
                                     });
                                     setShowReviewModal(true);
                                   }}
@@ -651,7 +675,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                     <Star size={20} fill="currentColor" />
                   </div>
                   <div className="flex-1">
-                      <h3 className="text-sm font-black text-[#002f34] uppercase tracking-tight">Noter le produit</h3>
+                      <h3 className="text-sm font-black text-[#002f34] uppercase tracking-tight">
+                        {reviewData.product?.business_type === 'stay' ? 'Noter votre séjour' : 
+                         reviewData.product?.business_type === 'food' ? 'Noter votre repas' : 
+                         'Noter le produit'}
+                      </h3>
                       <p className="text-[10px] text-gray-400 font-bold truncate max-w-[200px]">{reviewData.product?.name}</p>
                   </div>
                   <button onClick={() => setShowReviewModal(false)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -688,7 +716,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Commentaire</label>
                     <textarea 
                        required
-                       placeholder="Partagez votre expérience avec ce produit..."
+                       placeholder={
+                         reviewData.product?.business_type === 'stay' ? "Comment s'est passé votre séjour ?" :
+                         reviewData.product?.business_type === 'food' ? "Comment était votre repas ?" :
+                         "Partagez votre expérience avec ce produit..."
+                       }
                        value={reviewData.comment}
                        onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
                        className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold min-h-[120px] focus:ring-2 focus:ring-[#f56b2a]/20 transition-all no-global-border resize-none"
