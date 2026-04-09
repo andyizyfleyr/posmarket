@@ -1565,20 +1565,44 @@ const AvailabilityModal: React.FC<{
 
   useEffect(() => {
     fetchSlots();
+
+    // Realtime background reactivity
+    const channel = supabase
+      .channel(`availability_${product.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'availability_slots',
+        filter: `product_id=eq.${product.id}`
+      }, () => {
+        fetchSlots();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [product.id]);
 
   const fetchSlots = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('availability_slots')
         .select('*')
         .eq('product_id', product.id)
         .order('date', { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching slots:", error);
+        return;
+      }
       setSlots(data || []);
     } finally {
       setLoading(false);
     }
   };
+
+  const [processingDates, setProcessingDates] = useState<Set<string>>(new Set());
 
   const handleSave = async () => {
     if (!startDate || !endDate) return;
@@ -1586,41 +1610,73 @@ const AvailabilityModal: React.FC<{
     try {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const datesToUpdate = [];
+      const upsertData = [];
+      
+      // Generate days between start and end
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        datesToUpdate.push(new Date(d).toISOString().split('T')[0]);
-      }
-
-      for (const dateStr of datesToUpdate) {
-        const { error } = await supabase.from('availability_slots').upsert({
+        upsertData.push({
           product_id: product.id,
-          date: dateStr,
+          date: new Date(d).toISOString().split('T')[0],
           is_available: isAvailable,
-        }, { onConflict: 'product_id,date' });
-
-        if (error) throw error;
+        });
       }
 
+      const { error } = await supabase
+        .from('availability_slots')
+        .upsert(upsertData, { onConflict: 'product_id,date' });
+
+      if (error) throw error;
+
+      await fetchSlots();
       onUpdate();
-      fetchSlots();
       setStartDate('');
       setEndDate('');
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      alert('Erreur: ' + (err.message || "Impossible d'enregistrer les disponibilités"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const toggleDate = async (dateStr: string, currentStatus: boolean) => {
-    const { error } = await supabase.from('availability_slots').upsert({
-      product_id: product.id,
-      date: dateStr,
-      is_available: !currentStatus,
-    }, { onConflict: 'product_id,date' });
-    if (!error) {
-      fetchSlots();
+    // Optimistic update
+    const previousSlots = [...slots];
+    const newStatus = !currentStatus;
+    
+    setSlots(prev => {
+      const idx = prev.findIndex(s => s.date === dateStr);
+      if (idx > -1) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], is_available: newStatus };
+        return next;
+      } else {
+        return [...prev, { product_id: product.id, date: dateStr, is_available: newStatus }];
+      }
+    });
+
+    setProcessingDates(prev => new Set(prev).add(dateStr));
+
+    try {
+      const { error } = await supabase.from('availability_slots').upsert({
+        product_id: product.id,
+        date: dateStr,
+        is_available: newStatus,
+      }, { onConflict: 'product_id,date' });
+
+      if (error) {
+        setSlots(previousSlots); // Rollback
+        throw error;
+      }
+      
       onUpdate();
+    } catch (err: any) {
+      console.error("Error toggling date:", err);
+    } finally {
+      setProcessingDates(prev => {
+        const next = new Set(prev);
+        next.delete(dateStr);
+        return next;
+      });
     }
   };
 
@@ -1694,11 +1750,17 @@ const AvailabilityModal: React.FC<{
                 <div key={i} className="aspect-square relative">
                   {d ? (
                     <button
-                      onClick={() => toggleDate(d.date, d.isAvailable)}
+                      onClick={() => !d.hasBooking && toggleDate(d.date, d.isAvailable)}
+                      disabled={d.hasBooking || processingDates.has(d.date)}
                       className={`w-full h-full rounded-xl border flex flex-col items-center justify-center transition-all relative overflow-hidden group ${d.hasBooking ? 'bg-orange-50 border-orange-200 cursor-default' :
                           !d.isAvailable ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:border-[#f56b2a]/30'
-                        }`}
+                        } ${processingDates.has(d.date) ? 'opacity-50 grayscale' : ''}`}
                     >
+                      {processingDates.has(d.date) && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/40">
+                          <Loader2 size={10} className="animate-spin text-[#f56b2a]" />
+                        </div>
+                      )}
                       <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
                         {d.day}
                       </span>
