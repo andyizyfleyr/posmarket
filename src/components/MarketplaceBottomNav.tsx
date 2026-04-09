@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { Home, Search, ShoppingBag, User } from 'lucide-react';
-import { useLocation, useNavigate } from '@/components/RouterPolyfill';
+import { useLocation } from '@/components/RouterPolyfill';
 
 interface MarketplaceBottomNavProps {
   cartItemsCount: number;
   onSearchClick: () => void;
   onHomeClick?: () => void;
+  onCartClick?: () => void;
   onAccountClick: () => void;
 }
 
@@ -15,13 +16,14 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
   cartItemsCount, 
   onSearchClick,
   onHomeClick,
+  onCartClick,
   onAccountClick
 }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   
   const pathname = location.pathname;
   const isHome = pathname === '/' || pathname === '' || pathname === 'storefront';
+  const isCart = pathname === '/cart';
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
@@ -49,11 +51,13 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
 
         {/* Panier */}
         <button
-          onClick={() => navigate('/cart')}
-          className={`flex flex-col items-center justify-center flex-1 h-full relative ${pathname === '/cart' ? 'text-[#f56b2a]' : 'text-gray-400'}`}
+          onClick={() => {
+            if (onCartClick) onCartClick();
+          }}
+          className={`flex flex-col items-center justify-center flex-1 h-full relative ${isCart ? 'text-[#f56b2a]' : 'text-gray-400'}`}
         >
           <div className="relative">
-             <ShoppingBag size={22} strokeWidth={pathname === '/cart' ? 2.5 : 2} />
+             <ShoppingBag size={22} strokeWidth={isCart ? 2.5 : 2} />
              {cartItemsCount > 0 && (
                <span className="absolute -top-1.5 -right-1.5 bg-[#f56b2a] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
                  {cartItemsCount}

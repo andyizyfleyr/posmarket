@@ -2248,6 +2248,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     setIsAccountView(false);
                     safeNavigate('/');
                 }}
+                onCartClick={() => {
+                    setIsSearchOpen(false);
+                    setIsAccountView(false);
+                    safeNavigate('/cart');
+                }}
                 onAccountClick={() => {
                     if (user) {
                         setIsAccountView(true);
@@ -2257,6 +2262,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({ stores, onBackTo
                     }
                 }}
             />
+
+            {/* 🌀 Global Navigation Loading Overlay */}
+            {isNavigating && (
+                <div className="fixed inset-0 z-[9998] bg-white/70 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200">
+                    <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 duration-300">
+                        <div className="relative">
+                            <div className="w-12 h-12 border-[3px] border-gray-200 border-t-[#f56b2a] rounded-full animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-5 h-5 bg-[#f56b2a] rounded-full animate-pulse opacity-30" />
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Chargement...</span>
+                    </div>
+                </div>
+            )}
 
             {/* Premium Sticky Header */}
             {(location.pathname === '/' || !location.pathname || location.pathname === '') && (
