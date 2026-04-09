@@ -413,17 +413,26 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
-      // Run any cleanup action first
+      // 1. Déclencher le loader immédiatement
+      setIsNavigating(true);
+
+      // 2. Lancer l'action optionnelle (ex: fermer un menu)
       if (options?.action) options.action();
 
-      // If navigating to the current path, skip the global overlay
+      // 3. Si on est déjà sur la page, on rafraîchit simplement sans bloquer
       if (location.pathname === path) {
         navigate(path);
+        setTimeout(() => setIsNavigating(false), 300);
         return;
       }
 
-      setIsNavigating(true);
-      navigate(path);
+      // 4. On lance la navigation réelle et on attend que la page "vienne"
+      // On laisse le loader tourner au moins 800ms pour un ressenti premium
+      setTimeout(() => {
+        navigate(path);
+        // On ne coupe le loader qu'après que la navigation ait eu lieu pour laisser le rendu se faire
+        setTimeout(() => setIsNavigating(false), 500);
+      }, 300);
     },
     [navigate, location.pathname],
   );
@@ -432,17 +441,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
       setIsNavigating(true);
-      setCheckoutStage(newStage);
-      // For internal stage changes, the path doesn't change, so we reset manually after a natural delay
-      setTimeout(() => setIsNavigating(false), 500);
+      // On donne l'impression que l'app travaille
+      setTimeout(() => {
+        setCheckoutStage(newStage);
+        setTimeout(() => setIsNavigating(false), 600);
+      }, 400);
     },
     [checkoutStage],
   );
 
-  // 🔄 Reset all loading states when the route actually changes
+  // 🔄 Reset all loading states - Only as a fallback now
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
-      setIsNavigating(false);
+      // On ne coupe plus brutalement ici pour laisser le loader de safeNavigate finir son cycle organique
       setIsCartButtonLoading(false);
       setIsCheckoutTransitioning(false);
       prevPathRef.current = location.pathname;
