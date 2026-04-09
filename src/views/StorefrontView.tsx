@@ -409,30 +409,32 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const prevPathRef = useRef(location.pathname);
+  const navigationTargetRef = useRef<string | null>(null);
+  const navStartTimeRef = useRef<number>(0);
+  const stageTargetRef = useRef<string | null>(null);
 
-  // 🚀 Navigation Directe (Avec loader pour le ressenti premium)
+  // 🚀 Navigation Directe — Le loader reste tant que la route n'a pas changé
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
-      // 1. Déclencher le loader immédiatement
+      // 1. Afficher le loader immédiatement
       setIsNavigating(true);
+      navStartTimeRef.current = Date.now();
 
       // 2. Lancer l'action optionnelle (ex: fermer un menu)
       if (options?.action) options.action();
 
-      // 3. Si on est déjà sur la page, on rafraîchit simplement sans bloquer
+      // 3. Si on est déjà sur la page, simple rafraîchissement
       if (location.pathname === path) {
+        navigationTargetRef.current = null;
         navigate(path);
         setTimeout(() => setIsNavigating(false), 300);
         return;
       }
 
-      // 4. On lance la navigation réelle et on attend que la page "vienne"
-      // On laisse le loader tourner au moins 800ms pour un ressenti premium
-      setTimeout(() => {
-        navigate(path);
-        // On ne coupe le loader qu'après que la navigation ait eu lieu pour laisser le rendu se faire
-        setTimeout(() => setIsNavigating(false), 500);
-      }, 300);
+      // 4. On stocke la destination et on navigue — le useEffect coupera le loader
+      //    quand location.pathname correspondra à la cible
+      navigationTargetRef.current = path;
+      navigate(path);
     },
     [navigate, location.pathname],
   );
@@ -441,31 +443,57 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
       setIsNavigating(true);
-      // On donne l'impression que l'app travaille
-      setTimeout(() => {
-        setCheckoutStage(newStage);
-        setTimeout(() => setIsNavigating(false), 600);
-      }, 400);
+      navStartTimeRef.current = Date.now();
+      stageTargetRef.current = newStage;
+      setCheckoutStage(newStage);
     },
     [checkoutStage],
   );
 
-  // 🔄 Reset all loading states - Only as a fallback now
+  // 🔄 Couper le loader UNIQUEMENT quand la route a réellement changé
   useEffect(() => {
+    if (isNavigating && navigationTargetRef.current && location.pathname === navigationTargetRef.current) {
+      // Route atteinte — on s'assure d'un affichage minimum de 400ms pour éviter un flash
+      const elapsed = Date.now() - navStartTimeRef.current;
+      const remaining = Math.max(0, 400 - elapsed);
+
+      const timer = setTimeout(() => {
+        navigationTargetRef.current = null;
+        setIsNavigating(false);
+      }, remaining);
+      return () => clearTimeout(timer);
+    }
+
+    // Reset des autres états de chargement sur changement de chemin
     if (prevPathRef.current !== location.pathname) {
-      // On ne coupe plus brutalement ici pour laisser le loader de safeNavigate finir son cycle organique
       setIsCartButtonLoading(false);
       setIsCheckoutTransitioning(false);
       prevPathRef.current = location.pathname;
     }
-  }, [location.pathname]);
+  }, [location.pathname, isNavigating]);
 
-  // Fail-safe to prevent stuck loader
+  // 🔄 Couper le loader quand l'étape de checkout a réellement changé
+  useEffect(() => {
+    if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
+      const elapsed = Date.now() - navStartTimeRef.current;
+      const remaining = Math.max(0, 400 - elapsed);
+
+      const timer = setTimeout(() => {
+        stageTargetRef.current = null;
+        setIsNavigating(false);
+      }, remaining);
+      return () => clearTimeout(timer);
+    }
+  }, [checkoutStage, isNavigating]);
+
+  // ⚠️ Fail-safe : coupe le loader après 5s max en cas de blocage
   useEffect(() => {
     if (isNavigating) {
       const timer = setTimeout(() => {
+        navigationTargetRef.current = null;
+        stageTargetRef.current = null;
         setIsNavigating(false);
-      }, 3000); // 3 seconds max for Any transition
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [isNavigating]);
