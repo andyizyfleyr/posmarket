@@ -255,6 +255,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const productMatch = useMatch("/product/:productId");
   const isCartView = location.pathname.includes("/cart");
   const isFeedView = location.pathname.includes("/feed");
+  const isAccountViewUrl = location.pathname === "/mon-compte" || location.pathname === "/account";
   const selectedStoreParam = storeMatch?.params.storeParam || null;
   const { "*": splatParam } = useParams();
   const splat = Array.isArray(splatParam) ? splatParam[0] : splatParam;
@@ -590,6 +591,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     };
     checkSession();
   }, []);
+
+  // Auto-show auth modal if hitting /mon-compte directly without session
+  useEffect(() => {
+    if (isAccountViewUrl && user === null && isMounted) {
+      const timer = setTimeout(() => {
+        if (!user && (location.pathname === "/mon-compte" || location.pathname === "/account")) {
+          setAuthMode("login");
+          setShowAuthModal(true);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAccountViewUrl, user, isMounted]);
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [rememberMe, setRememberMe] = useState(true);
@@ -3725,11 +3739,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         </div>
       )}
       {/* BuyerView Overlay (Full screen for mobile/desktop) */}
-      {isAccountView && user && (
+      {(isAccountView || isAccountViewUrl) && user && (
         <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
           <BuyerView
             userEmail={user.email}
-            onBack={() => setIsAccountView(false)}
+            onBack={() => {
+              if (isAccountViewUrl) safeNavigate("/");
+              else setIsAccountView(false);
+            }}
             notify={notify}
             onLogout={handleLogout}
             cachedData={buyerDataCache}
@@ -3766,7 +3783,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         onAccountClick={() => {
           if (isNavigating) return;
           if (user) {
-            setIsAccountView(true);
+            safeNavigate("/mon-compte");
           } else {
             setAuthMode("login");
             setShowAuthModal(true);
@@ -3900,7 +3917,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   <button
                     onClick={() => {
                       if (user) {
-                        setIsAccountView(true);
+                        safeNavigate("/mon-compte");
                       } else {
                         setAuthMode("login");
                         setShowAuthModal(true);
