@@ -243,12 +243,17 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
             }
             
             if (slotsToUpsert.length > 0) {
-              await supabase
+              const { error: slotUpsertErr } = await supabase
                 .from('availability_slots')
                 .upsert(slotsToUpsert, { onConflict: 'product_id,date' });
+                
+              if (slotUpsertErr) {
+                console.error('RLS/DB Error blocking availability slots:', slotUpsertErr);
+                throw slotUpsertErr;
+              }
             }
           } catch (slotErr) {
-            console.warn('Failed to block availability slots for booking:', slotErr);
+            console.error('Failed to block availability slots for booking:', slotErr);
           }
         }
 

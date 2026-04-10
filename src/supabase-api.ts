@@ -549,14 +549,18 @@ export const updateAvailability = async (productId: string, dates: string[], isA
  * Check if a range of dates is fully available
  */
 export const checkDateRangeAvailable = async (productId: string, startDate: string, endDate: string) => {
-    // 1. Get all slots in range that are NOT available
+    // Adjust endDate to be the day before checkout (since checkout day morning is free for the next checkin)
+    const end = new Date(endDate);
+    end.setDate(end.getDate() - 1);
+    const checkOutDateStr = end.toISOString().split('T')[0];
+
     const { data, error } = await supabase
         .from('availability_slots')
         .select('date')
         .eq('product_id', productId)
         .eq('is_available', false)
         .gte('date', startDate)
-        .lte('date', endDate);
+        .lte('date', checkOutDateStr);
 
     if (error) throw error;
     
