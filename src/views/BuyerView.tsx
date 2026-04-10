@@ -288,15 +288,15 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-12">
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a]">
-            <ArrowLeft size={20} />
+      <div className="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-30 transition-all">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
+            <ArrowLeft size={22} />
           </button>
-          <h1 className="text-sm font-bold text-[#002f34]">Mon compte</h1>
-          <div className="flex items-center gap-2">
-            <button onClick={() => loadData(true)} className="p-2 text-gray-400 hover:text-[#f56b2a]">
-              <Clock size={20} className={loading ? "animate-spin" : ""} />
+          <h1 className="text-base font-black text-[#002f34] tracking-tight">Mon compte</h1>
+          <div className="flex items-center gap-1">
+            <button onClick={() => loadData(true)} className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
+              <Clock size={22} className={loading ? "animate-spin" : ""} />
             </button>
             <button className="p-2 text-gray-400">
                <Bell size={20} />
@@ -308,15 +308,19 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       <div className="max-w-5xl mx-auto md:px-4 md:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          <div className="space-y-4">
-            <div className="bg-white md:rounded-3xl p-4 md:p-6 border-b md:border border-gray-100 shadow-sm relative overflow-hidden">
-              <div className="relative flex md:flex-col items-center gap-3 md:gap-4 md:text-center">
-                <div className="w-12 h-12 md:w-20 md:h-20 bg-orange-100 rounded-2xl md:rounded-full flex items-center justify-center text-[#f56b2a] text-lg md:text-2xl font-bold">
+          <div className="space-y-5">
+            <div className="bg-gradient-to-br from-white to-orange-50/40 md:rounded-[32px] p-5 md:p-8 border-b md:border border-gray-100 shadow-sm relative overflow-hidden group">
+              {/* Decorative background elements */}
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none" />
+              <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-blue-100/40 rounded-full blur-xl opacity-60 pointer-events-none" />
+              
+              <div className="relative flex md:flex-col items-center gap-4 md:gap-5 md:text-center z-10">
+                <div className="w-16 h-16 md:w-24 md:h-24 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-[20px] md:rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-black shadow-xl shadow-orange-200/50 ring-4 ring-white">
                   {userEmail[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-base md:text-lg font-bold text-[#002f34] truncate">{userEmail.split('@')[0]}</h2>
-                  <p className="text-xs text-gray-500">{userEmail}</p>
+                  <h2 className="text-lg md:text-2xl font-black text-[#002f34] truncate tracking-tight">{userEmail.split('@')[0]}</h2>
+                  <p className="text-xs text-gray-500 font-semibold mt-0.5">{userEmail}</p>
                   <div className="flex md:justify-center items-center gap-3 mt-2">
                     <div className="text-center">
                        <p className="text-xs font-bold text-[#002f34]">{totalOrders}</p>
@@ -332,7 +336,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
               </div>
             </div>
 
-            <div className="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar px-4 pb-2 snap-x snap-mandatory">
+            <div className="lg:hidden flex items-center gap-2 overflow-x-auto px-4 pb-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {[
                 { id: 'orders', label: 'Commandes', icon: Package },
                 { id: 'addresses', label: 'Adresses', icon: MapPin },
@@ -342,10 +346,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as TabType)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl whitespace-nowrap text-xs font-bold transition-all border-2 snap-start active:scale-95 ${
+                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl whitespace-nowrap text-xs font-black transition-all snap-start active:scale-95 ${
                     activeTab === item.id 
-                      ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' 
-                      : 'bg-white border-gray-100 text-gray-500 shadow-sm active:bg-gray-50'
+                      ? 'bg-[#002f34] text-white shadow-xl shadow-gray-900/10' 
+                      : 'bg-white text-gray-500 shadow-sm border border-gray-100 active:bg-gray-50 hover:bg-gray-50'
                   }`}
                 >
                   <item.icon size={16} fill={activeTab === item.id ? "currentColor" : "none"} />
@@ -383,18 +387,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
           <div className="lg:col-span-3 px-4 md:px-0">
             {activeTab === 'orders' && (
-              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                <h2 className="text-base font-bold text-[#002f34] px-1">Mes commandes</h2>
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes commandes</h2>
                 
                 {loading ? renderSkeleton() : orders.length === 0 ? (
-                  <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
-                    <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                    <p className="text-sm font-bold text-gray-600">Aucune commande trouvée</p>
-                    <p className="text-xs mt-1">Vos commandes apparaîtront ici une fois validées.</p>
+                  <div className="bg-white rounded-[32px] p-10 text-center text-gray-400 border border-gray-100 shadow-sm">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                      <Package className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <p className="text-base font-black text-gray-600 tracking-tight">Aucune commande trouvée</p>
+                    <p className="text-xs font-medium mt-2">Vos commandes apparaîtront ici une fois validées.</p>
                   </div>
                 ) : (
                   orders.map((order) => (
-                    <div key={order.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                    <div key={order.id} className="bg-white rounded-[28px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
                       <div className="p-3 border-b border-gray-50 flex items-center justify-between bg-gray-50/10">
                         <div className="flex items-center gap-2">
                            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-50">
