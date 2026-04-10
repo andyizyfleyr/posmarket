@@ -230,9 +230,9 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
             const end = new Date(item.checkOut);
             const slotsToUpsert = [];
             
-            // Loop through dates
+            // Loop through dates (only nights, we don't block checkout day)
             const current = new Date(start);
-            while (current <= end) {
+            while (current < end) {
               slotsToUpsert.push({
                 product_id: item.product.id,
                 date: current.toISOString().split('T')[0],
