@@ -418,18 +418,24 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                           // Calculate duration info for stays
                           let stayInfo = null;
                           if (isStay && item.check_in && item.check_out) {
-                            const start = new Date(item.check_in);
-                            const end = new Date(item.check_out);
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
+                            const now = new Date();
+                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                             
-                            const totalNights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                            const remainingNights = Math.max(0, Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+                            const [yStart, mStart, dStart] = item.check_in.split('-').map(Number);
+                            const start = new Date(yStart, mStart - 1, dStart);
+                            
+                            const [yEnd, mEnd, dEnd] = item.check_out.split('-').map(Number);
+                            const end = new Date(yEnd, mEnd - 1, dEnd);
+                            
+                            const totalNights = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                            const remainingNights = Math.max(0, Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+                            const daysUntilStart = Math.max(0, Math.round((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+
                             const isPast = today > end;
                             const isFuture = today < start;
                             const isOngoing = today >= start && today <= end;
                             
-                            stayInfo = { totalNights, remainingNights, isPast, isFuture, isOngoing };
+                            stayInfo = { totalNights, remainingNights, daysUntilStart, isPast, isFuture, isOngoing, start, end };
                           }
 
                           return (
@@ -466,7 +472,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                                   <div className="flex items-center justify-between text-[10px] font-bold">
                                      <div className="flex items-center gap-1.5 text-gray-500">
                                         <Clock size={12} />
-                                        <span>Du {new Date(item.check_in).toLocaleDateString('fr-FR')} au {new Date(item.check_out).toLocaleDateString('fr-FR')}</span>
+                                        <span>Du {stayInfo?.start?.toLocaleDateString('fr-FR')} au {stayInfo?.end?.toLocaleDateString('fr-FR')}</span>
                                      </div>
                                      {stayInfo?.isOngoing && (
                                        <span className="text-[#f56b2a] animate-pulse">En cours</span>
@@ -485,7 +491,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                                   <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
                                      <span className="text-gray-400">{stayInfo?.isPast ? 'Terminé' : stayInfo?.isFuture ? 'À venir' : 'Séjour en cours'}</span>
                                      <span className="text-[#f56b2a]">
-                                       {stayInfo?.isPast ? 'Déjà passé' : `${stayInfo?.remainingNights} JOURS RESTANTS`}
+                                       {stayInfo?.isPast 
+                                         ? 'Déjà passé' 
+                                         : stayInfo?.isFuture 
+                                           ? `Dans ${stayInfo?.daysUntilStart} jour${(stayInfo?.daysUntilStart || 0) > 1 ? 's' : ''}` 
+                                           : `${stayInfo?.remainingNights} nuit${(stayInfo?.remainingNights || 0) > 1 ? 's' : ''} restante${(stayInfo?.remainingNights || 0) > 1 ? 's' : ''}`}
                                      </span>
                                   </div>
                                 </div>
