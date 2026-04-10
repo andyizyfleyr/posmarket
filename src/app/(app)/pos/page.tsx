@@ -27,8 +27,9 @@ export default async function POSPage() {
       products={products as any} 
       customers={customers as any} 
       currentStoreId={storeId}
-      storeSettings={storeRes as any}
+      storeSettings={storeRes?.settings as any}
       permissions={permissions as any}
+      businessType={storeRes?.business_type}
     />
   );
 }

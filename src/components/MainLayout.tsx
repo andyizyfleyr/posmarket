@@ -349,6 +349,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         onViewChange={onViewChange}
         onLogout={onLogout}
         userRole={currentUserRole}
+        businessType={currentStore?.business_type}
       />
 
       <div className="flex flex-col flex-grow overflow-hidden relative w-full">
@@ -376,7 +377,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         </main>
       </div>
 
-      <BottomNav currentView={currentView} onViewChange={onViewChange} userRole={currentUserRole} />
+      <BottomNav currentView={currentView} onViewChange={onViewChange} userRole={currentUserRole} businessType={currentStore?.business_type} />
       {isSaving && (
         <div className="fixed inset-0 z-[9999] bg-slate-900/20 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-200">
           <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4">

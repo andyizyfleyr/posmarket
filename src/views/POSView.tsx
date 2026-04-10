@@ -38,9 +38,10 @@ interface POSViewProps {
   storeSettings: StoreSettings;
   permissions: StaffPermissions;
   notify?: (message: string, type: NotificationType, title?: string) => void;
+  businessType?: string;
 }
 
-const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify }) => {
+const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify, businessType }) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<ICartItem[]>([]);
@@ -473,7 +474,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               ) : (
                 <CreditCard size={18} className="md:w-[22px] md:h-[22px]" />
               )}
-              {isProcessing ? 'Envoi...' : 'Encaisser'}
+              {isProcessing ? 'Envoi...' : (businessType === 'stay' ? 'Réserver' : 'Encaisser')}
             </button>
           ) : (
             <div className="p-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-bold text-center border border-red-100 flex items-center justify-center gap-2">
@@ -546,7 +547,9 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 <button onClick={handlePrint} className="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl font-bold"><Printer size={18} /> Imprimer</button>
                 <button onClick={handleDownloadPDF} className="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl font-bold"><Download size={18} /> PDF</button>
               </div>
-              <button onClick={closeCheckout} className="w-full py-4 bg-[#f56b2a] text-white font-bold rounded-xl">Nouvelle Vente</button>
+              <button onClick={closeCheckout} className="w-full py-4 bg-[#f56b2a] text-white font-bold rounded-xl">
+                {businessType === 'stay' ? 'Nouvelle Réservation' : 'Nouvelle Vente'}
+              </button>
             </div>
           </div>
         </div>

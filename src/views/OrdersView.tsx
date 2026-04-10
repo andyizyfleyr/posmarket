@@ -32,13 +32,15 @@ interface OrdersViewProps {
     currentStoreId?: string;
     permissions?: StaffPermissions;
     userRole?: StaffRole;
+    store?: any;
 }
 
 const OrdersView: React.FC<OrdersViewProps> = ({ 
     orders: initialOrders, 
     currentStoreId,
     permissions, 
-    userRole 
+    userRole,
+    store
 }) => {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
@@ -160,7 +162,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     const handleDelete = async (orderId: string) => {
-        if (confirm('Êtes-vous sûr de vouloir supprimer cette commande ?')) {
+        if (confirm(`Êtes-vous sûr de vouloir supprimer cette ${store?.business_type === 'stay' ? 'réservation' : 'commande'} ?`)) {
             const result = await deleteOrderAction(orderId);
             if (result.success) {
                 router.refresh();
@@ -200,7 +202,9 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         <div className="flex-grow overflow-hidden flex flex-col p-3 md:p-8 bg-gray-50/30">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-8 gap-3 md:gap-4">
                 <div className="whitespace-nowrap overflow-hidden">
-                    <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight truncate">Commandes</h1>
+                    <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight truncate">
+                        {store?.business_type === 'stay' ? 'Réservations' : 'Commandes'}
+                    </h1>
                     <div className="flex items-center gap-2 mt-1 md:mt-2">
                          {[
                             { id: 'all', label: 'Toutes', icon: Package, color: 'gray' },
@@ -224,7 +228,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         <input
                             type="text"
                             value={searchTerm}
-                            placeholder="Chercher une commande..."
+                            placeholder={store?.business_type === 'stay' ? "Chercher une réservation..." : "Chercher une commande..."}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full md:w-64 pl-9 pr-4 py-1.5 md:py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
                         />
@@ -412,7 +416,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     ) : (
                                         <Plus size={14} className="text-[#f56b2a]" />
                                     )}
-                                    {isLoadingMore ? 'Chargement...' : 'Voir plus de commandes'}
+                                    {isLoadingMore ? 'Chargement...' : store?.business_type === 'stay' ? 'Voir plus de réservations' : 'Voir plus de commandes'}
                                 </button>
                             </div>
                         )}

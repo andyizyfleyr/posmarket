@@ -23,9 +23,10 @@ interface ReportsViewProps {
   orders: Order[];
   customers: Customer[];
   storeSettings: StoreSettings;
+  store?: any;
 }
 
-const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSettings }) => {
+const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSettings, store }) => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -82,11 +83,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
             <div className="block md:table w-full">
               <div className="hidden md:table-header-group bg-gray-50/80 backdrop-blur text-gray-400 uppercase text-[10px] font-bold tracking-widest sticky top-0 z-10">
                 <div className="table-row">
-                  <div className="table-cell px-6 py-4">ID Commande</div>
+                  <div className="table-cell px-6 py-4">{store?.business_type === 'stay' ? 'ID Réservation' : 'ID Commande'}</div>
                   <div className="table-cell px-6 py-4">Date & Heure</div>
                   <div className="table-cell px-6 py-4">Client</div>
                   <div className="table-cell px-6 py-4">Méthode</div>
-                  <div className="table-cell px-6 py-4">Articles</div>
+                  <div className="table-cell px-6 py-4">{store?.business_type === 'stay' ? 'Nuits' : 'Articles'}</div>
                   <div className="table-cell px-6 py-4">Total</div>
                   <div className="table-cell px-6 py-4 text-right">Actions</div>
                 </div>
@@ -148,7 +149,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
                     </div>
 
                     <div className="hidden md:table-cell px-6 py-4 text-xs text-gray-500 font-medium">
-                      {order.items.reduce((s, i) => s + i.quantity, 0)} articles
+                      {order.items.reduce((s, i) => s + i.quantity, 0)} {store?.business_type === 'stay' ? 'nuits' : 'articles'}
                     </div>
 
                     <div className="hidden md:table-cell px-6 py-4">
@@ -168,8 +169,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
             <div className="h-full flex flex-col items-center justify-center text-gray-400 p-20 gap-4">
               <FileText size={64} className="opacity-10" />
               <div className="text-center">
-                <p className="text-lg font-black text-gray-900 tracking-tight">Aucune commande</p>
-                <p className="text-xs mt-1 text-gray-500">Les ventes apparaîtront ici.</p>
+                <p className="text-lg font-black text-gray-900 tracking-tight">{store?.business_type === 'stay' ? 'Aucune réservation' : 'Aucune commande'}</p>
+                <p className="text-xs mt-1 text-gray-500">{store?.business_type === 'stay' ? 'Les réservations apparaîtront ici.' : 'Les ventes apparaîtront ici.'}</p>
               </div>
             </div>
           )}
@@ -182,7 +183,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-3 md:px-6 py-3 md:py-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
               <div>
-                <h2 className="text-base md:text-xl font-black text-gray-900 tracking-tight whitespace-nowrap">Commande #{selectedOrder.id.slice(-6).toUpperCase()}</h2>
+                <h2 className="text-base md:text-xl font-black text-gray-900 tracking-tight whitespace-nowrap">{store?.business_type === 'stay' ? 'Réservation' : 'Commande'} #{selectedOrder.id.slice(-6).toUpperCase()}</h2>
                 <p className="text-[8px] md:text-[10px] text-gray-400 font-medium uppercase tracking-wider">{new Date(selectedOrder.date).toLocaleString('fr-FR')}</p>
               </div>
               <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">

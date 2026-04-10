@@ -16,7 +16,7 @@ export default async function OrdersPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { orders } = await fetchStoreData(storeId);
+  const { orders, store } = await fetchStoreData(storeId);
   const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   return (
@@ -25,6 +25,7 @@ export default async function OrdersPage() {
       permissions={permissions as any}
       userRole={role as any}
       currentStoreId={storeId}
+      store={store as any}
     />
   );
 }

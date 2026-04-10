@@ -337,7 +337,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="flex items-center gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">Inventaire</h1>
+              <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">
+                {businessType === 'stay' ? 'Unités' : 'Inventaire'}
+              </h1>
               <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
                 businessType === 'food' ? 'bg-yellow-100 text-yellow-700' : 
                 businessType === 'stay' ? 'bg-blue-100 text-blue-700' : 
@@ -346,7 +348,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 Flux {businessType === 'food' ? 'UberEats' : businessType === 'stay' ? 'Airbnb' : 'Amazon'}
               </span>
             </div>
-            <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">Gérez vos produits et vos stocks.</p>
+            <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">
+              {businessType === 'stay' ? 'Gére vos logements et vos disponibilités.' : 'Gérez vos produits et vos stocks.'}
+            </p>
           </div>
           {selectedIds.size > 0 && permissions.canManageInventory && (
             <div className="flex items-center gap-2 animate-in slide-in-from-left-4 duration-300">
@@ -476,7 +480,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="table-cell px-4 py-3">Type</div>
                   <div className="table-cell px-4 py-3">Catégorie</div>
                   <div className="table-cell px-4 py-3">Prix</div>
-                  <div className="table-cell px-4 py-3">Stock</div>
+                  <div className="table-cell px-4 py-3">{businessType === 'stay' ? 'Disponibilité' : 'Stock'}</div>
                   <div className="table-cell px-4 py-3">Avis</div>
                   <div className="table-cell px-4 py-3 text-right">Actions</div>
                 </div>

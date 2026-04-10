@@ -22,6 +22,7 @@ export default async function ReportsPage() {
       orders={orders as any} 
       customers={customers as any} 
       storeSettings={storeRes?.settings || {}}
+      store={storeRes as any}
     />
   );
 }

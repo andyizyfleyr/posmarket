@@ -52,9 +52,10 @@ interface SidebarProps {
   onViewChange: (view: ViewType) => void;
   onLogout?: () => void;
   userRole?: StaffRole;
+  businessType?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, userRole }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, userRole, businessType }) => {
   const isSeller = userRole === 'SELLER';
   const isAdminView = (currentView as string) === 'admin';
 
@@ -73,21 +74,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, 
             <SidebarItem
               id="tour-sidebar-pos"
               icon={<ShoppingBasket size={22} />}
-              label="Vente"
+              label={businessType === 'stay' ? "Réservation" : "Vente"}
               active={currentView === 'pos'}
               onClick={() => onViewChange('pos')}
             />
             <SidebarItem
               id="tour-sidebar-orders"
               icon={<ShoppingBag size={22} />}
-              label="Commandes"
+              label={businessType === 'stay' ? "Réservations" : "Commandes"}
               active={currentView === 'orders'}
               onClick={() => onViewChange('orders')}
             />
             <SidebarItem
               id="tour-sidebar-inventory"
               icon={<Package size={22} />}
-              label="Stocks"
+              label={businessType === 'stay' ? "Unités" : "Stocks"}
               active={currentView === 'inventory'}
               onClick={() => onViewChange('inventory')}
             />

@@ -45,9 +45,10 @@ interface BottomNavProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
   userRole?: StaffRole;
+  businessType?: string;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRole }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRole, businessType }) => {
   const isSeller = userRole === 'SELLER';
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around z-50 pb-safe pt-1 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] px-1">
@@ -61,20 +62,20 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRo
       <BottomNavItem
         id="tour-mobile-pos"
         icon={<ShoppingBasket size={20} />}
-        label="Vente"
+        label={businessType === 'stay' ? "Réservation" : "Vente"}
         active={currentView === 'pos'}
         onClick={() => onViewChange('pos')}
       />
       <BottomNavItem
         icon={<ShoppingBag size={20} />}
-        label="Commandes"
+        label={businessType === 'stay' ? "Réservations" : "Commandes"}
         active={currentView === 'orders'}
         onClick={() => onViewChange('orders')}
       />
       <BottomNavItem
         id="tour-mobile-inventory"
         icon={<Package size={20} />}
-        label="Stocks"
+        label={businessType === 'stay' ? "Unités" : "Stocks"}
         active={currentView === 'inventory'}
         onClick={() => onViewChange('inventory')}
       />
