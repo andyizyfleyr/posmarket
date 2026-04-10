@@ -424,8 +424,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       // 2. Lancer l'action optionnelle (ex: fermer un menu)
       if (options?.action) options.action();
 
+      const targetPathname = path.split('?')[0];
+
       // 3. Si on est déjà sur la page, simple rafraîchissement
-      if (location.pathname === path) {
+      if (location.pathname === targetPathname || location.pathname === path) {
         navigationTargetRef.current = null;
         navigate(path);
         setTimeout(() => setIsNavigating(false), 300);
@@ -433,8 +435,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       }
 
       // 4. On stocke la destination et on navigue — le useEffect coupera le loader
-      //    quand location.pathname correspondra à la cible
-      navigationTargetRef.current = path;
+      navigationTargetRef.current = targetPathname;
       navigate(path);
     },
     [navigate, location.pathname],
@@ -453,7 +454,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   // 🔄 Couper le loader UNIQUEMENT quand la route a réellement changé
   useEffect(() => {
-    if (isNavigating && navigationTargetRef.current && location.pathname === navigationTargetRef.current) {
+    if (isNavigating && (prevPathRef.current !== location.pathname || (navigationTargetRef.current && location.pathname === navigationTargetRef.current))) {
       // Route atteinte — on s'assure d'un affichage minimum de 400ms pour éviter un flash
       const elapsed = Date.now() - navStartTimeRef.current;
       const remaining = Math.max(0, 400 - elapsed);
@@ -462,6 +463,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         navigationTargetRef.current = null;
         setIsNavigating(false);
       }, remaining);
+      
+      prevPathRef.current = location.pathname;
       return () => clearTimeout(timer);
     }
 
@@ -487,14 +490,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
   }, [checkoutStage, isNavigating]);
 
-  // ⚠️ Fail-safe : coupe le loader après 5s max en cas de blocage
+  // ⚠️ Fail-safe : coupe le loader rapidement après 1.5s max en cas de blocage pour éviter que l'écran ne se fige
   useEffect(() => {
     if (isNavigating) {
       const timer = setTimeout(() => {
         navigationTargetRef.current = null;
         stageTargetRef.current = null;
         setIsNavigating(false);
-      }, 5000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [isNavigating]);
