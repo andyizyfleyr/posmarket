@@ -1309,8 +1309,34 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     variantId?: string,
     bookingInfo?: { checkIn?: string; checkOut?: string; guests?: number },
   ) => {
+    const isStay = product.businessType === 'stay' || product.category === 'Appartements' || product.mainCategory === "Séjours, Expériences & Immobilier";
+
     setCart((prev) => {
       const vid = variantId || null;
+
+      // For stays, we enforce a single-item cart (Direct Checkout)
+      if (isStay) {
+        if (!bookingInfo?.checkIn || !bookingInfo?.checkOut) {
+          return prev; 
+        }
+
+        const start = new Date(bookingInfo.checkIn);
+        const end = new Date(bookingInfo.checkOut);
+        const qty = Math.max(
+          1,
+          Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+        );
+
+        return [{
+          product,
+          quantity: qty,
+          variantId: vid || undefined,
+          checkIn: bookingInfo.checkIn,
+          checkOut: bookingInfo.checkOut,
+          guests: bookingInfo.guests,
+        }];
+      }
+
       const existing = prev.find(
         (item) =>
           item.product.id === product.id &&
@@ -1331,24 +1357,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         );
       }
 
-      // Calculate nights for stays
-      let quantity = 1;
-      if (bookingInfo?.checkIn && bookingInfo?.checkOut) {
-        const start = new Date(bookingInfo.checkIn);
-        const end = new Date(bookingInfo.checkOut);
-        quantity = Math.max(
-          1,
-          Math.round(
-            (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-          ),
-        );
-      }
-
       return [
         ...prev,
         {
           product,
-          quantity,
+          quantity: 1,
           variantId: vid || undefined,
           checkIn: bookingInfo?.checkIn,
           checkOut: bookingInfo?.checkOut,
@@ -1358,16 +1371,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     });
     setLastAddedProduct(product);
     
-    // Direct Checkout for Stays (Airbnb Style) - One-click booking
-    const isStay = product.businessType === 'stay' || product.category === 'Appartements' || product.mainCategory === "Séjours, Expériences & Immobilier";
-    
     if (isStay) {
       if (!bookingInfo?.checkIn || !bookingInfo?.checkOut) {
-        // From a thumbnail or search: Open details to pick dates
         safeNavigate(`/product/${generateProductSlug(product)}`);
         return;
       }
-      // With dates: skip cart and go to shipping (checkout)
       safeNavigate('/cart');
       setTimeout(() => setCheckoutStage('shipping'), 800);
       return;
@@ -3012,7 +3020,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               {checkoutStage === "cart"
                 ? "Mon Panier"
                 : checkoutStage === "shipping"
-                  ? "Livraison"
+                  ? (cart.some(i => i.product.businessType === 'stay') ? "Informations" : "Livraison")
                   : checkoutStage === "payment"
                     ? "Paiement"
                     : "Commande Validée"}
@@ -3041,7 +3049,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             <div className="flex items-center justify-between max-w-2xl mx-auto">
               {[
                 { id: "cart", label: "Panier", icon: ShoppingCart },
-                { id: "shipping", label: "Livraison", icon: MapPin },
+                { id: "shipping", label: cart.some(i => i.product.businessType === 'stay') ? "Informations" : "Livraison", icon: MapPin },
                 { id: "payment", label: "Paiement", icon: CreditCard },
               ].map((stage, idx, array) => {
                 const Icon = stage.icon;
@@ -3368,62 +3376,63 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Section 2: Adresse de Livraison */}
-                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-black text-sm">
-                        2
-                      </div>
-                      <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">
-                        Adresse de Livraison
-                      </h3>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
-                          Adresse (Rue, Quartier...)
-                        </label>
-                        <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
-                            <MapPin size={18} />
-                          </div>
-                          <input
-                            required
-                            type="text"
-                            value={customerInfo.address}
-                            onChange={(e) =>
-                              setCustomerInfo({
-                                ...customerInfo,
-                                address: e.target.value,
-                              })
-                            }
-                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
-                          />
+                  {!cart.some(i => i.product.businessType === 'stay') && (
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
+                      <div className="flex items-center gap-3 mb-8">
+                        <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-black text-sm">
+                          2
                         </div>
+                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">
+                          Adresse de Livraison
+                        </h3>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-6">
+                      <div className="space-y-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
-                            Ville
+                            Adresse (Rue, Quartier...)
                           </label>
-                          <input
-                            required
-                            type="text"
-                            value={customerInfo.city}
-                            onChange={(e) =>
-                              setCustomerInfo({
-                                ...customerInfo,
-                                city: e.target.value,
-                              })
-                            }
-                            className="w-full px-5 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
-                          />
+                          <div className="relative group">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
+                              <MapPin size={18} />
+                            </div>
+                            <input
+                              required
+                              type="text"
+                              value={customerInfo.address}
+                              onChange={(e) =>
+                                setCustomerInfo({
+                                  ...customerInfo,
+                                  address: e.target.value,
+                                })
+                              }
+                              className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
+                              Ville
+                            </label>
+                            <input
+                              required
+                              type="text"
+                              value={customerInfo.city}
+                              onChange={(e) =>
+                                setCustomerInfo({
+                                  ...customerInfo,
+                                  city: e.target.value,
+                                })
+                              }
+                              className="w-full px-5 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
               {checkoutStage === "payment" && (
