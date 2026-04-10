@@ -734,7 +734,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 whitespace-nowrap">
-              <Flame size={16} className="text-orange-500 md:w-5 md:h-5" /> Meilleures Ventes
+              <Flame size={16} className="text-orange-500 md:w-5 md:h-5" /> {store?.business_type === 'stay' ? 'Meilleures Réservations' : 'Meilleures Ventes'}
             </h3>
             <span className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Volume</span>
           </div>
@@ -756,11 +756,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-[10px] md:text-xs font-black text-orange-600 leading-none">x{product.salesCount}</div>
-                  <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">Vendus</div>
+                  <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">{store?.business_type === 'stay' ? 'Réservés' : 'Vendus'}</div>
                 </div>
               </div>
             )) : (
-              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-bold whitespace-nowrap">Aucune vente enregistrée</div>
+              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-bold whitespace-nowrap">{store?.business_type === 'stay' ? 'Aucune réservation enregistrée' : 'Aucune vente enregistrée'}</div>
             )}
           </div>
         </div>

@@ -69,7 +69,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
             <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[12px]">
               {product.salesCount !== undefined && product.salesCount > 0 ? (
                 <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-70">
-                  {product.salesCount} {product.salesCount > 1 ? 'ventes' : 'vente'}
+                  {product.salesCount} {product.businessType === 'stay' || product.category === 'Appartements'
+                    ? (product.salesCount > 1 ? 'réservations' : 'réservation')
+                    : (product.salesCount > 1 ? 'ventes' : 'vente')}
                 </div>
               ) : <div />}
 
