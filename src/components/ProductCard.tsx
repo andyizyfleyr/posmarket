@@ -86,28 +86,28 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
       </div>
 
       {/* Button Tray - Outside the clickable area */}
-      <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
-        <button
-          onClick={(e) => { 
-            if ((product as any).currentBooking) return;
-            e.stopPropagation(); 
-            e.preventDefault();
-            onAddToCart(product); 
-          }}
-          disabled={!!(product as any).currentBooking}
-          className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
-            (product as any).currentBooking
-              ? 'bg-orange-600 text-white border-orange-600 cursor-not-allowed uppercase !opacity-100 shadow-none'
-              : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
-          }`}
-        >
-          {(product as any).currentBooking 
-            ? `Occupé jusqu'au ${new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
-            : product.category === 'Appartements' || product.businessType === 'stay' 
-              ? 'Réserver séjour' 
+      {!(product.category === 'Appartements' || product.businessType === 'stay') && (
+        <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
+          <button
+            onClick={(e) => { 
+              if ((product as any).currentBooking) return;
+              e.stopPropagation(); 
+              e.preventDefault();
+              onAddToCart(product); 
+            }}
+            disabled={!!(product as any).currentBooking}
+            className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
+              (product as any).currentBooking
+                ? 'bg-orange-600 text-white border-orange-600 cursor-not-allowed uppercase !opacity-100 shadow-none'
+                : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
+            }`}
+          >
+            {(product as any).currentBooking 
+              ? `Occupé jusqu'au ${new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
               : 'Ajouter au panier'}
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
     </div >
   );
 };
