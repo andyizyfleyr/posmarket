@@ -129,8 +129,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['general', 'store', 'user', 'staff', 'promos'];
-        return (tab && validTabs.includes(tab) ? tab : 'general') as 'general' | 'store' | 'user' | 'staff' | 'promos';
+        const validTabs = ['store', 'user', 'staff', 'promos'];
+        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos';
     }, [searchParams]);
 
     const setActiveTab = useCallback((tab: string) => {
@@ -355,7 +355,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 {/* Sidebar Tabs */}
                 <div className="w-full lg:w-64 flex flex-row lg:flex-col gap-1.5 md:gap-2 overflow-x-auto pb-3 lg:pb-0 no-scrollbar -mx-3 px-3 md:mx-0 md:px-0">
                     {[
-                        { id: 'general', label: 'Général', icon: <Settings size={18} /> },
                         { id: 'store', label: 'Boutique', icon: <Store size={18} /> },
                         { id: 'user', label: 'Profil', icon: <User size={18} /> },
                         { id: 'staff', label: 'Équipe', icon: <Users size={18} />, hidden: !permissions.canManageStaff },
@@ -374,29 +373,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                 {/* Content Area */}
                 <div className="flex-grow bg-white rounded-3xl md:rounded-[32px] border border-gray-100 shadow-sm overflow-y-auto custom-scrollbar p-3.5 md:p-10">
-                    {activeTab === 'general' && (
-                        <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <section>
-                                <SectionHeader title="Préférences" icon={<Settings />} />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
-                                    <SettingItem
-                                        icon={<Languages size={20} />}
-                                        title="Langue"
-                                        description="Français (Sénégal)"
-                                        badge="FR"
-                                        onClick={() => handleNotImplemented('Changer la langue')}
-                                    />
-                                    <SettingItem
-                                        icon={<CreditCard size={20} />}
-                                        title="Devise"
-                                        description="Franc CFA (XOF)"
-                                        onClick={() => handleNotImplemented('Changer la devise')}
-                                    />
-                                </div>
-                            </section>
-                        </div>
-                    )}
-
                     {activeTab === 'store' && (
                         <div className="space-y-6 md:space-y-12 animate-in fade-in slide-in-from-right-4 duration-300">
                             <div>
