@@ -415,12 +415,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [navigationKey, setNavigationKey] = useState(0);
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const navStartTimeRef = useRef<number>(0);
   const stageTargetRef = useRef<string | null>(null);
 
   // 🚀 Navigation Directe — Avec clé unique pour forcer le re-render propre
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
       const targetPathname = path.split('?')[0];
+      const startTime = performance.now();
       
       // 1. Si déjà sur la page, ne rien faire
       if (location.pathname === targetPathname || location.pathname === path) {
@@ -432,7 +434,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         clearTimeout(navTimerRef.current);
       }
 
-      // 3. Afficher le loader avec une nouvelle clé
+      // 3. Enregistrer le temps de début
+      navStartTimeRef.current = performance.now();
+      console.group(`[Navigation] → "${path}"`);
+
+      // 4. Afficher le loader avec une nouvelle clé
       setNavigationKey(prev => prev + 1);
       setIsNavigating(true);
 
@@ -450,6 +456,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     if (!isNavigating) return;
     
     navTimerRef.current = setTimeout(() => {
+      const endTime = performance.now();
+      const totalDuration = endTime - navStartTimeRef.current;
+      console.log(`[Loader] Hiding loader after ${totalDuration.toFixed(0)}ms (${(totalDuration / 1000).toFixed(2)}s)`);
+      console.groupEnd();
       setIsNavigating(false);
       navTimerRef.current = null;
     }, 15000); // 15s pour être sûr que le contenu est affiché
