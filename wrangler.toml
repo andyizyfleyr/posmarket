@@ -1,0 +1,14 @@
+name = "posmarket"
+compatibility_date = "2024-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = ".vercel/output/static"
+
+[env.production]
+name = "posmarket"
+vars_dir = "./.vars"
+
+[[env.production.vars]]
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "your_clerk_publishable_key"
+NEXT_PUBLIC_SUPABASE_URL = "your_supabase_url"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "your_supabase_anon_key"
