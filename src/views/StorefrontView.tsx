@@ -413,10 +413,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
   const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
-  const navStartTimeRef = useRef<number>(0);
+  const [navigationKey, setNavigationKey] = useState(0);
+  const navTimerRef = useRef<NodeJS.Timeout | null>(null);
   const stageTargetRef = useRef<string | null>(null);
 
-  // 🚀 Navigation Directe — Le loader reste jusqu'à ce que la NOUVELLE PAGE soit affichée
+  // 🚀 Navigation Directe — Avec clé unique pour forcer le re-render propre
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
       const targetPathname = path.split('?')[0];
@@ -426,35 +427,44 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         return;
       }
 
-      // 2. Afficher le loader
-      setIsNavigating(true);
-      navStartTimeRef.current = Date.now();
+      // 2. Nettoyer l'ancien timer
+      if (navTimerRef.current) {
+        clearTimeout(navTimerRef.current);
+      }
 
-      // 3. Lancer l'action optionnelle (ex: fermer un menu)
+      // 3. Afficher le loader avec une nouvelle clé
+      setNavigationKey(prev => prev + 1);
+      setIsNavigating(true);
+
+      // 4. Lancer l'action optionnelle
       if (options?.action) options.action();
 
-      // 4. Naviguer
+      // 5. Naviguer
       navigate(path);
     },
     [navigate, location.pathname],
   );
 
-  // 🔄 Couper le loader après un délai fixe (laisser le temps au render)
+  // 🔄 Couper le loader après un délai fixe
   useEffect(() => {
     if (!isNavigating) return;
     
-    const timer = setTimeout(() => {
+    navTimerRef.current = setTimeout(() => {
       setIsNavigating(false);
-    }, 800); // 800ms pour laisser le temps au render et aux animations
+      navTimerRef.current = null;
+    }, 1200); // 1.2s pour être sûr que le contenu est affiché
     
-    return () => clearTimeout(timer);
+    return () => {
+      if (navTimerRef.current) {
+        clearTimeout(navTimerRef.current);
+      }
+    };
   }, [isNavigating]);
 
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
       setIsNavigating(true);
-      navStartTimeRef.current = Date.now();
       stageTargetRef.current = newStage;
     },
     [checkoutStage],
@@ -463,14 +473,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 🔄 Couper le loader quand l'étape de checkout a réellement changé
   useEffect(() => {
     if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
-      const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 200 - elapsed);
-
-      const timer = setTimeout(() => {
+      navTimerRef.current = setTimeout(() => {
         stageTargetRef.current = null;
         setIsNavigating(false);
-      }, remaining);
-      return () => clearTimeout(timer);
+      }, 300);
+      return () => {
+        if (navTimerRef.current) clearTimeout(navTimerRef.current);
+      };
     }
   }, [checkoutStage, isNavigating]);
   const [lastAddedProduct, setLastAddedProduct] =
@@ -3766,9 +3775,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         }}
       />
 
-      {/* 🌀 Global Navigation Loading Overlay - More prominent for feedback */}
+      {/* 🌀 Global Navigation Loading Overlay - With unique key for clean re-renders */}
       {isNavigating && (
-        <div className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300">
+        <div 
+          key={`loader-${navigationKey}`}
+          className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300"
+        >
           <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
             <div className="relative">
               <div className="w-20 h-20 border-[4px] border-gray-100 border-t-[#f56b2a] rounded-full animate-spin shadow-inner" />
