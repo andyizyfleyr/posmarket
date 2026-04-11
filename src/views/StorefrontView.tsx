@@ -481,7 +481,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
-      setIsNavigating(true);
+      setCheckoutStage(newStage);
       stageTargetRef.current = newStage;
     },
     [checkoutStage],
@@ -489,13 +489,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   // 🔄 Couper le loader quand l'étape de checkout a changé
   useEffect(() => {
-    if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
+    if (stageTargetRef.current && checkoutStage === stageTargetRef.current) {
       setTimeout(() => {
         stageTargetRef.current = null;
-        setIsNavigating(false);
       }, 200);
     }
-  }, [checkoutStage, isNavigating]);
+  }, [checkoutStage]);
   const [lastAddedProduct, setLastAddedProduct] =
     useState<StorefrontProduct | null>(null);
   const [cartNotif, setCartNotif] = useState(false);
