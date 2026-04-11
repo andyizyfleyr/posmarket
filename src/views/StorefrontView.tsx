@@ -413,13 +413,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
   const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
-  const prevPathRef = useRef(location.pathname);
-  const navigationTargetRef = useRef<string | null>(null);
   const navStartTimeRef = useRef<number>(0);
   const stageTargetRef = useRef<string | null>(null);
-  const navigationLockRef = useRef<boolean>(false);
 
-  // 🚀 Navigation Directe — Le loader reste jusqu'à ce que la destination soit atteinte
+  // 🚀 Navigation Directe — Le loader reste jusqu'à ce que la NOUVELLE PAGE soit affichée
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
       const targetPathname = path.split('?')[0];
@@ -429,45 +426,29 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         return;
       }
 
-      // 2. Afficher le loader et verrouiller la navigation
+      // 2. Afficher le loader
       setIsNavigating(true);
-      navigationLockRef.current = true;
       navStartTimeRef.current = Date.now();
-      navigationTargetRef.current = targetPathname;
 
       // 3. Lancer l'action optionnelle (ex: fermer un menu)
       if (options?.action) options.action();
 
       // 4. Naviguer
       navigate(path);
-      
-      // Le loader sera coupé UNIQUEMENT dans le useEffect ci-dessous
-      // quand pathname === navigationTargetRef.current
     },
     [navigate, location.pathname],
   );
 
-  // 🔄 COUPER LE LOADER — Exclusivement quand la destination est atteinte
+  // 🔄 Couper le loader après un délai fixe (laisser le temps au render)
   useEffect(() => {
-    if (!isNavigating || !navigationTargetRef.current) return;
+    if (!isNavigating) return;
     
-    const target = navigationTargetRef.current;
-    const current = location.pathname;
+    const timer = setTimeout(() => {
+      setIsNavigating(false);
+    }, 800); // 800ms pour laisser le temps au render et aux animations
     
-    // Attendre que pathname corresponde à la destination
-    if (current === target) {
-      const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 400 - elapsed);
-      
-      const timer = setTimeout(() => {
-        navigationLockRef.current = false;
-        navigationTargetRef.current = null;
-        setIsNavigating(false);
-      }, remaining);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname, isNavigating]);
+    return () => clearTimeout(timer);
+  }, [isNavigating]);
 
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
@@ -483,7 +464,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   useEffect(() => {
     if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
       const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 300 - elapsed);
+      const remaining = Math.max(0, 200 - elapsed);
 
       const timer = setTimeout(() => {
         stageTargetRef.current = null;
@@ -492,22 +473,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       return () => clearTimeout(timer);
     }
   }, [checkoutStage, isNavigating]);
-
-  // ⚠️ Fail-safe : coupe le loader après 5s MAX si pathname ne change pas
-  useEffect(() => {
-    if (!isNavigating) return;
-    
-    const timer = setTimeout(() => {
-      if (navigationTargetRef.current && location.pathname !== navigationTargetRef.current) {
-        console.warn('[Navigation] Fail-safe: pathname did not change in 5s');
-        navigationLockRef.current = false;
-        navigationTargetRef.current = null;
-        setIsNavigating(false);
-      }
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, [isNavigating, location.pathname]);
   const [lastAddedProduct, setLastAddedProduct] =
     useState<StorefrontProduct | null>(null);
   const [cartNotif, setCartNotif] = useState(false);
