@@ -33,9 +33,14 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
+    // 🛡️ Skip non-http/https requests (chrome-extension, blob, data, etc.)
+    if (!url.protocol.startsWith('http')) {
+        return;
+    }
+
     // 🛡️ Skip navigation requests - let them pass through without SW interception
     if (request.mode === 'navigate') {
-        return; // Let the browser handle navigation normally
+        return;
     }
 
     // 🏎️ Strategy for IMAGES (File Cache)
@@ -49,7 +54,6 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(request).then((cachedResponse) => {
-                    // Cache First + Background Update (Stale-While-Revalidate)
                     const fetchPromise = fetch(request).then((networkResponse) => {
                         if (networkResponse && networkResponse.status === 200) {
                             cache.put(request, networkResponse.clone());
@@ -79,7 +83,6 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 🌐 Default: Network Only (no caching for API calls)
-    // Don't interfere with data fetching
+    // 🌐 Default: Network Only
     return;
 });
