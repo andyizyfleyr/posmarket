@@ -4352,34 +4352,31 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   </div>
                 )}
 
-                {/* Super App Verticals - Big Tiles Style */}
+                {/* Super App Verticals - Compact Mobile-First */}
                 {!searchTerm && selectedCategory === "all" && !selectedStoreId && (
-                  <div className="mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">
+                  <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                    <h2 className="text-sm md:text-xl font-black text-gray-900 mb-3 md:mb-6 tracking-tight">
                       Que voulez-vous faire aujourd'hui ?
                     </h2>
-                    <div className="grid grid-cols-3 gap-3 md:gap-6">
+                    <div className="grid grid-cols-3 gap-2 md:gap-4">
                       {[
                         {
                           id: "shopping",
                           label: "Shopping",
                           icon: ShoppingBag,
                           color: "orange",
-                          desc: "Amazon",
                         },
                         {
                           id: "food",
                           label: "Resto",
                           icon: Zap,
                           color: "yellow",
-                          desc: "UberEats",
                         },
                         {
                           id: "stay",
                           label: "Séjours",
                           icon: Store,
                           color: "blue",
-                          desc: "Airbnb",
                         },
                       ].map((v) => (
                         <button
@@ -4388,49 +4385,33 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             setSelectedVertical(v.id as any);
                             setSelectedCategory("all");
                           }}
-                          className={`relative flex flex-col items-center justify-center p-4 md:p-8 rounded-[32px] md:rounded-[40px] transition-all border-4 group active:scale-95 overflow-hidden ${
+                          className={`relative flex flex-col items-center justify-center py-3 px-2 md:py-6 md:px-4 rounded-2xl md:rounded-3xl transition-all border-2 md:border-4 group active:scale-95 overflow-hidden ${
                             selectedVertical === v.id
-                              ? `border-${v.color}-500 bg-${v.color}-500 text-white shadow-xl shadow-${v.color}-200`
-                              : "bg-white border-gray-100 text-gray-900 hover:border-gray-200 hover:shadow-lg"
+                              ? `bg-${v.color}-500 text-white border-${v.color}-500 shadow-lg`
+                              : "bg-white border-gray-100 text-gray-900 hover:border-gray-200 hover:shadow-md"
                           }`}
                         >
-                          {/* Background Decorative Icon */}
-                          <v.icon
-                            className={`absolute -right-4 -bottom-4 w-24 h-24 opacity-10 transition-transform duration-700 group-hover:scale-125 group-hover:rotate-12 ${selectedVertical === v.id ? "text-white" : `text-${v.color}-500`}`}
-                          />
-
                           <div
-                            className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center mb-3 md:mb-4 transition-all ${
+                            className={`w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-1.5 md:mb-3 transition-all ${
                               selectedVertical === v.id
                                 ? "bg-white/20"
                                 : `bg-${v.color}-50`
                             }`}
                           >
                             <v.icon
-                              size={28}
+                              size={18}
                               className={`md:hidden ${selectedVertical === v.id ? "text-white" : `text-${v.color}-500`}`}
                               strokeWidth={2.5}
                             />
                             <v.icon
-                              size={44}
+                              size={28}
                               className={`hidden md:block ${selectedVertical === v.id ? "text-white" : `text-${v.color}-500`}`}
                               strokeWidth={2.5}
                             />
                           </div>
-                          <span className="text-[10px] md:text-lg font-black uppercase tracking-widest md:tracking-normal">
+                          <span className={`text-[9px] md:text-base font-black uppercase tracking-wide ${selectedVertical === v.id ? "text-white" : "text-gray-900"}`}>
                             {v.label}
                           </span>
-                          <span
-                            className={`text-[8px] md:text-sm font-bold opacity-60 ${selectedVertical === v.id ? "text-white" : "text-gray-400"}`}
-                          >
-                            {v.desc}
-                          </span>
-
-                          {selectedVertical === v.id && (
-                            <div className="absolute top-2 right-2 md:top-4 md:right-4">
-                              <div className="w-2 h-2 md:w-3 md:h-3 bg-white rounded-full animate-ping" />
-                            </div>
-                          )}
                         </button>
                       ))}
                     </div>
