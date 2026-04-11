@@ -452,7 +452,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     navTimerRef.current = setTimeout(() => {
       setIsNavigating(false);
       navTimerRef.current = null;
-    }, 1200); // 1.2s pour être sûr que le contenu est affiché
+    }, 15000); // 15s pour être sûr que le contenu est affiché
     
     return () => {
       if (navTimerRef.current) {
