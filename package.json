@@ -6,11 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "pages:build": "npx @cloudflare/next-on-pages build",
-    "pages:dev": "npx @cloudflare/next-on-pages dev",
-    "pages:deploy": "npx @cloudflare/next-on-pages deploy",
-    "cf-typegen": "wrangler types"
+    "lint": "eslint"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.6",
@@ -23,22 +19,20 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.6.0",
-    "next": "15.5.2",
+    "next": "16.2.1",
     "nextjs-toploader": "^3.9.17",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.2",
+    "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wrangler": "^4.81.1"
+    "typescript": "^5"
   }
 }
