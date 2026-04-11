@@ -415,6 +415,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [navigationKey, setNavigationKey] = useState(0);
   const navStartTimeRef = useRef<number>(0);
+  const navTargetPathRef = useRef<string>('');
   const navCompletedRef = useRef<boolean>(false);
   const stageTargetRef = useRef<string | null>(null);
 
@@ -430,6 +431,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
       // Afficher le loader
       navCompletedRef.current = false;
+      navTargetPathRef.current = targetPathname;
       navStartTimeRef.current = performance.now();
       console.log(`[Navigation] Started → "${path}"`);
       setNavigationKey(prev => prev + 1);
@@ -444,27 +446,36 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [navigate, location.pathname],
   );
 
-  // 🔄 Dynamique: Couper le loader quand pathname change + après un frame de render
+  // 🔄 Dynamique: Couper le loader quand pathname change ET contenu visible
   useEffect(() => {
     if (!isNavigating || navCompletedRef.current) return;
     
-    // Attendre que pathname change (signifie que Next.js a terminé la navigation)
-    // Puis attendre 2 frames pour que React re-render avec le nouveau contenu
-    let frameCount = 0;
+    const currentPath = location.pathname;
+    const targetPath = navTargetPathRef.current;
     
-    const checkRenderComplete = () => {
-      frameCount++;
-      if (frameCount >= 2) {
+    // Vérifier si on a atteint la destination
+    if (currentPath !== targetPath) return;
+    
+    // pathname a changé! Attendre que le contenu soit visible
+    // On vérifie avec un MutationObserver ou un timer
+    const checkContentVisible = () => {
+      // Chercher le main content ou un élément significatif
+      const mainContent = document.querySelector('main');
+      const hasContent = mainContent && mainContent.children.length > 0;
+      const duration = performance.now() - navStartTimeRef.current;
+      
+      if (hasContent) {
         navCompletedRef.current = true;
-        const duration = performance.now() - navStartTimeRef.current;
         console.log(`[Navigation] Content ready → ${duration.toFixed(0)}ms (${(duration / 1000).toFixed(2)}s)`);
         setIsNavigating(false);
       } else {
-        requestAnimationFrame(checkRenderComplete);
+        // Réessayer dans 50ms
+        setTimeout(checkContentVisible, 50);
       }
     };
     
-    requestAnimationFrame(checkRenderComplete);
+    // Commencer à vérifier après 100ms minimum
+    setTimeout(checkContentVisible, 100);
   }, [location.pathname, isNavigating]);
 
   // 🔄 Smooth Checkout Stage Transitions
@@ -479,17 +490,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 🔄 Couper le loader quand l'étape de checkout a changé
   useEffect(() => {
     if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
-      let frameCount = 0;
-      const checkRenderComplete = () => {
-        frameCount++;
-        if (frameCount >= 2) {
-          stageTargetRef.current = null;
-          setIsNavigating(false);
-        } else {
-          requestAnimationFrame(checkRenderComplete);
-        }
-      };
-      requestAnimationFrame(checkRenderComplete);
+      setTimeout(() => {
+        stageTargetRef.current = null;
+        setIsNavigating(false);
+      }, 200);
     }
   }, [checkoutStage, isNavigating]);
   const [lastAddedProduct, setLastAddedProduct] =
