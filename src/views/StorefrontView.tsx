@@ -3504,7 +3504,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             </form>
           )}
           {checkoutStage === "success" && (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in fade-in zoom-in duration-1000 relative overflow-hidden">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center animate-in fade-in zoom-in duration-1000 relative overflow-hidden">
               {/* Animated Particles background */}
               <div className="absolute inset-0 pointer-events-none">
                 {[...Array(12)].map((_, i) => (
