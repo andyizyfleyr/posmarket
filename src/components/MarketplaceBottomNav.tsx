@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Home, Search, ShoppingBag, User } from 'lucide-react';
+import { Home, Search, ShoppingBag, User, RotateCcw } from 'lucide-react';
 import { useLocation } from '@/components/RouterPolyfill';
 
 interface MarketplaceBottomNavProps {
@@ -10,6 +10,7 @@ interface MarketplaceBottomNavProps {
   onHomeClick?: () => void;
   onCartClick?: () => void;
   onAccountClick: () => void;
+  onRefresh?: () => void;
   loading?: boolean;
 }
 
@@ -19,6 +20,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
   onHomeClick,
   onCartClick,
   onAccountClick,
+  onRefresh,
   loading = false
 }) => {
   const location = useLocation();
@@ -27,9 +29,18 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
   const isHome = pathname === '/' || pathname === '' || pathname === 'storefront';
   const isCart = pathname === '/cart';
 
+  const handleRefresh = () => {
+    if (loading) return;
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      window.location.reload();
+    }
+  };
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-      <div className="h-[64px] flex items-center justify-around px-6">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-10_30px_rgba(0,0,0,0.05)]">
+      <div className="h-[64px] flex items-center justify-around px-4">
         
         {/* Accueil */}
         <button
@@ -53,6 +64,17 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
         >
           <Search size={22} strokeWidth={2} className={loading ? 'animate-pulse' : ''} />
           <span className="text-[9px] mt-1 font-bold tracking-tight">Recherche</span>
+        </button>
+
+        {/* Refresh - au centre (Mobile only) */}
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className={`md:hidden flex flex-col items-center justify-center flex-1 h-full text-gray-400 active:text-[#f56b2a] transition-all ${loading ? 'opacity-50' : ''}`}
+          aria-label="Actualiser"
+        >
+          <RotateCcw size={22} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
+          <span className="text-[9px] mt-1 font-bold tracking-tight">Actualiser</span>
         </button>
 
         {/* Panier */}
