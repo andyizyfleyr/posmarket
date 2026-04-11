@@ -197,15 +197,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
-  // 🔄 Content Ready System — Refs pour le système de signal de contenu prêt
-  const contentReadyCounterRef = useRef<number>(0);
-  const prevContentCounterRef = useRef<number>(0);
-
-  // 🔧 Signal que le contenu est prêt (le loader se coupe automatiquement)
-  const signalContentReady = useCallback(() => {
-    contentReadyCounterRef.current += 1;
-  }, []);
-
   // ⚡ Helpers defined early for use in effects
   const loadCartFromStorage = useCallback((): CartItem[] => {
     try {
@@ -322,8 +313,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         const parsed = JSON.parse(cached);
         if (parsed.stores) {
           setCachedStores(parsed.stores);
-          // Signaler que le cache est prêt pour le loader
-          signalContentReady();
         }
       }
     } catch (e) {}
@@ -341,22 +330,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     if (cachedStores && cachedStores.length > 0) {
       setIsInitialLoading(false);
     }
-  }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage, signalContentReady]);
+  }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage]);
 
   // Handle initial loading finish when props arrive
   useEffect(() => {
     if (stores && stores.length > 0) {
       setIsInitialLoading(false);
-      // Signaler que le contenu principal est prêt (pour le loader global)
-      signalContentReady();
     }
     // Safety timeout
     const timer = setTimeout(() => {
       setIsInitialLoading(false);
-      signalContentReady();
     }, 3000);
     return () => clearTimeout(timer);
-  }, [stores, signalContentReady]);
+  }, [stores]);
 
   const allProducts = useMemo(() => {
     const products: StorefrontProduct[] = [];
@@ -431,63 +417,57 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const navigationTargetRef = useRef<string | null>(null);
   const navStartTimeRef = useRef<number>(0);
   const stageTargetRef = useRef<string | null>(null);
+  const navigationLockRef = useRef<boolean>(false);
 
-  // 🚀 Navigation Directe — Le loader reste tant que le contenu n'est pas prêt
+  // 🚀 Navigation Directe — Le loader reste jusqu'à ce que la destination soit atteinte
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
-      // 1. Cacher immédiatement le contenu actuel (préparation)
-      // On ne coupe PAS le loader ici - il reste jusqu'à ce que le nouveau contenu soit prêt
-      setIsNavigating(true);
-      navStartTimeRef.current = Date.now();
-      prevContentCounterRef.current = contentReadyCounterRef.current; // Reset readiness tracker
-
-      // 2. Lancer l'action optionnelle (ex: fermer un menu)
-      if (options?.action) options.action();
-
       const targetPathname = path.split('?')[0];
-
-      // 3. Si on est déjà sur la page, simple rafraîchissement avec délai minimum
+      
+      // 1. Si déjà sur la page, ne rien faire
       if (location.pathname === targetPathname || location.pathname === path) {
-        setTimeout(() => {
-          navigationTargetRef.current = null;
-          setIsNavigating(false);
-        }, 500);
-        navigate(path);
         return;
       }
 
-      // 4. On stocke la destination
+      // 2. Afficher le loader et verrouiller la navigation
+      setIsNavigating(true);
+      navigationLockRef.current = true;
+      navStartTimeRef.current = Date.now();
       navigationTargetRef.current = targetPathname;
+
+      // 3. Lancer l'action optionnelle (ex: fermer un menu)
+      if (options?.action) options.action();
+
+      // 4. Naviguer
       navigate(path);
       
-      // Le loader sera coupé automatiquement quand:
-      // - contentReadyCounterRef change (nouveau contenu prêt)
-      // - OU après le timeout maximum (fail-safe)
+      // Le loader sera coupé UNIQUEMENT dans le useEffect ci-dessous
+      // quand pathname === navigationTargetRef.current
     },
     [navigate, location.pathname],
   );
 
-  // 🔄 Signal de contenu prêt — S'incrémente quand les données importantes sont chargées
-  // Ce hook détecte quand le contenu est réellement affiché et coupe le loader
+  // 🔄 COUPER LE LOADER — Exclusivement quand la destination est atteinte
   useEffect(() => {
-    if (contentReadyCounterRef.current !== prevContentCounterRef.current) {
-      prevContentCounterRef.current = contentReadyCounterRef.current;
-      
-      // Contenu prêt! Attendre le délai minimum puis couper
+    if (!isNavigating || !navigationTargetRef.current) return;
+    
+    const target = navigationTargetRef.current;
+    const current = location.pathname;
+    
+    // Attendre que pathname corresponde à la destination
+    if (current === target) {
       const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 600 - elapsed); // 600ms minimum pour smooth transition
+      const remaining = Math.max(0, 400 - elapsed);
       
       const timer = setTimeout(() => {
-        if (navigationTargetRef.current === null || 
-            location.pathname === navigationTargetRef.current) {
-          navigationTargetRef.current = null;
-          setIsNavigating(false);
-        }
+        navigationLockRef.current = false;
+        navigationTargetRef.current = null;
+        setIsNavigating(false);
       }, remaining);
       
       return () => clearTimeout(timer);
     }
-  }, [contentReadyCounterRef.current]);
+  }, [location.pathname, isNavigating]);
 
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
@@ -503,7 +483,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   useEffect(() => {
     if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
       const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 500 - elapsed);
+      const remaining = Math.max(0, 300 - elapsed);
 
       const timer = setTimeout(() => {
         stageTargetRef.current = null;
@@ -513,19 +493,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
   }, [checkoutStage, isNavigating]);
 
-  // ⚠️ Fail-safe ABSOLU : coupe le loader après 3s MAX (évite l'écran figé)
-  // C'est le dernier recours si signalContentReady n'est jamais appelé
+  // ⚠️ Fail-safe : coupe le loader après 5s MAX si pathname ne change pas
   useEffect(() => {
-    if (isNavigating) {
-      const timer = setTimeout(() => {
-        console.warn('[Navigation] Fail-safe triggered - content may not have signaled ready');
+    if (!isNavigating) return;
+    
+    const timer = setTimeout(() => {
+      if (navigationTargetRef.current && location.pathname !== navigationTargetRef.current) {
+        console.warn('[Navigation] Fail-safe: pathname did not change in 5s');
+        navigationLockRef.current = false;
         navigationTargetRef.current = null;
-        stageTargetRef.current = null;
         setIsNavigating(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isNavigating]);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [isNavigating, location.pathname]);
   const [lastAddedProduct, setLastAddedProduct] =
     useState<StorefrontProduct | null>(null);
   const [cartNotif, setCartNotif] = useState(false);
@@ -1158,7 +1140,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           console.error("Error fetching store reviews:", e);
         } finally {
           setLoadingStoreReviews(false);
-          signalContentReady();
         }
       };
       fetchReviews();
@@ -1279,13 +1260,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       setTimeout(() => {
         setIsLoadingMore(false);
         loadingRef.current = false;
-        // Signal content ready only on initial load (reset)
-        if (reset) {
-          signalContentReady();
-        }
       }, 100);
     },
-    [filteredProducts, signalContentReady],
+    [filteredProducts],
   );
 
   // Reset pagination on filter change or navigation
