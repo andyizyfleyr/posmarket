@@ -414,62 +414,58 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [navigationKey, setNavigationKey] = useState(0);
-  const navTimerRef = useRef<NodeJS.Timeout | null>(null);
   const navStartTimeRef = useRef<number>(0);
+  const navCompletedRef = useRef<boolean>(false);
   const stageTargetRef = useRef<string | null>(null);
 
-  // 🚀 Navigation Directe — Avec clé unique pour forcer le re-render propre
+  // 🚀 Navigation Directe
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
       const targetPathname = path.split('?')[0];
-      const startTime = performance.now();
       
-      // 1. Si déjà sur la page, ne rien faire
+      // Si déjà sur la page, ne rien faire
       if (location.pathname === targetPathname || location.pathname === path) {
         return;
       }
 
-      // 2. Nettoyer l'ancien timer
-      if (navTimerRef.current) {
-        clearTimeout(navTimerRef.current);
-      }
-
-      // 3. Enregistrer le temps de début
+      // Afficher le loader
+      navCompletedRef.current = false;
       navStartTimeRef.current = performance.now();
-      console.group(`[Navigation] → "${path}"`);
-
-      // 4. Afficher le loader avec une nouvelle clé
+      console.log(`[Navigation] Started → "${path}"`);
       setNavigationKey(prev => prev + 1);
       setIsNavigating(true);
 
-      // 4. Lancer l'action optionnelle
+      // Lancer l'action optionnelle
       if (options?.action) options.action();
 
-      // 5. Naviguer
+      // Naviguer
       navigate(path);
     },
     [navigate, location.pathname],
   );
 
-  // 🔄 Couper le loader après un délai fixe
+  // 🔄 Dynamique: Couper le loader quand pathname change + après un frame de render
   useEffect(() => {
-    if (!isNavigating) return;
+    if (!isNavigating || navCompletedRef.current) return;
     
-    navTimerRef.current = setTimeout(() => {
-      const endTime = performance.now();
-      const totalDuration = endTime - navStartTimeRef.current;
-      console.log(`[Loader] Hiding loader after ${totalDuration.toFixed(0)}ms (${(totalDuration / 1000).toFixed(2)}s)`);
-      console.groupEnd();
-      setIsNavigating(false);
-      navTimerRef.current = null;
-    }, 15000); // 15s pour être sûr que le contenu est affiché
+    // Attendre que pathname change (signifie que Next.js a terminé la navigation)
+    // Puis attendre 2 frames pour que React re-render avec le nouveau contenu
+    let frameCount = 0;
     
-    return () => {
-      if (navTimerRef.current) {
-        clearTimeout(navTimerRef.current);
+    const checkRenderComplete = () => {
+      frameCount++;
+      if (frameCount >= 2) {
+        navCompletedRef.current = true;
+        const duration = performance.now() - navStartTimeRef.current;
+        console.log(`[Navigation] Content ready → ${duration.toFixed(0)}ms (${(duration / 1000).toFixed(2)}s)`);
+        setIsNavigating(false);
+      } else {
+        requestAnimationFrame(checkRenderComplete);
       }
     };
-  }, [isNavigating]);
+    
+    requestAnimationFrame(checkRenderComplete);
+  }, [location.pathname, isNavigating]);
 
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
@@ -480,16 +476,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [checkoutStage],
   );
 
-  // 🔄 Couper le loader quand l'étape de checkout a réellement changé
+  // 🔄 Couper le loader quand l'étape de checkout a changé
   useEffect(() => {
     if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
-      navTimerRef.current = setTimeout(() => {
-        stageTargetRef.current = null;
-        setIsNavigating(false);
-      }, 300);
-      return () => {
-        if (navTimerRef.current) clearTimeout(navTimerRef.current);
+      let frameCount = 0;
+      const checkRenderComplete = () => {
+        frameCount++;
+        if (frameCount >= 2) {
+          stageTargetRef.current = null;
+          setIsNavigating(false);
+        } else {
+          requestAnimationFrame(checkRenderComplete);
+        }
       };
+      requestAnimationFrame(checkRenderComplete);
     }
   }, [checkoutStage, isNavigating]);
   const [lastAddedProduct, setLastAddedProduct] =
