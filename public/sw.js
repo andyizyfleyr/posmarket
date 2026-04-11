@@ -33,6 +33,11 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
+    // 🛡️ Skip navigation requests - let them pass through without SW interception
+    if (request.mode === 'navigate') {
+        return; // Let the browser handle navigation normally
+    }
+
     // 🏎️ Strategy for IMAGES (File Cache)
     // Only cache GET requests for images (Supabase, external logos, etc.)
     if (request.method === 'GET' && (
@@ -74,9 +79,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 🌐 Default: Network First (for API calls like Supabase data)
-    // We don't want to cache database responses too aggressively to avoid stale products
-    event.respondWith(
-        fetch(request).catch(() => caches.match(request))
-    );
+    // 🌐 Default: Network Only (no caching for API calls)
+    // Don't interfere with data fetching
+    return;
 });
