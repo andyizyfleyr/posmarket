@@ -148,8 +148,53 @@ select:not(.no-global-border):hover {
     100% { transform: translateX(100%); }
 }
 
-.animate-shimmer {
-    animation: shimmer 2s infinite linear;
+.animate-pulse-orange {
+    animation: pulse-orange 2s infinite;
+}
+
+/* ========== PREMIUM SKELETON LOADING ========== */
+/* Used by Amazon, Facebook, YouTube, Google, Twitter */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #E5E7EB 0%,
+        #F3F4F6 20%,
+        #E5E7EB 40%,
+        #E5E7EB 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Alternative skeleton for darker backgrounds */
+.skeleton-dark {
+    background: linear-gradient(
+        90deg,
+        #374151 0%,
+        #4B5563 20%,
+        #374151 40%,
+        #374151 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer-dark 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer-dark {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 @keyframes gradient-x {

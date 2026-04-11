@@ -1972,7 +1972,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const renderProductDetails = () => {
     if (!selectedProductDetails) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-500 animate-pulse">
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <div className="w-16 h-16 border-4 border-[#f56b2a] border-t-transparent rounded-full animate-spin mb-4" />
           <p className="text-sm font-black uppercase tracking-widest">
             Chargement du produit...
@@ -4539,11 +4539,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 {isInitialLoading && pagedProducts.length === 0 && (
                   <div className="space-y-12">
                     {[1, 2].map((row) => (
-                      <div key={row} className="animate-pulse">
+                      <div key={row}>
                         <div className="flex items-center gap-3 mb-6">
-                          <div className="h-0.5 w-8 bg-gray-200" />
-                          <div className="h-4 w-32 bg-gray-200 rounded" />
-                          <div className="flex-grow h-px bg-gray-100" />
+                          <div className="h-0.5 w-8 skeleton rounded" />
+                          <div className="h-4 w-32 skeleton rounded" />
+                          <div className="flex-grow h-px skeleton" />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                           {[1, 2, 3, 4, 5].map((i) => (
@@ -4551,11 +4551,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                               key={i}
                               className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-64 flex flex-col"
                             >
-                              <div className="aspect-square bg-gray-50 animate-pulse" />
+                              <div className="aspect-square skeleton" />
                               <div className="p-3 space-y-2">
-                                <div className="h-3 w-3/4 bg-gray-100 rounded" />
-                                <div className="h-4 w-1/2 bg-gray-200 rounded" />
-                                <div className="h-8 w-full bg-gray-50 rounded-xl mt-2" />
+                                <div className="h-3 w-3/4 skeleton rounded" />
+                                <div className="h-4 w-1/2 skeleton rounded" />
+                                <div className="h-8 w-full skeleton rounded-xl mt-2" />
                               </div>
                             </div>
                           ))}
