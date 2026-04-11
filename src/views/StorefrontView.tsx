@@ -197,6 +197,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
+  // 🔄 Content Ready System — Refs pour le système de signal de contenu prêt
+  const contentReadyCounterRef = useRef<number>(0);
+  const prevContentCounterRef = useRef<number>(0);
+
+  // 🔧 Signal que le contenu est prêt (le loader se coupe automatiquement)
+  const signalContentReady = useCallback(() => {
+    contentReadyCounterRef.current += 1;
+  }, []);
+
   // ⚡ Helpers defined early for use in effects
   const loadCartFromStorage = useCallback((): CartItem[] => {
     try {
@@ -311,7 +320,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       const cached = localStorage.getItem("marketplace_data_cache");
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed.stores) setCachedStores(parsed.stores);
+        if (parsed.stores) {
+          setCachedStores(parsed.stores);
+          // Signaler que le cache est prêt pour le loader
+          signalContentReady();
+        }
       }
     } catch (e) {}
 
@@ -328,17 +341,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     if (cachedStores && cachedStores.length > 0) {
       setIsInitialLoading(false);
     }
-  }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage]);
+  }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage, signalContentReady]);
 
   // Handle initial loading finish when props arrive
   useEffect(() => {
     if (stores && stores.length > 0) {
       setIsInitialLoading(false);
+      // Signaler que le contenu principal est prêt (pour le loader global)
+      signalContentReady();
     }
     // Safety timeout
-    const timer = setTimeout(() => setIsInitialLoading(false), 3000);
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+      signalContentReady();
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [stores]);
+  }, [stores, signalContentReady]);
 
   const allProducts = useMemo(() => {
     const products: StorefrontProduct[] = [];
@@ -414,32 +432,62 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const navStartTimeRef = useRef<number>(0);
   const stageTargetRef = useRef<string | null>(null);
 
-  // 🚀 Navigation Directe — Le loader reste tant que la route n'a pas changé
+  // 🚀 Navigation Directe — Le loader reste tant que le contenu n'est pas prêt
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
-      // 1. Afficher le loader immédiatement
+      // 1. Cacher immédiatement le contenu actuel (préparation)
+      // On ne coupe PAS le loader ici - il reste jusqu'à ce que le nouveau contenu soit prêt
       setIsNavigating(true);
       navStartTimeRef.current = Date.now();
+      prevContentCounterRef.current = contentReadyCounterRef.current; // Reset readiness tracker
 
       // 2. Lancer l'action optionnelle (ex: fermer un menu)
       if (options?.action) options.action();
 
       const targetPathname = path.split('?')[0];
 
-      // 3. Si on est déjà sur la page, simple rafraîchissement
+      // 3. Si on est déjà sur la page, simple rafraîchissement avec délai minimum
       if (location.pathname === targetPathname || location.pathname === path) {
-        navigationTargetRef.current = null;
+        setTimeout(() => {
+          navigationTargetRef.current = null;
+          setIsNavigating(false);
+        }, 500);
         navigate(path);
-        setTimeout(() => setIsNavigating(false), 300);
         return;
       }
 
-      // 4. On stocke la destination et on navigue — le useEffect coupera le loader
+      // 4. On stocke la destination
       navigationTargetRef.current = targetPathname;
       navigate(path);
+      
+      // Le loader sera coupé automatiquement quand:
+      // - contentReadyCounterRef change (nouveau contenu prêt)
+      // - OU après le timeout maximum (fail-safe)
     },
     [navigate, location.pathname],
   );
+
+  // 🔄 Signal de contenu prêt — S'incrémente quand les données importantes sont chargées
+  // Ce hook détecte quand le contenu est réellement affiché et coupe le loader
+  useEffect(() => {
+    if (contentReadyCounterRef.current !== prevContentCounterRef.current) {
+      prevContentCounterRef.current = contentReadyCounterRef.current;
+      
+      // Contenu prêt! Attendre le délai minimum puis couper
+      const elapsed = Date.now() - navStartTimeRef.current;
+      const remaining = Math.max(0, 600 - elapsed); // 600ms minimum pour smooth transition
+      
+      const timer = setTimeout(() => {
+        if (navigationTargetRef.current === null || 
+            location.pathname === navigationTargetRef.current) {
+          navigationTargetRef.current = null;
+          setIsNavigating(false);
+        }
+      }, remaining);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [contentReadyCounterRef.current]);
 
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
@@ -447,40 +495,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       setIsNavigating(true);
       navStartTimeRef.current = Date.now();
       stageTargetRef.current = newStage;
-      setCheckoutStage(newStage);
     },
     [checkoutStage],
   );
-
-  // 🔄 Couper le loader UNIQUEMENT quand la route a réellement changé
-  useEffect(() => {
-    if (isNavigating && (prevPathRef.current !== location.pathname || (navigationTargetRef.current && location.pathname === navigationTargetRef.current))) {
-      // Route atteinte — on s'assure d'un affichage minimum de 400ms pour éviter un flash
-      const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 400 - elapsed);
-
-      const timer = setTimeout(() => {
-        navigationTargetRef.current = null;
-        setIsNavigating(false);
-      }, remaining);
-      
-      prevPathRef.current = location.pathname;
-      return () => clearTimeout(timer);
-    }
-
-    // Reset des autres états de chargement sur changement de chemin
-    if (prevPathRef.current !== location.pathname) {
-      setIsCartButtonLoading(false);
-      setIsCheckoutTransitioning(false);
-      prevPathRef.current = location.pathname;
-    }
-  }, [location.pathname, isNavigating]);
 
   // 🔄 Couper le loader quand l'étape de checkout a réellement changé
   useEffect(() => {
     if (isNavigating && stageTargetRef.current && checkoutStage === stageTargetRef.current) {
       const elapsed = Date.now() - navStartTimeRef.current;
-      const remaining = Math.max(0, 400 - elapsed);
+      const remaining = Math.max(0, 500 - elapsed);
 
       const timer = setTimeout(() => {
         stageTargetRef.current = null;
@@ -490,14 +513,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
   }, [checkoutStage, isNavigating]);
 
-  // ⚠️ Fail-safe : coupe le loader rapidement après 1.5s max en cas de blocage pour éviter que l'écran ne se fige
+  // ⚠️ Fail-safe ABSOLU : coupe le loader après 3s MAX (évite l'écran figé)
+  // C'est le dernier recours si signalContentReady n'est jamais appelé
   useEffect(() => {
     if (isNavigating) {
       const timer = setTimeout(() => {
+        console.warn('[Navigation] Fail-safe triggered - content may not have signaled ready');
         navigationTargetRef.current = null;
         stageTargetRef.current = null;
         setIsNavigating(false);
-      }, 1500);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [isNavigating]);
@@ -1133,6 +1158,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           console.error("Error fetching store reviews:", e);
         } finally {
           setLoadingStoreReviews(false);
+          signalContentReady();
         }
       };
       fetchReviews();
@@ -1253,9 +1279,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       setTimeout(() => {
         setIsLoadingMore(false);
         loadingRef.current = false;
+        // Signal content ready only on initial load (reset)
+        if (reset) {
+          signalContentReady();
+        }
       }, 100);
     },
-    [filteredProducts],
+    [filteredProducts, signalContentReady],
   );
 
   // Reset pagination on filter change or navigation
