@@ -3,6 +3,23 @@ export const formatCurrency = (amount: number): string => {
   return Math.floor(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F";
 };
 
+export const formatNumber = (num: number): string => {
+  if (num === undefined || num === null || isNaN(num)) return '0';
+  if (num >= 1_000_000_000) {
+    const value = num / 1_000_000_000;
+    return value % 1 === 0 ? `${value}B` : `${value.toFixed(1).replace(/\.0$/, '')}B`;
+  }
+  if (num >= 1_000_000) {
+    const value = num / 1_000_000;
+    return value % 1 === 0 ? `${value}M` : `${value.toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (num >= 1_000) {
+    const value = num / 1_000;
+    return value % 1 === 0 ? `${value}K` : `${value.toFixed(1).replace(/\.0$/, '')}K`;
+  }
+  return num.toString();
+};
+
 export const playSuccessSound = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();

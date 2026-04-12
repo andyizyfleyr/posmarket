@@ -64,7 +64,7 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
-import { formatCurrency, playSuccessSound } from "@/utils";
+import { formatCurrency, playSuccessSound, formatNumber } from "@/utils";
 import ProductImage from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
@@ -1872,7 +1872,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               {/* Visitors Count */}
               <div className="bg-orange-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-orange-100/50 flex flex-col items-center text-[#f56b2a]">
                 <span className="text-[10px] md:text-2xl font-black leading-none">
-                  {(selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0)}
+                  {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
                 </span>
                 <span className="text-[5px] md:text-[9px] font-black text-orange-400 uppercase tracking-wide whitespace-nowrap">
                   Visiteurs
@@ -1882,7 +1882,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               {/* Reviews Count */}
               <div className="bg-yellow-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-yellow-100/50 flex flex-col items-center text-yellow-600">
                 <span className="text-[10px] md:text-2xl font-black leading-none">
-                  {selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0}
+                  {formatNumber(selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0)}
                 </span>
                 <span className="text-[5px] md:text-[9px] font-black text-yellow-600 uppercase tracking-wide whitespace-nowrap text-center">
                   Avis
@@ -2146,7 +2146,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         </span>
                       </div>
                       <span className="text-[11px] font-bold text-gray-600 border-l border-gray-200 pl-4">
-                        {selectedProductDetails.reviewCount || 0} Avis
+                        {formatNumber(selectedProductDetails.reviewCount || 0)} Avis
                       </span>
                       <span
                         className={`text-[11px] font-bold border-l border-gray-200 pl-4 flex items-center gap-1.5 ${
@@ -2168,7 +2168,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           ? "Cuisiné frais"
                           : isStay
                             ? (selectedProductDetails.location || "Emplacement vérifié")
-                            : `${selectedProductDetails.salesCount || 0} Commandes`}
+                            : `${formatNumber(selectedProductDetails.salesCount || 0)} Commandes`}
                       </span>
                     </div>
                   </div>
@@ -2805,7 +2805,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   {(selectedProductDetails?.rating || 0).toFixed(1)}/5
                 </span>
                 <span className="text-[10px] text-gray-600 font-medium">
-                  ({selectedProductDetails?.reviewCount || 0} avis)
+                  ({formatNumber(selectedProductDetails?.reviewCount || 0)} avis)
                 </span>
               </div>
             </div>

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Product } from '@/types';
 import { Plus, LayoutGrid, Star, Zap, Eye } from 'lucide-react';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatNumber } from '@/utils';
 import ProductImage from './ProductImage';
 
 interface ProductCardProps {
@@ -69,7 +69,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
             <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[12px]">
               {product.salesCount !== undefined && product.salesCount > 0 ? (
                 <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-70">
-                  {product.salesCount} {product.businessType === 'stay' || product.category === 'Appartements'
+                  {formatNumber(product.salesCount)} {product.businessType === 'stay' || product.category === 'Appartements'
                     ? (product.salesCount > 1 ? 'réservations' : 'réservation')
                     : (product.salesCount > 1 ? 'ventes' : 'vente')}
                 </div>
@@ -77,7 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
 
               {product.views !== undefined && product.views > 0 && (
                 <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-80 flex items-center gap-1">
-                  {product.views} <Eye size={10} className="text-gray-600" strokeWidth={2.5} />
+                  {formatNumber(product.views)} <Eye size={10} className="text-gray-600" strokeWidth={2.5} />
                 </div>
               )}
             </div>

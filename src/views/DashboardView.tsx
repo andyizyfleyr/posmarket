@@ -21,7 +21,7 @@ import {
   Store
 } from 'lucide-react';
 import { Order, Product, Customer, StaffRole, StaffPermissions } from '@/types';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatNumber } from '@/utils';
 
 interface DashboardViewProps {
   orders: Order[];
@@ -419,7 +419,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
         />
         <StatCard
           title="Trafic Boutique"
-          value={filteredMetrics.traffic.current.toLocaleString()}
+          value={formatNumber(filteredMetrics.traffic.current)}
           icon={<Eye size={14} />}
           trend={filteredMetrics.traffic.trend}
           trendValue={filteredMetrics.traffic.pct}
@@ -721,7 +721,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-[10px] md:text-xs font-black text-blue-600 leading-none">{product.views}</div>
+                  <div className="text-[10px] md:text-xs font-black text-blue-600 leading-none">{formatNumber(product.views || 0)}</div>
                   <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">Vues</div>
                 </div>
               </div>
@@ -755,7 +755,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-[10px] md:text-xs font-black text-orange-600 leading-none">x{product.salesCount}</div>
+                  <div className="text-[10px] md:text-xs font-black text-orange-600 leading-none">x{formatNumber(product.salesCount)}</div>
                   <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">{store?.business_type === 'stay' ? 'Réservés' : 'Vendus'}</div>
                 </div>
               </div>
