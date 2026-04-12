@@ -4409,11 +4409,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                 Produits
                               </p>
                               <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-wider">
-                                {(store.views || 0) +
+                                {formatNumber((store.views || 0) +
                                   (store.products?.reduce(
                                     (sum, p) => sum + (p.views || 0),
                                     0,
-                                  ) || 0)}{" "}
+                                  ) || 0))}{" "}
                                 Visites
                               </p>
                             </div>

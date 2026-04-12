@@ -46,7 +46,7 @@ import {
 import Loader from '@/components/Loader';
 import { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { useRouter } from '@/components/RouterPolyfill';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatNumber } from '@/utils';
 
 type AdminTab = 'dashboard' | 'stores' | 'users' | 'inventory' | 'orders' | 'system';
 
@@ -529,7 +529,7 @@ export default function AdminView() {
                                   <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
                                      <div className="text-[9px] font-black text-gray-400 uppercase">Impact Global</div>
                                      <div className="text-[10px] font-black text-orange-600">
-                                        {s.views || 0} Visites
+                                         {formatNumber(s.views || 0)} Visites
                                      </div>
                                   </div>
                                </div>

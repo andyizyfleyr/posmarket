@@ -36,7 +36,7 @@ import { supabase } from '@/supabase';
 import { SUBSCRIPTION_PLANS } from '@/constants';
 import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertical } from '@/types';
 import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatNumber } from '@/utils';
 import ProductImage from '../components/ProductImage';
 import Loader from '../components/Loader';
 import Button from '../components/Button';
@@ -609,7 +609,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <div className="flex items-center gap-1">
                         <Star size={10} className={product.rating && product.rating > 0 ? "text-yellow-400 fill-current" : "text-gray-200"} />
                         <span className="text-xs font-black text-gray-700">{product.rating ? product.rating.toFixed(1) : '—'}</span>
-                        <span className="text-[9px] text-gray-400">({product.reviewCount || 0})</span>
+                        <span className="text-[9px] text-gray-400">({formatNumber(product.reviewCount || 0)})</span>
                       </div>
                     </div>
 
