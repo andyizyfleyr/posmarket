@@ -892,21 +892,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
                   )}
 
-                  {formData.businessType === 'food' && (
-                    <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 space-y-4">
-                      <h4 className="text-xs font-black text-yellow-700 uppercase">Infos Cuisine</h4>
-                      <div>
-                        <label className="block text-[10px] font-black text-yellow-600 uppercase mb-1">Temps de préparation</label>
-                        <input
-                          type="text"
-                          placeholder="Ex: 15-20 min"
-                          value={formData.preparationTime}
-                          onChange={e => setFormData({ ...formData, preparationTime: e.target.value })}
-                          className="w-full px-4 py-2 bg-white border border-yellow-200 rounded-xl text-sm"
-                        />
-                      </div>
-                    </div>
-                  )}
+
 
                   {formData.businessType === 'stay' && (
                     <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
@@ -988,7 +974,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
 
-                    {formData.businessType !== 'stay' ? (
+                    {formData.businessType === 'shopping' && (
                       <div>
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
@@ -1000,7 +986,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
                       </div>
-                    ) : (
+                    )}
+                    {formData.businessType === 'stay' && (
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
@@ -1029,7 +1016,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     )}
                   </div>
-                  {formData.businessType !== 'stay' && (
+                  {formData.businessType === 'shopping' && (
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
@@ -1088,7 +1075,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   )}
 
                   {/* Variants & Options Section - AliExpress Style */}
-                  {formData.businessType !== 'stay' && (
+                  {formData.businessType === 'shopping' && (
                     <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
                       <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
@@ -1343,7 +1330,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   )}
 
                   {/* Wholesale Section */}
-                  {formData.businessType !== 'stay' && (
+                  {formData.businessType === 'shopping' && (
                     <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
                       <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
