@@ -17,8 +17,7 @@ export const formatNumber = (num: number): string => {
 
 export const formatCurrency = (amount: number): string => {
   if (amount === undefined || amount === null || isNaN(amount)) return '0 F';
-  const abbreviated = formatNumber(Math.floor(amount));
-  return abbreviated + " F";
+  return Math.floor(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F";
 };
 
 export const playSuccessSound = () => {
