@@ -196,8 +196,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [storeInfoOpen, setStoreInfoOpen] = useState(false);
-  const [activeStoreTab, setActiveStoreTab] = useState("À propos");
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
   // ⚡ Helpers defined early for use in effects
@@ -1797,82 +1795,34 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 </div>
               </div>
 
-              {/* Compact Info + Tabs */}
+              {/* Store Info */}
               <div className="flex-grow min-w-0">
-                {/* Top Row: Name + Verified + Country + Toggle */}
-                <div className="flex items-center gap-1.5 md:gap-3">
-                  <h2 className="text-sm md:text-2xl font-black text-gray-900 truncate">
-                    {selectedStore.settings.name}
-                  </h2>
-                  <div className="flex items-center gap-1">
-                    <div className="inline-flex items-center gap-0.5 bg-green-50 text-green-600 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[6px] md:text-[10px] font-black uppercase tracking-wider">
-                      <ShieldCheck size={10} strokeWidth={3} className="hidden md:block" />
-                      <ShieldCheck size={8} strokeWidth={3} className="md:hidden" />
-                    </div>
-                    {(() => {
-                      const countryValue = selectedStore.address || selectedStore.settings?.address;
-                      if (countryValue) {
-                        return (
-                          <div className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[6px] md:text-[10px] font-black whitespace-nowrap">
-                            <Globe size={8} strokeWidth={3} className="text-blue-400 hidden md:block" />
-                            <span className="hidden md:inline opacity-70">Pays:</span>
-                            <span>{countryValue}</span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+                {/* Name + Country */}
+                <div className="flex items-center gap-2 md:gap-4">
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <ShieldCheck size={14} strokeWidth={3} className="text-green-500 hidden md:block" />
+                    <h2 className="text-base md:text-3xl font-black text-gray-900">
+                      {selectedStore.settings.name}
+                    </h2>
                   </div>
-                  <button
-                    onClick={() => setStoreInfoOpen(!storeInfoOpen)}
-                    className="ml-auto flex-shrink-0 p-1 md:p-1.5 bg-gray-100 rounded-lg md:rounded-xl text-gray-500 hover:bg-gray-200 transition-colors"
-                  >
-                    {storeInfoOpen ? <ChevronUp size={14} strokeWidth={3} /> : <ChevronDown size={14} strokeWidth={3} />}
-                  </button>
+                  {(() => {
+                    const countryValue = selectedStore.address || selectedStore.settings?.address;
+                    if (countryValue) {
+                      return (
+                        <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 md:px-3 py-1 rounded-full text-[8px] md:text-xs font-black whitespace-nowrap">
+                          <Globe size={10} strokeWidth={3} className="text-blue-400 hidden md:block" />
+                          <Globe size={8} strokeWidth={3} className="text-blue-400 md:hidden" />
+                          <span>{countryValue}</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
-
-                {/* Collapsible Tabs Section */}
-                {storeInfoOpen && (
-                  <div className="mt-2 md:mt-3 space-y-1.5 md:space-y-2">
-                    {/* Tab Buttons */}
-                    <div className="flex gap-1">
-                      {["À propos", "Contact", "Infos"].map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveStoreTab(tab)}
-                          className={`px-2 md:px-3 py-1 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-wide transition-colors ${
-                            activeStoreTab === tab
-                              ? "bg-[#f56b2a] text-white"
-                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                          }`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Tab Content */}
-                    <div className="bg-gray-50/80 rounded-lg md:rounded-xl p-2 md:p-3 text-[9px] md:text-xs text-gray-600 leading-relaxed">
-                      {activeStoreTab === "À propos" && (
-                        <p className="line-clamp-2 md:line-clamp-3">
-                          {selectedStore.description || (selectedStore.settings as any)?.description || "Votre destination shopping préférée pour des produits locaux et de qualité."}
-                        </p>
-                      )}
-                      {activeStoreTab === "Contact" && (
-                        <div className="space-y-1">
-                          {selectedStore.phone && <p>Tél: {selectedStore.phone}</p>}
-                          {selectedStore.email && <p>Email: {selectedStore.email}</p>}
-                          {selectedStore.address && <p>Adresse: {selectedStore.address}</p>}
-                        </div>
-                      )}
-                      {activeStoreTab === "Infos" && (
-                        <div className="space-y-1">
-                          {(selectedStore as any).ninea && <p>NINEA: {(selectedStore as any).ninea}</p>}
-                          <p>Créée: {(selectedStore as any).createdAt ? new Date((selectedStore as any).createdAt).toLocaleDateString("fr-FR") : "N/A"}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* Description */}
+                <p className="mt-1 md:mt-2 text-[10px] md:text-sm text-gray-500 leading-relaxed line-clamp-2 md:line-clamp-none">
+                  {selectedStore.description || (selectedStore.settings as any)?.description || "Votre destination shopping préférée pour des produits locaux et de qualité."}
+                </p>
               </div>
 
               {/* Marketplace Return - Desktop Only */}
