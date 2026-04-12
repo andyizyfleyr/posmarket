@@ -1786,7 +1786,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
           <div className="px-3 md:px-12 pb-2 md:pb-6 relative">
             {/* Compact Header Row */}
-            <div className="flex items-center gap-2 md:gap-4 -mt-8 md:-mt-16">
+            <div className="flex items-center gap-2 md:gap-4 -mt-8 md:-mt-16 backdrop-blur-sm bg-white/50 rounded-2xl px-3 py-2">
               {/* Store Logo - Ultra Compact */}
               <div className="w-12 h-12 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-white p-0.5 md:p-1 shadow-xl z-20 flex-shrink-0">
                 <div className="w-full h-full rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
