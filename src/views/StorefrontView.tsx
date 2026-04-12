@@ -2237,52 +2237,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       </div>
                     )}
 
-                  {isFood && (
-                    <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                      <div className="bg-green-50/30 rounded-2xl p-4 border border-green-50">
-                        <h4 className="text-[10px] font-black text-green-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Zap size={12} /> Personnalisez votre plat
-                        </h4>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">
-                              Cuisson / Température
-                            </label>
-                            <div className="flex gap-2">
-                              {["Normal", "Bien chaud"].map((opt) => (
-                                <button
-                                  key={opt}
-                                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[10px] font-bold text-gray-700 hover:border-green-500 transition-all"
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1.5">
-                              Suppléments (Optionnel)
-                            </label>
-                            <div className="flex gap-2">
-                              {[
-                                "Sauce piquante",
-                                "Fromage extra",
-                                "Boisson",
-                              ].map((opt) => (
-                                <button
-                                  key={opt}
-                                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[10px] font-bold text-gray-700 hover:border-green-500 transition-all"
-                                >
-                                  + {opt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Booking Modal (Popup) */}
                   {isStay && showBookingModal && createPortal(
                     <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] md:pb-6 animate-in fade-in duration-300">
