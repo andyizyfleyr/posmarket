@@ -33,6 +33,7 @@ import {
   Loader2,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   ShoppingBasketIcon,
   Globe,
   Package,
@@ -195,6 +196,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [storeInfoOpen, setStoreInfoOpen] = useState(false);
+  const [activeStoreTab, setActiveStoreTab] = useState("À propos");
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
   // ⚡ Helpers defined early for use in effects
@@ -1783,42 +1786,36 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             </div>
           </div>
 
-          <div className="px-4 md:px-12 pb-3 md:pb-12 relative">
-            {/* Profile Info Row */}
-            <div className="flex flex-col md:flex-row items-center md:items-end gap-2 md:gap-6 -mt-10 md:-mt-16 mb-3 md:mb-8">
-              {/* Store Logo/Icon - Smaller on mobile */}
-              <div className="w-16 h-16 md:w-32 md:h-32 rounded-[22px] md:rounded-[32px] bg-white p-1 md:p-1.5 shadow-2xl z-20">
-                <div className="w-full h-full rounded-[18px] md:rounded-[26px] bg-gray-50 flex items-center justify-center border border-gray-100">
-                  <Store size={28} className="text-[#f56b2a] md:hidden" />
-                  <Store size={56} className="text-[#f56b2a] hidden md:block" />
+          <div className="px-3 md:px-12 pb-2 md:pb-6 relative">
+            {/* Compact Header Row */}
+            <div className="flex items-center gap-2 md:gap-4 -mt-8 md:-mt-16">
+              {/* Store Logo - Ultra Compact */}
+              <div className="w-12 h-12 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-white p-0.5 md:p-1 shadow-xl z-20 flex-shrink-0">
+                <div className="w-full h-full rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                  <Store size={20} className="text-[#f56b2a] md:hidden" />
+                  <Store size={40} className="text-[#f56b2a] hidden md:block" />
                 </div>
               </div>
 
-              {/* Title and Badge */}
-              <div className="text-center md:text-left flex-grow pt-0 min-w-0">
-                <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-3 mb-1">
-                  <h2 className="text-lg md:text-4xl font-black text-gray-900 tracking-tight leading-tight truncate px-2 md:px-0">
+              {/* Compact Info + Tabs */}
+              <div className="flex-grow min-w-0">
+                {/* Top Row: Name + Verified + Country + Toggle */}
+                <div className="flex items-center gap-1.5 md:gap-3">
+                  <h2 className="text-sm md:text-2xl font-black text-gray-900 truncate">
                     {selectedStore.settings.name}
                   </h2>
-                  <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-1.5 md:gap-2">
-                    <div className="inline-flex items-center gap-1 bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-wider border border-green-100/50">
-                      <ShieldCheck size={12} strokeWidth={3} /> Vérifié
+                  <div className="flex items-center gap-1">
+                    <div className="inline-flex items-center gap-0.5 bg-green-50 text-green-600 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[6px] md:text-[10px] font-black uppercase tracking-wider">
+                      <ShieldCheck size={10} strokeWidth={3} className="hidden md:block" />
+                      <ShieldCheck size={8} strokeWidth={3} className="md:hidden" />
                     </div>
                     {(() => {
-                      const countryValue =
-                        selectedStore.address ||
-                        selectedStore.settings?.address;
+                      const countryValue = selectedStore.address || selectedStore.settings?.address;
                       if (countryValue) {
                         return (
-                          <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-wider border border-blue-100/50 shadow-sm whitespace-nowrap">
-                            <Globe
-                              size={12}
-                              strokeWidth={3}
-                              className="text-blue-400"
-                            />
-                            <span className="opacity-70">
-                              Pays de la boutique :
-                            </span>
+                          <div className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[6px] md:text-[10px] font-black whitespace-nowrap">
+                            <Globe size={8} strokeWidth={3} className="text-blue-400 hidden md:block" />
+                            <span className="hidden md:inline opacity-70">Pays:</span>
                             <span>{countryValue}</span>
                           </div>
                         );
@@ -1826,34 +1823,56 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       return null;
                     })()}
                   </div>
+                  <button
+                    onClick={() => setStoreInfoOpen(!storeInfoOpen)}
+                    className="ml-auto flex-shrink-0 p-1 md:p-1.5 bg-gray-100 rounded-lg md:rounded-xl text-gray-500 hover:bg-gray-200 transition-colors"
+                  >
+                    {storeInfoOpen ? <ChevronUp size={14} strokeWidth={3} /> : <ChevronDown size={14} strokeWidth={3} />}
+                  </button>
                 </div>
-                {(() => {
-                  const desc =
-                    selectedStore.description ||
-                    (selectedStore.settings as any)?.description ||
-                    "Votre destination shopping préférée pour des produits locaux et de qualité.";
-                  return (
-                    <div className="mt-4 md:mt-6 w-full max-w-2xl mx-auto md:mx-0 relative">
-                      <div className="absolute -left-1 -top-2 opacity-10 scale-75 md:scale-100">
-                        <svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="text-[#f56b2a]"
+
+                {/* Collapsible Tabs Section */}
+                {storeInfoOpen && (
+                  <div className="mt-2 md:mt-3 space-y-1.5 md:space-y-2">
+                    {/* Tab Buttons */}
+                    <div className="flex gap-1">
+                      {["À propos", "Contact", "Infos"].map((tab) => (
+                        <button
+                          key={tab}
+                          onClick={() => setActiveStoreTab(tab)}
+                          className={`px-2 md:px-3 py-1 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-wide transition-colors ${
+                            activeStoreTab === tab
+                              ? "bg-[#f56b2a] text-white"
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
                         >
-                          <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C20.1216 16 21.017 15.1046 21.017 14V9C21.017 7.89543 20.1216 7 19.017 7H15.017C13.9124 7 13.017 7.89543 13.017 9V15C13.017 17.1856 12.3551 18.9142 11.0261 20.1906C10.6384 20.5638 10.6318 21.1963 11.0113 21.5779C11.3908 21.9594 12.0039 21.9392 12.3614 21.5332L14.017 21ZM5.017 21L5.017 18C5.017 16.8954 5.91243 16 7.017 16H10.017C11.1216 16 12.017 15.1046 12.017 14V9C12.017 7.89543 11.1216 7 10.017 7H6.017C4.91243 7 4.017 7.89543 4.017 9V15C4.017 17.1856 3.35513 18.9142 2.02612 20.1906C1.63836 20.5638 1.63175 21.1963 2.01129 21.5779C2.39084 21.9594 3.0039 21.9392 3.36141 21.5332L5.017 21Z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-500 text-[11px] md:text-sm font-semibold leading-relaxed md:leading-loose tracking-tight px-3 md:px-0 text-center md:text-left">
-                        <span className="bg-gradient-to-r from-gray-500 to-gray-700 bg-clip-text text-transparent">
-                          {desc}
-                        </span>
-                      </p>
-                      <div className="h-[2px] w-8 md:w-12 bg-gradient-to-r from-[#f56b2a]/40 to-transparent mt-3 md:mt-4 mx-auto md:mx-0 rounded-full"></div>
+                          {tab}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })()}
+                    {/* Tab Content */}
+                    <div className="bg-gray-50/80 rounded-lg md:rounded-xl p-2 md:p-3 text-[9px] md:text-xs text-gray-600 leading-relaxed">
+                      {activeStoreTab === "À propos" && (
+                        <p className="line-clamp-2 md:line-clamp-3">
+                          {selectedStore.description || (selectedStore.settings as any)?.description || "Votre destination shopping préférée pour des produits locaux et de qualité."}
+                        </p>
+                      )}
+                      {activeStoreTab === "Contact" && (
+                        <div className="space-y-1">
+                          {selectedStore.phone && <p>Tél: {selectedStore.phone}</p>}
+                          {selectedStore.email && <p>Email: {selectedStore.email}</p>}
+                          {selectedStore.address && <p>Adresse: {selectedStore.address}</p>}
+                        </div>
+                      )}
+                      {activeStoreTab === "Infos" && (
+                        <div className="space-y-1">
+                          {(selectedStore as any).ninea && <p>NINEA: {(selectedStore as any).ninea}</p>}
+                          <p>Créée: {(selectedStore as any).createdAt ? new Date((selectedStore as any).createdAt).toLocaleDateString("fr-FR") : "N/A"}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Marketplace Return - Desktop Only */}
@@ -1866,86 +1885,76 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     },
                   });
                 }}
-                className="hidden md:flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-2xl font-black text-sm hover:bg-[#f56b2a] transition-all shadow-lg active:scale-95"
+                className="hidden md:flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl font-black text-sm hover:bg-[#f56b2a] transition-all shadow-lg active:scale-95 flex-shrink-0"
               >
-                <ChevronLeft size={18} strokeWidth={3} /> Marketplace
+                <ChevronLeft size={16} strokeWidth={3} /> Marketplace
               </button>
             </div>
 
-            {/* Store Dedicated Search Bar - Compact on Mobile */}
-            <div className="mb-3 md:mb-8 max-w-2xl mx-auto md:mx-0">
+            {/* Store Dedicated Search Bar - Ultra Compact */}
+            <div className="mt-2 md:mt-4 max-w-2xl mx-auto">
               <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
-                  <Search size={16} strokeWidth={3} />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                  <Search size={14} strokeWidth={3} />
                 </div>
                 <input
                   type="text"
                   placeholder="Chercher dans cette boutique..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 md:py-4 bg-gray-50/80 border border-gray-100/50 rounded-xl md:rounded-[20px] font-bold text-[10px] md:text-base text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-xl focus:shadow-orange-100/50 transition-all no-global-border"
+                  className="w-full pl-8 pr-3 py-1.5 md:py-3 bg-gray-50/80 border border-gray-100/50 rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border"
                 />
               </div>
             </div>
 
-            {/* Stats Row - Always visible on 4 columns for mobile */}
-            <div className="grid grid-cols-4 gap-1.5 md:gap-8 pt-4 md:pt-6 border-t border-gray-50">
+            {/* Stats Row - Compact but visible */}
+            <div className="grid grid-cols-4 gap-1 md:gap-4 mt-2 md:mt-4">
               {/* Products Count */}
-              <div className="bg-gray-50/50 p-2 md:p-4 rounded-xl md:rounded-[20px] border border-gray-50 flex flex-col items-center md:items-start text-gray-900">
-                <span className="text-xs md:text-3xl font-black leading-none mb-0.5 md:mb-1">
-                  {selectedStore.products?.filter(
-                    (p) => p.isOnline !== false && p.image,
-                  ).length || 0}
+              <div className="bg-gray-50/80 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-gray-100 flex flex-col items-center text-gray-900">
+                <span className="text-[10px] md:text-2xl font-black leading-none">
+                  {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
                 </span>
-                <span className="text-[6.5px] md:text-[10px] font-black text-gray-600 uppercase tracking-widest whitespace-nowrap">
+                <span className="text-[5px] md:text-[9px] font-black text-gray-500 uppercase tracking-wide whitespace-nowrap">
                   Produits
                 </span>
               </div>
 
               {/* Visitors Count */}
-              <div className="bg-orange-50/30 p-2 md:p-4 rounded-xl md:rounded-[20px] border border-orange-50/50 flex flex-col items-center md:items-start text-[#f56b2a]">
-                <span className="text-xs md:text-3xl font-black leading-none mb-0.5 md:mb-1">
-                  {(selectedStore.views || 0) +
-                    (selectedStore.products
-                      ?.filter((p) => p.isOnline !== false)
-                      .reduce((sum, p) => sum + (p.views || 0), 0) || 0)}
+              <div className="bg-orange-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-orange-100/50 flex flex-col items-center text-[#f56b2a]">
+                <span className="text-[10px] md:text-2xl font-black leading-none">
+                  {(selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0)}
                 </span>
-                <span className="text-[6.5px] md:text-[10px] font-black text-orange-400 uppercase tracking-widest whitespace-nowrap">
+                <span className="text-[5px] md:text-[9px] font-black text-orange-400 uppercase tracking-wide whitespace-nowrap">
                   Visiteurs
                 </span>
               </div>
 
               {/* Reviews Count */}
-              <div className="bg-yellow-50/30 p-2 md:p-4 rounded-xl md:rounded-[20px] border border-yellow-50/50 flex flex-col items-center md:items-start text-yellow-600">
-                <span className="text-xs md:text-3xl font-black leading-none mb-0.5 md:mb-1">
-                  {selectedStore.products
-                    ?.filter((p) => p.isOnline !== false)
-                    .reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0}
+              <div className="bg-yellow-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-yellow-100/50 flex flex-col items-center text-yellow-600">
+                <span className="text-[10px] md:text-2xl font-black leading-none">
+                  {selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0}
                 </span>
-                <span className="text-[6.5px] md:text-[10px] font-black text-yellow-600 uppercase tracking-widest whitespace-nowrap text-center">
-                  Avis Client
+                <span className="text-[5px] md:text-[9px] font-black text-yellow-600 uppercase tracking-wide whitespace-nowrap text-center">
+                  Avis
                 </span>
               </div>
 
               {/* Rating */}
-              <div className="bg-green-50/30 p-2 md:p-4 rounded-xl md:rounded-[20px] border border-green-50/50 flex flex-col items-center md:items-start text-green-600">
-                <div className="flex items-center gap-0.5 mb-0.5 md:mb-1">
-                  <span className="text-xs md:text-3xl font-black leading-none">
+              <div className="bg-green-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-green-100/50 flex flex-col items-center text-green-600">
+                <div className="flex items-center gap-0.5">
+                  <span className="text-[10px] md:text-2xl font-black leading-none">
                     {selectedStore.rating?.toFixed(1) || "0.0"}
                   </span>
-                  <Star
-                    size={10}
-                    fill="currentColor"
-                    className="text-yellow-400 mb-0.5"
-                  />
+                  <Star size={8} fill="currentColor" className="text-yellow-400 hidden md:block" />
+                  <Star size={6} fill="currentColor" className="text-yellow-400 md:hidden" />
                 </div>
-                <span className="text-[6.5px] md:text-[10px] font-black text-green-600 uppercase tracking-widest whitespace-nowrap">
+                <span className="text-[5px] md:text-[9px] font-black text-green-600 uppercase tracking-wide whitespace-nowrap">
                   Note
                 </span>
               </div>
             </div>
 
-            {/* Mobile Return Link - Cleaner look */}
+            {/* Mobile Return Link - Ultra Compact */}
             <button
               onClick={() => {
                 safeNavigate("/", {
@@ -1955,11 +1964,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   },
                 });
               }}
-              className="md:hidden mt-5 w-full flex items-center justify-center gap-2 text-gray-600 py-1 transition-all hover:text-gray-600"
+              className="md:hidden mt-2 w-full flex items-center justify-center gap-1.5 text-gray-400 py-1 transition-all hover:text-gray-600"
             >
-              <ChevronLeft size={14} strokeWidth={3} />
-              <span className="text-[10px] font-black uppercase tracking-[0.15em]">
-                Marché principal
+              <ChevronLeft size={12} strokeWidth={3} />
+              <span className="text-[9px] font-black uppercase tracking-wider">
+                Marché
               </span>
             </button>
           </div>
