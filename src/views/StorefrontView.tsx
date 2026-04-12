@@ -1820,7 +1820,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   })()}
                 </div>
                 {/* Description */}
-                <p className="mt-1 md:mt-2 text-[10px] md:text-sm text-gray-500 leading-relaxed line-clamp-2 md:line-clamp-none">
+                <p className="mt-2 md:mt-3 text-[11px] md:text-sm text-gray-500 leading-relaxed">
                   {selectedStore.description || (selectedStore.settings as any)?.description || "Votre destination shopping préférée pour des produits locaux et de qualité."}
                 </p>
               </div>
