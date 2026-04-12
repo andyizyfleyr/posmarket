@@ -1,8 +1,3 @@
-export const formatCurrency = (amount: number): string => {
-  if (amount === undefined || amount === null || isNaN(amount)) return '0 F';
-  return Math.floor(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F";
-};
-
 export const formatNumber = (num: number): string => {
   if (num === undefined || num === null || isNaN(num)) return '0';
   if (num >= 1_000_000_000) {
@@ -18,6 +13,12 @@ export const formatNumber = (num: number): string => {
     return value % 1 === 0 ? `${value}K` : `${value.toFixed(1).replace(/\.0$/, '')}K`;
   }
   return num.toString();
+};
+
+export const formatCurrency = (amount: number): string => {
+  if (amount === undefined || amount === null || isNaN(amount)) return '0 F';
+  const abbreviated = formatNumber(Math.floor(amount));
+  return abbreviated + " F";
 };
 
 export const playSuccessSound = () => {
