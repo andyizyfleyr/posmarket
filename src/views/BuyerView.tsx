@@ -568,15 +568,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
             {activeTab === 'addresses' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes adresses</h2>
-                  <button 
-                    onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} 
-                    className="flex items-center gap-2 px-4 py-2 bg-[#f56b2a] text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-lg shadow-orange-100 active:scale-95 transition-all"
-                  >
-                    <Plus size={16} /> Ajouter
-                  </button>
-                </div>
+                <h2 className="text-lg font-black text-[#002f34] tracking-tight px-1">Mes adresses</h2>
                 {loading ? renderSkeleton() : addresses.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-300">
