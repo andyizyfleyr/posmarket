@@ -627,6 +627,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   // Fetch buyer addresses when user is set
   const [buyerAddresses, setBuyerAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   useEffect(() => {
     const loadAddresses = async () => {
       if (user?.id) {
@@ -3369,8 +3370,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             {buyerAddresses.map((addr) => (
                               <button
                                 key={addr.id}
-                                onClick={() => setCustomerInfo({ ...customerInfo, name: addr.full_name, phone: addr.phone, address: addr.address, city: addr.city })}
-                                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${customerInfo.address === addr.address ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}
+                                onClick={() => { setSelectedAddressId(addr.id); setCustomerInfo({ ...customerInfo, name: addr.full_name, phone: addr.phone, address: addr.address, city: addr.city }); }}
+                                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${selectedAddressId === addr.id ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
@@ -3385,12 +3386,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                               </button>
                             ))}
                           </div>
-                          <button
-                            onClick={() => setCustomerInfo({ ...customerInfo, address: "", city: "" })}
-                            className="text-xs font-bold text-[#f56b2a] underline"
-                          >
-                            + Saisir une nouvelle adresse
-                          </button>
                         </div>
                       ) : user && buyerAddresses.length > 0 && customerInfo.address ? (
                         <div className="space-y-4">
@@ -3406,7 +3401,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                 </div>
                               </div>
                               <button 
-                                onClick={() => setCustomerInfo({ ...customerInfo, address: "", city: "" })}
+                                onClick={() => { setSelectedAddressId(null); setCustomerInfo({ ...customerInfo, address: "", city: "" }); }}
                                 className="text-[9px] font-bold text-[#f56b2a] underline"
                               >
                                 Changer
