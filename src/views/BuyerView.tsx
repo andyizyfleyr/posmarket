@@ -386,14 +386,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 </button>
               ))}
 
-              <button 
-                onClick={handleLogout}
-                className="w-full flex items-center gap-4 p-4 mt-6 text-red-500 font-black text-sm active:scale-[0.98] transition-all"
-              >
-                <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center">
-                  <LogOut size={20} />
-                </div>
-                <span>Déconnexion</span>
               </button>
             </div>
 
@@ -417,10 +409,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                   {item.label}
                 </button>
               ))}
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 text-xs font-bold hover:bg-red-50 mt-4 transition-all">
-                <LogOut size={16} />
-                Déconnexion
-              </button>
             </div>
           </div>
 
