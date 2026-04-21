@@ -624,15 +624,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     checkSession();
   }, []);
 
-  // Auto-show auth modal if hitting /mon-compte directly without session
+  // Auto-redirect to home if hitting /mon-compte without session
   useEffect(() => {
     if (isAccountViewUrl && user === null && isMounted) {
       const timer = setTimeout(() => {
         if (!user && (location.pathname === "/mon-compte" || location.pathname === "/account")) {
-          setAuthMode("login");
-          setShowAuthModal(true);
+          safeNavigate("/");
         }
-      }, 1000);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [isAccountViewUrl, user, isMounted]);
