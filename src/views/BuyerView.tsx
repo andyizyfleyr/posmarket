@@ -385,8 +385,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                   <ChevronRight size={18} className="text-gray-300" />
                 </button>
               ))}
-
-              </button>
             </div>
 
             <div className="hidden lg:block space-y-1">
