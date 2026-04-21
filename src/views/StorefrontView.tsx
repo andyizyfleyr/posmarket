@@ -3687,7 +3687,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       )}
       {/* BuyerView Overlay (Full screen for mobile/desktop) */}
       {(isAccountView || isAccountViewUrl) && user && (
-        <div className="fixed inset-0 z-[2000] bg-white overflow-y-auto">
+        <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
             userEmail={user.email}
             onBack={() => {

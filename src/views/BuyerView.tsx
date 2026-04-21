@@ -630,7 +630,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                          <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-[#f56b2a] text-xl font-bold">
                            {userEmail[0].toUpperCase()}
                          </div>
-                         <button className="px-4 py-1.5 border border-gray-200 rounded-lg text-[10px] font-bold">Photo</button>
+                         <div className="flex-1">
+                           <p className="text-sm font-black text-[#002f34]">{userEmail.split('@')[0]}</p>
+                           <p className="text-[10px] text-gray-400 font-bold">Membre Marketplace</p>
+                         </div>
                        </div>
                        <div className="space-y-3">
                          <div className="space-y-1">
@@ -639,9 +642,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                               <Mail size={14} /> {userEmail}
                            </div>
                          </div>
-                         <button onClick={handleLogout} className="flex items-center gap-2 w-full py-4 px-4 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-lg active:scale-95 transition-all">
-                            <ShieldCheck size={18} className="text-green-400" /> Changer le mot de passe
-                         </button>
                          <button onClick={handleLogout} className="flex items-center gap-2 w-full py-4 px-4 bg-red-50 text-red-500 font-bold text-xs rounded-xl border border-red-100 active:bg-red-100">
                             <LogOut size={18} /> Se déconnecter
                          </button>
