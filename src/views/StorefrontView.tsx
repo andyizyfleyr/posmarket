@@ -262,7 +262,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const productMatch = useMatch("/product/:productId");
   const isCartView = location.pathname.includes("/cart");
   const isFeedView = location.pathname.includes("/feed");
-  const isAccountViewUrl = location.pathname === "/mon-compte" || location.pathname === "/account";
+  const isAccountViewUrl = location.pathname.startsWith("/mon-compte");
   const selectedStoreParam = storeMatch?.params.storeParam || null;
   const { "*": splatParam } = useParams();
   const splat = Array.isArray(splatParam) ? splatParam[0] : splatParam;
@@ -644,7 +644,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   useEffect(() => {
     if (isAccountViewUrl && user === null && isMounted) {
       const timer = setTimeout(() => {
-        if (!user && (location.pathname === "/mon-compte" || location.pathname === "/account")) {
+        if (!user && location.pathname.startsWith("/mon-compte")) {
           safeNavigate("/");
         }
       }, 500);
@@ -3751,6 +3751,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
             userEmail={user.email}
+            accountTab={location.pathname.split('/mon-compte/')[1] || 'commandes'}
             onBack={() => {
               if (isAccountViewUrl) safeNavigate("/");
               else setIsAccountView(false);
@@ -3791,7 +3792,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         onAccountClick={() => {
           if (isNavigating) return;
           if (user) {
-            safeNavigate("/mon-compte");
+            safeNavigate("/mon-compte/commandes");
           } else {
             setAuthMode("login");
             setShowAuthModal(true);
@@ -3928,7 +3929,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   <button
                     onClick={() => {
                       if (user) {
-                        safeNavigate("/mon-compte");
+                        safeNavigate("/mon-compte/commandes");
                       } else {
                         setAuthMode("login");
                         setShowAuthModal(true);

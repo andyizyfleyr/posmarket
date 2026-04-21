@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useNavigate } from '@/components/RouterPolyfill';
 import { 
   Package, MapPin, User, Star, ChevronRight, 
   Clock, CheckCircle2, Truck, AlertCircle, ShoppingBag, 
@@ -24,6 +26,7 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface BuyerViewProps {
   userEmail: string;
+  accountTab?: string;
   onBack: () => void;
   notify?: (message: string, type: 'success' | 'error' | 'info' | 'warning', title?: string) => void;
   onLogout: () => void;
@@ -33,7 +36,7 @@ interface BuyerViewProps {
 
 type TabType = 'orders' | 'addresses' | 'reviews' | 'profile';
 
-export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
+export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
   const [mobileView, setMobileView] = useState<'menu' | 'detail'>('menu');
   const [orders, setOrders] = useState<any[]>(cachedData?.orders || []);
@@ -45,6 +48,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [editingAddress, setEditingAddress] = useState<any>(null);
 
   const { isOnline, isSlow } = useNetworkStatus();
+  const navigate = useNavigate();
   const [internalLoading, setInternalLoading] = useState(false);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -56,6 +60,21 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [hasMoreOrders, setHasMoreOrders] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalOrders, setTotalOrders] = useState(0);
+
+  // Sync activeTab from URL
+  useEffect(() => {
+    if (accountTab) {
+      const tabMap: Record<string, TabType> = {
+        'commandes': 'orders',
+        'adresses': 'addresses',
+        'avis': 'reviews',
+        'profil': 'profile'
+      };
+      if (tabMap[accountTab]) {
+        setActiveTab(tabMap[accountTab]);
+      }
+    }
+  }, [accountTab]);
 
   // Handle initial data fetch and subsequent tab changes
   useEffect(() => {
@@ -363,14 +382,17 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             <div className="lg:hidden space-y-2 px-4 pb-10">
               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
-                { id: 'orders', label: 'Mes commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
-                { id: 'addresses', label: 'Adresses de livraison', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
-                { id: 'reviews', label: 'Mes avis publiés', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
-                { id: 'profile', label: 'Mon profil & Sécurité', icon: User, desc: 'Paramètres du compte' },
+                { id: 'orders', label: 'Mes commandes', path: 'commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
+                { id: 'addresses', label: 'Adresses de livraison', path: 'adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
+                { id: 'reviews', label: 'Mes avis publiés', path: 'avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
+                { id: 'profile', label: 'Mon profil & Sécurité', path: 'profil', icon: User, desc: 'Paramètres du compte' },
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => handleMobileTabSelect(item.id as TabType)}
+                  onClick={() => {
+                    setActiveTab(item.id as TabType);
+                    navigate(`/mon-compte/${item.path}`);
+                  }}
                   className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
                   <div className="flex items-center gap-4">
@@ -389,14 +411,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
 
             <div className="hidden lg:block space-y-1">
               {[
-                { id: 'orders', label: 'Mes commandes', icon: Package },
-                { id: 'addresses', label: 'Mes adresses', icon: MapPin },
-                { id: 'reviews', label: 'Mes avis', icon: Star },
-                { id: 'profile', label: 'Paramètres', icon: User },
+                { id: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package },
+                { id: 'addresses', label: 'Mes adresses', path: '/mon-compte/adresses', icon: MapPin },
+                { id: 'reviews', label: 'Mes avis', path: '/mon-compte/avis', icon: Star },
+                { id: 'profile', label: 'Paramètres', path: '/mon-compte/profil', icon: User },
               ].map((item) => (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as TabType)}
+                  href={item.path}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-xs font-bold ${
                     activeTab === item.id 
                       ? 'bg-gray-900 text-white translate-x-1' 
@@ -405,7 +427,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 >
                   <item.icon size={16} fill={activeTab === item.id ? "white" : "none"} />
                   {item.label}
-                </button>
+                </Link>
               ))}
             </div>
           </div>
