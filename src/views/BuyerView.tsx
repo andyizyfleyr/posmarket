@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useNavigate } from '@/components/RouterPolyfill';
+import { useRouter as useNextRouter } from 'next/navigation';
 import { 
   Package, MapPin, User, Star, ChevronRight, 
   Clock, CheckCircle2, Truck, AlertCircle, ShoppingBag, 
@@ -49,6 +50,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
 
   const { isOnline, isSlow } = useNetworkStatus();
   const navigate = useNavigate();
+  const nextRouter = useNextRouter();
   const [internalLoading, setInternalLoading] = useState(false);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -387,13 +389,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                 { id: 'reviews', label: 'Mes avis publiés', path: 'avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
                 { id: 'profile', label: 'Mon profil & Sécurité', path: 'profil', icon: User, desc: 'Paramètres du compte' },
               ].map((item) => (
-                <a
+                <button
                   key={item.id}
-                  href={`/mon-compte/${item.path}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = `/mon-compte/${item.path}`;
-                  }}
+                  onClick={() => nextRouter.push(`/mon-compte/${item.path}`)}
                   className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
                   <div className="flex items-center gap-4">
@@ -406,7 +404,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                     </div>
                   </div>
                   <ChevronRight size={18} className="text-gray-300" />
-                </a>
+                </button>
               ))}
             </div>
 
