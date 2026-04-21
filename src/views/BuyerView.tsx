@@ -384,14 +384,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
             <div className="lg:hidden space-y-2 px-4 pb-10">
               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
-                { id: 'orders', label: 'Mes commandes', path: 'commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
-                { id: 'addresses', label: 'Adresses de livraison', path: 'adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
-                { id: 'reviews', label: 'Mes avis publiés', path: 'avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
-                { id: 'profile', label: 'Mon profil & Sécurité', path: 'profil', icon: User, desc: 'Paramètres du compte' },
+                { id: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
+                { id: 'addresses', label: 'Adresses de livraison', path: '/mon-compte/adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
+                { id: 'reviews', label: 'Mes avis publiés', path: '/mon-compte/avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
+                { id: 'profile', label: 'Mon profil & Sécurité', path: '/mon-compte/profil', icon: User, desc: 'Paramètres du compte' },
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => nextRouter.push(`/mon-compte/${item.path}`)}
+                  onClick={() => navigate(item.path)}
                   className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
                   <div className="flex items-center gap-4">
