@@ -380,7 +380,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
               </div>
             </div>
 
-            {/* Mobile Menu List */}
+            {/* Mobile Menu List - Utilise window.location pour forcer le reload */}
             <div className="lg:hidden space-y-2 px-4 pb-10">
               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
@@ -391,7 +391,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => { window.location.href = item.path; }}
                   className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
                   <div className="flex items-center gap-4">
