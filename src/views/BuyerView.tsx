@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { 
   Package, MapPin, User, Star, ChevronRight, 
   Clock, CheckCircle2, Truck, AlertCircle, ShoppingBag, 
@@ -448,8 +449,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                             <div key={item.id} className="group/item border-b border-gray-50 last:border-0 pb-3 last:pb-0">
                               <div className="flex gap-3 items-center justify-between mb-2">
                                 <div className="flex gap-3 items-center flex-1 min-w-0">
-                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100">
-                                    <img src={product?.image} className="w-full h-full object-cover" />
+                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100 relative">
+                                    <Image 
+                                      src={product?.image} 
+                                      alt={product?.name || 'Produit'}
+                                      fill
+                                      className="object-cover" 
+                                      sizes="40px"
+                                    />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
@@ -606,8 +613,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                       return (
                         <div key={rev.id} className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
                            <div className="flex gap-3 mb-2">
-                             <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                               <img src={product?.image} className="w-full h-full object-cover" />
+                             <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative">
+                               <Image 
+                                 src={product?.image} 
+                                 alt={product?.name || 'Produit'}
+                                 fill
+                                 className="object-cover" 
+                                 sizes="40px"
+                               />
                              </div>
                              <div className="flex-1">
                                 <p className="text-[8px] text-gray-400 font-bold uppercase">{store?.name || 'Boutique'}</p>

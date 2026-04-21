@@ -111,7 +111,10 @@ export async function getProductsAction(storeId: string, offset: number = 0, lim
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.ilike('name', `%${search}%`);
+    query = query.textSearch('search_vector', search, {
+      type: 'websearch',
+      config: 'french'
+    });
   }
 
   const { data, count, error } = await query;

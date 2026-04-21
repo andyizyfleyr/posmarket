@@ -37,6 +37,7 @@ import { SUBSCRIPTION_PLANS } from '@/constants';
 import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertical } from '@/types';
 import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { formatCurrency, formatNumber } from '@/utils';
+import { Skeleton, ProductSkeleton } from '../components/Skeleton';
 import ProductImage from '../components/ProductImage';
 import Loader from '../components/Loader';
 import Button from '../components/Button';
@@ -486,7 +487,20 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
               </div>
               <div className="block md:table-row-group divide-y divide-gray-100">
-                {filteredProducts.map(product => (
+                {isLoadingMore && localProducts.length === 0 ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={`skel-${i}`} className="table-row">
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-4 w-4" /></div>
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-10 w-40" /></div>
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-6 w-20" /></div>
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-6 w-24" /></div>
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-6 w-16" /></div>
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-6 w-16" /></div>
+                      <div className="table-cell px-4 py-3"><Skeleton className="h-6 w-20" /></div>
+                      <div className="table-cell px-4 py-3 text-right"><Skeleton className="h-8 w-16 ml-auto" /></div>
+                    </div>
+                  ))
+                ) : filteredProducts.map(product => (
                   <div key={product.id} className={`block md:table-row transition-colors group ${selectedIds.has(product.id) ? 'bg-orange-50/60' : 'hover:bg-orange-50/10'}`}>
                     <div className="hidden md:table-cell px-4 py-2.5 w-10">
                       <input
@@ -649,7 +663,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 p-2">
-              {filteredProducts.map(product => (
+              {isLoadingMore && localProducts.length === 0 ? (
+                Array.from({ length: 12 }).map((_, i) => <ProductSkeleton key={`skel-grid-${i}`} />)
+              ) : filteredProducts.map(product => (
                 <div
                   key={product.id}
                   onClick={() => toggleSelect(product.id)}

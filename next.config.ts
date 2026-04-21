@@ -6,6 +6,14 @@ const ip = getLocalIp();
 const nextConfig: NextConfig = {
   allowedDevOrigins: [ip],
 
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'api.dicebear.com' },
+      { protocol: 'https', hostname: 'updrjzaapvbtjdnpicra.supabase.co' },
+    ],
+  },
+
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

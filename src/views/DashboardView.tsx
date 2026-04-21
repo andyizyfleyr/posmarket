@@ -20,6 +20,8 @@ import {
   Package,
   Store
 } from 'lucide-react';
+import Image from 'next/image';
+import { Skeleton } from '@/components/Skeleton';
 import { Order, Product, Customer, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency, formatNumber } from '@/utils';
 
@@ -331,8 +333,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     <div className="flex-grow overflow-y-auto overflow-x-hidden p-2 md:p-8 custom-scrollbar bg-gray-50/50">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 md:mb-8 gap-1 md:gap-6">
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="md:hidden w-8 h-8 rounded-xl overflow-hidden border border-white shadow-lg flex-shrink-0">
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userRole || 'Admin'}`} className="w-full h-full object-cover bg-orange-50" />
+          <div className="md:hidden w-8 h-8 rounded-xl overflow-hidden border border-white shadow-lg flex-shrink-0 relative">
+            <Image 
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userRole || 'Admin'}`} 
+              alt="Avatar"
+              fill
+              className="object-cover bg-orange-50"
+              unoptimized
+            />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3">
@@ -712,8 +720,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 onClick={() => router.push(`/product/${product.id}`)}
               >
                 <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0">
-                    <img src={product.image} className="w-full h-full object-cover" />
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative">
+                    <Image 
+                      src={product.image} 
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 768px) 32px, 40px"
+                      className="object-cover" 
+                    />
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate max-w-[100px] md:max-w-[120px]">{product.name}</div>
@@ -746,8 +760,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
                 onClick={() => router.push(`/product/${product.id}`)}
               >
                 <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0">
-                    <img src={product.image} className="w-full h-full object-cover" />
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 relative">
+                    <Image 
+                      src={product.image} 
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 768px) 32px, 40px"
+                      className="object-cover" 
+                    />
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate max-w-[100px] md:max-w-[120px]">{product.name}</div>
@@ -769,8 +789,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
           <div className="space-y-3 md:space-y-5">
             {products.filter(p => p.stock < 15).slice(0, 6).map(product => (
               <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
-                <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm">
-                  <img src={product.image} className="w-full h-full object-cover" />
+                <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm relative">
+                  <Image 
+                    src={product.image} 
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 768px) 32px, 48px"
+                    className="object-cover" 
+                  />
                 </div>
                 <div className="flex-grow min-w-0">
                   <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>

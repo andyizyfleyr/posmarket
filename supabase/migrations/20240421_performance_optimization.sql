@@ -126,3 +126,10 @@ BEGIN
   RETURN v_order_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 5. RECHERCHE INTELLIGENTE (Full Text Search)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS search_vector tsvector GENERATED ALWAYS AS (
+  to_tsvector('french', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, ''))
+) STORED;
+
+CREATE INDEX IF NOT EXISTS idx_products_search ON products USING GIN(search_vector);

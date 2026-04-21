@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Image as ImageIcon } from 'lucide-react';
 
 interface ProductImageProps {
@@ -27,39 +28,27 @@ const ProductImage: React.FC<ProductImageProps> = ({
     const [error, setError] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Initial check for cached images
-    React.useEffect(() => {
-        setIsLoaded(false);
-        setError(false);
-        if (src) {
-            const img = new Image();
-            img.src = src;
-            if (img.complete) {
-                setIsLoaded(true);
-            }
-        }
-    }, [src]);
-
     const isImageValid = src && src.trim() !== "" && !error;
 
     return (
         <div className={`relative overflow-hidden bg-gray-50 flex items-center justify-center w-full h-full ${shouldApplyAspectSquare ? 'aspect-square' : ''} ${containerClassName}`}>
             {isImageValid ? (
                 <>
-                    {/* Skeleton Pulse during loading */}
+                    {/* Skeleton Pulse during loading handled by Next.js or manual overlay */}
                     {!isLoaded && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] animate-[shimmer_2s_infinite_linear]" />
+                        <div className="absolute inset-0 bg-slate-200 animate-pulse z-20" />
                     )}
-                    <img
-                        src={src}
+                    <Image
+                        src={src!}
                         alt={alt}
-                        onLoad={() => setIsLoaded(true)}
-                        onError={() => setError(true)}
-                        className={`relative z-10 w-full h-full object-${objectFit} transition-all duration-700 ease-in-out ${
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className={`relative z-10 transition-all duration-700 ease-in-out ${
                             isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                         } ${showZoomEffect && isLoaded ? 'group-hover:scale-110' : ''} ${className}`}
-                        loading="lazy"
-                        decoding="async"
+                        style={{ objectFit: objectFit }}
+                        onLoadingComplete={() => setIsLoaded(true)}
+                        onError={() => setError(true)}
                     />
                 </>
             ) : (
@@ -76,4 +65,3 @@ const ProductImage: React.FC<ProductImageProps> = ({
 };
 
 export default ProductImage;
-

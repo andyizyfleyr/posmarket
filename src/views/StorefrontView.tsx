@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { createPortal } from "react-dom";
+import Image from "next/image";
+import { Skeleton, ProductSkeleton } from "@/components/Skeleton";
 import {
   ShoppingCart,
   Search,
@@ -248,7 +250,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [selectedVertical, setSelectedVertical] = useState<
     "all" | "shopping" | "food" | "stay"
   >("all");
-  const [isMounted, setIsMounted] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [ftsResults, setFtsResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
 
   // 0. URL Params Detection
@@ -299,6 +303,36 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+
+  // 🔍 DEBOUNCED FTS SEARCH
+  useEffect(() => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setFtsResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const { data } = await supabase
+          .from('products')
+          .select('id, name, price, image, stock, category, store_id')
+          .textSearch('search_vector', searchTerm, {
+            type: 'websearch',
+            config: 'french'
+          })
+          .limit(20);
+        
+        setFtsResults(data || []);
+      } catch (err) {
+        console.error("FTS Search Error:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
 
   // ⚡ Performance: Loading state for Skeletons
@@ -1961,12 +1995,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 setIsImageModalOpen(true);
               }}
             >
-              <img
-                loading="lazy"
-                decoding="async"
+              <Image
                 src={selectedDetailImage || selectedProductDetails.image}
-                className="relative z-10 w-full h-full object-contain transition-transform duration-700 group-hover/main:scale-110"
+                fill
+                className="relative z-10 object-contain transition-transform duration-700 group-hover/main:scale-110"
                 alt={selectedProductDetails.name}
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
 
@@ -1989,10 +2024,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           : "border-white hover:border-orange-200 hover:scale-[1.02]"
                       }`}
                     >
-                      <img
+                      <Image
                         src={img}
-                        className="relative z-10 w-full h-full object-contain"
-                        loading="lazy"
+                        alt={`${selectedProductDetails.name} thumbnail ${idx}`}
+                        fill
+                        className="relative z-10 object-contain"
+                        sizes="80px"
                       />
                       {(selectedDetailImage === img ||
                         (!selectedDetailImage && idx === 0)) && (
@@ -3910,13 +3947,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             {/* Progress bar at the bottom for top-toasts feels better or keep top */}
             <div className="p-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100 shadow-sm">
-                  <img
-                    loading="lazy"
-                    decoding="async"
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100 shadow-sm relative">
+                  <Image
                     src={lastAddedProduct.image}
                     alt={lastAddedProduct.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="48px"
                   />
                 </div>
                 <div className="flex-grow min-w-0">
@@ -4047,44 +4084,48 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   </div>
                 )}
 
-                {/* Products Results */}
-                {filteredProducts.length > 0 ? (
+                {/* Products Results (FTS Powered) */}
+                {(isSearching || ftsResults.length > 0) ? (
                   <div className="animate-in slide-in-from-bottom-4 duration-500 delay-100">
                     <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <ShoppingCart size={12} /> Produits
+                      <ShoppingCart size={12} /> {isSearching ? 'Recherche en cours...' : `Produits (${ftsResults.length})`}
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
-                      {filteredProducts.slice(0, 20).map((product) => (
-                        <div
-                          key={product.id}
-                          onClick={() => {
-                            safeNavigate(
-                              `/product/${generateProductSlug(product)}`,
-                              {
-                                action: () => setIsSearchOpen(false),
-                              },
-                            );
-                          }}
-                          className="cursor-pointer"
-                        >
-                          <ProductCard
-                            product={product as any}
-                            onAddToCart={addToCart as any}
-                            onStoreSelect={(id) => {
+                      {isSearching ? (
+                        Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)
+                      ) : (
+                        ftsResults.map((product) => (
+                          <div
+                            key={product.id}
+                            onClick={() => {
                               safeNavigate(
-                                `/store/${product.storeSlug || id}`,
+                                `/product/${generateProductSlug(product)}`,
                                 {
                                   action: () => setIsSearchOpen(false),
                                 },
                               );
                             }}
-                          />
-                        </div>
-                      ))}
+                            className="cursor-pointer"
+                          >
+                            <ProductCard
+                              product={product as any}
+                              onAddToCart={addToCart as any}
+                              onStoreSelect={(id) => {
+                                safeNavigate(
+                                  `/store/${product.storeSlug || id}`,
+                                  {
+                                    action: () => setIsSearchOpen(false),
+                                  },
+                                );
+                              }}
+                            />
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 ) : (
-                  globalSearchStores.length === 0 && (
+                  !isSearching && globalSearchStores.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-500">
                         <Search size={32} />
@@ -4795,19 +4836,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                   className="flex items-center gap-3 bg-gray-50/50 p-2 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-all"
                                 >
                                   <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-gray-100">
-                                    <img
-                                      loading="lazy"
-                                      decoding="async"
+                                    <Image
                                       src={
                                         allProducts.find(
                                           (p) => p.id === review.productId,
                                         )?.image || ""
                                       }
-                                      alt=""
-                                      className="w-full h-full object-cover"
-                                      onError={(e) =>
-                                        (e.currentTarget.style.display = "none")
-                                      }
+                                      alt="Product"
+                                      fill
+                                      className="object-cover"
+                                      sizes="40px"
                                     />
                                   </div>
                                   <div className="flex-grow min-w-0">
@@ -5375,18 +5413,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             className="w-full h-full p-4 md:p-10 flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              loading="lazy"
-              decoding="async"
-              src={
-                currentZoomImage ||
-                selectedDetailImage ||
-                selectedProductDetails?.image ||
-                ""
-              }
-              className="max-w-full max-h-full object-contain shadow-2xl rounded-2xl animate-in zoom-in-95 duration-500"
-              alt="Full Size Product"
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={
+                  currentZoomImage ||
+                  selectedDetailImage ||
+                  selectedProductDetails?.image ||
+                  ""
+                }
+                fill
+                className="object-contain shadow-2xl rounded-2xl animate-in zoom-in-95 duration-500"
+                alt="Full Size Product"
+                sizes="100vw"
+                priority
+              />
+            </div>
           </div>
         </div>
       )}

@@ -168,6 +168,19 @@ export const createOrder = async (order: Order, storeId: string) => {
     return { id: orderId };
 };
 
+export const searchProducts = async (query: string, storeId: string) => {
+    const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, image, stock, category')
+        .eq('store_id', storeId)
+        .textSearch('search_vector', query, {
+            type: 'websearch',
+            config: 'french'
+        });
+    if (error) throw error;
+    return data;
+};
+
 export const updateOrderStatus = async (orderId: string, status: string) => {
     const { data, error } = await supabase
         .from('orders')
