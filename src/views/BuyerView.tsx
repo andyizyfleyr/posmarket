@@ -734,8 +734,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 </div>
 
                 <div className="flex gap-3 pt-2 shrink-0 pb-6">
-                    <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} fullWidth>Annuler</Button>
-                    <Button type="submit" loading={isSavingAddress} fullWidth className="flex-[2]">Enregistrer</Button>
+                    <button type="button" onClick={() => setShowAddressModal(false)} className="flex-1 py-3 px-4 border-2 border-gray-100 text-gray-700 font-bold text-xs rounded-2xl hover:bg-gray-50 transition-all">Annuler</button>
+                    <button type="submit" className="flex-[2] py-3 px-4 bg-[#f56b2a] text-white font-bold text-xs rounded-2xl shadow-md shadow-orange-100 hover:bg-[#e55a1b] transition-all">Enregistrer</button>
                 </div>
             </form>
           </div>
