@@ -93,6 +93,7 @@ import {
 import { MarketplaceBottomNav } from "@/components/MarketplaceBottomNav";
 import { supabase } from "@/supabase";
 import { BuyerView } from "./BuyerView";
+import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
 
 interface StorefrontProduct extends Product {
   storeId: string;
@@ -623,6 +624,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     };
     checkSession();
   }, []);
+
+  // Fetch buyer addresses when user is set
+  const [buyerAddresses, setBuyerAddresses] = useState<any[]>([]);
+  useEffect(() => {
+    const loadAddresses = async () => {
+      if (user?.id) {
+        const res = await fetchBuyerAddressesAction();
+        if (res.success && res.addresses) {
+          setBuyerAddresses(res.addresses);
+        }
+      }
+    };
+    loadAddresses();
+  }, [user?.id]);
 
   // Auto-redirect to home if hitting /mon-compte without session
   useEffect(() => {
@@ -3347,6 +3362,37 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         </h3>
                       </div>
 
+                      {user && buyerAddresses.length > 0 ? (
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-gray-500 mb-3">Sélectionnez une adresse enregistrée</p>
+                          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                            {buyerAddresses.map((addr) => (
+                              <button
+                                key={addr.id}
+                                onClick={() => setCustomerInfo({ ...customerInfo, name: addr.full_name, phone: addr.phone, address: addr.address, city: addr.city })}
+                                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${customerInfo.address === addr.address ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
+                                    {addr.name === 'Maison' ? <Home size={16} /> : addr.name === 'Bureau' ? <Briefcase size={16} /> : <MapPin size={16} />}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-black text-gray-900">{addr.name}</p>
+                                    <p className="text-xs text-gray-500">{addr.address}, {addr.city}</p>
+                                  </div>
+                                  {addr.is_default && <span className="text-[9px] font-black text-[#f56b2a] uppercase">Par défaut</span>}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setCustomerInfo({ ...customerInfo, address: "", city: "" })}
+                            className="text-xs font-bold text-[#f56b2a] underline"
+                          >
+                            Saisir une nouvelle adresse
+                          </button>
+                        </div>
+                      ) : (
                       <div className="space-y-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
@@ -3391,6 +3437,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   )}
                 </div>
