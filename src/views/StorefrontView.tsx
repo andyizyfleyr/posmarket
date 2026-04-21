@@ -250,6 +250,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [selectedVertical, setSelectedVertical] = useState<
     "all" | "shopping" | "food" | "stay"
   >("all");
+  const [isMounted, setIsMounted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [ftsResults, setFtsResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -336,7 +337,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
 
   // ⚡ Performance: Loading state for Skeletons
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // 1. Load cache IMMEDIATELY on mount
   React.useEffect(() => {
