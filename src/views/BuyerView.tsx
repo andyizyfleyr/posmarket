@@ -691,15 +691,15 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       {showAddressModal && (
         <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
            <div className="absolute inset-0 bg-[#002f34]/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-t-[32px] md:rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full md:zoom-in-95 flex flex-col max-h-[92vh]">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+           <div className="relative bg-white w-full max-w-sm rounded-t-[32px] md:rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full md:zoom-in-95 flex flex-col max-h-[85vh] md:max-h-[92vh]">
+             <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                 <h3 className="text-base font-black text-[#002f34]">{editingAddress ? 'Modifier' : 'Ajouter'} une adresse</h3>
                 <button onClick={() => setShowAddressModal(false)} className="p-2 text-gray-400 hover:text-gray-600 active:scale-90 transition-transform">
                   <X size={24} />
                 </button>
             </div>
             
-            <form onSubmit={handleSaveAddress} className="p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSaveAddress} className="p-6 space-y-4 overflow-y-auto pb-28 md:pb-6">
                 <div className="space-y-3">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-gray-400">Label (ex: Maison, Bureau)</label>
@@ -733,7 +733,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                     </label>
                 </div>
 
-                <div className="flex gap-3 pt-2 shrink-0">
+                <div className="flex gap-3 pt-2 shrink-0 pb-6">
                     <Button type="button" variant="outline" onClick={() => setShowAddressModal(false)} fullWidth>Annuler</Button>
                     <Button type="submit" loading={isSavingAddress} fullWidth className="flex-[2]">Enregistrer</Button>
                 </div>
