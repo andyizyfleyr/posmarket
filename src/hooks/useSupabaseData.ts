@@ -75,18 +75,32 @@ export const useSupabaseData = (session: any, activeStoreId?: string) => {
         setIsSyncing(true);
         try {
             const [productsRes, ordersRes, staffRes, invoicesRes, customersRes, statsRes] = await Promise.all([
-                supabase.from('products').select('*').eq('store_id', storeId).limit(150),
-                supabase.from('orders').select('*').eq('store_id', storeId).order('date', { ascending: false }).limit(100),
-                supabase.from('store_staff').select('*').eq('store_id', storeId),
-                supabase.from('invoices').select('*').eq('store_id', storeId).order('date', { ascending: false }).limit(100),
-                supabase.from('customers').select('*').eq('store_id', storeId).limit(100),
-                supabase.from('product_stats').select('*').eq('store_id', storeId)
+                supabase.from('products')
+                    .select('id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type, amenities, location, max_guests, bedrooms')
+                    .eq('store_id', storeId).limit(150),
+                supabase.from('orders')
+                    .select('id, customer_id, subtotal, total, discount_amount, promo_code, payment_method, status, type, date')
+                    .eq('store_id', storeId).order('date', { ascending: false }).limit(100),
+                supabase.from('store_staff')
+                    .select('id, store_id, user_id, role, permissions')
+                    .eq('store_id', storeId),
+                supabase.from('invoices')
+                    .select('id, invoice_number, customer_id, customer_name, customer_email, customer_address, subtotal, total, status, notes, date, due_date')
+                    .eq('store_id', storeId).order('date', { ascending: false }).limit(100),
+                supabase.from('customers')
+                    .select('id, name, email, phone, address, total_spent, orders_count')
+                    .eq('store_id', storeId).limit(100),
+                supabase.from('product_stats')
+                    .select('product_id, average_rating, review_count, total_sales')
+                    .eq('store_id', storeId)
             ]);
 
             const targetStore = storesRef.current.find(s => s.id === storeId);
             let subscription = targetStore?.subscription;
             if (targetStore?.ownerId) {
-                const { data: profile } = await supabase.from('profiles').select('*').eq('id', targetStore.ownerId).single();
+                const { data: profile } = await supabase.from('profiles')
+                    .select('subscription_tier, subscription_duration, subscription_start_date, subscription_end_date, subscription_status')
+                    .eq('id', targetStore.ownerId).single();
                 if (profile) {
                     subscription = {
                         tier: (profile.subscription_tier as any) || 'BASIC',
@@ -124,7 +138,13 @@ export const useSupabaseData = (session: any, activeStoreId?: string) => {
                   id: c.id, name: c.name, email: c.email || '', phone: c.phone || '', address: c.address || '', 
                   totalSpent: c.total_spent || 0, ordersCount: c.orders_count || 0 
                 })),
-                staff: (staffRes.data || []) as Staff[]
+                staff: (staffRes.data || []).map((s: any) => ({
+                    id: s.id,
+                    storeId: s.store_id,
+                    userId: s.user_id,
+                    role: s.role,
+                    permissions: s.permissions || {}
+                })) as Staff[]
             } : s);
 
             setStores(updatedStores);

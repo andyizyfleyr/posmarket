@@ -37,7 +37,7 @@ export const saveProduct = async (product: Partial<Product>, storeId: string) =>
             .from('products')
             .update(dataToSave)
             .eq('id', product.id)
-            .select()
+            .select('id, name, price, stock, category, is_online')
             .single();
         if (error) throw error;
         return data;
@@ -45,7 +45,7 @@ export const saveProduct = async (product: Partial<Product>, storeId: string) =>
         const { data, error } = await supabase
             .from('products')
             .insert([dataToSave])
-            .select()
+            .select('id, name, price, stock, category, is_online')
             .single();
         if (error) throw error;
         return data;
@@ -116,117 +116,56 @@ export const bulkDeleteCustomers = async (ids: string[]) => {
 };
 
 export const createOrder = async (order: Order, storeId: string) => {
-    // Ensure numeric values are valid
-    const cleanOrderData = {
-        store_id: storeId,
-        customer_id: order.customer?.id,
-        subtotal: order.subtotal || 0,
-        total: order.total || 0,
-        discount_amount: order.discountAmount || 0,
-        promo_code: order.promoCode || null,
-        payment_method: order.paymentMethod || 'ESPECES',
-        status: order.status || 'PENDING',
-        type: order.type || 'PICKUP',
-        date: order.date || new Date().toISOString()
-    };
+    const stayItems = order.items.filter(item => item.product.businessType === 'stay' && item.checkIn && item.checkOut);
 
-    console.log(`[API] Attempting to create order for store ${storeId}...`, cleanOrderData);
+    if (stayItems.length > 0) {
+        const { data: results, error: checkError } = await supabase.rpc('check_availability_bulk', {
+            p_requests: stayItems.map(item => ({
+                product_id: item.product.id,
+                check_in: item.checkIn,
+                check_out: item.checkOut
+            }))
+        });
 
-    // 0. CHECK AVAILABILITY AGAIN FOR STAYS (Anti-conflict)
-    for (const item of order.items) {
-        if (item.product.businessType === 'stay' && item.checkIn && item.checkOut) {
-            const isRangeStillAvailable = await checkDateRangeAvailable(item.product.id, item.checkIn, item.checkOut);
-            if (!isRangeStillAvailable) {
-                throw new Error(`Désolé, les dates sélectionnées pour "${item.product.name}" ne sont plus disponibles.`);
-            }
+        if (checkError) throw checkError;
+        
+        const unavailable = results?.find((r: any) => !r.r_is_available);
+        if (unavailable) {
+            const pName = stayItems.find(i => i.product.id === unavailable.r_product_id)?.product.name;
+            throw new Error(`Désolé, les dates pour "${pName}" ne sont plus disponibles.`);
         }
     }
 
-    // 1. Create Order
-    const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert([cleanOrderData])
-        .select()
-        .single();
+    // 🚀 2. APPEL RPC GLOBAL (Architecture SaaS Pro-Grade)
+    const idempotencyKey = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-    if (orderError) {
-        console.error('[API] Error creating order row:', JSON.stringify(orderError, null, 2));
-        throw orderError;
-    }
-    console.log('[API] Order row created:', orderData.id);
+    const { data: orderId, error: rpcError } = await supabase.rpc('create_order_full', {
+        p_order: {
+            store_id: storeId,
+            customer_id: order.customer?.id,
+            subtotal: order.subtotal || 0,
+            total: order.total || 0,
+            discount_amount: order.discountAmount || 0,
+            promo_code: order.promoCode || null,
+            payment_method: order.paymentMethod || 'ESPECES',
+            status: order.status || 'PENDING',
+            type: order.type || 'PICKUP',
+            date: order.date || new Date().toISOString(),
+            idempotency_key: idempotencyKey
+        },
+        p_items: order.items.map(item => ({
+            product_id: item.product.id,
+            quantity: item.quantity,
+            price: item.product.price,
+            check_in: item.checkIn,
+            check_out: item.checkOut,
+            guests: item.guests
+        }))
+    });
 
-    // 2. Create Order Items
-    const orderItems = order.items.map(item => ({
-        order_id: orderData.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        price: item.product.price,
-        check_in: item.checkIn,
-        check_out: item.checkOut,
-        guests: item.guests
-    }));
+    if (rpcError) throw rpcError;
 
-    const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-    if (itemsError) {
-        console.error('[API] Error creating order items:', JSON.stringify(itemsError, null, 2));
-        throw itemsError;
-    }
-    console.log('[API] Order items created.');
-
-    // 3. Update Product Stocks / Block Availability for Stays
-    for (const item of order.items) {
-        try {
-            if (item.product.businessType === 'stay' && item.checkIn && item.checkOut) {
-                // Block availability slots
-                const dates = [];
-                let curr = new Date(item.checkIn);
-                const end = new Date(item.checkOut);
-                while (curr < end) {
-                    dates.push(curr.toISOString().split('T')[0]);
-                    curr.setDate(curr.getDate() + 1);
-                }
-                await updateAvailability(item.product.id, dates, false, orderData.id);
-            } else {
-                // Standard stock decrement
-                const { error: stockError } = await supabase.rpc('decrement_stock', {
-                    p_id: item.product.id,
-                    p_quantity: item.quantity
-                });
-
-                if (stockError) {
-                    console.warn('[API] RPC decrement_stock failed, trying manual update:', stockError.message);
-                    const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
-                    if (pData) {
-                        await supabase.from('products').update({ stock: Math.max(0, pData.stock - item.quantity) }).eq('id', item.product.id);
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('[API] Stock/Availability update failed:', e);
-        }
-    }
-
-    // 4. Update Customer Stats if any
-    if (order.customer?.id) {
-        try {
-            console.log('[API] Updating customer stats...');
-            const { data: cData } = await supabase.from('customers').select('total_spent, orders_count').eq('id', order.customer.id).single();
-            if (cData) {
-                await supabase.from('customers').update({
-                    total_spent: (cData.total_spent || 0) + (order.total || 0),
-                    orders_count: (cData.orders_count || 0) + 1
-                }).eq('id', order.customer.id);
-            }
-        } catch (e) {
-            console.error('[API] Customer stats update failed:', e);
-        }
-    }
-
-    console.log('[API] Order full process complete.');
-    return orderData;
+    return { id: orderId };
 };
 
 export const updateOrderStatus = async (orderId: string, status: string) => {
@@ -391,7 +330,7 @@ export const incrementStoreViews = async (storeId: string) => {
 export const getUserProfile = async (userId: string) => {
     const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, full_name, avatar_url, is_super_admin, subscription_tier, subscription_status, subscription_end_date')
         .eq('id', userId)
         .single();
     if (error) throw error;
