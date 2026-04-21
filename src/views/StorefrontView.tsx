@@ -3362,7 +3362,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         </h3>
                       </div>
 
-                      {user && buyerAddresses.length > 0 ? (
+                      {user && buyerAddresses.length > 0 && !customerInfo.address ? (
                         <div className="space-y-4">
                           <p className="text-xs font-bold text-gray-500 mb-3">Sélectionnez une adresse enregistrée</p>
                           <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -3389,35 +3389,56 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             onClick={() => setCustomerInfo({ ...customerInfo, address: "", city: "" })}
                             className="text-xs font-bold text-[#f56b2a] underline"
                           >
-                            Saisir une nouvelle adresse
+                            + Saisir une nouvelle adresse
                           </button>
                         </div>
-                      ) : (
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
-                            Adresse (Rue, Quartier...)
-                          </label>
-                          <div className="relative group">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
-                              <MapPin size={18} />
+                      ) : user && buyerAddresses.length > 0 && customerInfo.address ? (
+                        <div className="space-y-4">
+                          <div className="p-4 rounded-2xl border-2 border-[#f56b2a] bg-orange-50/30">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
+                                  <MapPin size={16} />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-black text-gray-900">{customerInfo.name}</p>
+                                  <p className="text-xs text-gray-500">{customerInfo.address}, {customerInfo.city}</p>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => setCustomerInfo({ ...customerInfo, address: "", city: "" })}
+                                className="text-[9px] font-bold text-[#f56b2a] underline"
+                              >
+                                Changer
+                              </button>
                             </div>
-                            <input
-                              required
-                              type="text"
-                              value={customerInfo.address}
-                              onChange={(e) =>
-                                setCustomerInfo({
-                                  ...customerInfo,
-                                  address: e.target.value,
-                                })
-                              }
-                              className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
-                            />
                           </div>
                         </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
+                              Adresse (Rue, Quartier...)
+                            </label>
+                            <div className="relative group">
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
+                                <MapPin size={18} />
+                              </div>
+                              <input
+                                required
+                                type="text"
+                                value={customerInfo.address}
+                                onChange={(e) =>
+                                  setCustomerInfo({
+                                    ...customerInfo,
+                                    address: e.target.value,
+                                  })
+                                }
+                                className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
+                              />
+                            </div>
+                          </div>
 
-                        <div className="grid grid-cols-1 gap-6">
                           <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
                               Ville
@@ -3436,7 +3457,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             />
                           </div>
                         </div>
-                      </div>
                       )}
                     </div>
                   )}
