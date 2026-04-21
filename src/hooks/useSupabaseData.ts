@@ -241,3 +241,51 @@ export const useSupabaseData = (
     }
   };
 };
+
+/* =========================================================
+   ADDITIONAL EXPORTS (Used by Views - Build Fix)
+========================================================= */
+
+export const fetchOrderItems = async (orderId: string) => {
+    const { data, error } = await supabase
+        .from('order_items')
+        .select('*, product:products(id, name, price, image)')
+        .eq('order_id', orderId);
+    if (error) throw error;
+    return data;
+};
+
+export const fetchInvoiceItems = async (invoiceId: string) => {
+    const { data, error } = await supabase
+        .from('invoice_items')
+        .select('*')
+        .eq('invoice_id', invoiceId);
+    if (error) throw error;
+    return data;
+};
+
+export const fetchProductReviews = async (productId: string) => {
+    const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*, profiles(full_name, avatar_url)')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+};
+
+export const fetchMarketplaceProducts = async () => {
+    const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type, amenities, location, max_guests, bedrooms')
+        .eq('is_online', true)
+        .limit(50);
+    if (error) throw error;
+    return data.map((p: any) => ({
+        ...p,
+        originalPrice: p.original_price,
+        mainCategory: p.main_category,
+        isOnline: p.is_online,
+        maxGuests: p.max_guests
+    }));
+};
