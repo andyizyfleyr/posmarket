@@ -577,7 +577,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                     <Plus size={16} /> Ajouter
                   </button>
                 </div>
-                {loading ? renderSkeleton() : (
+                {loading ? renderSkeleton() : addresses.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-300">
+                      <MapPin size={32} />
+                    </div>
+                    <p className="text-sm font-black text-gray-500 mb-6">Aucune adresse enregistrée</p>
+                    <button 
+                      onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} 
+                      className="flex items-center gap-2 px-6 py-3 bg-[#f56b2a] text-white rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg shadow-orange-100 active:scale-95 transition-all"
+                    >
+                      <Plus size={18} /> Ajouter une adresse
+                    </button>
+                  </div>
+                ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {addresses.map((addr) => (
                       <div key={addr.id} className={`bg-white p-4 rounded-[24px] border transition-all ${addr.is_default ? 'border-[#f56b2a] shadow-md ring-1 ring-[#f56b2a]/10' : 'border-gray-100 shadow-sm'}`}>
