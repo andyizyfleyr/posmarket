@@ -419,6 +419,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                 <Link
                   key={item.id}
                   href={item.path}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(item.path);
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-xs font-bold ${
                     activeTab === item.id 
                       ? 'bg-gray-900 text-white translate-x-1' 

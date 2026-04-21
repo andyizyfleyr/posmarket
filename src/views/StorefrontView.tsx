@@ -640,14 +640,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     loadAddresses();
   }, [user?.id]);
 
-  // Auto-redirect to home if hitting /mon-compte without session
+  // Auto-redirect to home if hitting /mon-compte without session (only after session check is complete)
   useEffect(() => {
     if (isAccountViewUrl && user === null && isMounted) {
       const timer = setTimeout(() => {
+        // Only redirect if user is still null after mount (not just during initial load)
         if (!user && location.pathname.startsWith("/mon-compte")) {
           safeNavigate("/");
         }
-      }, 500);
+      }, 1500); // Attendre que la session soit vérifiée
       return () => clearTimeout(timer);
     }
   }, [isAccountViewUrl, user, isMounted]);
