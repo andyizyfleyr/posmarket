@@ -35,6 +35,7 @@ type TabType = 'orders' | 'addresses' | 'reviews' | 'profile';
 
 export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
+  const [mobileView, setMobileView] = useState<'menu' | 'detail'>('menu');
   const [orders, setOrders] = useState<any[]>(cachedData?.orders || []);
   const [addresses, setAddresses] = useState<any[]>(cachedData?.addresses || []);
   const [reviews, setReviews] = useState<any[]>(cachedData?.reviews || []);
@@ -204,6 +205,19 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     onLogout();
   };
 
+  const handleMobileTabSelect = (tab: TabType) => {
+    setActiveTab(tab);
+    setMobileView('detail');
+  };
+
+  const handleBack = () => {
+    if (mobileView === 'detail') {
+      setMobileView('menu');
+    } else {
+      onBack();
+    }
+  };
+
   const handleDeleteAddress = async (id: string) => {
     if (confirm('Supprimer cette adresse ?')) {
       const res = await deleteBuyerAddressAction(id);
@@ -291,16 +305,19 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-12">
       <div className="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-30 transition-all">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
+          <button onClick={handleBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-base font-black text-[#002f34] tracking-tight">Mon compte</h1>
+          <h1 className="text-base font-black text-[#002f34] tracking-tight">
+            {mobileView === 'detail' ? (
+              activeTab === 'orders' ? 'Mes commandes' :
+              activeTab === 'addresses' ? 'Mes adresses' :
+              activeTab === 'reviews' ? 'Mes avis' : 'Profil'
+            ) : 'Mon compte'}
+          </h1>
           <div className="flex items-center gap-1">
             <button onClick={() => loadData(true)} className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
               <Clock size={22} className={loading ? "animate-spin" : ""} />
-            </button>
-            <button className="p-2 text-gray-400">
-               <Bell size={20} />
             </button>
           </div>
         </div>
@@ -309,54 +326,70 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       <div className="max-w-5xl mx-auto md:px-4 md:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          <div className="space-y-5">
-            <div className="bg-gradient-to-br from-white to-orange-50/40 md:rounded-[32px] p-5 md:p-8 border-b md:border border-gray-100 shadow-sm relative overflow-hidden group">
+          <div className={`space-y-5 ${mobileView === 'detail' ? 'hidden lg:block' : 'block'}`}>
+            <div className="bg-white md:bg-gradient-to-br md:from-white md:to-orange-50/40 md:rounded-[32px] p-5 md:p-8 md:border border-gray-100 md:shadow-sm relative overflow-hidden group">
               {/* Decorative background elements */}
-              <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none" />
-              <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-blue-100/40 rounded-full blur-xl opacity-60 pointer-events-none" />
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none hidden md:block" />
               
-              <div className="relative flex md:flex-col items-center gap-4 md:gap-5 md:text-center z-10">
-                <div className="w-16 h-16 md:w-24 md:h-24 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-[20px] md:rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-black shadow-xl shadow-orange-200/50 ring-4 ring-white">
+              <div className="relative flex items-center gap-4 md:flex-col md:gap-5 md:text-center z-10">
+                <div className="w-12 h-12 md:w-24 md:h-24 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-2xl md:rounded-full flex items-center justify-center text-white text-xl md:text-3xl font-black shadow-lg md:shadow-xl shadow-orange-200/50 ring-2 md:ring-4 ring-white">
                   {userEmail[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg md:text-2xl font-black text-[#002f34] truncate tracking-tight">{userEmail.split('@')[0]}</h2>
-                  <p className="text-xs text-gray-500 font-semibold mt-0.5">{userEmail}</p>
-                  <div className="flex md:justify-center items-center gap-3 mt-2">
-                    <div className="text-center">
-                       <p className="text-xs font-bold text-[#002f34]">{totalOrders}</p>
-                       <p className="text-[9px] text-gray-400">Commandes</p>
+                  <h2 className="text-base md:text-2xl font-black text-[#002f34] truncate tracking-tight">{userEmail.split('@')[0]}</h2>
+                  <p className="text-[10px] md:text-xs text-gray-400 font-bold mt-0.5">{userEmail}</p>
+                  
+                  <div className="flex md:justify-center items-center gap-4 mt-2">
+                    <div className="text-left md:text-center">
+                       <p className="text-xs font-black text-[#002f34]">{totalOrders}</p>
+                       <p className="text-[8px] md:text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Commandes</p>
                     </div>
                     <div className="w-px h-5 bg-gray-100" />
-                    <div className="text-center">
-                       <p className="text-xs font-bold text-[#002f34]">{reviews.length}</p>
-                       <p className="text-[9px] text-gray-400">Avis</p>
+                    <div className="text-left md:text-center">
+                       <p className="text-xs font-black text-[#002f34]">{reviews.length}</p>
+                       <p className="text-[8px] md:text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Avis</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="lg:hidden flex items-center gap-2 overflow-x-auto px-4 pb-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {/* Mobile Menu List */}
+            <div className="lg:hidden space-y-2 px-4 pb-10">
+              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
-                { id: 'orders', label: 'Commandes', icon: Package },
-                { id: 'addresses', label: 'Adresses', icon: MapPin },
-                { id: 'reviews', label: 'Avis', icon: Star },
-                { id: 'profile', label: 'Profil', icon: User },
+                { id: 'orders', label: 'Mes commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
+                { id: 'addresses', label: 'Adresses de livraison', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
+                { id: 'reviews', label: 'Mes avis publiés', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
+                { id: 'profile', label: 'Mon profil & Sécurité', icon: User, desc: 'Paramètres du compte' },
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as TabType)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl whitespace-nowrap text-xs font-black transition-all snap-start active:scale-95 ${
-                    activeTab === item.id 
-                      ? 'bg-[#002f34] text-white shadow-xl shadow-gray-900/10' 
-                      : 'bg-white text-gray-500 shadow-sm border border-gray-100 active:bg-gray-50 hover:bg-gray-50'
-                  }`}
+                  onClick={() => handleMobileTabSelect(item.id as TabType)}
+                  className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
-                  <item.icon size={16} fill={activeTab === item.id ? "currentColor" : "none"} />
-                  {item.label}
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-[#f56b2a] transition-colors">
+                      <item.icon size={20} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black text-[#002f34]">{item.label}</p>
+                      <p className="text-[10px] text-gray-400 font-bold">{item.desc}</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300" />
                 </button>
               ))}
+
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-4 p-4 mt-6 text-red-500 font-black text-sm active:scale-[0.98] transition-all"
+              >
+                <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center">
+                  <LogOut size={20} />
+                </div>
+                <span>Déconnexion</span>
+              </button>
             </div>
 
             <div className="hidden lg:block space-y-1">
@@ -386,7 +419,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             </div>
           </div>
 
-          <div className="lg:col-span-3 px-4 md:px-0">
+          <div className={`lg:col-span-3 px-4 md:px-0 ${mobileView === 'menu' ? 'hidden lg:block' : 'block'}`}>
             {activeTab === 'orders' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                 <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes commandes</h2>
@@ -402,22 +435,22 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                 ) : (
                   orders.map((order) => (
                     <div key={order.id} className="bg-white rounded-[28px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
-                      <div className="p-3 border-b border-gray-50 flex items-center justify-between bg-gray-50/10">
-                        <div className="flex items-center gap-2">
-                           <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-50">
-                              <Package className="text-[#f56b2a]" size={16} />
+                      <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/10">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-50">
+                              <Package className="text-[#f56b2a]" size={18} />
                            </div>
                            <div>
-                             <p className="text-[9px] text-gray-400 font-bold">#{order.id.slice(-6)} • {new Date(order.date).toLocaleDateString()}</p>
-                             <p className="text-xs font-bold text-[#002f34]">{Array.isArray(order.stores) ? order.stores[0]?.name : order.stores?.name}</p>
+                             <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">#{order.id.slice(-6)} • {new Date(order.date).toLocaleDateString()}</p>
+                             <p className="text-sm font-black text-[#002f34]">{Array.isArray(order.stores) ? order.stores[0]?.name : order.stores?.name}</p>
                            </div>
                          </div>
-                        <div className={`px-2 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 ${getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).color}`}>
+                        <div className={`px-3 py-1.5 rounded-full text-[10px] font-black flex items-center gap-1.5 ${getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).color}`}>
                           {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).icon}
                           {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).label}
                         </div>
                       </div>
-                      <div className="p-3 space-y-2">
+                      <div className="p-4 space-y-4">
                         {order.order_items?.map((item: any) => {
                           const product = Array.isArray(item.products) ? item.products[0] : item.products;
                           const isStay = product?.business_type === 'stay';
@@ -449,18 +482,18 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                             <div key={item.id} className="group/item border-b border-gray-50 last:border-0 pb-3 last:pb-0">
                               <div className="flex gap-3 items-center justify-between mb-2">
                                 <div className="flex gap-3 items-center flex-1 min-w-0">
-                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100 relative">
+                                  <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden shrink-0 border border-gray-100 relative">
                                     <Image 
                                       src={product?.image} 
                                       alt={product?.name || 'Produit'}
                                       fill
                                       className="object-cover" 
-                                      sizes="40px"
+                                      sizes="48px"
                                     />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-semibold text-[#002f34] truncate">{product?.name}</p>
-                                    <p className="text-[10px] text-gray-400">
+                                    <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
+                                    <p className="text-xs font-bold text-gray-400">
                                        {isStay ? `${stayInfo?.totalNights} nuits` : `${item.quantity} x ${formatCurrency(item.price)}`}
                                     </p>
                                   </div>
@@ -474,9 +507,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                                     });
                                     setShowReviewModal(true);
                                   }}
-                                  className="shrink-0 px-3 py-1.5 bg-gray-50 hover:bg-[#f56b2a] hover:text-white text-[#f56b2a] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                  className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-[#f56b2a] rounded-xl hover:bg-[#f56b2a] hover:text-white transition-all active:scale-90"
+                                  title="Laisser un avis"
                                 >
-                                  Laisser un avis
+                                  <Star size={16} fill="currentColor" />
                                 </button>
                               </div>
                               
@@ -542,29 +576,40 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             )}
 
             {activeTab === 'addresses' && (
-              <div className="space-y-3 animate-in fade-in">
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex items-center justify-between px-1">
-                  <h2 className="text-base font-bold text-[#002f34]">Adresses</h2>
-                  <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-lg text-[10px] font-bold">+ Ajouter</button>
+                  <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes adresses</h2>
+                  <button 
+                    onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} 
+                    className="flex items-center gap-2 px-4 py-2 bg-[#f56b2a] text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-lg shadow-orange-100 active:scale-95 transition-all"
+                  >
+                    <Plus size={16} /> Ajouter
+                  </button>
                 </div>
                 {loading ? renderSkeleton() : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {addresses.map((addr) => (
-                      <div key={addr.id} className={`bg-white p-3.5 rounded-2xl border ${addr.is_default ? 'border-[#f56b2a] shadow-md' : 'border-gray-100 shadow-sm'}`}>
-                         <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                               <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                  {addr.name === 'Maison' ? <Home size={14} /> : <Briefcase size={14} />}
+                      <div key={addr.id} className={`bg-white p-4 rounded-[24px] border transition-all ${addr.is_default ? 'border-[#f56b2a] shadow-md ring-1 ring-[#f56b2a]/10' : 'border-gray-100 shadow-sm'}`}>
+                         <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                               <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                                  {addr.name === 'Maison' ? <Home size={18} /> : addr.name === 'Bureau' ? <Briefcase size={18} /> : <MapPin size={18} />}
                                </div>
-                               <p className="font-bold text-[#002f34] text-xs">{addr.name}</p>
+                               <div>
+                                 <p className="font-black text-[#002f34] text-sm">{addr.name}</p>
+                                 {addr.is_default && <span className="text-[9px] font-black text-[#f56b2a] uppercase tracking-widest">Par défaut</span>}
+                               </div>
                             </div>
-                            <div className="flex gap-1.5">
-                               <button onClick={() => { setEditingAddress(addr); setShowAddressModal(true); }} className="p-1 px-2 text-gray-400"><Edit2 size={12} /></button>
-                               <button onClick={() => handleDeleteAddress(addr.id)} className="p-1 px-2 text-red-500/50"><Trash2 size={12} /></button>
+                            <div className="flex gap-1">
+                               <button onClick={() => { setEditingAddress(addr); setShowAddressModal(true); }} className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-90 transition-all"><Edit2 size={16} /></button>
+                               <button onClick={() => handleDeleteAddress(addr.id)} className="p-2 text-red-300 hover:text-red-500 active:scale-90 transition-all"><Trash2 size={16} /></button>
                             </div>
                          </div>
-                         <p className="text-[11px] font-semibold text-gray-900">{addr.full_name}</p>
-                         <p className="text-[10px] text-gray-500 mt-0.5">{addr.address}, {addr.city}</p>
+                         <div className="pl-[52px]">
+                           <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
+                           <p className="text-[11px] text-gray-500 font-bold mt-1">{addr.address}</p>
+                           <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">{addr.city}</p>
+                         </div>
                       </div>
                     ))}
                   </div>
@@ -601,38 +646,46 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
             )}
 
             {activeTab === 'reviews' && (
-              <div className="space-y-3 animate-in fade-in">
-                <h2 className="text-base font-bold text-[#002f34] px-1">Mes avis</h2>
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes avis</h2>
                 {loading ? renderSkeleton() : reviews.length === 0 ? (
-                  <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-xs">Aucun avis publié.</div>
+                  <div className="bg-white rounded-[32px] p-12 text-center border border-gray-100 shadow-sm">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 text-gray-300">
+                      <Star size={32} />
+                    </div>
+                    <p className="text-sm font-black text-gray-600">Aucun avis publié pour le moment.</p>
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-4">
                     {reviews.map((rev) => {
                       const product = Array.isArray(rev.products) ? rev.products[0] : rev.products;
                       const store = Array.isArray(rev.stores) ? rev.stores[0] : rev.stores;
                       return (
-                        <div key={rev.id} className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-                           <div className="flex gap-3 mb-2">
-                             <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative">
+                        <div key={rev.id} className="bg-white p-4 rounded-[28px] border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                           <div className="flex gap-4 mb-3">
+                             <div className="w-14 h-14 bg-gray-50 rounded-2xl overflow-hidden border border-gray-50 relative shrink-0">
                                <Image 
                                  src={product?.image} 
                                  alt={product?.name || 'Produit'}
                                  fill
                                  className="object-cover" 
-                                 sizes="40px"
+                                 sizes="56px"
                                />
                              </div>
-                             <div className="flex-1">
-                                <p className="text-[8px] text-gray-400 font-bold uppercase">{store?.name || 'Boutique'}</p>
-                                <p className="text-xs font-bold text-[#002f34] truncate">{product?.name}</p>
-                                <div className="flex gap-0.5 mt-0.5">
+                             <div className="flex-1 min-w-0">
+                                <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-widest truncate">{store?.name || 'Boutique'}</p>
+                                <p className="text-sm font-black text-[#002f34] truncate mb-1">{product?.name}</p>
+                                <div className="flex gap-1">
                                    {[...Array(5)].map((_, i) => (
-                                     <Star key={i} size={10} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} />
+                                     <Star key={i} size={12} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} strokeWidth={i < rev.rating ? 0 : 2.5} />
                                    ))}
                                 </div>
                              </div>
                            </div>
-                           <p className="text-[11px] text-gray-600 bg-gray-50/50 p-2.5 rounded-lg italic">"{rev.comment}"</p>
+                           <div className="bg-gray-50/50 p-4 rounded-[20px] relative">
+                             <div className="absolute -top-2 left-4 w-4 h-4 bg-gray-50/50 rotate-45" />
+                             <p className="text-xs font-bold text-gray-600 leading-relaxed italic">"{rev.comment}"</p>
+                           </div>
                         </div>
                       );
                     })}
@@ -645,13 +698,13 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
       </div>
 
       {showAddressModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
            <div className="absolute inset-0 bg-[#002f34]/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-                <h3 className="text-sm font-bold text-[#002f34]">{editingAddress ? 'Modifier' : 'Ajouter'} une adresse</h3>
-                <button onClick={() => setShowAddressModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
-                  <X size={20} />
+           <div className="relative bg-white w-full max-w-sm rounded-t-[32px] md:rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full md:zoom-in-95 flex flex-col max-h-[92vh]">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                <h3 className="text-base font-black text-[#002f34]">{editingAddress ? 'Modifier' : 'Ajouter'} une adresse</h3>
+                <button onClick={() => setShowAddressModal(false)} className="p-2 text-gray-400 hover:text-gray-600 active:scale-90 transition-transform">
+                  <X size={24} />
                 </button>
             </div>
             
@@ -697,10 +750,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
           </div>
         </div>
       )}
-      {showReviewModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+       {showReviewModal && (
+        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center">
            <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md" onClick={() => !isSubmittingReview && setShowReviewModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+           <div className="relative bg-white w-full max-w-sm rounded-t-[40px] md:rounded-[40px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full md:zoom-in-95 flex flex-col">
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white relative">
                   <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f56b2a] mr-3">
                     <Star size={20} fill="currentColor" />
