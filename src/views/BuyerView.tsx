@@ -41,6 +41,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
   const [reviews, setReviews] = useState<any[]>(cachedData?.reviews || []);
   const [loading, setLoading] = useState(!cachedData);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
 
   const { isOnline, isSlow } = useNetworkStatus();
@@ -201,7 +202,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
     onLogout();
   };
 
@@ -823,6 +828,36 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, onBack, notify,
                     Publier mon avis
                   </Button>
               </form>
+           </div>
+        </div>
+      )}
+       {showLogoutModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+           <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowLogoutModal(false)} />
+           <div className="relative bg-white w-full max-w-[320px] rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="p-8 text-center">
+                 <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
+                    <LogOut size={32} />
+                 </div>
+                 <h3 className="text-lg font-black text-[#002f34] mb-2">Déconnexion ?</h3>
+                 <p className="text-xs font-bold text-gray-500 leading-relaxed mb-8">
+                    Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
+                 </p>
+                 <div className="space-y-3">
+                    <button 
+                      onClick={confirmLogout}
+                      className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
+                    >
+                      Oui, me déconnecter
+                    </button>
+                    <button 
+                      onClick={() => setShowLogoutModal(false)}
+                      className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-sm active:scale-95 transition-all"
+                    >
+                      Annuler
+                    </button>
+                 </div>
+              </div>
            </div>
         </div>
       )}
