@@ -3,14 +3,12 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from '@/components/RouterPolyfill';
 import {
-  TrendingUp,
+  BarChart2,
   ShoppingBag,
-  Users,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  BarChart2,
   Calendar,
   Eye,
   Flame,
@@ -21,14 +19,12 @@ import {
   Store
 } from 'lucide-react';
 import Image from 'next/image';
-import { Skeleton } from '@/components/Skeleton';
-import { Order, Product, Customer, StaffRole, StaffPermissions } from '@/types';
+import { Order, Product, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency, formatNumber } from '@/utils';
 
 interface DashboardViewProps {
   orders: Order[];
   products: Product[];
-  customers: Customer[];
   userRole?: StaffRole;
   permissions: StaffPermissions;
   userName?: string;
@@ -63,7 +59,7 @@ const StatCard = ({ title, value, icon, trend, trendValue, color, compact }: any
   </div>
 );
 
-const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, customers, userRole, permissions, userName, store }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRole, permissions, userName, store }) => {
   const router = useRouter();
   const getLocalYMD = (d: Date) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -82,10 +78,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
     setMounted(true);
   }, []);
 
-  const isSeller = userRole === 'SELLER';
-  const totalStock = useMemo(() => (products || []).reduce((s, p) => s + p.stock, 0), [products]);
-
-  // Helper : détecte le vertical d'un produit (gère les deux conventions snake_case / camelCase)
   const getVertical = (product: any): string => {
     if (!product) return 'shopping';
     // Champ direct
@@ -785,37 +777,78 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, custome
           </div>
         </div>
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
-          <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight mb-4 md:mb-6 whitespace-nowrap">Alertes Stock</h3>
+          <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight mb-4 md:mb-6 whitespace-nowrap">
+            {store?.business_type === 'stay' ? 'Logements Non Disponibles' : store?.business_type === 'food' ? 'Plats en Pause' : 'Alertes Stock'}
+          </h3>
           <div className="space-y-3 md:space-y-5">
-            {products.filter(p => p.stock < 15).slice(0, 6).map(product => (
-              <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
-                <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm relative">
-                  <Image 
-                    src={product.image} 
-                    alt={product.name}
-                    fill
-                    sizes="(max-width: 768px) 32px, 48px"
-                    className="object-cover" 
-                  />
-                </div>
-                <div className="flex-grow min-w-0">
-                  <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
-                  <div className="flex items-center gap-2 mt-1 md:mt-1.5">
-                    <div className="flex-grow bg-gray-100 h-1 md:h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-1000 ${product.stock < 5 ? 'bg-red-500' : 'bg-orange-500'}`}
-                        style={{ width: `${Math.min(100, (product.stock / 20) * 100)}%` }}
-                      />
+            {store?.business_type === 'stay' ? (
+              products.filter(p => getVertical(p) === 'stay' && p.stock === 0).length > 0 ? (
+                products.filter(p => getVertical(p) === 'stay' && p.stock === 0).slice(0, 6).map(product => (
+                  <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm relative">
+                      <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 32px, 48px" className="object-cover" />
                     </div>
-                    <span className={`text-[9px] md:text-[10px] font-black whitespace-nowrap ${product.stock < 5 ? 'text-red-500' : 'text-orange-500'}`}>{product.stock}</span>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
+                      <div className="flex items-center gap-2 mt-1 md:mt-1.5">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-[9px] md:text-[10px] font-black text-red-500 whitespace-nowrap">Non disponible</span>
+                      </div>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
+                  Tous les logements sont disponibles
                 </div>
-              </div>
-            ))}
-            {products.filter(p => p.stock < 15).length === 0 && (
-              <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
-                Tous les stocks sont corrects
-              </div>
+              )
+            ) : store?.business_type === 'food' ? (
+              products.filter(p => getVertical(p) === 'food' && p.stock === 0).length > 0 ? (
+                products.filter(p => getVertical(p) === 'food' && p.stock === 0).slice(0, 6).map(product => (
+                  <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm relative">
+                      <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 32px, 48px" className="object-cover" />
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
+                      <div className="flex items-center gap-2 mt-1 md:mt-1.5">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-[9px] md:text-[10px] font-black text-red-500 whitespace-nowrap">En pause</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
+                  Tous les plats sont disponibles
+                </div>
+              )
+            ) : (
+              products.filter(p => (getVertical(p) === 'shopping' || !getVertical(p)) && p.stock < 15).length > 0 ? (
+                products.filter(p => (getVertical(p) === 'shopping' || !getVertical(p)) && p.stock < 15).slice(0, 6).map(product => (
+                  <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm relative">
+                      <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 32px, 48px" className="object-cover" />
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
+                      <div className="flex items-center gap-2 mt-1 md:mt-1.5">
+                        <div className="flex-grow bg-gray-100 h-1 md:h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-1000 ${product.stock < 5 ? 'bg-red-500' : 'bg-orange-500'}`}
+                            style={{ width: `${Math.min(100, (product.stock / 20) * 100)}%` }}
+                          />
+                        </div>
+                        <span className={`text-[9px] md:text-[10px] font-black whitespace-nowrap ${product.stock < 5 ? 'text-red-500' : 'text-orange-500'}`}>{product.stock}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
+                  Tous les stocks sont corrects
+                </div>
+              )
             )}
           </div>
         </div>

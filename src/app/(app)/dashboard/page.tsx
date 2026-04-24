@@ -16,14 +16,13 @@ export default async function DashboardPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, orders, customers, store } = await fetchStoreData(storeId, user.id);
+  const { products, orders, store } = await fetchStoreData(storeId, user.id);
   const { permissions, role } = await getPermissionsForUser(supabase, user.id, storeId);
 
   return (
     <DashboardView 
       products={products as any} 
       orders={orders as any} 
-      customers={customers as any} 
       store={store}
       userName={store?.name || user.email?.split('@')[0]}
       userRole={role as any}

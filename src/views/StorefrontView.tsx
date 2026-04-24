@@ -51,6 +51,11 @@ import {
   Tag,
   Calendar,
   Users,
+  Snowflake,
+  Monitor,
+  UtensilsCrossed,
+  Waves,
+  Battery
 } from "lucide-react";
 import {
   StoreData,
@@ -2131,23 +2136,25 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             }`}
                           >
                             {(() => {
-                              if (
-                                selectedProductDetails.options &&
-                                selectedProductDetails.options.length > 0
-                              ) {
-                                const variant =
-                                  selectedProductDetails.variants?.find(
-                                    (v) =>
-                                      JSON.stringify(v.optionValues) ===
-                                      JSON.stringify(selectedOptions),
-                                  );
-                                if (variant)
-                                  return formatCurrency(variant.price);
+                              const options = selectedProductDetails.options || [];
+                              const hasOptions = options.length > 0;
+                              const allSelected = hasOptions && options.every((o) => !!selectedOptions[o.id]);
+                              const variant = hasOptions && selectedProductDetails.variants?.find(
+                                (v) =>
+                                  JSON.stringify(v.optionValues) ===
+                                  JSON.stringify(selectedOptions),
+                              );
+                              
+                              if (variant) {
+                                return formatCurrency(variant.price);
+                              }
+                              if (hasOptions && allSelected) {
+                                return formatCurrency(selectedProductDetails.price);
+                              }
+                              if (hasOptions) {
                                 return `À partir de ${formatCurrency(selectedProductDetails.price)}`;
                               }
-                              return formatCurrency(
-                                selectedProductDetails.price,
-                              );
+                              return formatCurrency(selectedProductDetails.price);
                             })()}
                           </span>
                           {isStay && (
@@ -2574,21 +2581,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                   {
                                     id: "ac",
                                     label: "Climatisation",
-                                    icon: <Clock size={16} />,
-                                    color: "text-indigo-500",
-                                    bg: "bg-indigo-50/50",
+                                    icon: <Snowflake size={16} />,
+                                    color: "text-cyan-500",
+                                    bg: "bg-cyan-50/50",
                                   },
                                   {
                                     id: "generator",
                                     label: "Électricité H24",
-                                    icon: <Zap size={16} />,
+                                    icon: <Battery size={16} />,
                                     color: "text-yellow-500",
                                     bg: "bg-yellow-50/50",
                                   },
                                   {
                                     id: "canalplus",
                                     label: "Canal+ / Smart TV",
-                                    icon: <Package size={16} />,
+                                    icon: <Monitor size={16} />,
                                     color: "text-blue-600",
                                     bg: "bg-blue-500/10",
                                   },
@@ -2602,14 +2609,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                                   {
                                     id: "pool",
                                     label: "Piscine Privée",
-                                    icon: <MapPin size={16} />,
-                                    color: "text-cyan-500",
+                                    icon: <Waves size={16} />,
+                                    color: "text-cyan-600",
                                     bg: "bg-cyan-50/50",
                                   },
                                   {
                                     id: "kitchen",
                                     label: "Cuisine Équipée",
-                                    icon: <Package size={16} />,
+                                    icon: <UtensilsCrossed size={16} />,
                                     color: "text-orange-500",
                                     bg: "bg-orange-50/50",
                                   },
@@ -2684,25 +2691,46 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         {isFood ? "Fraîcheur" : isStay ? "Vérifié" : "Garantie"}
                       </span>
                     </div>
-                    <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
-                      <Truck
-                        size={16}
-                        className={
-                          isFood
-                            ? "text-green-500"
-                            : isStay
-                              ? "text-blue-500"
-                              : "text-[#f56b2a]"
-                        }
-                      />
-                      <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">
-                        {isFood
-                          ? "Livraison 🚀"
-                          : isStay
-                            ? "Check-in"
-                            : "Livraison"}
-                      </span>
-                    </div>
+                    {isStay ? (
+                      <div className="flex-shrink-0 flex items-center gap-2 bg-blue-50/50 px-3 py-2 rounded-xl border border-blue-100">
+                        <Calendar size={14} className="text-blue-500" />
+                        <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">
+                          Réservation Flexible
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
+                        <Truck
+                          size={16}
+                          className={
+                            isFood
+                              ? "text-green-500"
+                              : isStay
+                                ? "text-blue-500"
+                                : "text-[#f56b2a]"
+                          }
+                        />
+                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                          {isFood ? "Livraison Express" : "Livraison Disponible"}
+                        </span>
+                      </div>
+                    )}
+                    {!isStay && selectedProductDetails.stock > 0 && (
+                      <div className="flex-shrink-0 flex items-center gap-2 bg-green-50/50 px-3 py-2 rounded-xl border border-green-100">
+                        <CheckCircle2 size={14} className="text-green-500" />
+                        <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">
+                          En Stock ({selectedProductDetails.stock})
+                        </span>
+                      </div>
+                    )}
+                    {!isStay && selectedProductDetails.stock === 0 && (
+                      <div className="flex-shrink-0 flex items-center gap-2 bg-red-50/50 px-3 py-2 rounded-xl border border-red-100">
+                        <AlertCircle size={14} className="text-red-500" />
+                        <span className="text-[8px] font-black text-red-600 uppercase tracking-widest">
+                          Rupture de Stock
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <Button
@@ -3577,7 +3605,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       (s) => s.id === completedOrderStores[0].storeId,
                     );
                     const storePhone = store?.phone || store?.settings?.phone;
-                    if (completedOrderStores.length === 1 && storePhone) {
+                    if (completedOrderStores.length === 1 && storePhone && completedOrderItems.length > 0) {
                       const waMsg = `📦 NOUVELLE COMMANDE #${Date.now().toString().slice(-6)}\n\nClient: ${customerInfo.name || "Anonyme"}\nTéléphone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Espèces" : "Carte"}`;
                       const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
 
