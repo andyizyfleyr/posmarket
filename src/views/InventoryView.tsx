@@ -780,32 +780,36 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
               {currentStep === 1 && (
                 <div className="animate-in slide-in-from-right-4 duration-300">
-                  <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Type de Publication</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
-                    {[
-                      { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', bg: 'bg-orange-50/30', text: 'text-orange-500' },
-                      { id: 'food', label: 'Resto', icon: Zap, color: 'yellow', border: 'border-yellow-500', bg: 'bg-yellow-50/30', text: 'text-yellow-500' },
-                      { id: 'stay', label: 'Séjour', icon: Store, color: 'blue', border: 'border-blue-500', bg: 'bg-blue-50/30', text: 'text-blue-500' }
-                    ].map(v => (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => {
-                          const updates: any = { businessType: v.id };
-                          if (v.id === 'stay') {
-                            updates.unit = 'nuitée';
-                            updates.mainCategory = 'Séjours, Expériences & Immobilier';
-                            updates.stock = 1; 
-                          }
-                          setFormData({ ...formData, ...updates });
-                        }}
-                        className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `${v.border} ${v.bg}` : 'border-gray-100'}`}
-                      >
-                        <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? v.text : 'text-gray-400'}`} />
-                        <span className="text-[10px] font-black uppercase">{v.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {!editingProduct && (
+                    <>
+                      <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Type de Publication</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+                        {[
+                          { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', bg: 'bg-orange-50/30', text: 'text-orange-500' },
+                          { id: 'food', label: 'Resto', icon: Zap, color: 'yellow', border: 'border-yellow-500', bg: 'bg-yellow-50/30', text: 'text-yellow-500' },
+                          { id: 'stay', label: 'Séjour', icon: Store, color: 'blue', border: 'border-blue-500', bg: 'bg-blue-50/30', text: 'text-blue-500' }
+                        ].map(v => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => {
+                              const updates: any = { businessType: v.id };
+                              if (v.id === 'stay') {
+                                updates.unit = 'nuitée';
+                                updates.mainCategory = 'Séjours, Expériences & Immobilier';
+                                updates.stock = 1; 
+                              }
+                              setFormData({ ...formData, ...updates });
+                            }}
+                            className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `${v.border} ${v.bg}` : 'border-gray-100'}`}
+                          >
+                            <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? v.text : 'text-gray-400'}`} />
+                            <span className="text-[10px] font-black uppercase">{v.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                   <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Canaux de vente</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
