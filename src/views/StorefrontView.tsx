@@ -881,19 +881,27 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [fusionPayApiUrl, notify],
   );
 
-  // Reset checkout stage based on cart view state
-  React.useEffect(() => {
-    if (isCartView) {
-      if (checkoutStage === "success") {
-        setCheckoutStage("cart");
-        setCompletedOrderStores([]);
-        setCompletedOrderItems([]);
-        setCompletedOrderTotal(0);
-      }
-    } else {
+  // Reset checkout stage based on navigation (but NOT when success is set)
+  const successStageRef = useRef(false);
+  
+  // Track when success is shown
+  useEffect(() => {
+    const stage = checkoutStage as string;
+    if (stage === "success") {
+      successStageRef.current = true;
+    }
+  }, [checkoutStage]);
+  
+  useEffect(() => {
+    // Reset ONLY when leaving cart view AND we're not on success
+    if (!isCartView && !successStageRef.current) {
       if (checkoutStage !== "cart") {
         setCheckoutStage("cart");
       }
+    }
+    // When entering cart view, clear success ref (allow resets now)
+    if (isCartView) {
+      successStageRef.current = false;
     }
   }, [isCartView, checkoutStage]);
 
