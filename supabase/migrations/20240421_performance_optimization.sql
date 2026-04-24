@@ -80,6 +80,9 @@ BEGIN
     IF NOT FOUND THEN
       RAISE EXCEPTION 'Stock insuffisant pour % (Disponible: %)', v_old_p.name, v_old_p.stock;
     END IF;
+  ELSE
+    -- 🍔 UBEREATS: Pas de gestion de stock
+    NULL;
   END IF;
 
   -- 📝 AUDIT LOG

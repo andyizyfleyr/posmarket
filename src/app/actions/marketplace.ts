@@ -207,26 +207,7 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
 
         if (itemErr) throw itemErr;
 
-        // 4. Update Stock (only for physical/shopping products)
-        const { data: productForStock } = await supabase.from('products').select('business_type').eq('id', item.product.id).single();
-        if (productForStock?.business_type === 'shopping') {
-          const { error: stockErr } = await supabase.rpc('decrement_stock', {
-            p_id: item.product.id,
-            p_quantity: item.quantity
-          });
-
-          if (stockErr) {
-            console.warn('RPC decrement_stock failed, falling back to manual update:', stockErr.message);
-            const { data: product } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
-            if (product) {
-              await supabase.from('products').update({
-                stock: Math.max(0, (product.stock || 0) - item.quantity)
-              }).eq('id', item.product.id);
-            }
-          }
-        }
-
-        // 5. Handle Stay Bookings - Block availability slots in DB
+        // 4. Handle Stay Bookings - Block availability slots in DB
         if (item.checkIn && item.checkOut) {
           try {
             const start = new Date(item.checkIn);

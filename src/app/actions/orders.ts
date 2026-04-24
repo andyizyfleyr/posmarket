@@ -36,16 +36,16 @@ export async function createOrderAction(order: any, storeId: string) {
         const { error: itemsErr } = await supabase.from('order_items').insert(orderItems);
         if (itemsErr) throw itemsErr;
 
-        // 3. Update Product Stocks (only for shopping/physical products)
+        // 3. Update Product Sales Count (only for shopping - no stock for food/stay)
         for (const item of order.items) {
-            // Skip stock deduction for food (UberEats) and stay (Airbnb)
+            if (!item.product.id) continue;
+            
             const businessType = item.product.business_type || item.product.businessType;
             if (businessType !== 'shopping') continue;
             
-            const { data: product } = await supabase.from('products').select('stock, sales_count').eq('id', item.product.id).single()
+            const { data: product } = await supabase.from('products').select('sales_count').eq('id', item.product.id).single()
             if (product) {
                 await supabase.from('products').update({
-                    stock: Math.max(0, (product.stock || 0) - item.quantity),
                     sales_count: (product.sales_count || 0) + item.quantity
                 }).eq('id', item.product.id)
             }
