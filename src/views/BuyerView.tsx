@@ -381,8 +381,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
               </div>
             </div>
 
-            {/* Mobile Menu List - Utilise window.location pour forcer le reload */}
-            <div className="lg:hidden space-y-2 px-4 pb-10">
+            {/* Mobile Menu List */}
+            <div className="lg:hidden space-y-2 px-4 pb-safe">
               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
                 { id: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
@@ -392,7 +392,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => { window.location.href = item.path; }}
+                  onClick={() => navigate(item.path)}
                   className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
                   <div className="flex items-center gap-4">
@@ -438,7 +438,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
 
           <div className={`lg:col-span-3 px-4 md:px-0 ${mobileView === 'menu' ? 'hidden lg:block' : 'block'}`}>
             {activeTab === 'orders' && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <div className="space-y-4">
                 <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes commandes</h2>
                 
                 {loading ? renderSkeleton() : orders.length === 0 ? (
@@ -457,10 +457,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-50">
                               <Package className="text-[#f56b2a]" size={18} />
                            </div>
-                           <div>
-                             <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">#{order.id.slice(-6)} • {new Date(order.date).toLocaleDateString()}</p>
-                             <p className="text-sm font-black text-[#002f34]">{Array.isArray(order.stores) ? order.stores[0]?.name : order.stores?.name}</p>
-                           </div>
+<div>
+                              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">#{order.id.slice(-6)} • {(() => { try { return new Date(order.date).toLocaleDateString('fr-FR'); } catch { return 'Date invalide'; } })()}</p>
+                              <p className="text-sm font-black text-[#002f34]">{(() => { const stores = order.stores; return Array.isArray(stores) ? stores[0]?.name : stores?.name || 'Boutique'; })()}</p>
+                            </div>
                          </div>
                         <div className={`px-3 py-1.5 rounded-full text-[10px] font-black flex items-center gap-1.5 ${getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).color}`}>
                           {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).icon}
@@ -593,7 +593,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
             )}
 
             {activeTab === 'addresses' && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <div className="space-y-4 ">
                 <div className="flex items-center justify-between px-1">
                   <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes adresses</h2>
                   <button 
@@ -623,7 +623,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {addresses.map((addr) => (
                       <div key={addr.id} className={`bg-white p-4 rounded-[24px] border transition-all ${addr.is_default ? 'border-[#f56b2a] shadow-md ring-1 ring-[#f56b2a]/10' : 'border-gray-100 shadow-sm'}`}>
                          <div className="flex items-start justify-between mb-3">
@@ -654,7 +654,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
             )}
 
             {activeTab === 'profile' && (
-               <div className="space-y-3 animate-in fade-in">
+               <div className="space-y-3 ">
                   <h2 className="text-base font-bold text-[#002f34] px-1">Profil & Paramètres</h2>
                   <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-4">
                        <div className="flex items-center gap-3">
@@ -682,7 +682,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
             )}
 
             {activeTab === 'reviews' && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <div className="space-y-4 ">
                 <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes avis</h2>
                 {loading ? renderSkeleton() : reviews.length === 0 ? (
                   <div className="bg-white rounded-[32px] p-12 text-center border border-gray-100 shadow-sm">
@@ -736,7 +736,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
       {showAddressModal && (
         <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
            <div className="absolute inset-0 bg-[#002f34]/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-t-[32px] md:rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full md:zoom-in-95 flex flex-col max-h-[85vh] md:max-h-[92vh]">
+           <div className="relative bg-white w-full max-w-sm rounded-t-[32px] md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[85vh] md:max-h-[92vh]">
              <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                 <h3 className="text-base font-black text-[#002f34]">{editingAddress ? 'Modifier' : 'Ajouter'} une adresse</h3>
                 <button onClick={() => setShowAddressModal(false)} className="p-2 text-gray-400 hover:text-gray-600 active:scale-90 transition-transform">
@@ -789,7 +789,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
        {showReviewModal && (
         <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center">
            <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md" onClick={() => !isSubmittingReview && setShowReviewModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-t-[40px] md:rounded-[40px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full md:zoom-in-95 flex flex-col">
+           <div className="relative bg-white w-full max-w-sm rounded-t-[40px] md:rounded-[40px] overflow-hidden shadow-2xl flex flex-col">
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white relative">
                   <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f56b2a] mr-3">
                     <Star size={20} fill="currentColor" />
@@ -864,8 +864,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
       )}
        {showLogoutModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
-           <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowLogoutModal(false)} />
-           <div className="relative bg-white w-full max-w-[320px] rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+           <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md  duration-300" onClick={() => setShowLogoutModal(false)} />
+           <div className="relative bg-white w-full max-w-[320px] rounded-[32px] overflow-hidden shadow-2xl ">
               <div className="p-8 text-center">
                  <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
                     <LogOut size={32} />
