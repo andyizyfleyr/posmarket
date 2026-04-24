@@ -39,7 +39,8 @@ type TabType = 'orders' | 'addresses' | 'reviews' | 'profile';
 
 export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
-  const [mobileView, setMobileView] = useState<'menu' | 'detail'>('detail');
+  const [mobileView, setMobileView] = useState<'menu' | 'detail'>('menu');
+  const [showContent, setShowContent] = useState(false);
   const [orders, setOrders] = useState<any[]>(cachedData?.orders || []);
   const [addresses, setAddresses] = useState<any[]>(cachedData?.addresses || []);
   const [reviews, setReviews] = useState<any[]>(cachedData?.reviews || []);
@@ -88,7 +89,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   const handleTabNavigation = (tabId: string) => {
     const mappedTab = tabMap[tabId] || 'orders';
     setActiveTab(mappedTab);
-    setMobileView('detail'); // Switch to detail view on mobile
+    setMobileView('detail');
+    setShowContent(true); // Show content overlay on mobile
     nextRouter.push(`/mon-compte/${tabId}`);
   };
 
@@ -427,7 +429,104 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
             </div>
           </div>
 
-          <div className="lg:col-span-3 px-4 md:px-0">
+          {/* Mobile Content Overlay - shown when clicking menu item */}
+          {showContent && (
+            <div className="lg:hidden fixed inset-0 top-16 z-[800] bg-white overflow-y-auto pb-24">
+              <button 
+                onClick={() => setShowContent(false)}
+                className="sticky top-0 w-full flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-500 hover:text-gray-700"
+              >
+                <ChevronRight size={16} className="rotate-180" />
+                Retour au menu
+              </button>
+              
+              <div className="px-4 py-4">
+                {activeTab === 'orders' && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes commandes</h2>
+                    {loading ? renderSkeleton() : orders.length === 0 ? (
+                      <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
+                        <Package size={40} className="mx-auto mb-4 text-gray-300" />
+                        <p className="text-sm font-bold text-gray-500">Aucune commande</p>
+                      </div>
+                    ) : (
+                      orders.map((order) => (
+                        <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="text-[10px] text-gray-400 font-black">#{order.id.slice(-6)}</p>
+                              <p className="text-sm font-black text-[#002f34]">{(() => { const stores = order.stores; return Array.isArray(stores) ? stores[0]?.name : stores?.name || 'Boutique'; })()}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-[9px] font-black ${getStatusInfo(order.status).color}`}>
+                              {getStatusInfo(order.status).label}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-gray-500">{formatCurrency(order.total)}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'addresses' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-black text-[#002f34]">Mes adresses</h2>
+                      <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="text-xs font-black text-[#f56b2a]">+ Ajouter</button>
+                    </div>
+                    {addresses.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MapPin size={40} className="mx-auto mb-4 text-gray-300" />
+                        <p className="text-sm font-bold text-gray-500">Aucune adresse</p>
+                      </div>
+                    ) : (
+                      addresses.map((addr) => (
+                        <div key={addr.id} className="bg-white rounded-2xl p-4 border border-gray-100">
+                          <p className="font-black text-sm text-[#002f34]">{addr.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">{addr.address}, {addr.city}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'reviews' && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-black text-[#002f34]">Mes avis</h2>
+                    {reviews.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Star size={40} className="mx-auto mb-4 text-gray-300" />
+                        <p className="text-sm font-bold text-gray-500">Aucun avis</p>
+                      </div>
+                    ) : (
+                      reviews.map((rev) => (
+                        <div key={rev.id} className="bg-white rounded-2xl p-4 border border-gray-100">
+                          <p className="text-sm font-black text-[#002f34]">{rev.comment || 'Sans commentaire'}</p>
+                          <div className="flex mt-2">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={12} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} />
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'profile' && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-black text-[#002f34]">Mon profil</h2>
+                    <div className="bg-white rounded-2xl p-4 border border-gray-100">
+                      <p className="text-sm font-black text-[#002f34]">{userEmail}</p>
+                      <button onClick={handleLogout} className="mt-4 text-xs font-bold text-red-500">Se déconnecter</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="lg:col-span-3 px-4 md:px-0 hidden lg:block">
             {activeTab === 'orders' && (
               <div className="space-y-4">
                 <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes commandes</h2>
