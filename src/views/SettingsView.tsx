@@ -257,6 +257,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const handleSubmitStaff = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!newStaffEmail || !newStaffPassword) {
+            if (notify) notify("Email et mot de passe sont requis", 'error');
+            return;
+        }
+        
+        if (newStaffPassword.length < 6) {
+            if (notify) notify("Le mot de passe doit contenir au moins 6 caractères", 'error');
+            return;
+        }
+        
         setIsSubmittingStaff(true);
         try {
             const result = await addStaffAction({
@@ -313,12 +324,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 if (notify) notify("Erreur lors de l'optimisation de l'image", "error");
             }
         }
-    };
-
-
-
-    const handleNotImplemented = (feature: string) => {
-        if (notify) notify(`La fonctionnalité "${feature}" n'est pas encore disponible.`, 'info');
     };
 
     const handleDeleteStaffLocal = async (id: string) => {
@@ -419,8 +424,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
                                             <select
                                                 className="w-full pl-10 md:pl-11 pr-10 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all appearance-none cursor-pointer"
-                                                value={localSettings.address}
-                                                onChange={(e) => setLocalSettings(prev => ({ ...prev, address: e.target.value }))}
+                                                value={localSettings.country || ''}
+                                                onChange={(e) => setLocalSettings(prev => ({ ...prev, country: e.target.value }))}
                                             >
                                                 <option value="">Sélectionnez un pays</option>
                                                 <option value="Bénin">Bénin</option>
@@ -437,7 +442,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             <FileText className="absolute left-3.5 top-3 text-gray-300 md:size-4" size={14} />
                                             <textarea
                                                 className="w-full pl-10 md:pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all resize-none min-h-[100px] no-global-border"
-                                                placeholder="Décrivez votre univers (lettres uniquement, max 250 car.)..."
+                                                placeholder="Décrivez votre univers (lettres, espaces et points uniquement, max 250 car.)..."
                                                 maxLength={250}
                                                 value={localSettings.description || ''}
                                                 onChange={(e) => {

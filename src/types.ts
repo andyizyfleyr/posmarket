@@ -140,6 +140,7 @@ export interface StoreSettings {
   email: string;
   phone: string;
   address: string;
+  country?: string;
   ninea: string;
   logo?: string;
   currency?: string;

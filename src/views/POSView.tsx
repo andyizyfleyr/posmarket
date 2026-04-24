@@ -386,7 +386,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'IN_STORE', label: 'En Magasin', icon: <ShoppingBasket size={14} /> },
-                    { id: 'PICKUP', label: 'C&C', icon: <Clock size={14} /> }
+                    { id: 'PICKUP', label: 'Click & Collect', icon: <Clock size={14} /> }
                   ].map((type) => (
                     <button
                       key={type.id}

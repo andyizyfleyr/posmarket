@@ -65,7 +65,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
 
   // Sync activeTab from URL
   useEffect(() => {
-    console.log('[BuyerView] accountTab:', accountTab, 'activeTab:', activeTab);
     if (accountTab) {
       const tabMap: Record<string, TabType> = {
         'commandes': 'orders',
@@ -74,7 +73,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
         'profil': 'profile'
       };
       const newTab = tabMap[accountTab];
-      console.log('[BuyerView] mapping:', accountTab, '->', newTab);
       if (newTab) {
         setActiveTab(newTab);
       }
