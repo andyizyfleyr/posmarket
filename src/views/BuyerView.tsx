@@ -444,24 +444,63 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                 {activeTab === 'orders' && (
                   <div className="space-y-4">
                     <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes commandes</h2>
+                    
                     {loading ? renderSkeleton() : orders.length === 0 ? (
                       <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
-                        <Package size={40} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-sm font-bold text-gray-500">Aucune commande</p>
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Package size={32} className="text-gray-300" />
+                        </div>
+                        <p className="text-sm font-bold text-gray-500">Aucune commande trouvée</p>
+                        <p className="text-xs text-gray-400 mt-2">Vos commandes apparaîtront ici une fois validées.</p>
                       </div>
                     ) : (
                       orders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <p className="text-[10px] text-gray-400 font-black">#{order.id.slice(-6)}</p>
-                              <p className="text-sm font-black text-[#002f34]">{(() => { const stores = order.stores; return Array.isArray(stores) ? stores[0]?.name : stores?.name || 'Boutique'; })()}</p>
+                        <div key={order.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                          <div className="p-4 border-b border-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
+                                <Package size={18} className="text-[#f56b2a]" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-gray-400 font-black uppercase">#{order.id.slice(-6)} • {(() => { try { return new Date(order.date).toLocaleDateString('fr-FR'); } catch { return ''; } })()}</p>
+                                <p className="text-sm font-black text-[#002f34]">{(() => { const stores = order.stores; return Array.isArray(stores) ? stores[0]?.name : stores?.name || 'Boutique'; })()}</p>
+                              </div>
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-[9px] font-black ${getStatusInfo(order.status).color}`}>
-                              {getStatusInfo(order.status).label}
-                            </span>
+                            <div className={`px-3 py-1.5 rounded-full text-[10px] font-black flex items-center gap-1 ${getStatusInfo(order.status, order.order_items?.[0]?.products?.business_type).color}`}>
+                              {getStatusInfo(order.status, order.order_items?.[0]?.products?.business_type).icon}
+                              {getStatusInfo(order.status, order.order_items?.[0]?.products?.business_type).label}
+                            </div>
                           </div>
-                          <p className="text-xs font-bold text-gray-500">{formatCurrency(order.total)}</p>
+                          <div className="p-4 space-y-3">
+                            {order.order_items?.map((item: any) => {
+                              const product = Array.isArray(item.products) ? item.products[0] : item.products;
+                              const isStay = product?.business_type === 'stay';
+                              return (
+                                <div key={item.id} className="flex items-center gap-3">
+                                  <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden relative shrink-0">
+                                    {product?.image && <Image src={product.image} alt={product?.name || ''} fill className="object-cover" sizes="48px" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
+                                    <p className="text-xs text-gray-500">{isStay ? 'Séjour' : `${item.quantity} x ${formatCurrency(item.price)}`}</p>
+                                  </div>
+                                  <button 
+                                    onClick={() => {
+                                      setReviewData({ rating: 5, comment: '', product: { ...product, store_id: order.store_id, business_type: product?.business_type } });
+                                      setShowReviewModal(true);
+                                    }}
+                                    className="w-9 h-9 bg-orange-50 text-[#f56b2a] rounded-xl flex items-center justify-center shrink-0"
+                                  >
+                                    <Star size={14} fill="currentColor" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="px-4 py-3 bg-gray-50 border-t border-gray-50 flex justify-between">
+                            <span className="text-xs text-gray-400 font-bold">Total</span>
+                            <span className="text-sm font-black text-[#002f34]">{formatCurrency(order.total)}</span>
+                          </div>
                         </div>
                       ))
                     )}
@@ -472,18 +511,49 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-black text-[#002f34]">Mes adresses</h2>
-                      <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="text-xs font-black text-[#f56b2a]">+ Ajouter</button>
+                      <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-lg text-xs font-black flex items-center gap-1">
+                        <Plus size={12} /> Ajouter
+                      </button>
                     </div>
-                    {addresses.length === 0 ? (
-                      <div className="text-center py-8">
+                    {loading ? (
+                      <div className="space-y-3">
+                        {[1,2].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse" />)}
+                      </div>
+                    ) : addresses.length === 0 ? (
+                      <div className="text-center py-12">
                         <MapPin size={40} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-sm font-bold text-gray-500">Aucune adresse</p>
+                        <p className="text-sm font-bold text-gray-500 mb-4">Aucune adresse enregistrée</p>
+                        <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="px-5 py-2.5 bg-[#f56b2a] text-white rounded-xl text-xs font-black">
+                          <Plus size={14} className="inline mr-1" /> Ajouter une adresse
+                        </button>
                       </div>
                     ) : (
                       addresses.map((addr) => (
-                        <div key={addr.id} className="bg-white rounded-2xl p-4 border border-gray-100">
-                          <p className="font-black text-sm text-[#002f34]">{addr.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">{addr.address}, {addr.city}</p>
+                        <div key={addr.id} className={`bg-white rounded-2xl p-4 border ${addr.is_default ? 'border-[#f56b2a] ring-1 ring-[#f56b2a]/10' : 'border-gray-100'}`}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+                                {addr.name === 'Maison' ? <Home size={18} /> : addr.name === 'Bureau' ? <Briefcase size={18} /> : <MapPin size={18} />}
+                              </div>
+                              <div>
+                                <p className="font-black text-[#002f34]">{addr.name}</p>
+                                {addr.is_default && <span className="text-[9px] font-black text-[#f56b2a] uppercase">Par défaut</span>}
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <button onClick={() => { setEditingAddress(addr); setShowAddressModal(true); }} className="p-2 text-gray-400">
+                                <Edit2 size={14} />
+                              </button>
+                              <button onClick={() => handleDeleteAddress(addr.id)} className="p-2 text-red-300">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="pl-[52px]">
+                            <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
+                            <p className="text-[11px] text-gray-500 font-bold">{addr.address}</p>
+                            <p className="text-[11px] text-gray-400 font-bold uppercase">{addr.city}</p>
+                          </div>
                         </div>
                       ))
                     )}
@@ -493,22 +563,41 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                 {activeTab === 'reviews' && (
                   <div className="space-y-4">
                     <h2 className="text-lg font-black text-[#002f34]">Mes avis</h2>
-                    {reviews.length === 0 ? (
-                      <div className="text-center py-8">
+                    {loading ? (
+                      <div className="space-y-3">
+                        {[1,2].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse" />)}
+                      </div>
+                    ) : reviews.length === 0 ? (
+                      <div className="text-center py-12">
                         <Star size={40} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-sm font-bold text-gray-500">Aucun avis</p>
+                        <p className="text-sm font-bold text-gray-500">Aucun avis publié</p>
                       </div>
                     ) : (
-                      reviews.map((rev) => (
-                        <div key={rev.id} className="bg-white rounded-2xl p-4 border border-gray-100">
-                          <p className="text-sm font-black text-[#002f34]">{rev.comment || 'Sans commentaire'}</p>
-                          <div className="flex mt-2">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} size={12} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} />
-                            ))}
+                      reviews.map((rev) => {
+                        const product = Array.isArray(rev.products) ? rev.products[0] : rev.products;
+                        const store = Array.isArray(rev.stores) ? rev.stores[0] : rev.stores;
+                        return (
+                          <div key={rev.id} className="bg-white rounded-2xl p-4 border border-gray-100">
+                            <div className="flex gap-4 mb-3">
+                              <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden relative shrink-0">
+                                {product?.image && <Image src={product.image} alt={product?.name || ''} fill className="object-cover" sizes="56px" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[9px] text-[#f56b2a] font-black uppercase">{store?.name || 'Boutique'}</p>
+                                <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
+                                <div className="flex gap-0.5 mt-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star key={i} size={12} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} strokeWidth={i < rev.rating ? 0 : 2.5} />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                              <p className="text-xs font-bold text-gray-600 italic">"{rev.comment}"</p>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 )}
