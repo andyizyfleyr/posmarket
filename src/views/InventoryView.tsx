@@ -180,8 +180,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setIsLoadingMore(false);
   };
 
-  const [skipStepOne, setSkipStepOne] = useState(false);
-
   const handleOpenModal = (product?: Product, type?: 'pos' | 'store') => {
     // Check product limits for non-edit mode
     if (!product && subscription) {
@@ -195,8 +193,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
     if (product) {
       setEditingProduct(product);
-      setSkipStepOne(true);
-      setCurrentStep(2);
+      setCurrentStep(1);
       const initialFormData: Partial<Product> & { isOnline: boolean, images: string[] } = {
         name: product.name || '',
         price: product.price ?? undefined,
@@ -246,13 +243,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         variants: []
       });
 
-      if (type) {
-        setSkipStepOne(true);
-        setCurrentStep(2); // Start directly at info
-      } else {
-        setSkipStepOne(false);
-        setCurrentStep(1);
-      }
+      setCurrentStep(1);
     }
     setIsModalOpen(true);
   };
@@ -743,9 +734,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center justify-between mb-4 md:mb-8">
                 <div>
                   <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">
-                    {editingProduct ? 'Modifier' : skipStepOne ? (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)') : 'Nouveau Produit'}
+                    {editingProduct ? 'Modifier' : (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)')}
                   </h2>
-                  <p className="text-gray-400 text-[10px] md:text-xs font-bold mt-1 whitespace-nowrap">Étape {currentStep} sur {editingProduct || skipStepOne ? 3 : 4}</p>
+                  <p className="text-gray-400 text-[10px] md:text-xs font-bold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
                   <X size={18} className="md:size-6" />
@@ -756,10 +747,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center justify-between relative px-1 md:px-2">
                 <div className="absolute top-1/2 left-0 right-0 h-px md:h-0.5 bg-gray-100 -translate-y-1/2 z-0 mx-6 md:mx-8" />
                 {[
-                  { s: 1, icon: Globe, label: 'Canaux' },
-                  { s: 2, icon: Tag, label: 'Infos' },
-                  { s: 3, icon: DollarSign, label: 'Prix' },
-                  { s: 4, icon: ImageIcon, label: 'Médias' }
+                  { s: 1, icon: Tag, label: 'Infos' },
+                  { s: 2, icon: DollarSign, label: 'Prix' },
+                  { s: 3, icon: ImageIcon, label: 'Médias' }
                 ].map((step) => (
                   <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
                     <div className={`
@@ -779,72 +769,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
             <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
               {currentStep === 1 && (
-                <div className="animate-in slide-in-from-right-4 duration-300">
-                  {!editingProduct && (
-                    <>
-                      <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Type de Publication</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
-                        {[
-                          { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', bg: 'bg-orange-50/30', text: 'text-orange-500' },
-                          { id: 'food', label: 'Resto', icon: Zap, color: 'yellow', border: 'border-yellow-500', bg: 'bg-yellow-50/30', text: 'text-yellow-500' },
-                          { id: 'stay', label: 'Séjour', icon: Store, color: 'blue', border: 'border-blue-500', bg: 'bg-blue-50/30', text: 'text-blue-500' }
-                        ].map(v => (
-                          <button
-                            key={v.id}
-                            type="button"
-                            onClick={() => {
-                              const updates: any = { businessType: v.id };
-                              if (v.id === 'stay') {
-                                updates.unit = 'nuitée';
-                                updates.mainCategory = 'Séjours, Expériences & Immobilier';
-                                updates.stock = 1; 
-                              }
-                              setFormData({ ...formData, ...updates });
-                            }}
-                            className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.businessType === v.id ? `${v.border} ${v.bg}` : 'border-gray-100'}`}
-                          >
-                            <v.icon size={24} className={`mx-auto mb-2 ${formData.businessType === v.id ? v.text : 'text-gray-400'}`} />
-                            <span className="text-[10px] font-black uppercase">{v.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {!editingProduct && (
-                    <>
-                      <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Canaux de vente</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, isOnline: false })}
-                          className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${!formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
-                        >
-                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${!formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
-                            <Monitor size={18} className="md:size-6" />
-                          </div>
-                          <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Point de Vente</h4>
-                          <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique uniquement.</p>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, isOnline: true })}
-                          className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
-                        >
-                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
-                            <Globe size={18} className="md:size-6" />
-                          </div>
-                          <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Store + POS</h4>
-                          <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique et en ligne.</p>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {currentStep === 2 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
@@ -978,7 +902,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
               )}
 
-              {currentStep === 3 && (
+              {currentStep === 2 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
@@ -1408,7 +1332,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
               )}
 
-              {currentStep === 4 && (
+              {currentStep === 3 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex flex-col gap-4">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Images du Produit</label>
@@ -1503,7 +1427,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between gap-3 md:gap-4">
               <Button
                 type="button"
-                disabled={(editingProduct || skipStepOne ? currentStep === 2 : currentStep === 1) || isSubmitting}
+                disabled={currentStep === 1 || isSubmitting}
                 onClick={() => setCurrentStep(prev => prev - 1)}
                 variant="ghost"
                 size="md"
@@ -1514,7 +1438,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               </Button>
 
               <div className="flex gap-2 md:gap-3">
-                {currentStep < (editingProduct || skipStepOne ? 3 : 4) ? (
+                {currentStep < 3 ? (
                   <Button
                     type="button"
                     onClick={() => setCurrentStep(prev => prev + 1)}
