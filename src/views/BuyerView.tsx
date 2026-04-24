@@ -366,8 +366,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
       <div className="max-w-5xl mx-auto md:px-4 md:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          // On mobile: menu is always visible, content shows when tab selected
-          // On desktop: sidebar menu visible, content shown next to it
+          {/* On mobile: menu is always visible, content shows when tab selected */}
+          {/* On desktop: sidebar menu visible, content shown next to it */}
           <div className="space-y-5">
             <div className="bg-white md:bg-gradient-to-br md:from-white md:to-orange-50/40 md:rounded-[32px] p-5 md:p-8 md:border border-gray-100 md:shadow-sm relative overflow-hidden group">
               {/* Decorative background elements */}
