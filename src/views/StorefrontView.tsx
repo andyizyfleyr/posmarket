@@ -1919,7 +1919,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const renderStoreProfile = () => {
     if (!selectedStore) return null;
     return (
-      <div className="mb-4 md:mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div className="mb-4 md:mb-6    duration-700">
         {/* Store Header Card */}
         <div className="bg-white rounded-[28px] md:rounded-[40px] overflow-hidden shadow-xl shadow-gray-200/50 border border-white relative">
           {/* Cover / Background Pattern - Reduced height on mobile */}
@@ -2118,7 +2118,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           {/* Media Gallery - Professional Layout */}
           <div className="space-y-4">
             <div
-              className="relative aspect-square rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor-zoom-in shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100"
+              className="relative aspect-square rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor- shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100"
               onClick={() => {
                 setCurrentZoomImage(selectedDetailImage);
                 setIsImageModalOpen(true);
@@ -2127,7 +2127,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               <Image
                 src={selectedDetailImage || selectedProductDetails.image}
                 fill
-                className="relative z-10 object-contain transition-transform duration-700 group-hover/main:scale-110"
+                className="relative z-10 object-contain group-hover/main:scale-110"
                 alt={selectedProductDetails.name}
                 priority
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -2162,7 +2162,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       />
                       {(selectedDetailImage === img ||
                         (!selectedDetailImage && idx === 0)) && (
-                        <div className="absolute top-1 right-1 z-20 bg-[#f56b2a] text-white p-0.5 rounded-full shadow-sm animate-in zoom-in duration-300">
+                        <div className="absolute top-1 right-1 z-20 bg-[#f56b2a] text-white p-0.5 rounded-full shadow-sm   duration-300">
                           <CheckCircle2 size={10} strokeWidth={3} />
                         </div>
                       )}
@@ -2346,7 +2346,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   {/* Multi-Options Selection - AliExpress Style */}
                   {selectedProductDetails.options &&
                     selectedProductDetails.options.length > 0 && (
-                      <div className="mb-6 space-y-5 animate-in fade-in slide-in-from-top-4 duration-500">
+                      <div className="mb-6 space-y-5    duration-500">
                         {selectedProductDetails.options.map((option) => (
                           <div key={option.id} className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -2407,9 +2407,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                   {/* Booking Modal (Popup) */}
                   {isStay && showBookingModal && createPortal(
-                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] md:pb-6 animate-in fade-in duration-300">
+                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] md:pb-6   duration-300">
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBookingModal(false)} />
-                      <div className="relative w-full max-w-md mx-4 md:mx-0 bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full md:slide-in-from-scale-95 duration-500">
+                      <div className="relative w-full max-w-md mx-4 md:mx-0 bg-white rounded-[32px] shadow-2xl overflow-hidden   md: duration-500">
                         <div className="p-6 pb-2 flex items-center justify-between border-b border-gray-50">
                           <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                              <Calendar size={16} className="text-blue-600" /> Planifiez votre séjour
@@ -2561,7 +2561,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     </div>
 
                     {isStay && (
-                      <div className="mt-8 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                      <div className="mt-8 space-y-4    duration-700 ">
                         {/* --- ACCORDION 1: CAPACITY --- */}
                         <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
                           <button
@@ -3095,7 +3095,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         </div>
 
         {relatedProducts.length > 0 && (
-          <div className="px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+          <div className="px-4 md:px-0    duration-700 ">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                 <Star
@@ -3129,7 +3129,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const renderCart = () => {
     return (
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-8 duration-500">
+      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col    duration-500">
         <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
           <h2 className="text-sm md:text-lg font-black flex items-center gap-1.5 leading-tight">
             {checkoutStage === "cart" ? (
@@ -3437,7 +3437,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               className="space-y-6"
             >
               {checkoutStage === "shipping" && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                <div className="space-y-6   ">
                   {/* Section 1: Informations Personnelles */}
                   <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3 mb-8">
@@ -3603,7 +3603,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 </div>
               )}
               {checkoutStage === "payment" && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                <div className="space-y-4   ">
                   <div className="grid grid-cols-2 gap-4">
                     <div
                       onClick={() => setPaymentMethod("cod")}
@@ -3660,7 +3660,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             </form>
           )}
           {checkoutStage === "success" && (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center animate-in fade-in zoom-in duration-1000 relative overflow-hidden">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center     relative overflow-hidden">
               {/* Animated Particles background */}
               <div className="absolute inset-0 pointer-events-none">
                 {[...Array(12)].map((_, i) => (
@@ -3681,24 +3681,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 <div className="relative w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center shadow-2xl success-glow animate-success-bounce">
                   <CheckCircle2 size={48} strokeWidth={3} />
                 </div>
-                <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce delay-300">
+                <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce ">
                   <Star size={18} fill="currentColor" />
                 </div>
               </div>
 
-              <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 tracking-tight leading-tight animate-in slide-in-from-bottom-4 duration-700 delay-300">
+              <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 tracking-tight leading-tight   duration-700 ">
                 Commande <span className="text-green-500">Réussie !</span>
               </h3>
 
               <div className="w-10 h-1 bg-green-500 rounded-full mb-4 mx-auto" />
 
-              <p className="text-gray-500 max-w-sm mb-8 font-bold text-sm leading-relaxed animate-in fade-in duration-1000 delay-500">
+              <p className="text-gray-500 max-w-sm mb-8 font-bold text-sm leading-relaxed    ">
                 Votre commande a été enregistrée avec succès.
                 <br className="hidden md:block" />
                 Le vendeur va traiter votre commande rapidement.
               </p>
 
-              <div className="animate-in slide-in-from-bottom-8 duration-700 delay-700 w-full flex flex-col items-center">
+              <div className="  duration-700  w-full flex flex-col items-center">
                 <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest text-center mb-3">
                   Cliquez sur un bouton pour continuer
                 </p>
@@ -3889,7 +3889,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-[100px] md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
       {!isOnline && (
-        <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center animate-in slide-in-from-top-full duration-300 z-[10001]">
+        <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
           Vous êtes hors ligne • Reconnexion en cours...
         </div>
       )}
@@ -3951,9 +3951,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       {isNavigating && (
         <div 
           key={`loader-${navigationKey}`}
-          className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300"
+          className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl flex items-center justify-center   duration-300"
         >
-          <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
+          <div className="flex flex-col items-center gap-6   duration-500">
             <div className="relative">
               <div className="w-20 h-20 border-[4px] border-gray-100 border-t-[#f56b2a] rounded-full animate-spin shadow-inner" />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -4064,7 +4064,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       strokeWidth={2.5}
                     />
                     {cartItemsCount > 0 && (
-                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black text-white animate-in zoom-in">
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black text-white  ">
                         {cartItemsCount}
                       </div>
                     )}
@@ -4152,7 +4152,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       )}
 
       {cartNotif && lastAddedProduct && (
-        <div className="fixed top-4 right-4 left-4 md:left-auto md:w-[340px] z-[1000] animate-in slide-in-from-top-10 fade-in duration-400 px-2 md:px-0">
+        <div className="fixed top-4 right-4 left-4 md:left-auto md:w-[340px] z-[1000]    duration-400 px-2 md:px-0">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/20 overflow-hidden">
             {/* Progress bar at the bottom for top-toasts feels better or keep top */}
             <div className="p-3">
@@ -4205,7 +4205,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
       {/* Global Search Overlay */}
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[1000] bg-white animate-in fade-in duration-300 flex flex-col">
+        <div className="fixed inset-0 z-[1000] bg-white   duration-300 flex flex-col">
           <div className="p-4 border-b border-gray-100 flex items-center gap-3">
             <button
               onClick={() => setIsSearchOpen(false)}
@@ -4243,7 +4243,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               <div className="space-y-8">
                 {/* Stores Results */}
                 {globalSearchStores.length > 0 && (
-                  <div className="animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="  duration-500">
                     <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                       <Store size={12} /> Boutiques ({globalSearchStores.length}
                       )
@@ -4296,7 +4296,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                 {/* Products Results (FTS Powered) */}
                 {(isSearching || ftsResults.length > 0) ? (
-                  <div className="animate-in slide-in-from-bottom-4 duration-500 delay-100">
+                  <div className="  duration-500 ">
                     <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                       <ShoppingCart size={12} /> {isSearching ? 'Recherche en cours...' : `Produits (${ftsResults.length})`}
                     </h3>
@@ -4517,7 +4517,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                 {/* Super App Verticals - Compact Mobile-First */}
                 {!searchTerm && selectedCategory === "all" && !selectedStoreId && (
-                  <div className="mb-6 md:mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                  <div className="mb-6 md:mb-10    duration-700">
                     <h2 className="text-sm md:text-xl font-black text-gray-900 mb-3 md:mb-6 tracking-tight">
                       Que voulez-vous faire aujourd'hui ?
                     </h2>
@@ -4645,7 +4645,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
                 {/* Résultats boutiques (Mode recherche) */}
                 {searchTerm && globalSearchStores.length > 0 && (
-                  <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="mb-12    duration-500">
                     <h2 className="text-lg font-black text-gray-900 mb-6 tracking-tight flex items-center gap-2">
                       <Store className="text-[#f56b2a]" size={20} /> Boutiques
                       trouvées ({globalSearchStores.length})
@@ -4794,7 +4794,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           return sortedCats.map((cat) => (
                             <div
                               key={cat}
-                              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                              className="   duration-500"
                             >
                               {selectedCategory === "all" && (
                                 <div className="flex items-center gap-3 mb-6">
@@ -4934,7 +4934,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           return sortedCats.map((cat) => (
                             <div
                               key={cat}
-                              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                              className="   duration-500"
                             >
                               <div className="flex items-center gap-3 mb-6">
                                 <div className="h-0.5 w-8 bg-[#f56b2a]" />
@@ -4995,7 +4995,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     </div>
                   </>
                 ) : (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="   duration-500">
                     {loadingStoreReviews ? (
                       <div className="flex flex-col items-center justify-center py-20">
                         <Loader2
@@ -5149,7 +5149,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             className="pointer-events-auto w-full max-w-sm md:w-auto bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_15px_40px_rgba(245,107,42,0.4)] md:shadow-2xl flex items-center justify-center gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
           >
             {isCartButtonLoading ? (
-              <div className="flex items-center gap-3 animate-in fade-in duration-200">
+              <div className="flex items-center gap-3">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span className="text-sm uppercase tracking-wider font-black">
                   Chargement...
@@ -5165,7 +5165,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   />
                   <span
                     key={cartItemsCount}
-                    className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black animate-in zoom-in-105 duration-300 shadow-lg shadow-orange-100"
+                    className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black shadow-lg shadow-orange-100"
                   >
                     {cartItemsCount}
                   </span>
@@ -5186,7 +5186,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             className="fixed inset-0 bg-[#002f34]/60 backdrop-blur-md"
             onClick={() => setShowAuthModal(false)}
           />
-          <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 my-auto">
+          <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden   duration-300 my-auto">
             <div className="p-6 md:p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
               <button
                 onClick={() => setShowAuthModal(false)}
@@ -5293,8 +5293,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         </div>
       )}
       {showPropulseModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm   duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl   duration-300 relative">
             <button
               onClick={() => setShowPropulseModal(false)}
               className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
@@ -5406,14 +5406,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       {/* Step-Form Review Modal */}
       {showReviewForm && (
         <div
-          className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+          className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-gray-900/60 backdrop-blur-sm   duration-300"
           onClick={() => {
             setShowReviewForm(false);
             setReviewStep(1);
           }}
         >
           <div
-            className="bg-white w-full max-w-md md:rounded-[28px] rounded-t-[28px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 md:zoom-in-95 duration-400 relative"
+            className="bg-white w-full max-w-md md:rounded-[28px] rounded-t-[28px] overflow-hidden shadow-2xl   md: duration-400 relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -5453,7 +5453,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             <div className="p-6 md:p-8">
               {/* Step 1: Rating */}
               {reviewStep === 1 && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300 text-center">
+                <div className="   duration-300 text-center">
                   <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-500 flex items-center justify-center mx-auto mb-4">
                     <Star size={24} fill="currentColor" />
                   </div>
@@ -5505,7 +5505,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
               {/* Step 2: Name */}
               {reviewStep === 2 && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300 text-center">
+                <div className="   duration-300 text-center">
                   <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-4">
                     <User size={24} />
                   </div>
@@ -5546,7 +5546,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
               {/* Step 3: Comment */}
               {reviewStep === 3 && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300 text-center">
+                <div className="   duration-300 text-center">
                   <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center mx-auto mb-4">
                     <MessageCircle size={24} />
                   </div>
@@ -5599,7 +5599,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
               {/* Step 4: Success */}
               {reviewStep === 4 && (
-                <div className="animate-in fade-in zoom-in duration-500 text-center py-4">
+                <div className="   duration-500 text-center py-4">
                   <div className="relative w-16 h-16 mx-auto mb-5">
                     <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-30" />
                     <div className="relative w-full h-full bg-green-500 text-white rounded-full flex items-center justify-center shadow-xl">
@@ -5624,7 +5624,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       {/* Image Full-Size Modal */}
       {isImageModalOpen && (
         <div
-          className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300"
+          className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center   duration-300"
           onClick={() => setIsImageModalOpen(false)}
         >
           <button
@@ -5646,7 +5646,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   selectedProductDetails?.image ||
                   ""
                 }
-                className="w-full h-full object-contain shadow-2xl rounded-2xl animate-in zoom-in-95 duration-500"
+                className="w-full h-full object-contain shadow-2xl rounded-2xl   duration-500"
                 alt="Full Size Product"
               />
             </div>
