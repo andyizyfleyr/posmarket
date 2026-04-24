@@ -195,8 +195,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
     if (product) {
       setEditingProduct(product);
-      setSkipStepOne(false);
-      setCurrentStep(1);
+      setSkipStepOne(true);
+      setCurrentStep(2);
       const initialFormData: Partial<Product> & { isOnline: boolean, images: string[] } = {
         name: product.name || '',
         price: product.price ?? undefined,
@@ -745,7 +745,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">
                     {editingProduct ? 'Modifier' : skipStepOne ? (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)') : 'Nouveau Produit'}
                   </h2>
-                  <p className="text-gray-400 text-[10px] md:text-xs font-bold mt-1 whitespace-nowrap">Étape {currentStep} sur 4</p>
+                  <p className="text-gray-400 text-[10px] md:text-xs font-bold mt-1 whitespace-nowrap">Étape {currentStep} sur {editingProduct || skipStepOne ? 3 : 4}</p>
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
                   <X size={18} className="md:size-6" />
@@ -811,32 +811,36 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </>
                   )}
 
-                  <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Canaux de vente</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isOnline: false })}
-                      className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${!formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
-                    >
-                      <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${!formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
-                        <Monitor size={18} className="md:size-6" />
-                      </div>
-                      <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Point de Vente</h4>
-                      <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique uniquement.</p>
-                    </button>
+                  {!editingProduct && (
+                    <>
+                      <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-4 md:mb-6">Canaux de vente</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, isOnline: false })}
+                          className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${!formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
+                        >
+                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${!formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
+                            <Monitor size={18} className="md:size-6" />
+                          </div>
+                          <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Point de Vente</h4>
+                          <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique uniquement.</p>
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isOnline: true })}
-                      className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
-                    >
-                      <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
-                        <Globe size={18} className="md:size-6" />
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, isOnline: true })}
+                          className={`p-3.5 md:p-6 rounded-2xl md:rounded-[24px] border-2 text-left transition-all group ${formData.isOnline ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-orange-200'}`}
+                        >
+                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 transition-colors ${formData.isOnline ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#f56b2a]'}`}>
+                            <Globe size={18} className="md:size-6" />
+                          </div>
+                          <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Store + POS</h4>
+                          <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique et en ligne.</p>
+                        </button>
                       </div>
-                      <h4 className="font-black text-xs md:text-base text-gray-900 mb-0.5 md:mb-1 whitespace-nowrap">Store + POS</h4>
-                      <p className="text-[9px] md:text-xs text-gray-500 font-medium leading-tight">Vente physique et en ligne.</p>
-                    </button>
-                  </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1499,7 +1503,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between gap-3 md:gap-4">
               <Button
                 type="button"
-                disabled={(skipStepOne ? currentStep === 2 : currentStep === 1) || isSubmitting}
+                disabled={(editingProduct || skipStepOne ? currentStep === 2 : currentStep === 1) || isSubmitting}
                 onClick={() => setCurrentStep(prev => prev - 1)}
                 variant="ghost"
                 size="md"
@@ -1510,7 +1514,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               </Button>
 
               <div className="flex gap-2 md:gap-3">
-                {currentStep < 4 ? (
+                {currentStep < (editingProduct || skipStepOne ? 3 : 4) ? (
                   <Button
                     type="button"
                     onClick={() => setCurrentStep(prev => prev + 1)}
