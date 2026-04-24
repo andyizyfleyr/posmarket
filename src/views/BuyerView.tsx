@@ -75,14 +75,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   useEffect(() => {
     const tabFromUrl = accountTab || 'commandes';
     const newTab = tabMap[tabFromUrl];
-    if (newTab && newTab !== activeTab) {
+    if (newTab) {
       setActiveTab(newTab);
+      // On mobile, go directly to detail view if tab is specified
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setMobileView('detail');
+      }
     }
-  }, [accountTab, activeTab]);
+  }, [accountTab]);
 
   // Handle navigation to different tabs
   const handleTabNavigation = (tabId: string) => {
-    setActiveTab(tabMap[tabId] || 'orders');
+    const mappedTab = tabMap[tabId] || 'orders';
+    setActiveTab(mappedTab);
+    setMobileView('detail'); // Switch to detail view on mobile
     nextRouter.push(`/mon-compte/${tabId}`);
   };
 

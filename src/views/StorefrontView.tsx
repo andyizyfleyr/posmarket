@@ -3899,7 +3899,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       {(isAccountView || isAccountViewUrl) && user && (
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
-            key={location.pathname.split('/mon-compte/')[1] || 'commandes'}
             userEmail={user.email}
             accountTab={location.pathname.split('/mon-compte/')[1] || 'commandes'}
             onBack={() => {
