@@ -207,19 +207,22 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
 
         if (itemErr) throw itemErr;
 
-        // 4. Update Stock (for physical products)
-        const { error: stockErr } = await supabase.rpc('decrement_stock', {
-          p_id: item.product.id,
-          p_quantity: item.quantity
-        });
+        // 4. Update Stock (only for physical/shopping products)
+        const { data: productForStock } = await supabase.from('products').select('business_type').eq('id', item.product.id).single();
+        if (productForStock?.business_type === 'shopping') {
+          const { error: stockErr } = await supabase.rpc('decrement_stock', {
+            p_id: item.product.id,
+            p_quantity: item.quantity
+          });
 
-        if (stockErr) {
-          console.warn('RPC decrement_stock failed, falling back to manual update:', stockErr.message);
-          const { data: product } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
-          if (product) {
-            await supabase.from('products').update({
-              stock: Math.max(0, (product.stock || 0) - item.quantity)
-            }).eq('id', item.product.id);
+          if (stockErr) {
+            console.warn('RPC decrement_stock failed, falling back to manual update:', stockErr.message);
+            const { data: product } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
+            if (product) {
+              await supabase.from('products').update({
+                stock: Math.max(0, (product.stock || 0) - item.quantity)
+              }).eq('id', item.product.id);
+            }
           }
         }
 
@@ -257,10 +260,10 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
           }
         }
 
-        // 6. Check for Low Stock after order (for physical products)
+        // 6. Check for Low Stock after order (only for shopping/physical products)
         try {
           const { data: updatedProduct } = await supabase.from('products').select('name, stock, business_type').eq('id', item.product.id).single();
-          if (updatedProduct && updatedProduct.business_type !== 'stay' && updatedProduct.stock <= 5) {
+          if (updatedProduct && updatedProduct.business_type === 'shopping' && updatedProduct.stock <= 5) {
             await sendPushNotification(
               `store_${storeId}`,
               '⚠️ Alerte Stock Bas',
