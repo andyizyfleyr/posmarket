@@ -61,7 +61,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
 
         <div className="p-1.5 md:p-2 flex flex-col flex-grow bg-white">
           <div className="mb-1">
-            <h3 className="text-[10px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight">
+            <h3 className="text-[10px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight will-change-contents">
               {product.name}
             </h3>
           </div>
