@@ -4409,10 +4409,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                       {/* Slide 1 - Vendre */}
                       <div className="min-w-full relative bg-gradient-to-br from-[#fff1eb] to-[#ace0f9]/20 flex items-center justify-center border border-white">
                         <div className="absolute left-0 top-0 w-full h-full overflow-hidden">
-                          <div className="absolute -left-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl animate-pulse" />
+                          <div className="absolute -left-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl" />
                           <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-100/40 rounded-full blur-3xl" />
                         </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl animate-in fade-in zoom-in duration-700">
+                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
                           <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-orange-100 mb-6 font-black text-[10px] text-[#f56b2a] uppercase tracking-widest">
                             <Zap size={14} fill="currentColor" /> Offre
                             Commerçant
@@ -4421,7 +4421,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             C'est le moment{" "}
                             <span className="text-[#f56b2a]">de vendre</span>
                           </h2>
-                          <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
+                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
                             Boostez votre visibilité et attirez plus de clients
                             dès aujourd'hui sur notre plateforme express.
                           </p>
@@ -4443,7 +4443,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute right-0 top-0 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
                         </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl animate-in fade-in slide-in-from-right-10 duration-700">
+                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
                           <div className="inline-flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
                             <ShieldCheck size={14} /> Gestion Pro
                           </div>
@@ -4453,7 +4453,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                               stock facilement
                             </span>
                           </h2>
-                          <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
+                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
                             Un inventaire synchronisé et des alertes
                             automatiques pour ne jamais manquer une vente.
                           </p>
@@ -4476,7 +4476,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-100/30 rounded-full blur-[100px]" />
                         </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl animate-in fade-in scale-95 duration-700">
+                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
                           <div className="inline-flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
                             <Heart size={14} fill="currentColor" /> Communauté
                           </div>
@@ -4484,7 +4484,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             Rejoignez{" "}
                             <span className="text-red-500">le succès</span>
                           </h2>
-                          <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 max-w-md">
+                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
                             Faites partie des 500+ commerçants qui ont déjà
                             transformé leur manière de vendre.
                           </p>
@@ -4611,9 +4611,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             onClick={() =>
                               safeNavigate(`/store/${store.slug || store.id}`)
                             }
-                            className="min-w-[180px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group"
+                            className="min-w-[180px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer flex flex-col items-center text-center group will-change-transform"
                           >
-                            <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110">
                               <Store className="text-[#f56b2a]" size={28} />
                             </div>
                             <h3 className="font-bold text-gray-800 text-xs mb-1">

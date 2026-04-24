@@ -27,13 +27,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
   }, [onClick]);
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden group hover:shadow-lg transition-all duration-300 flex flex-col h-full shadow-sm relative ${className}`}>
+    <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden group flex flex-col h-full shadow-sm relative will-change-transform ${className}`}>
       {/* Product Content - Clickable Area */}
       <div
         onClick={handleClick}
         className="flex-grow flex flex-col cursor-pointer"
       >
-        <div className="relative aspect-square w-full overflow-hidden bg-white group-hover:bg-white transition-colors duration-500">
+        <div className="relative aspect-square w-full overflow-hidden bg-white">
           <ProductImage
             src={product.image}
             alt={product.name}
@@ -44,24 +44,24 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
           {/* Badges on Image Content */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
             {product.wholesalePrice && (
-              <div className="bg-[#f56b2a] text-white px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md animate-in slide-in-from-left duration-500">
-                <Zap size={8} fill="currentColor" className="animate-pulse" /> Gros
+              <div className="bg-[#f56b2a] text-white px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md">
+                <Zap size={8} fill="currentColor" /> Gros
               </div>
             )}
             {product.originalPrice && product.originalPrice > product.price && (
-              <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest shadow-md animate-in slide-in-from-left duration-500 delay-100">
+              <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest shadow-md">
                 -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
               </div>
             )}
           </div>
 
           {/* Hover Gradient Overlay */}
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none will-change-opacity" />
         </div>
 
         <div className="p-1.5 md:p-2 flex flex-col flex-grow bg-white">
           <div className="mb-1">
-            <h3 className="text-[10px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight group-hover:text-[#f56b2a] transition-colors">
+            <h3 className="text-[10px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight">
               {product.name}
             </h3>
           </div>
