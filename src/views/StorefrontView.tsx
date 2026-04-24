@@ -3660,45 +3660,30 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             </form>
           )}
           {checkoutStage === "success" && (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center     relative overflow-hidden">
-              {/* Animated Particles background */}
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(12)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-2 h-2 rounded-full bg-green-400/30 animate-particle"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                      animationDelay: `${Math.random() * 2}s`,
-                    }}
-                  />
-                ))}
-              </div>
-
+            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center relative overflow-hidden">
               <div className="relative mb-10">
                 <div className="absolute inset-0 bg-green-100 rounded-full blur-2xl opacity-50 scale-150 animate-pulse" />
                 <div className="relative w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center shadow-2xl success-glow animate-success-bounce">
                   <CheckCircle2 size={48} strokeWidth={3} />
                 </div>
-                <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce ">
+                <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce">
                   <Star size={18} fill="currentColor" />
                 </div>
               </div>
 
-              <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 tracking-tight leading-tight   duration-700 ">
+              <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 tracking-tight leading-tight">
                 Commande <span className="text-green-500">Réussie !</span>
               </h3>
 
               <div className="w-10 h-1 bg-green-500 rounded-full mb-4 mx-auto" />
 
-              <p className="text-gray-500 max-w-sm mb-8 font-bold text-sm leading-relaxed    ">
+              <p className="text-gray-500 max-w-sm mb-8 font-bold text-sm leading-relaxed">
                 Votre commande a été enregistrée avec succès.
                 <br className="hidden md:block" />
                 Le vendeur va traiter votre commande rapidement.
               </p>
 
-              <div className="  duration-700  w-full flex flex-col items-center">
+              <div className="w-full flex flex-col items-center">
                 <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest text-center mb-3">
                   Cliquez sur un bouton pour continuer
                 </p>
