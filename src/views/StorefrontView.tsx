@@ -150,6 +150,7 @@ interface CartItem {
   checkIn?: string;
   checkOut?: string;
   guests?: number;
+  selectedOptions?: Record<string, string>;
 }
 
 interface StorefrontViewProps {
@@ -272,9 +273,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const { "*": splatParam } = useParams();
   const splat = Array.isArray(splatParam) ? splatParam[0] : splatParam;
   const isProductDetailPath = splat?.startsWith("product/");
-  const rawUrlProductId =
-    productMatch?.params.productId ||
-    (isProductDetailPath ? splat?.replace("product/", "") : null);
+  const rawUrlProductId = (() => {
+    const fromMatch = productMatch?.params.productId;
+    const fromSplat = isProductDetailPath ? splat?.replace("product/", "") : null;
+    const candidate = fromMatch || fromSplat;
+    if (candidate && typeof candidate === "string" && candidate.length > 0 && candidate.length < 200) {
+      return candidate;
+    }
+    return null;
+  })();
 
   // ⚡ Derive active data from props or cache
   const activeStores = useMemo(() => {
@@ -352,8 +359,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       const cached = localStorage.getItem("marketplace_data_cache");
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed.stores) {
+        if (parsed.stores && parsed.stores.length > 0) {
           setCachedStores(parsed.stores);
+          setIsInitialLoading(false);
         }
       }
     } catch (e) {}
@@ -366,11 +374,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
     const savedPromo = loadPromoFromStorage();
     if (savedPromo) setPromoApplied(savedPromo);
-
-    // Turn off skeleton quickly if we have cache, otherwise wait for props
-    if (cachedStores && cachedStores.length > 0) {
-      setIsInitialLoading(false);
-    }
   }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage]);
 
   // Handle initial loading finish when props arrive
@@ -378,12 +381,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     if (stores && stores.length > 0) {
       setIsInitialLoading(false);
     }
-    // Safety timeout
+  }, [stores]);
+
+  // Safety timeout - only active if we have NO cache AND no stores
+  useEffect(() => {
+    if (cachedStores.length > 0 || (stores && stores.length > 0)) return;
     const timer = setTimeout(() => {
       setIsInitialLoading(false);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [stores]);
+  }, [cachedStores.length, stores]);
 
   const allProducts = useMemo(() => {
     const products: StorefrontProduct[] = [];
@@ -430,20 +437,26 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     } catch (e) {}
   }, [stores, allProducts, isMounted]);
 
-  // 3. Save cart to localStorage when it changes (only after mounting)
+  // 3. Save cart to localStorage when it changes (throttled, only after mounting)
   React.useEffect(() => {
     if (!isMounted) return;
-    try {
-      localStorage.setItem(
-        "storefront_cart",
-        JSON.stringify({
-          data: cart,
-          timestamp: Date.now(),
-        }),
-      );
-    } catch (e) {
-      console.warn("Could not save cart to localStorage (Quota exceeded?)", e);
-    }
+    if (cartSaveTimeoutRef.current) clearTimeout(cartSaveTimeoutRef.current);
+    cartSaveTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "storefront_cart",
+          JSON.stringify({
+            data: cart,
+            timestamp: Date.now(),
+          }),
+        );
+      } catch (e) {
+        console.warn("Could not save cart to localStorage (Quota exceeded?)", e);
+      }
+    }, 500);
+    return () => {
+      if (cartSaveTimeoutRef.current) clearTimeout(cartSaveTimeoutRef.current);
+    };
   }, [cart, isMounted]);
 
   const [checkoutStage, setCheckoutStage] = useState<
@@ -459,6 +472,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const navTargetPathRef = useRef<string>('');
   const navCompletedRef = useRef<boolean>(false);
   const stageTargetRef = useRef<string | null>(null);
+  const cartSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 🚀 Navigation Directe
   const safeNavigate = useCallback(
@@ -809,30 +823,29 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           setIsProcessingPayment(false);
         }
       } catch (error) {
-        console.error("FusionPay error:", error);
-        notify("Erreur de connexion avec FusionPay", "error");
+        console.error("Erreur de paiement:", error);
+        notify("Erreur lors du traitement du paiement. Veuillez réessayer.", "error");
         setIsProcessingPayment(false);
       }
     },
     [fusionPayApiUrl, notify],
   );
 
-  // Reset checkout stage when entering the cart page with a fresh cart
+  // Reset checkout stage based on cart view state
   React.useEffect(() => {
-    if (isCartView && checkoutStage === "success") {
-      setCheckoutStage("cart");
-      setCompletedOrderStores([]);
-      setCompletedOrderItems([]);
-      setCompletedOrderTotal(0);
+    if (isCartView) {
+      if (checkoutStage === "success") {
+        setCheckoutStage("cart");
+        setCompletedOrderStores([]);
+        setCompletedOrderItems([]);
+        setCompletedOrderTotal(0);
+      }
+    } else {
+      if (checkoutStage !== "cart") {
+        setCheckoutStage("cart");
+      }
     }
-  }, [isCartView]);
-
-  // Also reset when leaving the cart page
-  React.useEffect(() => {
-    if (!isCartView && checkoutStage !== "cart") {
-      setCheckoutStage("cart");
-    }
-  }, [isCartView]);
+  }, [isCartView, checkoutStage]);
 
   // Handle FusionPay return
   React.useEffect(() => {
@@ -958,8 +971,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   };
 
   const handleLogout = async () => {
-    if (confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
-      await supabase.auth.signOut();
+    const confirmed = window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
+    if (confirmed) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {}
       setUser(null);
       setCustomerInfo({ name: "", phone: "", address: "", city: "", zip: "" });
       setIsAccountView(false);
@@ -1110,15 +1126,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       .catch(() => {});
   }, []);
 
-  // 🚀 Predictive Init: Prefetch top recommendations
+  // 🚀 Predictive Init: Prefetch top recommendations (only once, only if online)
+  const prefetchDoneRef = React.useRef(false);
   useEffect(() => {
-    if (isMounted && allProducts.length > 0) {
-      // Delay slightly to not block initial render
-      const timer = setTimeout(() => {
-        allProducts.slice(0, 10).forEach((p) => prefetchProduct(p.id));
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    if (!isMounted || allProducts.length === 0 || prefetchDoneRef.current || !navigator.onLine) return;
+    prefetchDoneRef.current = true;
+    const timer = setTimeout(() => {
+      allProducts.slice(0, 6).forEach((p) => prefetchProduct(p.id));
+    }, 2000);
+    return () => clearTimeout(timer);
   }, [isMounted, allProducts.length, prefetchProduct]);
 
   // Track store views - only increment once per store per session
@@ -1410,7 +1426,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           item.product.storeId === product.storeId &&
           (item.variantId === vid || (!item.variantId && !vid)) &&
           item.checkIn === bookingInfo?.checkIn &&
-          item.checkOut === bookingInfo?.checkOut,
+          item.checkOut === bookingInfo?.checkOut &&
+          JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions),
       );
       if (existing) {
         return prev.map((item) =>
@@ -1418,7 +1435,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           item.product.storeId === product.storeId &&
           (item.variantId === vid || (!item.variantId && !vid)) &&
           item.checkIn === bookingInfo?.checkIn &&
-          item.checkOut === bookingInfo?.checkOut
+          item.checkOut === bookingInfo?.checkOut &&
+          JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions)
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         );
@@ -1433,6 +1451,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           checkIn: bookingInfo?.checkIn,
           checkOut: bookingInfo?.checkOut,
           guests: bookingInfo?.guests,
+          selectedOptions,
         },
       ];
     });
@@ -1844,9 +1863,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             <div className="flex items-center gap-2 md:gap-4 -mt-8 md:-mt-16 backdrop-blur-sm bg-white/50 rounded-2xl px-3 py-2">
               {/* Store Logo - Ultra Compact */}
               <div className="w-12 h-12 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-white p-0.5 md:p-1 shadow-xl z-20 flex-shrink-0">
-                <div className="w-full h-full rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                  <Store size={20} className="text-[#f56b2a] md:hidden" />
-                  <Store size={40} className="text-[#f56b2a] hidden md:block" />
+                <div className="w-full h-full rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 overflow-hidden">
+                  {selectedStore.settings?.logo ? (
+                    <img
+                      src={selectedStore.settings.logo}
+                      alt={selectedStore.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <Store size={20} className="text-[#f56b2a] md:hidden" />
+                      <Store size={40} className="text-[#f56b2a] hidden md:block" />
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -2715,7 +2744,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         </span>
                       </div>
                     )}
-                    {!isStay && selectedProductDetails.stock > 0 && (
+                    {!isStay && selectedProductDetails.stock != null && (selectedProductDetails.stock as number) > 0 && (
                       <div className="flex-shrink-0 flex items-center gap-2 bg-green-50/50 px-3 py-2 rounded-xl border border-green-100">
                         <CheckCircle2 size={14} className="text-green-500" />
                         <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">
@@ -2723,11 +2752,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         </span>
                       </div>
                     )}
-                    {!isStay && selectedProductDetails.stock === 0 && (
+                    {!isStay && (selectedProductDetails.stock === 0 || selectedProductDetails.stock == null) && (
                       <div className="flex-shrink-0 flex items-center gap-2 bg-red-50/50 px-3 py-2 rounded-xl border border-red-100">
                         <AlertCircle size={14} className="text-red-500" />
                         <span className="text-[8px] font-black text-red-600 uppercase tracking-widest">
-                          Rupture de Stock
+                          {selectedProductDetails.stock == null ? "Stock non disponible" : "Rupture de Stock"}
                         </span>
                       </div>
                     )}
@@ -2802,7 +2831,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         ? "Vérification..."
                         : isStay
                           ? (selectedProductDetails.currentBooking 
-                              ? `Occupé jusqu'au ${new Date(selectedProductDetails.currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` 
+                              ? (() => {
+                                  try {
+                                    const endDate = new Date(selectedProductDetails.currentBooking.endDate);
+                                    if (isNaN(endDate.getTime())) return "Réserver séjour";
+                                    return `Occupé jusqu'au ${endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+                                  } catch {
+                                    return "Réserver séjour";
+                                  }
+                                })()
                               : "Réserver séjour")
                           : isFood
                             ? "Commander ce plat"
@@ -3601,8 +3638,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     Accueil
                   </Button>
                   {(() => {
+                    const firstStore = completedOrderStores[0];
+                    if (!firstStore) return null;
                     const store = stores.find(
-                      (s) => s.id === completedOrderStores[0].storeId,
+                      (s) => s.id === firstStore.storeId,
                     );
                     const storePhone = store?.phone || store?.settings?.phone;
                     if (completedOrderStores.length === 1 && storePhone && completedOrderItems.length > 0) {
@@ -3713,7 +3752,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     setTimeout(() => {
                       setCheckoutStage("shipping");
                       setIsCheckoutTransitioning(false);
-                    }, 400);
+}, 500);
                   }}
                   loading={isCheckoutTransitioning}
                   loadingText="Chargement..."
@@ -3794,7 +3833,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       )}
 
       {/* Global Notifications (Toasts) */}
-      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-4 pointer-events-none items-end">
+      <div className="fixed top-6 right-6 z-[99999] flex flex-col gap-4 pointer-events-none items-end">
         {toastNotifications.map((notif) => (
           <Toast key={notif.id} notification={notif} onRemove={removeToast} />
         ))}
@@ -3994,8 +4033,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   id="mobile-search-input"
                   type="text"
                   placeholder="Je cherche..."
-                  readOnly
-                  onClick={() => setIsSearchOpen(true)}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => setIsSearchOpen(true)}
                   className="w-full bg-transparent py-2 px-3 text-[11px] font-bold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none cursor-pointer"
                 />
               </div>
@@ -4409,18 +4449,33 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           label: "Shopping",
                           icon: ShoppingBag,
                           color: "orange",
+                          bgSelected: "bg-orange-500",
+                          bgUnselected: "bg-orange-50",
+                          borderSelected: "border-orange-500",
+                          textSelected: "text-white",
+                          iconColor: "text-orange-500",
                         },
                         {
                           id: "food",
                           label: "Resto",
                           icon: Zap,
                           color: "yellow",
+                          bgSelected: "bg-yellow-500",
+                          bgUnselected: "bg-yellow-50",
+                          borderSelected: "border-yellow-500",
+                          textSelected: "text-white",
+                          iconColor: "text-yellow-500",
                         },
                         {
                           id: "stay",
                           label: "Séjours",
                           icon: Store,
                           color: "blue",
+                          bgSelected: "bg-blue-500",
+                          bgUnselected: "bg-blue-50",
+                          borderSelected: "border-blue-500",
+                          textSelected: "text-white",
+                          iconColor: "text-blue-500",
                         },
                       ].map((v) => (
                         <button
@@ -4431,7 +4486,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                           }}
                           className={`relative flex flex-col items-center justify-center py-3 px-2 md:py-6 md:px-4 rounded-2xl md:rounded-3xl transition-all border-2 md:border-4 group active:scale-95 overflow-hidden ${
                             selectedVertical === v.id
-                              ? `bg-${v.color}-500 text-white border-${v.color}-500 shadow-lg`
+                              ? `${v.bgSelected} ${v.textSelected} ${v.borderSelected} shadow-lg`
                               : "bg-white border-gray-100 text-gray-900 hover:border-gray-200 hover:shadow-md"
                           }`}
                         >
@@ -4439,17 +4494,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                             className={`w-8 h-8 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-1.5 md:mb-3 transition-all ${
                               selectedVertical === v.id
                                 ? "bg-white/20"
-                                : `bg-${v.color}-50`
+                                : v.bgUnselected
                             }`}
                           >
                             <v.icon
                               size={18}
-                              className={`md:hidden ${selectedVertical === v.id ? "text-white" : `text-${v.color}-500`}`}
+                              className={`md:hidden ${selectedVertical === v.id ? "text-white" : v.iconColor}`}
                               strokeWidth={2.5}
                             />
                             <v.icon
                               size={28}
-                              className={`hidden md:block ${selectedVertical === v.id ? "text-white" : `text-${v.color}-500`}`}
+                              className={`hidden md:block ${selectedVertical === v.id ? "text-white" : v.iconColor}`}
                               strokeWidth={2.5}
                             />
                           </div>
@@ -5505,18 +5560,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative w-full h-full">
-              <Image
+              <img
                 src={
                   currentZoomImage ||
                   selectedDetailImage ||
                   selectedProductDetails?.image ||
                   ""
                 }
-                fill
-                className="object-contain shadow-2xl rounded-2xl animate-in zoom-in-95 duration-500"
+                className="w-full h-full object-contain shadow-2xl rounded-2xl animate-in zoom-in-95 duration-500"
                 alt="Full Size Product"
-                sizes="100vw"
-                priority
               />
             </div>
           </div>
