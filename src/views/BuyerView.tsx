@@ -51,7 +51,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   const { isOnline, isSlow } = useNetworkStatus();
   const navigate = useNavigate();
   const nextRouter = useNextRouter();
-  const location = useLocation();
   const [internalLoading, setInternalLoading] = useState(false);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -64,21 +63,28 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalOrders, setTotalOrders] = useState(0);
 
-  // Sync activeTab from URL - with location trigger
+  // Tab map
+  const tabMap: Record<string, TabType> = {
+    'commandes': 'orders',
+    'adresses': 'addresses',
+    'avis': 'reviews',
+    'profil': 'profile'
+  };
+
+  // Sync activeTab from URL
   useEffect(() => {
-    if (accountTab) {
-      const tabMap: Record<string, TabType> = {
-        'commandes': 'orders',
-        'adresses': 'addresses',
-        'avis': 'reviews',
-        'profil': 'profile'
-      };
-      const newTab = tabMap[accountTab];
-      if (newTab) {
-        setActiveTab(newTab);
-      }
+    const tabFromUrl = accountTab || 'commandes';
+    const newTab = tabMap[tabFromUrl];
+    if (newTab && newTab !== activeTab) {
+      setActiveTab(newTab);
     }
-  }, [accountTab, location.pathname]);
+  }, [accountTab, activeTab]);
+
+  // Handle navigation to different tabs
+  const handleTabNavigation = (tabId: string) => {
+    setActiveTab(tabMap[tabId] || 'orders');
+    nextRouter.push(`/mon-compte/${tabId}`);
+  };
 
   // Handle initial data fetch and subsequent tab changes
   useEffect(() => {
@@ -386,14 +392,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
             <div className="lg:hidden space-y-2 px-4 pb-safe">
               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
-                { id: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
-                { id: 'addresses', label: 'Adresses de livraison', path: '/mon-compte/adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
-                { id: 'reviews', label: 'Mes avis publiés', path: '/mon-compte/avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
-                { id: 'profile', label: 'Mon profil & Sécurité', path: '/mon-compte/profil', icon: User, desc: 'Paramètres du compte' },
+                { id: 'commandes', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
+                { id: 'adresses', label: 'Adresses de livraison', path: '/mon-compte/adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
+                { id: 'avis', label: 'Mes avis publiés', path: '/mon-compte/avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
+                { id: 'profil', label: 'Mon profil & Sécurité', path: '/mon-compte/profil', icon: User, desc: 'Paramètres du compte' },
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => handleTabNavigation(item.id)}
                   className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
                 >
                   <div className="flex items-center gap-4">
