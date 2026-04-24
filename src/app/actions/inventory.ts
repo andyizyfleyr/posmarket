@@ -100,7 +100,13 @@ export async function bulkDeleteProductsAction(ids: string[]) {
   return { success: true }
 }
 
-export async function getProductsAction(storeId: string, offset: number = 0, limit: number = 10, search: string = '') {
+export async function getProductsAction(
+  storeId: string, 
+  offset: number = 0, 
+  limit: number = 10, 
+  search: string = '',
+  options: { productType?: 'all' | 'pos' | 'marketplace', businessType?: 'all' | 'shopping' | 'food' | 'stay' } = {}
+) {
   const supabase = await createClient()
 
   let query = supabase
@@ -115,6 +121,18 @@ export async function getProductsAction(storeId: string, offset: number = 0, lim
       type: 'websearch',
       config: 'french'
     });
+  }
+
+  if (options.productType && options.productType !== 'all') {
+    if (options.productType === 'pos') {
+      query = query.eq('is_online', false);
+    } else if (options.productType === 'marketplace') {
+      query = query.eq('is_online', true);
+    }
+  }
+
+  if (options.businessType && options.businessType !== 'all') {
+    query = query.eq('business_type', options.businessType);
   }
 
   const { data, count, error } = await query;

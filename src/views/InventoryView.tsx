@@ -153,25 +153,29 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   // Handle Search with debounce or simple effect
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      if (searchTerm.length >= 0) {
-        setIsLoadingMore(true);
-        const res = await getProductsAction(currentStoreId || '', 0, 10, searchTerm);
-        if (res.success) {
-          setLocalProducts(res.products as any);
-          setOffset(res.products?.length || 0);
-          setHasMore(res.hasMore || false);
-        }
-        setIsLoadingMore(false);
+      setIsLoadingMore(true);
+      const res = await getProductsAction(currentStoreId || '', 0, 10, searchTerm, { 
+        productType,
+        businessType: selectedVertical as any
+      });
+      if (res.success) {
+        setLocalProducts(res.products as any);
+        setOffset(res.products?.length || 0);
+        setHasMore(res.hasMore || false);
       }
+      setIsLoadingMore(false);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentStoreId]);
+  }, [searchTerm, currentStoreId, productType, selectedVertical]);
 
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
-    const res = await getProductsAction(currentStoreId || '', offset, 10, searchTerm);
+    const res = await getProductsAction(currentStoreId || '', offset, 10, searchTerm, { 
+      productType,
+      businessType: selectedVertical as any
+    });
     if (res.success && res.products) {
       setLocalProducts(prev => [...prev, ...(res.products as any)]);
       setOffset(prev => prev + (res.products?.length || 0));
@@ -341,7 +345,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               </span>
             </div>
             <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">
-              {businessType === 'stay' ? 'Gére vos logements et vos disponibilités.' : 'Gérez vos produits et vos stocks.'}
+              {businessType === 'stay' ? 'Gérez vos logements et vos disponibilités.' : 'Gérez vos produits et vos stocks.'}
             </p>
           </div>
           {selectedIds.size > 0 && permissions.canManageInventory && (
@@ -907,7 +911,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente (Par Nuitée)
+                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente {formData.businessType === 'stay' ? '(Par Nuitée)' : ''}
                       </label>
                       <div className="relative">
                         <input
@@ -922,7 +926,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
 
-                    {formData.businessType === 'shopping' && (
+                    {(formData.businessType === 'shopping' || formData.businessType === 'food') && (
                       <div>
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
