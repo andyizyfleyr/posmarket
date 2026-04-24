@@ -39,7 +39,7 @@ type TabType = 'orders' | 'addresses' | 'reviews' | 'profile';
 
 export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
-  const [mobileView, setMobileView] = useState<'menu' | 'detail'>('menu');
+  const [mobileView, setMobileView] = useState<'menu' | 'detail'>('detail');
   const [orders, setOrders] = useState<any[]>(cachedData?.orders || []);
   const [addresses, setAddresses] = useState<any[]>(cachedData?.addresses || []);
   const [reviews, setReviews] = useState<any[]>(cachedData?.reviews || []);
@@ -348,13 +348,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
           <button onClick={handleBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-base font-black text-[#002f34] tracking-tight">
-            {mobileView === 'detail' ? (
-              activeTab === 'orders' ? 'Mes commandes' :
+<h1 className="text-base font-black text-[#002f34] tracking-tight">
+              {activeTab === 'orders' ? 'Mes commandes' :
               activeTab === 'addresses' ? 'Mes adresses' :
-              activeTab === 'reviews' ? 'Mes avis' : 'Profil'
-            ) : 'Mon compte'}
-          </h1>
+              activeTab === 'reviews' ? 'Mes avis' : 'Profil'}
+            </h1>
           <div className="flex items-center gap-1">
             <button onClick={() => loadData(true)} className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
               <Clock size={22} className={loading ? "animate-spin" : ""} />
@@ -366,7 +364,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
       <div className="max-w-5xl mx-auto md:px-4 md:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          <div className={`space-y-5 ${mobileView === 'detail' ? 'hidden lg:block' : 'block'}`}>
+          // On mobile: menu is always visible, content shows when tab selected
+          // On desktop: sidebar menu visible, content shown next to it
+          <div className="space-y-5">
             <div className="bg-white md:bg-gradient-to-br md:from-white md:to-orange-50/40 md:rounded-[32px] p-5 md:p-8 md:border border-gray-100 md:shadow-sm relative overflow-hidden group">
               {/* Decorative background elements */}
               <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none hidden md:block" />
@@ -394,22 +394,26 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
               </div>
             </div>
 
-            {/* Mobile Menu List */}
-            <div className="lg:hidden space-y-2 px-4 pb-safe">
+            {/* Mobile Menu + Desktop Sidebar */}
+            <div className="space-y-2 px-4 md:px-0 pb-safe md:pb-0">
               <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
               {[
-                { id: 'commandes', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
-                { id: 'adresses', label: 'Adresses de livraison', path: '/mon-compte/adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
-                { id: 'avis', label: 'Mes avis publiés', path: '/mon-compte/avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
-                { id: 'profil', label: 'Mon profil & Sécurité', path: '/mon-compte/profil', icon: User, desc: 'Paramètres du compte' },
+                { id: 'commandes', tabId: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
+                { id: 'adresses', tabId: 'addresses', label: 'Adresses de livraison', path: '/mon-compte/adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
+                { id: 'avis', tabId: 'reviews', label: 'Mes avis publiés', path: '/mon-compte/avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
+                { id: 'profil', tabId: 'profile', label: 'Mon profil & Sécurité', path: '/mon-compte/profil', icon: User, desc: 'Paramètres du compte' },
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleTabNavigation(item.id)}
-                  className="w-full flex items-center justify-between p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group"
+                  className={`w-full flex items-center justify-between p-4 rounded-[24px] border shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group ${
+                    activeTab === item.tabId 
+                      ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20' 
+                      : 'bg-white border-gray-100'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-[#f56b2a] transition-colors">
+                    <div className={`w-11 h-11 rounded-2xl bg-gray-50 flex items-center justify-center transition-colors ${activeTab === item.tabId ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'text-gray-400 group-hover:text-[#f56b2a]'}`}>
                       <item.icon size={20} />
                     </div>
                     <div className="text-left">
@@ -421,35 +425,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                 </button>
               ))}
             </div>
-
-            <div className="hidden lg:block space-y-1">
-              {[
-                { id: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package },
-                { id: 'addresses', label: 'Mes adresses', path: '/mon-compte/adresses', icon: MapPin },
-                { id: 'reviews', label: 'Mes avis', path: '/mon-compte/avis', icon: Star },
-                { id: 'profile', label: 'Paramètres', path: '/mon-compte/profil', icon: User },
-              ].map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.path}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(item.path);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-xs font-bold ${
-                    activeTab === item.id 
-                      ? 'bg-gray-900 text-white translate-x-1' 
-                      : 'text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  <item.icon size={16} fill={activeTab === item.id ? "white" : "none"} />
-                  {item.label}
-                </Link>
-              ))}
-            </div>
           </div>
 
-          <div className={`lg:col-span-3 px-4 md:px-0 ${mobileView === 'menu' ? 'hidden lg:block' : 'block'}`}>
+          <div className="lg:col-span-3 px-4 md:px-0">
             {activeTab === 'orders' && (
               <div className="space-y-4">
                 <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes commandes</h2>
