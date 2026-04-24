@@ -69,7 +69,7 @@ BEGIN
       FROM generate_series(NEW.check_in::date, (NEW.check_out::date - 1)::date, '1 day'::interval) AS d
       ON CONFLICT (product_id, date) DO UPDATE SET is_available = false, booking_id = NEW.order_id;
     END IF;
-  ELSE
+  ELSIF v_old_p.business_type = 'shopping' THEN
     -- 🛒 GESTION SHOPPING (Garde-fou atomique avec Returning)
     UPDATE products 
     SET stock = stock - NEW.quantity 
