@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { Product } from '@/types';
 import { Plus, LayoutGrid, Star, Zap, Eye } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils';
@@ -11,15 +11,26 @@ interface ProductCardProps {
   onAddToCart: (product: Product) => void;
   onStoreSelect?: (storeId: string) => void;
   onClick?: () => void;
-  className?: string; // Added className support
+  className?: string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStoreSelect, onClick, className = "" }) => {
+const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onStoreSelect, onClick, className = "" }) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if ((product as any).currentBooking) return;
+    onAddToCart(product);
+  }, [product, onAddToCart]);
+
+  const handleClick = useCallback(() => {
+    onClick?.();
+  }, [onClick]);
+
   return (
     <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden group hover:shadow-lg transition-all duration-300 flex flex-col h-full shadow-sm relative ${className}`}>
       {/* Product Content - Clickable Area */}
-      <div 
-        onClick={onClick}
+      <div
+        onClick={handleClick}
         className="flex-grow flex flex-col cursor-pointer"
       >
         <div className="relative aspect-square w-full overflow-hidden bg-white group-hover:bg-white transition-colors duration-500">
@@ -29,7 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
             containerClassName="w-full h-full"
             objectFit="contain"
           />
-          
+
           {/* Badges on Image Content */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
             {product.wholesalePrice && (
@@ -43,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
               </div>
             )}
           </div>
-          
+
           {/* Hover Gradient Overlay */}
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
         </div>
@@ -89,12 +100,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
       {!(product.category === 'Appartements' || product.businessType === 'stay') && (
         <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
           <button
-            onClick={(e) => { 
-              if ((product as any).currentBooking) return;
-              e.stopPropagation(); 
-              e.preventDefault();
-              onAddToCart(product); 
-            }}
+            onClick={handleAddToCart}
             disabled={!!(product as any).currentBooking}
             className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
               (product as any).currentBooking
@@ -102,7 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
                 : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
             }`}
           >
-            {(product as any).currentBooking 
+            {(product as any).currentBooking
               ? `Occupé jusqu'au ${new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
               : 'Ajouter au panier'}
           </button>
@@ -110,6 +116,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onStore
       )}
     </div >
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
 
 export default ProductCard;

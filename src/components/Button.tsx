@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import Loader from './Loader';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,7 +14,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   form?: string;
 }
 
-const Button: React.FC<ButtonProps> = ({
+const Button: React.FC<ButtonProps> = memo(({
   children,
   loading = false,
   loadingText,
@@ -28,7 +28,7 @@ const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles = 'inline-flex items-center justify-center font-black transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed rounded-2xl relative overflow-hidden';
-  
+
   const variants = {
     primary: 'bg-[#f56b2a] text-white hover:bg-[#e55a1b] shadow-md shadow-orange-100',
     secondary: 'bg-gray-900 text-white hover:bg-black shadow-md shadow-gray-200',
@@ -71,6 +71,8 @@ const Button: React.FC<ButtonProps> = ({
       )}
     </button>
   );
-};
+});
+
+Button.displayName = 'Button';
 
 export default Button;

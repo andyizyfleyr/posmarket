@@ -318,7 +318,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  // 🔍 DEBOUNCED FTS SEARCH
+  // 🔍 DEBOUNCED FTS SEARCH (with deduplication)
+  const ftsRequestRef = useRef<{ term: string; controller: AbortController } | null>(null);
+  
   useEffect(() => {
     if (!searchTerm || searchTerm.length < 2) {
       setFtsResults([]);
@@ -326,7 +328,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
 
     const delayDebounceFn = setTimeout(async () => {
+      // Cancel any pending request
+      if (ftsRequestRef.current) {
+        ftsRequestRef.current.controller.abort();
+      }
+      
+      const controller = new AbortController();
+      ftsRequestRef.current = { term: searchTerm, controller };
       setIsSearching(true);
+      
       try {
         const { data } = await supabase
           .from('products')
@@ -337,44 +347,82 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           })
           .limit(20);
         
-        setFtsResults(data || []);
-      } catch (err) {
-        console.error("FTS Search Error:", err);
+        // Only use result if it's for the current search term
+        if (ftsRequestRef.current?.term === searchTerm) {
+          setFtsResults(data || []);
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error("FTS Search Error:", err);
+        }
       } finally {
-        setIsSearching(false);
+        if (ftsRequestRef.current?.term === searchTerm) {
+          setIsSearching(false);
+        }
       }
-    }, 400);
+    }, 500);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      clearTimeout(delayDebounceFn);
+      if (ftsRequestRef.current?.term === searchTerm) {
+        ftsRequestRef.current.controller.abort();
+      }
+    };
   }, [searchTerm]);
 
 
   // ⚡ Performance: Loading state for Skeletons
 
-  // 1. Load cache IMMEDIATELY on mount
+  // 1. Load cache ASYNC on mount (non-blocking)
   React.useEffect(() => {
     setIsMounted(true);
 
-    try {
-      const cached = localStorage.getItem("marketplace_data_cache");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.stores && parsed.stores.length > 0) {
-          setCachedStores(parsed.stores);
-          setIsInitialLoading(false);
+    // Defer localStorage reads to next tick (non-blocking)
+    const timer = setTimeout(() => {
+      try {
+        const cached = localStorage.getItem("marketplace_data_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.stores && parsed.stores.length > 0) {
+            setCachedStores(parsed.stores);
+            setIsInitialLoading(false);
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
 
-    const savedCart = loadCartFromStorage();
-    if (savedCart.length > 0) setCart(savedCart);
+      try {
+        const savedCart = localStorage.getItem("storefront_cart");
+        if (savedCart) {
+          const { data, timestamp } = JSON.parse(savedCart);
+          if (Date.now() - timestamp < 24 * 60 * 60 * 1000 && data?.length > 0) {
+            setCart(data);
+          }
+        }
+      } catch (e) {}
 
-    const savedCustomer = loadCustomerInfoFromStorage();
-    if (savedCustomer.name) setCustomerInfo(savedCustomer);
+      try {
+        const savedCustomer = localStorage.getItem("storefront_customer");
+        if (savedCustomer) {
+          const { data, timestamp } = JSON.parse(savedCustomer);
+          if (Date.now() - timestamp < 24 * 60 * 60 * 1000 && data?.name) {
+            setCustomerInfo(data);
+          }
+        }
+      } catch (e) {}
 
-    const savedPromo = loadPromoFromStorage();
-    if (savedPromo) setPromoApplied(savedPromo);
-  }, [loadCartFromStorage, loadCustomerInfoFromStorage, loadPromoFromStorage]);
+      try {
+        const savedPromo = localStorage.getItem("storefront_promo");
+        if (savedPromo) {
+          const { data, timestamp } = JSON.parse(savedPromo);
+          if (Date.now() - timestamp < 24 * 60 * 60 * 1000 && data) {
+            setPromoApplied(data);
+          }
+        }
+      } catch (e) {}
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle initial loading finish when props arrive
   useEffect(() => {
@@ -758,6 +806,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   );
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
+  const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
   const [showAllProductReviews, setShowAllProductReviews] = useState(false);
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
@@ -771,6 +820,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const PAGE_LIMIT = 20;
 
   // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
@@ -1074,12 +1124,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
   }, [selectedProductId, selectedProductDetails]);
 
-  // Fetch product reviews
+  // Fetch product reviews (with cleanup + caching)
   useEffect(() => {
-    if (selectedProductId) {
-      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: true }));
-      fetchProductReviews(selectedProductId)
-        .then((reviews) => {
+    if (!selectedProductId) return;
+    
+    // Skip if already cached
+    if (productReviews[selectedProductId]) return;
+    
+    let cancelled = false;
+    setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: true }));
+    
+    fetchProductReviews(selectedProductId)
+      .then((reviews) => {
+        if (!cancelled) {
           setProductReviews((prev) => ({
             ...prev,
             [selectedProductId]: reviews,
@@ -1088,15 +1145,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             ...prev,
             [selectedProductId]: false,
           }));
-        })
-        .catch(() => {
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
           setLoadingReviews((prev) => ({
             ...prev,
             [selectedProductId]: false,
           }));
-        });
-    }
-  }, [selectedProductId, reviewRefreshKey]);
+        }
+      });
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProductId, reviewRefreshKey, productReviews]);
 
   // Update selectedOptions when selectedProductDetails changes
   React.useEffect(() => {
@@ -1169,40 +1232,46 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     });
   }, [allProducts, selectedStoreId, searchTerm, selectedCategory]);
 
-  // Fetch store-wide reviews
+  // Fetch store-wide reviews (with caching)
   useEffect(() => {
-    if (selectedStoreId && storeTab === "reviews") {
-      setLoadingStoreReviews(true);
-      const fetchReviews = async () => {
-        try {
-          const { data, error } = await supabase
-            .from("product_reviews")
-            .select("*")
-            .eq("store_id", selectedStoreId)
-            .order("created_at", { ascending: false });
-
-          if (error) throw error;
-
-          if (data) {
-            setStoreReviews(
-              data.map((r) => ({
-                id: r.id,
-                author: r.author_name,
-                rating: r.rating,
-                comment: r.comment,
-                date: r.created_at,
-                productId: r.product_id,
-              })),
-            );
-          }
-        } catch (e) {
-          console.error("Error fetching store reviews:", e);
-        } finally {
-          setLoadingStoreReviews(false);
-        }
-      };
-      fetchReviews();
+    if (!selectedStoreId || storeTab !== "reviews") return;
+    
+    // Skip if already cached
+    if (storeReviewsCacheRef.current[selectedStoreId]) {
+      setStoreReviews(storeReviewsCacheRef.current[selectedStoreId]);
+      return;
     }
+    
+    setLoadingStoreReviews(true);
+    const fetchReviews = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("product_reviews")
+          .select("*")
+          .eq("store_id", selectedStoreId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+          const reviews = data.map((r) => ({
+            id: r.id,
+            author: r.author_name,
+            rating: r.rating,
+            comment: r.comment,
+            date: r.created_at,
+            productId: r.product_id,
+          }));
+          storeReviewsCacheRef.current[selectedStoreId] = reviews;
+          setStoreReviews(reviews);
+        }
+      } catch (e) {
+        console.error("Error fetching store reviews:", e);
+      } finally {
+        setLoadingStoreReviews(false);
+      }
+    };
+    fetchReviews();
   }, [selectedStoreId, storeTab]);
 
   const categories = useMemo(() => {
@@ -1335,11 +1404,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     location.pathname,
   ]); // Stable dependencies
 
-  // Intersection Observer for Infinite Scroll
+  // Intersection Observer for Infinite Scroll (stable ref)
   useEffect(() => {
     if (!loadMoreRef.current) return;
 
-    const observer = new IntersectionObserver(
+    // Cleanup previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !loadingRef.current && hasMore) {
           loadPagedProducts();
@@ -1348,9 +1422,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       { threshold: 0.1 },
     );
 
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [loadPagedProducts, hasMore, pagedProducts.length, location.pathname]); // Re-run when products appear or path changes
+    observerRef.current.observe(loadMoreRef.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [loadPagedProducts, hasMore]); // Re-run when products appear or path changes
 
   const partnerStores = useMemo(() => {
     return stores

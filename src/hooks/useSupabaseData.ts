@@ -197,7 +197,8 @@ export const useSupabaseData = (
       if (error) throw error;
       return data || [];
     },
-    staleTime: 1000 * 60 * 5
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
   });
 
   /* ---------------- ACTIVE STORE BUNDLE ---------------- */
@@ -209,7 +210,8 @@ export const useSupabaseData = (
       return await fetchStoreBundle(activeStoreId!);
     },
 
-    staleTime: 1000 * 60 * 2
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
   });
 
   /* ---------------- MERGED STORES ---------------- */

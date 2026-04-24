@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, lazy, Suspense } from 'react';
 import { supabase } from '@/supabase';
 import { useRouter } from '@/components/RouterPolyfill';
 import { createOrderAction } from '@/app/actions/orders';
@@ -22,9 +22,7 @@ import {
   ArrowRight,
   Tag
 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
 import { playSuccessSound } from '@/utils';
-import html2canvas from 'html2canvas';
 import { formatCurrency } from '@/utils';
 import ProductCard from '../components/ProductCard';
 import CartItem from '../components/CartItem';
@@ -214,6 +212,15 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
   const handleDownloadPDF = async () => {
     if (!receiptRef.current) return;
+    
+    // Lazy load heavy libraries only when needed
+    const [html2canvasModule, jspdfModule] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
+    const html2canvas = html2canvasModule.default || html2canvasModule;
+    const { jsPDF } = jspdfModule;
+    
     const canvas = await html2canvas(receiptRef.current, { 
       scale: 2, 
       logging: false,

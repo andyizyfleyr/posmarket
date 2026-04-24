@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { memo, useEffect } from 'react';
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 import { ToastNotification } from '@/types';
 
@@ -8,7 +8,7 @@ interface ToastProps {
     onRemove: (id: string) => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ notification, onRemove }) => {
+const Toast: React.FC<ToastProps> = memo(({ notification, onRemove }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onRemove(notification.id);
@@ -50,7 +50,9 @@ const Toast: React.FC<ToastProps> = ({ notification, onRemove }) => {
             </button>
         </div>
     );
-};
+});
+
+Toast.displayName = 'Toast';
 
 export default Toast;
 
