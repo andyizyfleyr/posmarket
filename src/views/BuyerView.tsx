@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useNavigate } from '@/components/RouterPolyfill';
+import { useNavigate, useLocation } from '@/components/RouterPolyfill';
 import { useRouter as useNextRouter } from 'next/navigation';
 import { 
   Package, MapPin, User, Star, ChevronRight, 
@@ -51,6 +51,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   const { isOnline, isSlow } = useNetworkStatus();
   const navigate = useNavigate();
   const nextRouter = useNextRouter();
+  const location = useLocation();
   const [internalLoading, setInternalLoading] = useState(false);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -63,7 +64,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalOrders, setTotalOrders] = useState(0);
 
-  // Sync activeTab from URL
+  // Sync activeTab from URL - with location trigger
   useEffect(() => {
     if (accountTab) {
       const tabMap: Record<string, TabType> = {
@@ -77,7 +78,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
         setActiveTab(newTab);
       }
     }
-  }, [accountTab]);
+  }, [accountTab, location.pathname]);
 
   // Handle initial data fetch and subsequent tab changes
   useEffect(() => {

@@ -262,6 +262,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [ftsResults, setFtsResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
+  const [urlKey, setUrlKey] = useState(0);
+
+  // 0. URL Change Listener - Force re-render on navigation
+  useEffect(() => {
+    setUrlKey(prev => prev + 1);
+    const handlePopstate = () => setUrlKey(prev => prev + 1);
+    window.addEventListener('popstate', handlePopstate);
+    return () => window.removeEventListener('popstate', handlePopstate);
+  }, []);
 
   // 0. URL Params Detection
   const storeMatch = useMatch("/store/:storeParam");
@@ -3890,6 +3899,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       {(isAccountView || isAccountViewUrl) && user && (
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
+            key={`buyer-${location.pathname}`}
             userEmail={user.email}
             accountTab={location.pathname.split('/mon-compte/')[1] || 'commandes'}
             onBack={() => {
