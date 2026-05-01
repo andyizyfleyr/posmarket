@@ -5035,8 +5035,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <div className="flex-grow h-px bg-gray-100" />
                                 </div>
                               )}
-                              <div className="relative">
-                                <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
+                              <div className="flex overflow-x-auto no-scrollbar gap-3 pb-4 pr-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0 md:pr-0 -mr-4 md:mr-0">
                                   {groups[cat].map((product) => (
                                     <ProductCard
                                       key={`${product.storeId}-${product.id}`}
@@ -5056,9 +5055,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     />
                                   ))}
                                 </div>
-                                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none md:hidden" />
-                                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none md:hidden" />
-                              </div>
                             </div>
                           ));
                         })()
