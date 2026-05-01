@@ -30,7 +30,8 @@ import {
   MapPin,
   CheckCircle2,
   Users,
-  Home
+  Home,
+  FileDigit
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { SUBSCRIPTION_PLANS } from '@/constants';
@@ -117,7 +118,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const filteredMainCategories = useMemo(() => {
     if (businessType === 'food') return ['Restauration & Livraison Rapide'];
     if (businessType === 'stay') return ['Séjours, Expériences & Immobilier'];
-    return MAIN_CATEGORIES.filter(c => c !== 'Restauration & Livraison Rapide' && c !== 'Séjours, Expériences & Immobilier');
+    if (businessType === 'digital') return ['Produits Digitaux & Services'];
+    return MAIN_CATEGORIES.filter(c => c !== 'Restauration & Livraison Rapide' && c !== 'Séjours, Expériences & Immobilier' && c !== 'Produits Digitaux & Services');
   }, [businessType]);
 
   const filteredCategoryMapping = useMemo(() => {
@@ -233,11 +235,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         name: '',
         price: undefined,
         stock: undefined,
-        category: businessType === 'food' ? 'Plats Cuisinés' : (businessType === 'stay' ? 'Appartements de Vacances' : 'Général'),
-        mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : (businessType === 'stay' ? 'Séjours, Expériences & Immobilier' : 'Divers'),
+        category: businessType === 'food' ? 'Plats Cuisinés' : (businessType === 'stay' ? 'Appartements de Vacances' : businessType === 'digital' ? 'Fichiers & Templates' : 'Général'),
+        mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : (businessType === 'stay' ? 'Séjours, Expériences & Immobilier' : businessType === 'digital' ? 'Produits Digitaux & Services' : 'Divers'),
         image: '',
         images: [],
-        unit: businessType === 'stay' ? 'nuitée' : 'pièce',
+        unit: businessType === 'stay' ? 'nuitée' : businessType === 'digital' ? 'accès' : 'pièce',
         description: '',
         isOnline: isOnline,
         deliveryTime: '',
@@ -248,7 +250,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         bedrooms: undefined,
         location: '',
         options: [],
-        variants: []
+        variants: [],
+        isDigital: businessType === 'digital',
+        digitalUrl: ''
       });
 
       setCurrentStep(1);
@@ -345,7 +349,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 businessType === 'stay' ? 'bg-blue-100 text-blue-700' : 
                 'bg-orange-100 text-orange-700'
               }`}>
-                Flux {businessType === 'food' ? 'UberEats' : businessType === 'stay' ? 'Airbnb' : 'Amazon'}
+                Flux {businessType === 'food' ? 'UberEats' : businessType === 'stay' ? 'Airbnb' : businessType === 'digital' ? 'Digital' : 'Amazon'}
               </span>
             </div>
             <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">
@@ -396,7 +400,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               { id: 'all', label: 'Tous les flux', icon: Package, color: 'gray', border: 'border-gray-500', text: 'text-gray-600', shadow: 'shadow-gray-100' },
               { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', text: 'text-orange-600', shadow: 'shadow-orange-100' },
               { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow', border: 'border-yellow-500', text: 'text-yellow-600', shadow: 'shadow-yellow-100' },
-              { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue', border: 'border-blue-500', text: 'text-blue-600', shadow: 'shadow-blue-100' }
+              { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue', border: 'border-blue-500', text: 'text-blue-600', shadow: 'shadow-blue-100' },
+              { id: 'digital', label: 'Digital', icon: FileDigit, color: 'purple', border: 'border-purple-500', text: 'text-purple-600', shadow: 'shadow-purple-100' }
             ].filter(v => v.id === 'all' || v.id === businessType).map(v => (
               <button
                 key={v.id}
@@ -566,11 +571,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
-                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'stay' ? 'bg-blue-100 text-blue-700' :
+                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'digital' ? 'bg-purple-100 text-purple-700' : product.businessType === 'stay' ? 'bg-blue-100 text-blue-700' :
                           product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
                         }`}>
-                        {product.businessType === 'stay' ? <Store size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
-                        {product.businessType === 'stay' ? 'Séjour (Pro)' : product.isOnline !== false ? 'Marketplace' : 'POS'}
+                        {product.businessType === 'digital' ? <FileDigit size={8} /> : product.businessType === 'stay' ? <Store size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
+                        {product.businessType === 'digital' ? 'Digital' : product.businessType === 'stay' ? 'Séjour (Pro)' : product.isOnline !== false ? 'Marketplace' : 'POS'}
                       </span>
                     </div>
 
@@ -930,7 +935,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
 
-                    {(formData.businessType === 'shopping' || formData.businessType === 'food') && (
+                    {(formData.businessType === 'shopping' || formData.businessType === 'food' || formData.businessType === 'digital') && (
                       <div>
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
@@ -945,29 +950,38 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     )}
                     
-                    {formData.businessType === 'shopping' && (
+                    {(formData.businessType === 'shopping' || formData.businessType === 'digital') && (
                       <div className="col-span-full">
-                        <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-100 rounded-xl">
-                          <input
-                            type="checkbox"
-                            id="isDigital"
-                            checked={formData.isDigital || false}
-                            onChange={e => setFormData({ ...formData, isDigital: e.target.checked, stock: e.target.checked ? 999 : formData.stock })}
-                            className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
-                          />
-                          <label htmlFor="isDigital" className="flex-1">
-                            <span className="text-sm font-black text-purple-700">Produit numérique (téléchargeable)</span>
-                            <p className="text-[10px] text-purple-500 font-medium mt-0.5">Le client recevra un lien de téléchargement après achat</p>
-                          </label>
-                        </div>
+                        {formData.businessType === 'digital' && (
+                          <div className="mb-4 p-3 bg-purple-50 border border-purple-100 rounded-xl">
+                            <p className="text-xs font-black text-purple-700">📥 Produit numérique - Le client recevra un lien de téléchargement après achat</p>
+                          </div>
+                        )}
                         
-                        {formData.isDigital && (
+                        {formData.businessType === 'shopping' && (
+                          <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-100 rounded-xl">
+                            <input
+                              type="checkbox"
+                              id="isDigital"
+                              checked={formData.isDigital || false}
+                              onChange={e => setFormData({ ...formData, isDigital: e.target.checked, stock: e.target.checked ? 999 : formData.stock })}
+                              className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <label htmlFor="isDigital" className="flex-1">
+                              <span className="text-sm font-black text-purple-700">Produit numérique (téléchargeable)</span>
+                              <p className="text-[10px] text-purple-500 font-medium mt-0.5">Le client recevra un lien de téléchargement après achat</p>
+                            </label>
+                          </div>
+                        )}
+                        
+                        {(formData.isDigital || formData.businessType === 'digital') && (
                           <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
                             <label className="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1.5">
                               <Download size={12} className="inline mr-1" /> Lien de téléchargement
                             </label>
                             <input
                               type="url"
+                              required
                               value={formData.digitalUrl || ''}
                               onChange={e => setFormData({ ...formData, digitalUrl: e.target.value })}
                               placeholder="https://drive.google.com/..., https://dropbox.com/..."

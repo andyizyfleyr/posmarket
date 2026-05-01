@@ -8,7 +8,7 @@ export interface Review {
   productId?: string;
 }
 
-export type BusinessVertical = 'shopping' | 'food' | 'stay';
+export type BusinessVertical = 'shopping' | 'food' | 'stay' | 'digital';
 
 export interface Product {
   id: string;

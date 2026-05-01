@@ -55,8 +55,8 @@ export async function saveProductAction(product: any, storeId: string) {
     location: product.location,
     options: product.options || [],
     variants: product.variants || [],
-    is_digital: product.isDigital || false,
-    digital_url: product.digitalUrl || null
+    is_digital: product.isDigital || product.businessType === 'digital' || false,
+    digital_url: product.businessType === 'digital' ? (product.digitalUrl || product.digital_url) : (product.digitalUrl || null)
   }
 
   const { data, error } = await supabase.from('products').upsert(dbProduct).select()
@@ -160,7 +160,9 @@ export async function getProductsAction(
       bedrooms: p.bedrooms,
       location: p.location,
       options: p.options || [],
-      variants: p.variants || []
+      variants: p.variants || [],
+      isDigital: p.is_digital || false,
+      digitalUrl: p.digital_url || ''
     })),
     hasMore: (count || 0) > (offset + (data?.length || 0)),
     total: count

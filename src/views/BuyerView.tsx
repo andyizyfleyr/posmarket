@@ -485,7 +485,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                     <p className="text-xs text-gray-500">{isStay ? 'Séjour' : `${item.quantity} x ${formatCurrency(item.price)}`}</p>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {order.status === 'COMPLETED' && product?.is_digital && product?.digital_url && (
+                                    {order.status === 'COMPLETED' && (product?.is_digital || product?.business_type === 'digital') && product?.digital_url && (
                                       <a
                                         href={product.digital_url}
                                         target="_blank"
@@ -708,7 +708,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {order.status === 'COMPLETED' && product?.is_digital && product?.digital_url && (
+                                  {order.status === 'COMPLETED' && (product?.is_digital || product?.business_type === 'digital') && product?.digital_url && (
                                     <a
                                       href={product.digital_url}
                                       target="_blank"
