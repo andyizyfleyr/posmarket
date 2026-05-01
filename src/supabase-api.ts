@@ -557,16 +557,12 @@ export const checkDateRangeAvailable = async (productId: string, startDate: stri
         blockedRanges.push({ start: rangeStart, end: rangeEnd });
     }
     
-    // Check overlap with any blocked range
-    // Add buffer days: 1 day before arrival (previous guest leaves morning of first blocked day)
-    // and 1 day after checkout (preparation time)
+    // Check overlap with any blocked range (exact overlap only, no buffer)
     for (const range of blockedRanges) {
         const rangeStart = new Date(range.start);
-        rangeStart.setDate(rangeStart.getDate() - 1); // Buffer day before arrival
         const rangeEnd = new Date(range.end);
-        rangeEnd.setDate(rangeEnd.getDate() + 1); // Buffer day after checkout
         
-        // Overlap condition: newStart < existingEnd AND newEnd > existingStart
+        // Overlap: newStart < existingEnd AND newEnd > existingStart
         const overlaps = start < rangeEnd && end > rangeStart;
         
         if (overlaps) {
@@ -579,58 +575,15 @@ export const checkDateRangeAvailable = async (productId: string, startDate: stri
 };
 
 /**
- * Get all unavailable dates (including dates that would cause overlap)
+ * Get directly unavailable dates (just the occupied dates, no buffer)
  */
 export const getUnavailableDates = async (productId: string): Promise<string[]> => {
-    const { data: blockedSlots, error } = await supabase
+    const { data, error } = await supabase
         .from('availability_slots')
         .select('date')
         .eq('product_id', productId)
-        .eq('is_available', false)
-        .order('date');
+        .eq('is_available', false);
 
     if (error) throw error;
-    
-    if (!blockedSlots || blockedSlots.length === 0) {
-        return [];
-    }
-    
-    // Group consecutive blocked dates into ranges
-    const blockedRanges: { start: string; end: string }[] = [];
-    let rangeStart = blockedSlots[0].date;
-    let rangeEnd = blockedSlots[0].date;
-    
-    for (let i = 1; i < blockedSlots.length; i++) {
-        const currentDate = new Date(blockedSlots[i].date);
-        const prevDate = new Date(blockedSlots[i - 1].date);
-        const dayDiff = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-        
-        if (dayDiff === 1) {
-            rangeEnd = blockedSlots[i].date;
-        } else {
-            blockedRanges.push({ start: rangeStart, end: rangeEnd });
-            rangeStart = blockedSlots[i].date;
-            rangeEnd = blockedSlots[i].date;
-        }
-    }
-    blockedRanges.push({ start: rangeStart, end: rangeEnd });
-    
-    // Generate all unavailable dates including buffer
-    const unavailableDates: Set<string> = new Set();
-    
-    for (const range of blockedRanges) {
-        const startDate = new Date(range.start);
-        startDate.setDate(startDate.getDate() - 1); // Buffer before
-        const endDate = new Date(range.end);
-        endDate.setDate(endDate.getDate() + 1); // Buffer after
-        
-        // Add all dates in range (including buffer)
-        const current = new Date(startDate);
-        while (current <= endDate) {
-            unavailableDates.add(current.toISOString().split('T')[0]);
-            current.setDate(current.getDate() + 1);
-        }
-    }
-    
-    return Array.from(unavailableDates).sort();
+    return data ? data.map(d => d.date) : [];
 };
