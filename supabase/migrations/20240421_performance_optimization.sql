@@ -26,6 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_idempotency ON orders(idempotency_key);
 -- A. Stats Client
 CREATE OR REPLACE FUNCTION fn_on_order_inserted()
 RETURNS TRIGGER AS $$
+SECURITY DEFINER
 BEGIN
   IF NEW.customer_id IS NOT NULL THEN
     UPDATE customers 
@@ -43,6 +44,7 @@ CREATE TRIGGER tr_order_inserted AFTER INSERT ON orders FOR EACH ROW EXECUTE FUN
 -- B. Stock & Calendrier (Version Ultra-Blindée)
 CREATE OR REPLACE FUNCTION fn_on_order_item_inserted()
 RETURNS TRIGGER AS $$
+SECURITY DEFINER
 DECLARE
   v_old_p RECORD;
   v_new_stock INTEGER;
