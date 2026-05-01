@@ -2356,10 +2356,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               />
             </div>
 
-            {/* Thumbnails - Scrollable Horizontal */}
+            {/* Thumbnails - Compact Grid */}
             {selectedProductDetails.images &&
               selectedProductDetails.images.length > 1 && (
-                <div className="flex gap-2 md:gap-3 overflow-x-auto py-2 md:py-3 px-4 md:px-0 w-full justify-start md:justify-center scrollbar-none no-scrollbar">
+                <div className="grid grid-cols-5 gap-1.5 px-4 md:px-0">
                   {selectedProductDetails.images.map((img, idx) => (
                     <button
                       key={idx}
@@ -2368,28 +2368,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         e.stopPropagation();
                         setSelectedDetailImage(img);
                       }}
-                      className={`w-14 h-14 md:w-20 md:h-20 rounded-lg md:rounded-xl overflow-hidden cursor-pointer border-2 transition-all flex-shrink-0 shadow-sm relative group/thumb bg-white ${
+                      className={`aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all relative ${
                         selectedDetailImage === img ||
                         (!selectedDetailImage && idx === 0)
-                          ? "border-[#f56b2a] ring-2 md:ring-4 ring-orange-50 scale-105"
-                          : "border-white hover:border-orange-200 hover:scale-[1.02]"
+                          ? "border-[#f56b2a] ring-2 ring-orange-50"
+                          : "border-gray-100"
                       }`}
                     >
                       <Image
                         src={img}
                         alt={`${selectedProductDetails.name} thumbnail ${idx}`}
                         fill
-                        className="relative z-10 object-contain"
-                        sizes="80px"
-                      />
-                      {(selectedDetailImage === img ||
-                        (!selectedDetailImage && idx === 0)) && (
-                        <div className="absolute top-1 right-1 z-20 bg-[#f56b2a] text-white p-0.5 rounded-full shadow-sm   duration-300">
-                          <CheckCircle2 size={10} strokeWidth={3} />
-                        </div>
-                      )}
-                      <div
-                        className={`absolute inset-0 bg-white/40 transition-opacity duration-300 ${selectedDetailImage === img || (!selectedDetailImage && idx === 0) ? "opacity-0" : "opacity-0 group-hover/thumb:opacity-20"}`}
+                        className="object-cover"
+                        sizes="60px"
                       />
                     </button>
                   ))}
