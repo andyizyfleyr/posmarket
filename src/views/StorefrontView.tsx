@@ -170,6 +170,184 @@ interface StorefrontViewProps {
   notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
+// 🗓️ Custom Calendar Picker Component
+function CalendarPicker({
+  blockedDates,
+  checkIn,
+  checkOut,
+  onCheckInChange,
+  onCheckOutChange,
+}: {
+  blockedDates: string[];
+  checkIn: string;
+  checkOut: string;
+  onCheckInChange: (date: string) => void;
+  onCheckOutChange: (date: string) => void;
+}) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    const days: (number | null)[] = [];
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    return days;
+  };
+  
+  const formatDate = (day: number) => {
+    const year = currentMonth.getFullYear();
+    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    return `${year}-${month}-${dayStr}`;
+  };
+  
+  const isDateBlocked = (day: number) => {
+    const dateStr = formatDate(day);
+    return blockedDates.includes(dateStr);
+  };
+  
+  const isDatePast = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    date.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+  
+  const isDateInRange = (day: number) => {
+    if (!checkIn || !checkOut) return false;
+    const dateStr = formatDate(day);
+    return dateStr > checkIn && dateStr < checkOut;
+  };
+  
+  const isCheckIn = (day: number) => formatDate(day) === checkIn;
+  const isCheckOut = (day: number) => formatDate(day) === checkOut;
+  
+  const handleDayClick = (day: number) => {
+    if (isDateBlocked(day) || isDatePast(day)) return;
+    
+    const dateStr = formatDate(day);
+    
+    if (!checkIn || (checkIn && checkOut)) {
+      onCheckInChange(dateStr);
+      onCheckOutChange("");
+    } else if (dateStr > checkIn) {
+      onCheckOutChange(dateStr);
+    } else {
+      onCheckInChange(dateStr);
+      onCheckOutChange("");
+    }
+  };
+  
+  const monthNames = [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+  ];
+  const dayNames = ["Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa"];
+  const days = getDaysInMonth(currentMonth);
+  
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className="text-sm font-black text-gray-900 uppercase tracking-wider">
+          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+        </span>
+        <button
+          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ChevronRight size={20} className="rotate-180" style={{ transform: 'rotate(180deg)' }} />
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {dayNames.map((name) => (
+          <div key={name} className="text-[10px] font-bold text-gray-400 text-center uppercase">
+            {name}
+          </div>
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day, index) => {
+          if (day === null) {
+            return <div key={index} className="h-10" />;
+          }
+          
+          const blocked = isDateBlocked(day);
+          const past = isDatePast(day);
+          const inRange = isDateInRange(day);
+          const isStart = isCheckIn(day);
+          const isEnd = isCheckOut(day);
+          
+          let dayClass = "h-10 flex items-center justify-center text-xs font-black rounded-lg cursor-pointer transition-all ";
+          
+          if (past) {
+            dayClass += "text-gray-300 cursor-not-allowed ";
+          } else if (blocked) {
+            dayClass += "bg-red-50 text-red-400 cursor-not-allowed relative ";
+          } else if (isStart || isEnd) {
+            dayClass += "bg-blue-600 text-white ";
+          } else if (inRange) {
+            dayClass += "bg-blue-50 text-blue-600 ";
+          } else {
+            dayClass += "text-gray-700 hover:bg-gray-100 ";
+          }
+          
+          return (
+            <div
+              key={index}
+              onClick={() => handleDayClick(day)}
+              className={dayClass}
+            >
+              {blocked ? (
+                <div className="relative flex items-center justify-center w-full h-full">
+                  <span className="opacity-50">{day}</span>
+                  <X size={10} className="absolute text-red-400 font-bold" />
+                </div>
+              ) : (
+                day
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {(checkIn || checkOut) && (
+        <div className="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-xs font-black">
+          {checkIn && (
+            <div className="flex-1 bg-blue-50 text-blue-700 p-2 rounded-lg text-center">
+              Arrivée: <span className="uppercase">{new Date(checkIn).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+          {checkOut && (
+            <div className="flex-1 bg-blue-50 text-blue-700 p-2 rounded-lg text-center">
+              Départ: <span className="uppercase">{new Date(checkOut).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
   onBackToApp,
@@ -311,6 +489,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const [checkIn, setCheckIn] = useState<string>("");
   const [checkOut, setCheckOut] = useState<string>("");
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
 
   // 🔄 Sync vertical with specific store type
   useEffect(() => {
@@ -1096,6 +1275,24 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
     return product;
   }, [allProducts, rawUrlProductId, productReviews]);
+
+  // 📅 Fetch blocked dates for calendar
+  useEffect(() => {
+    if (showBookingModal && selectedProductDetails?.businessType === "stay") {
+      const fetchBlockedDates = async () => {
+        const { data } = await supabase
+          .from('availability_slots')
+          .select('date')
+          .eq('product_id', selectedProductDetails.id)
+          .eq('is_available', false);
+        
+        if (data) {
+          setBlockedDates(data.map(d => d.date));
+        }
+      };
+      fetchBlockedDates();
+    }
+  }, [showBookingModal, selectedProductDetails]);
 
   // 🗓️ Availability Checker
   useEffect(() => {
@@ -2437,27 +2634,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                         </div>
 
                         <div className="p-6 space-y-6">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Arrivée</label>
-                              <input 
-                                type="date" 
-                                value={checkIn}
-                                min={new Date().toISOString().split('T')[0]}
-                                onChange={(e) => setCheckIn(e.target.value)}
-                                className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Départ</label>
-                              <input 
-                                type="date" 
-                                value={checkOut}
-                                min={checkIn || new Date().toISOString().split('T')[0]}
-                                onChange={(e) => setCheckOut(e.target.value)}
-                                className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
-                              />
-                            </div>
+                          {/* Custom Calendar */}
+                          <div className="space-y-3">
+                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Sélectionnez vos dates</label>
+                            {blockedDates.length > 0 && (
+                              <p className="text-[9px] text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg inline-block mb-2">
+                                Les dates en rouge sont indisponibles
+                              </p>
+                            )}
+                            <CalendarPicker 
+                              blockedDates={blockedDates}
+                              checkIn={checkIn}
+                              checkOut={checkOut}
+                              onCheckInChange={setCheckIn}
+                              onCheckOutChange={setCheckOut}
+                            />
                           </div>
 
                           <div className="space-y-1.5">
@@ -5658,3 +5849,186 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     </div>
   );
 };
+
+function CalendarPicker({
+  blockedDates,
+  checkIn,
+  checkOut,
+  onCheckInChange,
+  onCheckOutChange,
+}: {
+  blockedDates: string[];
+  checkIn: string;
+  checkOut: string;
+  onCheckInChange: (date: string) => void;
+  onCheckOutChange: (date: string) => void;
+}) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    const days: (number | null)[] = [];
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    return days;
+  };
+  const formatDate = (day: number) => {
+    const year = currentMonth.getFullYear();
+    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    return `${year}-${month}-${dayStr}`;
+  };
+  
+  const isDateBlocked = (day: number) => {
+    const dateStr = formatDate(day);
+    return blockedDates.includes(dateStr);
+  };
+  
+  const isDatePast = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    date.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+  
+  const isDateInRange = (day: number) => {
+    if (!checkIn || !checkOut) return false;
+    const dateStr = formatDate(day);
+    return dateStr > checkIn && dateStr < checkOut;
+  };
+  
+  const isCheckIn = (day: number) => formatDate(day) === checkIn;
+  const isCheckOut = (day: number) => formatDate(day) === checkOut;
+  
+  const handleDayClick = (day: number) => {
+    if (isDateBlocked(day) || isDatePast(day)) return;
+    
+    const dateStr = formatDate(day);
+    
+    // If no check-in or if already have both, start new selection
+    if (!checkIn || (checkIn && checkOut)) {
+      onCheckInChange(dateStr);
+      onCheckOutChange("");
+    } else if (dateStr > checkIn) {
+      // If selecting check-out, ensure it's after check-in
+      onCheckOutChange(dateStr);
+    } else {
+      // If clicked date is before check-in, reset
+      onCheckInChange(dateStr);
+      onCheckOutChange("");
+    }
+  };
+  
+  const monthNames = [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+  ];
+  const dayNames = ["Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa"];
+  const days = getDaysInMonth(currentMonth);
+  
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className="text-sm font-black text-gray-900 uppercase tracking-wider">
+          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+        </span>
+        <button
+          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ChevronRight size={20} className="rotate-180" style={{ transform: 'rotate(180deg)' }} />
+        </button>
+      </div>
+      
+      {/* Day Names Header */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {dayNames.map((name) => (
+          <div key={name} className="text-[10px] font-bold text-gray-400 text-center uppercase">
+            {name}
+          </div>
+        ))}
+      </div>
+      
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day, index) => {
+          if (day === null) {
+            return <div key={index} className="h-10" />;
+          }
+          
+          const blocked = isDateBlocked(day);
+          const past = isDatePast(day);
+          const inRange = isDateInRange(day);
+          const isStart = isCheckIn(day);
+          const isEnd = isCheckOut(day);
+          
+          let dayClass = "h-10 flex items-center justify-center text-xs font-black rounded-lg cursor-pointer transition-all ";
+          
+          if (past) {
+            dayClass += "text-gray-300 cursor-not-allowed ";
+          } else if (blocked) {
+            dayClass += "bg-red-50 text-red-400 cursor-not-allowed relative ";
+          } else if (isStart || isEnd) {
+            dayClass += "bg-blue-600 text-white ";
+          } else if (inRange) {
+            dayClass += "bg-blue-50 text-blue-600 ";
+          } else {
+            dayClass += "text-gray-700 hover:bg-gray-100 ";
+          }
+          
+          return (
+            <div
+              key={index}
+              onClick={() => handleDayClick(day)}
+              className={dayClass}
+            >
+              {blocked ? (
+                <div className="relative flex items-center justify-center w-full h-full">
+                  <span className="opacity-50">{day}</span>
+                  <X size={10} className="absolute text-red-400 font-bold" />
+                </div>
+              ) : (
+                day
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Selected Dates Display */}
+      {(checkIn || checkOut) && (
+        <div className="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-xs font-black">
+          {checkIn && (
+            <div className="flex-1 bg-blue-50 text-blue-700 p-2 rounded-lg text-center">
+              Arrivée: <span className="uppercase">{new Date(checkIn).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+          {checkOut && (
+            <div className="flex-1 bg-blue-50 text-blue-700 p-2 rounded-lg text-center">
+              Départ: <span className="uppercase">{new Date(checkOut).toLocaleDateString('fr-FR')}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
