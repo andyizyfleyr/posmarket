@@ -558,12 +558,13 @@ export const checkDateRangeAvailable = async (productId: string, startDate: stri
     }
     
     // Check overlap with any blocked range
+    // Add 1 day buffer after existing bookings (checkout day needs preparation time)
     for (const range of blockedRanges) {
         const rangeStart = new Date(range.start);
         const rangeEnd = new Date(range.end);
+        rangeEnd.setDate(rangeEnd.getDate() + 1); // Add 1 day buffer after checkout
         
         // Overlap condition: newStart < existingEnd AND newEnd > existingStart
-        // Note: We don't overlap if newEnd <= existingStart or newStart >= existingEnd
         const overlaps = start < rangeEnd && end > rangeStart;
         
         if (overlaps) {
