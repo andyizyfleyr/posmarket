@@ -499,6 +499,7 @@ export const updateAvailability = async (productId: string, dates: string[], isA
 
 /**
  * Check if a range of dates is fully available
+ * Overlapping with any existing booking returns false
  */
 export const checkDateRangeAvailable = async (productId: string, startDate: string, endDate: string) => {
     const start = new Date(startDate);
@@ -518,20 +519,58 @@ export const checkDateRangeAvailable = async (productId: string, startDate: stri
         return data.length === 0;
     }
     
-    // Adjust endDate to be the day before checkout (since checkout day morning is free for the next checkin)
-    end.setDate(end.getDate() - 1);
-    const checkOutDateStr = end.toISOString().split('T')[0];
-
-    const { data, error } = await supabase
+    // For multi-day bookings, we need to check for OVERLAP with existing bookings
+    // A new booking [start, end] overlaps with existing if: start < existing_end AND end > existing_start
+    
+    // Get all blocked date ranges for this product
+    const { data: blockedSlots, error } = await supabase
         .from('availability_slots')
-        .select('date')
+        .select('date, booking_id')
         .eq('product_id', productId)
         .eq('is_available', false)
-        .gte('date', startDate)
-        .lte('date', checkOutDateStr);
+        .order('date');
 
     if (error) throw error;
     
-    // If we found any blocked slots, it's not available
-    return data.length === 0;
+    // Group consecutive blocked dates into ranges
+    const blockedRanges: { start: string; end: string }[] = [];
+    if (blockedSlots && blockedSlots.length > 0) {
+        let rangeStart = blockedSlots[0].date;
+        let rangeEnd = blockedSlots[0].date;
+        
+        for (let i = 1; i < blockedSlots.length; i++) {
+            const currentDate = new Date(blockedSlots[i].date);
+            const prevDate = new Date(blockedSlots[i - 1].date);
+            const dayDiff = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+            
+            if (dayDiff === 1) {
+                // Consecutive, extend range
+                rangeEnd = blockedSlots[i].date;
+            } else {
+                // Gap found, save previous range and start new
+                blockedRanges.push({ start: rangeStart, end: rangeEnd });
+                rangeStart = blockedSlots[i].date;
+                rangeEnd = blockedSlots[i].date;
+            }
+        }
+        // Push the last range
+        blockedRanges.push({ start: rangeStart, end: rangeEnd });
+    }
+    
+    // Check overlap with any blocked range
+    for (const range of blockedRanges) {
+        const rangeStart = new Date(range.start);
+        const rangeEnd = new Date(range.end);
+        
+        // Overlap condition: newStart < existingEnd AND newEnd > existingStart
+        // Note: We don't overlap if newEnd <= existingStart or newStart >= existingEnd
+        const overlaps = start < rangeEnd && end > rangeStart;
+        
+        if (overlaps) {
+            return false;
+        }
+    }
+    
+    // No overlap found
+    return true;
 };
