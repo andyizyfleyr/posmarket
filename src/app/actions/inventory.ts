@@ -54,7 +54,9 @@ export async function saveProductAction(product: any, storeId: string) {
     bedrooms: product.bedrooms,
     location: product.location,
     options: product.options || [],
-    variants: product.variants || []
+    variants: product.variants || [],
+    is_digital: product.isDigital || false,
+    digital_url: product.digitalUrl || null
   }
 
   const { data, error } = await supabase.from('products').upsert(dbProduct).select()

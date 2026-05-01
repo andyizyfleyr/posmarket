@@ -10,7 +10,7 @@ import {
   Clock, CheckCircle2, Truck, AlertCircle, ShoppingBag, 
   Plus, Edit2, Trash2, Home, Briefcase, Bell, LogOut, 
   ArrowLeft, X, Phone, Mail, MessageCircle, ShieldCheck,
-  ArrowRight
+  ArrowRight, Download
 } from 'lucide-react';
 import Button from '@/components/Button';
 import { formatCurrency } from '@/utils';
@@ -484,15 +484,28 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                     <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
                                     <p className="text-xs text-gray-500">{isStay ? 'Séjour' : `${item.quantity} x ${formatCurrency(item.price)}`}</p>
                                   </div>
-                                  <button 
-                                    onClick={() => {
-                                      setReviewData({ rating: 5, comment: '', product: { ...product, store_id: order.store_id, business_type: product?.business_type } });
-                                      setShowReviewModal(true);
-                                    }}
-                                    className="w-9 h-9 bg-orange-50 text-[#f56b2a] rounded-xl flex items-center justify-center shrink-0"
-                                  >
-                                    <Star size={14} fill="currentColor" />
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    {order.status === 'COMPLETED' && product?.is_digital && product?.digital_url && (
+                                      <a
+                                        href={product.digital_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-9 h-9 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shrink-0"
+                                        title="Télécharger"
+                                      >
+                                        <Download size={14} />
+                                      </a>
+                                    )}
+                                    <button 
+                                      onClick={() => {
+                                        setReviewData({ rating: 5, comment: '', product: { ...product, store_id: order.store_id, business_type: product?.business_type } });
+                                        setShowReviewModal(true);
+                                      }}
+                                      className="w-9 h-9 bg-orange-50 text-[#f56b2a] rounded-xl flex items-center justify-center shrink-0"
+                                    >
+                                      <Star size={14} fill="currentColor" />
+                                    </button>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -694,20 +707,33 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                     </p>
                                   </div>
                                 </div>
-                                <button 
-                                  onClick={() => {
-                                    setReviewData({ 
-                                      rating: 5, 
-                                      comment: '', 
-                                      product: { ...product, store_id: order.store_id, business_type: product?.business_type } 
-                                    });
-                                    setShowReviewModal(true);
-                                  }}
-                                  className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-[#f56b2a] rounded-xl hover:bg-[#f56b2a] hover:text-white transition-all active:scale-90"
-                                  title="Laisser un avis"
-                                >
-                                  <Star size={16} fill="currentColor" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  {order.status === 'COMPLETED' && product?.is_digital && product?.digital_url && (
+                                    <a
+                                      href={product.digital_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="shrink-0 w-9 h-9 flex items-center justify-center bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all active:scale-90"
+                                      title="Télécharger"
+                                    >
+                                      <Download size={16} />
+                                    </a>
+                                  )}
+                                  <button 
+                                    onClick={() => {
+                                      setReviewData({ 
+                                        rating: 5, 
+                                        comment: '', 
+                                        product: { ...product, store_id: order.store_id, business_type: product?.business_type } 
+                                      });
+                                      setShowReviewModal(true);
+                                    }}
+                                    className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-[#f56b2a] rounded-xl hover:bg-[#f56b2a] hover:text-white transition-all active:scale-90"
+                                    title="Laisser un avis"
+                                  >
+                                    <Star size={16} fill="currentColor" />
+                                  </button>
+                                </div>
                               </div>
                               
                               {isStay && item.check_in && (

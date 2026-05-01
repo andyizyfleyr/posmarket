@@ -402,7 +402,7 @@ export async function fetchBuyerOrdersAction(page = 1, limit = 3) {
     .select(`
       *,
       stores (name, address, phone),
-      order_items!inner (*, products(name, image, price, business_type))
+      order_items!inner (*, products(name, image, price, business_type, is_digital, digital_url))
     `, { count: 'exact' })
     .eq('buyer_id', user.id)
     .order('date', { ascending: false })
