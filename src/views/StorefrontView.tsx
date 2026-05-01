@@ -1005,7 +1005,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     null
   );
-  const [imageAspectRatio, setImageAspectRatio] = useState<number>(1);
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
@@ -1343,7 +1342,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       incrementProductViews(selectedProductId);
       setIsDescriptionExpanded(false); // Reset expansion on new product
       setSelectedDetailImage(null); // Reset selected image on new product
-      setImageAspectRatio(1); // Reset aspect ratio
     }
   }, [selectedProductId, selectedProductDetails]);
 
@@ -2341,8 +2339,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           {/* Media Gallery - Professional Layout */}
           <div className="space-y-4">
             <div
-              className="relative w-full rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor-pointer shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100"
-              style={{ aspectRatio: imageAspectRatio }}
+              className="relative w-full rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor-pointer shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100 flex items-center justify-center"
               onClick={() => {
                 setCurrentZoomImage(selectedDetailImage);
                 setIsImageModalOpen(true);
@@ -2350,16 +2347,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             >
               <Image
                 src={selectedDetailImage || selectedProductDetails.image}
-                fill
-                className="relative z-10 object-contain group-hover/main:scale-110"
+                width={800}
+                height={800}
+                className="w-full h-auto max-h-[60vh] object-contain group-hover/main:scale-105"
                 alt={selectedProductDetails.name}
                 priority
                 sizes="(max-width: 768px) 100vw, 50vw"
-                onLoadingComplete={(img) => {
-                  if (img.naturalWidth && img.naturalHeight) {
-                    setImageAspectRatio(img.naturalWidth / img.naturalHeight);
-                  }
-                }}
               />
             </div>
 
@@ -2370,14 +2363,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   {selectedProductDetails.images.map((img, idx) => (
                     <button
                       key={idx}
-                      onMouseEnter={() => {
-                        setSelectedDetailImage(img);
-                        setImageAspectRatio(1);
-                      }}
+                      onMouseEnter={() => setSelectedDetailImage(img)}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedDetailImage(img);
-                        setImageAspectRatio(1);
                       }}
                       className={`w-14 h-14 md:w-20 md:h-20 rounded-lg md:rounded-xl overflow-hidden cursor-pointer border-2 transition-all flex-shrink-0 shadow-sm relative group/thumb bg-white ${
                         selectedDetailImage === img ||
