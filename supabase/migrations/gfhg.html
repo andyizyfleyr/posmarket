@@ -1,0 +1,43 @@
+17:27:35.987 Running build in Washington, D.C., USA (East) – iad1
+17:27:35.988 Build machine configuration: 2 cores, 8 GB
+17:27:36.155 Cloning github.com/andyizyfleyr/posmarket (Branch: main, Commit: d8c3d7c)
+17:27:36.712 Cloning completed: 556.000ms
+17:27:38.787 Restored build cache from previous deployment (Ug5opUoP7nLvcmUu77CF8XXhsuZ2)
+17:27:39.034 Running "vercel build"
+17:27:39.718 Vercel CLI 51.6.1
+17:27:39.989 Installing dependencies...
+17:27:41.410 
+17:27:41.411 up to date in 1s
+17:27:41.411 
+17:27:41.412 184 packages are looking for funding
+17:27:41.412   run `npm fund` for details
+17:27:41.443 Detected Next.js version: 16.2.1
+17:27:41.447 Running "npm run build"
+17:27:41.564 
+17:27:41.565 > backend@0.1.0 build
+17:27:41.565 > next build
+17:27:41.565 
+17:27:42.314   Applying modifyConfig from Vercel
+17:27:42.331 ▲ Next.js 16.2.1 (Turbopack)
+17:27:42.332 - Experiments (use with caution):
+17:27:42.332   · serverActions
+17:27:42.332 
+17:27:42.342 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+17:27:42.369   Creating an optimized production build ...
+17:27:59.641 ✓ Compiled successfully in 16.9s
+17:27:59.650   Running TypeScript ...
+17:28:09.955 Failed to type check.
+17:28:09.956 
+17:28:09.956 ./src/views/StorefrontView.tsx:500:29
+17:28:09.956 Type error: Argument of type 'BusinessVertical' is not assignable to parameter of type 'SetStateAction<"shopping" | "food" | "stay" | "all">'.
+17:28:09.956   Type '"digital"' is not assignable to type 'SetStateAction<"shopping" | "food" | "stay" | "all">'.
+17:28:09.956 
+17:28:09.956   [90m498 |[0m       [36mconst[0m activeStore = activeStores.find(s => s.id === selectedStoreId);
+17:28:09.956   [90m499 |[0m       [36mif[0m (activeStore?.business_type) {
+17:28:09.956 [31m[1m>[0m [90m500 |[0m         setSelectedVertical(activeStore.business_type);
+17:28:09.956   [90m    |[0m                             [31m[1m^[0m
+17:28:09.956   [90m501 |[0m       }
+17:28:09.956   [90m502 |[0m     }
+17:28:09.956   [90m503 |[0m   }, [selectedStoreId, activeStores, isMounted]);
+17:28:10.002 Next.js build worker exited with code: 1 and signal: null
+17:28:10.054 Error: Command "npm run build" exited with 1

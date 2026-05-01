@@ -434,7 +434,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   });
   const [promoApplied, setPromoApplied] = useState<Coupon | null>(null);
   const [selectedVertical, setSelectedVertical] = useState<
-    "all" | "shopping" | "food" | "stay"
+    "all" | "shopping" | "food" | "stay" | "digital"
   >("all");
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);

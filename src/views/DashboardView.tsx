@@ -71,7 +71,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     return getLocalYMD(d);
   });
   const [endDate, setEndDate] = useState<string>(() => getLocalYMD(new Date()));
-  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>(store?.business_type || 'all');
+  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay' | 'digital'>(store?.business_type || 'all');
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {

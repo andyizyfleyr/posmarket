@@ -54,7 +54,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [loadingOrderItems, setLoadingOrderItems] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>('ALL');
     const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-    const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay'>('all');
+    const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay' | 'digital'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
 
