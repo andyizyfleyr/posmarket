@@ -4345,8 +4345,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
 
-            {/* Dynamic Horizontal Categories - Scrollable */}
-            <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap">
+            {/* Dynamic Horizontal Categories - Scrollable with scroll hint */}
+            <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth">
+              <div className="flex-shrink-0 text-gray-300 pr-2">
+                <ChevronRight size={12} className="rotate-180" />
+              </div>
               {categories.map((cat) => (
                 <button
                   key={cat}
