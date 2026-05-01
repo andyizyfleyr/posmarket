@@ -38,7 +38,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
             src={product.image}
             alt={product.name}
             containerClassName="w-full h-full"
-            objectFit="contain"
+            objectFit="cover"
           />
 
           {/* Badges on Image Content */}
