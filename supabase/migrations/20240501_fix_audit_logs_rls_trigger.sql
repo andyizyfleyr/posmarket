@@ -3,7 +3,6 @@
 
 CREATE OR REPLACE FUNCTION fn_on_order_inserted()
 RETURNS TRIGGER AS $$
-SECURITY DEFINER
 BEGIN
   IF NEW.customer_id IS NOT NULL THEN
     UPDATE customers 
@@ -13,11 +12,10 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION fn_on_order_item_inserted()
 RETURNS TRIGGER AS $$
-SECURITY DEFINER
 DECLARE
   v_old_p RECORD;
   v_new_stock INTEGER;
@@ -60,4 +58,4 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -26,7 +26,6 @@ CREATE INDEX IF NOT EXISTS idx_orders_idempotency ON orders(idempotency_key);
 -- A. Stats Client
 CREATE OR REPLACE FUNCTION fn_on_order_inserted()
 RETURNS TRIGGER AS $$
-SECURITY DEFINER
 BEGIN
   IF NEW.customer_id IS NOT NULL THEN
     UPDATE customers 
@@ -36,7 +35,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS tr_order_inserted ON orders;
 CREATE TRIGGER tr_order_inserted AFTER INSERT ON orders FOR EACH ROW EXECUTE FUNCTION fn_on_order_inserted();
@@ -93,7 +92,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS tr_order_item_inserted ON order_items;
 CREATE TRIGGER tr_order_item_inserted AFTER INSERT ON order_items FOR EACH ROW EXECUTE FUNCTION fn_on_order_item_inserted();
