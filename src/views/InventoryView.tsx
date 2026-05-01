@@ -939,12 +939,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <div>
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
-                          required={!formData.isDigital}
+                          required={formData.businessType !== 'digital'}
                           type="number"
                           value={formData.stock ?? ''}
                           onChange={e => setFormData({ ...formData, stock: e.target.value ? parseFloat(e.target.value) : undefined })}
                           placeholder="0"
-                          disabled={formData.isDigital}
+                          disabled={formData.businessType === 'digital'}
                           className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none disabled:opacity-50"
                         />
                       </div>
@@ -958,23 +958,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           </div>
                         )}
                         
-                        {formData.businessType === 'shopping' && (
-                          <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-100 rounded-xl">
-                            <input
-                              type="checkbox"
-                              id="isDigital"
-                              checked={formData.isDigital || false}
-                              onChange={e => setFormData({ ...formData, isDigital: e.target.checked, stock: e.target.checked ? 999 : formData.stock })}
-                              className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
-                            />
-                            <label htmlFor="isDigital" className="flex-1">
-                              <span className="text-sm font-black text-purple-700">Produit numérique (téléchargeable)</span>
-                              <p className="text-[10px] text-purple-500 font-medium mt-0.5">Le client recevra un lien de téléchargement après achat</p>
-                            </label>
-                          </div>
-                        )}
-                        
-                        {(formData.isDigital || formData.businessType === 'digital') && (
+                        {formData.businessType === 'digital' && (
                           <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
                             <label className="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1.5">
                               <Download size={12} className="inline mr-1" /> Lien de téléchargement

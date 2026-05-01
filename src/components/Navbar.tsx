@@ -18,6 +18,7 @@ import {
   Trash2,
   HelpCircle,
   Shield,
+  FileDigit,
   ShoppingBag
 } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
@@ -267,7 +268,8 @@ const Navbar: React.FC<NavbarProps> = ({
                                 {[
                                   { id: 'shopping', label: 'AMAZON', desc: 'Produits & E-commerce', icon: <ShoppingBag size={14} />, color: 'orange' },
                                   { id: 'food', label: 'UBEREATS', desc: 'Plats & Restauration', icon: <Clock size={14} />, color: 'yellow' },
-                                  { id: 'stay', label: 'AIRBNB', desc: 'Logements & Séjours', icon: <DoorOpen size={14} />, color: 'blue' }
+                                  { id: 'stay', label: 'AIRBNB', desc: 'Logements & Séjours', icon: <DoorOpen size={14} />, color: 'blue' },
+                                  { id: 'digital', label: 'DIGITAL', desc: 'Produits numériques', icon: <FileDigit size={14} />, color: 'purple' }
                                 ].map(type => (
                                   <button
                                     key={type.id}
