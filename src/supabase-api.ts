@@ -577,3 +577,60 @@ export const checkDateRangeAvailable = async (productId: string, startDate: stri
     // No overlap found
     return true;
 };
+
+/**
+ * Get all unavailable dates (including dates that would cause overlap)
+ */
+export const getUnavailableDates = async (productId: string): Promise<string[]> => {
+    const { data: blockedSlots, error } = await supabase
+        .from('availability_slots')
+        .select('date')
+        .eq('product_id', productId)
+        .eq('is_available', false)
+        .order('date');
+
+    if (error) throw error;
+    
+    if (!blockedSlots || blockedSlots.length === 0) {
+        return [];
+    }
+    
+    // Group consecutive blocked dates into ranges
+    const blockedRanges: { start: string; end: string }[] = [];
+    let rangeStart = blockedSlots[0].date;
+    let rangeEnd = blockedSlots[0].date;
+    
+    for (let i = 1; i < blockedSlots.length; i++) {
+        const currentDate = new Date(blockedSlots[i].date);
+        const prevDate = new Date(blockedSlots[i - 1].date);
+        const dayDiff = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (dayDiff === 1) {
+            rangeEnd = blockedSlots[i].date;
+        } else {
+            blockedRanges.push({ start: rangeStart, end: rangeEnd });
+            rangeStart = blockedSlots[i].date;
+            rangeEnd = blockedSlots[i].date;
+        }
+    }
+    blockedRanges.push({ start: rangeStart, end: rangeEnd });
+    
+    // Generate all unavailable dates including buffer
+    const unavailableDates: Set<string> = new Set();
+    
+    for (const range of blockedRanges) {
+        const startDate = new Date(range.start);
+        startDate.setDate(startDate.getDate() - 1); // Buffer before
+        const endDate = new Date(range.end);
+        endDate.setDate(endDate.getDate() + 1); // Buffer after
+        
+        // Add all dates in range (including buffer)
+        const current = new Date(startDate);
+        while (current <= endDate) {
+            unavailableDates.add(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+        }
+    }
+    
+    return Array.from(unavailableDates).sort();
+};

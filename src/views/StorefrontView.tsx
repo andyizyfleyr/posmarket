@@ -90,6 +90,7 @@ import {
   incrementProductViews,
   incrementStoreViews,
   checkDateRangeAvailable,
+  getUnavailableDates,
 } from "@/supabase-api";
 import {
   fetchMarketplaceProducts,
@@ -1292,15 +1293,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   useEffect(() => {
     if (showBookingModal && selectedProductDetails?.businessType === "stay") {
       const fetchBlockedDates = async () => {
-        const { data } = await supabase
-          .from('availability_slots')
-          .select('date')
-          .eq('product_id', selectedProductDetails.id)
-          .eq('is_available', false);
-        
-        if (data) {
-          setBlockedDates(data.map(d => d.date));
-        }
+        const unavailableDates = await getUnavailableDates(selectedProductDetails.id);
+        setBlockedDates(unavailableDates);
       };
       fetchBlockedDates();
     }
