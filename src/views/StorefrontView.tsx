@@ -1002,9 +1002,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     };
     loadCoupons();
   }, [selectedStoreParam, stores, isCartView]);
-  const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
-    null,
+const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
+    null
   );
+  const [imageAspectRatio, setImageAspectRatio] = useState<number>(1);
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
@@ -1341,6 +1342,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       productViewTracked.current = selectedProductId;
       incrementProductViews(selectedProductId);
       setIsDescriptionExpanded(false); // Reset expansion on new product
+      setSelectedDetailImage(null); // Reset selected image on new product
+      setImageAspectRatio(1); // Reset aspect ratio
     }
   }, [selectedProductId, selectedProductDetails]);
 
@@ -2338,7 +2341,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           {/* Media Gallery - Professional Layout */}
           <div className="space-y-4">
             <div
-              className="relative aspect-square rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor- shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100"
+              className="relative w-full rounded-none md:rounded-[32px] overflow-hidden bg-white group/main cursor-pointer shadow-2xl shadow-orange-100/20 border-b md:border border-gray-100"
+              style={{ aspectRatio: imageAspectRatio }}
               onClick={() => {
                 setCurrentZoomImage(selectedDetailImage);
                 setIsImageModalOpen(true);
@@ -2351,6 +2355,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                 alt={selectedProductDetails.name}
                 priority
                 sizes="(max-width: 768px) 100vw, 50vw"
+                onLoadingComplete={(img) => {
+                  if (img.naturalWidth && img.naturalHeight) {
+                    setImageAspectRatio(img.naturalWidth / img.naturalHeight);
+                  }
+                }}
               />
             </div>
 
@@ -2361,10 +2370,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   {selectedProductDetails.images.map((img, idx) => (
                     <button
                       key={idx}
-                      onMouseEnter={() => setSelectedDetailImage(img)}
+                      onMouseEnter={() => {
+                        setSelectedDetailImage(img);
+                        setImageAspectRatio(1);
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedDetailImage(img);
+                        setImageAspectRatio(1);
                       }}
                       className={`w-14 h-14 md:w-20 md:h-20 rounded-lg md:rounded-xl overflow-hidden cursor-pointer border-2 transition-all flex-shrink-0 shadow-sm relative group/thumb bg-white ${
                         selectedDetailImage === img ||
