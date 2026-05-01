@@ -55,19 +55,19 @@ BEGIN
   SELECT * INTO v_old_p FROM products WHERE id = NEW.product_id FOR UPDATE;
 
   IF v_old_p.business_type = 'stay' THEN
-    -- 🏨 GESTION AIRBNB (Safe Date Series & Explicit Casts)
+    -- 🏨 GESTION AIRBNB (include checkout day as occupied)
     IF NEW.check_in IS NOT NULL AND NEW.check_out IS NOT NULL THEN
       IF EXISTS (
         SELECT 1 FROM availability_slots 
         WHERE product_id = NEW.product_id AND is_available = false 
-        AND date >= NEW.check_in::date AND date <= (NEW.check_out::date - 1)::date
+        AND date >= NEW.check_in::date AND date <= NEW.check_out::date
       ) THEN
         RAISE EXCEPTION 'Conflit de calendrier détecté.';
       END IF;
 
       INSERT INTO availability_slots (product_id, date, is_available, booking_id)
       SELECT NEW.product_id, d::date, false, NEW.order_id
-      FROM generate_series(NEW.check_in::date, (NEW.check_out::date - 1)::date, '1 day'::interval) AS d
+      FROM generate_series(NEW.check_in::date, NEW.check_out::date, '1 day'::interval) AS d
       ON CONFLICT (product_id, date) DO UPDATE SET is_available = false, booking_id = NEW.order_id;
     END IF;
   ELSIF v_old_p.business_type = 'shopping' THEN
