@@ -1,19 +1,4 @@
--- Fix RLS policy for audit_logs trigger
--- Add SECURITY DEFINER to trigger functions to bypass RLS
-
-CREATE OR REPLACE FUNCTION fn_on_order_inserted()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.customer_id IS NOT NULL THEN
-    UPDATE customers 
-    SET total_spent = total_spent + NEW.total,
-        orders_count = orders_count + 1
-    WHERE id = NEW.customer_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
+-- Fix: block both check-in AND check-out dates
 CREATE OR REPLACE FUNCTION fn_on_order_item_inserted()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -21,7 +6,6 @@ DECLARE
   v_new_stock INTEGER;
 BEGIN
   PERFORM pg_advisory_xact_lock(hashtext(NEW.product_id::text));
-
   SELECT * INTO v_old_p FROM products WHERE id = NEW.product_id FOR UPDATE;
 
   IF v_old_p.business_type = 'stay' THEN
@@ -40,17 +24,8 @@ BEGIN
       ON CONFLICT (product_id, date) DO UPDATE SET is_available = false, booking_id = NEW.order_id;
     END IF;
   ELSIF v_old_p.business_type = 'shopping' THEN
-    UPDATE products 
-    SET stock = stock - NEW.quantity 
-    WHERE id = NEW.product_id 
-    AND stock >= NEW.quantity
-    RETURNING stock INTO v_new_stock;
-
-    IF NOT FOUND THEN
-      RAISE EXCEPTION 'Stock insuffisant pour % (Disponible: %)', v_old_p.name, v_old_p.stock;
-    END IF;
-  ELSE
-    NULL;
+    UPDATE products SET stock = stock - NEW.quantity WHERE id = NEW.product_id AND stock >= NEW.quantity RETURNING stock INTO v_new_stock;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Stock insuffisant'; END IF;
   END IF;
 
   INSERT INTO audit_logs (table_name, record_id, action, old_data, new_data)
