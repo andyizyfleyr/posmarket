@@ -2397,8 +2397,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               )}
           </div>
 
-          {/* Product Info - Premium Typography */}
-          <div className="flex flex-col h-full py-2 px-4 md:px-0">
+          {/* Product Info - Compact Mobile */}
+          <div className="flex flex-col h-full py-1 px-4 md:px-0">
             {(() => {
               const mainCat = selectedProductDetails.mainCategory;
               const isFood = selectedProductDetails.businessType === "food" || mainCat === "Restauration & Livraison Rapide";
@@ -2409,15 +2409,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
               return (
                 <>
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="mb-2">
+                    <div className="flex items-center gap-2 mb-2">
                       <button
                         onClick={() =>
                           safeNavigate(
                             `/store/${selectedProductDetails.storeSlug || selectedProductDetails.storeId}`,
                           )
                         }
-                        className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full transition-colors border ${
+                        className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-full transition-colors border ${
                           isFood
                             ? "bg-green-50 text-green-600 border-green-100"
                             : isStay
@@ -2426,22 +2426,22 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         }`}
                       >
                         {isFood
-                          ? "🧑‍🍳 Préparé par "
+                          ? "🧑‍🍳 "
                           : isStay
-                            ? "🏠 Hôte : "
-                            : "📦 Vendu par "}{" "}
+                            ? "🏠 "
+                            : "📦 "}{" "}
                         {selectedProductDetails.storeName}
                       </button>
                       {isFood && (
-                        <span className="flex items-center gap-1 text-[9px] font-black text-gray-500 uppercase tracking-tighter bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                          <Clock size={10} className="text-green-500" />{" "}
+                        <span className="flex items-center gap-1 text-[8px] font-black text-gray-500 uppercase tracking-tighter bg-gray-50 px-1.5 py-0.5 rounded-full border border-gray-100">
+                          <Clock size={8} className="text-green-500" />{" "}
                           {selectedProductDetails.deliveryTime || "30-45 min"}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-4 mb-4">
-                      <h2 className="text-xl md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                    <div className="flex flex-col gap-2 mb-2">
+                      <h2 className="text-lg md:text-3xl font-black text-gray-900 leading-[1.1] tracking-tight">
                         {selectedProductDetails.name}
                       </h2>
 
@@ -2455,9 +2455,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       )}
 
                       <div className="flex flex-col items-start flex-shrink-0">
-                        <div className="flex items-baseline gap-2 h-fit">
+                        <div className="flex items-baseline gap-1.5 h-fit">
                           <span
-                            className={`text-2xl md:text-3xl font-black tracking-tighter whitespace-nowrap ${
+                            className={`text-xl md:text-3xl font-black tracking-tighter whitespace-nowrap ${
                               isFood
                                 ? "text-green-600"
                                 : isStay
@@ -2488,58 +2488,44 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             })()}
                           </span>
                           {isStay && (
-                            <span className="text-xs font-black text-gray-600 uppercase tracking-widest">
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">
                               / nuit
                             </span>
                           )}
                         </div>
                         {selectedProductDetails.originalPrice && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600 line-through font-medium">
-                              {formatCurrency(
-                                selectedProductDetails.originalPrice,
-                              )}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-gray-500 line-through font-medium">
+                              {formatCurrency(selectedProductDetails.originalPrice)}
                             </span>
-                            <span className="text-[10px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                              -
-                              {Math.round(
-                                ((selectedProductDetails.originalPrice -
-                                  selectedProductDetails.price) /
-                                  selectedProductDetails.originalPrice) *
-                                  100,
-                              )}
-                              %
+                            <span className="text-[9px] font-black text-white bg-red-500 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
+                              -{Math.round(((selectedProductDetails.originalPrice - selectedProductDetails.price) / selectedProductDetails.originalPrice) * 100)}%
                             </span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded-lg border border-yellow-100">
                         <div className="flex text-yellow-500">
                           {[1, 2, 3, 4, 5].map((s) => (
                             <Star
                               key={s}
-                              size={10}
-                              fill={
-                                s <=
-                                Math.round(selectedProductDetails.rating || 0)
-                                  ? "currentColor"
-                                  : "none"
-                              }
+                              size={8}
+                              fill={s <= Math.round(selectedProductDetails.rating || 0) ? "currentColor" : "none"}
                             />
                           ))}
                         </div>
-                        <span className="text-[10px] font-black text-yellow-700">
+                        <span className="text-[9px] font-black text-yellow-700">
                           {(selectedProductDetails.rating || 0).toFixed(1)}
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-gray-600 border-l border-gray-200 pl-4">
+                      <span className="text-[10px] font-bold text-gray-500">
                         {formatNumber(selectedProductDetails.reviewCount || 0)} Avis
                       </span>
                       <span
-                        className={`text-[11px] font-bold border-l border-gray-200 pl-4 flex items-center gap-1.5 ${
+                        className={`text-[10px] font-bold flex items-center gap-1 ${
                           isFood
                             ? "text-green-600"
                             : isStay
