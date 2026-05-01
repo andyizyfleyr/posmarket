@@ -505,6 +505,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingStep, setBookingStep] = useState(1);
+
+  // Reset booking step when modal opens/closes
+  useEffect(() => {
+    if (showBookingModal) {
+      setBookingStep(1);
+      setCheckIn("");
+      setCheckOut("");
+      setGuestsNum(1);
+      setIsAvailable(null);
+    }
+  }, [showBookingModal]);
 
   // 🔍 DEBOUNCED FTS SEARCH (with deduplication)
   const ftsRequestRef = useRef<{ term: string; controller: AbortController } | null>(null);
@@ -2624,103 +2636,159 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                     <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] md:pb-6   duration-300">
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBookingModal(false)} />
                       <div className="relative w-full max-w-md mx-4 md:mx-0 bg-white rounded-[32px] shadow-2xl overflow-hidden   md: duration-500">
-                        <div className="p-6 pb-2 flex items-center justify-between border-b border-gray-50">
-                          <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                             <Calendar size={16} className="text-blue-600" /> Planifiez votre séjour
-                          </h4>
+                        <div className="p-4 pb-2 flex items-center justify-between border-b border-gray-50">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${bookingStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>1</div>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${bookingStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${bookingStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>3</div>
+                          </div>
                           <button onClick={() => setShowBookingModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                             <X size={20} />
                           </button>
                         </div>
 
-                        <div className="p-6 space-y-6">
-                          {/* Custom Calendar */}
-                          <div className="space-y-3">
-                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Sélectionnez vos dates</label>
-                            {blockedDates.length > 0 && (
-                              <p className="text-[9px] text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg inline-block mb-2">
-                                Les dates en rouge sont indisponibles
-                              </p>
-                            )}
-                            <CalendarPicker 
-                              blockedDates={blockedDates}
-                              checkIn={checkIn}
-                              checkOut={checkOut}
-                              onCheckInChange={setCheckIn}
-                              onCheckOutChange={setCheckOut}
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Nombre de personnes</label>
-                            <select
-                              value={guestsNum}
-                              onChange={(e) => setGuestsNum(parseInt(e.target.value))}
-                              className="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-xs font-black appearance-none focus:border-blue-500 focus:bg-white transition-all outline-none"
-                            >
-                              {Array.from({ length: selectedProductDetails.maxGuests || 6 }, (_, i) => i + 1).map((n) => (
-                                <option key={n} value={n}>{n} {n > 1 ? "personnes" : "personne"}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Dynamic Feedback in Modal */}
-                          {checkIn && checkOut && (
-                            <div className="space-y-3">
-                               {isCheckingAvailability ? (
-                                 <div className="flex items-center gap-2 text-[10px] font-black text-blue-500 uppercase justify-center py-2 bg-blue-50/50 rounded-xl animate-pulse">
-                                   <Loader2 size={12} className="animate-spin" /> Vérification...
-                                 </div>
-                               ) : isAvailable === false ? (
-                                 <div className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase bg-red-50 p-3 rounded-xl border border-red-100">
-                                   <AlertCircle size={14} /> Indisponible aux dates choisies
-                                 </div>
-                               ) : isAvailable === true ? (
-                                 <div className="flex flex-col gap-2 bg-green-50/50 p-4 rounded-2xl border border-green-100/50">
-                                   <div className="flex items-center gap-2 text-[10px] font-black text-green-600 uppercase">
-                                     <CheckCircle2 size={12} /> Logement disponible !
-                                   </div>
-                                   <div className="flex justify-between items-center text-sm font-black text-gray-900 pt-2 border-t border-green-100">
-                                      {(() => {
-                                        const start = new Date(checkIn);
-                                        const end = new Date(checkOut);
-                                        const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-                                        return (
-                                          <>
-                                            <span className="text-[10px] uppercase text-gray-400 tracking-tighter">{nights} nuits</span>
-                                            <span>{formatCurrency(nights * selectedProductDetails.price)}</span>
-                                          </>
-                                        );
-                                      })()}
-                                   </div>
-                                 </div>
-                               ) : null}
-                            </div>
+                        <div className="p-6 space-y-4">
+                          {/* Step 1: Select Dates */}
+                          {bookingStep === 1 && (
+                            <>
+                              <div className="text-center mb-4">
+                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Sélectionnez vos dates</h4>
+                                {blockedDates.length > 0 && (
+                                  <p className="text-[9px] text-red-500 font-bold mt-1">Les dates en rouge sont indisponibles</p>
+                                )}
+                              </div>
+                              <CalendarPicker 
+                                blockedDates={blockedDates}
+                                checkIn={checkIn}
+                                checkOut={checkOut}
+                                onCheckInChange={(date) => {
+                                  setCheckIn(date);
+                                  setIsAvailable(null);
+                                }}
+                                onCheckOutChange={(date) => {
+                                  setCheckOut(date);
+                                  setIsAvailable(null);
+                                }}
+                              />
+                              <Button
+                                onClick={() => {
+                                  if (!checkIn || !checkOut) {
+                                    localNotify("Veuillez sélectionner les dates d'arrivée et de départ", "warning");
+                                    return;
+                                  }
+                                  if (isAvailable === false) {
+                                    localNotify("Ces dates ne sont pas disponibles", "error");
+                                    return;
+                                  }
+                                  setBookingStep(2);
+                                }}
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
+                                disabled={!checkIn || !checkOut}
+                                className="h-12 rounded-xl font-black uppercase"
+                              >
+                                Suivant
+                              </Button>
+                            </>
                           )}
 
-                          <Button
-                            onClick={() => {
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              if (new Date(checkIn) < today) {
-                                localNotify("La date d'arrivée ne peut pas être dans le passé", "error");
-                                return;
-                              }
-                              if (!checkIn || !checkOut || isAvailable === false) {
-                                localNotify("Veuillez sélectionner des dates valides", "warning");
-                                return;
-                              }
-                              addToCart(selectedProductDetails, undefined, { checkIn, checkOut, guests: guestsNum });
-                              setShowBookingModal(false);
-                            }}
-                            fullWidth
-                            size="xl"
-                            variant="secondary"
-                            disabled={!checkIn || !checkOut || isAvailable === false || isCheckingAvailability}
-                            className="h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-100 active:scale-95"
-                          >
-                            Confirmer la réservation
-                          </Button>
+                          {/* Step 2: Select Guests */}
+                          {bookingStep === 2 && (
+                            <>
+                              <div className="text-center mb-4">
+                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Nombre de personnes</h4>
+                              </div>
+                              <div className="space-y-1.5">
+                                <select
+                                  value={guestsNum}
+                                  onChange={(e) => setGuestsNum(parseInt(e.target.value))}
+                                  className="w-full h-14 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-sm font-black text-center appearance-none focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                >
+                                  {Array.from({ length: selectedProductDetails.maxGuests || 6 }, (_, i) => i + 1).map((n) => (
+                                    <option key={n} value={n}>{n} {n > 1 ? "personnes" : "personne"}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex gap-3">
+                                <Button
+                                  onClick={() => setBookingStep(1)}
+                                  fullWidth
+                                  size="lg"
+                                  variant="outline"
+                                  className="h-12 rounded-xl font-black uppercase"
+                                >
+                                  Retour
+                                </Button>
+                                <Button
+                                  onClick={() => setBookingStep(3)}
+                                  fullWidth
+                                  size="lg"
+                                  variant="secondary"
+                                  className="h-12 rounded-xl font-black uppercase"
+                                >
+                                  Suivant
+                                </Button>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Step 3: Confirm */}
+                          {bookingStep === 3 && (
+                            <>
+                              <div className="text-center mb-4">
+                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Récapitulatif</h4>
+                              </div>
+                              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500 font-medium">Arrivée</span>
+                                  <span className="font-black">{checkIn ? new Date(checkIn).toLocaleDateString('fr-FR') : '-'}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500 font-medium">Départ</span>
+                                  <span className="font-black">{checkOut ? new Date(checkOut).toLocaleDateString('fr-FR') : '-'}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500 font-medium">Personnes</span>
+                                  <span className="font-black">{guestsNum}</span>
+                                </div>
+                                <div className="border-t border-gray-200 pt-3 flex justify-between">
+                                  <span className="text-gray-500 font-medium">Total</span>
+                                  <span className="font-black text-lg">
+                                    {(() => {
+                                      const start = new Date(checkIn);
+                                      const end = new Date(checkOut);
+                                      const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                                      return formatCurrency(nights * selectedProductDetails.price);
+                                    })()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex gap-3">
+                                <Button
+                                  onClick={() => setBookingStep(2)}
+                                  fullWidth
+                                  size="lg"
+                                  variant="outline"
+                                  className="h-12 rounded-xl font-black uppercase"
+                                >
+                                  Retour
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    addToCart(selectedProductDetails, undefined, { checkIn, checkOut, guests: guestsNum });
+                                    setShowBookingModal(false);
+                                  }}
+                                  fullWidth
+                                  size="lg"
+                                  variant="secondary"
+                                  className="h-12 rounded-xl font-black uppercase"
+                                >
+                                  Confirmer
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>,
