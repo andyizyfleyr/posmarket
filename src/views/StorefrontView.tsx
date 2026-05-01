@@ -5035,25 +5035,29 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <div className="flex-grow h-px bg-gray-100" />
                                 </div>
                               )}
-                              <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
-                                {groups[cat].map((product) => (
-                                  <ProductCard
-                                    key={`${product.storeId}-${product.id}`}
-                                    product={product as any}
-                                    onAddToCart={addToCart as any}
-                                    onStoreSelect={(id) =>
-                                      safeNavigate(
-                                        `/store/${product.storeSlug || id}`,
-                                      )
-                                    }
-                                    onClick={() =>
-                                      safeNavigate(
-                                        `/product/${generateProductSlug(product)}`,
-                                      )
-                                    }
-                                    className="w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
-                                  />
-                                ))}
+                              <div className="relative">
+                                <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
+                                  {groups[cat].map((product) => (
+                                    <ProductCard
+                                      key={`${product.storeId}-${product.id}`}
+                                      product={product as any}
+                                      onAddToCart={addToCart as any}
+                                      onStoreSelect={(id) =>
+                                        safeNavigate(
+                                          `/store/${product.storeSlug || id}`,
+                                        )
+                                      }
+                                      onClick={() =>
+                                        safeNavigate(
+                                          `/product/${generateProductSlug(product)}`,
+                                        )
+                                      }
+                                      className="w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
+                                    />
+                                  ))}
+                                </div>
+                                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none md:hidden" />
+                                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none md:hidden" />
                               </div>
                             </div>
                           ));
