@@ -2445,15 +2445,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         {selectedProductDetails.name}
                       </h2>
 
-                      {isStay && selectedProductDetails.location && (
-                        <div className="flex items-center gap-1.5 -mt-2">
-                          <MapPin size={14} className="text-blue-500" />
-                          <span className="text-[11px] md:text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
-                            {selectedProductDetails.location}
-                          </span>
-                        </div>
-                      )}
-
                       <div className="flex flex-col items-start flex-shrink-0">
                         <div className="flex items-baseline gap-1.5 h-fit">
                           <span
