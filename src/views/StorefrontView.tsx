@@ -4345,37 +4345,32 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
 
-            {/* Dynamic Horizontal Categories - Scrollable with indicators */}
-            <div className="relative">
-              <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar -mx-4 px-4 whitespace-nowrap scroll-smooth">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      if (
-                        location.pathname.includes("/product/") ||
-                        location.pathname.includes("/cart")
-                      ) {
-                        safeNavigate("/");
-                      }
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md"
-                        : "bg-white border-gray-100 text-gray-600 hover:border-gray-200"
-                    }`}
-                  >
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full ${selectedCategory === cat ? "bg-white" : "bg-gray-200"}`}
-                    />
-                    {cat === "all" ? "Tout voir" : cat}
-                  </button>
-                ))}
-              </div>
-              {/* Scroll Indicators */}
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+            {/* Dynamic Horizontal Categories - Scrollable */}
+            <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    if (
+                      location.pathname.includes("/product/") ||
+                      location.pathname.includes("/cart")
+                    ) {
+                      safeNavigate("/");
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
+                    selectedCategory === cat
+                      ? "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md"
+                      : "bg-white border-gray-100 text-gray-600 hover:border-gray-200"
+                  }`}
+                >
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${selectedCategory === cat ? "bg-white" : "bg-gray-200"}`}
+                  />
+                  {cat === "all" ? "Tout voir" : cat}
+                </button>
+              ))}
             </div>
           </div>
         </header>
@@ -4834,9 +4829,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">
                         Boutiques partenaires
                       </h2>
-                      <div className="relative">
-                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 scroll-smooth">
-                          {partnerStores.slice(0, 6).map((store) => (
+                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
+                        {partnerStores.slice(0, 6).map((store) => (
                           <div
                             key={store.id}
                             onClick={() =>
@@ -4870,8 +4864,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             </div>
                           </div>
                         ))}
-                        <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-                        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none" />
                       </div>
                     </div>
                   )}
