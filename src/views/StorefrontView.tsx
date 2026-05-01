@@ -4373,9 +4373,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </button>
               ))}
               </div>
-              {/* Scroll indicators */}
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none md:hidden" />
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none md:hidden" />
             </div>
           </div>
         </header>
