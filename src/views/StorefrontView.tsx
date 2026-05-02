@@ -425,6 +425,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, []);
 
   const [cart, setCart] = useState<CartItem[]>([]);
+  const allDigital = cart.length > 0 && cart.every(item => item.product.businessType === 'digital');
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     phone: "",
@@ -1778,8 +1779,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       quantity: 1,
     }];
     setCart(cartItem);
-    safeNavigate('/cart');
-    setTimeout(() => setCheckoutStage('shipping'), 800);
+    if (product.businessType === 'digital') {
+      setCheckoutStage('payment');
+    } else {
+      safeNavigate('/cart');
+      setTimeout(() => setCheckoutStage('shipping'), 800);
+    }
   };
 
   const addWholesaleToCart = (product: StorefrontProduct) => {
@@ -3461,7 +3466,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         )}
 
         <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-3 md:p-8">
-          {checkoutStage === "cart" &&
+          {checkoutStage === "cart" && !allDigital && (
             (cart.length > 0 ? (
               <div className="space-y-4">
                 {Array.from(
@@ -3681,6 +3686,29 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </p>
               </div>
             ))}
+          ) : (
+            /* Digital products - bypass cart, go directly to checkout */
+            <CheckoutItemsList
+              cart={cart}
+              onRemove={(idx) => {
+                setCart((prev) => prev.filter((_, i) => i !== idx));
+              }}
+              onUpdateQuantity={(idx, qty) => {
+                setCart((prev) =>
+                  prev.map((item, i) =>
+                    i === idx ? { ...item, quantity: qty } : item
+                  )
+                );
+              }}
+              subtotal={cart.reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0)}
+              total={cart.reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0)}
+              promoApplied={promoApplied}
+              onRemovePromo={() => setPromoApplied(null)}
+              checkoutStage={checkoutStage}
+              setCheckoutStage={handleStageChange}
+              onEdit={() => safeNavigate('/')}
+            />
+          )}
           {(checkoutStage === "shipping" || checkoutStage === "payment") && (
             <form
               id="checkout-form"
@@ -3748,7 +3776,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     </div>
                   </div>
 
-                  {!cart.some(i => i.product.businessType === 'stay') && (
+                  {!cart.some(i => i.product.businessType === 'stay' || i.product.businessType === 'digital') && (
                     <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
                       <div className="flex items-center gap-3 mb-8">
                         <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-black text-sm">
