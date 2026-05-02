@@ -1774,6 +1774,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   };
 
   const buyNow = (product: StorefrontProduct) => {
+    // Replace cart completely - this is a direct purchase
     setCart([{ product, quantity: 1 }]);
     setCheckoutStage('payment');
   };
