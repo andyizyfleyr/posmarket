@@ -3687,27 +3687,35 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             ))}
           ) : (
-            /* Digital products - bypass cart, go directly to checkout */
-            <CheckoutItemsList
-              cart={cart}
-              onRemove={(idx) => {
-                setCart((prev) => prev.filter((_, i) => i !== idx));
-              }}
-              onUpdateQuantity={(idx, qty) => {
-                setCart((prev) =>
-                  prev.map((item, i) =>
-                    i === idx ? { ...item, quantity: qty } : item
-                  )
-                );
-              }}
-              subtotal={cart.reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0)}
-              total={cart.reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0)}
-              promoApplied={promoApplied}
-              onRemovePromo={() => setPromoApplied(null)}
-              checkoutStage={checkoutStage}
-              setCheckoutStage={handleStageChange}
-              onEdit={() => safeNavigate('/')}
-            />
+            <div className="space-y-4">
+              {cart.map((item, idx) => (
+                <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex gap-4">
+                    <div className="w-20 h-20 flex-shrink-0">
+                      <ProductImage
+                        src={item.product.image}
+                        alt={item.product.name || "Product Image"}
+                        containerClassName="rounded-xl border border-gray-100 shadow-sm"
+                        showZoomEffect={false}
+                      />
+                    </div>
+                    <div className="flex-grow flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800">{item.product.name}</h4>
+                        <p className="text-xs text-gray-500">{formatCurrency(item.product.price)}</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-600">Qty: {item.quantity}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
+                <span className="font-bold text-gray-600">Total</span>
+                <span className="font-black text-[#f56b2a]">{formatCurrency(cart.reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0))}</span>
+              </div>
+            </div>
           )}
           {(checkoutStage === "shipping" || checkoutStage === "payment") && (
             <form
