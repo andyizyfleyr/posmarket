@@ -1774,17 +1774,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   };
 
   const buyNow = (product: StorefrontProduct) => {
-    const cartItem = [{
-      product,
-      quantity: 1,
-    }];
-    setCart(cartItem);
-    if (product.businessType === 'digital') {
-      setCheckoutStage('payment');
-    } else {
-      safeNavigate('/cart');
-      setTimeout(() => setCheckoutStage('shipping'), 800);
-    }
+    setCart([{ product, quantity: 1 }]);
+    setCheckoutStage('payment');
   };
 
   const addWholesaleToCart = (product: StorefrontProduct) => {
@@ -3466,8 +3457,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         )}
 
         <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-3 md:p-8">
-          {checkoutStage === "cart" && !allDigital ? (
-            cart.length > 0 ? (
+          {checkoutStage === "cart" && (
+            (cart.length > 0 ? (
               <div className="space-y-4">
                 {Array.from(
                   new Set(
@@ -3686,38 +3677,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </p>
               </div>
             )
-          ) : (
-            <div className="space-y-4">
-              {cart.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                  <div className="flex gap-4">
-                    <div className="w-20 h-20 flex-shrink-0">
-                      <ProductImage
-                        src={item.product.image}
-                        alt={item.product.name || "Product Image"}
-                        containerClassName="rounded-xl border border-gray-100 shadow-sm"
-                        showZoomEffect={false}
-                      />
-                    </div>
-                    <div className="flex-grow flex flex-col justify-between">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-800">{item.product.name}</h4>
-                        <p className="text-xs text-gray-500">{formatCurrency(item.product.price)}</p>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-600">Qty: {item.quantity}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
-                <span className="font-bold text-gray-600">Total</span>
-                <span className="font-black text-[#f56b2a]">{formatCurrency(cart.reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0))}</span>
-              </div>
-            </div>
-          )}
-          {(allDigital || checkoutStage === "shipping" || checkoutStage === "payment") && (
+          ) : null}
+          {(checkoutStage === "shipping" || checkoutStage === "payment") && (
             <form
               id="checkout-form"
               onSubmit={handleCheckoutSubmit}
