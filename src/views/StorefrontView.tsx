@@ -3457,8 +3457,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         )}
 
         <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-3 md:p-8">
-          {checkoutStage === "cart" && (
-            (cart.length > 0 ? (
+          {(checkoutStage === "cart" && cart.length > 0) && (
               <div className="space-y-4">
                 {Array.from(
                   new Set(
@@ -3668,16 +3667,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center py-20 text-gray-600">
-                <ShoppingCart size={64} className="opacity-20 mb-4" />
-                <p className="text-lg font-black text-gray-900">
-                  Votre panier est vide
-                </p>
-              </div>
-            )
-          ) : null}
+            </div>
+          )}
+          {(checkoutStage === "cart" && cart.length === 0) && (
+            <div className="h-full flex flex-col items-center justify-center py-20 text-gray-600">
+              <ShoppingCart size={64} className="opacity-20 mb-4" />
+              <p className="text-lg font-black text-gray-900">
+                Votre panier est vide
+              </p>
+            </div>
+          )}
           {(checkoutStage === "shipping" || checkoutStage === "payment") && (
             <form
               id="checkout-form"
