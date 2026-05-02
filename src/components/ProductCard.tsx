@@ -9,18 +9,25 @@ import ProductImage from './ProductImage';
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
+  onBuyNow?: (product: Product) => void;
   onStoreSelect?: (storeId: string) => void;
   onClick?: () => void;
   className?: string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onStoreSelect, onClick, className = "" }) => {
+const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onBuyNow, onStoreSelect, onClick, className = "" }) => {
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if ((product as any).currentBooking) return;
     onAddToCart(product);
   }, [product, onAddToCart]);
+
+  const handleBuyNow = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onBuyNow?.(product);
+  }, [product, onBuyNow]);
 
   const handleClick = useCallback(() => {
     onClick?.();
@@ -97,14 +104,23 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
       </div>
 
       {/* Button Tray - Outside the clickable area */}
-      {!(product.category === 'Appartements' || product.businessType === 'stay') && (
+      {(product.businessType === 'digital') ? (
+        <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
+          <button
+            onClick={handleBuyNow}
+            className="w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter bg-[#f56b2a] text-white border-[#f56b2a] hover:bg-[#e55a1a]"
+          >
+            Acheter maintenant
+          </button>
+        </div>
+      ) : (product.category === 'Appartements' || product.businessType === 'stay') ? null : (
         <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
           <button
             onClick={handleAddToCart}
             disabled={!!(product as any).currentBooking}
             className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
               (product as any).currentBooking
-                ? 'bg-orange-600 text-white border-orange-600 cursor-not-allowed uppercase !opacity-100 shadow-none'
+                ? 'bg-gray-400 text-white border-gray-400 cursor-not-allowed uppercase !opacity-100 shadow-none'
                 : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
             }`}
           >

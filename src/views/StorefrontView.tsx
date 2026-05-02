@@ -1772,6 +1772,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     setTimeout(() => setCartNotif(false), 4000);
   };
 
+  const buyNow = (product: StorefrontProduct) => {
+    const cartItem = [{
+      product,
+      quantity: 1,
+    }];
+    setCart(cartItem);
+    safeNavigate('/cart');
+    setTimeout(() => setCheckoutStage('shipping'), 800);
+  };
+
   const addWholesaleToCart = (product: StorefrontProduct) => {
     if (!product.wholesaleMinQty) return;
     setCart((prev) => {
@@ -3352,6 +3362,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   key={`${product.storeId}-${product.id}`}
                   product={product as any}
                   onAddToCart={addToCart as any}
+                  onBuyNow={buyNow as any}
                   onStoreSelect={(id) =>
                     safeNavigate(`/store/${product.storeSlug || id}`)
                   }
@@ -4982,6 +4993,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               key={`${product.storeId}-${product.id}`}
                               product={product as any}
                               onAddToCart={addToCart as any}
+                              onBuyNow={buyNow as any}
                               onStoreSelect={(id) =>
                                 safeNavigate(
                                   `/store/${product.storeSlug || id}`,
@@ -5038,6 +5050,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       key={`${product.storeId}-${product.id}`}
                                       product={product as any}
                                       onAddToCart={addToCart as any}
+                                      onBuyNow={buyNow as any}
                                       onStoreSelect={(id) =>
                                         safeNavigate(
                                           `/store/${product.storeSlug || id}`,
@@ -5176,6 +5189,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     key={`${product.storeId}-${product.id}`}
                                     product={product as any}
                                     onAddToCart={addToCart as any}
+                                    onBuyNow={buyNow as any}
                                     onStoreSelect={(id) =>
                                       safeNavigate(
                                         `/store/${product.storeSlug || id}`,
