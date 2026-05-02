@@ -173,13 +173,16 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
       // 1. Get current buyer user if logged in
       const { data: { user: buyer } } = await supabase.auth.getUser();
 
-      // 2. Create Order
+      // 2. Check if all products are digital
+      const allDigital = storeOrderData.items.every((item: any) => item.product.business_type === 'digital' || item.product.businessType === 'digital');
+
+      // 3. Create Order
       const { data: order, error: orderErr } = await supabase.from('orders').insert({
         store_id: storeId,
         customer_id: customerId,
         buyer_id: buyer?.id, // Link to the logged-in buyer user
         date: new Date().toISOString(),
-        status: 'PENDING',
+        status: allDigital ? 'COMPLETED' : 'PENDING',
         type: 'PICKUP',
         payment_method: storeOrderData.paymentMethod || 'ESPECES',
         subtotal: storeOrderData.subtotal,
