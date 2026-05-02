@@ -3466,8 +3466,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         )}
 
         <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-3 md:p-8">
-          {checkoutStage === "cart" && !allDigital && (
-            (cart.length > 0 ? (
+          {checkoutStage === "cart" && !allDigital ? (
+            cart.length > 0 ? (
               <div className="space-y-4">
                 {Array.from(
                   new Set(
@@ -3685,7 +3685,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   Votre panier est vide
                 </p>
               </div>
-            ))}
+            )
           ) : (
             <div className="space-y-4">
               {cart.map((item, idx) => (
@@ -3717,7 +3717,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
           )}
-          {(checkoutStage === "shipping" || checkoutStage === "payment") && (
+          {(allDigital || checkoutStage === "shipping" || checkoutStage === "payment") && (
             <form
               id="checkout-form"
               onSubmit={handleCheckoutSubmit}
