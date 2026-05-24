@@ -354,7 +354,7 @@ export const getUserProfile = async (userId: string) => {
         fullName: data.full_name,
         avatarUrl: data.avatar_url,
         isSuperAdmin: data.is_super_admin,
-        subscriptionTier: data.subscription_tier || 'BASIC',
+        subscriptionTier: data.subscription_tier || 'PRO',
         subscriptionStatus: data.subscription_status || 'ACTIVE',
         subscriptionEndDate: data.subscription_end_date
     };

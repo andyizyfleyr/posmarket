@@ -11,7 +11,7 @@ export default async function SubscriptionPage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
   
   const userSubscription = {
-    tier: profile?.subscription_tier || 'BASIC',
+    tier: profile?.subscription_tier || 'PRO',
     duration: profile?.subscription_duration || 'monthly',
     startDate: profile?.subscription_start_date || new Date().toISOString(),
     endDate: profile?.subscription_end_date || new Date().toISOString(),

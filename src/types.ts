@@ -175,7 +175,7 @@ export interface StoreData {
 }
 
 export type SubscriptionDuration = 'demo' | 'monthly' | 'quarterly' | 'annual';
-export type SubscriptionTier = 'BASIC' | 'PRO' | 'ENTERPRISE';
+export type SubscriptionTier = 'PRO' | 'ENTERPRISE';
 
 export interface SubscriptionFeatures {
   maxStores: number;

@@ -24,14 +24,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   const userSubscription = {
-    tier: (profile?.subscription_tier as SubscriptionTier) || 'BASIC',
+    tier: (profile?.subscription_tier as SubscriptionTier) || 'PRO',
     duration: profile?.subscription_duration || 'monthly',
     startDate: profile?.subscription_start_date || new Date().toISOString(),
-    endDate: profile?.subscription_end_date || new Date().toISOString(), // Default to now (expired if BASIC)
+    endDate: profile?.subscription_end_date || new Date().toISOString(),
     status: profile?.subscription_status || 'EXPIRED' // Default to EXPIRED
   } as any;
 
-  const currentPlan = SUBSCRIPTION_PLANS[userSubscription.tier as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.BASIC;
+  const currentPlan = SUBSCRIPTION_PLANS[userSubscription.tier as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.PRO;
 
   // Fetch stores that this user owns or staff in
   console.log('[Layout] Fetching stores...');

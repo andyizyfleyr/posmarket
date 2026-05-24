@@ -16,11 +16,11 @@ interface SubscriptionViewProps {
 export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, notify, userRole }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
-    const isExpired = new Date(currentSubscription.endDate) < new Date() && currentSubscription.tier !== 'BASIC';
+    const isExpired = new Date(currentSubscription.endDate) < new Date();
     const [duration, setDuration] = useState<SubscriptionDuration>(currentSubscription.duration || 'monthly');
     const [loading, setLoading] = useState(false);
 
-    const plans = [SUBSCRIPTION_PLANS.BASIC, SUBSCRIPTION_PLANS.PRO, SUBSCRIPTION_PLANS.ENTERPRISE];
+    const plans = [SUBSCRIPTION_PLANS.PRO, SUBSCRIPTION_PLANS.ENTERPRISE];
 
     const handleSubscribe = async (plan: SubscriptionPlan) => {
         // Allow reactivation if same plan but expired, or if different plan
@@ -47,7 +47,6 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     };
 
     const planIcons: Record<string, { Icon: any, colorClass: string }> = {
-        'BASIC': { Icon: Star, colorClass: 'text-slate-400' },
         'PRO': { Icon: Award, colorClass: 'text-[#f56b2a]' },
         'ENTERPRISE': { Icon: Zap, colorClass: 'text-purple-500' }
     };

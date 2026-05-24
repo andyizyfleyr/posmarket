@@ -582,7 +582,7 @@ export default function AdminView() {
                         </td>
                         <td className="px-8 py-6">
                            <select 
-                            value={u.subscription_tier || 'BASIC'}
+                             value={u.subscription_tier || 'PRO'}
                             onChange={(e) => handleUpdateSubscription(u.id, e.target.value as SubscriptionTier)}
                             className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl border outline-none appearance-none cursor-pointer transition-all disabled:opacity-50 ${
                                processingItems.has(`sub-${u.id}`) ? 'animate-pulse' : ''
@@ -593,8 +593,7 @@ export default function AdminView() {
                              }`}
                             disabled={processingItems.has(`sub-${u.id}`)}
                            >
-                             <option value="BASIC">BASIC</option>
-                             <option value="PRO">PRO</option>
+                              <option value="PRO">PRO</option>
                              <option value="ENTERPRISE">ENTERPRISE</option>
                            </select>
                         </td>

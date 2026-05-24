@@ -16,8 +16,8 @@ export async function saveProductAction(product: any, storeId: string) {
     ]);
     
     const count = productsCountRes.count || 0;
-    const tier = profileRes.data?.subscription_tier || 'BASIC';
-    const limit = tier === 'PRO' ? 500 : tier === 'ENTERPRISE' ? 999999 : 6;
+    const tier = profileRes.data?.subscription_tier || 'PRO';
+    const limit = tier === 'PRO' ? 500 : 999999;
     
     if (count >= limit) {
       return { success: false, error: `Limite de ${limit} produits atteinte pour votre abonnement ${tier}.` };

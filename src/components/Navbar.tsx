@@ -335,9 +335,7 @@ const Navbar: React.FC<NavbarProps> = ({
               {userSubscription ? (
                 demoSecondsLeft !== null 
                   ? (demoSecondsLeft <= 0 ? 'Expiré' : `${demoSecondsLeft}s`)
-                  : userSubscription.tier === 'BASIC' 
-                    ? 'Gratuit' 
-                    : `${getDaysRemaining(userSubscription.endDate)}J restants`
+                  : `${getDaysRemaining(userSubscription.endDate)}J restants`
               ) : '...'}
             </span>
           </button>
@@ -382,7 +380,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Abonnement Actif</div>
                   <div className="text-xs font-black text-[#f56b2a] flex items-center gap-1.5">
                     <Maximize2 size={12} />
-                    {userSubscription?.tier === 'BASIC' ? 'Formule Gratuite' : `${currentPlan?.name}`}
+                    {`${currentPlan?.name}`}
                   </div>
                 </div>
                 <div className="p-2">

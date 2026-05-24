@@ -128,7 +128,7 @@ export async function fetchStoreData(storeId: string, ownerId?: string) {
     invoices: invoicesRes.data || [],
     store: storeRes.data || null,
     subscription: profileData ? {
-      tier: profileData.subscription_tier || 'BASIC',
+      tier: profileData.subscription_tier || 'PRO',
       duration: profileData.subscription_duration || 'monthly',
       status: profileData.subscription_status || 'ACTIVE',
       startDate: profileData.subscription_start_date || new Date().toISOString(),
