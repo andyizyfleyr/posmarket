@@ -183,8 +183,8 @@ export const SUBSCRIPTION_PLANS: Record<'PRO' | 'ENTERPRISE', SubscriptionPlan> 
     tier: 'PRO',
     name: 'Pro',
     description: 'Pour les commerces en croissance.',
-    priceMonthly: 15000,
-    priceQuarterly: 40000,
+    priceMonthly: 40000,
+    priceQuarterly: 60000,
     priceAnnual: 150000,
     features: {
       maxStores: 3,
@@ -198,7 +198,7 @@ export const SUBSCRIPTION_PLANS: Record<'PRO' | 'ENTERPRISE', SubscriptionPlan> 
     tier: 'ENTERPRISE',
     name: 'Entreprise',
     description: 'Solution complète sans limites.',
-    priceMonthly: 35000,
+    priceMonthly: 70000,
     priceQuarterly: 95000,
     priceAnnual: 350000,
     features: {
