@@ -178,7 +178,22 @@ export const CUSTOMERS: Customer[] = [
   { id: 'c3', name: 'Michel Brun', email: 'michel@exemple.fr', phone: '06 03 04 05 06', address: 'Dakar, Sénégal', totalSpent: 0, ordersCount: 0 },
 ];
 
-export const SUBSCRIPTION_PLANS: Record<'PRO' | 'ENTERPRISE', SubscriptionPlan> = {
+export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', SubscriptionPlan> = {
+  STARTER: {
+    tier: 'STARTER',
+    name: 'Starter',
+    description: 'Pour bien commencer.',
+    priceMonthly: 25000,
+    priceQuarterly: 40000,
+    priceAnnual: 70000,
+    features: {
+      maxStores: 1,
+      maxProducts: 50,
+      enableStorefront: true,
+      enableAdvancedReports: true,
+      enableCustomReceipts: true
+    }
+  },
   PRO: {
     tier: 'PRO',
     name: 'Pro',

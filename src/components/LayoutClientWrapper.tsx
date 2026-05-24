@@ -163,7 +163,7 @@ export default function LayoutClientWrapper({
     }
   };
 
-  const isSubscriptionValid = (userSubscription.tier === 'PRO' || userSubscription.tier === 'ENTERPRISE') && 
+  const isSubscriptionValid = (userSubscription.tier === 'STARTER' || userSubscription.tier === 'PRO' || userSubscription.tier === 'ENTERPRISE') && 
     userSubscription.status === 'ACTIVE' && 
     new Date(userSubscription.endDate) > new Date();
 

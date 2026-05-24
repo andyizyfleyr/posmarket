@@ -20,7 +20,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     const [duration, setDuration] = useState<SubscriptionDuration>(currentSubscription.duration || 'monthly');
     const [loading, setLoading] = useState(false);
 
-    const plans = [SUBSCRIPTION_PLANS.PRO, SUBSCRIPTION_PLANS.ENTERPRISE];
+    const plans = [SUBSCRIPTION_PLANS.STARTER, SUBSCRIPTION_PLANS.PRO, SUBSCRIPTION_PLANS.ENTERPRISE];
 
     const handleSubscribe = async (plan: SubscriptionPlan) => {
         // Allow reactivation if same plan but expired, or if different plan
@@ -47,6 +47,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     };
 
     const planIcons: Record<string, { Icon: any, colorClass: string }> = {
+        'STARTER': { Icon: Star, colorClass: 'text-green-500' },
         'PRO': { Icon: Award, colorClass: 'text-[#f56b2a]' },
         'ENTERPRISE': { Icon: Zap, colorClass: 'text-purple-500' }
     };
@@ -127,7 +128,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
                              <div className="mb-5 md:mb-6">
                                 <div className="flex items-center gap-3 mb-3 md:mb-4">
-                                    <div className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl ${plan.tier === 'PRO' ? 'bg-orange-50' : plan.tier === 'ENTERPRISE' ? 'bg-purple-50' : 'bg-slate-100'}`}>
+                                    <div className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl ${plan.tier === 'STARTER' ? 'bg-green-50' : plan.tier === 'PRO' ? 'bg-orange-50' : plan.tier === 'ENTERPRISE' ? 'bg-purple-50' : 'bg-slate-100'}`}>
                                         {(() => {
                                             const iconData = planIcons[plan.tier];
                                             if (!iconData) return null;
@@ -185,7 +186,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                     : isSeller
                                         ? 'bg-slate-50 text-slate-300 cursor-not-allowed opacity-50'
-                                        : plan.tier === 'PRO' || plan.tier === 'ENTERPRISE'
+                                        : plan.tier === 'STARTER' || plan.tier === 'PRO' || plan.tier === 'ENTERPRISE'
                                             ? 'bg-[#f56b2a] text-white hover:bg-[#d55a20] hover:shadow-lg hover:-translate-y-0.5'
                                             : 'bg-slate-900 text-white hover:bg-slate-800'
                                     }`}

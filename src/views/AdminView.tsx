@@ -587,14 +587,16 @@ export default function AdminView() {
                             className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl border outline-none appearance-none cursor-pointer transition-all disabled:opacity-50 ${
                                processingItems.has(`sub-${u.id}`) ? 'animate-pulse' : ''
                              } ${
-                               u.subscription_tier === 'PRO' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' :
-                               u.subscription_tier === 'ENTERPRISE' ? 'bg-purple-50 border-purple-200 text-purple-600' :
-                               'bg-gray-50 border-gray-200 text-gray-500'
+                              u.subscription_tier === 'STARTER' ? 'bg-green-50 border-green-200 text-green-600' :
+                                u.subscription_tier === 'PRO' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' :
+                                u.subscription_tier === 'ENTERPRISE' ? 'bg-purple-50 border-purple-200 text-purple-600' :
+                                'bg-gray-50 border-gray-200 text-gray-500'
                              }`}
                             disabled={processingItems.has(`sub-${u.id}`)}
                            >
+                              <option value="STARTER">STARTER</option>
                               <option value="PRO">PRO</option>
-                             <option value="ENTERPRISE">ENTERPRISE</option>
+                              <option value="ENTERPRISE">ENTERPRISE</option>
                            </select>
                         </td>
                         <td className="px-8 py-6 text-right">
