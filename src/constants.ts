@@ -189,7 +189,7 @@ export const SUBSCRIPTION_PLANS: Record<'PRO' | 'ENTERPRISE', SubscriptionPlan> 
     features: {
       maxStores: 3,
       maxProducts: 500,
-      enableStorefront: false,
+      enableStorefront: true,
       enableAdvancedReports: true,
       enableCustomReceipts: true
     }
