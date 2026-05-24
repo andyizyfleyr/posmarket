@@ -80,18 +80,9 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                     </div>
                 )}
 
-                <div className="mt-8 md:mt-12 flex justify-center">
-                    <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 inline-flex overflow-visible max-w-full">
-                        <button
-                            onClick={() => setDuration('demo')}
-                            className={`px-3 py-1.5 md:px-6 md:py-2 rounded-lg font-bold text-[10px] md:text-sm transition-colors relative whitespace-nowrap ${duration === 'demo' ? 'bg-[#f56b2a] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
-                        >
-                            Démo
-                            <span className="absolute -top-3 -right-2 bg-purple-500 text-white text-[8px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full font-black animate-pulse z-10">
-                                1min
-                            </span>
-                        </button>
-                        <button
+                    <div className="mt-8 md:mt-12 flex justify-center">
+                        <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 inline-flex overflow-visible max-w-full">
+                            <button
                             onClick={() => setDuration('monthly')}
                             className={`px-3 py-1.5 md:px-6 md:py-2 rounded-lg font-bold text-[10px] md:text-sm transition-colors whitespace-nowrap ${duration === 'monthly' ? 'bg-[#f56b2a] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
                         >
@@ -120,7 +111,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
                 {plans.map((plan) => {
                     const isCurrent = currentSubscription.tier === plan.tier && currentSubscription.status === 'ACTIVE' && !isExpired;
-                    const price = (duration === 'demo' || duration === 'monthly') ? plan.priceMonthly : duration === 'quarterly' ? plan.priceQuarterly : plan.priceAnnual;
+                    const price = duration === 'monthly' ? plan.priceMonthly : duration === 'quarterly' ? plan.priceQuarterly : plan.priceAnnual;
                     const displayPrice = price > 0 ? formatCurrency(price) : 'Gratuit';
 
                     return (
@@ -153,7 +144,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
                             <div className="mb-8">
                                 <span className="text-4xl font-extrabold text-slate-900">{displayPrice}</span>
-                                {price > 0 && <span className="text-slate-500 font-medium ml-1">/{duration === 'demo' ? '1 min' : duration === 'monthly' ? 'mois' : duration === 'quarterly' ? '3 mois' : 'an'}</span>}
+                                {price > 0 && <span className="text-slate-500 font-medium ml-1">/{duration === 'monthly' ? 'mois' : duration === 'quarterly' ? '3 mois' : 'an'}</span>}
                             </div>
 
                             <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 flex-grow">

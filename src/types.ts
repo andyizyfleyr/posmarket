@@ -174,7 +174,7 @@ export interface StoreData {
   business_type?: BusinessVertical;
 }
 
-export type SubscriptionDuration = 'demo' | 'monthly' | 'quarterly' | 'annual';
+export type SubscriptionDuration = 'monthly' | 'quarterly' | 'annual';
 export type SubscriptionTier = 'PRO' | 'ENTERPRISE';
 
 export interface SubscriptionFeatures {

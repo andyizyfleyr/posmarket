@@ -66,22 +66,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const [creationStep, setCreationStep] = useState<1 | 2>(1);
   const [newStoreType, setNewStoreType] = useState<'shopping' | 'food' | 'stay'>('shopping');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [demoSecondsLeft, setDemoSecondsLeft] = useState<number | null>(null);
-
-  // Live countdown for demo subscriptions
-  useEffect(() => {
-    if (userSubscription?.duration === 'demo' && userSubscription.status === 'ACTIVE') {
-      const updateCountdown = () => {
-        const remaining = Math.max(0, Math.ceil((new Date(userSubscription.endDate).getTime() - Date.now()) / 1000));
-        setDemoSecondsLeft(remaining);
-      };
-      updateCountdown();
-      const interval = setInterval(updateCountdown, 1000);
-      return () => clearInterval(interval);
-    } else {
-      setDemoSecondsLeft(null);
-    }
-  }, [userSubscription?.duration, userSubscription?.endDate, userSubscription?.status]);
+  const [demoSecondsLeft] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -324,19 +309,13 @@ const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onViewChange('subscription')}
             className={`flex items-center gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-2xl border shadow-sm hover:bg-orange-100 transition-all active:scale-95 ${
-              (demoSecondsLeft !== null && demoSecondsLeft <= 10) || demoSecondsLeft === 0
-                ? 'text-red-500 bg-red-50 border-red-200 animate-pulse' 
-                : 'text-[#f56b2a] bg-orange-50 border-orange-100'
+              'text-[#f56b2a] bg-orange-50 border-orange-100'
             }`}
             title="Gérer l'abonnement"
           >
             <Clock size={16} />
             <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
-              {userSubscription ? (
-                demoSecondsLeft !== null 
-                  ? (demoSecondsLeft <= 0 ? 'Expiré' : `${demoSecondsLeft}s`)
-                  : `${getDaysRemaining(userSubscription.endDate)}J restants`
-              ) : '...'}
+              {userSubscription ? `${getDaysRemaining(userSubscription.endDate)}J restants` : '...'}
             </span>
           </button>
         )}

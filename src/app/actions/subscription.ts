@@ -16,10 +16,7 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
     const startDate = new Date();
     let endDate = new Date();
     
-    if (duration === 'demo') {
-        // 1 minute for demo
-        endDate = new Date(startDate.getTime() + 60 * 1000);
-    } else if (duration === 'monthly') {
+    if (duration === 'monthly') {
         endDate.setMonth(startDate.getMonth() + 1);
     } else if (duration === 'quarterly') {
         endDate.setMonth(startDate.getMonth() + 3);
