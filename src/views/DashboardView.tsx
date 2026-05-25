@@ -332,7 +332,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
               </h1>
               {store?.business_type && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-orange-100 text-orange-700">
-                  Modèle {store.business_type === 'food' ? 'Resto' : 'Shop'}
+                  {store.business_type === 'food' ? 'Resto' : 'Shop'}
                 </span>
               )}
             </div>
