@@ -107,19 +107,19 @@ const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <nav className="h-14 md:h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-3 md:px-8 sticky top-0 z-[100] shadow-sm">
-      <div className="flex items-center gap-3">
+      <div className="hidden md:flex items-center gap-3">
         <button 
           onClick={() => {
             const target = currentStore?.slug || currentStore?.id;
             if (target) window.open(`/store/${target}`, '_blank');
           }}
-          className="hidden md:flex items-center gap-2 group transition-all"
+          className="flex items-center gap-2 group transition-all"
           title="Voir ma boutique"
         >
           <div className="w-9 h-9 bg-[#f56b2a] rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-100 group-hover:scale-105 transition-transform">
             <Globe size={20} strokeWidth={3} />
           </div>
-          <div className="hidden md:flex flex-col text-left">
+          <div className="flex-col text-left hidden md:flex">
             <span className="text-xs font-black text-slate-900 tracking-tighter leading-none">MARKETPLACE</span>
             <span className="text-[9px] font-bold text-[#f56b2a] uppercase tracking-widest leading-none mt-0.5">Voir le site</span>
           </div>
