@@ -79,8 +79,8 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   const categories = useMemo(() => {
     const cats = new Set<string>();
     products.forEach(p => {
-      if (p.mainCategory) cats.add(p.mainCategory);
-      else if (p.category) cats.add(p.category);
+      if (p.mainCategory?.trim()) cats.add(p.mainCategory.trim());
+      else if (p.category?.trim()) cats.add(p.category.trim());
     });
     return ['all', ...Array.from(cats)];
   }, [products]);
@@ -89,7 +89,9 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     return products.filter(p => {
       const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory || p.mainCategory === selectedCategory;
+      const matchesCategory = selectedCategory === 'all' || 
+        (p.category?.trim() === selectedCategory) || 
+        (p.mainCategory?.trim() === selectedCategory);
       return matchesSearch && matchesCategory;
     });
   }, [searchTerm, selectedCategory, products]);
@@ -275,7 +277,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         </div>
 
         {/* Categories Selector */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+        <div className="w-full flex flex-row flex-nowrap items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2 no-scrollbar scroll-smooth -mx-3 px-3 md:-mx-4 md:px-4">
           {categories.map(cat => (
             <button
               key={cat}
@@ -283,7 +285,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               className={`flex-shrink-0 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
                 selectedCategory === cat
                 ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-100'
-                : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                : 'bg-white border-gray-200/80 text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >
               {cat === 'all' ? 'Tout voir' : cat}
