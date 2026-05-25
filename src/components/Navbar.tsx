@@ -325,6 +325,16 @@ const Navbar: React.FC<NavbarProps> = ({
 
         <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
           <button
+            onClick={() => {
+              const target = currentStore?.slug || currentStore?.id;
+              if (target) window.open(`/store/${target}`, '_blank');
+            }}
+            className="md:hidden w-8 h-8 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90 transition-all"
+            title="Voir la boutique"
+          >
+            <Globe size={16} />
+          </button>
+          <button
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             className="w-8 h-8 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl cursor-pointer hover:scale-105 transition-all active:scale-95 bg-white flex items-center justify-center group"
           >
