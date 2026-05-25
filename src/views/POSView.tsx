@@ -75,6 +75,28 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   }, [currentStoreId]);
 
   const receiptRef = useRef<HTMLDivElement>(null);
+  const categoriesRef = useRef<HTMLDivElement>(null);
+
+  // Translate vertical wheel scroll to horizontal on categories list (if overflow exists)
+  useEffect(() => {
+    const el = categoriesRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0 && el.scrollWidth > el.clientWidth) {
+        const canScrollLeft = el.scrollLeft > 0;
+        const canScrollRight = el.scrollLeft < el.scrollWidth - el.clientWidth;
+        
+        if ((e.deltaY > 0 && canScrollRight) || (e.deltaY < 0 && canScrollLeft)) {
+          e.preventDefault();
+          el.scrollLeft += e.deltaY;
+        }
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -277,7 +299,10 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         </div>
 
         {/* Categories Selector */}
-        <div className="w-full flex flex-row flex-nowrap items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2 no-scrollbar scroll-smooth -mx-3 px-3 md:-mx-4 md:px-4">
+        <div 
+          ref={categoriesRef}
+          className="w-full flex flex-row flex-nowrap items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2 no-scrollbar scroll-smooth"
+        >
           {categories.map(cat => (
             <button
               key={cat}
