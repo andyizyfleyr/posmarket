@@ -19,6 +19,7 @@ import {
   Shield,
   ShoppingBag
 } from 'lucide-react';
+import Loader from '@/components/Loader';
 import { useRouter } from '@/components/RouterPolyfill';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
 import { getDaysRemaining } from '@/utils';
@@ -63,6 +64,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const [isCreatingStore, setIsCreatingStore] = useState(false);
   const [creationStep, setCreationStep] = useState<1 | 2>(1);
   const [newStoreType, setNewStoreType] = useState<'shopping' | 'food'>('shopping');
+  const [isSwitching, setIsSwitching] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [demoSecondsLeft] = useState<number | null>(null);
 
@@ -72,6 +74,10 @@ const Navbar: React.FC<NavbarProps> = ({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (currentStore?.id) setIsSwitching(false);
+  }, [currentStore?.id]);
 
   const getViewTitle = () => {
     switch (currentView) {
@@ -153,7 +159,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest leading-none mb-1">Boutique Active</p>
                   <h2 className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px] md:max-w-[200px]">{currentStore?.settings?.name || 'Ma Boutique'}</h2>
                 </div>
-                <ChevronDown size={14} className={`text-gray-400 transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />
+                {isSwitching ? <Loader size="sm" /> : <ChevronDown size={14} className={`text-gray-400 transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />}
               </button>
 
               {showStoreDropdown && (
@@ -171,11 +177,12 @@ const Navbar: React.FC<NavbarProps> = ({
                       <div className="space-y-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
                         {stores.map(store => (
                           <div key={store.id} className="flex items-center gap-1 group">
-                            <button
-                              onClick={() => {
-                                onStoreChange?.(store.id);
-                                setShowStoreDropdown(false);
-                              }}
+                              <button
+                                onClick={() => {
+                                  setIsSwitching(true);
+                                  onStoreChange?.(store.id);
+                                  setShowStoreDropdown(false);
+                                }}
                               className={`flex-grow flex items-center justify-between px-4 py-3.5 rounded-[20px] transition-all ${currentStore.id === store.id ? 'bg-orange-50 text-[#f56b2a]' : 'hover:bg-gray-50 text-gray-700'}`}
                             >
                               <div className="flex items-center gap-3">
