@@ -318,7 +318,7 @@ const Navbar: React.FC<NavbarProps> = ({
           >
             <Clock size={16} />
             <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
-              {userSubscription ? `${getDaysRemaining(userSubscription.endDate)}J restants` : '...'}
+              {userSubscription ? <><span className="md:hidden">-</span>{getDaysRemaining(userSubscription.endDate)}J<span className="hidden md:inline"> restants</span></> : '...'}
             </span>
           </button>
         )}
