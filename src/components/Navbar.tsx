@@ -113,7 +113,7 @@ const Navbar: React.FC<NavbarProps> = ({
             const target = currentStore?.slug || currentStore?.id;
             if (target) window.open(`/store/${target}`, '_blank');
           }}
-          className="flex items-center gap-2 group transition-all"
+          className="hidden md:flex items-center gap-2 group transition-all"
           title="Voir ma boutique"
         >
           <div className="w-9 h-9 bg-[#f56b2a] rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-100 group-hover:scale-105 transition-transform">
@@ -155,8 +155,8 @@ const Navbar: React.FC<NavbarProps> = ({
                 <div className="w-8 h-8 md:w-10 md:h-10 bg-orange-50 text-[#f56b2a] rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
                   <Store size={18} />
                 </div>
-                <div className="text-left hidden sm:block">
-                  <p className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest leading-none mb-1">Boutique Active</p>
+                <div className="text-left block">
+                  <p className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest leading-none mb-1 hidden sm:block">Boutique Active</p>
                   <h2 className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px] md:max-w-[200px]">{currentStore?.settings?.name || 'Ma Boutique'}</h2>
                 </div>
                 {isSwitching ? <Loader size="sm" /> : <ChevronDown size={14} className={`text-gray-400 transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />}
@@ -323,18 +323,7 @@ const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
-        <div className="flex items-center gap-4 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
-          <button 
-            onClick={() => {
-              const target = currentStore?.slug || currentStore?.id;
-              if (target) window.open(`/store/${target}`, '_blank');
-            }}
-            className="md:hidden w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90 transition-all"
-            title="Voir la boutique"
-          >
-            <Globe size={20} />
-          </button>
-
+        <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
           <button
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             className="w-8 h-8 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl cursor-pointer hover:scale-105 transition-all active:scale-95 bg-white flex items-center justify-center group"
