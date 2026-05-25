@@ -126,7 +126,7 @@ const Navbar: React.FC<NavbarProps> = ({
         </button>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-6">
+      <div className="flex items-center gap-2 md:gap-6 flex-1">
         {/* Desktop: Help Button */}
         <button
           onClick={startTour}
@@ -308,112 +308,114 @@ const Navbar: React.FC<NavbarProps> = ({
           )
         )}
 
-        {!isSeller && (
-          <button
-            onClick={() => onViewChange('subscription')}
-            className={`flex items-center gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-2xl border shadow-sm hover:bg-orange-100 transition-all active:scale-95 ${
-              'text-[#f56b2a] bg-orange-50 border-orange-100'
-            }`}
-            title="Gérer l'abonnement"
-          >
-            <Clock size={16} />
-            <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
-              {userSubscription ? <><span className="md:hidden">-</span>{getDaysRemaining(userSubscription.endDate)}J<span className="hidden md:inline"> restants</span></> : '...'}
-            </span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 ml-auto">
+          {!isSeller && (
+            <button
+              onClick={() => onViewChange('subscription')}
+              className={`flex items-center gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-2xl border shadow-sm hover:bg-orange-100 transition-all active:scale-95 ${
+                'text-[#f56b2a] bg-orange-50 border-orange-100'
+              }`}
+              title="Gérer l'abonnement"
+            >
+              <Clock size={16} />
+              <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
+                {userSubscription ? <><span className="md:hidden">-</span>{getDaysRemaining(userSubscription.endDate)}J<span className="hidden md:inline"> restants</span></> : '...'}
+              </span>
+            </button>
+          )}
 
-        <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
-          <button
-            onClick={() => {
-              const target = currentStore?.slug || currentStore?.id;
-              if (target) window.open(`/store/${target}`, '_blank');
-            }}
-            className="md:hidden w-8 h-8 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90 transition-all"
-            title="Voir la boutique"
-          >
-            <Globe size={16} />
-          </button>
-          <button
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            className="w-8 h-8 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl cursor-pointer hover:scale-105 transition-all active:scale-95 bg-white flex items-center justify-center group"
-          >
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'Jacques'}`} alt="Avatar" className="w-full h-full object-cover" />
-          </button>
+          <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
+            <button
+              onClick={() => {
+                const target = currentStore?.slug || currentStore?.id;
+                if (target) window.open(`/store/${target}`, '_blank');
+              }}
+              className="md:hidden w-8 h-8 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 active:scale-90 transition-all"
+              title="Voir la boutique"
+            >
+              <Globe size={16} />
+            </button>
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="w-8 h-8 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl cursor-pointer hover:scale-105 transition-all active:scale-95 bg-white flex items-center justify-center group"
+            >
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'Jacques'}`} alt="Avatar" className="w-full h-full object-cover" />
+            </button>
 
-          {showProfileDropdown && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowProfileDropdown(false)} />
-              <div className="fixed md:absolute left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 top-20 md:top-full w-[calc(100%-2rem)] md:w-64 bg-white rounded-[28px] shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="p-6 border-b border-gray-50 bg-gray-50/30">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-md">
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'Jacques'}`} className="w-full h-full object-cover" />
+            {showProfileDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowProfileDropdown(false)} />
+                <div className="fixed md:absolute left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 top-20 md:top-full w-[calc(100%-2rem)] md:w-64 bg-white rounded-[28px] shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+                  <div className="p-6 border-b border-gray-50 bg-gray-50/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-md">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'Jacques'}`} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px]">{userEmail?.split('@')[0]}</span>
+                        <span className={`text-[10px] font-bold mt-1 uppercase tracking-tight flex items-center gap-1.5 ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+                          {isOnline ? 'En ligne' : 'Hors-ligne'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px]">{userEmail?.split('@')[0]}</span>
-                      <span className={`text-[10px] font-bold mt-1 uppercase tracking-tight flex items-center gap-1.5 ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
-                        {isOnline ? 'En ligne' : 'Hors-ligne'}
-                      </span>
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Abonnement Actif</div>
+                    <div className="text-xs font-black text-[#f56b2a] flex items-center gap-1.5">
+                      <Maximize2 size={12} />
+                      {`${currentPlan?.name}`}
                     </div>
                   </div>
-                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Abonnement Actif</div>
-                  <div className="text-xs font-black text-[#f56b2a] flex items-center gap-1.5">
-                    <Maximize2 size={12} />
-                    {`${currentPlan?.name}`}
-                  </div>
-                </div>
-                <div className="p-2">
-                  <button
-                    onClick={() => {
-                      onViewChange('dashboard');
-                      setShowProfileDropdown(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-bold"
-                  >
-                    <Monitor size={18} className="text-gray-400" />
-                    Tableau de bord
-                  </button>
-                  {!isSeller && (
+                  <div className="p-2">
                     <button
                       onClick={() => {
-                        onViewChange('settings');
+                        onViewChange('dashboard');
                         setShowProfileDropdown(false);
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-bold"
                     >
-                      <UserIcon size={18} className="text-gray-400" />
-                      Modifier le Profil
+                      <Monitor size={18} className="text-gray-400" />
+                      Tableau de bord
                     </button>
-                  )}
-                  {userRole === 'SUPER_ADMIN' && (
+                    {!isSeller && (
+                      <button
+                        onClick={() => {
+                          onViewChange('settings');
+                          setShowProfileDropdown(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-bold"
+                      >
+                        <UserIcon size={18} className="text-gray-400" />
+                        Modifier le Profil
+                      </button>
+                    )}
+                    {userRole === 'SUPER_ADMIN' && (
+                      <button
+                        onClick={() => {
+                          onViewChange('admin');
+                          setShowProfileDropdown(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all text-sm font-black"
+                      >
+                        <Shield size={18} className="text-indigo-600" />
+                        Administration
+                      </button>
+                    )}
+                    <div className="h-px bg-gray-100 my-2 mx-2" />
                     <button
                       onClick={() => {
-                        onViewChange('admin');
+                        if (onLogout) onLogout();
                         setShowProfileDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all text-sm font-black"
+                      className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all text-sm font-black"
                     >
-                      <Shield size={18} className="text-indigo-600" />
-                      Administration
+                      <LogOut size={18} />
+                      Déconnexion
                     </button>
-                  )}
-                  <div className="h-px bg-gray-100 my-2 mx-2" />
-                  <button
-                    onClick={() => {
-                      if (onLogout) onLogout();
-                      setShowProfileDropdown(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all text-sm font-black"
-                  >
-                    <LogOut size={18} />
-                    Déconnexion
-                  </button>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </nav>
