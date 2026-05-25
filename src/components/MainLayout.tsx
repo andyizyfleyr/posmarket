@@ -75,8 +75,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [isSavingForm, setIsSavingForm] = React.useState(false);
   const [activeStep, setActiveStep] = React.useState(1);
 
-  // Initialize form data when currentStore changes
   React.useEffect(() => {
+    setActiveStep(1);
     if (currentStore && currentStore.status === 'PENDING') {
       setFormData({
         email: currentStore.settings?.email || '',

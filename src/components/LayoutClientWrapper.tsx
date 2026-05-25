@@ -98,9 +98,16 @@ export default function LayoutClientWrapper({
   };
 
   const handleStoreChange = async (id: string) => {
-    // Save to cookie via server action or API
-    fetch('/api/set-store', { method: 'POST', body: JSON.stringify({ storeId: id }) })
-      .then(() => router.refresh());
+    try {
+      const res = await fetch('/api/set-store', { method: 'POST', body: JSON.stringify({ storeId: id }) });
+      if (!res.ok) {
+        notify('Erreur lors du changement de boutique', 'error');
+        return;
+      }
+      router.refresh();
+    } catch {
+      notify('Erreur réseau lors du changement de boutique', 'error');
+    }
   };
 
   const handleCreateStore = async (name: string, businessType: string) => {

@@ -15,8 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  Package,
-  Store
+  Package
 } from 'lucide-react';
 import Image from 'next/image';
 import { Order, Product, StaffRole, StaffPermissions } from '@/types';
@@ -28,7 +27,13 @@ interface DashboardViewProps {
   userRole?: StaffRole;
   permissions: StaffPermissions;
   userName?: string;
-  store?: any;
+  store?: {
+    id: string;
+    name?: string;
+    business_type?: 'shopping' | 'food';
+    views?: number;
+    [key: string]: unknown;
+  };
 }
 
 const StatCard = ({ title, value, icon, trend, trendValue, color, compact }: any) => (
@@ -39,12 +44,14 @@ const StatCard = ({ title, value, icon, trend, trendValue, color, compact }: any
         ${compact ? 'p-1.5 md:p-3.5' : 'p-2.5 md:p-3.5'}`}>
         {React.cloneElement(icon, { className: compact ? "w-3.5 h-3.5 md:w-6 md:h-6" : "w-4 h-4 md:w-6 md:h-6" })}
       </div>
-      <div className={`flex items-center gap-0.5 md:gap-1 font-black px-1.5 md:px-2 py-0.5 md:py-1 rounded-full 
-        ${compact ? 'text-[8px] md:text-[10px]' : 'text-[9px] md:text-[10px]'}
-        ${trend === 'up' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-        {(!compact || (typeof window !== 'undefined' && window.innerWidth > 768)) && (trend === 'up' ? <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5" /> : <ArrowDownRight size={10} className="md:w-3.5 md:h-3.5" />)}
-        {trendValue}
-      </div>
+      {trend && (
+        <div className={`flex items-center gap-0.5 md:gap-1 font-black px-1.5 md:px-2 py-0.5 md:py-1 rounded-full 
+          ${compact ? 'text-[8px] md:text-[10px]' : 'text-[9px] md:text-[10px]'}
+          ${trend === 'up' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+          {(!compact || (typeof window !== 'undefined' && window.innerWidth > 768)) && (trend === 'up' ? <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5" /> : <ArrowDownRight size={10} className="md:w-3.5 md:h-3.5" />)}
+          {trendValue}
+        </div>
+      )}
     </div>
     <div className="flex flex-col min-w-0">
       <span className={`text-gray-400 font-black uppercase tracking-widest truncate 
@@ -78,6 +85,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     setMounted(true);
   }, []);
 
+  React.useEffect(() => {
+    setSelectedVertical(store?.business_type || 'all');
+  }, [store?.business_type]);
+
   const getVertical = (product: any): string => {
     if (!product) return 'shopping';
     // Champ direct
@@ -89,39 +100,42 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     return 'shopping';
   };
 
-  // Enhanced Metrics based on selected date range
   const filteredMetrics = useMemo(() => {
     const parseLocal = (dStr: string) => {
       const [y, m, d] = dStr.split('-').map(Number);
       return new Date(y, m - 1, d);
     };
 
-    const start = parseLocal(startDate);
+    let start = parseLocal(startDate);
     start.setHours(0, 0, 0, 0);
-    const end = parseLocal(endDate);
+    let end = parseLocal(endDate);
     end.setHours(23, 59, 59, 999);
 
-    // Calculate previous period for trend
+    if (start > end) {
+      [start, end] = [end, start];
+    }
+
     const diffMs = end.getTime() - start.getTime();
-    const prevStart = new Date(start.getTime() - diffMs - 1);
-    const prevEnd = new Date(start.getTime() - 1);
+    const prevStart = new Date(start.getTime() - diffMs);
+    const prevEnd = new Date(start.getTime());
+
+    const orderMatchesVertical = (o: Order) => {
+      if (selectedVertical === 'all') return true;
+      return (o.items || []).some((item: any) => getVertical(item.product) === selectedVertical);
+    };
 
     const currentFinalOrders = orders.filter(o => {
       const d = new Date(o.date);
       const inDateRange = d >= start && d <= end;
       if (!inDateRange) return false;
-      
-      if (selectedVertical === 'all') return true;
-      return getVertical(o.items?.[0]?.product) === selectedVertical;
+      return orderMatchesVertical(o);
     });
 
     const prevFinalOrders = orders.filter(o => {
       const d = new Date(o.date);
       const inDateRange = d >= prevStart && d <= prevEnd;
       if (!inDateRange) return false;
-
-      if (selectedVertical === 'all') return true;
-      return getVertical(o.items?.[0]?.product) === selectedVertical;
+      return orderMatchesVertical(o);
     });
 
     const currentRev = currentFinalOrders.reduce((sum, o) => sum + o.total, 0);
@@ -142,7 +156,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
       revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
       orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
       basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
-      traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' },
+      traffic: { current: totalTraffic, trend: null, pct: '' },
     };
   }, [orders, products, store, startDate, endDate, selectedVertical]);
 
@@ -159,11 +173,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     
     if (showPicker === 'start') {
       setStartDate(dateStr);
-      // Automatically switch to 'end' for a better flow
+      if (dateStr > endDate) {
+        setEndDate(dateStr);
+      }
       setShowPicker('end');
     } else {
-      setEndDate(dateStr);
-      // Keep it open to allow fine-tuning, but the user can now 'Apply'
+      if (dateStr < startDate) {
+        setStartDate(dateStr);
+      } else {
+        setEndDate(dateStr);
+      }
     }
   };
 
@@ -321,14 +340,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                 {!store?.business_type && (
                   <div className="flex items-center gap-2 mt-2 md:mt-4 overflow-x-auto no-scrollbar pb-1">
                       {[
-                          { id: 'all', label: 'Global', icon: Package, color: 'gray' },
-                          { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange' },
-                          { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' },
+                          { id: 'all', label: 'Global', icon: Package, activeClass: 'bg-gray-500 border-gray-500 text-white shadow-lg' },
+                          { id: 'shopping', label: 'Shopping', icon: ShoppingBag, activeClass: 'bg-orange-500 border-orange-500 text-white shadow-lg' },
+                          { id: 'food', label: 'Resto', icon: Zap, activeClass: 'bg-yellow-500 border-yellow-500 text-white shadow-lg' },
                       ].map(v => (
                           <button
                               key={v.id}
                               onClick={() => setSelectedVertical(v.id as any)}
-                              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? `bg-${v.color}-500 border-${v.color}-500 text-white shadow-lg` : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? v.activeClass : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                           >
                               <v.icon size={14} /> {v.label}
                           </button>
