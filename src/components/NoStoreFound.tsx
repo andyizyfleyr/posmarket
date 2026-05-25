@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, ArrowRight, Loader2, Plus, LogOut, FileDigit } from 'lucide-react';
+import { Store, ArrowRight, Loader2, Plus, LogOut } from 'lucide-react';
 import { quickCreateStoreAction, clearStoreCookieAction } from '@/app/actions/store';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
 export default function NoStoreFound() {
   const [storeName, setStoreName] = useState('');
-  const [businessType, setBusinessType] = useState<'shopping' | 'food' | 'stay' | 'digital'>('shopping');
+  const [businessType, setBusinessType] = useState<'shopping' | 'food'>('shopping');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -83,9 +83,7 @@ export default function NoStoreFound() {
              <div className="grid grid-cols-1 gap-2">
                 {[
                   { id: 'shopping', label: 'AMAZON', desc: 'Shopping & E-commerce', color: 'orange' },
-                  { id: 'food', label: 'UBEREATS', desc: 'Cuisine & Restauration', color: 'yellow' },
-                  { id: 'stay', label: 'AIRBNB', desc: 'Séjours & Logements', color: 'blue' },
-                  { id: 'digital', label: 'DIGITAL', desc: 'Produits numériques & Services', color: 'purple' }
+                  { id: 'food', label: 'UBEREATS', desc: 'Cuisine & Restauration', color: 'yellow' }
                 ].map((type) => (
                   <button
                     key={type.id}

@@ -62,20 +62,20 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRo
       <BottomNavItem
         id="tour-mobile-pos"
         icon={<ShoppingBasket size={20} />}
-        label={businessType === 'stay' ? "Réservation" : "Vente"}
+        label="Vente"
         active={currentView === 'pos'}
         onClick={() => onViewChange('pos')}
       />
       <BottomNavItem
         icon={<ShoppingBag size={20} />}
-        label={businessType === 'stay' ? "Réservations" : "Commandes"}
+        label="Commandes"
         active={currentView === 'orders'}
         onClick={() => onViewChange('orders')}
       />
       <BottomNavItem
         id="tour-mobile-inventory"
         icon={<Package size={20} />}
-        label={businessType === 'stay' ? "Unités" : "Stocks"}
+        label="Stocks"
         active={currentView === 'inventory'}
         onClick={() => onViewChange('inventory')}
       />

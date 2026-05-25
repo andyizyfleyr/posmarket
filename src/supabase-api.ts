@@ -14,10 +14,6 @@ export const saveProduct = async (product: Partial<Product>, storeId: string) =>
         main_category: product.mainCategory,
         unit: product.unit,
         description: product.description,
-        amenities: product.amenities || [],
-        max_guests: product.maxGuests,
-        bedrooms: product.bedrooms,
-        location: product.location,
         business_type: product.businessType || 'shopping',
         options: product.options || [],
         variants: product.variants || []
@@ -116,27 +112,6 @@ export const bulkDeleteCustomers = async (ids: string[]) => {
 };
 
 export const createOrder = async (order: Order, storeId: string) => {
-    const stayItems = order.items.filter(item => item.product.businessType === 'stay' && item.checkIn && item.checkOut);
-
-    if (stayItems.length > 0) {
-        const { data: results, error: checkError } = await supabase.rpc('check_availability_bulk', {
-            p_requests: stayItems.map(item => ({
-                product_id: item.product.id,
-                check_in: item.checkIn,
-                check_out: item.checkOut
-            }))
-        });
-
-        if (checkError) throw checkError;
-        
-        const unavailable = results?.find((r: any) => !r.r_is_available);
-        if (unavailable) {
-            const pName = stayItems.find(i => i.product.id === unavailable.r_product_id)?.product.name;
-            throw new Error(`Désolé, les dates pour "${pName}" ne sont plus disponibles.`);
-        }
-    }
-
-    // 🚀 2. APPEL RPC GLOBAL (Architecture SaaS Pro-Grade)
     const idempotencyKey = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     const { data: orderId, error: rpcError } = await supabase.rpc('create_order_full', {
@@ -156,10 +131,7 @@ export const createOrder = async (order: Order, storeId: string) => {
         p_items: order.items.map(item => ({
             product_id: item.product.id,
             quantity: item.quantity,
-            price: item.product.price,
-            check_in: item.checkIn,
-            check_out: item.checkOut,
-            guests: item.guests
+            price: item.product.price
         }))
     });
 
@@ -460,130 +432,4 @@ export const updateSubscription = async (userId: string, subscription: UserSubsc
         .eq('id', userId);
 
     if (error) throw error;
-};
-
-// --- STAY / AIRBNB AVAILABILITY ENGINE ---
-
-/**
- * Get availability for a specific listing within a date range
- */
-export const getProductAvailability = async (productId: string, startDate: string, endDate: string) => {
-    const { data, error } = await supabase
-        .from('availability_slots')
-        .select('*')
-        .eq('product_id', productId)
-        .gte('date', startDate)
-        .lte('date', endDate);
-
-    if (error) throw error;
-    return data;
-};
-
-/**
- * Block dates for a listing (Hôte manual block or Booking)
- */
-export const updateAvailability = async (productId: string, dates: string[], isAvailable: boolean, bookingId?: string) => {
-    const records = dates.map(date => ({
-        product_id: productId,
-        date,
-        is_available: isAvailable,
-        booking_id: bookingId
-    }));
-
-    const { error } = await supabase
-        .from('availability_slots')
-        .upsert(records, { onConflict: 'product_id,date' });
-
-    if (error) throw error;
-};
-
-/**
- * Check if a range of dates is fully available
- * Overlapping with any existing booking returns false
- */
-export const checkDateRangeAvailable = async (productId: string, startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    // Handle same-day booking: check if that specific date is blocked
-    if (startDate === endDate) {
-        const { data, error } = await supabase
-            .from('availability_slots')
-            .select('date')
-            .eq('product_id', productId)
-            .eq('date', startDate)
-            .eq('is_available', false)
-            .limit(1);
-        
-        if (error) throw error;
-        return data.length === 0;
-    }
-    
-    // For multi-day bookings, we need to check for OVERLAP with existing bookings
-    // A new booking [start, end] overlaps with existing if: start < existing_end AND end > existing_start
-    
-    // Get all blocked date ranges for this product
-    const { data: blockedSlots, error } = await supabase
-        .from('availability_slots')
-        .select('date, booking_id')
-        .eq('product_id', productId)
-        .eq('is_available', false)
-        .order('date');
-
-    if (error) throw error;
-    
-    // Group consecutive blocked dates into ranges
-    const blockedRanges: { start: string; end: string }[] = [];
-    if (blockedSlots && blockedSlots.length > 0) {
-        let rangeStart = blockedSlots[0].date;
-        let rangeEnd = blockedSlots[0].date;
-        
-        for (let i = 1; i < blockedSlots.length; i++) {
-            const currentDate = new Date(blockedSlots[i].date);
-            const prevDate = new Date(blockedSlots[i - 1].date);
-            const dayDiff = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-            
-            if (dayDiff === 1) {
-                // Consecutive, extend range
-                rangeEnd = blockedSlots[i].date;
-            } else {
-                // Gap found, save previous range and start new
-                blockedRanges.push({ start: rangeStart, end: rangeEnd });
-                rangeStart = blockedSlots[i].date;
-                rangeEnd = blockedSlots[i].date;
-            }
-        }
-        // Push the last range
-        blockedRanges.push({ start: rangeStart, end: rangeEnd });
-    }
-    
-    // Check overlap with any blocked range (exact overlap only, no buffer)
-    for (const range of blockedRanges) {
-        const rangeStart = new Date(range.start);
-        const rangeEnd = new Date(range.end);
-        
-        // Overlap: newStart < existingEnd AND newEnd > existingStart
-        const overlaps = start < rangeEnd && end > rangeStart;
-        
-        if (overlaps) {
-            return false;
-        }
-    }
-    
-    // No overlap found
-    return true;
-};
-
-/**
- * Get directly unavailable dates (just the occupied dates, no buffer)
- */
-export const getUnavailableDates = async (productId: string): Promise<string[]> => {
-    const { data, error } = await supabase
-        .from('availability_slots')
-        .select('date')
-        .eq('product_id', productId)
-        .eq('is_available', false);
-
-    if (error) throw error;
-    return data ? data.map(d => d.date) : [];
 };

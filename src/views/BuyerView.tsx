@@ -300,13 +300,12 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
   };
 
   const getStatusInfo = (status: string, businessType?: string) => {
-    const isStay = businessType === 'stay';
     const isFood = businessType === 'food';
 
     switch (status) {
       case 'COMPLETED': 
         return { 
-          label: isStay ? 'Terminé' : isFood ? 'Dégusté' : 'Livré', 
+          label: isFood ? 'Dégusté' : 'Livré', 
           color: 'bg-green-100 text-green-700', 
           icon: <CheckCircle2 size={12} /> 
         };
@@ -324,7 +323,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
         };
       case 'PENDING': 
         return { 
-          label: isStay ? 'Réservé' : isFood ? 'En cuisine' : 'En attente', 
+          label: isFood ? 'En cuisine' : 'En attente', 
           color: 'bg-amber-100 text-amber-700', 
           icon: <Clock size={12} /> 
         };
@@ -474,7 +473,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                           <div className="p-4 space-y-3">
                             {order.order_items?.map((item: any) => {
                               const product = Array.isArray(item.products) ? item.products[0] : item.products;
-                              const isStay = product?.business_type === 'stay';
                               return (
                                 <div key={item.id} className="flex items-center gap-3">
                                   <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden relative shrink-0">
@@ -482,23 +480,12 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
-                                    <p className="text-xs text-gray-500">{isStay ? 'Séjour' : `${item.quantity} x ${formatCurrency(item.price)}`}</p>
+                                    <p className="text-xs text-gray-500">{`${item.quantity} x ${formatCurrency(item.price)}`}</p>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {order.status === 'COMPLETED' && (product?.is_digital || product?.business_type === 'digital') && product?.digital_url && (
-                                      <a
-                                        href={product.digital_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-9 h-9 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shrink-0"
-                                        title="Télécharger"
-                                      >
-                                        <Download size={14} />
-                                      </a>
-                                    )}
                                     <button 
                                       onClick={() => {
-                                        setReviewData({ rating: 5, comment: '', product: { ...product, store_id: order.store_id, business_type: product?.business_type } });
+                                        setReviewData({ rating: 5, comment: '', product: { ...product, store_id: order.store_id } });
                                         setShowReviewModal(true);
                                       }}
                                       className="w-9 h-9 bg-orange-50 text-[#f56b2a] rounded-xl flex items-center justify-center shrink-0"
@@ -662,31 +649,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                       <div className="p-4 space-y-4">
                         {order.order_items?.map((item: any) => {
                           const product = Array.isArray(item.products) ? item.products[0] : item.products;
-                          const isStay = product?.business_type === 'stay';
-                          
-                          // Calculate duration info for stays
-                          let stayInfo = null;
-                          if (isStay && item.check_in && item.check_out) {
-                            const now = new Date();
-                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                            
-                            const [yStart, mStart, dStart] = item.check_in.split('-').map(Number);
-                            const start = new Date(yStart, mStart - 1, dStart);
-                            
-                            const [yEnd, mEnd, dEnd] = item.check_out.split('-').map(Number);
-                            const end = new Date(yEnd, mEnd - 1, dEnd);
-                            
-                            const totalNights = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                            const remainingNights = Math.max(0, Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-                            const daysUntilStart = Math.max(0, Math.round((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-
-                            const isPast = today > end;
-                            const isFuture = today < start;
-                            const isOngoing = today >= start && today <= end;
-                            
-                            stayInfo = { totalNights, remainingNights, daysUntilStart, isPast, isFuture, isOngoing, start, end };
-                          }
-
                           return (
                             <div key={item.id} className="group/item border-b border-gray-50 last:border-0 pb-3 last:pb-0">
                               <div className="flex gap-3 items-center justify-between mb-2">
@@ -703,28 +665,17 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
                                     <p className="text-xs font-bold text-gray-400">
-                                       {isStay ? `${stayInfo?.totalNights} nuits` : `${item.quantity} x ${formatCurrency(item.price)}`}
+                                       {`${item.quantity} x ${formatCurrency(item.price)}`}
                                     </p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {order.status === 'COMPLETED' && (product?.is_digital || product?.business_type === 'digital') && product?.digital_url && (
-                                    <a
-                                      href={product.digital_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="shrink-0 w-9 h-9 flex items-center justify-center bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all active:scale-90"
-                                      title="Télécharger"
-                                    >
-                                      <Download size={16} />
-                                    </a>
-                                  )}
                                   <button 
                                     onClick={() => {
                                       setReviewData({ 
                                         rating: 5, 
                                         comment: '', 
-                                        product: { ...product, store_id: order.store_id, business_type: product?.business_type } 
+                                        product: { ...product, store_id: order.store_id } 
                                       });
                                       setShowReviewModal(true);
                                     }}
@@ -735,40 +686,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                                   </button>
                                 </div>
                               </div>
-                              
-                              {isStay && item.check_in && (
-                                <div className="ml-[52px] bg-gray-50/50 rounded-xl p-2.5 space-y-2">
-                                  <div className="flex items-center justify-between text-[10px] font-bold">
-                                     <div className="flex items-center gap-1.5 text-gray-500">
-                                        <Clock size={12} />
-                                        <span>Du {stayInfo?.start?.toLocaleDateString('fr-FR')} au {stayInfo?.end?.toLocaleDateString('fr-FR')}</span>
-                                     </div>
-                                     {stayInfo?.isOngoing && (
-                                       <span className="text-[#f56b2a] animate-pulse">En cours</span>
-                                     )}
-                                  </div>
-                                  
-                                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                     <div 
-                                       className="h-full bg-[#f56b2a] transition-all duration-1000" 
-                                       style={{ 
-                                         width: stayInfo?.isPast ? '100%' : stayInfo?.isFuture ? '0%' : `${((stayInfo?.totalNights! - stayInfo?.remainingNights!) / stayInfo?.totalNights!) * 100}%` 
-                                       }} 
-                                     />
-                                  </div>
-                                  
-                                  <div className="flex justify-between text-[9px] font-black uppercase tracking-tighter">
-                                     <span className="text-gray-400">{stayInfo?.isPast ? 'Terminé' : stayInfo?.isFuture ? 'À venir' : 'Séjour en cours'}</span>
-                                     <span className="text-[#f56b2a]">
-                                       {stayInfo?.isPast 
-                                         ? 'Déjà passé' 
-                                         : stayInfo?.isFuture 
-                                           ? `Dans ${stayInfo?.daysUntilStart} jour${(stayInfo?.daysUntilStart || 0) > 1 ? 's' : ''}` 
-                                           : `${stayInfo?.remainingNights} nuit${(stayInfo?.remainingNights || 0) > 1 ? 's' : ''} restante${(stayInfo?.remainingNights || 0) > 1 ? 's' : ''}`}
-                                     </span>
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           );
                         })}
@@ -1001,8 +918,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                   </div>
                   <div className="flex-1">
                       <h3 className="text-sm font-black text-[#002f34] uppercase tracking-tight">
-                        {reviewData.product?.business_type === 'stay' ? 'Noter votre séjour' : 
-                         reviewData.product?.business_type === 'food' ? 'Noter votre repas' : 
+                        {reviewData.product?.business_type === 'food' ? 'Noter votre repas' : 
                          'Noter le produit'}
                       </h3>
                       <p className="text-[10px] text-gray-400 font-bold truncate max-w-[200px]">{reviewData.product?.name}</p>
@@ -1042,7 +958,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
                     <textarea 
                        required
                        placeholder={
-                         reviewData.product?.business_type === 'stay' ? "Comment s'est passé votre séjour ?" :
                          reviewData.product?.business_type === 'food' ? "Comment était votre repas ?" :
                          "Partagez votre expérience avec ce produit..."
                        }

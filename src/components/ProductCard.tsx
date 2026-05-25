@@ -19,7 +19,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if ((product as any).currentBooking) return;
     onAddToCart(product);
   }, [product, onAddToCart]);
 
@@ -87,9 +86,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
             <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[12px]">
               {product.salesCount !== undefined && product.salesCount > 0 ? (
                 <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-70">
-                  {formatNumber(product.salesCount)} {product.businessType === 'stay' || product.category === 'Appartements'
-                    ? (product.salesCount > 1 ? 'réservations' : 'réservation')
-                    : (product.salesCount > 1 ? 'ventes' : 'vente')}
+                  {formatNumber(product.salesCount)} {product.salesCount > 1 ? 'ventes' : 'vente'}
                 </div>
               ) : <div />}
 
@@ -103,33 +100,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         </div>
       </div>
 
-      {/* Button Tray - Outside the clickable area */}
-      {(product.businessType === 'digital') ? (
-        <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
-          <button
-            onClick={handleBuyNow}
-            className="w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter bg-[#f56b2a] text-white border-[#f56b2a] hover:bg-[#e55a1a]"
-          >
-            Acheter maintenant
-          </button>
-        </div>
-      ) : (product.category === 'Appartements' || product.businessType === 'stay') ? null : (
-        <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
-          <button
-            onClick={handleAddToCart}
-            disabled={!!(product as any).currentBooking}
-            className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
-              (product as any).currentBooking
-                ? 'bg-gray-400 text-white border-gray-400 cursor-not-allowed uppercase !opacity-100 shadow-none'
-                : 'bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100'
-            }`}
-          >
-            {(product as any).currentBooking
-              ? `Occupé jusqu'au ${new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
-              : 'Ajouter au panier'}
-          </button>
-        </div>
-      )}
+      <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
+        <button
+          onClick={handleAddToCart}
+          className="w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100"
+        >
+          Ajouter au panier
+        </button>
+      </div>
     </div >
   );
 });

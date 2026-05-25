@@ -7,7 +7,6 @@ import {
     ChevronRight,
     Clock,
     CheckCircle2,
-    User,
     CreditCard,
     Package,
     ArrowLeft,
@@ -17,8 +16,7 @@ import {
     Loader2,
     Trash2,
     Calendar,
-    Zap,
-    Store
+    Zap
 } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
@@ -54,7 +52,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [loadingOrderItems, setLoadingOrderItems] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>('ALL');
     const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-    const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay' | 'digital'>('all');
+    const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
 
@@ -123,8 +121,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
             
             // Check the first item's product businessType
             const vertical = items[0]?.product?.businessType || 
-                            (items[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 
-                             items[0]?.product?.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping');
+                            (items[0]?.product?.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 'shopping');
                              
             return vertical === selectedVertical;
         });
@@ -162,7 +159,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     const handleDelete = async (orderId: string) => {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer cette ${store?.business_type === 'stay' ? 'réservation' : 'commande'} ?`)) {
+        if (confirm(`Êtes-vous sûr de vouloir supprimer cette commande ?`)) {
             const result = await deleteOrderAction(orderId);
             if (result.success) {
                 router.refresh();
@@ -203,14 +200,13 @@ const OrdersView: React.FC<OrdersViewProps> = ({
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-8 gap-3 md:gap-4">
                 <div className="whitespace-nowrap overflow-hidden">
                     <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight truncate">
-                        {store?.business_type === 'stay' ? 'Réservations' : 'Commandes'}
+                        Commandes
                     </h1>
                     <div className="flex items-center gap-2 mt-1 md:mt-2">
                          {[
                             { id: 'all', label: 'Toutes', icon: Package, color: 'gray' },
                             { id: 'shopping', label: 'Amazon', icon: ShoppingBag, color: 'orange' },
-                            { id: 'food', label: 'UberEats', icon: Zap, color: 'yellow' },
-                            { id: 'stay', label: 'Airbnb', icon: Store, color: 'blue' }
+                            { id: 'food', label: 'UberEats', icon: Zap, color: 'yellow' }
                         ].map(v => (
                             <button
                                 key={v.id}
@@ -228,7 +224,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         <input
                             type="text"
                             value={searchTerm}
-                            placeholder={store?.business_type === 'stay' ? "Chercher une réservation..." : "Chercher une commande..."}
+                            placeholder="Chercher une commande..."
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full md:w-64 pl-9 pr-4 py-1.5 md:py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
                         />
@@ -356,29 +352,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                     <span className="flex items-center gap-1"><Clock size={10} className="md:w-3 md:h-3 text-gray-400" /> {new Date(order.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
 
-                                                {/* Stay Info Summary in List */}
-                                                {order.items?.some((i: any) => i.checkIn) && (
-                                                    <div className="mt-1 flex items-center gap-2">
-                                                        <div className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1 border border-blue-100/50">
-                                                            <Calendar size={8} />
-                                                            {(() => {
-                                                                const stayItem = order.items.find((i: any) => i.checkIn);
-                                                                const cin = stayItem?.checkIn;
-                                                                const cout = stayItem?.checkOut;
-                                                                if (!cin) return 'Dates non spécifiées';
-                                                                return `Du ${new Date(cin).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})} au ${new Date(cout || cin).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})}`;
-                                                            })()}
-                                                        </div>
-                                                        {order.items.find((i: any) => i.guests)?.guests && (
-                                                            <div className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase flex items-center gap-1 border border-blue-100/50">
-                                                                 <User size={8} />
-                                                                 {order.items.find((i: any) => i.guests)?.guests} pers.
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
                                             </div>
- 
                                             <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
                                                 <div className="text-right">
                                                     <div className="text-[11px] md:text-sm font-black text-[#f56b2a] whitespace-nowrap">
@@ -416,7 +390,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     ) : (
                                         <Plus size={14} className="text-[#f56b2a]" />
                                     )}
-                                    {isLoadingMore ? 'Chargement...' : store?.business_type === 'stay' ? 'Voir plus de réservations' : 'Voir plus de commandes'}
+                                    {isLoadingMore ? 'Chargement...' : 'Voir plus de commandes'}
                                 </button>
                             </div>
                         )}
@@ -503,32 +477,9 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                 <div className="flex-grow min-w-0">
                                                     <div className="text-xs md:text-sm font-black text-gray-900 truncate">{item.product.name}</div>
                                                     <div className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                                        {item.quantity} {item.product.businessType === 'stay' ? 'nuit(s)' : (item.product.unit || 'unité(s)')}
+                                                        {item.quantity} {item.product.unit || 'unité(s)'}
                                                     </div>
-                                                    
-                                                    {/* Booking Details for Merchant */}
-                                                    {item.checkIn && item.checkOut && (
-                                                        <div className="mt-1.5 p-2 bg-blue-50 rounded-xl border border-blue-100/50 flex flex-col gap-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <Calendar size={10} className="text-blue-500" />
-                                                                <span className="text-[9px] font-black text-blue-700 uppercase tracking-tight">
-                                                                    Du {new Date(item.checkIn).toLocaleDateString('fr-FR')} au {new Date(item.checkOut).toLocaleDateString('fr-FR')}
-                                                                </span>
-                                                            </div>
-                                                            {item.guests && (
-                                                                <div className="flex items-center gap-2">
-                                                                    <User size={10} className="text-blue-400" />
-                                                                    <span className="text-[9px] font-bold text-blue-600">
-                                                                        {item.guests} voyageur(s)
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <div className="mt-1 pt-1 border-t border-blue-100/50 flex justify-between items-center">
-                                                                <span className="text-[8px] font-bold text-blue-400 uppercase">Total Nuitées</span>
-                                                                <span className="text-[10px] font-black text-blue-700">{item.quantity} nuits x {formatCurrency(item.product.price)}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
+
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-xs md:text-sm font-black text-gray-900">{formatCurrency(item.quantity * (item.product.price || 0))}</div>

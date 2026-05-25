@@ -36,13 +36,9 @@ export async function createOrderAction(order: any, storeId: string) {
         const { error: itemsErr } = await supabase.from('order_items').insert(orderItems);
         if (itemsErr) throw itemsErr;
 
-        // 3. Update Product Sales Count (only for shopping - no stock for food/stay)
         for (const item of order.items) {
             if (!item.product.id) continue;
-            
-            const businessType = item.product.business_type || item.product.businessType;
-            if (businessType !== 'shopping') continue;
-            
+
             const { data: product } = await supabase.from('products').select('sales_count').eq('id', item.product.id).single()
             if (product) {
                 await supabase.from('products').update({
@@ -167,10 +163,7 @@ export async function getOrdersAction(storeId: string, offset: number = 0, limit
         paymentMethod: o.payment_method,
         items: (o.order_items || []).map((oi: any) => ({
             ...oi,
-            product: oi.product,
-            checkIn: oi.check_in,
-            checkOut: oi.check_out,
-            guests: oi.guests
+            product: oi.product
         }))
       })), 
       hasMore: (count || 0) > (offset + (data?.length || 0)),

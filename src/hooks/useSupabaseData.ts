@@ -68,7 +68,7 @@ const fetchStoreBundle = async (storeId: string) => {
       supabase
         .from('products')
         .select(
-          'id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type, amenities, location, max_guests, bedrooms'
+          'id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type'
         )
         .eq('store_id', storeId)
         .limit(200),
@@ -133,10 +133,6 @@ const fetchStoreBundle = async (storeId: string) => {
       isOnline: p.is_online,
       views: p.views,
       businessType: p.business_type,
-      amenities: p.amenities || [],
-      location: p.location || '',
-      maxGuests: p.max_guests,
-      bedrooms: p.bedrooms,
       rating: statsMap[p.id]?.average_rating || 0,
       reviewCount: statsMap[p.id]?.review_count || 0,
       salesCount: statsMap[p.id]?.total_sales || 0
@@ -279,7 +275,7 @@ export const fetchProductReviews = async (productId: string) => {
 export const fetchMarketplaceProducts = async () => {
     const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type, amenities, location, max_guests, bedrooms')
+        .select('id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type')
         .eq('is_online', true)
         .limit(50);
     if (error) throw error;
@@ -287,7 +283,6 @@ export const fetchMarketplaceProducts = async () => {
         ...p,
         originalPrice: p.original_price,
         mainCategory: p.main_category,
-        isOnline: p.is_online,
-        maxGuests: p.max_guests
+        isOnline: p.is_online
     }));
 };

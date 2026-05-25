@@ -74,21 +74,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, 
             <SidebarItem
               id="tour-sidebar-pos"
               icon={<ShoppingBasket size={22} />}
-              label={businessType === 'stay' ? "Réservation" : "Vente"}
+              label="Vente"
               active={currentView === 'pos'}
               onClick={() => onViewChange('pos')}
             />
             <SidebarItem
               id="tour-sidebar-orders"
               icon={<ShoppingBag size={22} />}
-              label={businessType === 'stay' ? "Réservations" : "Commandes"}
+              label="Commandes"
               active={currentView === 'orders'}
               onClick={() => onViewChange('orders')}
             />
             <SidebarItem
               id="tour-sidebar-inventory"
               icon={<Package size={22} />}
-              label={businessType === 'stay' ? "Unités" : "Stocks"}
+              label="Stocks"
               active={currentView === 'inventory'}
               onClick={() => onViewChange('inventory')}
             />

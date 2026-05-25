@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Maximize2,
   Lock,
-  DoorOpen,
   Store,
   Plus,
   LogOut,
@@ -18,7 +17,6 @@ import {
   Trash2,
   HelpCircle,
   Shield,
-  FileDigit,
   ShoppingBag
 } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
@@ -64,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const [newStoreName, setNewStoreName] = useState('');
   const [isCreatingStore, setIsCreatingStore] = useState(false);
   const [creationStep, setCreationStep] = useState<1 | 2>(1);
-  const [newStoreType, setNewStoreType] = useState<'shopping' | 'food' | 'stay'>('shopping');
+  const [newStoreType, setNewStoreType] = useState<'shopping' | 'food'>('shopping');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [demoSecondsLeft] = useState<number | null>(null);
 
@@ -252,9 +250,7 @@ const Navbar: React.FC<NavbarProps> = ({
                               <div className="grid grid-cols-1 gap-2">
                                 {[
                                   { id: 'shopping', label: 'AMAZON', desc: 'Produits & E-commerce', icon: <ShoppingBag size={14} />, color: 'orange' },
-                                  { id: 'food', label: 'UBEREATS', desc: 'Plats & Restauration', icon: <Clock size={14} />, color: 'yellow' },
-                                  { id: 'stay', label: 'AIRBNB', desc: 'Logements & Séjours', icon: <DoorOpen size={14} />, color: 'blue' },
-                                  { id: 'digital', label: 'DIGITAL', desc: 'Produits numériques', icon: <FileDigit size={14} />, color: 'purple' }
+                                  { id: 'food', label: 'UBEREATS', desc: 'Plats & Restauration', icon: <Clock size={14} />, color: 'yellow' }
                                 ].map(type => (
                                   <button
                                     key={type.id}

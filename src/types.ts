@@ -8,7 +8,7 @@ export interface Review {
   productId?: string;
 }
 
-export type BusinessVertical = 'shopping' | 'food' | 'stay' | 'digital';
+export type BusinessVertical = 'shopping' | 'food';
 
 export interface Product {
   id: string;
@@ -33,23 +33,11 @@ export interface Product {
   views?: number;
   wholesalePrice?: number;
   wholesaleMinQty?: number;
-  deliveryTime?: string; // Delivery/Preparation time: "30-45 min", "2 jours", etc.
+  deliveryTime?: string;
   options?: ProductOption[];
   variants?: ProductVariant[];
-  isDigital?: boolean;
-  digitalUrl?: string; // URL for the downloadable file
   businessType?: BusinessVertical;
-  // Specific fields for different verticals
-  preparationTime?: string; // for 'food'
-  amenities?: string[]; // for 'stay' (Wifi, Pool, etc.)
-  maxGuests?: number; // for 'stay'
-  bedrooms?: number; // for 'stay'
-  location?: string; // for 'stay'
-  currentBooking?: {
-    startDate: string;
-    endDate: string;
-    isManualBlock?: boolean;
-  };
+  preparationTime?: string;
 }
 
 export interface ProductOption {
@@ -72,10 +60,6 @@ export interface CartItem {
   id?: string;
   product: Product;
   quantity: number;
-  // Booking specific info
-  checkIn?: string;
-  checkOut?: string;
-  guests?: number;
 }
 
 export interface Customer {

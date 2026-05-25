@@ -45,18 +45,11 @@ export async function saveProductAction(product: any, storeId: string) {
     wholesale_price: product.wholesalePrice,
     wholesale_min_qty: product.wholesaleMinQty,
     business_type: product.businessType || (
-      (product.mainCategory || '').includes('Séjour') || (product.mainCategory || '').includes('Immobilier') ? 'stay' :
       (product.mainCategory || '').includes('Resto') || (product.mainCategory || '').includes('Alimentation') ? 'food' :
       'shopping'
     ),
-    amenities: product.amenities || [],
-    max_guests: product.maxGuests,
-    bedrooms: product.bedrooms,
-    location: product.location,
     options: product.options || [],
-    variants: product.variants || [],
-    is_digital: product.isDigital || product.businessType === 'digital' || false,
-    digital_url: product.businessType === 'digital' ? (product.digitalUrl || product.digital_url) : (product.digitalUrl || null)
+    variants: product.variants || []
   }
 
   const { data, error } = await supabase.from('products').upsert(dbProduct).select()
@@ -107,7 +100,7 @@ export async function getProductsAction(
   offset: number = 0, 
   limit: number = 10, 
   search: string = '',
-  options: { productType?: 'all' | 'pos' | 'marketplace', businessType?: 'all' | 'shopping' | 'food' | 'stay' } = {}
+  options: { productType?: 'all' | 'pos' | 'marketplace', businessType?: 'all' | 'shopping' | 'food' } = {}
 ) {
   const supabase = await createClient()
 
@@ -155,14 +148,8 @@ export async function getProductsAction(
       wholesaleMinQty: p.wholesale_min_qty,
       mainCategory: p.main_category,
       businessType: p.business_type,
-      amenities: p.amenities || [],
-      maxGuests: p.max_guests,
-      bedrooms: p.bedrooms,
-      location: p.location,
       options: p.options || [],
-      variants: p.variants || [],
-      isDigital: p.is_digital || false,
-      digitalUrl: p.digital_url || ''
+      variants: p.variants || []
     })),
     hasMore: (count || 0) > (offset + (data?.length || 0)),
     total: count

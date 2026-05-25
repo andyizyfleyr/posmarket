@@ -12,27 +12,24 @@ export async function fetchMarketplaceData() {
 
   // 1-4. Fetch all essential data in PARALLEL to reduce latency
 
-  const [storesRes, productsRes, productStatsRes, storeStatsRes, availabilitySlotsRes] = await Promise.all([
+  const [storesRes, productsRes, productStatsRes, storeStatsRes] = await Promise.all([
     safeSupabaseFetch<any[]>(() => 
       supabase
         .from('stores')
         .select('id, slug, user_id, name, email, phone, address, ninea, views, description, settings, status')
         .or('status.eq.APPROVED,status.is.null')),
     safeSupabaseFetch<any[]>(() => 
-      supabase.from('products').select('*').eq('is_online', true)), // Only fetch online products for the marketplace
+      supabase.from('products').select('*').eq('is_online', true)),
     safeSupabaseFetch<any[]>(() => 
       supabase.from('product_stats').select('*')),
     safeSupabaseFetch<any[]>(() => 
-      supabase.from('store_stats').select('store_id, average_rating, total_reviews')),
-    safeSupabaseFetch<any[]>(() => 
-      supabase.from('availability_slots').select('*').gte('date', new Date().toISOString().split('T')[0]))
+      supabase.from('store_stats').select('store_id, average_rating, total_reviews'))
   ]);
 
   const storesData = storesRes.data || [];
   const productsData = productsRes.data || [];
   const productStatsData = productStatsRes.data || [];
   const storeStatsData = storeStatsRes.data || [];
-  const slotsData = availabilitySlotsRes?.data || [];
 
   const productStatsMap = Object.fromEntries(productStatsData.map((s: any) => [s.product_id, s]));
   const storeStatsMap = Object.fromEntries(storeStatsData.map((s: any) => [s.store_id, s]));
@@ -93,31 +90,7 @@ export async function fetchMarketplaceData() {
             salesCount: stats.total_sales ? parseInt(stats.total_sales) : 0,
             wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
             wholesaleMinQty: p.wholesale_min_qty,
-            businessType: p.business_type,
-            amenities: p.amenities || [],
-            location: p.location || '',
-            maxGuests: p.max_guests,
-            bedrooms: p.bedrooms,
-            currentBooking: (() => {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const pSlots = slotsData.filter((s: any) => s.product_id === p.id).sort((a: any, b: any) => a.date.localeCompare(b.date));
-              const todaySlot = pSlots.find((s: any) => s.date === todayStr);
-
-              if (todaySlot && !todaySlot.is_available) {
-                let endDate = todayStr;
-                const todayIdx = pSlots.indexOf(todaySlot);
-                for (let i = todayIdx; i < pSlots.length; i++) {
-                  if (!pSlots[i].is_available) endDate = pSlots[i].date;
-                  else break;
-                }
-                return {
-                  startDate: todaySlot.booking_id ? 'Occupe' : todayStr,
-                  endDate,
-                  isManualBlock: !todaySlot.booking_id
-                };
-              }
-              return null;
-            })()
+            businessType: p.business_type
           };
         }),
       customers: [],
@@ -173,16 +146,13 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
       // 1. Get current buyer user if logged in
       const { data: { user: buyer } } = await supabase.auth.getUser();
 
-      // 2. Check if all products are digital
-      const allDigital = storeOrderData.items.every((item: any) => item.product.business_type === 'digital' || item.product.businessType === 'digital');
-
-      // 3. Create Order
+      // 2. Create Order
       const { data: order, error: orderErr } = await supabase.from('orders').insert({
         store_id: storeId,
         customer_id: customerId,
-        buyer_id: buyer?.id, // Link to the logged-in buyer user
+        buyer_id: buyer?.id,
         date: new Date().toISOString(),
-        status: allDigital ? 'COMPLETED' : 'PENDING',
+        status: 'PENDING',
         type: 'PICKUP',
         payment_method: storeOrderData.paymentMethod || 'ESPECES',
         subtotal: storeOrderData.subtotal,
@@ -196,55 +166,17 @@ export async function submitCheckoutAction(ordersData: Record<string, any>, cust
 
       // 3. Create Order Items and Update Stock
       for (const item of storeOrderData.items) {
-        // Insert items
         const { error: itemErr } = await supabase.from('order_items').insert({
           order_id: order.id,
           product_id: item.product.id,
           quantity: item.quantity,
           price: (item.product.wholesalePrice && item.product.wholesaleMinQty && item.quantity >= item.product.wholesaleMinQty) 
             ? item.product.wholesalePrice 
-            : item.product.price,
-          check_in: item.checkIn,
-          check_out: item.checkOut
+            : item.product.price
         });
 
         if (itemErr) throw itemErr;
 
-        // 4. Handle Stay Bookings - Block availability slots in DB
-        if (item.checkIn && item.checkOut) {
-          try {
-            const start = new Date(item.checkIn);
-            const end = new Date(item.checkOut);
-            const slotsToUpsert = [];
-            
-            // Loop through dates (only nights, we don't block checkout day)
-            const current = new Date(start);
-            while (current < end) {
-              slotsToUpsert.push({
-                product_id: item.product.id,
-                date: current.toISOString().split('T')[0],
-                is_available: false,
-                booking_id: order.id
-              });
-              current.setDate(current.getDate() + 1);
-            }
-            
-            if (slotsToUpsert.length > 0) {
-              const { error: slotUpsertErr } = await supabase
-                .from('availability_slots')
-                .upsert(slotsToUpsert, { onConflict: 'product_id,date' });
-                
-              if (slotUpsertErr) {
-                console.error('RLS/DB Error blocking availability slots:', slotUpsertErr);
-                throw slotUpsertErr;
-              }
-            }
-          } catch (slotErr) {
-            console.error('Failed to block availability slots for booking:', slotErr);
-          }
-        }
-
-        // 6. Check for Low Stock after order (only for shopping/physical products)
         try {
           const { data: updatedProduct } = await supabase.from('products').select('name, stock, business_type').eq('id', item.product.id).single();
           if (updatedProduct && updatedProduct.business_type === 'shopping' && updatedProduct.stock <= 5) {
@@ -405,7 +337,7 @@ export async function fetchBuyerOrdersAction(page = 1, limit = 3) {
     .select(`
       *,
       stores (name, address, phone),
-      order_items!inner (*, products(name, image, price, business_type, is_digital, digital_url))
+      order_items!inner (*, products(name, image, price, business_type))
     `, { count: 'exact' })
     .eq('buyer_id', user.id)
     .order('date', { ascending: false })

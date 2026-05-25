@@ -19,19 +19,12 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
-  Store,
   ShoppingBag,
   Star,
   Loader2,
   Award,
   Zap,
-  Clock,
-  Calendar,
-  MapPin,
-  CheckCircle2,
-  Users,
-  Home,
-  FileDigit
+  Clock
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { SUBSCRIPTION_PLANS } from '@/constants';
@@ -68,9 +61,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [viewType, setViewType] = useState<'grid' | 'table'>('table');
   const [productType, setProductType] = useState<'all' | 'pos' | 'marketplace'>('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay' | 'digital'>('all');
+  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [managingAvailability, setManagingAvailability] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -105,20 +97,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     deliveryTime: '',
     preparationTime: '',
     businessType: businessType || 'shopping',
-    amenities: [],
-    maxGuests: undefined,
-    bedrooms: undefined,
-    location: '',
     options: [],
-    variants: [],
-    isDigital: false,
-    digitalUrl: ''
+    variants: []
   });
 
   const filteredMainCategories = useMemo(() => {
     if (businessType === 'food') return ['Restauration & Livraison Rapide'];
-    if (businessType === 'stay') return ['Séjours, Expériences & Immobilier'];
-    if (businessType === 'digital') return ['Produits Digitaux & Services'];
     return MAIN_CATEGORIES.filter(c => c !== 'Restauration & Livraison Rapide' && c !== 'Séjours, Expériences & Immobilier' && c !== 'Produits Digitaux & Services');
   }, [businessType]);
 
@@ -143,11 +127,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
       // Filter by Vertical
       const mainCat = p.mainCategory || '';
-      const isStay = p.businessType === 'stay' || mainCat.includes('Séjour') || mainCat.includes('Immobilier');
       const isFood = p.businessType === 'food' || mainCat.includes('Resto') || mainCat.includes('Alimentation');
       
       // Final categorization to prevent overlaps
-      const actualVertical = isStay ? 'stay' : isFood ? 'food' : 'shopping';
+      const actualVertical = isFood ? 'food' : 'shopping';
 
       if (selectedVertical === 'all') return true;
       return selectedVertical === actualVertical;
@@ -217,15 +200,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         wholesaleMinQty: product.wholesaleMinQty,
         deliveryTime: product.deliveryTime || '',
         preparationTime: product.preparationTime || '',
-        businessType: product.businessType || (product.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : product.mainCategory === 'Séjours, Expériences & Immobilier' ? 'stay' : 'shopping'),
-        amenities: product.amenities || [],
-        maxGuests: product.maxGuests,
-        bedrooms: product.bedrooms,
-        location: product.location || '',
+        businessType: product.businessType || (product.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 'shopping'),
         options: product.options || [],
-        variants: product.variants || [],
-        isDigital: (product as any).isDigital || false,
-        digitalUrl: (product as any).digitalUrl || (product as any).digital_url || ''
+        variants: product.variants || []
       };
       setFormData(initialFormData);
     } else {
@@ -235,24 +212,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         name: '',
         price: undefined,
         stock: undefined,
-        category: businessType === 'food' ? 'Plats Cuisinés' : (businessType === 'stay' ? 'Appartements de Vacances' : businessType === 'digital' ? 'Fichiers & Templates' : 'Général'),
-        mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : (businessType === 'stay' ? 'Séjours, Expériences & Immobilier' : businessType === 'digital' ? 'Produits Digitaux & Services' : 'Divers'),
+        category: businessType === 'food' ? 'Plats Cuisinés' : 'Général',
+        mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : 'Divers',
         image: '',
         images: [],
-        unit: businessType === 'stay' ? 'nuitée' : businessType === 'digital' ? 'accès' : 'pièce',
+        unit: 'pièce',
         description: '',
         isOnline: isOnline,
         deliveryTime: '',
         preparationTime: '',
         businessType: businessType,
-        amenities: [],
-        maxGuests: undefined,
-        bedrooms: undefined,
-        location: '',
         options: [],
-        variants: [],
-        isDigital: businessType === 'digital',
-        digitalUrl: ''
+        variants: []
       });
 
       setCurrentStep(1);
@@ -342,18 +313,17 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">
-                {businessType === 'stay' ? 'Unités' : 'Inventaire'}
+                Inventaire
               </h1>
               <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
                 businessType === 'food' ? 'bg-yellow-100 text-yellow-700' : 
-                businessType === 'stay' ? 'bg-blue-100 text-blue-700' : 
                 'bg-orange-100 text-orange-700'
               }`}>
-                Flux {businessType === 'food' ? 'UberEats' : businessType === 'stay' ? 'Airbnb' : businessType === 'digital' ? 'Digital' : 'Amazon'}
+                Flux {businessType === 'food' ? 'UberEats' : 'Amazon'}
               </span>
             </div>
             <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">
-              {businessType === 'stay' ? 'Gérez vos logements et vos disponibilités.' : 'Gérez vos produits et vos stocks.'}
+              Gérez vos produits et vos stocks.
             </p>
           </div>
           {selectedIds.size > 0 && permissions.canManageInventory && (
@@ -400,8 +370,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               { id: 'all', label: 'Tous les flux', icon: Package, color: 'gray', border: 'border-gray-500', text: 'text-gray-600', shadow: 'shadow-gray-100' },
               { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', text: 'text-orange-600', shadow: 'shadow-orange-100' },
               { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow', border: 'border-yellow-500', text: 'text-yellow-600', shadow: 'shadow-yellow-100' },
-              { id: 'stay', label: 'Séjours (Airbnb)', icon: Store, color: 'blue', border: 'border-blue-500', text: 'text-blue-600', shadow: 'shadow-blue-100' },
-              { id: 'digital', label: 'Digital', icon: FileDigit, color: 'purple', border: 'border-purple-500', text: 'text-purple-600', shadow: 'shadow-purple-100' }
             ].filter(v => v.id === 'all' || v.id === businessType).map(v => (
               <button
                 key={v.id}
@@ -485,7 +453,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="table-cell px-4 py-3">Type</div>
                   <div className="table-cell px-4 py-3">Catégorie</div>
                   <div className="table-cell px-4 py-3">Prix</div>
-                  <div className="table-cell px-4 py-3">{businessType === 'stay' ? 'Disponibilité' : 'Stock'}</div>
+                  <div className="table-cell px-4 py-3">Stock</div>
                   <div className="table-cell px-4 py-3">Avis</div>
                   <div className="table-cell px-4 py-3 text-right">Actions</div>
                 </div>
@@ -571,11 +539,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
-                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'digital' ? 'bg-purple-100 text-purple-700' : product.businessType === 'stay' ? 'bg-blue-100 text-blue-700' :
+                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'food' ? 'bg-yellow-100 text-yellow-700' :
                           product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
                         }`}>
-                        {product.businessType === 'digital' ? <FileDigit size={8} /> : product.businessType === 'stay' ? <Store size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
-                        {product.businessType === 'digital' ? 'Digital' : product.businessType === 'stay' ? 'Séjour (Pro)' : product.isOnline !== false ? 'Marketplace' : 'POS'}
+                        {product.businessType === 'food' ? <Clock size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
+                        {product.businessType === 'food' ? 'Food' : product.isOnline !== false ? 'Marketplace' : 'POS'}
                       </span>
                     </div>
 
@@ -602,24 +570,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        {product.businessType === 'stay' ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Calendrier</span>
-                            {(product as any).currentBooking && (
-                              <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-2 py-0.5 rounded-lg border border-orange-100 animate-pulse">
-                                <Clock size={10} />
-                                <span className="text-[8px] font-bold whitespace-nowrap opacity-90">
-                                  Occupé jusqu'au {new Date((product as any).currentBooking.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
                           <>
                             <span className={`text-xs font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
                             {product.stock < 10 && <AlertCircle size={12} className="text-red-500" />}
                           </>
-                        )}
                       </div>
                     </div>
 
@@ -632,18 +586,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5 text-right">
-                      {(() => {
-                        const isStay = product.businessType === 'stay' || product.mainCategory === 'Séjours, Expériences & Immobilier';
-                        return isStay && (
-                          <button
-                            onClick={() => setManagingAvailability(product)}
-                            className="p-2.5 text-blue-600 bg-blue-50 rounded-xl transition-all active:scale-90 hover:bg-blue-100 mr-2"
-                            title="Gérer la disponibilité"
-                          >
-                            <Calendar size={16} />
-                          </button>
-                        );
-                      })()}
                       {permissions.canManageInventory && (
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -820,8 +762,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       })}
                     </select>
                   </div>
-                  {formData.businessType !== 'stay' && (
-                    <div>
+                  <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
                       </label>
@@ -851,67 +792,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </select>
                       <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
                     </div>
-                  )}
 
 
 
-                  {formData.businessType === 'stay' && (
-                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-blue-700 uppercase">Détails de l'hébergement</h4>
-                        <span className="px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded-full uppercase">Mode Pro</span>
-                      </div>
-
-
-
-                      <div>
-                        <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Localisation (Ville/Quartier)</label>
-                        <input
-                          type="text"
-                          value={formData.location}
-                          onChange={e => setFormData({ ...formData, location: e.target.value })}
-                          className="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-sm font-bold"
-                          placeholder="Ex: Abidjan, Cocody"
-                        />
-                      </div>
-
-
-                      <div>
-                        <label className="block text-[10px] font-black text-blue-600 uppercase mb-2">Équipements (Amenities)</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { id: 'wifi', label: 'Wi-Fi', icon: <Globe size={14} /> },
-                            { id: 'ac', label: 'Climatisation', icon: <Clock size={14} /> },
-                            { id: 'pool', label: 'Piscine', icon: <Zap size={14} /> },
-                            { id: 'generator', label: 'Électricité 24/7', icon: <Zap size={14} /> },
-                            { id: 'kitchen', label: 'Cuisine', icon: <Home size={14} /> },
-                            { id: 'security', label: 'Gardiennage', icon: <CheckCircle2 size={14} /> },
-                            { id: 'canalplus', label: 'Canal+', icon: <Monitor size={14} /> },
-                            { id: 'cleaning', label: 'Ménage inclus', icon: <CheckCircle2 size={14} /> }
-                          ].map(amenity => (
-                            <button
-                              key={amenity.id}
-                              type="button"
-                              onClick={() => {
-                                const current = formData.amenities || [];
-                                const next = current.includes(amenity.id)
-                                  ? current.filter(id => id !== amenity.id)
-                                  : [...current, amenity.id];
-                                setFormData({ ...formData, amenities: next });
-                              }}
-                              className={`flex items-center gap-2 p-2 rounded-xl border text-[10px] font-bold transition-all ${(formData.amenities || []).includes(amenity.id)
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                                  : 'bg-white text-gray-600 border-blue-100 hover:border-blue-300'
-                                }`}
-                            >
-                              <span className="flex-shrink-0">{amenity.icon}</span>
-                              <span className="truncate">{amenity.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -920,7 +803,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente {formData.businessType === 'stay' ? '(Par Nuitée)' : ''}
+                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente
                       </label>
                       <div className="relative">
                         <input
@@ -935,77 +818,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
 
-                    {(formData.businessType === 'shopping' || formData.businessType === 'food' || formData.businessType === 'digital') && (
-                      <div>
+                    <div>
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
-                          required={formData.businessType !== 'digital'}
                           type="number"
                           value={formData.stock ?? ''}
                           onChange={e => setFormData({ ...formData, stock: e.target.value ? parseFloat(e.target.value) : undefined })}
                           placeholder="0"
-                          disabled={formData.businessType === 'digital'}
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none disabled:opacity-50"
+                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
-                      </div>
-                    )}
-                    
-                    {(formData.businessType === 'shopping' || formData.businessType === 'digital') && (
-                      <div className="col-span-full">
-                        {formData.businessType === 'digital' && (
-                          <div className="mb-4 p-3 bg-purple-50 border border-purple-100 rounded-xl">
-                            <p className="text-xs font-black text-purple-700">📥 Produit numérique - Le client recevra un lien de téléchargement après achat</p>
-                          </div>
-                        )}
-                        
-                        {formData.businessType === 'digital' && (
-                          <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label className="block text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1.5">
-                              <Download size={12} className="inline mr-1" /> Lien de téléchargement
-                            </label>
-                            <input
-                              type="url"
-                              required
-                              value={formData.digitalUrl || ''}
-                              onChange={e => setFormData({ ...formData, digitalUrl: e.target.value })}
-                              placeholder="https://drive.google.com/..., https://dropbox.com/..."
-                              className="w-full px-4 py-3 bg-white border border-purple-200 rounded-xl text-sm font-bold text-gray-700 focus:ring-4 focus:ring-purple-50 focus:border-purple-400 transition-all outline-none"
-                            />
-                            <p className="text-[9px] text-purple-500 mt-1.5 font-medium">
-                              Collez le lien vers votre fichier (Google Drive, Dropbox, etc.)
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {formData.businessType === 'stay' && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
-                            <Users size={12} /> Personnes max
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.maxGuests ?? ''}
-                            onChange={e => setFormData({ ...formData, maxGuests: e.target.value ? parseInt(e.target.value) : undefined })}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
-                            placeholder="Ex: 4"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1 flex items-center gap-2">
-                            <Home size={12} /> Chambres
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.bedrooms ?? ''}
-                            onChange={e => setFormData({ ...formData, bedrooms: e.target.value ? parseInt(e.target.value) : undefined })}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
-                            placeholder="Ex: 2"
-                          />
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                   {formData.businessType === 'shopping' && (
                     <div>
@@ -1557,341 +1379,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         </div>
       )}
-      {/* Availability Management Modal */}
-      {managingAvailability && (
-        <AvailabilityModal
-          product={managingAvailability}
-          onClose={() => setManagingAvailability(null)}
-          onUpdate={() => router.refresh()}
-        />
-      )}
-    </div>
-  );
-};
-
-interface AvailabilityModalProps {
-  product: Product;
-  onClose: () => void;
-  onUpdate: () => void;
-}
-
-const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ product, onClose, onUpdate }) => {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isAvailable, setIsAvailable] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slots, setSlots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  useEffect(() => {
-    fetchSlots();
-
-    // Realtime background reactivity
-    const channel = supabase
-      .channel(`availability_${product.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'availability_slots',
-        filter: `product_id=eq.${product.id}`
-      }, () => {
-        fetchSlots();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [product.id]);
-
-  const fetchSlots = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('availability_slots')
-        .select('*')
-        .eq('product_id', product.id)
-        .order('date', { ascending: true });
-      
-      if (error) {
-        console.error("Error fetching slots:", error);
-        return;
-      }
-      setSlots(data || []);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const [processingDates, setProcessingDates] = useState<Set<string>>(new Set());
-
-  const handleSave = async () => {
-    if (!startDate || !endDate) return;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    try {
-      const dates = [];
-      let curr = new Date(startDate);
-      const end = new Date(endDate);
-      while (curr <= end) {
-        if (curr >= today) {
-          dates.push({
-            product_id: product.id,
-            date: new Date(curr).toISOString().split('T')[0],
-            is_available: isAvailable,
-          });
-        }
-        curr.setDate(curr.getDate() + 1);
-      }
-
-      if (dates.length === 0) {
-        alert("Veuillez sélectionner des dates futures.");
-        return;
-      }
-
-      setIsSubmitting(true);
-      const { error } = await supabase
-        .from('availability_slots')
-        .upsert(dates, { onConflict: 'product_id,date' });
-
-      if (error) throw error;
-
-      await fetchSlots();
-      onUpdate();
-      setStartDate('');
-      setEndDate('');
-    } catch (err: any) {
-      alert('Erreur: ' + (err.message || "Impossible d'enregistrer les disponibilités"));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleDate = async (dateStr: string, currentStatus: boolean) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (new Date(dateStr) < today) return; // Ignore past dates
-
-    // Optimistic update
-    const previousSlots = [...slots];
-    const newStatus = !currentStatus;
-    
-    setSlots(prev => {
-      const idx = prev.findIndex(s => s.date === dateStr);
-      if (idx > -1) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], is_available: newStatus };
-        return next;
-      } else {
-        return [...prev, { product_id: product.id, date: dateStr, is_available: newStatus }];
-      }
-    });
-
-    setProcessingDates(prev => new Set(prev).add(dateStr));
-
-    try {
-      const { error } = await supabase.from('availability_slots').upsert({
-        product_id: product.id,
-        date: dateStr,
-        is_available: newStatus,
-      }, { onConflict: 'product_id,date' });
-
-      if (error) {
-        setSlots(previousSlots); // Rollback
-        throw error;
-      }
-      
-      onUpdate();
-    } catch (err: any) {
-      console.error("Error toggling date:", err);
-    } finally {
-      setProcessingDates(prev => {
-        const next = new Set(prev);
-        next.delete(dateStr);
-        return next;
-      });
-    }
-  };
-
-  // Calendar Logic
-  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
-
-  const monthData = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const totalDays = daysInMonth(year, month);
-    const startDay = (firstDayOfMonth(year, month) + 6) % 7; // Adjust for Monday start
-
-    const days = [];
-    for (let i = 0; i < startDay; i++) days.push(null);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 1; i <= totalDays; i++) {
-      const date = new Date(year, month, i);
-      const isPast = date < today;
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-      const slot = slots.find(s => s.date === dateStr);
-      days.push({
-        day: i,
-        date: dateStr,
-        isAvailable: slot ? slot.is_available : true,
-        isBlocked: slot ? !slot.is_available : false,
-        hasBooking: slot?.booking_id ? true : false,
-        isPast
-      });
-    }
-    return days;
-  }, [currentMonth, slots]);
-
-  const monthName = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[95vh] border border-gray-100">
-        <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white sticky top-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
-               <Calendar size={24} />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight leading-none">{product.name}</h3>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest bg-orange-50 px-2 py-0.5 rounded-full">Planning</span>
-                {product.location && (
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                    <MapPin size={10} /> {product.location}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors bg-gray-50 rounded-xl">
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
-          {/* Pro Calendar Grid */}
-          <div className="bg-gray-50/50 rounded-3xl p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-sm font-black text-gray-900 border-l-4 border-[#f56b2a] pl-3 capitalize">{monthName}</h4>
-              <div className="flex gap-2">
-                <button
-                  onClick={fetchSlots}
-                  disabled={loading}
-                  className="p-2 bg-white border border-gray-100 rounded-xl hover:text-blue-500 transition-all active:scale-90"
-                  title="Rafraîchir"
-                >
-                  <Loader2 size={18} className={loading ? 'animate-spin' : ''} />
-                </button>
-                <div className="w-px h-8 bg-gray-100 mx-1" />
-                <button
-                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                  className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <button
-                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                  className="p-2 bg-white border border-gray-100 rounded-xl hover:text-[#f56b2a] transition-all"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1.5">
-              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
-                <div key={d} className="text-[9px] font-black text-gray-400 uppercase text-center pb-2 tracking-tighter">{d}</div>
-              ))}
-              {monthData.map((d, i) => (
-                <div key={i} className="aspect-square relative">
-                  {d ? (
-                    <button
-                      onClick={() => !d.hasBooking && !d.isPast && toggleDate(d.date, d.isAvailable)}
-                      disabled={d.hasBooking || d.isPast || processingDates.has(d.date)}
-                      className={`w-full h-full rounded-xl border flex flex-col items-center justify-center transition-all relative overflow-hidden group ${d.hasBooking ? 'bg-orange-50 border-orange-200 cursor-default' :
-                          d.isPast ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed' :
-                          !d.isAvailable ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:border-[#f56b2a]/30'
-                        } ${processingDates.has(d.date) ? 'opacity-50 grayscale' : ''}`}
-                    >
-                      {processingDates.has(d.date) && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/40">
-                          <Loader2 size={10} className="animate-spin text-[#f56b2a]" />
-                        </div>
-                      )}
-                      <span className={`text-[11px] font-black ${d.hasBooking ? 'text-orange-700' : d.isPast ? 'text-gray-400' : !d.isAvailable ? 'text-red-600' : 'text-gray-900'}`}>
-                        {d.day}
-                      </span>
-                      {!d.isAvailable && !d.hasBooking && !d.isPast && <div className="w-1 h-1 bg-red-400 rounded-full mt-0.5" />}
-                      {d.hasBooking && <span className="text-[6px] font-black uppercase text-orange-500 mt-0.5 leading-none">Occupe</span>}
-                    </button>
-                  ) : <div className="w-full h-full" />}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-4 mt-6 pt-4 border-t border-gray-100/50 justify-center">
-              <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
-                <div className="w-2.5 h-2.5 bg-white border border-gray-100 rounded-full" /> Disponible
-              </div>
-              <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
-                <div className="w-2.5 h-2.5 bg-red-50 border border-red-100 rounded-full" /> Bloqué Manuel
-              </div>
-              <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase">
-                <div className="w-2.5 h-2.5 bg-orange-50 border border-orange-200 rounded-full" /> Réservé (Client)
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Actions Rapides</h4>
-            <div className="bg-white p-5 rounded-3xl border border-gray-100 space-y-5 shadow-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Blocage Du</label>
-                  <input 
-                    type="date" 
-                    value={startDate} 
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={e => setStartDate(e.target.value)} 
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Au</label>
-                  <input 
-                    type="date" 
-                    value={endDate} 
-                    min={startDate || new Date().toISOString().split('T')[0]}
-                    onChange={e => setEndDate(e.target.value)} 
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold" 
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <button onClick={() => setIsAvailable(true)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${isAvailable ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}>
-                  <CheckCircle2 size={18} />
-                  <span className="text-[9px] font-black uppercase">Ouvrir</span>
-                </button>
-                <button onClick={() => setIsAvailable(false)} className={`flex-1 p-3 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all ${!isAvailable ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-100 text-gray-400'}`}>
-                  <X size={18} />
-                  <span className="text-[9px] font-black uppercase">Fermer</span>
-                </button>
-              </div>
-
-              <Button fullWidth onClick={handleSave} loading={isSubmitting} disabled={!startDate || !endDate}>
-                Appliquer le changement
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

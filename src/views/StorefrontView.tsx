@@ -7,7 +7,6 @@ import React, {
   useRef,
 } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Skeleton, ProductSkeleton } from "@/components/Skeleton";
 import {
@@ -49,13 +48,6 @@ import {
   Clock,
   ShoppingBag,
   Tag,
-  Calendar,
-  Users,
-  Snowflake,
-  Monitor,
-  UtensilsCrossed,
-  Waves,
-  Battery
 } from "lucide-react";
 import {
   StoreData,
@@ -89,8 +81,6 @@ import {
 import {
   incrementProductViews,
   incrementStoreViews,
-  checkDateRangeAvailable,
-  getUnavailableDates,
 } from "@/supabase-api";
 import {
   fetchMarketplaceProducts,
@@ -148,9 +138,6 @@ interface CartItem {
   product: StorefrontProduct;
   quantity: number;
   variantId?: string;
-  checkIn?: string;
-  checkOut?: string;
-  guests?: number;
   selectedOptions?: Record<string, string>;
 }
 
@@ -171,183 +158,7 @@ interface StorefrontViewProps {
   notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
-// 🗓️ Custom Calendar Picker Component
-function CalendarPicker({
-  blockedDates,
-  checkIn,
-  checkOut,
-  onCheckInChange,
-  onCheckOutChange,
-}: {
-  blockedDates: string[];
-  checkIn: string;
-  checkOut: string;
-  onCheckInChange: (date: string) => void;
-  onCheckOutChange: (date: string) => void;
-}) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay();
-    
-    const days: (number | null)[] = [];
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-    return days;
-  };
-  
-  const formatDate = (day: number) => {
-    const year = currentMonth.getFullYear();
-    const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
-    const dayStr = String(day).padStart(2, '0');
-    return `${year}-${month}-${dayStr}`;
-  };
-  
-  const isDateBlocked = (day: number) => {
-    const dateStr = formatDate(day);
-    return blockedDates.includes(dateStr);
-  };
-  
-  const isDatePast = (day: number) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    date.setHours(0, 0, 0, 0);
-    return date < today;
-  };
-  
-  const isDateInRange = (day: number) => {
-    if (!checkIn || !checkOut) return false;
-    const dateStr = formatDate(day);
-    return dateStr > checkIn && dateStr < checkOut;
-  };
-  
-  const isCheckIn = (day: number) => formatDate(day) === checkIn;
-  const isCheckOut = (day: number) => formatDate(day) === checkOut;
-  
-  const handleDayClick = (day: number) => {
-    if (isDateBlocked(day) || isDatePast(day)) return;
-    
-    const dateStr = formatDate(day);
-    
-    if (!checkIn || (checkIn && checkOut)) {
-      onCheckInChange(dateStr);
-      onCheckOutChange("");
-    } else if (dateStr > checkIn) {
-      onCheckOutChange(dateStr);
-    } else {
-      onCheckInChange(dateStr);
-      onCheckOutChange("");
-    }
-  };
-  
-  const monthNames = [
-    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-  ];
-  const dayNames = ["Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa"];
-  const days = getDaysInMonth(currentMonth);
-  
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <span className="text-sm font-black text-gray-900 uppercase tracking-wider">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </span>
-        <button
-          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <ChevronRight size={20} className="rotate-180" style={{ transform: 'rotate(180deg)' }} />
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {dayNames.map((name) => (
-          <div key={name} className="text-[10px] font-bold text-gray-400 text-center uppercase">
-            {name}
-          </div>
-        ))}
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((day, index) => {
-          if (day === null) {
-            return <div key={index} className="h-10" />;
-          }
-          
-          const blocked = isDateBlocked(day);
-          const past = isDatePast(day);
-          const inRange = isDateInRange(day);
-          const isStart = isCheckIn(day);
-          const isEnd = isCheckOut(day);
-          
-          let dayClass = "h-10 flex items-center justify-center text-xs font-black rounded-lg cursor-pointer transition-all ";
-          
-          if (past) {
-            dayClass += "text-gray-300 cursor-not-allowed ";
-          } else if (blocked) {
-            dayClass += "bg-red-50 text-red-400 cursor-not-allowed relative ";
-          } else if (isStart || isEnd) {
-            dayClass += "bg-blue-600 text-white ";
-          } else if (inRange) {
-            dayClass += "bg-blue-50 text-blue-600 ";
-          } else {
-            dayClass += "text-gray-700 hover:bg-gray-100 ";
-          }
-          
-          return (
-            <div
-              key={index}
-              onClick={() => handleDayClick(day)}
-              className={dayClass}
-            >
-              {blocked ? (
-                <div className="relative flex items-center justify-center w-full h-full">
-                  <span className="opacity-50">{day}</span>
-                  <X size={10} className="absolute text-red-400 font-bold" />
-                </div>
-              ) : (
-                day
-              )}
-            </div>
-          );
-        })}
-      </div>
-      
-      {(checkIn || checkOut) && (
-        <div className="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-xs font-black">
-          {checkIn && (
-            <div className="flex-1 bg-blue-50 text-blue-700 p-2 rounded-lg text-center">
-              Arrivée: <span className="uppercase">{new Date(checkIn).toLocaleDateString('fr-FR')}</span>
-            </div>
-          )}
-          {checkOut && (
-            <div className="flex-1 bg-blue-50 text-blue-700 p-2 rounded-lg text-center">
-              Départ: <span className="uppercase">{new Date(checkOut).toLocaleDateString('fr-FR')}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
@@ -425,7 +236,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, []);
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const allDigital = cart.length > 0 && cart.every(item => item.product.businessType === 'digital');
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     phone: "",
@@ -435,7 +245,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   });
   const [promoApplied, setPromoApplied] = useState<Coupon | null>(null);
   const [selectedVertical, setSelectedVertical] = useState<
-    "all" | "shopping" | "food" | "stay" | "digital"
+    "all" | "shopping" | "food"
   >("all");
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -488,37 +298,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const selectedStore = useMemo(() => {
     return activeStores.find((s) => s.id === selectedStoreId) || null;
   }, [selectedStoreId, activeStores]);
-
-  const [checkIn, setCheckIn] = useState<string>("");
-  const [checkOut, setCheckOut] = useState<string>("");
-  const [blockedDates, setBlockedDates] = useState<string[]>([]);
-
-  // 🔄 Sync vertical with specific store type
-  useEffect(() => {
-    if (selectedStoreId && isMounted) {
-      const activeStore = activeStores.find(s => s.id === selectedStoreId);
-      if (activeStore?.business_type) {
-        setSelectedVertical(activeStore.business_type);
-      }
-    }
-  }, [selectedStoreId, activeStores, isMounted]);
-  const [guestsNum, setGuestsNum] = useState<number>(1);
-  const [expandedStaySection, setExpandedStaySection] = useState<string | null>("amenities");
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingStep, setBookingStep] = useState(1);
-
-  // Reset booking step when modal opens/closes
-  useEffect(() => {
-    if (showBookingModal) {
-      setBookingStep(1);
-      setCheckIn("");
-      setCheckOut("");
-      setGuestsNum(1);
-      setIsAvailable(null);
-    }
-  }, [showBookingModal]);
 
   // 🔍 DEBOUNCED FTS SEARCH (with deduplication)
   const ftsRequestRef = useRef<{ term: string; controller: AbortController } | null>(null);
@@ -1290,45 +1069,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     return product;
   }, [allProducts, rawUrlProductId, productReviews]);
 
-  // 📅 Fetch blocked dates for calendar
-  useEffect(() => {
-    if (showBookingModal && selectedProductDetails?.businessType === "stay") {
-      const fetchBlockedDates = async () => {
-        const unavailableDates = await getUnavailableDates(selectedProductDetails.id);
-        setBlockedDates(unavailableDates);
-      };
-      fetchBlockedDates();
-    }
-  }, [showBookingModal, selectedProductDetails]);
 
-  // 🗓️ Availability Checker
-  useEffect(() => {
-    if (
-      selectedProductDetails &&
-      selectedProductDetails.businessType === "stay" &&
-      checkIn &&
-      checkOut
-    ) {
-      const check = async () => {
-        setIsCheckingAvailability(true);
-        try {
-          const available = await checkDateRangeAvailable(
-            selectedProductDetails.id,
-            checkIn,
-            checkOut,
-          );
-          setIsAvailable(available);
-        } catch (e) {
-          console.error("Availability check failed", e);
-        } finally {
-          setIsCheckingAvailability(false);
-        }
-      };
-      check();
-    } else {
-      setIsAvailable(null);
-    }
-  }, [checkIn, checkOut, selectedProductDetails]);
 
   const selectedProductId = selectedProductDetails?.id || null;
 
@@ -1536,11 +1277,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         if (selectedVertical !== "all") {
           const v =
             p.businessType ||
-            (p.mainCategory === "Restauration & Livraison Rapide"
+            (            p.mainCategory === "Restauration & Livraison Rapide"
               ? "food"
-              : p.mainCategory === "Séjours, Expériences & Immobilier"
-                ? "stay"
-                : "shopping");
+              : "shopping");
           matchesVertical = v === selectedVertical;
         }
 
@@ -1667,9 +1406,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           firstProd.businessType ||
           (firstProd.mainCategory === "Restauration & Livraison Rapide"
             ? "food"
-            : firstProd.mainCategory === "Séjours, Expériences & Immobilier"
-              ? "stay"
-              : "shopping");
+            : "shopping");
         return v === selectedVertical;
       })
       .sort((a, b) => {
@@ -1691,43 +1428,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const addToCart = (
     product: StorefrontProduct,
     variantId?: string,
-    bookingInfo?: { checkIn?: string; checkOut?: string; guests?: number },
   ) => {
-    const isStay = product.businessType === 'stay' || product.category === 'Appartements' || product.mainCategory === "Séjours, Expériences & Immobilier";
-
     setCart((prev) => {
       const vid = variantId || null;
-
-      // For stays, we enforce a single-item cart (Direct Checkout)
-      if (isStay) {
-        if (!bookingInfo?.checkIn || !bookingInfo?.checkOut) {
-          return prev; 
-        }
-
-        const start = new Date(bookingInfo.checkIn);
-        const end = new Date(bookingInfo.checkOut);
-        const qty = Math.max(
-          1,
-          Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-        );
-
-        return [{
-          product,
-          quantity: qty,
-          variantId: vid || undefined,
-          checkIn: bookingInfo.checkIn,
-          checkOut: bookingInfo.checkOut,
-          guests: bookingInfo.guests,
-        }];
-      }
 
       const existing = prev.find(
         (item) =>
           item.product.id === product.id &&
           item.product.storeId === product.storeId &&
           (item.variantId === vid || (!item.variantId && !vid)) &&
-          item.checkIn === bookingInfo?.checkIn &&
-          item.checkOut === bookingInfo?.checkOut &&
           JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions),
       );
       if (existing) {
@@ -1735,8 +1444,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           item.product.id === product.id &&
           item.product.storeId === product.storeId &&
           (item.variantId === vid || (!item.variantId && !vid)) &&
-          item.checkIn === bookingInfo?.checkIn &&
-          item.checkOut === bookingInfo?.checkOut &&
           JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions)
             ? { ...item, quantity: item.quantity + 1 }
             : item,
@@ -1749,25 +1456,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           product,
           quantity: 1,
           variantId: vid || undefined,
-          checkIn: bookingInfo?.checkIn,
-          checkOut: bookingInfo?.checkOut,
-          guests: bookingInfo?.guests,
           selectedOptions,
         },
       ];
     });
     setLastAddedProduct(product);
-    
-    if (isStay) {
-      if (!bookingInfo?.checkIn || !bookingInfo?.checkOut) {
-        safeNavigate(`/product/${generateProductSlug(product)}`);
-        return;
-      }
-      safeNavigate('/cart');
-      setTimeout(() => setCheckoutStage('shipping'), 800);
-      return;
-    }
-
     setCartNotif(true);
     onNotifyCartInterest(product.storeId, product.name);
     setTimeout(() => setCartNotif(false), 4000);
@@ -1941,9 +1634,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         ordersData[item.product.storeId].items.push({
           product: item.product,
           quantity: item.quantity,
-          checkIn: item.checkIn,
-          checkOut: item.checkOut,
-          guests: item.guests,
         });
       });
       Object.keys(ordersData).forEach((storeId) => {
@@ -2393,17 +2083,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   ))}
                 </div>
               )}
-          </div>
+            </div>
 
           {/* Product Info - Compact Mobile */}
           <div className="flex flex-col h-full py-1 px-4 md:px-0">
             {(() => {
               const mainCat = selectedProductDetails.mainCategory;
               const isFood = selectedProductDetails.businessType === "food" || mainCat === "Restauration & Livraison Rapide";
-              const isStay = selectedProductDetails.businessType === "stay" || mainCat === "Séjours, Expériences & Immobilier";
-              const isProduct = !isFood && !isStay;
+              const isProduct = !isFood;
               const descriptionText = selectedProductDetails.description || "Découvrez cet article exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
-              const amenitiesList = selectedProductDetails.amenities || [];
 
               return (
                 <>
@@ -2418,16 +2106,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-full transition-colors border ${
                           isFood
                             ? "bg-green-50 text-green-600 border-green-100"
-                            : isStay
-                              ? "bg-blue-50 text-blue-600 border-blue-100"
-                              : "bg-orange-50 text-[#f56b2a] border-orange-100"
+                            : "bg-orange-50 text-[#f56b2a] border-orange-100"
                         }`}
                       >
                         {isFood
                           ? "🧑‍🍳 "
-                          : isStay
-                            ? "🏠 "
-                            : "📦 "}{" "}
+                          : "📦 "}{" "}
                         {selectedProductDetails.storeName}
                       </button>
                       {isFood && (
@@ -2449,9 +2133,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             className={`text-xl md:text-3xl font-black tracking-tighter whitespace-nowrap ${
                               isFood
                                 ? "text-green-600"
-                                : isStay
-                                  ? "text-blue-600"
-                                  : "text-[#f56b2a]"
+                                : "text-[#f56b2a]"
                             }`}
                           >
                             {(() => {
@@ -2476,11 +2158,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               return formatCurrency(selectedProductDetails.price);
                             })()}
                           </span>
-                          {isStay && (
-                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">
-                              / nuit
-                            </span>
-                          )}
+
                         </div>
                         {selectedProductDetails.originalPrice && (
                           <div className="flex items-center gap-1.5">
@@ -2517,23 +2195,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         className={`text-[10px] font-bold flex items-center gap-1 ${
                           isFood
                             ? "text-green-600"
-                            : isStay
-                              ? "text-blue-600"
-                              : "text-orange-600"
+                            : "text-orange-600"
                         }`}
                       >
                         {isFood ? (
                           <CheckCircle2 size={12} />
-                        ) : isStay ? (
-                          <MapPin size={12} />
                         ) : (
                           <ShoppingBag size={12} />
                         )}
                         {isFood
                           ? "Cuisiné frais"
-                          : isStay
-                            ? (selectedProductDetails.location || "Emplacement vérifié")
-                            : `${formatNumber(selectedProductDetails.salesCount || 0)} Commandes`}
+                          : `${formatNumber(selectedProductDetails.salesCount || 0)} Commandes`}
                       </span>
                     </div>
                   </div>
@@ -2602,169 +2274,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </div>
                     )}
 
-                  {/* Booking Modal (Popup) */}
-                  {isStay && showBookingModal && createPortal(
-                    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] md:pb-6   duration-300">
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBookingModal(false)} />
-                      <div className="relative w-full max-w-md mx-4 md:mx-0 bg-white rounded-[32px] shadow-2xl overflow-hidden   md: duration-500">
-                        <div className="p-4 pb-2 flex items-center justify-between border-b border-gray-50">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${bookingStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>1</div>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${bookingStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${bookingStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>3</div>
-                          </div>
-                          <button onClick={() => setShowBookingModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <X size={20} />
-                          </button>
-                        </div>
 
-                        <div className="p-6 space-y-4">
-                          {/* Step 1: Select Dates */}
-                          {bookingStep === 1 && (
-                            <>
-                              <div className="text-center mb-4">
-                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Sélectionnez vos dates</h4>
-                                {blockedDates.length > 0 && (
-                                  <p className="text-[9px] text-red-500 font-bold mt-1">Les dates en rouge sont indisponibles</p>
-                                )}
-                              </div>
-                              <CalendarPicker 
-                                blockedDates={blockedDates}
-                                checkIn={checkIn}
-                                checkOut={checkOut}
-                                onCheckInChange={(date) => {
-                                  setCheckIn(date);
-                                  setIsAvailable(null);
-                                }}
-                                onCheckOutChange={(date) => {
-                                  setCheckOut(date);
-                                  setIsAvailable(null);
-                                }}
-                              />
-                              <Button
-                                onClick={() => {
-                                  if (!checkIn || !checkOut) {
-                                    localNotify("Veuillez sélectionner les dates d'arrivée et de départ", "warning");
-                                    return;
-                                  }
-                                  if (isAvailable === false) {
-                                    localNotify("Ces dates ne sont pas disponibles", "error");
-                                    return;
-                                  }
-                                  setBookingStep(2);
-                                }}
-                                fullWidth
-                                size="lg"
-                                variant="secondary"
-                                disabled={!checkIn || !checkOut}
-                                className="h-12 rounded-xl font-black uppercase"
-                              >
-                                Suivant
-                              </Button>
-                            </>
-                          )}
-
-                          {/* Step 2: Select Guests */}
-                          {bookingStep === 2 && (
-                            <>
-                              <div className="text-center mb-4">
-                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Nombre de personnes</h4>
-                              </div>
-                              <div className="space-y-1.5">
-                                <select
-                                  value={guestsNum}
-                                  onChange={(e) => setGuestsNum(parseInt(e.target.value))}
-                                  className="w-full h-14 px-4 rounded-xl border border-gray-100 bg-gray-50/50 text-sm font-black text-center appearance-none focus:border-blue-500 focus:bg-white transition-all outline-none"
-                                >
-                                  {Array.from({ length: selectedProductDetails.maxGuests || 6 }, (_, i) => i + 1).map((n) => (
-                                    <option key={n} value={n}>{n} {n > 1 ? "personnes" : "personne"}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="flex gap-3">
-                                <Button
-                                  onClick={() => setBookingStep(1)}
-                                  fullWidth
-                                  size="lg"
-                                  variant="outline"
-                                  className="h-12 rounded-xl font-black uppercase"
-                                >
-                                  Retour
-                                </Button>
-                                <Button
-                                  onClick={() => setBookingStep(3)}
-                                  fullWidth
-                                  size="lg"
-                                  variant="secondary"
-                                  className="h-12 rounded-xl font-black uppercase"
-                                >
-                                  Suivant
-                                </Button>
-                              </div>
-                            </>
-                          )}
-
-                          {/* Step 3: Confirm */}
-                          {bookingStep === 3 && (
-                            <>
-                              <div className="text-center mb-4">
-                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Récapitulatif</h4>
-                              </div>
-                              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-500 font-medium">Arrivée</span>
-                                  <span className="font-black">{checkIn ? new Date(checkIn).toLocaleDateString('fr-FR') : '-'}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-500 font-medium">Départ</span>
-                                  <span className="font-black">{checkOut ? new Date(checkOut).toLocaleDateString('fr-FR') : '-'}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-500 font-medium">Personnes</span>
-                                  <span className="font-black">{guestsNum}</span>
-                                </div>
-                                <div className="border-t border-gray-200 pt-3 flex justify-between">
-                                  <span className="text-gray-500 font-medium">Total</span>
-                                  <span className="font-black text-lg">
-                                    {(() => {
-                                      const start = new Date(checkIn);
-                                      const end = new Date(checkOut);
-                                      const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-                                      return formatCurrency(nights * selectedProductDetails.price);
-                                    })()}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex gap-3">
-                                <Button
-                                  onClick={() => setBookingStep(2)}
-                                  fullWidth
-                                  size="lg"
-                                  variant="outline"
-                                  className="h-12 rounded-xl font-black uppercase"
-                                >
-                                  Retour
-                                </Button>
-                                <Button
-                                  onClick={() => {
-                                    addToCart(selectedProductDetails, undefined, { checkIn, checkOut, guests: guestsNum });
-                                    setShowBookingModal(false);
-                                  }}
-                                  fullWidth
-                                  size="lg"
-                                  variant="secondary"
-                                  className="h-12 rounded-xl font-black uppercase"
-                                >
-                                  Confirmer
-                                </Button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>,
-                    document.body
-                  )}
 
                   {isProduct && selectedProductDetails.wholesalePrice && (
                     <div className="bg-gray-50/50 rounded-[32px] p-4 md:p-8 border border-gray-100 mb-6 backdrop-blur-sm relative overflow-hidden group">
@@ -2807,204 +2317,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       {descriptionText}
                     </div>
 
-                    {isStay && (
-                      <div className="mt-8 space-y-4    duration-700 ">
-                        {/* --- ACCORDION 1: CAPACITY --- */}
-                        <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
-                          <button
-                            onClick={() =>
-                              setExpandedStaySection(
-                                expandedStaySection === "capacity"
-                                  ? null
-                                  : "capacity",
-                              )
-                            }
-                            className="w-full px-6 py-5 flex items-center justify-between text-left group"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                                <Users size={18} strokeWidth={2.5} />
-                              </div>
-                              <div>
-                                <h4 className="text-sm font-black text-gray-900 leading-tight">
-                                  Détails du Logement
-                                </h4>
-                                <p className="text-[9px] text-blue-400 font-extrabold uppercase tracking-widest mt-0.5">
-                                  Capacité & Espaces
-                                </p>
-                              </div>
-                            </div>
-                            <ChevronDown
-                              size={18}
-                              className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === "capacity" ? "rotate-180 text-blue-500" : ""}`}
-                            />
-                          </button>
 
-                          <div
-                            className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === "capacity" ? "pb-6 max-h-[500px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
-                          >
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                              {selectedProductDetails.maxGuests && (
-                                <div className="flex items-center gap-3 bg-blue-50/50 border border-blue-100/30 px-4 py-3 rounded-2xl">
-                                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
-                                    <Users size={16} />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-xs font-black text-blue-900 leading-none">
-                                      {selectedProductDetails.maxGuests}
-                                    </span>
-                                    <span className="text-[8px] font-black text-blue-400 uppercase mt-0.5">
-                                      Personnes
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-3 bg-indigo-50/50 border border-indigo-100/30 px-4 py-3 rounded-2xl">
-                                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600 shadow-sm">
-                                  <Home size={16} />
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-black text-indigo-900 leading-none">
-                                    {selectedProductDetails.bedrooms || 1}
-                                  </span>
-                                  <span className="text-[8px] font-black text-indigo-400 uppercase mt-0.5">
-                                    Chambre(s)
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 bg-emerald-50/50 border border-emerald-100/30 px-4 py-3 rounded-2xl">
-                                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
-                                  <ShieldCheck size={16} />
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-[9px] font-black text-emerald-900 leading-none">
-                                    Vérifié
-                                  </span>
-                                  <span className="text-[8px] font-black text-emerald-400 uppercase mt-0.5">
-                                    Hébergement
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* --- ACCORDION 2: AMENITIES --- */}
-                        {amenitiesList.length > 0 && (
-                          <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
-                            <button
-                              onClick={() =>
-                                setExpandedStaySection(
-                                  expandedStaySection === "amenities"
-                                    ? null
-                                    : "amenities",
-                                )
-                              }
-                              className="w-full px-6 py-5 flex items-center justify-between text-left group"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                                  <Zap size={18} strokeWidth={2.5} />
-                                </div>
-                                <div className="">
-                                  <h4 className="text-sm font-black text-gray-900 leading-tight">
-                                    Équipements & Confort
-                                  </h4>
-                                  <p className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest mt-0.5">
-                                    {amenitiesList.length} services inclus
-                                  </p>
-                                </div>
-                              </div>
-                              <ChevronDown
-                                size={18}
-                                className={`text-gray-400 transition-transform duration-300 ${expandedStaySection === "amenities" ? "rotate-180 text-indigo-500" : ""}`}
-                              />
-                            </button>
-
-                            <div
-                              className={`px-6 transition-all duration-300 ease-in-out ${expandedStaySection === "amenities" ? "pb-6 max-h-[1000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
-                            >
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                                {[
-                                  {
-                                    id: "wifi",
-                                    label: "Wi-Fi Haut Débit",
-                                    icon: <Globe size={16} />,
-                                    color: "text-blue-500",
-                                    bg: "bg-blue-50/50",
-                                  },
-                                  {
-                                    id: "ac",
-                                    label: "Climatisation",
-                                    icon: <Snowflake size={16} />,
-                                    color: "text-cyan-500",
-                                    bg: "bg-cyan-50/50",
-                                  },
-                                  {
-                                    id: "generator",
-                                    label: "Électricité H24",
-                                    icon: <Battery size={16} />,
-                                    color: "text-yellow-500",
-                                    bg: "bg-yellow-50/50",
-                                  },
-                                  {
-                                    id: "canalplus",
-                                    label: "Canal+ / Smart TV",
-                                    icon: <Monitor size={16} />,
-                                    color: "text-blue-600",
-                                    bg: "bg-blue-500/10",
-                                  },
-                                  {
-                                    id: "cleaning",
-                                    label: "Ménage Inclus",
-                                    icon: <CheckCircle2 size={16} />,
-                                    color: "text-emerald-500",
-                                    bg: "bg-emerald-50/50",
-                                  },
-                                  {
-                                    id: "pool",
-                                    label: "Piscine Privée",
-                                    icon: <Waves size={16} />,
-                                    color: "text-cyan-600",
-                                    bg: "bg-cyan-50/50",
-                                  },
-                                  {
-                                    id: "kitchen",
-                                    label: "Cuisine Équipée",
-                                    icon: <UtensilsCrossed size={16} />,
-                                    color: "text-orange-500",
-                                    bg: "bg-orange-50/50",
-                                  },
-                                  {
-                                    id: "security",
-                                    label: "Gardiennage 24/7",
-                                    icon: <ShieldCheck size={16} />,
-                                    color: "text-slate-600",
-                                    bg: "bg-slate-100/50",
-                                  },
-                                ]
-                                  .filter((a) => amenitiesList.includes(a.id))
-                                  .map((amenity) => (
-                                    <div
-                                      key={amenity.id}
-                                      className="flex flex-col items-center text-center gap-2 p-3 rounded-2xl bg-gray-50/50 border border-gray-100/50 transition-all hover:bg-white hover:shadow-sm"
-                                    >
-                                      <div
-                                        className={`p-2 rounded-xl ${amenity.bg} ${amenity.color}`}
-                                      >
-                                        {amenity.icon}
-                                      </div>
-                                      <span className="text-[10px] font-black text-gray-700 uppercase tracking-tight leading-tight">
-                                        {amenity.label}
-                                      </span>
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {descriptionText && descriptionText.length > 150 && (
                       <button
@@ -3014,9 +2327,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         className={`mt-4 font-black text-[10px] md:hidden uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all ${
                           isFood
                             ? "text-green-600"
-                            : isStay
-                              ? "text-blue-600"
-                              : "text-[#f56b2a]"
+                            : "text-[#f56b2a]"
                         }`}
                       >
                         {isDescriptionExpanded
@@ -3037,40 +2348,27 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         className={
                           isFood
                             ? "text-green-500"
-                            : isStay
-                              ? "text-blue-500"
-                              : "text-[#f56b2a]"
+                            : "text-[#f56b2a]"
                         }
                       />
                       <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">
-                        {isFood ? "Fraîcheur" : isStay ? "Vérifié" : "Garantie"}
+                        {isFood ? "Fraîcheur" : "Garantie"}
                       </span>
                     </div>
-                    {isStay ? (
-                      <div className="flex-shrink-0 flex items-center gap-2 bg-blue-50/50 px-3 py-2 rounded-xl border border-blue-100">
-                        <Calendar size={14} className="text-blue-500" />
-                        <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">
-                          Réservation Flexible
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
-                        <Truck
-                          size={16}
-                          className={
-                            isFood
-                              ? "text-green-500"
-                              : isStay
-                                ? "text-blue-500"
-                                : "text-[#f56b2a]"
-                          }
-                        />
-                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">
-                          {isFood ? "Livraison Express" : "Livraison Disponible"}
-                        </span>
-                      </div>
-                    )}
-                    {!isStay && selectedProductDetails.stock != null && (selectedProductDetails.stock as number) > 0 && (
+                    <div className="flex-shrink-0 flex items-center gap-2 bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-100">
+                      <Truck
+                        size={16}
+                        className={
+                          isFood
+                            ? "text-green-500"
+                            : "text-[#f56b2a]"
+                        }
+                      />
+                      <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                        {isFood ? "Livraison Express" : "Livraison Disponible"}
+                      </span>
+                    </div>
+                    {selectedProductDetails.stock != null && (selectedProductDetails.stock as number) > 0 && (
                       <div className="flex-shrink-0 flex items-center gap-2 bg-green-50/50 px-3 py-2 rounded-xl border border-green-100">
                         <CheckCircle2 size={14} className="text-green-500" />
                         <span className="text-[8px] font-black text-green-600 uppercase tracking-widest">
@@ -3078,7 +2376,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         </span>
                       </div>
                     )}
-                    {!isStay && (selectedProductDetails.stock === 0 || selectedProductDetails.stock == null) && (
+                    {(selectedProductDetails.stock === 0 || selectedProductDetails.stock == null) && (
                       <div className="flex-shrink-0 flex items-center gap-2 bg-red-50/50 px-3 py-2 rounded-xl border border-red-100">
                         <AlertCircle size={14} className="text-red-500" />
                         <span className="text-[8px] font-black text-red-600 uppercase tracking-widest">
@@ -3090,12 +2388,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                   <Button
                       onClick={() => {
-                        if (isStay) {
-                          if (selectedProductDetails.currentBooking) return;
-                          setShowBookingModal(true);
-                          return;
-                        }
-
                         const options = selectedProductDetails.options || [];
                         const allSelected = options.every(
                           (o) => !!selectedOptions[o.id],
@@ -3109,7 +2401,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           return;
                         }
 
-                        // Find matching variant
                         let variantId = undefined;
                         if (
                           options.length > 0 &&
@@ -3128,48 +2419,25 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           variantId
                         );
                       }}
-                      disabled={!!(isStay && selectedProductDetails.currentBooking)}
-                      variant={
-                        isFood ? "primary" : isStay ? "secondary" : "primary"
-                      }
+                      variant={isFood ? "primary" : "primary"}
                       fullWidth
                       size="xl"
                       className={
                         isFood
                           ? "bg-green-600 hover:bg-green-700"
-                          : isStay
-                            ? `${selectedProductDetails.currentBooking ? 'bg-orange-600 text-white border-none cursor-not-allowed shadow-none uppercase !opacity-100' : 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100'}`
-                            : ""
+                          : ""
                       }
                       icon={
-                        isCheckingAvailability ? (
-                          <Loader2 className="animate-spin" size={20} />
-                        ) : isFood ? (
+                        isFood ? (
                           <ShoppingBasketIcon size={20} strokeWidth={3} />
-                        ) : isStay ? (
-                           selectedProductDetails.currentBooking ? <Clock size={20} strokeWidth={3} /> : <Calendar size={20} strokeWidth={3} />
                         ) : (
                           <ShoppingCart size={20} strokeWidth={3} />
                         )
                       }
                     >
-                      {isCheckingAvailability
-                        ? "Vérification..."
-                        : isStay
-                          ? (selectedProductDetails.currentBooking 
-                              ? (() => {
-                                  try {
-                                    const endDate = new Date(selectedProductDetails.currentBooking.endDate);
-                                    if (isNaN(endDate.getTime())) return "Réserver séjour";
-                                    return `Occupé jusqu'au ${endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
-                                  } catch {
-                                    return "Réserver séjour";
-                                  }
-                                })()
-                              : "Réserver séjour")
-                          : isFood
-                            ? "Commander ce plat"
-                            : "Ajouter au panier"}
+                      {isFood
+                        ? "Commander ce plat"
+                        : "Ajouter au panier"}
                     </Button>
                 </>
               );
@@ -3389,7 +2657,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               {checkoutStage === "cart"
                 ? "Mon Panier"
                 : checkoutStage === "shipping"
-                  ? (cart.some(i => i.product.businessType === 'stay') ? "Informations" : "Livraison")
+                  ? "Livraison"
                   : checkoutStage === "payment"
                     ? "Paiement"
                     : "Commande Validée"}
@@ -3418,7 +2686,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div className="flex items-center justify-between max-w-2xl mx-auto">
               {[
                 { id: "cart", label: "Panier", icon: ShoppingCart },
-                { id: "shipping", label: cart.some(i => i.product.businessType === 'stay') ? "Informations" : "Livraison", icon: MapPin },
+                { id: "shipping", label: "Livraison", icon: MapPin },
                 { id: "payment", label: "Paiement", icon: CreditCard },
               ].map((stage, idx, array) => {
                 const Icon = stage.icon;
@@ -3518,45 +2786,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       </span>
                                     </div>
                                   )}
-                                  {item.checkIn && item.checkOut && (
-                                    <div className="mt-1 flex flex-col gap-0.5">
-                                      <div className="flex items-center gap-1.5">
-                                        <Clock
-                                          size={10}
-                                          className="text-blue-500"
-                                        />
-                                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
-                                          {new Date(
-                                            item.checkIn,
-                                          ).toLocaleDateString("fr-FR", {
-                                            day: "numeric",
-                                            month: "short",
-                                          })}{" "}
-                                          -{" "}
-                                          {new Date(
-                                            item.checkOut,
-                                          ).toLocaleDateString("fr-FR", {
-                                            day: "numeric",
-                                            month: "short",
-                                          })}
-                                        </span>
-                                      </div>
-                                      {item.guests && (
-                                        <div className="flex items-center gap-1.5">
-                                          <User
-                                            size={10}
-                                            className="text-gray-400"
-                                          />
-                                          <span className="text-[9px] font-bold text-gray-500">
-                                            {item.guests}{" "}
-                                            {item.guests > 1
-                                              ? "voyageurs"
-                                              : "voyageur"}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+
                                 </div>
                                 <button
                                   onClick={() =>
@@ -3620,46 +2850,37 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                         Coupon appliqué
                                       </span>
                                     )}
-                                  {item.checkIn ? (
-                                    <div className="mt-2 px-3 py-1 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-2">
-                                      <span className="text-[10px] font-black text-blue-700">
-                                        {item.quantity}{" "}
-                                        {item.quantity > 1 ? "nuits" : "nuit"}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner mt-2">
-                                      <button
-                                        onClick={() =>
-                                          updateQuantity(
-                                            item.product.id,
-                                            item.product.storeId,
-                                            -1,
-                                            item.variantId,
-                                          )
-                                        }
-                                        className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold"
-                                      >
-                                        -
-                                      </button>
-                                      <span className="text-xs font-black text-gray-900 w-4 text-center">
-                                        {item.quantity}
-                                      </span>
-                                      <button
-                                        onClick={() =>
-                                          updateQuantity(
-                                            item.product.id,
-                                            item.product.storeId,
-                                            1,
-                                            item.variantId,
-                                          )
-                                        }
-                                        className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  )}
+                                  <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner mt-2">
+                                    <button
+                                      onClick={() =>
+                                        updateQuantity(
+                                          item.product.id,
+                                          item.product.storeId,
+                                          -1,
+                                          item.variantId,
+                                        )
+                                      }
+                                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="text-xs font-black text-gray-900 w-4 text-center">
+                                      {item.quantity}
+                                    </span>
+                                    <button
+                                      onClick={() =>
+                                        updateQuantity(
+                                          item.product.id,
+                                          item.product.storeId,
+                                          1,
+                                          item.variantId,
+                                        )
+                                      }
+                                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -3745,16 +2966,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     </div>
                   </div>
 
-                  {!cart.some(i => i.product.businessType === 'stay' || i.product.businessType === 'digital') && (
-                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-                      <div className="flex items-center gap-3 mb-8">
-                        <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-black text-sm">
-                          2
-                        </div>
-                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">
-                          Adresse de Livraison
-                        </h3>
+                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-black text-sm">
+                        2
                       </div>
+                      <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">
+                        Adresse de Livraison
+                      </h3>
+                    </div>
 
                       {user && buyerAddresses.length > 0 && !customerInfo.address ? (
                         <div className="space-y-4">
@@ -3847,9 +3067,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
               {checkoutStage === "payment" && (
                 <div className="space-y-4   ">
                   <div className="grid grid-cols-2 gap-4">
@@ -4779,17 +3998,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           borderSelected: "border-yellow-500",
                           textSelected: "text-white",
                           iconColor: "text-yellow-500",
-                        },
-                        {
-                          id: "stay",
-                          label: "Séjours",
-                          icon: Store,
-                          color: "blue",
-                          bgSelected: "bg-blue-500",
-                          bgUnselected: "bg-blue-50",
-                          borderSelected: "border-blue-500",
-                          textSelected: "text-white",
-                          iconColor: "text-blue-500",
                         },
                       ].map((v) => (
                         <button

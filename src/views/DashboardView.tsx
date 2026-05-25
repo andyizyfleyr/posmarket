@@ -71,7 +71,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     return getLocalYMD(d);
   });
   const [endDate, setEndDate] = useState<string>(() => getLocalYMD(new Date()));
-  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food' | 'stay' | 'digital'>(store?.business_type || 'all');
+  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>(store?.business_type || 'all');
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {
@@ -86,7 +86,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     // Fallback via la catégorie principale
     const mc = product.mainCategory || product.main_category;
     if (mc === 'Restauration & Livraison Rapide') return 'food';
-    if (mc === 'Séjours, Expériences & Immobilier') return 'stay';
     return 'shopping';
   };
 
@@ -139,38 +138,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
 
     const totalTraffic = (store?.views || 0) + (products || []).reduce((sum, p) => sum + (p.views || 0), 0);
 
-    // 🏨 Calcul des nuits réservées pour les boutiques de type 'stay'
-    const calcNights = (ordersList: Order[]) => {
-      let totalNights = 0;
-      ordersList.forEach(o => {
-        (o.items || []).forEach((item: any) => {
-          const ci = item.checkIn || item.check_in;
-          const co = item.checkOut || item.check_out;
-          if (ci && co) {
-            const nights = Math.max(1, Math.round((new Date(co).getTime() - new Date(ci).getTime()) / (1000 * 60 * 60 * 24)));
-            totalNights += nights;
-          }
-        });
-      });
-      return totalNights;
-    };
-
-    const isStayStore = store?.business_type === 'stay';
-    const currentNights = isStayStore ? calcNights(currentFinalOrders) : 0;
-    const prevNights = isStayStore ? calcNights(prevFinalOrders) : 0;
-    const nightsTrendValue = prevNights === 0 ? (currentNights > 0 ? 100 : 0) : Math.round(((currentNights - prevNights) / prevNights) * 100);
-    const pricePerNight = currentNights > 0 ? currentRev / currentNights : 0;
-    const prevPricePerNight = prevNights > 0 ? prevRev / prevNights : 0;
-    const ppnTrendValue = prevPricePerNight === 0 ? (pricePerNight > 0 ? 100 : 0) : Math.round(((pricePerNight - prevPricePerNight) / prevPricePerNight) * 100);
-
     return {
       revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
       orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
       basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
       traffic: { current: totalTraffic, trend: 'up' as const, pct: 'Live' },
-      // Stats spécifiques 'stay'
-      nights: { current: currentNights, trend: nightsTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(nightsTrendValue) },
-      pricePerNight: { current: pricePerNight, trend: ppnTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(ppnTrendValue) },
     };
   }, [orders, products, store, startDate, endDate, selectedVertical]);
 
@@ -340,12 +312,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                 Salut, {userName || 'Utilisateur'} 👋
               </h1>
               {store?.business_type && (
-                <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
-                  store.business_type === 'food' ? 'bg-yellow-100 text-yellow-700' : 
-                  store.business_type === 'stay' ? 'bg-blue-100 text-blue-700' : 
-                  'bg-orange-100 text-orange-700'
-                }`}>
-                  Modèle {store.business_type === 'food' ? 'UberEats' : store.business_type === 'stay' ? 'Airbnb' : 'Amazon'}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-orange-100 text-orange-700">
+                  Modèle {store.business_type === 'food' ? 'UberEats' : 'Amazon'}
                 </span>
               )}
             </div>
@@ -356,7 +324,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                           { id: 'all', label: 'Global', icon: Package, color: 'gray' },
                           { id: 'shopping', label: 'Shopping', icon: ShoppingBag, color: 'orange' },
                           { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' },
-                          { id: 'stay', label: 'Séjours', icon: Store, color: 'blue' }
                       ].map(v => (
                           <button
                               key={v.id}
@@ -391,7 +358,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
 
       <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 md:gap-6 mb-2 md:mb-8">
         <StatCard
-          title={store?.business_type === 'stay' ? "Revenus Locatifs" : store?.business_type === 'food' ? "Ventes Resto" : "Ventes effectuées"}
+          title={store?.business_type === 'food' ? "Ventes Resto" : "Ventes effectuées"}
           value={formatCurrency(filteredMetrics.revenue.current)}
           icon={<DollarSign size={14} />}
           trend={filteredMetrics.revenue.trend}
@@ -400,20 +367,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           compact={true}
         />
         <StatCard
-          title={store?.business_type === 'stay' ? "Nuits réservées" : store?.business_type === 'food' ? "Plats servis" : "Commandes"}
-          value={store?.business_type === 'stay' ? filteredMetrics.nights.current : filteredMetrics.orders.current}
-          icon={store?.business_type === 'stay' ? <Calendar size={14} /> : <ShoppingBag size={14} />}
-          trend={store?.business_type === 'stay' ? filteredMetrics.nights.trend : filteredMetrics.orders.trend}
-          trendValue={`${store?.business_type === 'stay' ? filteredMetrics.nights.pct : filteredMetrics.orders.pct}%`}
+          title={store?.business_type === 'food' ? "Plats servis" : "Commandes"}
+          value={filteredMetrics.orders.current}
+          icon={<ShoppingBag size={14} />}
+          trend={filteredMetrics.orders.trend}
+          trendValue={`${filteredMetrics.orders.pct}%`}
           color="bg-purple-600"
           compact={true}
         />
         <StatCard
-          title={store?.business_type === 'stay' ? "Prix / Nuit" : "Panier Moyen"}
-          value={formatCurrency(store?.business_type === 'stay' ? filteredMetrics.pricePerNight.current : filteredMetrics.basket.current)}
+          title="Panier Moyen"
+          value={formatCurrency(filteredMetrics.basket.current)}
           icon={<Zap size={14} />}
-          trend={store?.business_type === 'stay' ? filteredMetrics.pricePerNight.trend : filteredMetrics.basket.trend}
-          trendValue={`${store?.business_type === 'stay' ? filteredMetrics.pricePerNight.pct : filteredMetrics.basket.pct}%`}
+          trend={filteredMetrics.basket.trend}
+          trendValue={`${filteredMetrics.basket.pct}%`}
           color="bg-blue-600"
           compact={true}
         />
@@ -740,7 +707,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 whitespace-nowrap">
-              <Flame size={16} className="text-orange-500 md:w-5 md:h-5" /> {store?.business_type === 'stay' ? 'Meilleures Réservations' : 'Meilleures Ventes'}
+              <Flame size={16} className="text-orange-500 md:w-5 md:h-5" /> Meilleures Ventes
             </h3>
             <span className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Volume</span>
           </div>
@@ -768,41 +735,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-[10px] md:text-xs font-black text-orange-600 leading-none">x{formatNumber(product.salesCount)}</div>
-                  <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">{store?.business_type === 'stay' ? 'Réservés' : 'Vendus'}</div>
+                  <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">Vendus</div>
                 </div>
               </div>
             )) : (
-              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-bold whitespace-nowrap">{store?.business_type === 'stay' ? 'Aucune réservation enregistrée' : 'Aucune vente enregistrée'}</div>
+              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-bold whitespace-nowrap">Aucune vente enregistrée</div>
             )}
           </div>
         </div>
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
           <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight mb-4 md:mb-6 whitespace-nowrap">
-            {store?.business_type === 'stay' ? 'Logements Non Disponibles' : store?.business_type === 'food' ? 'Plats en Pause' : 'Alertes Stock'}
+            {store?.business_type === 'food' ? 'Plats en Pause' : 'Alertes Stock'}
           </h3>
           <div className="space-y-3 md:space-y-5">
-            {store?.business_type === 'stay' ? (
-              products.filter(p => getVertical(p) === 'stay' && p.stock === 0).length > 0 ? (
-                products.filter(p => getVertical(p) === 'stay' && p.stock === 0).slice(0, 6).map(product => (
-                  <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
-                    <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm relative">
-                      <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 32px, 48px" className="object-cover" />
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
-                      <div className="flex items-center gap-2 mt-1 md:mt-1.5">
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-[9px] md:text-[10px] font-black text-red-500 whitespace-nowrap">Non disponible</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
-                  Tous les logements sont disponibles
-                </div>
-              )
-            ) : store?.business_type === 'food' ? (
+            {store?.business_type === 'food' ? (
               products.filter(p => getVertical(p) === 'food' && p.stock === 0).length > 0 ? (
                 products.filter(p => getVertical(p) === 'food' && p.stock === 0).slice(0, 6).map(product => (
                   <div key={product.id} className="flex items-center gap-3 md:gap-4 min-w-0">
