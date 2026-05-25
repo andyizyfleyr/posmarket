@@ -74,7 +74,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
 
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
-    d.setDate(d.getDate() - 7);
+    d.setDate(d.getDate() - 90);
     return getLocalYMD(d);
   });
   const [endDate, setEndDate] = useState<string>(() => getLocalYMD(new Date()));
