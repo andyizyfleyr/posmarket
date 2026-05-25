@@ -371,7 +371,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           />
         )}
         <main className="flex-grow overflow-hidden flex flex-col bg-white pb-16 md:pb-0 relative">
-          <div key={currentView} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div key={`${currentView}-${currentStore?.id}`} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
             {children}
           </div>
         </main>
