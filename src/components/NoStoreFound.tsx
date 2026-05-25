@@ -82,8 +82,8 @@ export default function NoStoreFound() {
              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left ml-2">Modèle de boutique</p>
              <div className="grid grid-cols-1 gap-2">
                 {[
-                  { id: 'shopping', label: 'AMAZON', desc: 'Shopping & E-commerce', color: 'orange' },
-                  { id: 'food', label: 'UBEREATS', desc: 'Cuisine & Restauration', color: 'yellow' }
+                  { id: 'shopping', label: 'SHOP', desc: 'Shopping & E-commerce', color: 'orange' },
+                  { id: 'food', label: 'RESTO', desc: 'Cuisine & Restauration', color: 'yellow' }
                 ].map((type) => (
                   <button
                     key={type.id}

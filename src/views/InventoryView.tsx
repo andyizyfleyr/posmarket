@@ -319,7 +319,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 businessType === 'food' ? 'bg-yellow-100 text-yellow-700' : 
                 'bg-orange-100 text-orange-700'
               }`}>
-                Flux {businessType === 'food' ? 'UberEats' : 'Amazon'}
+                Flux {businessType === 'food' ? 'Resto' : 'Shop'}
               </span>
             </div>
             <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">
@@ -368,8 +368,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             {[
               { id: 'all', label: 'Tous les flux', icon: Package, color: 'gray', border: 'border-gray-500', text: 'text-gray-600', shadow: 'shadow-gray-100' },
-              { id: 'shopping', label: 'Shopping (Amazon)', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', text: 'text-orange-600', shadow: 'shadow-orange-100' },
-              { id: 'food', label: 'Resto (UberEats)', icon: Zap, color: 'yellow', border: 'border-yellow-500', text: 'text-yellow-600', shadow: 'shadow-yellow-100' },
+              { id: 'shopping', label: 'Shop', icon: ShoppingBag, color: 'orange', border: 'border-orange-500', text: 'text-orange-600', shadow: 'shadow-orange-100' },
+              { id: 'food', label: 'Resto', icon: Zap, color: 'yellow', border: 'border-yellow-500', text: 'text-yellow-600', shadow: 'shadow-yellow-100' },
             ].filter(v => v.id === 'all' || v.id === businessType).map(v => (
               <button
                 key={v.id}

@@ -219,7 +219,7 @@ const Navbar: React.FC<NavbarProps> = ({
                               <input
                                 type="text"
                                 className="w-full text-sm font-black px-5 py-4 rounded-[20px] bg-gray-50 border border-transparent outline-none focus:border-[#f56b2a] focus:bg-white transition-all text-gray-900 shadow-inner"
-                                placeholder="Ex: Ma Boutique Amazon..."
+                                placeholder="Ex: Ma Boutique..."
                                 value={newStoreName}
                                 onChange={(e) => setNewStoreName(e.target.value)}
                                 onKeyDown={(e) => {
@@ -256,8 +256,8 @@ const Navbar: React.FC<NavbarProps> = ({
                               <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 2: Modèle</div>
                               <div className="grid grid-cols-1 gap-2">
                                 {[
-                                  { id: 'shopping', label: 'AMAZON', desc: 'Produits & E-commerce', icon: <ShoppingBag size={14} />, color: 'orange' },
-                                  { id: 'food', label: 'UBEREATS', desc: 'Plats & Restauration', icon: <Clock size={14} />, color: 'yellow' }
+                                  { id: 'shopping', label: 'SHOP', desc: 'Produits & E-commerce', icon: <ShoppingBag size={14} />, color: 'orange' },
+                                  { id: 'food', label: 'RESTO', desc: 'Plats & Restauration', icon: <Clock size={14} />, color: 'yellow' }
                                 ].map(type => (
                                   <button
                                     key={type.id}

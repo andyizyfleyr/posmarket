@@ -205,8 +205,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                     <div className="flex items-center gap-2 mt-1 md:mt-2">
                          {[
                             { id: 'all', label: 'Toutes', icon: Package, color: 'gray' },
-                            { id: 'shopping', label: 'Amazon', icon: ShoppingBag, color: 'orange' },
-                            { id: 'food', label: 'UberEats', icon: Zap, color: 'yellow' }
+                            { id: 'shopping', label: 'Shop', icon: ShoppingBag, color: 'orange' },
+                            { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' }
                         ].map(v => (
                             <button
                                 key={v.id}

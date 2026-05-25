@@ -2288,7 +2288,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <div className="flex flex-col items-start gap-1">
                           <div className="flex items-center gap-2">
                             <span className="text-[8px] font-black text-[#f56b2a] uppercase tracking-widest">
-                              Prix de Gros Amazon Style
+                              Prix de Gros
                             </span>
                             <span className="text-xs font-bold text-gray-900">
                               {formatCurrency(
