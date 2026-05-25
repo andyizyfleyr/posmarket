@@ -301,7 +301,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         {/* Categories Selector */}
         <div 
           ref={categoriesRef}
-          className="w-full flex flex-row flex-nowrap items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2 no-scrollbar scroll-smooth"
+          className="w-full max-w-full min-w-0 flex flex-row flex-nowrap items-center gap-2 mb-4 md:mb-6 overflow-x-auto pb-2 no-scrollbar scroll-smooth"
         >
           {categories.map(cat => (
             <button
