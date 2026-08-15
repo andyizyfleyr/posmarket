@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
 import { orders, orderItems, customers, products } from '@/db/schema'
+import { invalidateOrdersCache, getStoreIdForOrder } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
 
 export async function createOrderAction(order: any, storeId: string) {
@@ -43,6 +44,7 @@ export async function createOrderAction(order: any, storeId: string) {
             }
         }
         
+        invalidateOrdersCache(storeId);
         revalidatePath('/orders');
         revalidatePath('/pos');
         revalidatePath('/inventory');
@@ -57,7 +59,9 @@ export async function createOrderAction(order: any, storeId: string) {
 
 export async function updateOrderStatusAction(orderId: string, status: string) {
     try {
+        const storeId = await getStoreIdForOrder(orderId);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
+        invalidateOrdersCache(storeId);
         revalidatePath('/orders');
         return { success: true };
     } catch (error: any) {
@@ -68,7 +72,9 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
 
 export async function deleteOrderAction(id: string) {
     try {
+        const storeId = await getStoreIdForOrder(id);
         await db.delete(orders).where(eq(orders.id, id));
+        invalidateOrdersCache(storeId);
         revalidatePath('/orders');
         return { success: true };
     } catch (error: any) {
@@ -80,7 +86,13 @@ export async function deleteOrderAction(id: string) {
 export async function bulkDeleteOrdersAction(ids: string[]) {
     try {
         if (ids.length > 0) {
+            const storeIds = new Set<string>();
+            for (const id of ids) {
+                const sid = await getStoreIdForOrder(id);
+                if (sid) storeIds.add(sid);
+            }
             await db.delete(orders).where(inArray(orders.id, ids));
+            storeIds.forEach(invalidateOrdersCache);
         }
         revalidatePath('/orders');
         return { success: true };
@@ -93,7 +105,13 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
 export async function bulkUpdateOrderStatusAction(orderIds: string[], status: string) {
     try {
         if (orderIds.length > 0) {
+            const storeIds = new Set<string>();
+            for (const id of orderIds) {
+                const sid = await getStoreIdForOrder(id);
+                if (sid) storeIds.add(sid);
+            }
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
+            storeIds.forEach(invalidateOrdersCache);
         }
         revalidatePath('/orders');
         return { success: true };

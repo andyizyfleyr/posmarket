@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, orders, store } = await fetchStoreData(storeId, user.id, { customers: false, invoices: false });
+  const { products, orders, store } = await fetchStoreData(storeId, undefined, { customers: false, invoices: false });
   const { permissions, role } = await getPermissionsForUser(supabase, user.id, storeId);
 
   return (

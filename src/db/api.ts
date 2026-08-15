@@ -36,71 +36,79 @@ export interface StoreDataFields {
   invoices?: boolean;
 }
 
-export async function dbFetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
-  const needs = {
-    products: fields?.products !== false,
-    orders: fields?.orders !== false,
-    customers: fields?.customers !== false,
-    invoices: fields?.invoices !== false,
-  };
+// ---- Orders cache (per store, short TTL, invalidated on writes) ----
+const ORDER_CACHE_TTL = 20_000;
+const ordersCache = new Map<string, { ts: number; data: { ordersRes: any[]; itemsByOrder: Record<string, any[]> } }>();
 
-  const tasks: Promise<any>[] = [
-    db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
-    needs.products ? db.select().from(products).where(eq(products.storeId, storeId)).limit(200) : Promise.resolve([]),
-    needs.orders ? db.select().from(orders).where(eq(orders.storeId, storeId)).orderBy(desc(orders.date)).limit(100) : Promise.resolve([]),
-    needs.customers ? db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100) : Promise.resolve([]),
-    needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
-    needs.products ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => []) : Promise.resolve([]),
-    ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
-  ];
+export function invalidateOrdersCache(storeId: string | null) {
+  if (storeId) ordersCache.delete(`orders:${storeId}`);
+}
 
-  const [
-    storeRes,
-    productsRes,
-    ordersRes,
-    customersRes,
-    invoicesRes,
-    statsRes,
-    profileRes
-  ] = await Promise.all(tasks);
+export async function getStoreIdForOrder(orderId: string): Promise<string | null> {
+  const [row] = await db.select({ storeId: orders.storeId }).from(orders).where(eq(orders.id, orderId)).limit(1);
+  return row?.storeId || null;
+}
 
-  const store = storeRes[0] || null;
-  let profile = profileRes[0] || null;
+async function getOrdersForStore(storeId: string) {
+  const key = `orders:${storeId}`;
+  const hit = ordersCache.get(key);
+  if (hit && Date.now() - hit.ts < ORDER_CACHE_TTL) return hit.data;
 
-  if (!profile && store?.userId) {
-    const [fallbackProfile] = await db.select().from(profiles).where(eq(profiles.id, store.userId)).limit(1);
-    profile = fallbackProfile || null;
-  }
+  const rows = await db
+    .select({
+      id: orders.id,
+      storeId: orders.storeId,
+      customerId: orders.customerId,
+      date: orders.date,
+      status: orders.status,
+      type: orders.type,
+      paymentMethod: orders.paymentMethod,
+      subtotal: orders.subtotal,
+      total: orders.total,
+      discountAmount: orders.discountAmount,
+      promoCode: orders.promoCode,
+      customerName: customers.name,
+      customerEmail: customers.email,
+      customerPhone: customers.phone,
+      customerAddress: customers.address,
+      customerTotalSpent: customers.totalSpent,
+      customerOrdersCount: customers.ordersCount,
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(eq(orders.storeId, storeId))
+    .orderBy(desc(orders.date))
+    .limit(100);
 
-  const statsMap = Object.fromEntries((statsRes || []).map((s: any) => [s.productId, s]));
+  const ordersRes = (rows || []).map((o: any) => ({
+    id: o.id,
+    storeId: o.storeId,
+    customerId: o.customerId,
+    date: o.date,
+    status: o.status,
+    type: o.type,
+    paymentMethod: o.paymentMethod,
+    subtotal: o.subtotal,
+    total: o.total,
+    discountAmount: o.discountAmount,
+    promoCode: o.promoCode,
+    customer: o.customerId
+      ? {
+          id: o.customerId,
+          name: o.customerName,
+          email: o.customerEmail || '',
+          phone: o.customerPhone || '',
+          address: o.customerAddress || '',
+          totalSpent: o.customerTotalSpent,
+          ordersCount: o.customerOrdersCount,
+        }
+      : undefined,
+  }));
 
-  const formattedProducts = (productsRes || []).map((p: any) => {
-    const stats = statsMap[p.id] || {};
-    return {
-      ...p,
-      price: parseFloat(p.price) || 0,
-      originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
-      isOnline: p.isOnline !== false,
-      salesCount: Number(stats.totalSales) || 0,
-      reviewCount: Number(stats.reviewCount) || 0,
-      rating: Number(stats.averageRating) || 0,
-      views: Number(p.views) || 0,
-      wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
-      wholesaleMinQty: p.wholesaleMinQty,
-      mainCategory: p.mainCategory,
-      businessType: p.businessType,
-      options: p.options || [],
-      variants: p.variants || [],
-    };
-  });
-
-  // Join order items + products and customers for orders
-  const customersMap = Object.fromEntries((customersRes || []).map((c: any) => [c.id, c]));
-  const orderIds = (ordersRes || []).map((o: any) => o.id);
+  const orderIds = ordersRes.map((o: any) => o.id);
 
   let itemsByOrder: Record<string, any[]> = {};
   if (orderIds.length > 0) {
-    // Single query: order items LEFT JOIN products (one round-trip instead of two)
     const joinedRows = await db
       .select({
         orderId: orderItems.orderId,
@@ -141,32 +149,84 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     }, {});
   }
 
-  const formattedOrders = (ordersRes || []).map((o: any) => {
-    const customer = o.customerId ? customersMap[o.customerId] : undefined;
+  const data = { ordersRes, itemsByOrder };
+  ordersCache.set(key, { ts: Date.now(), data });
+  return data;
+}
+
+export async function dbFetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
+  const needs = {
+    products: fields?.products !== false,
+    orders: fields?.orders !== false,
+    customers: fields?.customers !== false,
+    invoices: fields?.invoices !== false,
+  };
+
+  const tasks: Promise<any>[] = [
+    db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
+    needs.products ? db.select().from(products).where(eq(products.storeId, storeId)).limit(200) : Promise.resolve([]),
+    needs.orders ? getOrdersForStore(storeId) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
+    needs.customers ? db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100) : Promise.resolve([]),
+    needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
+    needs.products ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => []) : Promise.resolve([]),
+    ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
+  ];
+
+  const [
+    storeRes,
+    productsRes,
+    ordersData,
+    customersRes,
+    invoicesRes,
+    statsRes,
+    profileRes
+  ] = await Promise.all(tasks);
+
+  const store = storeRes[0] || null;
+  const { ordersRes, itemsByOrder } = ordersData;
+  let profile = profileRes[0] || null;
+
+  if (!profile && ownerId && store?.userId) {
+    const [fallbackProfile] = await db.select().from(profiles).where(eq(profiles.id, store.userId)).limit(1);
+    profile = fallbackProfile || null;
+  }
+
+  const statsMap = Object.fromEntries((statsRes || []).map((s: any) => [s.productId, s]));
+
+  const formattedProducts = (productsRes || []).map((p: any) => {
+    const stats = statsMap[p.id] || {};
     return {
-      id: o.id,
-      date: o.date,
-      status: o.status,
-      type: o.type,
-      paymentMethod: o.paymentMethod,
-      subtotal: parseFloat(o.subtotal) || 0,
-      total: parseFloat(o.total) || 0,
-      discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
-      promoCode: o.promoCode,
-      customer: customer
-        ? {
-            id: customer.id,
-            name: customer.name,
-            email: customer.email || '',
-            phone: customer.phone || '',
-            address: customer.address || '',
-            totalSpent: customer.totalSpent,
-            ordersCount: customer.ordersCount,
-          }
-        : undefined,
-      items: itemsByOrder[o.id] || [],
+      ...p,
+      price: parseFloat(p.price) || 0,
+      originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
+      isOnline: p.isOnline !== false,
+      salesCount: Number(stats.totalSales) || 0,
+      reviewCount: Number(stats.reviewCount) || 0,
+      rating: Number(stats.averageRating) || 0,
+      views: Number(p.views) || 0,
+      wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
+      wholesaleMinQty: p.wholesaleMinQty,
+      mainCategory: p.mainCategory,
+      businessType: p.businessType,
+      options: p.options || [],
+      variants: p.variants || [],
     };
   });
+
+  // Order items are already joined (with customer via LEFT JOIN) in getOrdersForStore
+  const formattedOrders = (ordersRes || []).map((o: any) => ({
+    id: o.id,
+    date: o.date,
+    status: o.status,
+    type: o.type,
+    paymentMethod: o.paymentMethod,
+    subtotal: parseFloat(o.subtotal) || 0,
+    total: parseFloat(o.total) || 0,
+    discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
+    promoCode: o.promoCode,
+    customer: o.customer,
+    items: itemsByOrder[o.id] || [],
+  }));
 
   const formattedCustomers = (customersRes || []).map((c: any) => ({
     ...c,
