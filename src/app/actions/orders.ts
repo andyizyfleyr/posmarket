@@ -112,9 +112,10 @@ export async function getOrdersAction(
 ) {
     try {
         const conditions = [eq(orders.storeId, storeId)];
+        const statusFilter = String(filterStatus || '').toUpperCase();
 
-        if (filterStatus && filterStatus !== 'all') {
-            conditions.push(eq(orders.status, filterStatus));
+        if (statusFilter && statusFilter !== 'ALL') {
+            conditions.push(eq(orders.status, statusFilter));
         }
 
         const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
