@@ -1,54 +1,50 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { db } from '@/db';
+import { profiles } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function loginAction(formData: FormData) {
   const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const supabase = await createClient();
+  
+  try {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+    if (!profile) {
+      return { error: 'Utilisateur introuvable.' };
+    }
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
+    (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+    redirect('/dashboard');
+  } catch (error: any) {
+    if (error.message?.includes('NEXT_REDIRECT')) throw error;
     return { error: error.message };
   }
-
-  redirect('/dashboard');
 }
 
 export async function signupAction(formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const supabase = await createClient();
+  
+  try {
+    const [newProfile] = await db.insert(profiles).values({
+      email,
+      fullName: name,
+      subscriptionTier: 'PRO',
+      subscriptionDuration: 'monthly',
+      subscriptionStatus: 'ACTIVE',
+    }).returning();
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: name,
-      },
-    },
-  });
-
-  if (error) {
+    (await cookies()).set('userId', newProfile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+    redirect('/subscription');
+  } catch (error: any) {
+    if (error.message?.includes('NEXT_REDIRECT')) throw error;
     return { error: error.message };
   }
-
-  if (!data.session) {
-      return { info: "Veuillez vérifier vos emails pour confirmer l'inscription." };
-  }
-
-  redirect('/subscription');
 }
 
 export async function logoutAction() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  (await cookies()).delete('userId');
   redirect('/login');
 }

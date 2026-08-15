@@ -1,4 +1,3 @@
-import { SupabaseClient } from '@supabase/supabase-js';
 import { safeSupabaseFetch } from './supabase/retry';
 
 export const FULL_PERMISSIONS = {
@@ -13,7 +12,7 @@ export const FULL_PERMISSIONS = {
   canManageInvoices: true
 };
 
-export const getPermissionsForUser = async (supabase: SupabaseClient, userId: string, storeId: string) => {
+export const getPermissionsForUser = async (supabase: any, userId: string, storeId: string) => {
   // 1. Check if owner
   const { data: store } = await safeSupabaseFetch<any>(
     () => supabase.from('stores').select('user_id').eq('id', storeId).single()

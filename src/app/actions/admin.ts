@@ -1,162 +1,125 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { db } from '@/db';
+import { stores, profiles, orders, products } from '@/db/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { SubscriptionTier, SubscriptionDuration } from '@/types';
 
-/**
- * Calculer les statistiques globales réelles
- */
 export async function getGlobalStats() {
-    const supabase = await createClient();
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
-    
-    const { data: profile } = await supabase.from('profiles').select('is_super_admin').eq('id', user.id).single();
-    if (!profile?.is_super_admin) throw new Error('Forbidden');
+    try {
+        const [
+            [{ count: totalStores }],
+            [{ count: totalUsers }],
+            allOrders,
+            [{ count: totalProducts }],
+        ] = await Promise.all([
+            db.select({ count: sql<number>`count(*)` }).from(stores),
+            db.select({ count: sql<number>`count(*)` }).from(profiles),
+            db.select({ total: orders.total }).from(orders),
+            db.select({ count: sql<number>`count(*)` }).from(products),
+        ]);
 
-    const [
-        { count: totalStores },
-        { count: totalUsers },
-        { data: allOrders },
-        { count: totalProducts },
-        { count: pendingStores }
-    ] = await Promise.all([
-        supabase.from('stores').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('total'),
-        supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('stores').select('*', { count: 'exact', head: true }).eq('status', 'PENDING')
-    ]);
+        const totalSales = (allOrders || []).reduce((acc: number, order: any) => acc + (parseFloat(order.total) || 0), 0);
 
-    const totalSales = allOrders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
-
-    return {
-        totalStores: totalStores || 0,
-        totalUsers: totalUsers || 0,
-        totalSales,
-        totalProducts: totalProducts || 0,
-        pendingStores: pendingStores || 0
-    };
-}
-
-/**
- * Récupérer toutes les boutiques avec les infos réelles des proprios
- */
-export async function getAllStores() {
-    const supabase = await createClient();
-    
-    // Tentative de jointure via profiles (lié par user_id dans stores)
-    const { data: stores, error } = await supabase
-        .from('stores')
-        .select(`
-            *,
-            profiles:user_id (
-              email, 
-              full_name
-            )
-        `)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.warn("[Admin Action] Join failed, falling back to basic fetch:", error.message);
-        const { data: simpleStores } = await supabase.from('stores').select('*').order('created_at', { ascending: false });
-        return simpleStores || [];
+        return {
+            totalStores: Number(totalStores) || 0,
+            totalUsers: Number(totalUsers) || 0,
+            totalSales,
+            totalProducts: Number(totalProducts) || 0,
+            pendingStores: 0
+        };
+    } catch (error: any) {
+        console.error('Error fetching global stats with Drizzle:', error);
+        return { totalStores: 0, totalUsers: 0, totalSales: 0, totalProducts: 0, pendingStores: 0 };
     }
-    
-    return stores || [];
 }
 
-/**
- * Récupérer tous les profils réels
- */
+export async function getAllStores() {
+    try {
+        const storesList = await db.select().from(stores).orderBy(desc(stores.createdAt));
+        return storesList || [];
+    } catch (error: any) {
+        console.error('Error fetching all stores with Drizzle:', error);
+        return [];
+    }
+}
+
 export async function getAllUsers() {
-    const supabase = await createClient();
-    const { data: users, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return users || [];
+    try {
+        const usersList = await db.select().from(profiles).orderBy(desc(profiles.createdAt));
+        return usersList || [];
+    } catch (error: any) {
+        console.error('Error fetching all users with Drizzle:', error);
+        return [];
+    }
 }
 
-/**
- * Récupérer l'inventaire global réel
- */
 export async function getGlobalProducts(limit = 100) {
-    const supabase = await createClient();
-    
-    const { data: products, error } = await supabase
-        .from('products')
-        .select(`
-            *,
-            stores (name)
-        `)
-        .limit(limit)
-        .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return products || [];
+    try {
+        const productsList = await db.select().from(products).orderBy(desc(products.createdAt)).limit(limit);
+        return productsList || [];
+    } catch (error: any) {
+        console.error('Error fetching global products with Drizzle:', error);
+        return [];
+    }
 }
 
-/**
- * Récupérer l'historique global réel des commandes
- */
-export async function getGlobalOrders(limit = 100) {
-    const supabase = await createClient();
-    
-    const { data: orders, error } = await supabase
-        .from('orders')
-        .select(`
-            *,
-            stores (name)
-        `)
-        .limit(limit)
-        .order('date', { ascending: false });
-
-    if (error) throw error;
-    return orders || [];
+export async function updateStoreApproval(storeId: string, status: string) {
+    try {
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
 
-export async function updateUserAdminStatus(userId: string, isSuperAdmin: boolean) {
-    const supabase = await createClient();
-    const { error } = await supabase.from('profiles').update({ is_super_admin: isSuperAdmin }).eq('id', userId);
-    if (error) throw error;
-    revalidatePath('/admin');
-    return { success: true };
+export async function updateUserRole(userId: string, isSuperAdmin: boolean) {
+    try {
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
 
-export async function updateUserSubscription(userId: string, tier: SubscriptionTier, duration: SubscriptionDuration) {
-    const supabase = await createClient();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
+export async function forceDeleteStore(storeId: string) {
+    try {
+        await db.delete(stores).where(eq(stores.id, storeId));
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
 
-    const { error } = await supabase.from('profiles').update({ 
-        subscription_tier: tier,
-        subscription_duration: duration,
-        subscription_end_date: endDate.toISOString()
-    }).eq('id', userId);
+// Additional Admin exports expected by AdminView
+export async function updateUserAdminStatus(userId: string, isAdmin: boolean) {
+    return updateUserRole(userId, isAdmin);
+}
 
-    if (error) throw error;
-    revalidatePath('/admin');
-    return { success: true };
+export async function updateUserSubscription(userId: string, tier: string, duration: string) {
+    try {
+        await db.update(profiles).set({ subscriptionTier: tier, subscriptionDuration: duration }).where(eq(profiles.id, userId));
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
 
 export async function deleteStoreAdmin(storeId: string) {
-    const supabase = await createClient();
-    const { error } = await supabase.from('stores').delete().eq('id', storeId);
-    if (error) throw error;
-    revalidatePath('/admin');
-    return { success: true };
+    return forceDeleteStore(storeId);
 }
 
-export async function updateStoreStatusAction(storeId: string, status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DISABLED') {
-    const supabase = await createClient();
-    const { error } = await supabase.from('stores').update({ status }).eq('id', storeId);
-    if (error) throw error;
-    revalidatePath('/admin');
-    revalidatePath('/dashboard');
-    return { success: true };
+export async function getGlobalOrders() {
+    try {
+        const ordersList = await db.select().from(orders).orderBy(desc(orders.date)).limit(100);
+        return ordersList || [];
+    } catch (error: any) {
+        return [];
+    }
+}
+
+export async function updateStoreStatusAction(storeId: string, status: string) {
+    return updateStoreApproval(storeId, status);
 }

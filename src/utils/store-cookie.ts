@@ -1,5 +1,4 @@
 import { cookies } from 'next/headers';
-import { SupabaseClient } from '@supabase/supabase-js';
 import { safeSupabaseFetch } from './supabase/retry';
 
 export const getStoreCookie = async () => {
@@ -17,7 +16,7 @@ export const clearStoreCookie = async () => {
   cookieStore.delete('currentStoreId');
 };
 
-export const getEffectiveStoreId = async (supabase: SupabaseClient, session: any): Promise<string | null> => {
+export const getEffectiveStoreId = async (supabase: any, session: any): Promise<string | null> => {
   if (!session?.user) return null;
   
   const currentId = await getStoreCookie();

@@ -247,10 +247,20 @@ export const useSupabaseData = (
 export const fetchOrderItems = async (orderId: string) => {
     const { data, error } = await supabase
         .from('order_items')
-        .select('*, product:products(id, name, price, image)')
+        .select('*')
         .eq('order_id', orderId);
     if (error) throw error;
-    return data;
+
+    const productIds = [...new Set((data || []).map((i: any) => i.product_id).filter(Boolean))];
+    if (productIds.length === 0) return data || [];
+
+    const { data: productsData } = await supabase
+        .from('products')
+        .select('id, name, price, image, business_type, main_category')
+        .in('id', productIds);
+
+    const productsMap = Object.fromEntries((productsData || []).map((p: any) => [p.id, p]));
+    return (data || []).map((i: any) => ({ ...i, product: productsMap[i.product_id] }));
 };
 
 export const fetchInvoiceItems = async (invoiceId: string) => {
@@ -265,7 +275,7 @@ export const fetchInvoiceItems = async (invoiceId: string) => {
 export const fetchProductReviews = async (productId: string) => {
     const { data, error } = await supabase
         .from('product_reviews')
-        .select('*, profiles(full_name, avatar_url)')
+        .select('*')
         .eq('product_id', productId)
         .order('created_at', { ascending: false });
     if (error) throw error;
@@ -279,7 +289,7 @@ export const fetchMarketplaceProducts = async () => {
         .eq('is_online', true)
         .limit(50);
     if (error) throw error;
-    return data.map((p: any) => ({
+    return (data || []).map((p: any) => ({
         ...p,
         originalPrice: p.original_price,
         mainCategory: p.main_category,

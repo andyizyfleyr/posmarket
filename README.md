@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Phase 1 : Configuration de la Connexion Neon & Drizzle
+1. Installation des dépendances :
+- drizzle-orm et @neondatabase/serverless (pour des requêtes HTTP/WebSocket ultra-rapides sans bloquer les connexions TCP).
+- drizzle-kit (pour la gestion des migrations).
+2. Variables d'environnement (.env.local) :
+- Remplacer l'URL Supabase par l'URL de connexion Neon (DATABASE_URL="postgresql://...").
+3. Client Drizzle (src/db/index.ts) :
+- Configurer le client Neon avec @neondatabase/serverless et l'instance Drizzle.
+Phase 2 : Modélisation du Schéma (src/db/schema.ts)
+Traduire toutes les tables actuelles de Supabase en schémas Drizzle typés en TypeScript :
+- profiles (utilisateurs / propriétaires)
+- stores (boutiques / restaurants - en respectant la règle des business types shopping et food)
+- products (produits, prix, stock)
+- categories (catégories de produits)
+- customers (clients)
+- orders & order_items (commandes et détails)
+- invoices & invoice_items (factures)
+- product_stats (statistiques)
+Phase 3 : Gestion de l'Authentification
+Puisque @clerk/nextjs est déjà présent dans le package.json (ou en optant pour un système de sessions JWT custom en base avec des cookies httpOnly) :
+- Remplacer les appels supabase.auth par le nouveau système d'authentification pour identifier l'utilisateur et récupérer son user_id.
+Phase 4 : Migration du Stockage (Storage)
+- Remplacer supabase.storage pour l'upload d'images de produits/stores par Vercel Blob, Cloudinary ou un stockage S3-compatible.
+Phase 5 : Réécriture des Server Actions & Hooks (src/app/actions/*)
+Remplacer les appels supabase.from('table').select(...) par les requêtes Drizzle optimisées :
+- Ex : db.select().from(products).where(eq(products.storeId, storeId))
+- Remplacer les fonctions RPC complexes par des requêtes SQL natives Drizzle (sql template) ou des transactions SQL (db.transaction(...)).
+Phase 6 : Optimisation de la Performance ("Ultra Rapide")
+- Indexation SQL : Ajouter des index sur les clés étrangères (store_id, customer_id, etc.) dans Drizzle.
+- Requêtes groupées & Joins : Remplacer les multiples requêtes imbriquées par des leftJoin / innerJoin propres en une seule requête SQL.
+- Mise en cache : Tirer parti du cache de Next.js et de React Query (@tanstack/react-query déjà installé) pour des affichages instantanés.

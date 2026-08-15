@@ -52,12 +52,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
             return;
         }
 
-        if (result && 'info' in result) {
-            notify(result.info, 'info', 'Validation e-mail');
-            setIsLogin(true);
-            setLoading(false);
-        }
-        
+        setLoading(false);
+
         // Redirection is handled by the server action
     };
 

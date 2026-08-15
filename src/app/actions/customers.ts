@@ -1,91 +1,107 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { db } from '@/db'
+import { customers } from '@/db/schema'
+import { eq, or, and, sql, inArray, desc } from 'drizzle-orm'
 
 export async function saveCustomerAction(customer: any, storeId: string) {
-    const supabase = await createClient()
-    
-    // Map camelCase to snake_case for Supabase
-    const dbCustomer = {
-        ...(customer.id && { id: customer.id }),
-        store_id: storeId,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address,
-        total_spent: customer.totalSpent !== undefined ? customer.totalSpent : customer.total_spent,
-        orders_count: customer.ordersCount !== undefined ? customer.ordersCount : customer.orders_count,
-        last_order_date: customer.lastOrderDate || customer.last_order_date
+    try {
+        const dataToSave = {
+            storeId,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+            address: customer.address,
+            totalSpent: (customer.totalSpent !== undefined ? customer.totalSpent : customer.total_spent)?.toString() || '0',
+            ordersCount: customer.ordersCount !== undefined ? customer.ordersCount : customer.orders_count || 0,
+        };
+
+        let savedCustomer;
+        if (customer.id && !customer.id.startsWith('temp-')) {
+            [savedCustomer] = await db
+                .update(customers)
+                .set(dataToSave)
+                .where(eq(customers.id, customer.id))
+                .returning();
+        } else {
+            [savedCustomer] = await db
+                .insert(customers)
+                .values(dataToSave)
+                .returning();
+        }
+
+        revalidatePath('/customers');
+        return { success: true, customer: savedCustomer };
+    } catch (error: any) {
+        console.error('Error saving customer with Drizzle:', error);
+        return { success: false, error: error.message };
     }
-    
-    const { data, error } = await supabase.from('customers').upsert(dbCustomer).select()
-    
-    if (error) {
-        console.error('Error saving customer:', error)
-        return { success: false, error: error.message }
-    }
-    
-    revalidatePath('/customers')
-    return { success: true, customer: data[0] }
 }
 
 export async function deleteCustomerAction(id: string) {
-    const supabase = await createClient()
-    const { error } = await supabase.from('customers').delete().eq('id', id)
-    
-    if (error) {
-        console.error('Error deleting customer:', error)
-        return { success: false, error: error.message }
+    try {
+        await db.delete(customers).where(eq(customers.id, id));
+        revalidatePath('/customers');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error deleting customer with Drizzle:', error);
+        return { success: false, error: error.message };
     }
-    
-    revalidatePath('/customers')
-    return { success: true }
 }
 
 export async function bulkDeleteCustomersAction(ids: string[]) {
-    const supabase = await createClient()
-    const { error } = await supabase.from('customers').delete().in('id', ids)
-    
-    if (error) {
-        console.error('Error bulk deleting customers:', error)
-        return { success: false, error: error.message }
+    try {
+        if (ids.length > 0) {
+            await db.delete(customers).where(inArray(customers.id, ids));
+        }
+        revalidatePath('/customers');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error bulk deleting customers with Drizzle:', error);
+        return { success: false, error: error.message };
     }
-    
-    revalidatePath('/customers')
-    return { success: true }
 }
 
 export async function getCustomersAction(storeId: string, offset: number = 0, limit: number = 10, search: string = '') {
-    const supabase = await createClient()
-    
-    let query = supabase
-      .from('customers')
-      .select('*', { count: 'exact' })
-      .eq('store_id', storeId)
-      .order('total_spent', { ascending: false })
-      .range(offset, offset + limit - 1);
-  
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
+    try {
+        let conditions = [eq(customers.storeId, storeId)];
+
+        if (search) {
+            conditions.push(or(
+                sql`${customers.name} ILIKE ${`%${search}%`}`,
+                sql`${customers.phone} ILIKE ${`%${search}%`}`
+            )!);
+        }
+
+        const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+        const [customersList, [{ count: totalCount }]] = await Promise.all([
+            db.select()
+                .from(customers)
+                .where(whereClause)
+                .orderBy(desc(customers.totalSpent))
+                .limit(limit)
+                .offset(offset),
+            db.select({ count: sql<number>`count(*)` })
+                .from(customers)
+                .where(whereClause)
+        ]);
+
+        const total = Number(totalCount) || 0;
+
+        return { 
+            success: true, 
+            customers: (customersList || []).map((c: any) => ({
+                ...c,
+                totalSpent: parseFloat(c.totalSpent) || 0,
+                ordersCount: Number(c.ordersCount) || 0,
+            })), 
+            hasMore: total > (offset + customersList.length),
+            total
+        };
+    } catch (error: any) {
+        console.error('Error fetching customers with Drizzle:', error);
+        return { success: false, error: error.message, customers: [], total: 0 };
     }
-  
-    const { data, count, error } = await query;
-  
-    if (error) {
-      console.error('Error fetching customers:', error);
-      return { success: false, error: error.message };
-    }
-  
-    return { 
-      success: true, 
-      customers: (data || []).map((c: any) => ({
-        ...c,
-        totalSpent: parseFloat(c.total_spent) || 0,
-        ordersCount: Number(c.orders_count) || 0,
-        lastOrderDate: c.last_order_date
-      })), 
-      hasMore: (count || 0) > (offset + (data?.length || 0)),
-      total: count
-    };
 }

@@ -1,98 +1,93 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { db } from '@/db'
+import { products, profiles } from '@/db/schema'
+import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 
 export async function saveProductAction(product: any, storeId: string) {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { success: false, error: 'Non authentifié' };
+  try {
+    // 1. Check Limits for NEW products
+    if (!product.id) {
+      const defaultUserId = '00000000-0000-0000-0000-000000000000';
+      const [profile] = await db.select().from(profiles).where(eq(profiles.id, defaultUserId)).limit(1);
+      const [{ count: productsCount }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(products)
+        .where(eq(products.storeId, storeId));
 
-  // 1. Check Limits for NEW products
-  if (!product.id) {
-    const [productsCountRes, profileRes] = await Promise.all([
-      supabase.from('products').select('*', { count: 'exact', head: true }).eq('store_id', storeId),
-      supabase.from('profiles').select('subscription_tier').eq('id', session.user.id).single()
-    ]);
-    
-    const count = productsCountRes.count || 0;
-    const tier = profileRes.data?.subscription_tier || 'PRO';
-    const limit = tier === 'STARTER' ? 50 : tier === 'PRO' ? 500 : 999999;
-    
-    if (count >= limit) {
-      return { success: false, error: `Limite de ${limit} produits atteinte pour votre abonnement ${tier}.` };
+      const tier = profile?.subscriptionTier || 'PRO';
+      const limit = tier === 'STARTER' ? 50 : tier === 'PRO' ? 500 : 999999;
+
+      if (Number(productsCount) >= limit) {
+        return { success: false, error: `Limite de ${limit} produits atteinte pour votre abonnement ${tier}.` };
+      }
     }
+
+    const dataToSave = {
+      storeId,
+      name: product.name,
+      price: product.price?.toString() || '0',
+      originalPrice: (product.originalPrice || product.original_price)?.toString(),
+      image: product.image,
+      stock: product.stock ?? 0,
+      mainCategory: product.mainCategory || product.main_category,
+      description: product.description,
+      isOnline: product.isOnline !== undefined ? product.isOnline : true,
+      wholesalePrice: product.wholesalePrice?.toString(),
+      wholesaleMinQty: product.wholesaleMinQty,
+      businessType: product.businessType || 'shopping',
+      options: product.options || [],
+      variants: product.variants || []
+    };
+
+    let savedProduct;
+    if (product.id && !product.id.startsWith('temp-')) {
+      [savedProduct] = await db
+        .update(products)
+        .set(dataToSave)
+        .where(eq(products.id, product.id))
+        .returning();
+    } else {
+      [savedProduct] = await db
+        .insert(products)
+        .values(dataToSave)
+        .returning();
+    }
+
+    revalidatePath('/inventory');
+    revalidatePath('/');
+    return { success: true, product: savedProduct };
+  } catch (error: any) {
+    console.error('Error saving product with Drizzle:', error);
+    return { success: false, error: error.message };
   }
-
-  // 2. Map camelCase to snake_case for Supabase
-  const dbProduct = {
-    ...(product.id && { id: product.id }),
-    store_id: storeId,
-    sku: product.sku,
-    barcode: product.barcode,
-    name: product.name,
-    price: product.price,
-    original_price: product.originalPrice || product.original_price,
-    image: product.image,
-    images: product.images || [],
-    stock: product.stock,
-    category: product.category,
-    main_category: product.mainCategory || product.main_category,
-    unit: product.unit,
-    description: product.description,
-    is_online: product.isOnline !== undefined ? product.isOnline : (product.is_online !== undefined ? product.is_online : true),
-    views: product.views || 0,
-    wholesale_price: product.wholesalePrice,
-    wholesale_min_qty: product.wholesaleMinQty,
-    business_type: product.businessType || (
-      (product.mainCategory || '').includes('Resto') || (product.mainCategory || '').includes('Alimentation') ? 'food' :
-      'shopping'
-    ),
-    options: product.options || [],
-    variants: product.variants || []
-  }
-
-  const { data, error } = await supabase.from('products').upsert(dbProduct).select()
-
-  if (error) {
-    console.error('Error saving product:', error)
-    return { success: false, error: error.message }
-  }
-
-  revalidatePath('/inventory')
-  revalidatePath('/')
-  revalidatePath('/[...slug]', 'page')
-  return { success: true, product: data[0] }
 }
 
 export async function deleteProductAction(id: string) {
-  const supabase = await createClient()
-  const { error } = await supabase.from('products').delete().eq('id', id)
-
-  if (error) {
-    console.error('Error deleting product:', error)
-    return { success: false, error: error.message }
+  try {
+    await db.delete(products).where(eq(products.id, id));
+    revalidatePath('/inventory');
+    revalidatePath('/');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting product with Drizzle:', error);
+    return { success: false, error: error.message };
   }
-
-  revalidatePath('/inventory')
-  revalidatePath('/')
-  revalidatePath('/[...slug]', 'page')
-  return { success: true }
 }
 
 export async function bulkDeleteProductsAction(ids: string[]) {
-  const supabase = await createClient()
-  const { error } = await supabase.from('products').delete().in('id', ids)
-
-  if (error) {
-    console.error('Error bulk deleting products:', error)
-    return { success: false, error: error.message }
+  try {
+    if (ids.length > 0) {
+      await db.delete(products).where(inArray(products.id, ids));
+    }
+    revalidatePath('/inventory');
+    revalidatePath('/');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error bulk deleting products with Drizzle:', error);
+    return { success: false, error: error.message };
   }
-
-  revalidatePath('/inventory')
-  revalidatePath('/')
-  revalidatePath('/[...slug]', 'page')
-  return { success: true }
 }
 
 export async function getProductsAction(
@@ -102,56 +97,60 @@ export async function getProductsAction(
   search: string = '',
   options: { productType?: 'all' | 'pos' | 'marketplace', businessType?: 'all' | 'shopping' | 'food' } = {}
 ) {
-  const supabase = await createClient()
+  try {
+    let conditions = [eq(products.storeId, storeId)];
 
-  let query = supabase
-    .from('products')
-    .select('*', { count: 'exact' })
-    .eq('store_id', storeId)
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (search) {
-    query = query.textSearch('search_vector', search, {
-      type: 'websearch',
-      config: 'french'
-    });
-  }
-
-  if (options.productType && options.productType !== 'all') {
-    if (options.productType === 'pos') {
-      query = query.eq('is_online', false);
-    } else if (options.productType === 'marketplace') {
-      query = query.eq('is_online', true);
+    if (options.productType && options.productType !== 'all') {
+      if (options.productType === 'pos') {
+        conditions.push(eq(products.isOnline, false));
+      } else if (options.productType === 'marketplace') {
+        conditions.push(eq(products.isOnline, true));
+      }
     }
+
+    if (options.businessType && options.businessType !== 'all') {
+      conditions.push(eq(products.businessType, options.businessType));
+    }
+
+    if (search) {
+      conditions.push(sql`${products.name} ILIKE ${`%${search}%`}`);
+    }
+
+    const whereClause = and(...conditions);
+
+    const [productsList, [{ count: totalCount }]] = await Promise.all([
+      db.select()
+        .from(products)
+        .where(whereClause)
+        .orderBy(desc(products.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)` })
+        .from(products)
+        .where(whereClause)
+    ]);
+
+    const total = Number(totalCount) || 0;
+
+    return {
+      success: true,
+      products: (productsList || []).map((p: any) => ({
+        ...p,
+        price: parseFloat(p.price) || 0,
+        originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
+        isOnline: p.isOnline !== false,
+        wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
+        wholesaleMinQty: p.wholesaleMinQty,
+        mainCategory: p.mainCategory,
+        businessType: p.businessType,
+        options: p.options || [],
+        variants: p.variants || []
+      })),
+      hasMore: total > (offset + productsList.length),
+      total
+    };
+  } catch (error: any) {
+    console.error('Error fetching products with Drizzle:', error);
+    return { success: false, error: error.message, products: [], total: 0 };
   }
-
-  if (options.businessType && options.businessType !== 'all') {
-    query = query.eq('business_type', options.businessType);
-  }
-
-  const { data, count, error } = await query;
-
-  if (error) {
-    console.error('Error fetching products:', error);
-    return { success: false, error: error.message };
-  }
-
-  return {
-    success: true,
-    products: (data || []).map((p: any) => ({
-      ...p,
-      price: parseFloat(p.price) || 0,
-      originalPrice: p.original_price ? parseFloat(p.original_price) : undefined,
-      isOnline: p.is_online !== false,
-      wholesalePrice: p.wholesale_price ? parseFloat(p.wholesale_price) : undefined,
-      wholesaleMinQty: p.wholesale_min_qty,
-      mainCategory: p.main_category,
-      businessType: p.business_type,
-      options: p.options || [],
-      variants: p.variants || []
-    })),
-    hasMore: (count || 0) > (offset + (data?.length || 0)),
-    total: count
-  };
 }

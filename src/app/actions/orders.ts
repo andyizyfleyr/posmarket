@@ -1,172 +1,173 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { db } from '@/db'
+import { orders, orderItems, customers, products } from '@/db/schema'
+import { eq, inArray, desc, sql, and } from 'drizzle-orm'
 
 export async function createOrderAction(order: any, storeId: string) {
-    const supabase = await createClient()
-    
     try {
-        // 1. Map order to snake_case for Supabase
         const dbOrder = {
-            store_id: storeId,
-            customer_id: order.customer?.id,
-            date: order.date || new Date().toISOString(),
+            storeId,
+            customerId: order.customer?.id || null,
+            date: order.date ? new Date(order.date) : new Date(),
             status: order.status || 'COMPLETED',
-            type: order.type || 'IN_STORE',
-            payment_method: order.paymentMethod || 'ESPECES',
-            subtotal: order.subtotal,
-            tax: 0,
-            total: order.total,
-            discount_amount: order.discountAmount || 0,
-            promo_code: order.promoCode
+            paymentMethod: order.paymentMethod || 'ESPECES',
+            subtotal: order.subtotal?.toString() || '0',
+            total: order.total?.toString() || '0',
+            discountAmount: (order.discountAmount || 0).toString(),
+        };
+        
+        const [orderData] = await db.insert(orders).values(dbOrder).returning();
+        
+        if (order.items && order.items.length > 0) {
+            const itemsToInsert = order.items.map((item: any) => ({
+                orderId: orderData.id,
+                productId: item.product?.id || null,
+                quantity: item.quantity,
+                unitPrice: (item.product?.price || 0).toString(),
+                total: ((item.product?.price || 0) * item.quantity).toString(),
+            }));
+            
+            await db.insert(orderItems).values(itemsToInsert);
         }
-        
-        const { data: orderData, error: orderErr } = await supabase.from('orders').insert(dbOrder).select().single()
-        if (orderErr) throw orderErr
-        
-        // 2. Insert Order Items in bulk
-        const orderItems = order.items.map((item: any) => ({
-            order_id: orderData.id,
-            product_id: item.product.id,
-            quantity: item.quantity,
-            price: item.product.price
-        }));
-        
-        const { error: itemsErr } = await supabase.from('order_items').insert(orderItems);
-        if (itemsErr) throw itemsErr;
 
-        for (const item of order.items) {
-            if (!item.product.id) continue;
-
-            const { data: product } = await supabase.from('products').select('sales_count').eq('id', item.product.id).single()
-            if (product) {
-                await supabase.from('products').update({
-                    sales_count: (product.sales_count || 0) + item.quantity
-                }).eq('id', item.product.id)
-            }
-        }
-        
-        // 3. Update customer stats if applicable
         if (order.customer?.id) {
-            const { data: customer } = await supabase.from('customers').select('total_spent, orders_count').eq('id', order.customer.id).single()
+            const [customer] = await db.select().from(customers).where(eq(customers.id, order.customer.id)).limit(1);
             if (customer) {
-                await supabase.from('customers').update({
-                    total_spent: (customer.total_spent || 0) + order.total,
-                    orders_count: (customer.orders_count || 0) + 1,
-                    last_order_date: new Date().toISOString()
-                }).eq('id', order.customer.id)
+                const newSpent = parseFloat(customer.totalSpent || '0') + (order.total || 0);
+                const newCount = customer.ordersCount + 1;
+                await db.update(customers)
+                    .set({ totalSpent: newSpent.toString(), ordersCount: newCount })
+                    .where(eq(customers.id, order.customer.id));
             }
         }
         
-        revalidatePath('/orders')
-        revalidatePath('/pos')
-        revalidatePath('/inventory')
-        revalidatePath('/dashboard')
+        revalidatePath('/orders');
+        revalidatePath('/pos');
+        revalidatePath('/inventory');
+        revalidatePath('/dashboard');
         
-        return { success: true, order: orderData }
+        return { success: true, order: orderData };
     } catch (error: any) {
-        console.error('Order creation error:', error)
-        return { success: false, error: error.message }
+        console.error('Order creation error with Drizzle:', error);
+        return { success: false, error: error.message };
     }
 }
 
 export async function updateOrderStatusAction(orderId: string, status: string) {
-    const supabase = await createClient()
-    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId)
-    
-    if (error) {
-        console.error('Error updating order status:', error)
-        return { success: false, error: error.message }
+    try {
+        await db.update(orders).set({ status }).where(eq(orders.id, orderId));
+        revalidatePath('/orders');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error updating order status with Drizzle:', error);
+        return { success: false, error: error.message };
     }
-    
-    revalidatePath('/orders')
-    return { success: true }
 }
 
 export async function deleteOrderAction(id: string) {
-    const supabase = await createClient()
-    const { error } = await supabase.from('orders').delete().eq('id', id)
-    
-    if (error) {
-        console.error('Error deleting order:', error)
-        return { success: false, error: error.message }
+    try {
+        await db.delete(orders).where(eq(orders.id, id));
+        revalidatePath('/orders');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error deleting order with Drizzle:', error);
+        return { success: false, error: error.message };
     }
-    
-    revalidatePath('/orders')
-    return { success: true }
+}
+
+export async function bulkDeleteOrdersAction(ids: string[]) {
+    try {
+        if (ids.length > 0) {
+            await db.delete(orders).where(inArray(orders.id, ids));
+        }
+        revalidatePath('/orders');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error bulk deleting orders with Drizzle:', error);
+        return { success: false, error: error.message };
+    }
 }
 
 export async function bulkUpdateOrderStatusAction(orderIds: string[], status: string) {
-    const supabase = await createClient()
-    const { error } = await supabase.from('orders').update({ status }).in('id', orderIds)
-    
-    if (error) {
-        console.error('Error bulk updating order status:', error)
-        return { success: false, error: error.message }
+    try {
+        if (orderIds.length > 0) {
+            await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
+        }
+        revalidatePath('/orders');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error bulk updating order status with Drizzle:', error);
+        return { success: false, error: error.message };
     }
-    
-    revalidatePath('/orders')
-    return { success: true }
 }
 
-export async function bulkDeleteOrdersAction(orderIds: string[]) {
-    const supabase = await createClient()
-    const { error } = await supabase.from('orders').delete().in('id', orderIds)
-    
-    if (error) {
-        console.error('Error bulk deleting orders:', error)
-        return { success: false, error: error.message }
-    }
-    
-    revalidatePath('/orders')
-    return { success: true }
-}
+export async function getOrdersAction(
+    storeId: string, 
+    offset: number = 0, 
+    limit: number = 10, 
+    search: string = '', 
+    filterStatus: string = 'all'
+) {
+    try {
+        const conditions = [eq(orders.storeId, storeId)];
 
-export async function getOrdersAction(storeId: string, offset: number = 0, limit: number = 10, search: string = '', status: string = 'ALL') {
-    const supabase = await createClient()
-    
-    let query = supabase
-      .from('orders')
-      .select('*, customer:customers!inner(*), order_items(*, product:products(*))', { count: 'exact' })
-      .eq('store_id', storeId)
-      .order('date', { ascending: false })
-      .range(offset, offset + limit - 1);
-  
-    if (status !== 'ALL') {
-      query = query.eq('status', status);
-    }
+        if (filterStatus && filterStatus !== 'all') {
+            conditions.push(eq(orders.status, filterStatus));
+        }
 
-    if (search) {
-      if (search.startsWith('#')) {
-        query = query.ilike('id', `%${search.slice(1)}%`);
-      } else {
-        // Now includes customer name in the search thanks to !inner join
-        query = query.or(`id.ilike.%${search}%,status.ilike.%${search}%,customer.name.ilike.%${search}%`);
-      }
+        const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+        const [ordersList, [{ count: totalCount }]] = await Promise.all([
+            db.select()
+                .from(orders)
+                .where(whereClause)
+                .orderBy(desc(orders.date))
+                .limit(limit)
+                .offset(offset),
+            db.select({ count: sql<number>`count(*)` })
+                .from(orders)
+                .where(whereClause)
+        ]);
+
+        const total = Number(totalCount) || 0;
+
+        const orderIds = (ordersList || []).map((o: any) => o.id);
+        let customersMap: Record<string, any> = {};
+        if (orderIds.length > 0) {
+            const customerIds = [...new Set((ordersList || []).map((o: any) => o.customerId).filter(Boolean))];
+            if (customerIds.length > 0) {
+                const customerRows = await db.select().from(customers).where(inArray(customers.id, customerIds));
+                customersMap = Object.fromEntries(customerRows.map((c: any) => [c.id, c]));
+            }
+        }
+
+        return { 
+            success: true, 
+            orders: (ordersList || []).map((o: any) => {
+                const customer = o.customerId ? customersMap[o.customerId] : undefined;
+                return {
+                    ...o,
+                    total: parseFloat(o.total) || 0,
+                    subtotal: parseFloat(o.subtotal) || 0,
+                    discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
+                    customer: customer
+                        ? {
+                            id: customer.id,
+                            name: customer.name,
+                            email: customer.email || '',
+                            phone: customer.phone || '',
+                            address: customer.address || '',
+                        }
+                        : undefined,
+                };
+            }),
+            hasMore: total > (offset + ordersList.length),
+            total
+        };
+    } catch (error: any) {
+        console.error('Error getting orders with Drizzle:', error);
+        return { success: false, orders: [], hasMore: false, total: 0, error: error.message };
     }
-  
-    const { data, count, error } = await query;
-  
-    if (error) {
-      console.error('Error fetching orders:', error);
-      return { success: false, error: error.message };
-    }
-  
-    return { 
-      success: true, 
-      orders: (data || []).map((o: any) => ({
-        ...o,
-        total: Number(o.total) || 0,
-        subtotal: Number(o.subtotal) || 0,
-        discountAmount: Number(o.discount_amount) || 0,
-        paymentMethod: o.payment_method,
-        items: (o.order_items || []).map((oi: any) => ({
-            ...oi,
-            product: oi.product
-        }))
-      })), 
-      hasMore: (count || 0) > (offset + (data?.length || 0)),
-      total: count
-    };
 }

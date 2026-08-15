@@ -1,35 +1,49 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies } from 'next/headers';
+import { eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { profiles } from '@/db/schema';
+import { QueryBuilder, runQuery } from '@/db/query';
 
-import { supabaseFetchWithTimeout } from "./retry";
+async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('userId')?.value;
+  if (!userId) {
+    return { user: null };
+  }
+
+  const [profile] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1);
+
+  if (!profile) {
+    return { user: null };
+  }
+
+  return {
+    user: {
+      id: profile.id,
+      email: profile.email,
+      user_metadata: { full_name: profile.fullName },
+    },
+  };
+}
 
 export async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        fetch: supabaseFetchWithTimeout(20000),
-        headers: {
-          'x-client-info': '@supabase/ssr-nextjs',
-        },
+  return {
+    auth: {
+      async getUser() {
+        const { user } = await getCurrentUser();
+        return { data: { user }, error: null };
       },
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Can be ignored
-          }
-        },
+      async getSession() {
+        const { user } = await getCurrentUser();
+        return { data: { session: user ? { user } : null }, error: null };
       },
-    }
-  );
+    },
+    from(table: string) {
+      return new QueryBuilder(table, runQuery);
+    },
+  };
 }
