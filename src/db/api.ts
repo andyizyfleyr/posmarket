@@ -154,6 +154,27 @@ async function getOrdersForStore(storeId: string) {
   return data;
 }
 
+function formatOrder(o: any, itemsByOrder: Record<string, any[]>) {
+  return {
+    id: o.id,
+    date: o.date,
+    status: o.status,
+    type: o.type,
+    paymentMethod: o.paymentMethod,
+    subtotal: parseFloat(o.subtotal) || 0,
+    total: parseFloat(o.total) || 0,
+    discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
+    promoCode: o.promoCode,
+    customer: o.customer,
+    items: itemsByOrder[o.id] || [],
+  };
+}
+
+export async function fetchFormattedOrders(storeId: string) {
+  const { ordersRes, itemsByOrder } = await getOrdersForStore(storeId);
+  return (ordersRes || []).map((o: any) => formatOrder(o, itemsByOrder));
+}
+
 export async function dbFetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
   const needs = {
     products: fields?.products !== false,
@@ -214,19 +235,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
   });
 
   // Order items are already joined (with customer via LEFT JOIN) in getOrdersForStore
-  const formattedOrders = (ordersRes || []).map((o: any) => ({
-    id: o.id,
-    date: o.date,
-    status: o.status,
-    type: o.type,
-    paymentMethod: o.paymentMethod,
-    subtotal: parseFloat(o.subtotal) || 0,
-    total: parseFloat(o.total) || 0,
-    discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
-    promoCode: o.promoCode,
-    customer: o.customer,
-    items: itemsByOrder[o.id] || [],
-  }));
+  const formattedOrders = (ordersRes || []).map((o: any) => formatOrder(o, itemsByOrder));
 
   const formattedCustomers = (customersRes || []).map((c: any) => ({
     ...c,

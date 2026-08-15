@@ -1,5 +1,6 @@
 import ReportsView from '@/views/ReportsView';
 import { fetchStoreData } from '@/app/actions/store';
+import { loadOrdersForStore } from '@/lib/load-store-data';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import NoStoreFound from '@/components/NoStoreFound';
@@ -14,7 +15,11 @@ export default async function ReportsPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { orders, customers, store } = await fetchStoreData(storeId, undefined, { products: false, invoices: false });
+  const [orders, storeData] = await Promise.all([
+    loadOrdersForStore(storeId),
+    fetchStoreData(storeId, undefined, { products: false, invoices: false })
+  ]);
+  const { customers, store } = storeData;
 
   return (
     <ReportsView 

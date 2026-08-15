@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { db } from '@/db'
 import { orders, orderItems, customers, products } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder } from '@/db/api'
@@ -45,6 +45,7 @@ export async function createOrderAction(order: any, storeId: string) {
         }
         
         invalidateOrdersCache(storeId);
+        if (storeId) revalidateTag(`orders:${storeId}`, undefined as any);
         revalidatePath('/orders');
         revalidatePath('/pos');
         revalidatePath('/inventory');
@@ -62,6 +63,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
         const storeId = await getStoreIdForOrder(orderId);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
         invalidateOrdersCache(storeId);
+        if (storeId) revalidateTag(`orders:${storeId}`, undefined as any);
         revalidatePath('/orders');
         return { success: true };
     } catch (error: any) {
@@ -75,6 +77,7 @@ export async function deleteOrderAction(id: string) {
         const storeId = await getStoreIdForOrder(id);
         await db.delete(orders).where(eq(orders.id, id));
         invalidateOrdersCache(storeId);
+        if (storeId) revalidateTag(`orders:${storeId}`, undefined as any);
         revalidatePath('/orders');
         return { success: true };
     } catch (error: any) {
@@ -92,7 +95,10 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
                 if (sid) storeIds.add(sid);
             }
             await db.delete(orders).where(inArray(orders.id, ids));
-            storeIds.forEach(invalidateOrdersCache);
+            storeIds.forEach(sid => {
+                invalidateOrdersCache(sid);
+                revalidateTag(`orders:${sid}`, undefined as any);
+            });
         }
         revalidatePath('/orders');
         return { success: true };
@@ -111,7 +117,10 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
                 if (sid) storeIds.add(sid);
             }
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
-            storeIds.forEach(invalidateOrdersCache);
+            storeIds.forEach(sid => {
+                invalidateOrdersCache(sid);
+                revalidateTag(`orders:${sid}`, undefined as any);
+            });
         }
         revalidatePath('/orders');
         return { success: true };

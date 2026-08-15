@@ -1,5 +1,6 @@
 import OrdersView from '@/views/OrdersView';
 import { fetchStoreData } from '@/app/actions/store';
+import { loadOrdersForStore } from '@/lib/load-store-data';
 import { updateOrderStatusAction, deleteOrderAction } from '@/app/actions/orders';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
@@ -16,7 +17,11 @@ export default async function OrdersPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { orders, store } = await fetchStoreData(storeId, undefined, { products: false, customers: false, invoices: false });
+  const [orders, storeData] = await Promise.all([
+    loadOrdersForStore(storeId),
+    fetchStoreData(storeId, undefined, { products: false, customers: false, invoices: false })
+  ]);
+  const { store } = storeData;
   const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   return (
