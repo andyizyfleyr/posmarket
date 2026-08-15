@@ -1,0 +1,13 @@
+name: keep-warm
+
+on:
+  schedule:
+    - cron: '*/3 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Neon
+        run: curl -fsS --max-time 30 https://posmarket-topaz.vercel.app/api/ping
