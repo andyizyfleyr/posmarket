@@ -23,23 +23,21 @@ export const getEffectiveStoreId = async (supabase: any, session: any): Promise<
   
   // If we have a cookie, we MUST verify the user has access to it
   if (currentId) {
-    // 1. Check if owner
-    const { data: isOwner } = await supabase.from('stores')
-      .select('id')
-      .eq('id', currentId)
-      .eq('user_id', session.user.id)
-      .single();
-    
-    if (isOwner) return currentId;
+    // 1. Check owner + staff in parallel
+    const [ownerRes, staffRes] = await Promise.all([
+      supabase.from('stores')
+        .select('id')
+        .eq('id', currentId)
+        .eq('user_id', session.user.id)
+        .single(),
+      supabase.from('store_staff')
+        .select('id')
+        .eq('store_id', currentId)
+        .eq('user_id', session.user.id)
+        .single()
+    ]);
 
-    // 2. Check if staff
-    const { data: isStaff } = await supabase.from('store_staff')
-      .select('id')
-      .eq('store_id', currentId)
-      .eq('user_id', session.user.id)
-      .single();
-    
-    if (isStaff) return currentId;
+    if (ownerRes.data || staffRes.data) return currentId;
   }
 
   // Fallback to finding ANY store they have access to

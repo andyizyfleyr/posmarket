@@ -3,7 +3,6 @@ import { fetchStoreData } from '@/app/actions/store';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
-import { safeSupabaseFetch } from '@/utils/supabase/retry';
 import NoStoreFound from '@/components/NoStoreFound';
 
 export default async function POSPage() {
@@ -16,10 +15,7 @@ export default async function POSPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, customers } = await fetchStoreData(storeId);
-  const { data: storeRes } = await safeSupabaseFetch<any>(
-    () => supabase.from('stores').select('*').eq('id', storeId).single()
-  );
+  const { products, customers, store } = await fetchStoreData(storeId, undefined, { orders: false, invoices: false });
   const { permissions, role } = await getPermissionsForUser(supabase, user.id, storeId);
 
   return (
@@ -27,9 +23,9 @@ export default async function POSPage() {
       products={products as any} 
       customers={customers as any} 
       currentStoreId={storeId}
-      storeSettings={storeRes?.settings as any}
+      storeSettings={store?.settings as any}
       permissions={permissions as any}
-      businessType={storeRes?.business_type}
+      businessType={store?.business_type}
     />
   );
 }

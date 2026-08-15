@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { dbFetchStores, dbFetchStoreData, dbCreateStore } from '@/db/api'
+import { dbFetchStores, dbFetchStoreData, dbCreateStore, StoreDataFields } from '@/db/api'
 import { db } from '@/db'
 import { stores } from '@/db/schema'
 import { eq, count } from 'drizzle-orm'
@@ -17,9 +17,9 @@ export async function fetchStores() {
   }
 }
 
-export async function fetchStoreData(storeId: string, ownerId?: string) {
+export async function fetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
   try {
-    const data = await dbFetchStoreData(storeId, ownerId);
+    const data = await dbFetchStoreData(storeId, ownerId, fields);
     
     return {
       products: data.products,

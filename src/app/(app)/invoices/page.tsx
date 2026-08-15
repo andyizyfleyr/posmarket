@@ -15,8 +15,7 @@ export default async function InvoicesPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { invoices, products, customers } = await fetchStoreData(storeId);
-  const { data: storeRes } = await supabase.from('stores').select('*').eq('id', storeId).single();
+  const { invoices, products, customers, store } = await fetchStoreData(storeId, undefined, { orders: false });
   const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   return (
@@ -24,7 +23,7 @@ export default async function InvoicesPage() {
       invoices={invoices as any} 
       products={products as any}
       customers={customers as any}
-      storeSettings={storeRes?.settings || {}}
+      storeSettings={store?.settings || {}}
       permissions={permissions as any}
       userRole={role as any}
     />

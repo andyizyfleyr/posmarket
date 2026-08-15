@@ -16,7 +16,7 @@ export default async function CustomersPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { customers } = await fetchStoreData(storeId);
+  const { customers } = await fetchStoreData(storeId, undefined, { products: false, orders: false, invoices: false });
   const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   // Define client-side compatible wrappers for server actions

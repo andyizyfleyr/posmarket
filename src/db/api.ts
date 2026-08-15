@@ -29,7 +29,31 @@ function toSnakeStore(store: any): any {
   };
 }
 
-export async function dbFetchStoreData(storeId: string, ownerId?: string) {
+export interface StoreDataFields {
+  products?: boolean;
+  orders?: boolean;
+  customers?: boolean;
+  invoices?: boolean;
+}
+
+export async function dbFetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
+  const needs = {
+    products: fields?.products !== false,
+    orders: fields?.orders !== false,
+    customers: fields?.customers !== false,
+    invoices: fields?.invoices !== false,
+  };
+
+  const tasks: Promise<any>[] = [
+    db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
+    needs.products ? db.select().from(products).where(eq(products.storeId, storeId)).limit(200) : Promise.resolve([]),
+    needs.orders ? db.select().from(orders).where(eq(orders.storeId, storeId)).orderBy(desc(orders.date)).limit(100) : Promise.resolve([]),
+    needs.customers ? db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100) : Promise.resolve([]),
+    needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
+    needs.products ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => []) : Promise.resolve([]),
+    ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
+  ];
+
   const [
     storeRes,
     productsRes,
@@ -38,15 +62,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string) {
     invoicesRes,
     statsRes,
     profileRes
-  ] = await Promise.all([
-    db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
-    db.select().from(products).where(eq(products.storeId, storeId)).limit(200),
-    db.select().from(orders).where(eq(orders.storeId, storeId)).orderBy(desc(orders.date)).limit(100),
-    db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100),
-    db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []),
-    db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => []),
-    ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
-  ]);
+  ] = await Promise.all(tasks);
 
   const store = storeRes[0] || null;
   let profile = profileRes[0] || null;
@@ -84,25 +100,39 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string) {
 
   let itemsByOrder: Record<string, any[]> = {};
   if (orderIds.length > 0) {
-    const itemsRes = await db
-      .select()
+    // Single query: order items LEFT JOIN products (one round-trip instead of two)
+    const joinedRows = await db
+      .select({
+        orderId: orderItems.orderId,
+        quantity: orderItems.quantity,
+        unitPrice: orderItems.unitPrice,
+        total: orderItems.total,
+        productId: orderItems.productId,
+        productName: products.name,
+        productPrice: products.price,
+        productImage: products.image,
+        productStoreId: products.storeId,
+        productBusinessType: products.businessType,
+        productMainCategory: products.mainCategory,
+      })
       .from(orderItems)
+      .leftJoin(products, eq(orderItems.productId, products.id))
       .where(inArray(orderItems.orderId, orderIds));
 
-    const productIds = [...new Set(itemsRes.map((i: any) => i.productId).filter(Boolean))];
-    let productsMap: Record<string, any> = {};
-    if (productIds.length > 0) {
-      const prodRes = await db
-        .select()
-        .from(products)
-        .where(inArray(products.id, productIds));
-      productsMap = Object.fromEntries(prodRes.map((p: any) => [p.id, p]));
-    }
-
-    itemsByOrder = (itemsRes || []).reduce((acc: Record<string, any[]>, item: any) => {
+    itemsByOrder = (joinedRows || []).reduce((acc: Record<string, any[]>, item: any) => {
       if (!acc[item.orderId]) acc[item.orderId] = [];
       acc[item.orderId].push({
-        product: item.productId ? productsMap[item.productId] || null : null,
+        product: item.productId
+          ? {
+              id: item.productId,
+              name: item.productName,
+              price: item.productPrice != null ? parseFloat(item.productPrice) : 0,
+              image: item.productImage,
+              storeId: item.productStoreId,
+              businessType: item.productBusinessType,
+              mainCategory: item.productMainCategory,
+            }
+          : null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.total,

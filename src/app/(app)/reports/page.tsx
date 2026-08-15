@@ -14,15 +14,14 @@ export default async function ReportsPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { orders, customers } = await fetchStoreData(storeId);
-  const { data: storeRes } = await supabase.from('stores').select('*').eq('id', storeId).single();
+  const { orders, customers, store } = await fetchStoreData(storeId, undefined, { products: false, invoices: false });
 
   return (
     <ReportsView 
       orders={orders as any} 
       customers={customers as any} 
-      storeSettings={storeRes?.settings || {}}
-      store={storeRes as any}
+      storeSettings={store?.settings || {}}
+      store={store as any}
     />
   );
 }

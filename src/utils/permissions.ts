@@ -13,27 +13,29 @@ export const FULL_PERMISSIONS = {
 };
 
 export const getPermissionsForUser = async (supabase: any, userId: string, storeId: string) => {
-  // 1. Check if owner
-  const { data: store } = await safeSupabaseFetch<any>(
-    () => supabase.from('stores').select('user_id').eq('id', storeId).single()
-  );
-  
-  const { data: profile } = await safeSupabaseFetch<any>(
-    () => supabase.from('profiles').select('is_super_admin').eq('id', userId).single()
-  );
+  const [storeRes, profileRes, staffRes] = await Promise.all([
+    safeSupabaseFetch<any>(
+      () => supabase.from('stores').select('user_id').eq('id', storeId).single()
+    ),
+    safeSupabaseFetch<any>(
+      () => supabase.from('profiles').select('is_super_admin').eq('id', userId).single()
+    ),
+    safeSupabaseFetch<any>(
+      () => supabase.from('store_staff')
+        .select('role, permissions')
+        .eq('store_id', storeId)
+        .eq('user_id', userId)
+        .single()
+    )
+  ]);
+
+  const { data: store } = storeRes;
+  const { data: profile } = profileRes;
+  const { data: staff } = staffRes;
 
   if (store?.user_id === userId || profile?.is_super_admin) {
     return { permissions: FULL_PERMISSIONS, role: 'OWNER' };
   }
-
-  // 2. Check staff
-  const { data: staff } = await safeSupabaseFetch<any>(
-    () => supabase.from('store_staff')
-      .select('role, permissions')
-      .eq('store_id', storeId)
-      .eq('user_id', userId)
-      .single()
-  );
 
   if (staff) {
     return { 

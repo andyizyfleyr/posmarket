@@ -18,10 +18,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   console.log(`[Layout] User authenticated: ${user.id}. Fetching profile...`);
 
-  // Fetch basic profile
-  const { data: profile } = await safeSupabaseFetch<any>(
-    () => supabase.from('profiles').select('*').eq('id', user.id).single()
-  );
+  // Fetch basic profile + stores + staff entries in parallel
+  const [profileRes, ownedStoresRes, staffEntriesRes] = await Promise.all([
+    safeSupabaseFetch<any>(
+      () => supabase.from('profiles').select('*').eq('id', user.id).single()
+    ),
+    safeSupabaseFetch<any[]>(
+      () => supabase.from('stores').select('*').eq('user_id', user.id)
+    ),
+    safeSupabaseFetch<any[]>(
+      () => supabase.from('store_staff').select('id, store_id, role').eq('user_id', user.id)
+    )
+  ]);
+
+  const { data: profile } = profileRes;
+  const { data: ownedStores } = ownedStoresRes;
+  const { data: staffEntries } = staffEntriesRes;
 
   const userSubscription = {
     tier: (profile?.subscription_tier as SubscriptionTier) || 'PRO',
@@ -32,17 +44,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } as any;
 
   const currentPlan = SUBSCRIPTION_PLANS[userSubscription.tier as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.PRO;
-
-  // Fetch stores that this user owns or staff in
-  console.log('[Layout] Fetching stores...');
-  const { data: ownedStores } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('stores').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
-  );
-
-  console.log('[Layout] Fetching staff entries...');
-  const { data: staffEntries } = await safeSupabaseFetch<any[]>(
-    () => supabase.from('store_staff').select('id, store_id, role').eq('user_id', user.id)
-  );
 
   const staffStoreIds = staffEntries?.map(s => s.store_id) || [];
 
