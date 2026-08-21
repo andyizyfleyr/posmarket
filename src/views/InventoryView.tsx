@@ -868,7 +868,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             <option value="nuitée">Nuitée</option>
                             <option value="service">Service / Forfait</option>
                           </optgroup>
-                          <option value="custom">Autre (Saisie libre)...</option>
+                          <option value="custom">✨ Autre (Saisie libre)...</option>
                         </select>
 
                         {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
@@ -950,7 +950,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   <option value="Saveur">Saveur / Goût</option>
                                   <option value="Matière">Matière</option>
                                   <option value="Poids">Poids</option>
-                                  <option value="custom">Autre...</option>
+                                  <option value="custom">✨ Autre...</option>
                                 </select>
 
                                 {((option as any).isCustom || (!['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids', ''].includes(option.name))) ? (
@@ -1023,12 +1023,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 : 'bg-white text-gray-400 border-gray-100 hover:border-orange-200 hover:text-orange-500'
                                               }`}
                                           >
-                                            {isAlreadyAdded ? (
-                                              <Check size={10} strokeWidth={3.5} className="inline flex-shrink-0" />
-                                            ) : (
-                                              <Plus size={10} strokeWidth={3.5} className="inline flex-shrink-0" />
-                                            )}{" "}
-                                            {suggest}
+                                            {isAlreadyAdded ? '✓ ' : '+ '}{suggest}
                                           </button>
                                         );
                                       })}

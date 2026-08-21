@@ -12,7 +12,6 @@ import {
     Printer,
     ChevronRight,
     CheckCircle2,
-    Check,
     Clock,
     Send,
     Trash2,
@@ -393,7 +392,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                     <div key={s} className="relative z-10 flex flex-col items-center">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs transition-all duration-300 ${step >= s ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400'
                                             }`}>
-                                            {step > s ? <Check size={14} strokeWidth={3.5} /> : s}
+                                            {step > s ? '✓' : s}
                                         </div>
                                         <span className={`text-[8px] font-black uppercase tracking-widest mt-2 ${step >= s ? 'text-[#f56b2a]' : 'text-gray-300'}`}>
                                             {s === 1 ? 'Client' : s === 2 ? 'Dates' : 'Articles'}

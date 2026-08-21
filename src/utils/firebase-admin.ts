@@ -14,7 +14,7 @@ if (!admin.apps.length) {
     } else {
       // Fallback local pour développement (ajoutez le fichier dans .gitignore !)
       // admin.initializeApp({
-      // credential: admin.credential.applicationDefault()
+      //   credential: admin.credential.applicationDefault()
       // });
       console.warn('FIREBASE_SERVICE_ACCOUNT is missing. Notifications will not be sent.');
     }
@@ -59,7 +59,7 @@ export async function sendPushNotification(
 export async function sendOrderNotification(storeName: string, total: number, storeId: string) {
   return sendPushNotification(
     `store_${storeId}`,
-    'Nouvelle Commande ! ',
+    'Nouvelle Commande ! 🛍️',
     `Une commande de ${total.toLocaleString()} CFA a été placée sur la boutique ${storeName}.`,
     { type: 'NEW_ORDER', store_id: storeId }
   );

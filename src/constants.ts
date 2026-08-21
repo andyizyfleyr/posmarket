@@ -1,20 +1,5 @@
 
 import { Product, Customer, StoreSettings, SubscriptionPlan } from '@/types';
-import {
-  Smartphone,
-  Shirt,
-  ShoppingBasket,
-  UtensilsCrossed,
-  Sofa,
-  Sparkles,
-  Car,
-  Dumbbell,
-  Wrench,
-  BookOpen,
-  Baby,
-  Shapes
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   name: "POS Pro Dakar",
@@ -38,37 +23,6 @@ export const MAIN_CATEGORIES = [
   'Jouets & Enfants',
   'Divers'
 ];
-
-// Identité visuelle des catégories (icônes + couleurs) pour la home marketplace
-export const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  'Électronique & High-Tech': Smartphone,
-  'Mode & Accessoires': Shirt,
-  'Épicerie & Supermarché': ShoppingBasket,
-  'Restauration & Livraison Rapide': UtensilsCrossed,
-  'Mobilier & Décoration': Sofa,
-  'Beauté, Santé & Bien-être': Sparkles,
-  'Auto & Moto': Car,
-  'Sport & Loisirs': Dumbbell,
-  'Bricolage & Jardin': Wrench,
-  'Livres & Papeterie': BookOpen,
-  'Jouets & Enfants': Baby,
-  'Divers': Shapes
-};
-
-export const CATEGORY_COLORS: Record<string, string> = {
-  'Électronique & High-Tech': 'bg-blue-50 text-blue-600 border-blue-100',
-  'Mode & Accessoires': 'bg-pink-50 text-pink-600 border-pink-100',
-  'Épicerie & Supermarché': 'bg-green-50 text-green-600 border-green-100',
-  'Restauration & Livraison Rapide': 'bg-orange-50 text-orange-600 border-orange-100',
-  'Mobilier & Décoration': 'bg-amber-50 text-amber-600 border-amber-100',
-  'Beauté, Santé & Bien-être': 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100',
-  'Auto & Moto': 'bg-slate-100 text-slate-700 border-slate-200',
-  'Sport & Loisirs': 'bg-cyan-50 text-cyan-600 border-cyan-100',
-  'Bricolage & Jardin': 'bg-lime-50 text-lime-600 border-lime-100',
-  'Livres & Papeterie': 'bg-indigo-50 text-indigo-600 border-indigo-100',
-  'Jouets & Enfants': 'bg-red-50 text-red-500 border-red-100',
-  'Divers': 'bg-gray-50 text-gray-600 border-gray-100'
-};
 
 export const CATEGORY_MAPPING: Record<string, string> = {
   'Électronique': 'Électronique & High-Tech',

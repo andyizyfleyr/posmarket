@@ -140,12 +140,12 @@ const fetchStoreBundle = async (storeId: string) => {
 
     orders: (ordersRes.data || []).map((o) => ({
       ...formatOrder(o, customersMap),
-      items: [] // Obligatoire pour le type Order
+      items: [] // ✅ Obligatoire pour le type Order
     })),
 
     invoices: (invoicesRes.data || []).map((i) => ({
       ...formatInvoice(i, customersMap),
-      items: [] // Obligatoire pour le type Invoice
+      items: [] // ✅ Obligatoire pour le type Invoice
     })),
 
     customers: (customersRes.data || []).map((c) => ({
