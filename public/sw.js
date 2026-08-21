@@ -1,8 +1,7 @@
-const CACHE_NAME = 'marketplace-premium-cache-v1';
+const CACHE_NAME = 'marketplace-premium-cache-v2';
+const MAX_ENTRIES = 200;
 const STATIC_ASSETS = [
-    '/',
-    '/globals.css',
-    '/manifest.json', // I'll create this later if needed
+    '/manifest.json',
 ];
 
 // 🚀 INSTALL: Pre-cache critical assets (Simulate Cache Reserve)
@@ -16,13 +15,18 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// 🧹 ACTIVATE: Cleanup old caches
+// 🧹 ACTIVATE: Cleanup old caches + trim current cache
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-            );
+            ).then(() => caches.open(CACHE_NAME)).then(async (cache) => {
+                const keys = await cache.keys();
+                if (keys.length > MAX_ENTRIES) {
+                    await Promise.all(keys.slice(0, keys.length - MAX_ENTRIES).map((req) => cache.delete(req)));
+                }
+            });
         })
     );
     self.clients.claim();
@@ -59,7 +63,7 @@ self.addEventListener('fetch', (event) => {
                             cache.put(request, networkResponse.clone());
                         }
                         return networkResponse;
-                    }).catch(() => null);
+                    });
 
                     return cachedResponse || fetchPromise;
                 });
@@ -68,15 +72,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // ⚡ Strategy for STATIC FILES (JS, CSS, Fonts)
+    // ⚡ Strategy for STATIC FILES (JS, CSS, Fonts): Stale-While-Revalidate
+    // Sert le cache instantanément mais rafraîchit en arrière-plan → jamais de vieux bundle bloqué après un déploiement.
     if (request.destination === 'font' || request.destination === 'script' || request.destination === 'style') {
         event.respondWith(
-            caches.match(request).then((cachedResponse) => {
-                return cachedResponse || fetch(request).then((networkResponse) => {
-                    return caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, networkResponse.clone());
+            caches.open(CACHE_NAME).then((cache) => {
+                return cache.match(request).then((cachedResponse) => {
+                    const fetchPromise = fetch(request).then((networkResponse) => {
+                        if (networkResponse && networkResponse.status === 200) {
+                            cache.put(request, networkResponse.clone());
+                        }
                         return networkResponse;
                     });
+                    return cachedResponse || fetchPromise;
                 });
             })
         );

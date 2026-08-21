@@ -7,9 +7,39 @@ import Providers from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "POS Market | Votre Marketplace Express Premium",
-  description: "Découvrez les meilleures boutiques et produits sur notre marketplace ultra-rapide. Vendez et achetez en toute sécurité.",
-  keywords: "marketplace, shopping, e-commerce, boutique en ligne, vente express",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app",
+  ),
+  title: {
+    default: "PosMarket | Votre Marketplace Express Premium",
+    template: "%s | PosMarket",
+  },
+  description:
+    "Découvrez les meilleures boutiques et produits sur notre marketplace ultra-rapide. Vendez et achetez en toute sécurité.",
+  keywords: [
+    "PosMarket",
+    "marketplace",
+    "shopping",
+    "e-commerce",
+    "boutique en ligne",
+    "vente express",
+  ],
+  applicationName: "PosMarket",
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "PosMarket",
+    title: "PosMarket | Votre Marketplace Express Premium",
+    description:
+      "Découvrez les meilleures boutiques et produits sur notre marketplace ultra-rapide. Vendez et achetez en toute sécurité.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PosMarket | Votre Marketplace Express Premium",
+    description:
+      "Découvrez les meilleures boutiques et produits sur notre marketplace ultra-rapide. Vendez et achetez en toute sécurité.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

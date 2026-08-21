@@ -48,6 +48,7 @@ import {
   Clock,
   ShoppingBag,
   Tag,
+  RotateCcw,
 } from "lucide-react";
 import {
   StoreData,
@@ -68,6 +69,7 @@ import ProductImage from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
+import { MarketplaceFooter } from "@/components/MarketplaceFooter";
 import {
   Routes,
   Route,
@@ -3440,15 +3442,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             {/* Main Interaction Bar */}
             <div className="flex items-center justify-between py-4">
               {/* Logo with modern typography */}
-              <div
+              <Link
+                to="/"
                 className="flex items-center cursor-pointer group flex-shrink-0"
+                aria-label="PosMarket - Retour à l'accueil"
                 onClick={() => {
-                  safeNavigate("/", {
-                    action: () => {
-                      setSearchTerm("");
-                      setSelectedCategory("all");
-                    },
-                  });
+                  setSearchTerm("");
+                  setSelectedCategory("all");
                 }}
               >
                 <div className="w-8 h-8 md:w-10 md:h-10 bg-[#f56b2a] rounded-2xl flex items-center justify-center shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform mr-2 md:mr-3">
@@ -3463,13 +3463,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </div>
                 <div className="flex flex-col">
                   <span className="text-base md:text-2xl font-black tracking-tight leading-none text-gray-900">
-                    Market<span className="text-[#f56b2a]">Place</span>
+                    Pos<span className="text-[#f56b2a]">Market</span>
                   </span>
                   <span className="hidden md:block text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] leading-none mt-1">
                     Local & Express
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* Search Bar - Desktop Only version */}
               <div className="hidden md:block flex-grow max-w-[600px] mx-8 relative">
@@ -3478,22 +3478,29 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     <Search size={18} strokeWidth={2.5} />
                   </div>
                   <input
+                    id="desktop-search-input"
                     type="text"
+                    aria-label="Rechercher un produit ou une boutique"
                     placeholder="Chercher un produit, une boutique..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-transparent py-3 px-3 text-sm font-bold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none"
                   />
-                  <button className="bg-[#f56b2a] hover:bg-[#d55a20] text-white px-6 py-3 font-black text-sm transition-all active:scale-95">
+                  <span
+                    aria-hidden="true"
+                    className="bg-[#f56b2a] hover:bg-[#d55a20] text-white px-6 py-3 font-black text-sm transition-all cursor-pointer select-none"
+                  >
                     Rechercher
-                  </button>
+                  </span>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 <div className="relative group">
-                  <button
+                  <Link
+                    to="/cart"
+                    aria-label={`Panier${cartItemsCount > 0 ? ` (${cartItemsCount} articles)` : ""}`}
                     onClick={() => {
                       if (checkoutStage === "success") {
                         setCheckoutStage("cart");
@@ -3501,7 +3508,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setCompletedOrderItems([]);
                         setCompletedOrderTotal(0);
                       }
-                      safeNavigate("/cart");
                     }}
                     className="w-9 h-9 md:w-12 md:h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 group-hover:bg-[#f56b2a] group-hover:text-white transition-all active:scale-90"
                   >
@@ -3520,7 +3526,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         {cartItemsCount}
                       </div>
                     )}
-                  </button>
+                  </Link>
                 </div>
 
                 {/* User Profile Button */}
@@ -3563,6 +3569,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <input
                   id="mobile-search-input"
                   type="text"
+                  aria-label="Rechercher un produit ou une boutique"
                   placeholder="Je cherche..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -3848,7 +3855,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               <>
                 {/* Hidden H1 for SEO - Important for index page */}
                 <h1 className="sr-only">
-                  POS Market - Boutique Marketplace Express Premium
+                  PosMarket - Marketplace Express Premium
                 </h1>
 
                 {/* Hero Bannière Premium - Carousel */}
@@ -3892,8 +3899,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         </div>
                       </div>
 
-                      {/* Slide 2 - Gestion */}
-                      <div className="min-w-full relative bg-gradient-to-br from-[#e0f2fe] to-[#f0f9ff] flex items-center justify-center border border-white">
+                      {/* Slide 2 - Gestion */}                      <div className="min-w-full relative bg-gradient-to-br from-[#e0f2fe] to-[#f0f9ff] flex items-center justify-center border border-white">
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute right-0 top-0 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
                         </div>
@@ -3918,7 +3924,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             loading={isNavigating}
                             variant="secondary"
                             size="xl"
-                            className="bg-blue-600 hover:bg-blue-700"
                           >
                             Commencer maintenant
                           </Button>
@@ -3946,9 +3951,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             onClick={() =>
                               safeNavigate(user ? "/dashboard" : "/login")
                             }
+                            loading={isNavigating}
                             variant="secondary"
                             size="xl"
-                            className="bg-red-600 hover:bg-red-700"
                           >
                             Commencer maintenant
                           </Button>
@@ -3959,9 +3964,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     {/* Pagination Dots */}
                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                       {[0, 1, 2].map((idx) => (
-                        <div
+                        <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
+                          aria-label={`Aller à la diapositive ${idx + 1}`}
+                          aria-current={currentSlide === idx}
                           className={`h-1.5 rounded-full transition-all cursor-pointer ${currentSlide === idx ? "w-8 bg-gray-900" : "w-2 bg-gray-300"}`}
                         />
                       ))}
@@ -4303,12 +4310,53 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       )}
                     </div>
                   </>
+                ) : isInitialLoading ? (
+                  null
+                ) : activeStores.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-600">
+                    <AlertCircle size={64} className="opacity-20 mb-4" />
+                    <p className="text-xl font-black text-gray-600 text-center">
+                      Impossible de charger le catalogue.
+                    </p>
+                    <p className="text-xs font-bold text-gray-400 mt-2 mb-6">
+                      Vérifiez votre connexion internet puis réessayez.
+                    </p>
+                    <Button
+                      onClick={() => window.location.reload()}
+                      variant="primary"
+                      size="md"
+                      icon={<RotateCcw size={14} />}
+                    >
+                      Réessayer
+                    </Button>
+                  </div>
                 ) : !isLoadingMore ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-600">
                     <Search size={64} className="opacity-20 mb-4" />
-                    <p className="text-xl font-black text-gray-600">
-                      Aucun produit trouvé.
-                    </p>
+                    {searchTerm || selectedCategory !== "all" ? (
+                      <>
+                        <p className="text-xl font-black text-gray-600">
+                          Aucun produit trouvé.
+                        </p>
+                        <p className="text-xs font-bold text-gray-400 mt-2 mb-6">
+                          Essayez un autre terme ou élargissez vos filtres.
+                        </p>
+                        <Button
+                          onClick={() => {
+                            setSearchTerm("");
+                            setSelectedCategory("all");
+                          }}
+                          variant="outline"
+                          size="md"
+                        >
+                          Voir tout le catalogue
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-xl font-black text-gray-600">
+                        Aucun produit trouvé.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-20">
@@ -4572,6 +4620,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           <Route path="cart" element={renderCart()} />
         </Routes>
       </main>
+
+      {/* Footer - Home only */}
+      {(location.pathname === "/" ||
+        !location.pathname ||
+        location.pathname === "") && <MarketplaceFooter />}
 
       {cartItemsCount > 0 && !isCartView && !isFeedView && (
         <div
