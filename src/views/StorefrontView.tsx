@@ -257,6 +257,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
   const [urlKey, setUrlKey] = useState(0);
+  const [productSwipeIdx, setProductSwipeIdx] = useState(0);
+  const [productSection, setProductSection] = useState("pd-produit");
 
   // 0. URL Change Listener - Force re-render on navigation
   useEffect(() => {
@@ -1088,8 +1090,33 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       incrementProductViews(selectedProductId);
       setIsDescriptionExpanded(false); // Reset expansion on new product
       setSelectedDetailImage(null); // Reset selected image on new product
+      setProductSwipeIdx(0);
+      setProductSection("pd-produit");
     }
   }, [selectedProductId, selectedProductDetails]);
+
+  // Scrollspy for the mobile app-style section tabs on product pages
+  useEffect(() => {
+    if (!location.pathname.includes("/product/")) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const ids = ["pd-produit", "pd-avis", "pd-similaires"];
+        let current = "pd-produit";
+        for (const id of ids) {
+          const el = document.getElementById(id);
+          if (el && el.getBoundingClientRect().top <= 140) current = id;
+        }
+        setProductSection(current);
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [location.pathname]);
 
   // Fetch product reviews (with cleanup + caching)
   useEffect(() => {
@@ -2056,14 +2083,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         )
       : undefined;
 
-    const basePrice = matchedVariant
-      ? matchedVariant.price
-      : product.price;
+    const basePrice = matchedVariant ? matchedVariant.price : product.price;
     const discountPct =
       product.originalPrice && product.originalPrice > basePrice
         ? Math.round(
-            ((product.originalPrice - basePrice) /
-              product.originalPrice) *
+            ((product.originalPrice - basePrice) / product.originalPrice) *
               100,
           )
         : 0;
@@ -2072,7 +2096,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     const stockValue =
       product.stock != null ? (product.stock as number) : null;
     const isOutOfStock = stockValue === 0;
-    const isLowStock = stockValue !== null && stockValue > 0 && stockValue <= 5;
+    const isLowStock =
+      stockValue !== null && stockValue > 0 && stockValue <= 5;
     const stockFill =
       stockValue === null
         ? 0
@@ -2125,9 +2150,38 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       ? "bg-green-50 text-green-700 border-green-200"
       : "bg-orange-50 text-[#f56b2a] border-orange-200";
 
+    const sectionTabs = [
+      { id: "pd-produit", label: "Produit" },
+      { id: "pd-avis", label: `Avis (${formatNumber(reviewTotal)})` },
+      { id: "pd-similaires", label: "Similaires" },
+    ];
+
+    const openZoom = (img: string) => {
+      setCurrentZoomImage(img);
+      setIsImageModalOpen(true);
+    };
+
+    const onGalleryScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const idx = Math.min(
+        galleryImages.length - 1,
+        Math.max(0, Math.round(el.scrollLeft / el.clientWidth)),
+      );
+      if (idx !== productSwipeIdx) {
+        setProductSwipeIdx(idx);
+        setSelectedDetailImage(galleryImages[idx]);
+      }
+    };
+
+    const scrollToSection = (id: string) => {
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-10 pb-44 lg:pb-12">
-        {/* Breadcrumb */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-40 lg:pb-12">
+        {/* Breadcrumb (desktop) */}
         <nav
           aria-label="Fil d'Ariane"
           className="hidden md:flex items-center gap-2 mb-6 text-[11px] font-bold text-gray-400 uppercase tracking-widest"
@@ -2150,189 +2204,267 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             {mainCat}
           </button>
           <ChevronRight size={11} />
-          <span className="text-gray-900 truncate max-w-[280px]" aria-current="page">
+          <span
+            className="text-gray-900 truncate max-w-[280px]"
+            aria-current="page"
+          >
             {product.name}
           </span>
         </nav>
 
-        {/* Back mobile */}
-        <button
-          onClick={() => safeNavigate("/")}
-          aria-label="Retour au catalogue"
-          className="md:hidden w-9 h-9 mb-3 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
-        >
-          <ArrowLeft size={16} strokeWidth={2.5} />
-        </button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-start">
-          {/* ================= GALLERY ================= */}
-          <div className="space-y-3 lg:sticky lg:top-24">
-            <div className="relative w-full aspect-square rounded-[24px] md:rounded-[32px] overflow-hidden bg-gradient-to-br from-gray-50 to-white border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.06)] group/main">
-              <Image
-                src={currentImage}
-                width={1000}
-                height={1000}
-                priority
-                alt={product.name}
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/main:scale-[1.04]"
+        {/* App-style sticky section tabs (mobile only) */}
+        <div className="lg:hidden sticky top-0 z-[90] -mx-4 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex">
+          {sectionTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => scrollToSection(tab.id)}
+              className={`relative flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                productSection === tab.id
+                  ? "text-gray-900"
+                  : "text-gray-400"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] rounded-full transition-all duration-300 ${
+                  productSection === tab.id
+                    ? "w-10 bg-[#f56b2a]"
+                    : "w-0 bg-transparent"
+                }`}
               />
+            </button>
+          ))}
+        </div>
 
-              {/* Discount badge */}
-              {discountPct > 0 && (
-                <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white text-[11px] font-black uppercase tracking-widest pl-3 pr-4 py-2 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-1">
-                  <Zap size={12} fill="currentColor" /> -{discountPct}%
-                </div>
-              )}
-
-              {/* Expand */}
-              <button
-                onClick={() => {
-                  setCurrentZoomImage(currentImage);
-                  setIsImageModalOpen(true);
-                }}
-                aria-label="Agrandir l'image"
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
-              >
-                <Maximize2 size={15} />
-              </button>
-
-              {/* Food freshness strip */}
-              {isFood && (
-                <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-green-100 text-green-700 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
-                  <Clock size={11} />
-                  Fraîchement préparé · {product.deliveryTime || "30-45 min"}
-                </div>
-              )}
-            </div>
-
-            {/* Thumbnails */}
-            {galleryImages.length > 1 && (
-              <div className="grid grid-cols-6 gap-2">
-                {galleryImages.slice(0, 6).map((img, idx) => {
-                  const isActive =
-                    currentImage === img ||
-                    (!selectedDetailImage && idx === 0);
-                  return (
-                    <button
+        {/* ================= PRODUIT ================= */}
+        <div id="pd-produit" className="scroll-mt-14">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-14 items-start">
+            {/* ---------- Gallery ---------- */}
+            <div className="relative lg:sticky lg:top-24">
+              {/* Mobile: full-bleed swipeable gallery */}
+              <div className="lg:hidden relative bg-gray-100 overflow-hidden -mx-4">
+                <div
+                  className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory"
+                  onScroll={onGalleryScroll}
+                >
+                  {galleryImages.map((img, idx) => (
+                    <div
                       key={idx}
-                      onMouseEnter={() => setSelectedDetailImage(img)}
-                      onFocus={() => setSelectedDetailImage(img)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedDetailImage(img);
-                      }}
-                      aria-label={`Voir l'image ${idx + 1}`}
-                      className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                        isActive
-                          ? "border-[#f56b2a] ring-2 ring-orange-100 scale-[1.03]"
-                          : "border-transparent opacity-70 hover:opacity-100"
-                      }`}
+                      className="min-w-full snap-center aspect-square relative"
+                      onClick={() => openZoom(galleryImages[productSwipeIdx])}
                     >
                       <Image
                         src={img}
                         alt={`${product.name} - vue ${idx + 1}`}
-                        width={120}
-                        height={120}
-                        className="w-full h-full object-cover"
-                        sizes="80px"
+                        fill
+                        priority={idx === 0}
+                        sizes="100vw"
+                        className="object-cover pointer-events-none"
                       />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* ================= INFO PANEL ================= */}
-          <div className="flex flex-col lg:pt-2">
-            {/* Store row */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <Link
-                to={`/store/${product.storeSlug || product.storeId}`}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all hover:scale-[1.02] active:scale-95 ${accentBg}`}
-              >
-                {isFood ? "🧑‍🍳" : "📦"} {product.storeName}
-                <ChevronRight size={11} strokeWidth={3} />
-              </Link>
-              {!isFood && (
-                <span className="inline-flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-                  <Truck size={11} className="text-[#f56b2a]" />
-                  Livraison rapide
-                </span>
-              )}
-            </div>
-
-            {/* Title */}
-            <h2 className="text-[22px] md:text-4xl font-black text-gray-900 leading-[1.12] tracking-tight mb-3">
-              {product.name}
-              {product.unit && (
-                <span className="block md:inline md:ml-2 text-sm md:text-lg text-gray-400 font-bold align-middle">
-                  {product.unit}
-                </span>
-              )}
-            </h2>
-
-            {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
-              <div className="flex items-center gap-1.5">
-                <div className="flex text-yellow-400">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      size={13}
-                      fill={
-                        s <= Math.round(product.rating || 0)
-                          ? "currentColor"
-                          : "none"
-                      }
-                    />
+                    </div>
                   ))}
                 </div>
-                <span className="text-xs font-black text-gray-900">
-                  {(product.rating || 0).toFixed(1)}
-                </span>
+
+                {/* Back button overlay */}
                 <button
-                  onClick={() =>
-                    document
-                      .getElementById("avis-clients")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  className="text-[11px] font-bold text-gray-400 underline underline-offset-2 decoration-gray-300 hover:text-[#f56b2a] transition-colors cursor-pointer"
+                  onClick={() => safeNavigate("/")}
+                  aria-label="Retour au catalogue"
+                  className="absolute top-3 left-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 active:scale-90 transition-transform z-10"
                 >
-                  {formatNumber(reviewTotal)} avis
+                  <ArrowLeft size={16} strokeWidth={2.5} />
                 </button>
+
+                {/* Expand */}
+                <button
+                  onClick={() => openZoom(currentImage)}
+                  aria-label="Agrandir l'image"
+                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 active:scale-95 transition-all z-10"
+                >
+                  <Maximize2 size={14} />
+                </button>
+
+                {/* Discount badge */}
+                {discountPct > 0 && (
+                  <div className="absolute top-14 left-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-black uppercase tracking-widest pl-2.5 pr-3 py-1.5 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-1 z-10">
+                    <Zap size={11} fill="currentColor" /> -{discountPct}%
+                  </div>
+                )}
+
+                {/* Freshness strip (food) */}
+                {isFood && (
+                  <div className="absolute bottom-3 left-3 right-14 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-green-100 text-green-700 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm w-fit max-w-full z-10">
+                    <Clock size={11} className="flex-shrink-0" />
+                    Fraîchement préparé ·{" "}
+                    {product.deliveryTime || "30-45 min"}
+                  </div>
+                )}
+
+                {/* Counter badge */}
+                {galleryImages.length > 1 && (
+                  <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-black px-2.5 py-1 rounded-full z-10">
+                    {productSwipeIdx + 1}/{galleryImages.length}
+                  </div>
+                )}
               </div>
-              <span className="hidden sm:block w-1 h-1 bg-gray-200 rounded-full" />
-              <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
-                <ShoppingBag size={12} className={accentText} />
-                {formatNumber(product.salesCount || 0)} vendus
-              </span>
-              {!isFood && product.views != null && (
-                <>
-                  <span className="hidden sm:block w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-gray-500">
-                    <Eye size={12} className="text-gray-400" />
-                    {formatNumber(product.views)} vues
-                  </span>
-                </>
-              )}
+
+              {/* Desktop: main image + thumbnails */}
+              <div className="hidden lg:block space-y-3">
+                <div className="relative w-full aspect-square rounded-[32px] overflow-hidden bg-gradient-to-br from-gray-50 to-white border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.06)] group/main">
+                  <Image
+                    src={currentImage}
+                    width={1000}
+                    height={1000}
+                    priority
+                    alt={product.name}
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/main:scale-[1.04]"
+                  />
+
+                  {discountPct > 0 && (
+                    <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white text-[11px] font-black uppercase tracking-widest pl-3 pr-4 py-2 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-1">
+                      <Zap size={12} fill="currentColor" /> -{discountPct}%
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => openZoom(currentImage)}
+                    aria-label="Agrandir l'image"
+                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
+                  >
+                    <Maximize2 size={15} />
+                  </button>
+
+                  {isFood && (
+                    <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-green-100 text-green-700 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
+                      <Clock size={11} />
+                      Fraîchement préparé ·{" "}
+                      {product.deliveryTime || "30-45 min"}
+                    </div>
+                  )}
+                </div>
+
+                {galleryImages.length > 1 && (
+                  <div className="grid grid-cols-6 gap-2">
+                    {galleryImages.slice(0, 6).map((img, idx) => {
+                      const isActive =
+                        currentImage === img ||
+                        (!selectedDetailImage && idx === 0);
+                      return (
+                        <button
+                          key={idx}
+                          onMouseEnter={() => setSelectedDetailImage(img)}
+                          onFocus={() => setSelectedDetailImage(img)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDetailImage(img);
+                          }}
+                          aria-label={`Voir l'image ${idx + 1}`}
+                          className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                            isActive
+                              ? "border-[#f56b2a] ring-2 ring-orange-100 scale-[1.03]"
+                              : "border-transparent opacity-70 hover:opacity-100"
+                          }`}
+                        >
+                          <Image
+                            src={img}
+                            alt={`${product.name} - vue ${idx + 1}`}
+                            width={120}
+                            height={120}
+                            className="w-full h-full object-cover"
+                            sizes="80px"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Price panel */}
-            <div className="relative overflow-hidden rounded-[24px] border border-gray-100 bg-gradient-to-br from-orange-50/60 via-white to-white p-5 mb-6">
-              <div className="absolute -right-10 -top-10 w-36 h-36 bg-orange-100/40 rounded-full blur-3xl pointer-events-none" />
-              <div className="relative flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">
+            {/* ---------- Info sheet (app style) ---------- */}
+            <div className="relative z-10 bg-white lg:bg-transparent rounded-t-[28px] lg:rounded-none -mt-7 lg:mt-0 px-4 lg:px-0 pt-4 lg:p-0 shadow-[0_-8px_30px_rgba(0,0,0,0.07)] lg:shadow-none">
+              {/* Store row */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Link
+                  to={`/store/${product.storeSlug || product.storeId}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all hover:scale-[1.02] active:scale-95 ${accentBg}`}
+                >
+                  {isFood ? "🧑‍🍳" : "📦"} {product.storeName}
+                  <ChevronRight size={11} strokeWidth={3} />
+                </Link>
+                {!isFood && (
+                  <span className="inline-flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                    <Truck size={11} className="text-[#f56b2a]" />
+                    Livraison rapide
+                  </span>
+                )}
+              </div>
+
+              {/* Title */}
+              <h2 className="text-xl md:text-4xl font-black text-gray-900 leading-[1.15] tracking-tight mb-2.5">
+                {product.name}
+                {product.unit && (
+                  <span className="block md:inline md:ml-2 text-xs md:text-lg text-gray-400 font-bold align-middle">
+                    {product.unit}
+                  </span>
+                )}
+              </h2>
+
+              {/* Meta row */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex text-yellow-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={13}
+                        fill={
+                          s <= Math.round(product.rating || 0)
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-black text-gray-900">
+                    {(product.rating || 0).toFixed(1)}
+                  </span>
+                  <button
+                    onClick={() => scrollToSection("pd-avis")}
+                    className="text-[11px] font-bold text-gray-400 underline underline-offset-2 decoration-gray-300 hover:text-[#f56b2a] transition-colors cursor-pointer"
+                  >
+                    {formatNumber(reviewTotal)} avis
+                  </button>
+                </div>
+                <span className="hidden sm:block w-1 h-1 bg-gray-200 rounded-full" />
+                <span className="flex items-center gap-1 text-[11px] font-bold text-gray-500">
+                  <ShoppingBag size={12} className={accentText} />
+                  {formatNumber(product.salesCount || 0)} vendus
+                </span>
+                {!isFood && product.views != null && (
+                  <>
+                    <span className="hidden sm:block w-1 h-1 bg-gray-200 rounded-full" />
+                    <span className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-gray-500">
+                      <Eye size={12} className="text-gray-400" />
+                      {formatNumber(product.views)} vues
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Price panel */}
+              <div className="relative overflow-hidden rounded-[20px] md:rounded-[24px] border border-gray-100 bg-gradient-to-br from-orange-50/60 via-white to-white p-4 mb-5">
+                <div className="absolute -right-10 -top-10 w-36 h-36 bg-orange-100/40 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative">
+                  <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
                     {hasOptions && !allSelected
                       ? "À partir de"
                       : "Prix"}
                     {matchedVariant && " — option choisie"}
                   </span>
-                  <div className="flex items-baseline gap-3 flex-wrap">
+                  <div className="flex items-baseline gap-2.5 flex-wrap">
                     <span
-                      className={`text-3xl md:text-[42px] font-black tracking-tighter leading-none ${accentText}`}
+                      className={`text-[26px] md:text-[42px] font-black tracking-tighter leading-none ${accentText}`}
                     >
                       {formatCurrency(basePrice)}
                     </span>
@@ -2342,7 +2474,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <span className="text-sm text-gray-400 line-through font-bold">
                             {formatCurrency(product.originalPrice)}
                           </span>
-                          <span className="text-[10px] font-black text-white bg-red-500 px-2 py-1 rounded-full uppercase tracking-widest shadow-sm shadow-red-200">
+                          <span className="hidden sm:inline-block text-[10px] font-black text-white bg-red-500 px-2 py-1 rounded-full uppercase tracking-widest shadow-sm shadow-red-200">
                             Économisez{" "}
                             {formatCurrency(
                               product.originalPrice - basePrice,
@@ -2351,241 +2483,252 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         </>
                       )}
                   </div>
+                  {product.originalPrice &&
+                    product.originalPrice > basePrice && (
+                      <span className="sm:hidden mt-1.5 inline-flex text-[9px] font-black text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        Économisez{" "}
+                        {formatCurrency(product.originalPrice - basePrice)}
+                      </span>
+                    )}
                 </div>
+
+                {/* Wholesale teaser */}
+                {product.wholesalePrice && !isFood && (
+                  <button
+                    onClick={() => addWholesaleToCart(product)}
+                    className="relative mt-3.5 w-full flex items-center justify-between bg-gray-900 text-white rounded-xl md:rounded-2xl px-4 py-3 hover:bg-black transition-colors active:scale-[0.99] group/ws"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Package
+                        size={18}
+                        className="text-[#f56b2a] flex-shrink-0"
+                      />
+                      <div className="text-left min-w-0">
+                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-[#f56b2a]">
+                          Prix de gros
+                        </span>
+                        <span className="text-xs font-black truncate">
+                          {formatCurrency(product.wholesalePrice)}{" "}
+                          <span className="text-gray-400 font-bold">
+                            · dès {product.wholesaleMinQty} unités
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-gray-300 group-hover/ws:text-white transition-colors flex-shrink-0 ml-2">
+                      Lot <ArrowRight size={12} />
+                    </span>
+                  </button>
+                )}
               </div>
 
-              {/* Wholesale teaser */}
-              {product.wholesalePrice && !isFood && (
-                <button
-                  onClick={() => addWholesaleToCart(product)}
-                  className="relative mt-4 w-full flex items-center justify-between bg-gray-900 text-white rounded-2xl px-4 py-3 hover:bg-black transition-colors active:scale-[0.99] group/ws"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Package
-                      size={18}
-                      className="text-[#f56b2a] flex-shrink-0"
-                    />
-                    <div className="text-left min-w-0">
-                      <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-[#f56b2a]">
-                        Prix de gros
-                      </span>
-                      <span className="text-xs font-black truncate">
-                        {formatCurrency(product.wholesalePrice)}{" "}
-                        <span className="text-gray-400 font-bold">
-                          · dès {product.wholesaleMinQty} unités
-                        </span>
-                      </span>
+              {/* Options */}
+              {hasOptions && (
+                <div className="space-y-4 mb-5">
+                  {options.map((option) => (
+                    <div key={option.id}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                          {option.name}
+                        </h4>
+                        {selectedOptions[option.id] && (
+                          <span className="text-[10px] font-black text-[#f56b2a]">
+                            {selectedOptions[option.id]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {option.values.map((val) => {
+                          const isSelected =
+                            selectedOptions[option.id] === val;
+                          return (
+                            <button
+                              key={val}
+                              onClick={() =>
+                                setSelectedOptions((prev) => ({
+                                  ...prev,
+                                  [option.id]: val,
+                                }))
+                              }
+                              className={`px-4 py-2 rounded-full text-xs font-black transition-all border active:scale-95 ${
+                                isSelected
+                                  ? "bg-gray-900 text-white border-gray-900 shadow-lg shadow-gray-200"
+                                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-900"
+                              }`}
+                            >
+                              {val}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                  <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-gray-300 group-hover/ws:text-white transition-colors flex-shrink-0 ml-2">
-                    Lot <ArrowRight size={12} />
-                  </span>
-                </button>
+                  ))}
+                  {!allSelected && (
+                    <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl">
+                      <AlertCircle size={13} className="flex-shrink-0" />
+                      Choisissez vos options pour voir le prix exact
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
 
-            {/* Options */}
-            {hasOptions && (
-              <div className="space-y-5 mb-6">
-                {options.map((option) => (
-                  <div key={option.id}>
-                    <div className="flex items-center justify-between mb-2.5">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                        {option.name}
-                      </h4>
-                      {selectedOptions[option.id] && (
-                        <span className="text-[10px] font-black text-[#f56b2a]">
-                          {selectedOptions[option.id]}
+              {/* Stock meter */}
+              <div className="mb-5">
+                {stockValue !== null && stockValue > 0 && (
+                  <>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span
+                        className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${isLowStock ? "text-amber-600" : "text-green-600"}`}
+                      >
+                        <CheckCircle2 size={12} />
+                        En stock
+                      </span>
+                      {isLowStock && (
+                        <span className="text-[10px] font-black text-amber-600 animate-pulse">
+                          Plus que {stockValue} !
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {option.values.map((val) => {
-                        const isSelected =
-                          selectedOptions[option.id] === val;
-                        return (
-                          <button
-                            key={val}
-                            onClick={() =>
-                              setSelectedOptions((prev) => ({
-                                ...prev,
-                                [option.id]: val,
-                              }))
-                            }
-                            className={`px-5 py-2.5 rounded-full text-xs font-black transition-all border active:scale-95 ${
-                              isSelected
-                                ? "bg-gray-900 text-white border-gray-900 shadow-lg shadow-gray-200"
-                                : "bg-white text-gray-600 border-gray-200 hover:border-gray-900"
-                            }`}
-                          >
-                            {val}
-                          </button>
-                        );
-                      })}
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${isLowStock ? "bg-amber-400" : "bg-green-400"}`}
+                        style={{
+                          width: `${isLowStock ? Math.max(stockFill, 12) : stockFill}%`,
+                        }}
+                      />
                     </div>
-                  </div>
-                ))}
-                {!allSelected && (
-                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-100 px-3 py-2.5 rounded-xl">
-                    <AlertCircle size={13} className="flex-shrink-0" />
-                    Choisissez vos options pour voir le prix exact
+                  </>
+                )}
+                {isOutOfStock && (
+                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 border border-red-100 px-3 py-2.5 rounded-xl">
+                    <AlertCircle size={13} /> Rupture de stock — produit
+                    momentanément indisponible
+                  </p>
+                )}
+                {stockValue === null && (
+                  <p className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+                    <AlertCircle size={12} /> Disponibilité à confirmer
+                    auprès de la boutique
                   </p>
                 )}
               </div>
-            )}
 
-            {/* Stock meter */}
-            <div className="mb-6">
-              {stockValue !== null && stockValue > 0 && (
-                <>
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${isLowStock ? "text-amber-600" : "text-green-600"}`}
-                    >
-                      <CheckCircle2 size={12} />
-                      En stock
-                    </span>
-                    {isLowStock && (
-                      <span className="text-[10px] font-black text-amber-600 animate-pulse">
-                        Plus que {stockValue} en stock !
-                      </span>
-                    )}
+              {/* Trust badges */}
+              <div className="grid grid-cols-3 gap-2 mb-6">
+                <div className="flex flex-col items-center text-center gap-1.5 bg-gray-50/80 border border-gray-100 rounded-2xl py-3 px-1.5">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${isFood ? "bg-green-50 text-green-500" : "bg-orange-50 text-[#f56b2a]"}`}
+                  >
+                    <ShieldCheck size={15} />
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${isLowStock ? "bg-amber-400" : "bg-green-400"}`}
-                      style={{ width: `${isLowStock ? Math.max(stockFill, 12) : stockFill}%` }}
+                  <div>
+                    <p className="text-[9px] font-black text-gray-800 uppercase tracking-wider leading-none">
+                      {isFood ? "Fraîcheur" : "Qualité"}
+                    </p>
+                    <p className="text-[8px] font-bold text-gray-400 mt-1 leading-none">
+                      Garantie boutique
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center text-center gap-1.5 bg-gray-50/80 border border-gray-100 rounded-2xl py-3 px-1.5">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${isFood ? "bg-green-50 text-green-500" : "bg-orange-50 text-[#f56b2a]"}`}
+                  >
+                    <Truck size={15} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-800 uppercase tracking-wider leading-none">
+                      Livraison
+                    </p>
+                    <p className="text-[8px] font-bold text-gray-400 mt-1 leading-none">
+                      {isFood
+                        ? product.deliveryTime || "30-45 min"
+                        : "Rapide & suivie"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center text-center gap-1.5 bg-gray-50/80 border border-gray-100 rounded-2xl py-3 px-1.5">
+                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center">
+                    <CreditCard size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-800 uppercase tracking-wider leading-none">
+                      Paiement
+                    </p>
+                    <p className="text-[8px] font-bold text-gray-400 mt-1 leading-none">
+                      Sécurisé
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTAs — desktop only (mobile uses sticky bar) */}
+              <div className="hidden lg:flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  variant="primary"
+                  fullWidth
+                  size="xl"
+                  className="sm:flex-[1.4]"
+                  icon={<ShoppingCart size={19} strokeWidth={2.5} />}
+                >
+                  Ajouter au panier
+                </Button>
+                <Button
+                  onClick={handleBuyNow}
+                  disabled={isOutOfStock}
+                  variant="outline"
+                  fullWidth
+                  size="xl"
+                  className="!border-gray-900 !text-gray-900 hover:!bg-gray-900 hover:!text-white"
+                >
+                  Acheter maintenant
+                </Button>
+              </div>
+
+              {/* Description — flows directly under buy box (app style) */}
+              <div className="lg:mt-10 mt-6 pt-5 border-t border-gray-100">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="h-0.5 w-7 bg-[#f56b2a] rounded-full" />
+                  <h3 className="text-[11px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
+                    Description
+                  </h3>
+                </div>
+                <div
+                  className={`text-gray-600 text-[13px] md:text-[15px] leading-relaxed font-medium ${!isDescriptionExpanded ? "line-clamp-4 md:line-clamp-none" : ""}`}
+                  style={{ whiteSpace: "pre-line" }}
+                >
+                  {descriptionText}
+                </div>
+                {descriptionText.length > 180 && (
+                  <button
+                    onClick={() =>
+                      setIsDescriptionExpanded(!isDescriptionExpanded)
+                    }
+                    className={`mt-3 md:hidden font-black text-[10px] uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all ${accentText}`}
+                  >
+                    {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
+                    <ChevronRight
+                      size={11}
+                      className={`transition-transform duration-300 ${isDescriptionExpanded ? "-rotate-90" : "rotate-90"}`}
                     />
-                  </div>
-                </>
-              )}
-              {isOutOfStock && (
-                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 border border-red-100 px-3 py-2.5 rounded-xl">
-                  <AlertCircle size={13} /> Rupture de stock — produit
-                  momentanément indisponible
-                </p>
-              )}
-              {stockValue === null && (
-                <p className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
-                  <AlertCircle size={12} /> Disponibilité à confirmer auprès
-                  de la boutique
-                </p>
-              )}
-            </div>
-
-            {/* Trust badges */}
-            <div className="grid grid-cols-3 gap-2 mb-7">
-              <div className="flex flex-col items-center text-center gap-2 bg-white border border-gray-100 rounded-2xl py-4 px-2">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isFood ? "bg-green-50 text-green-500" : "bg-orange-50 text-[#f56b2a]"}`}>
-                  <ShieldCheck size={17} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-gray-800 uppercase tracking-wider">
-                    {isFood ? "Fraîcheur" : "Qualité"}
-                  </p>
-                  <p className="text-[8px] font-bold text-gray-400 mt-0.5">
-                    Garantie boutique
-                  </p>
-                </div>
+                  </button>
+                )}
               </div>
-              <div className="flex flex-col items-center text-center gap-2 bg-white border border-gray-100 rounded-2xl py-4 px-2">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isFood ? "bg-green-50 text-green-500" : "bg-orange-50 text-[#f56b2a]"}`}>
-                  <Truck size={17} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-gray-800 uppercase tracking-wider">
-                    Livraison
-                  </p>
-                  <p className="text-[8px] font-bold text-gray-400 mt-0.5">
-                    {isFood
-                      ? product.deliveryTime || "30-45 min"
-                      : "Rapide & suivie"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col items-center text-center gap-2 bg-white border border-gray-100 rounded-2xl py-4 px-2">
-                <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center">
-                  <CreditCard size={16} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-gray-800 uppercase tracking-wider">
-                    Paiement
-                  </p>
-                  <p className="text-[8px] font-bold text-gray-400 mt-0.5">
-                    Sécurisé
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                variant="primary"
-                fullWidth
-                size="xl"
-                className="sm:flex-[1.4]"
-                icon={
-                  <ShoppingCart size={19} strokeWidth={2.5} />
-                }
-              >
-                Ajouter au panier
-              </Button>
-              <Button
-                onClick={handleBuyNow}
-                disabled={isOutOfStock}
-                variant="outline"
-                fullWidth
-                size="xl"
-                className="!border-gray-900 !text-gray-900 hover:!bg-gray-900 hover:!text-white"
-              >
-                Acheter maintenant
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* ================= DESCRIPTION ================= */}
-        <section className="mt-12 md:mt-16 bg-white rounded-[28px] border border-gray-100 p-6 md:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-0.5 w-8 bg-[#f56b2a] rounded-full" />
-            <h3 className="text-sm md:text-base font-black text-gray-900 uppercase tracking-[0.15em]">
-              Description
-            </h3>
-          </div>
-          <div
-            className={`text-gray-600 text-sm md:text-[15px] leading-relaxed font-medium ${!isDescriptionExpanded ? "line-clamp-4 md:line-clamp-none" : ""}`}
-            style={{ whiteSpace: "pre-line" }}
-          >
-            {descriptionText}
-          </div>
-          {descriptionText.length > 180 && (
-            <button
-              onClick={() =>
-                setIsDescriptionExpanded(!isDescriptionExpanded)
-              }
-              className={`mt-4 md:hidden font-black text-[10px] uppercase tracking-widest flex items-center gap-1 active:scale-95 transition-all ${accentText}`}
-            >
-              {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
-              <ChevronRight
-                size={11}
-                className={`transition-transform duration-300 ${isDescriptionExpanded ? "-rotate-90" : "rotate-90"}`}
-              />
-            </button>
-          )}
-        </section>
-
-        {/* ================= REVIEWS ================= */}
+        {/* ================= AVIS ================= */}
         <section
-          id="avis-clients"
-          className="mt-6 md:mt-8 bg-white rounded-[28px] border border-gray-100 p-6 md:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.04)] scroll-mt-24"
+          id="pd-avis"
+          className="mt-4 lg:mt-12 bg-white lg:rounded-[28px] rounded-none -mx-4 px-4 py-5 lg:p-10 border-y lg:border border-gray-100 scroll-mt-14"
         >
-          <div className="flex items-center justify-between mb-7 flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-0.5 w-8 bg-yellow-400 rounded-full" />
-              <h3 className="text-sm md:text-base font-black text-gray-900 uppercase tracking-[0.15em]">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-0.5 w-7 bg-yellow-400 rounded-full" />
+              <h3 className="text-[11px] md:text-base font-black text-gray-900 uppercase tracking-[0.15em]">
                 Avis clients
               </h3>
             </div>
@@ -2607,23 +2750,23 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </Button>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-12">
             {/* Score summary */}
-            <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-2 md:min-w-[180px] md:border-r md:border-gray-100 md:pr-12">
+            <div className="flex md:flex-col items-center md:items-start gap-3 md:min-w-[180px] md:border-r md:border-gray-100 md:pr-12">
               <div className="text-center md:text-left">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none">
+                <div className="flex items-baseline gap-1 justify-center md:justify-start">
+                  <span className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none">
                     {(product.rating || 0).toFixed(1)}
                   </span>
                   <span className="text-sm font-black text-gray-300">
                     /5
                   </span>
                 </div>
-                <div className="flex text-yellow-400 mt-2 justify-center md:justify-start">
+                <div className="flex text-yellow-400 mt-1.5 justify-center md:justify-start">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
-                      size={14}
+                      size={13}
                       fill={
                         s <= Math.round(product.rating || 0)
                           ? "currentColor"
@@ -2632,7 +2775,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     />
                   ))}
                 </div>
-                <p className="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-wider">
+                <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
                   {formatNumber(reviewTotal)} avis clients
                 </p>
               </div>
@@ -2641,7 +2784,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             {/* Distribution + list */}
             <div className="flex-grow min-w-0">
               {(product.reviews?.length || 0) > 0 && (
-                <div className="mb-7 space-y-2">
+                <div className="mb-5 space-y-1.5">
                   {[5, 4, 3, 2, 1].map((star) => {
                     const count =
                       product.reviews?.filter((r) => r.rating === star)
@@ -2651,7 +2794,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     return (
                       <div key={star} className="flex items-center gap-3">
                         <span className="text-[10px] font-black text-gray-500 w-8 flex items-center gap-1">
-                          {star} <Star size={9} className="text-yellow-400" fill="currentColor" />
+                          {star}{" "}
+                          <Star
+                            size={9}
+                            className="text-yellow-400"
+                            fill="currentColor"
+                          />
                         </span>
                         <div className="flex-grow h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div
@@ -2668,11 +2816,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </div>
               )}
 
-              {/* Reviews list */}
               <div className="divide-y divide-gray-50">
                 {selectedProductId &&
                 loadingReviews[selectedProductId] ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center justify-center py-10">
                     <Loader2 className="w-6 h-6 text-[#f56b2a] animate-spin" />
                   </div>
                 ) : (product.reviews?.length || 0) > 0 ? (
@@ -2681,9 +2828,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       ? product.reviews
                       : product.reviews?.slice(0, 3)
                     )?.map((review, idx) => (
-                      <div key={idx} className="flex gap-4 py-5 first:pt-0 last:pb-0">
+                      <div
+                        key={idx}
+                        className="flex gap-3.5 py-4 first:pt-0 last:pb-0"
+                      >
                         <div
-                          className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-black ${
+                          className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-black ${
                             [
                               "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
                               "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
@@ -2694,7 +2844,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           {review.author?.[0]?.toUpperCase() || "A"}
                         </div>
                         <div className="flex-grow min-w-0">
-                          <div className="flex items-center justify-between gap-3 mb-1">
+                          <div className="flex items-center justify-between gap-3 mb-0.5">
                             <div className="flex items-center gap-2 min-w-0">
                               <h4 className="text-xs font-black text-gray-900 truncate">
                                 {review.author}
@@ -2737,7 +2887,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       !showAllProductReviews && (
                         <button
                           onClick={() => setShowAllProductReviews(true)}
-                          className="w-full py-3.5 mt-4 bg-gray-50 text-gray-900 text-[11px] font-black uppercase tracking-widest rounded-2xl border border-gray-100 hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                          className="w-full py-3 mt-2 bg-gray-50 text-gray-900 text-[11px] font-black uppercase tracking-widest rounded-2xl border border-gray-100 hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
                         >
                           Voir les {product.reviews.length - 3} autres
                           avis
@@ -2746,7 +2896,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       )}
                   </>
                 ) : (
-                  <div className="text-center py-10 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
+                  <div className="text-center py-8 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
                     <MessageCircle
                       size={22}
                       className="mx-auto mb-3 text-gray-300"
@@ -2764,16 +2914,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           </div>
         </section>
 
-        {/* ================= RELATED ================= */}
+        {/* ================= SIMILAIRES ================= */}
         {relatedProducts.length > 0 && (
-          <section className="mt-12 md:mt-16">
-            <div className="flex items-center gap-3 mb-6 px-0">
-              <div className="h-0.5 w-8 bg-[#f56b2a] rounded-full" />
-              <h3 className="text-sm md:text-base font-black text-gray-900 uppercase tracking-[0.15em]">
+          <section
+            id="pd-similaires"
+            className="mt-6 lg:mt-12 scroll-mt-14"
+          >
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-0.5 w-7 bg-[#f56b2a] rounded-full" />
+              <h3 className="text-[11px] md:text-base font-black text-gray-900 uppercase tracking-[0.15em]">
                 Vous aimerez aussi
               </h3>
             </div>
-            <div className="flex overflow-x-auto no-scrollbar gap-4 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-5 md:gap-6">
+            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-5 md:gap-6">
               {relatedProducts.map((relProduct) => (
                 <ProductCard
                   key={`${relProduct.storeId}-${relProduct.id}`}
@@ -2786,28 +2939,28 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   onClick={() =>
                     safeNavigate(`/product/${generateProductSlug(relProduct)}`)
                   }
-                  className="w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
+                  className="w-[150px] xs:w-[170px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
                 />
               ))}
             </div>
           </section>
         )}
 
-        {/* ================= STICKY MOBILE PURCHASE BAR ================= */}
+        {/* ================= STICKY MOBILE ACTION BAR (app style) ================= */}
         {cartItemsCount === 0 && (
           <div
-            className="lg:hidden fixed left-0 right-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] px-4 pt-3"
+            className="lg:hidden fixed left-0 right-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] px-3 pt-2.5"
             style={{
               bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            <div className="flex items-center gap-3 pb-3">
-              <div className="min-w-0">
-                <span className="block text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1">
-                  {hasOptions && !allSelected ? "À partir de" : "Prix"}
+            <div className="flex items-stretch gap-2 pb-2.5">
+              <div className="flex flex-col justify-center pr-1 min-w-fit">
+                <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.15em] leading-none mb-1">
+                  {hasOptions && !allSelected ? "Dès" : "Prix"}
                 </span>
                 <span
-                  className={`text-base font-black tracking-tight leading-none ${accentText}`}
+                  className={`text-[15px] font-black tracking-tight leading-none ${accentText}`}
                 >
                   {formatCurrency(basePrice)}
                 </span>
@@ -2815,13 +2968,22 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               <Button
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
+                variant="outline"
+                size="md"
+                className="!border-gray-900 !text-gray-900 flex-1 !py-2.5"
+                icon={<ShoppingCart size={15} strokeWidth={2.5} />}
+              >
+                Panier
+              </Button>
+              <Button
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
                 variant="primary"
                 size="md"
-                fullWidth
-                className="flex-grow"
-                icon={<ShoppingCart size={16} strokeWidth={2.5} />}
+                className="flex-[1.3] !py-2.5"
+                icon={<Zap size={15} fill="currentColor" />}
               >
-                {isOutOfStock ? "Indisponible" : "Ajouter au panier"}
+                {isOutOfStock ? "Indisponible" : "Acheter"}
               </Button>
             </div>
           </div>
