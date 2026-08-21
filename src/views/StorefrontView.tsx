@@ -48,6 +48,14 @@ import {
   Clock,
   ShoppingBag,
   Tag,
+  Eye,
+  Smartphone,
+  Shirt,
+  Sparkles,
+  Sofa,
+  Car,
+  ChefHat,
+  PartyPopper,
 } from "lucide-react";
 import {
   StoreData,
@@ -62,7 +70,11 @@ import {
   BusinessVertical,
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
-import { MAIN_CATEGORIES } from "@/constants";
+import {
+  MAIN_CATEGORIES,
+  CATEGORY_ICONS,
+  CATEGORY_COLORS,
+} from "@/constants";
 import { formatCurrency, playSuccessSound, formatNumber } from "@/utils";
 import ProductImage from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
@@ -89,43 +101,16 @@ import {
 import { MarketplaceBottomNav } from "@/components/MarketplaceBottomNav";
 import { supabase } from "@/supabase";
 import { BuyerView } from "./BuyerView";
-import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
+import {
+  fetchBuyerAddressesAction,
+  fetchMarketplaceData,
+} from "@/app/actions/marketplace";
 
 interface StorefrontProduct extends Product {
   storeId: string;
   storeName: string;
   storeSlug?: string;
 }
-
-const categoryImages: Record<string, string> = {
-  all: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80",
-  "Électronique & High-Tech":
-    "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&q=80",
-  "Maison & Bureau":
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=80",
-  "Mode & Beauté":
-    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80",
-  "Alimentation & Boissons":
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80",
-  "Santé & Bien-être":
-    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80",
-  "Sport & Loisirs":
-    "https://images.unsplash.com/photo-1517836357463-d25dfeac00dc?w=600&q=80",
-  "Auto & Moto":
-    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=80",
-  "Restauration & Livraison Rapide":
-    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80",
-  "Séjours, Expériences & Immobilier":
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
-  "Jouets & Enfants":
-    "https://images.unsplash.com/photo-1532330393533-443990a51d10?w=300&q=80",
-  "Bricolage & Jardin":
-    "https://images.unsplash.com/photo-1585913661635-2170c5891553?w=300&q=80",
-  "Livres & Papeterie":
-    "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=300&q=80",
-  Divers:
-    "https://images.unsplash.com/photo-1456324504439-367921d17449?w=300&q=80",
-};
 
 const getOptimizedImageUrl = (url: string, isSlow: boolean) => {
   if (!url || !url.includes("unsplash.com")) return url;
@@ -158,6 +143,36 @@ interface StorefrontViewProps {
   notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
+// Skeleton home : affiché pendant la récupération réelle des données
+const HomeGridSkeleton = () => (
+  <div className="space-y-10">
+    {[1, 2].map((row) => (
+      <div key={row}>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-0.5 w-8 skeleton rounded" />
+          <div className="h-4 w-32 skeleton rounded" />
+          <div className="flex-grow h-px skeleton" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-64 flex flex-col"
+            >
+              <div className="aspect-square skeleton" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 w-3/4 skeleton rounded" />
+                <div className="h-4 w-1/2 skeleton rounded" />
+                <div className="h-8 w-full skeleton rounded-xl mt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
@@ -176,7 +191,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const storeViewTracked = React.useRef<string | null>(null);
   const productViewTracked = React.useRef<string | null>(null);
 
-  // 🏛️ Notification State
+  // Notification State
   const [toastNotifications, setToastNotifications] = useState<
     ToastNotification[]
   >([]);
@@ -197,7 +212,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
-  // ⚡ Helpers defined early for use in effects
+  // Helpers defined early for use in effects
   const loadCartFromStorage = useCallback((): CartItem[] => {
     try {
       const stored = localStorage.getItem("storefront_cart");
@@ -252,6 +267,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [ftsResults, setFtsResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
+  const [clientStores, setClientStores] = useState<StoreData[]>([]);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [urlKey, setUrlKey] = useState(0);
 
   // 0. URL Change Listener - Force re-render on navigation
@@ -282,10 +299,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return null;
   })();
 
-  // ⚡ Derive active data from props or cache
+  // Derive active data from props, cache or client refetch
   const activeStores = useMemo(() => {
-    return stores && stores.length > 0 ? stores : cachedStores;
-  }, [stores, cachedStores]);
+    const seen = new Set<string>();
+    const result: StoreData[] = [];
+    [...(stores || []), ...cachedStores, ...clientStores].forEach((s) => {
+      if (s?.id && !seen.has(s.id)) {
+        seen.add(s.id);
+        result.push(s);
+      }
+    });
+    return result;
+  }, [stores, cachedStores, clientStores]);
 
   const selectedStoreId = useMemo(() => {
     if (!selectedStoreParam) return null;
@@ -299,7 +324,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return activeStores.find((s) => s.id === selectedStoreId) || null;
   }, [selectedStoreId, activeStores]);
 
-  // 🔍 DEBOUNCED FTS SEARCH (with deduplication)
+  // DEBOUNCED FTS SEARCH (with deduplication)
   const ftsRequestRef = useRef<{ term: string; controller: AbortController } | null>(null);
   
   useEffect(() => {
@@ -352,14 +377,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, [searchTerm]);
 
 
-  // ⚡ Performance: Loading state for Skeletons
+  // Performance: Loading state for Skeletons
 
-  // 1. Load cache ASYNC on mount (non-blocking)
+  // 1. Load cache ASYNC on mount (non-blocking), then refetch from server if empty
+  const clientRefetchDoneRef = React.useRef(false);
   React.useEffect(() => {
     setIsMounted(true);
 
     // Defer localStorage reads to next tick (non-blocking)
     const timer = setTimeout(() => {
+      let hasCache = false;
       try {
         const cached = localStorage.getItem("marketplace_data_cache");
         if (cached) {
@@ -367,6 +394,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           if (parsed.stores && parsed.stores.length > 0) {
             setCachedStores(parsed.stores);
             setIsInitialLoading(false);
+            hasCache = true;
           }
         }
       } catch (e) {}
@@ -400,9 +428,29 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           }
         }
       } catch (e) {}
+
+      // SSR vide (cache ISR périmé, DB indisponible...) → refetch côté client
+      if (
+        !hasCache &&
+        !clientRefetchDoneRef.current &&
+        (!stores || stores.length === 0)
+      ) {
+        clientRefetchDoneRef.current = true;
+        setIsRefetching(true);
+        fetchMarketplaceData()
+          .then((fresh) => {
+            if (fresh && fresh.length > 0) setClientStores(fresh);
+          })
+          .catch(() => {})
+          .finally(() => {
+            setIsRefetching(false);
+            setIsInitialLoading(false);
+          });
+      }
     }, 0);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle initial loading finish when props arrive
@@ -412,14 +460,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
   }, [stores]);
 
-  // Safety timeout - only active if we have NO cache AND no stores
+  // Safety timeout - never leave the user on skeletons forever
   useEffect(() => {
-    if (cachedStores.length > 0 || (stores && stores.length > 0)) return;
+    if (!isInitialLoading) return;
     const timer = setTimeout(() => {
       setIsInitialLoading(false);
-    }, 3000);
+    }, 10000);
     return () => clearTimeout(timer);
-  }, [cachedStores.length, stores]);
+  }, [isInitialLoading]);
 
   const allProducts = useMemo(() => {
     const products: StorefrontProduct[] = [];
@@ -503,7 +551,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const stageTargetRef = useRef<string | null>(null);
   const cartSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 🚀 Navigation Directe
+  // Navigation Directe
   const safeNavigate = useCallback(
     (path: string, options?: { action?: () => void }) => {
       const targetPathname = path.split('?')[0];
@@ -530,7 +578,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [navigate, location.pathname],
   );
 
-  // 🔄 Dynamique: Couper le loader quand pathname change ET contenu visible
+  // Dynamique: Couper le loader quand pathname change ET contenu visible
   useEffect(() => {
     if (!isNavigating || navCompletedRef.current) return;
     
@@ -562,7 +610,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     setTimeout(checkContentVisible, 100);
   }, [location.pathname, isNavigating]);
 
-  // 🔄 Smooth Checkout Stage Transitions
+  // Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
       setCheckoutStage(newStage);
@@ -571,7 +619,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [checkoutStage],
   );
 
-  // 🔄 Couper le loader quand l'étape de checkout a changé
+  // Couper le loader quand l'étape de checkout a changé
   useEffect(() => {
     if (stageTargetRef.current && checkoutStage === stageTargetRef.current) {
       setTimeout(() => {
@@ -804,7 +852,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const observerRef = useRef<IntersectionObserver | null>(null);
   const PAGE_LIMIT = 20;
 
-  // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
+  // Navigation Transition Orchestrator - Feedback Visuel Immédiat
 
   const fusionPayApiUrl = process.env.NEXT_PUBLIC_FUSIONPAY_API_URL || "";
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -1136,7 +1184,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     }
   }, [selectedProductDetails]);
 
-  // 🔮 Predictive Cache Utility
+  // Predictive Cache Utility
   const prefetchProduct = useCallback(async (productId: string) => {
     if (!productId || prefetchedProducts.current.has(productId)) return;
     prefetchedProducts.current.add(productId);
@@ -1152,7 +1200,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       .catch(() => {});
   }, []);
 
-  // 🚀 Predictive Init: Prefetch top recommendations (only once, only if online)
+  // Predictive Init: Prefetch top recommendations (only once, only if online)
   const prefetchDoneRef = React.useRef(false);
   useEffect(() => {
     if (!isMounted || allProducts.length === 0 || prefetchDoneRef.current || !navigator.onLine) return;
@@ -1243,13 +1291,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
     // Define which categories belong to which vertical
     const verticalMap: Record<string, string[]> = {
-      food: ["Alimentation & Boissons", "Restauration & Livraison Rapide"],
-      stay: ["Séjours, Expériences & Immobilier", "Maison & Bureau"],
+      food: ["Épicerie & Supermarché", "Restauration & Livraison Rapide"],
       shopping: MAIN_CATEGORIES.filter(
         (cat) =>
-          cat !== "Alimentation & Boissons" &&
-          cat !== "Restauration & Livraison Rapide" &&
-          cat !== "Séjours, Expériences & Immobilier",
+          cat !== "Épicerie & Supermarché" &&
+          cat !== "Restauration & Livraison Rapide",
       ),
     };
 
@@ -1322,7 +1368,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const loadingRef = useRef(false);
   const currentPageRef = useRef(0);
 
-  // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
+  // Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
   const loadPagedProducts = useCallback(
     async (reset: boolean = false) => {
       if (loadingRef.current && !reset) return;
@@ -1393,7 +1439,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, [loadPagedProducts, hasMore]); // Re-run when products appear or path changes
 
   const partnerStores = useMemo(() => {
-    return stores
+    return activeStores
       .filter((s) => {
         if (selectedVertical === "all") return true;
         // A store matches a vertical if it has products of that vertical
@@ -1423,7 +1469,52 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         if (visitsB !== visitsA) return visitsB - visitsA;
         return (b.rating || 0) - (a.rating || 0);
       });
-  }, [stores, selectedVertical]);
+  }, [activeStores, selectedVertical]);
+
+  // Fallback : produits populaires quand la recherche / le filtre ne retourne rien
+  const suggestedProducts = useMemo(() => {
+    if (allProducts.length === 0) return [];
+    return [...allProducts]
+      .sort((a, b) => {
+        const scoreA =
+          (a.salesCount || 0) * 3 + (a.views || 0) + (a.rating || 0) * 10;
+        const scoreB =
+          (b.salesCount || 0) * 3 + (b.views || 0) + (b.rating || 0) * 10;
+        return scoreB - scoreA;
+      })
+      .slice(0, 10);
+  }, [allProducts]);
+
+  // Nombre de produits par catégorie (badges des cartes catégories)
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allProducts.forEach((p) => {
+      const cat = p.mainCategory || p.category;
+      if (cat) counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [allProducts]);
+
+  // Sélection de catégorie depuis le hero / les cartes catégories
+  const selectCategoryAndBrowse = useCallback(
+    (cat: string) => {
+      setSelectedCategory(cat);
+      if (
+        location.pathname.includes("/product/") ||
+        location.pathname.includes("/cart") ||
+        location.pathname.includes("/store/")
+      ) {
+        safeNavigate("/");
+      } else {
+        setTimeout(() => {
+          document
+            .getElementById("products-section")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      }
+    },
+    [location.pathname, safeNavigate],
+  );
 
   const addToCart = (
     product: StorefrontProduct,
@@ -2109,9 +2200,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             : "bg-orange-50 text-[#f56b2a] border-orange-100"
                         }`}
                       >
-                        {isFood
-                          ? "🧑‍🍳 "
-                          : "📦 "}{" "}
+                        {isFood ? (
+                          <ChefHat size={10} className="inline flex-shrink-0" />
+                        ) : (
+                          <Package size={10} className="inline flex-shrink-0" />
+                        )}{" "}
                         {selectedProductDetails.storeName}
                       </button>
                       {isFood && (
@@ -3176,7 +3269,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     );
                     const storePhone = store?.phone || store?.settings?.phone;
                     if (completedOrderStores.length === 1 && storePhone && completedOrderItems.length > 0) {
-                      const waMsg = `📦 NOUVELLE COMMANDE #${Date.now().toString().slice(-6)}\n\nClient: ${customerInfo.name || "Anonyme"}\nTéléphone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Espèces" : "Carte"}`;
+                      const waMsg = `NOUVELLE COMMANDE #${Date.now().toString().slice(-6)}\n\nClient: ${customerInfo.name || "Anonyme"}\nTéléphone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Espèces" : "Carte"}`;
                       const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
 
                       return (
@@ -3399,7 +3492,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         }}
       />
 
-      {/* 🌀 Global Navigation Loading Overlay - With unique key for clean re-renders */}
+      {/* Global Navigation Loading Overlay - With unique key for clean re-renders */}
       {isNavigating && (
         <div 
           key={`loader-${navigationKey}`}
@@ -3846,127 +3939,128 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             index
             element={
               <>
-                {/* Hidden H1 for SEO - Important for index page */}
-                <h1 className="sr-only">
-                  POS Market - Boutique Marketplace Express Premium
-                </h1>
+                {/* HERO - Le produit et l'action d'achat au centre */}
+                {selectedCategory === "all" && (
+                  <section className="relative mb-8 md:mb-12">
+                    <div className="relative overflow-hidden rounded-[28px] md:rounded-[40px] bg-gradient-to-br from-orange-50 via-white to-blue-50 border border-white shadow-xl shadow-orange-100/40 px-4 py-8 md:px-12 md:py-14 text-center">
+                      <div className="absolute -left-16 -top-16 w-56 h-56 bg-orange-200/30 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-blue-200/30 rounded-full blur-3xl pointer-events-none" />
 
-                {/* Hero Bannière Premium - Carousel */}
-                {!searchTerm && selectedCategory === "all" && (
-                  <div className="mb-10 mt-2 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto">
-                    <div
-                      className="relative w-full min-h-[260px] md:h-[300px] flex transition-transform duration-700 ease-in-out"
-                      style={{
-                        transform: `translateX(-${currentSlide * 100}%)`,
-                      }}
-                    >
-                      {/* Slide 1 - Vendre */}
-                      <div className="min-w-full relative bg-gradient-to-br from-[#fff1eb] to-[#ace0f9]/20 flex items-center justify-center border border-white">
-                        <div className="absolute left-0 top-0 w-full h-full overflow-hidden">
-                          <div className="absolute -left-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl" />
-                          <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-100/40 rounded-full blur-3xl" />
+                      <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
+                        <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-4 py-1.5 rounded-full border border-orange-100 mb-5 font-black text-[10px] md:text-xs text-[#f56b2a] uppercase tracking-widest shadow-sm">
+                          <Zap size={12} fill="currentColor" /> Marketplace
+                          locale • Livraison express
                         </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-orange-100 mb-6 font-black text-[10px] text-[#f56b2a] uppercase tracking-widest">
-                            <Zap size={14} fill="currentColor" /> Offre
-                            Commerçant
-                          </div>
-                          <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            C'est le moment{" "}
-                            <span className="text-[#f56b2a]">de vendre</span>
-                          </h2>
-                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
-                            Boostez votre visibilité et attirez plus de clients
-                            dès aujourd'hui sur notre plateforme express.
-                          </p>
-                          <Button
-                            onClick={() =>
-                              safeNavigate(user ? "/dashboard" : "/login")
-                            }
-                            loading={isNavigating}
-                            variant="secondary"
-                            size="xl"
-                          >
-                            Commencer maintenant
-                          </Button>
-                        </div>
-                      </div>
 
-                      {/* Slide 2 - Gestion */}
-                      <div className="min-w-full relative bg-gradient-to-br from-[#e0f2fe] to-[#f0f9ff] flex items-center justify-center border border-white">
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute right-0 top-0 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
-                        </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
-                            <ShieldCheck size={14} /> Gestion Pro
-                          </div>
-                          <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            Gérez votre{" "}
-                            <span className="text-blue-500">
-                              stock facilement
-                            </span>
-                          </h2>
-                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
-                            Un inventaire synchronisé et des alertes
-                            automatiques pour ne jamais manquer une vente.
-                          </p>
-                          <Button
-                            onClick={() =>
-                              safeNavigate(user ? "/dashboard" : "/login")
-                            }
-                            loading={isNavigating}
-                            variant="secondary"
-                            size="xl"
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Commencer maintenant
-                          </Button>
-                        </div>
-                      </div>
+                        <h1 className="text-2xl md:text-5xl font-black text-gray-900 tracking-tight leading-[1.08] mb-3 md:mb-4">
+                          Trouvez tout ce dont vous avez besoin,{" "}
+                          <span className="text-[#f56b2a]">
+                            près de chez vous.
+                          </span>
+                        </h1>
+                        <p className="text-gray-500 text-xs md:text-lg font-bold mb-6 md:mb-8 max-w-xl leading-relaxed">
+                          Des milliers de produits des boutiques locales,
+                          livrés rapidement chez vous.
+                        </p>
 
-                      {/* Slide 3 - Croissance */}
-                      <div className="min-w-full relative bg-gradient-to-br from-[#fef2f2] to-[#fff1f2] flex items-center justify-center border border-white">
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-100/30 rounded-full blur-[100px]" />
+                        {/* Recherche ultra-visible */}
+                        <div className="w-full max-w-xl relative group">
+                          <Search
+                            size={20}
+                            strokeWidth={2.5}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors pointer-events-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Que recherchez-vous ?"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={(e) => {
+                              // Mobile : bascule vers l'overlay de recherche plein écran
+                              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                                e.target.blur();
+                                setIsSearchOpen(true);
+                              }
+                            }}
+                            className="w-full pl-12 pr-11 py-4 md:py-5 bg-white border-2 border-gray-100 rounded-2xl md:rounded-full font-bold text-sm md:text-base text-gray-800 shadow-lg shadow-orange-100/50 focus:border-[#f56b2a] focus:shadow-xl focus:shadow-orange-100 transition-all no-global-border placeholder-gray-400"
+                          />
+                          {searchTerm && (
+                            <button
+                              onClick={() => setSearchTerm("")}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              aria-label="Effacer la recherche"
+                            >
+                              <X size={18} />
+                            </button>
+                          )}
                         </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
-                            <Heart size={14} fill="currentColor" /> Communauté
-                          </div>
-                          <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            Rejoignez{" "}
-                            <span className="text-red-500">le succès</span>
-                          </h2>
-                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
-                            Faites partie des 500+ commerçants qui ont déjà
-                            transformé leur manière de vendre.
-                          </p>
-                          <Button
-                            onClick={() =>
-                              safeNavigate(user ? "/dashboard" : "/login")
-                            }
-                            variant="secondary"
-                            size="xl"
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Commencer maintenant
-                          </Button>
+
+                        {/* Chips catégories rapides */}
+                        <div className="flex flex-wrap items-center justify-center gap-2 mt-4 md:mt-5">
+                          {[
+                            {
+                              label: "Électronique",
+                              icon: Smartphone,
+                              cat: "Électronique & High-Tech",
+                            },
+                            {
+                              label: "Mode",
+                              icon: Shirt,
+                              cat: "Mode & Accessoires",
+                            },
+                            {
+                              label: "Alimentation",
+                              icon: ShoppingBag,
+                              cat: "Épicerie & Supermarché",
+                            },
+                            {
+                              label: "Beauté",
+                              icon: Sparkles,
+                              cat: "Beauté, Santé & Bien-être",
+                            },
+                            {
+                              label: "Maison",
+                              icon: Sofa,
+                              cat: "Mobilier & Décoration",
+                            },
+                            {
+                              label: "Auto",
+                              icon: Car,
+                              cat: "Auto & Moto",
+                            },
+                          ].map((chip) => (
+                            <button
+                              key={chip.cat}
+                              onClick={() => selectCategoryAndBrowse(chip.cat)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/80 hover:bg-white border border-gray-100 rounded-full text-[10px] md:text-xs font-black text-gray-600 hover:text-[#f56b2a] hover:border-orange-200 shadow-sm transition-all active:scale-95"
+                            >
+                              <chip.icon size={13} strokeWidth={2.5} aria-hidden />
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Badges de confiance */}
+                        <div className="hidden md:flex items-center gap-6 mt-8 text-[11px] font-black text-gray-500 uppercase tracking-wider">
+                          <span className="flex items-center gap-1.5">
+                            <ShieldCheck
+                              size={14}
+                              className="text-green-500"
+                            />{" "}
+                            Boutiques vérifiées
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Truck size={14} className="text-[#f56b2a]" />{" "}
+                            Livraison express
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <CreditCard size={14} className="text-blue-500" />{" "}
+                            Paiement sécurisé
+                          </span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Pagination Dots */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-                      {[0, 1, 2].map((idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => setCurrentSlide(idx)}
-                          className={`h-1.5 rounded-full transition-all cursor-pointer ${currentSlide === idx ? "w-8 bg-gray-900" : "w-2 bg-gray-300"}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  </section>
                 )}
 
                 {/* Super App Verticals - Compact Mobile-First */}
@@ -4039,52 +4133,57 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   </div>
                 )}
 
-                {/* Partners */}
-                {!searchTerm &&
-                  selectedCategory === "all" &&
-                  partnerStores.length > 0 && (
-                    <div className="mb-12">
-                      <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">
-                        Boutiques partenaires
+                {/* Catégories - Cartes icônes (scroll horizontal mobile / grille desktop) */}
+                {!searchTerm && (
+                  <section className="mb-8 md:mb-12">
+                    <div className="flex items-center justify-between mb-3 md:mb-5">
+                      <h2 className="text-base md:text-xl font-black text-gray-900 tracking-tight">
+                        Parcourir les catégories
                       </h2>
-                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
-                        {partnerStores.slice(0, 6).map((store) => (
-                          <div
-                            key={store.id}
-                            onClick={() =>
-                              safeNavigate(`/store/${store.slug || store.id}`)
-                            }
-                            className="min-w-[180px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer flex flex-col items-center text-center group will-change-transform"
-                          >
-                            <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110">
-                              <Store className="text-[#f56b2a]" size={28} />
-                            </div>
-                            <h3 className="font-bold text-gray-800 text-xs mb-1">
-                              {store.settings?.name || "Boutique"}
-                            </h3>
-                            <div className="flex flex-col gap-0.5">
-                              <p className="text-[10px] text-gray-600 font-black">
-                                {
-                                  (store.products || []).filter(
-                                    (p) => p.isOnline !== false && p.image,
-                                  ).length
-                                }{" "}
-                                Produits
-                              </p>
-                              <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-wider">
-                                {formatNumber((store.views || 0) +
-                                  (store.products?.reduce(
-                                    (sum, p) => sum + (p.views || 0),
-                                    0,
-                                  ) || 0))}{" "}
-                                Visites
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {selectedCategory !== "all" && (
+                        <button
+                          onClick={() => setSelectedCategory("all")}
+                          className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest hover:underline"
+                        >
+                          Tout voir
+                        </button>
+                      )}
                     </div>
-                  )}
+                    <div className="flex md:grid md:grid-cols-6 xl:grid-cols-7 gap-2.5 md:gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none">
+                      {MAIN_CATEGORIES.map((cat) => {
+                        const count = categoryCounts[cat] || 0;
+                        const isActive = selectedCategory === cat;
+                        const Icon = CATEGORY_ICONS[cat] || ShoppingBag;
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => selectCategoryAndBrowse(cat)}
+                            className={`min-w-[92px] md:min-w-0 snap-start flex flex-col items-center justify-center py-3.5 px-2 rounded-2xl border transition-all active:scale-95 group ${
+                              isActive
+                                ? "bg-[#f56b2a]/5 border-[#f56b2a] shadow-md shadow-orange-100/60"
+                                : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-md"
+                            }`}
+                          >
+                            <span
+                              className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-2 border transition-transform group-hover:scale-110 ${CATEGORY_COLORS[cat] || "bg-gray-50 text-gray-600 border-gray-100"}`}
+                              aria-hidden
+                            >
+                              <Icon size={22} strokeWidth={2} className="md:w-7 md:h-7" />
+                            </span>
+                            <span className="text-[9px] md:text-[11px] font-black text-gray-800 leading-tight text-center line-clamp-2 px-1">
+                              {cat}
+                            </span>
+                            <span
+                              className={`mt-1 text-[8px] md:text-[9px] font-black uppercase tracking-wider ${isActive ? "text-[#f56b2a]" : "text-gray-400"}`}
+                            >
+                              {count > 0 ? `${count} produit${count > 1 ? "s" : ""}` : "Bientôt"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
 
                 {/* Résultats boutiques (Mode recherche) */}
                 {searchTerm && globalSearchStores.length > 0 && (
@@ -4137,54 +4236,48 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   </div>
                 )}
 
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <div
+                  id="products-section"
+                  className="flex items-center justify-between mb-6 scroll-mt-44"
+                >
+                  <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 min-w-0">
                     {searchTerm ? (
                       <>
-                        <ShoppingCart className="text-[#f56b2a]" size={20} />{" "}
-                        Résultats produits
+                        <ShoppingCart className="text-[#f56b2a] flex-shrink-0" size={20} />{" "}
+                        <span className="truncate">
+                          Résultats pour « {searchTerm} »
+                        </span>
                       </>
                     ) : selectedCategory !== "all" ? (
                       <>
-                        <Zap className="text-yellow-500" /> {selectedCategory}
+                        {(() => {
+                          const CatIcon =
+                            CATEGORY_ICONS[selectedCategory] || ShoppingBag;
+                          return (
+                            <CatIcon
+                              className="text-[#f56b2a] flex-shrink-0"
+                              size={20}
+                            />
+                          );
+                        })()}
+                        {selectedCategory}
                       </>
                     ) : (
                       <>
-                        <Zap className="text-yellow-500" /> Recommandations
+                        <Zap className="text-yellow-500" fill="currentColor" />{" "}
+                        Recommandations pour vous
                       </>
                     )}
                   </h2>
+                  {!searchTerm && selectedCategory !== "all" && (
+                    <button
+                      onClick={() => setSelectedCategory("all")}
+                      className="flex-shrink-0 text-[10px] font-black text-[#f56b2a] uppercase tracking-widest hover:underline"
+                    >
+                      Réinitialiser
+                    </button>
+                  )}
                 </div>
-
-                {/* Skeleton Grid when loading and no data */}
-                {isInitialLoading && pagedProducts.length === 0 && (
-                  <div className="space-y-12">
-                    {[1, 2].map((row) => (
-                      <div key={row}>
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="h-0.5 w-8 skeleton rounded" />
-                          <div className="h-4 w-32 skeleton rounded" />
-                          <div className="flex-grow h-px skeleton" />
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div
-                              key={i}
-                              className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-64 flex flex-col"
-                            >
-                              <div className="aspect-square skeleton" />
-                              <div className="p-3 space-y-2">
-                                <div className="h-3 w-3/4 skeleton rounded" />
-                                <div className="h-4 w-1/2 skeleton rounded" />
-                                <div className="h-8 w-full skeleton rounded-xl mt-2" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {/* Grid (Grouped by Category if no search) */}
                 {pagedProducts.length > 0 ? (
@@ -4303,20 +4396,307 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       )}
                     </div>
                   </>
-                ) : !isLoadingMore ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-gray-600">
-                    <Search size={64} className="opacity-20 mb-4" />
-                    <p className="text-xl font-black text-gray-600">
-                      Aucun produit trouvé.
+                ) : isInitialLoading || isRefetching ? (
+                  /*  Requête en cours → skeleton, jamais de "Aucun produit trouvé" prématuré */
+                  <HomeGridSkeleton />
+                ) : suggestedProducts.length > 0 ? (
+                  /*  Fallback : produits populaires (le front reste vivant) */
+                  <>
+                    <div className="mb-6 flex items-center gap-2 bg-orange-50/60 border border-orange-100 rounded-2xl px-4 py-3 text-[11px] font-black text-[#f56b2a]">
+                      <Zap size={14} fill="currentColor" className="flex-shrink-0" />
+                      {searchTerm || selectedCategory !== "all"
+                        ? "Pas de résultat exact — voici des produits populaires :"
+                        : "Les produits populaires du moment :"}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                      {suggestedProducts.map((product) => (
+                        <ProductCard
+                          key={`${product.storeId}-${product.id}`}
+                          product={product as any}
+                          onAddToCart={addToCart as any}
+                          onBuyNow={buyNow as any}
+                          onStoreSelect={(id) =>
+                            safeNavigate(`/store/${product.storeSlug || id}`)
+                          }
+                          onClick={() =>
+                            safeNavigate(
+                              `/product/${generateProductSlug(product)}`,
+                            )
+                          }
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : activeStores.length > 0 ? (
+                  /*  Fallback : aucune donnée produit → découvrir les boutiques */
+                  <div className="flex flex-col items-center text-center py-10 px-4 bg-white rounded-3xl border border-dashed border-gray-200">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center mb-4">
+                      <Store size={26} className="text-[#f56b2a]" />
+                    </div>
+                    <p className="text-base font-black text-gray-900 mb-1">
+                      Aucun produit ne correspond
                     </p>
+                    <p className="text-xs text-gray-500 font-bold mb-6 max-w-xs">
+                      Explorez les boutiques partenaires pour trouver votre
+                      bonheur.
+                    </p>
+                    <button
+                      onClick={() =>
+                        document
+                          .getElementById("stores-section")
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                      className="px-6 py-3 bg-gray-900 hover:bg-[#f56b2a] text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      Découvrir nos boutiques <ArrowRight size={14} />
+                    </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <Loader2
-                      size={48}
-                      className="text-[#f56b2a] animate-spin opacity-20"
-                    />
+                  /*  Vraiment vide : requête terminée, 0 boutique, 0 produit */
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-600 text-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                      <Search size={32} className="text-gray-300" />
+                    </div>
+                    <p className="text-lg font-black text-gray-700">
+                      La marketplace arrive très bientôt
+                    </p>
+                    <p className="text-xs text-gray-500 font-bold mt-1 max-w-xs">
+                      De nouvelles boutiques s&apos;installent. Revenez dans un
+                      instant !
+                    </p>
                   </div>
+                )}
+
+                {/* Boutiques partenaires - Rich cards */}
+                {!searchTerm &&
+                  selectedCategory === "all" &&
+                  partnerStores.length > 0 && (
+                    <section id="stores-section" className="mt-12 md:mt-16 scroll-mt-44">
+                      <div className="flex items-center justify-between mb-4 md:mb-6">
+                        <h2 className="text-base md:text-xl font-black text-gray-900 tracking-tight">
+                          Boutiques partenaires
+                        </h2>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          {partnerStores.length} boutique{partnerStores.length > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div className="flex md:grid md:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none">
+                        {partnerStores.slice(0, 12).map((store) => {
+                          const onlineProducts = (store.products || []).filter(
+                            (p) => p.isOnline !== false,
+                          );
+                          const totalReviews = onlineProducts.reduce(
+                            (sum, p) => sum + (p.reviewCount || 0),
+                            0,
+                          );
+                          const ratedWeight = onlineProducts.reduce(
+                            (sum, p) => sum + (p.reviewCount || 0),
+                            0,
+                          );
+                          const avgRating =
+                            ratedWeight > 0
+                              ? onlineProducts.reduce(
+                                  (sum, p) =>
+                                    sum + (p.rating || 0) * (p.reviewCount || 0),
+                                  0,
+                                ) / ratedWeight
+                              : 0;
+                          const visits =
+                            (store.views || 0) +
+                            onlineProducts.reduce(
+                              (sum, p) => sum + (p.views || 0),
+                              0,
+                            );
+                          return (
+                            <div
+                              key={store.id}
+                              onClick={() =>
+                                safeNavigate(`/store/${store.slug || store.id}`)
+                              }
+                              className="min-w-[190px] md:min-w-0 snap-start bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden group flex flex-col"
+                            >
+                              {/* Bandeau cover */}
+                              <div className="h-11 md:h-14 bg-gradient-to-r from-orange-100/70 via-orange-50 to-blue-50 relative overflow-hidden">
+                                <Store
+                                  size={80}
+                                  className="absolute -right-3 -top-5 text-[#f56b2a]/15 rotate-12"
+                                />
+                              </div>
+                              <div className="px-3 pb-4 pt-0 flex flex-col items-center text-center flex-grow">
+                                <div className="w-14 h-14 rounded-2xl bg-white ring-4 ring-white shadow-md overflow-hidden flex items-center justify-center border border-gray-100 mb-2 -mt-7 relative z-10">
+                                  {store.settings?.logo ? (
+                                    <img
+                                      src={store.settings.logo}
+                                      alt={store.settings?.name || store.name || "Boutique"}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  ) : (
+                                    <Store size={24} className="text-[#f56b2a]" />
+                                  )}
+                                </div>
+                                <h3 className="font-black text-gray-900 text-xs leading-tight line-clamp-1 w-full">
+                                  {store.settings?.name || store.name || "Boutique"}
+                                </h3>
+                                <div className="flex items-center gap-1 mt-1 min-h-[16px]">
+                                  {totalReviews > 0 ? (
+                                    <>
+                                      <Star
+                                        size={11}
+                                        className="text-yellow-400"
+                                        fill="currentColor"
+                                      />
+                                      <span className="text-[10px] font-black text-gray-700">
+                                        {avgRating.toFixed(1)}
+                                      </span>
+                                      <span className="text-[9px] font-bold text-gray-400">
+                                        ({formatNumber(totalReviews)})
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-[9px] font-black text-green-600 uppercase tracking-wide flex items-center gap-1">
+                                      <ShieldCheck size={10} /> Vérifiée
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1.5 text-[9px] font-bold text-gray-500">
+                                  <span>{onlineProducts.length} produits</span>
+                                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                                  <span className="flex items-center gap-0.5">
+                                    <Eye size={9} /> {formatNumber(visits)}
+                                  </span>
+                                </div>
+                                <button className="mt-3 w-full py-2 rounded-xl bg-gray-50 group-hover:bg-[#f56b2a] group-hover:text-white text-gray-900 text-[10px] font-black uppercase tracking-wider border border-gray-100 transition-all flex items-center justify-center gap-1">
+                                  Voir la boutique <ArrowRight size={11} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                {/* Arguments commerçants - Carousel (placé après le contenu d'achat) */}
+                {!searchTerm && selectedCategory === "all" && (
+                  <section className="mt-12 md:mt-16 mb-4">
+                    <div className="relative group overflow-hidden rounded-[28px] md:rounded-[40px] isolation-auto">
+                      <div
+                        className="relative w-full min-h-[240px] md:h-[280px] flex transition-transform duration-700 ease-in-out"
+                        style={{
+                          transform: `translateX(-${currentSlide * 100}%)`,
+                        }}
+                      >
+                        {/* Slide 1 - Vendre */}
+                        <div className="min-w-full relative bg-gradient-to-br from-[#fff1eb] to-[#ace0f9]/20 flex items-center justify-center border border-white">
+                          <div className="absolute left-0 top-0 w-full h-full overflow-hidden">
+                            <div className="absolute -left-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl" />
+                            <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-100/40 rounded-full blur-3xl" />
+                          </div>
+                          <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-orange-100 mb-6 font-black text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                              <Zap size={14} fill="currentColor" /> Offre
+                              Commerçant
+                            </div>
+                            <h2 className="text-2xl md:text-[36px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
+                              C'est le moment{" "}
+                              <span className="text-[#f56b2a]">de vendre</span>
+                            </h2>
+                            <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
+                              Boostez votre visibilité et attirez plus de
+                              clients dès aujourd'hui sur notre plateforme
+                              express.
+                            </p>
+                            <Button
+                              onClick={() =>
+                                safeNavigate(user ? "/dashboard" : "/login")
+                              }
+                              loading={isNavigating}
+                              variant="secondary"
+                              size="xl"
+                            >
+                              Commencer maintenant
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Slide 2 - Gestion */}
+                        <div className="min-w-full relative bg-gradient-to-br from-[#e0f2fe] to-[#f0f9ff] flex items-center justify-center border border-white">
+                          <div className="absolute inset-0 overflow-hidden">
+                            <div className="absolute right-0 top-0 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
+                          </div>
+                          <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
+                              <ShieldCheck size={14} /> Gestion Pro
+                            </div>
+                            <h2 className="text-2xl md:text-[36px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
+                              Gérez votre{" "}
+                              <span className="text-blue-500">
+                                stock facilement
+                              </span>
+                            </h2>
+                            <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
+                              Un inventaire synchronisé et des alertes
+                              automatiques pour ne jamais manquer une vente.
+                            </p>
+                            <Button
+                              onClick={() =>
+                                safeNavigate(user ? "/dashboard" : "/login")
+                              }
+                              loading={isNavigating}
+                              variant="secondary"
+                              size="xl"
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Commencer maintenant
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Slide 3 - Croissance */}
+                        <div className="min-w-full relative bg-gradient-to-br from-[#fef2f2] to-[#fff1f2] flex items-center justify-center border border-white">
+                          <div className="absolute inset-0 overflow-hidden">
+                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-100/30 rounded-full blur-[100px]" />
+                          </div>
+                          <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
+                              <Heart size={14} fill="currentColor" /> Communauté
+                            </div>
+                            <h2 className="text-2xl md:text-[36px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
+                              Rejoignez{" "}
+                              <span className="text-red-500">le succès</span>
+                            </h2>
+                            <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
+                              Faites partie des 500+ commerçants qui ont déjà
+                              transformé leur manière de vendre.
+                            </p>
+                            <Button
+                              onClick={() =>
+                                safeNavigate(user ? "/dashboard" : "/login")
+                              }
+                              variant="secondary"
+                              size="xl"
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Commencer maintenant
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pagination Dots */}
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                        {[0, 1, 2].map((idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => setCurrentSlide(idx)}
+                            className={`h-1.5 rounded-full transition-all cursor-pointer ${currentSlide === idx ? "w-8 bg-gray-900" : "w-2 bg-gray-300"}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </section>
                 )}
               </>
             }
@@ -4412,6 +4792,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             </div>
                           ));
                         })()
+                      ) : isInitialLoading || isRefetching ? (
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                          <Loader2
+                            size={32}
+                            className="text-[#f56b2a] animate-spin mb-3"
+                          />
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest text-center">
+                            Chargement de la boutique...
+                          </p>
+                        </div>
                       ) : !isLoadingMore ? (
                         <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                           <Search size={48} className="text-gray-200 mb-4" />
@@ -5052,8 +5442,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <CheckCircle2 size={32} strokeWidth={3} />
                     </div>
                   </div>
-                  <h3 className="text-lg font-black text-gray-900 mb-1">
-                    Merci ! 🎉
+                  <h3 className="text-lg font-black text-gray-900 mb-1 flex items-center justify-center gap-2">
+                    Merci ! <PartyPopper size={18} className="text-[#f56b2a]" />
                   </h3>
                   <p className="text-[11px] text-gray-600 font-medium">
                     Votre avis a été publié avec succès

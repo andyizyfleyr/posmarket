@@ -167,7 +167,7 @@ export default function AdminView() {
   };
 
   const handleDeleteStore = async (storeId: string) => {
-    if (!confirm("⚠️ Supprimer cette boutique ?")) return;
+    if (!confirm(" Supprimer cette boutique ?")) return;
     try {
       setItemProcessing(`delete-${storeId}`, true);
       await deleteStoreAdmin(storeId);
