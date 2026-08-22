@@ -2373,6 +2373,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       Livraison express
                     </span>
                   )}
+                  {stockValue !== null && stockValue > 0 && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-full border ${
+                        isLowStock
+                          ? "bg-amber-50 text-amber-600 border-amber-200"
+                          : "bg-green-50 text-green-600 border-green-200"
+                      }`}
+                    >
+                      <CheckCircle2 size={10} />
+                      Disponibilité : En stock
+                    </span>
+                  )}
                 </div>
 
                 {/* Title */}
@@ -2545,15 +2557,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <div className="mb-4">
                   {stockValue !== null && stockValue > 0 && (
                     <>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span
-                          className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ${
-                            isLowStock ? "text-amber-600" : "text-green-600"
-                          }`}
-                        >
-                          <CheckCircle2 size={11} />
-                          Disponibilité : En stock
-                        </span>
+                      <div className="flex items-center justify-end mb-1.5">
                         {isLowStock && (
                           <span className="text-[9px] font-black text-amber-600 animate-pulse">
                             Dernières unités ({stockValue}) !
@@ -2582,57 +2586,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <AlertCircle size={11} /> Disponibilité à confirmer en boutique
                     </p>
                   )}
-                </div>
-
-                {/* Trust badges grid (M3 Style) */}
-                <div className="grid grid-cols-3 gap-2 border-t border-gray-50 pt-3">
-                  <div className="flex flex-col items-center text-center gap-1 bg-gray-50/70 rounded-2xl py-2 px-1">
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                        isFood ? "bg-green-50 text-green-600" : "bg-orange-50 text-[#f56b2a]"
-                      }`}
-                    >
-                      <ShieldCheck size={14} />
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-black text-gray-800 uppercase tracking-wider leading-none">
-                        {isFood ? "Fraîcheur" : "Sécurité"}
-                      </p>
-                      <p className="text-[7px] font-bold text-gray-400 mt-0.5 leading-none">
-                        100% garanti
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center text-center gap-1 bg-gray-50/70 rounded-2xl py-2 px-1">
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                        isFood ? "bg-green-50 text-green-600" : "bg-orange-50 text-[#f56b2a]"
-                      }`}
-                    >
-                      <Truck size={14} />
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-black text-gray-800 uppercase tracking-wider leading-none">
-                        Livraison
-                      </p>
-                      <p className="text-[7px] font-bold text-gray-400 mt-0.5 leading-none">
-                        {isFood ? product.deliveryTime || "30-45 min" : "Rapide"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center text-center gap-1 bg-gray-50/70 rounded-2xl py-2 px-1">
-                    <div className="w-7 h-7 rounded-full bg-gray-900 text-white flex items-center justify-center">
-                      <CreditCard size={13} />
-                    </div>
-                    <div>
-                      <p className="text-[8px] font-black text-gray-800 uppercase tracking-wider leading-none">
-                        Paiement
-                      </p>
-                      <p className="text-[7px] font-bold text-gray-400 mt-0.5 leading-none">
-                        À la livraison
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
 
