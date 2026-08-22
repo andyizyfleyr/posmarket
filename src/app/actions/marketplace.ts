@@ -13,6 +13,11 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
       db.select().from(productStats).catch(() => [])
     ]);
 
+    const toImageRef = (
+      uri: string | null | undefined,
+      apiId: string
+    ): string => (uri && uri.startsWith('data:') ? `/api/image/${apiId}` : uri || '');
+
     const productStatsMap = Object.fromEntries((productStatsData || []).map((s: any) => [s.productId, s]));
 
     const productsByStoreMap: Record<string, any[]> = {};
@@ -22,7 +27,10 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
     });
 
     const marketplaceStores: StoreData[] = (storesData || []).map((s: any) => {
-      const settingsObj = s.settings || {};
+      const settingsObj = { ...(s.settings || {}) };
+      if (typeof settingsObj.logo === 'string' && settingsObj.logo.startsWith('data:')) {
+        settingsObj.logo = `/api/image/s${s.id}`;
+      }
       const description = s.description || settingsObj.description || '';
       
       return {
@@ -50,7 +58,7 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
               name: p.name,
               price: Number(p.price) || 0,
               originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
-              image: p.image,
+              image: toImageRef(p.image, p.id),
               stock: p.stock || 0,
               mainCategory: p.mainCategory || '',
               description: p.description || '',
