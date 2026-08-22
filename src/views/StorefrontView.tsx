@@ -92,7 +92,6 @@ import {
   fetchMarketplaceProducts,
   fetchProductReviews,
 } from "@/hooks/useSupabaseData";
-import { MarketplaceBottomNav } from "@/components/MarketplaceBottomNav";
 import { supabase } from "@/supabase";
 import { BuyerView } from "./BuyerView";
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
@@ -260,7 +259,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
   const [urlKey, setUrlKey] = useState(0);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
-  const [productSection, setProductSection] = useState("pd-produit");
 
   // 0. URL Change Listener - Force re-render on navigation
   useEffect(() => {
@@ -1093,32 +1091,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       setIsDescriptionExpanded(false); // Reset expansion on new product
       setSelectedDetailImage(null); // Reset selected image on new product
       setProductSwipeIdx(0);
-      setProductSection("pd-produit");
     }
   }, [selectedProductId, selectedProductDetails]);
-
-  // Scrollspy for the mobile app-style section tabs on product pages
-  useEffect(() => {
-    if (!location.pathname.includes("/product/")) return;
-    let raf = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const ids = ["pd-produit", "pd-avis", "pd-similaires"];
-        let current = "pd-produit";
-        for (const id of ids) {
-          const el = document.getElementById(id);
-          if (el && el.getBoundingClientRect().top <= 140) current = id;
-        }
-        setProductSection(current);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, [location.pathname]);
 
   // Fetch product reviews (with cleanup + caching)
   useEffect(() => {
@@ -2167,12 +2141,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       ? "bg-green-50 text-green-700 border-green-200"
       : "bg-orange-50 text-[#f56b2a] border-orange-200";
 
-    const sectionTabs = [
-      { id: "pd-produit", label: "Produit" },
-      { id: "pd-avis", label: `Avis (${formatNumber(reviewTotal)})` },
-      { id: "pd-similaires", label: "Similaires" },
-    ];
-
     const openZoom = (img: string) => {
       setCurrentZoomImage(img);
       setIsImageModalOpen(true);
@@ -2249,32 +2217,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             >
               <Share2 size={19} />
             </button>
-            <button
-              aria-label="Favoris"
-              onClick={() => localNotify("Ajouté aux favoris !", "success")}
-              className="w-10 h-10 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
-            >
-              <Heart size={19} />
-            </button>
-          </div>
-        </div>
-
-        {/* ================= MOBILE SEGMENTED CONTROL (M3 style) ================= */}
-        <div className="lg:hidden mt-3 mb-4 max-w-sm mx-auto px-4">
-          <div className="bg-gray-100/80 p-1 rounded-full flex gap-1 border border-gray-200/40 shadow-inner">
-            {sectionTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => scrollToSection(tab.id)}
-                className={`flex-1 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all text-center flex items-center justify-center gap-1 ${
-                  productSection === tab.id
-                    ? "bg-white text-gray-900 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100"
-                    : "text-gray-400 hover:text-gray-900"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -2958,36 +2900,26 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           <div
             className="lg:hidden fixed left-0 right-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pt-3 pb-3"
             style={{
-              bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
+              bottom: "env(safe-area-inset-bottom, 0px)",
             }}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-col justify-center min-w-fit">
-                <span className="text-[7px] font-black text-gray-400 uppercase tracking-[0.1em] leading-none mb-1">
-                  {hasOptions && !allSelected ? "Dès" : "Total TTC"}
-                </span>
-                <span className={`text-[15px] font-black tracking-tight leading-none ${accentText}`}>
-                  {formatCurrency(basePrice)}
-                </span>
-              </div>
-              <div className="flex-grow flex items-center gap-2">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className="flex-1 border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
-                >
-                  <ShoppingCart size={14} strokeWidth={2.5} />
-                  Panier
-                </button>
-                <button
-                  onClick={handleBuyNow}
-                  disabled={isOutOfStock}
-                  className="flex-[1.2] bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 shadow-md shadow-orange-500/10 transition-all disabled:opacity-50"
-                >
-                  <Zap size={14} fill="currentColor" />
-                  {isOutOfStock ? "Rupture" : "Acheter"}
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                className="flex-1 border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
+              >
+                <ShoppingCart size={14} strokeWidth={2.5} />
+                Panier
+              </button>
+              <button
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                className="flex-[1.2] bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 shadow-md shadow-orange-500/10 transition-all disabled:opacity-50"
+              >
+                <Zap size={14} fill="currentColor" />
+                {isOutOfStock ? "Rupture" : "Acheter"}
+              </button>
             </div>
           </div>
         )}
@@ -3690,7 +3622,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans pb-[100px] md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+    <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
       {!isOnline && (
         <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
@@ -3721,35 +3653,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           <Toast key={notif.id} notification={notif} onRemove={removeToast} />
         ))}
       </div>
-
-      <MarketplaceBottomNav
-        cartItemsCount={cartItemsCount}
-        loading={isNavigating}
-        onSearchClick={() => {
-          setIsSearchOpen(true);
-        }}
-        onHomeClick={() => {
-          if (isNavigating) return;
-          setIsSearchOpen(false);
-          setIsAccountView(false);
-          safeNavigate("/");
-        }}
-        onCartClick={() => {
-          if (isNavigating) return;
-          setIsSearchOpen(false);
-          setIsAccountView(false);
-          safeNavigate("/cart");
-        }}
-        onAccountClick={() => {
-          if (isNavigating) return;
-          if (user) {
-            safeNavigate("/mon-compte/commandes");
-          } else {
-            setAuthMode("login");
-            setShowAuthModal(true);
-          }
-        }}
-      />
 
       {/* 🌀 Global Navigation Loading Overlay - With unique key for clean re-renders */}
       {isNavigating && (
