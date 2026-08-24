@@ -3,9 +3,12 @@
 import { db } from '@/db'
 import { stores, products, productStats, productReviews } from '@/db/schema'
 import { eq, sql } from 'drizzle-orm'
+import { unstable_cache, updateTag } from 'next/cache'
 import { StoreData } from '@/types'
 
-export async function fetchMarketplaceData(): Promise<StoreData[]> {
+const CATALOG_TAG = 'marketplace'
+
+async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
   try {
     const [storesData, productsData, productStatsData] = await Promise.all([
       db
@@ -126,6 +129,15 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
   }
 }
 
+const getCachedMarketplaceData = unstable_cache(fetchMarketplaceDataUncached, ['marketplace-catalog'], {
+  tags: [CATALOG_TAG],
+  revalidate: 300,
+});
+
+export async function fetchMarketplaceData(): Promise<StoreData[]> {
+  return getCachedMarketplaceData();
+}
+
 export async function submitCheckoutAction(order: any) {
   return { success: true, orderId: 'ord_' + Math.random().toString(36).substring(2, 9) };
 }
@@ -178,6 +190,8 @@ export async function saveProductReviewAction(storeIdOrReview: any, productId?: 
         target: productStats.productId,
         set: { averageRating: avg.toFixed(2), reviewCount: Number(count) },
       });
+
+    updateTag(CATALOG_TAG);
 
     return { success: true, error: undefined, review };
   } catch (error: any) {

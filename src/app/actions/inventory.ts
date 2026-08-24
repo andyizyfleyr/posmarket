@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { db } from '@/db'
 import { products, profiles } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
@@ -57,6 +57,7 @@ export async function saveProductAction(product: any, storeId: string) {
 
     revalidatePath('/inventory');
     revalidatePath('/');
+    updateTag('marketplace');
     return { success: true, product: savedProduct };
   } catch (error: any) {
     console.error('Error saving product with Drizzle:', error);
@@ -69,6 +70,7 @@ export async function deleteProductAction(id: string) {
     await db.delete(products).where(eq(products.id, id));
     revalidatePath('/inventory');
     revalidatePath('/');
+    updateTag('marketplace');
     return { success: true };
   } catch (error: any) {
     console.error('Error deleting product with Drizzle:', error);
@@ -83,6 +85,7 @@ export async function bulkDeleteProductsAction(ids: string[]) {
     }
     revalidatePath('/inventory');
     revalidatePath('/');
+    updateTag('marketplace');
     return { success: true };
   } catch (error: any) {
     console.error('Error bulk deleting products with Drizzle:', error);

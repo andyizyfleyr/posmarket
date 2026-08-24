@@ -1,4 +1,5 @@
 import { eq, and, inArray, desc, asc, sql } from 'drizzle-orm';
+import { updateTag } from 'next/cache';
 import { db } from './index';
 import * as schema from './schema';
 import { QuerySpec, QueryResult, QueryBuilder } from './builder';
@@ -68,6 +69,17 @@ function toSnake(table: any, row: any): any {
 
 function toSnakeRows(table: any, rows: any[]): any[] {
   return (rows || []).map((r) => toSnake(table, r));
+}
+
+const CATALOG_TABLES = new Set(['stores', 'products']);
+
+function revalidateCatalog(table: any) {
+  if (!CATALOG_TABLES.has(String(table))) return;
+  try {
+    updateTag('marketplace');
+  } catch {
+    // ignore: called outside action/route context
+  }
 }
 
 async function runRpc(name: string, args: any): Promise<QueryResult> {
@@ -196,6 +208,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     // ---------- DELETE ----------
     if (spec.method === 'delete') {
       await db.delete(table).where(conditions.length ? and(...conditions) : undefined);
+      revalidateCatalog(spec.table);
       return { data: null, error: null };
     }
 
@@ -215,6 +228,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
       } else {
         await db.insert(table).values(dbRows);
       }
+      revalidateCatalog(spec.table);
       return { data: null, error: null };
     }
 
@@ -222,6 +236,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     if (spec.method === 'update') {
       const dbValues = toDbValues(spec.values, columns);
       await db.update(table).set(dbValues).where(conditions.length ? and(...conditions) : undefined);
+      revalidateCatalog(spec.table);
       return { data: null, error: null };
     }
 

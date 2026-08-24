@@ -4,6 +4,8 @@ import { products, stores } from '@/db/schema';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export const revalidate = 86400;
+
 async function getImageSource(id: string): Promise<string | null | undefined> {
   if (id.startsWith('s')) {
     const storeId = id.slice(1);

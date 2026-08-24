@@ -3,7 +3,7 @@
 import { db } from '@/db';
 import { stores, profiles, orders, products } from '@/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 export async function getGlobalStats() {
     try {
@@ -86,6 +86,7 @@ export async function forceDeleteStore(storeId: string) {
     try {
         await db.delete(stores).where(eq(stores.id, storeId));
         revalidatePath('/admin');
+        updateTag('marketplace');
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message };

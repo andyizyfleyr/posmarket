@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { db } from '@/db'
 import { stores, profiles, coupons, storeStaff } from '@/db/schema'
 import { eq } from 'drizzle-orm'
@@ -21,9 +21,10 @@ export async function updateStoreSettingsAction(storeId: string, settings: Store
         };
 
         await db.update(stores).set(updateData).where(eq(stores.id, storeId));
-        
+
         revalidatePath('/', 'layout');
         revalidatePath('/settings');
+        updateTag('marketplace');
         return { success: true };
     } catch (error: any) {
         console.error('Error updating store settings with Drizzle:', error);
@@ -45,8 +46,9 @@ export async function createStoreAction(settings: StoreSettings, userId: string)
             address: settings.address,
             ninea: settings.ninea,
         }).returning();
-        
+
         revalidatePath('/settings');
+        updateTag('marketplace');
         return { success: true, store: newStore };
     } catch (error: any) {
         console.error('Error creating store with Drizzle:', error);
@@ -58,6 +60,7 @@ export async function deleteStoreAction(id: string) {
     try {
         await db.delete(stores).where(eq(stores.id, id));
         revalidatePath('/', 'layout');
+        updateTag('marketplace');
         return { success: true };
     } catch (error: any) {
         console.error('Error deleting store with Drizzle:', error);
