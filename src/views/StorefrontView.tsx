@@ -605,6 +605,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return () => clearInterval(timer);
   }, [location.pathname, heroPaused]);
 
+  // Header compact au scroll (mobile) : recherche + catégories se replient
+  // pour rendre le contenu accessible plus vite sur petits écrans.
+  const [headerCompact, setHeaderCompact] = useState(false);
+  React.useEffect(() => {
+    const onScroll = () => setHeaderCompact(window.scrollY > 70);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Params logic moved to top
 
   // Review form state
@@ -821,6 +831,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [currentZoomImage, setCurrentZoomImage] = useState<string | null>(null);
+  // Galerie snapshot pour la navigation ‹ › dans le modal plein écran
+  const [zoomGallery, setZoomGallery] = useState<string[]>([]);
+
+  // Verrouille le scroll de la page quand un modal/overlay plein écran est
+  // ouvert (sinon la page défile derrière sur iOS).
+  React.useEffect(() => {
+    const locked =
+      showAuthModal || isSearchOpen || isImageModalOpen || showReviewForm;
+    if (!locked) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm]);
 
   // Pagination & Infinite Scroll State
   const [page, setPage] = useState(0);
@@ -1235,10 +1260,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, [isMounted, allProducts.length, prefetchProduct]);
 
   // Track store views - only increment once per store per session
+  const lastVisitedStoreRef = useRef<string | null>(null);
   useEffect(() => {
     if (selectedStoreId && storeViewTracked.current !== selectedStoreId) {
       storeViewTracked.current = selectedStoreId;
       incrementStoreViews(selectedStoreId);
+      // Mémorise la boutique pour un retour intelligent depuis une fiche produit
+      if (selectedStoreParam) {
+        lastVisitedStoreRef.current = selectedStoreParam;
+      }
       setStoreTab("products"); // Reset to products tab on navigation
       setShowAllStoreReviews(false); // Reset see more
       setStoreDescExpanded(false);
@@ -1577,7 +1607,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         },
       ];
     });
-    setLastAddedProduct(product);
+    // Le toast affiche le prix réellement ajouté (variante > base)
+    const addedVariant =
+      variantId && product.variants
+        ? product.variants.find((v) => v.id === variantId)
+        : null;
+    setLastAddedProduct(
+      addedVariant ? { ...product, price: addedVariant.price } : product,
+    );
     setCartNotif(true);
     onNotifyCartInterest(product.storeId, product.name);
     setTimeout(() => setCartNotif(false), 4000);
@@ -2066,14 +2103,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 });
               }}
               aria-label="Retour au marché"
-              className="absolute top-3 left-3 z-30 w-9 h-9 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
+              className="absolute top-2.5 left-3 z-30 w-11 h-11 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
             >
-              <ChevronLeft size={19} strokeWidth={3} className="text-white" />
+              <ChevronLeft size={20} strokeWidth={3} className="text-white" />
             </button>
             <button
               onClick={handleStoreShare}
               aria-label="Partager la boutique"
-              className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
+              className="absolute top-2.5 right-3 z-30 w-11 h-11 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
             >
               <Share2 size={15} className="text-white" />
             </button>
@@ -2379,6 +2416,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
     const openZoom = (img: string) => {
       setCurrentZoomImage(img);
+      setZoomGallery(galleryImages);
       setIsImageModalOpen(true);
     };
 
@@ -2436,9 +2474,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         {/* ================= MOBILE APP-BAR (M3 style) ================= */}
         <div className="lg:hidden sticky top-0 z-[100] bg-white/95 backdrop-blur-md border-b border-gray-100/80 px-3 py-2 flex items-center justify-between -mx-4">
           <button
-            onClick={() => safeNavigate("/")}
+            onClick={() =>
+              // Retour intelligent : vers la boutique d'où l'utilisateur vient,
+              // sinon l'accueil.
+              safeNavigate(
+                lastVisitedStoreRef.current
+                  ? `/store/${lastVisitedStoreRef.current}`
+                  : "/",
+              )
+            }
             aria-label="Retour"
-            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
+            className="w-11 h-11 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
           >
             <ArrowLeft size={20} strokeWidth={2.5} />
           </button>
@@ -2449,7 +2495,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <button
               onClick={handleShare}
               aria-label="Partager"
-              className="w-10 h-10 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
+              className="w-11 h-11 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
             >
               <Share2 size={19} />
             </button>
@@ -2677,7 +2723,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                 {/* Price block - Premium Inside Card */}
                 <div className="relative overflow-hidden rounded-[20px] border border-[#f56b2a]/10 bg-gradient-to-br from-[#f56b2a]/5 via-white to-white p-3.5">
-                  <span className="block text-[8px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">
+                  <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">
                     {hasOptions && !allSelected ? "À partir de" : "Tarif unique"}
                   </span>
                   <div className="flex items-baseline gap-2 flex-wrap">
@@ -2691,14 +2737,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <span className="text-xs text-gray-400 line-through font-bold">
                           {formatCurrency(product.originalPrice)}
                         </span>
-                        <span className="text-[8px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                        <span className="text-[9px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
                           -{discountPct}%
                         </span>
                       </>
                     )}
                   </div>
                   {product.originalPrice && product.originalPrice > basePrice && (
-                    <span className="mt-1.5 inline-flex text-[8px] font-black text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <span className="mt-1.5 inline-flex text-[9px] font-black text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
                       Économisez {formatCurrency(product.originalPrice - basePrice)}
                     </span>
                   )}
@@ -2733,7 +2779,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     [option.id]: val,
                                   }))
                                 }
-                                className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border active:scale-95 ${
+                                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-[13px] md:text-xs font-semibold transition-all border active:scale-95 ${
                                   isSelected
                                     ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-500/10 font-black"
                                     : "bg-white text-gray-700 border-gray-200 hover:border-gray-900"
@@ -2769,7 +2815,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <Package size={16} />
                       </div>
                       <div className="text-left min-w-0">
-                        <span className="block text-[8px] font-black uppercase tracking-[0.15em] text-[#f56b2a]">
+                        <span className="block text-[9px] font-black uppercase tracking-[0.15em] text-[#f56b2a]">
                           Offre grossiste
                         </span>
                         <span className="text-xs font-black truncate">
@@ -3087,9 +3133,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         {/* ================= STICKY MOBILE ACTION BAR (M3 Floating style) ================= */}
         {(
           <div
-            className="lg:hidden fixed left-0 right-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pt-3 pb-3"
+            className="lg:hidden fixed left-0 right-0 bottom-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pt-3"
             style={{
-              bottom: "env(safe-area-inset-bottom, 0px)",
+              paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
             }}
           >
             <div className="flex items-center gap-2">
@@ -3298,7 +3344,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     )
                                   }
                                   aria-label={`Retirer ${item.product.name || "le produit"} du panier`}
-                                  className="shrink-0 p-2 -m-1.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
+                                  className="shrink-0 p-2.5 -m-1.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
                                 >
                                   <Trash2 size={15} />
                                 </button>
@@ -3849,7 +3895,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <button
                     onClick={() => setPromoApplied(null)}
                     aria-label="Retirer le code promo"
-                    className="p-1 text-green-600/60 hover:text-red-500 transition-colors"
+                    className="p-2 -m-1 text-green-600/60 hover:text-red-500 transition-colors"
                   >
                     <X size={14} />
                   </button>
@@ -3998,8 +4044,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         </div>
       )}
 
-      {/* Global Notifications (Toasts) */}
-      <div className="fixed top-6 right-6 z-[99999] flex flex-col gap-4 pointer-events-none items-end">
+      {/* Global Notifications (Toasts) — contraintes mobile : pleine largeur
+          bornée + respect de l'encoche (safe-area-top) */}
+      <div className="fixed z-[99999] flex flex-col gap-3 sm:gap-4 pointer-events-none items-end left-3 right-3 sm:left-auto sm:right-6 top-[calc(env(safe-area-inset-top,0px)+14px)] sm:top-6">
         {toastNotifications.map((notif) => (
           <Toast key={notif.id} notification={notif} onRemove={removeToast} />
         ))}
@@ -4124,7 +4171,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setCompletedOrderTotal(0);
                       }
                     }}
-                    className="w-9 h-9 md:w-12 md:h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 group-hover:bg-[#f56b2a] group-hover:text-white transition-all active:scale-90"
+                    className="w-11 h-11 md:w-12 md:h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 group-hover:bg-[#f56b2a] group-hover:text-white transition-all active:scale-90"
                   >
                     <ShoppingCart
                       size={20}
@@ -4155,7 +4202,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setShowAuthModal(true);
                       }
                     }}
-                    className={`flex items-center gap-2.5 p-1.5 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? "bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]" : "bg-gray-50 border-gray-100 text-gray-700 hover:bg-[#f56b2a]/10 hover:text-[#f56b2a] hover:border-[#f56b2a]/20"}`}
+                    className={`flex items-center gap-2.5 p-2 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? "bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]" : "bg-gray-50 border-gray-100 text-gray-700 hover:bg-[#f56b2a]/10 hover:text-[#f56b2a] hover:border-[#f56b2a]/20"}`}
                   >
                     <div
                       className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? "bg-[#f56b2a] text-white" : "bg-white text-gray-400 group-hover/auth:bg-[#f56b2a] group-hover/auth:text-white"}`}
@@ -4175,8 +4222,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
 
-            {/* Full Width Search Bar - Mobile Only */}
-            <div className="md:hidden pb-2">
+            {/* Full Width Search Bar - Mobile Only (se replie au scroll) */}
+            <div
+              className={`md:hidden overflow-hidden transition-all duration-300 ${headerCompact ? "max-h-0 pb-0 opacity-0" : "max-h-24 pb-2 opacity-100"}`}
+            >
               <div className="flex items-center bg-white rounded-xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl transition-all group">
                 <div className="pl-3 text-gray-600 group-focus-within:text-[#f56b2a]">
                   <Search size={16} strokeWidth={2.5} />
@@ -4194,8 +4243,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
 
-            {/* Dynamic Horizontal Categories - Scrollable with scroll hint */}
-            <div className="relative">
+            {/* Dynamic Horizontal Categories - Scrollable with scroll hint.
+                Sur mobile, la rangée se replie quand le header est compact. */}
+            <div
+              className={`relative overflow-hidden transition-all duration-300 ${headerCompact ? "max-h-0 opacity-0 md:max-h-24 md:opacity-100" : "max-h-24 opacity-100"}`}
+            >
               <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth">
                 {categories.map((cat) => (
                 <button
@@ -4228,7 +4280,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       )}
 
       {cartNotif && lastAddedProduct && (
-        <div className="fixed top-4 right-4 left-4 md:left-auto md:w-[340px] z-[1000]    duration-400 px-2 md:px-0">
+        <div className="fixed top-4 right-4 left-4 md:left-auto md:w-[340px] z-[1100] duration-300 px-2 md:px-0">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/20 overflow-hidden">
             {/* Progress bar at the bottom for top-toasts feels better or keep top */}
             <div className="p-3">
@@ -4271,7 +4323,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             {/* Tiny progress line at the very bottom */}
             <div className="h-0.5 bg-gray-100 w-full overflow-hidden">
               <div
-                className="h-full bg-green-500/50 animate-[shrink_4s_linear_forwards]"
+                className="h-full bg-green-500/50"
                 style={{ animation: "shrink 4s linear forwards" }}
               />
             </div>
@@ -4490,7 +4542,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Hero Bannière Premium - Carousel */}
                 {!searchTerm && selectedCategory === "all" && (
                   <div
-                    className="mb-10 mt-2 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto"
+                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto"
                     onMouseEnter={() => setHeroPaused(true)}
                     onMouseLeave={() => setHeroPaused(false)}
                   >
@@ -4594,16 +4646,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </div>
                     </div>
 
-                    {/* Pagination Dots */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                    {/* Pagination Dots - pastille visuelle fine mais zone
+                        de tap élargie (44px) pour le pouce */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-20">
                       {[0, 1, 2].map((idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
                           aria-label={`Aller à la diapositive ${idx + 1}`}
                           aria-current={currentSlide === idx}
-                          className={`h-1.5 rounded-full transition-all cursor-pointer ${currentSlide === idx ? "w-8 bg-gray-900" : "w-2 bg-gray-300"}`}
-                        />
+                          className="p-2.5 -m-1 flex items-center cursor-pointer"
+                        >
+                          <span
+                            className={`h-1.5 rounded-full transition-all ${currentSlide === idx ? "w-8 bg-gray-900" : "w-2 bg-gray-300"}`}
+                          />
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -4613,8 +4670,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {!searchTerm &&
                   selectedCategory === "all" &&
                   partnerStores.length > 0 && (
-                    <div className="mb-12">
-                      <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">
+                    <div className="mb-7 md:mb-12">
+                      <h2 className="text-xl font-black text-gray-900 mb-4 md:mb-6 tracking-tight">
                         Boutiques partenaires
                       </h2>
                       <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
@@ -4779,7 +4836,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </div>
                     )}
 
-                    <div className="relative space-y-12">
+                    <div className="relative space-y-7 md:space-y-12">
                       {searchTerm || activeHomeCategory ? (
                         /* Simple grid for search results / category page */
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
@@ -4984,13 +5041,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <div className="grid grid-cols-2 gap-1 p-1 bg-white/90 rounded-[20px] mb-5 max-w-full md:max-w-fit md:flex md:items-center md:mx-0 border border-gray-100/60 sticky top-[64px] md:static z-30 backdrop-blur-xl shadow-sm md:shadow-none">
                   <button
                     onClick={() => setStoreTab("products")}
-                    className={`px-6 py-2.5 rounded-[16px] font-black text-xs md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
+                    className={`px-6 py-3 rounded-[16px] font-black text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
                   >
                     <ShoppingBasketIcon size={14} /> Produits
                   </button>
                   <button
                     onClick={() => setStoreTab("reviews")}
-                    className={`px-6 py-2.5 rounded-[16px] font-black text-xs md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "reviews" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
+                    className={`px-6 py-3 rounded-[16px] font-black text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "reviews" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
                   >
                     <Star
                       size={14}
@@ -5043,7 +5100,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </div>
                     )}
 
-                    <div className="relative space-y-12">
+                    <div className="relative space-y-7 md:space-y-12">
                       {pagedProducts.length > 0 ? (
                         activeStoreCategory ? (
                           /* Full category grid */
@@ -5883,37 +5940,69 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         </div>
       )}
       {/* Image Full-Size Modal */}
-      {isImageModalOpen && (
-        <div
-          className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center   duration-300"
-          onClick={() => setIsImageModalOpen(false)}
-        >
-          <button
-            onClick={() => setIsImageModalOpen(false)}
-            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all active:scale-95 z-50"
-            aria-label="Fermer l image"
-          >
-            <X size={24} />
-          </button>
+      {isImageModalOpen && (() => {
+        const zoomSrc =
+          currentZoomImage ||
+          selectedDetailImage ||
+          selectedProductDetails?.image ||
+          "";
+        const zoomIdx = zoomGallery.indexOf(zoomSrc);
+        const canNavigate = zoomGallery.length > 1;
+        const step = (dir: 1 | -1) => {
+          if (!canNavigate || zoomIdx === -1) return;
+          const next =
+            (zoomIdx + dir + zoomGallery.length) % zoomGallery.length;
+          setCurrentZoomImage(zoomGallery[next]);
+        };
+        return (
           <div
-            className="w-full h-full p-4 md:p-10 flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center duration-300"
+            onClick={() => setIsImageModalOpen(false)}
           >
-            <div className="relative w-full h-full">
-              <img
-                src={
-                  currentZoomImage ||
-                  selectedDetailImage ||
-                  selectedProductDetails?.image ||
-                  ""
-                }
-                className="w-full h-full object-contain shadow-2xl rounded-2xl   duration-500"
-                alt="Full Size Product"
-              />
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute top-5 right-5 w-11 h-11 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all active:scale-95 z-50 flex items-center justify-center"
+              aria-label="Fermer l'image"
+            >
+              <X size={22} />
+            </button>
+            <div
+              className="w-full h-full p-4 md:p-14 flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative w-full h-full">
+                <img
+                  src={zoomSrc}
+                  className="w-full h-full object-contain shadow-2xl rounded-2xl select-none pointer-events-none"
+                  draggable={false}
+                  alt="Full Size Product"
+                />
+                {canNavigate && (
+                  <>
+                    <button
+                      onClick={() => step(-1)}
+                      aria-label="Image précédente"
+                      className="absolute left-1 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/10 hover:bg-white/25 rounded-full text-white flex items-center justify-center transition-all active:scale-90"
+                    >
+                      <ChevronLeft size={22} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      onClick={() => step(1)}
+                      aria-label="Image suivante"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/10 hover:bg-white/25 rounded-full text-white flex items-center justify-center transition-all active:scale-90"
+                    >
+                      <ChevronRight size={22} strokeWidth={2.5} />
+                    </button>
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-[10px] font-black px-2.5 py-1 rounded-full tabular-nums">
+                      {zoomIdx + 1}/{zoomGallery.length}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -44,7 +44,8 @@ const Toast: React.FC<ToastProps> = memo(({ notification, onRemove }) => {
             </div>
             <button
                 onClick={() => onRemove(notification.id)}
-                className="flex-shrink-0 p-1 hover:bg-black/5 rounded-full transition-colors"
+                aria-label="Fermer la notification"
+                className="flex-shrink-0 -m-1 p-2 hover:bg-black/5 rounded-full transition-colors"
             >
                 <X size={16} className="text-slate-400" />
             </button>

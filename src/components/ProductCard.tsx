@@ -74,12 +74,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
           {/* Badges on Image Content */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
             {product.wholesalePrice && (
-              <div className="bg-[#f56b2a] text-white px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md">
-                <Zap size={8} fill="currentColor" /> Gros
+              <div className="bg-[#f56b2a] text-white px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md">
+                <Zap size={9} fill="currentColor" /> Gros
               </div>
             )}
             {product.originalPrice && product.originalPrice > product.price && (
-              <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest shadow-md">
+              <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shadow-md">
                 -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
               </div>
             )}
@@ -91,31 +91,31 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
 
         <div className="p-1.5 md:p-2 flex flex-col flex-grow bg-white">
           <div className="mb-1">
-            <h3 className="text-[10px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight will-change-contents">
+            <h3 className="text-[11px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight will-change-contents">
               {product.name}
             </h3>
           </div>
 
           <div className="mt-auto">
             <div className="flex items-baseline gap-1 mb-1.5">
-              <span className="text-[#1a1a1a] font-black text-xs md:text-sm">
+              <span className="text-[#1a1a1a] font-black text-sm">
                 {formatCurrency(product.price)}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-[7px] md:text-[8px] text-gray-500 line-through">
+                <span className="text-[9px] md:text-[8px] text-gray-500 line-through">
                   {formatCurrency(product.originalPrice)}
                 </span>
               )}
             </div>
-            <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[12px]">
+            <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[14px]">
               {product.salesCount !== undefined && product.salesCount > 0 ? (
-                <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-70">
+                <div className="text-[9px] text-gray-600 font-bold opacity-70">
                   {formatNumber(product.salesCount)} {product.salesCount > 1 ? 'ventes' : 'vente'}
                 </div>
               ) : <div />}
 
               {product.views !== undefined && product.views > 0 && (
-                <div className="text-[8px] md:text-[9px] text-gray-600 font-bold opacity-80 flex items-center gap-1">
+                <div className="text-[9px] text-gray-600 font-bold opacity-80 flex items-center gap-1">
                   {formatNumber(product.views)} <Eye size={10} className="text-gray-600" strokeWidth={2.5} />
                 </div>
               )}
@@ -128,7 +128,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         <button
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
+          className={`w-full py-2.5 rounded-lg flex items-center justify-center gap-1 text-[10px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tight ${
             isOutOfStock
               ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
               : "bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100"
