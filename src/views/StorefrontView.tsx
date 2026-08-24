@@ -4248,7 +4248,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div
               className={`relative overflow-hidden transition-all duration-300 ${headerCompact ? "max-h-0 opacity-0 md:max-h-24 md:opacity-100" : "max-h-24 opacity-100"}`}
             >
-              <div className="flex items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth">
+              {/* En vue catégorie (?cat=) sur mobile, le header de page
+                  affiche déjà le titre : on masque la chip redondante. */}
+              <div className={`items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden md:flex" : "flex"}`}>
                 {categories.map((cat) => (
                 <button
                   key={cat}
@@ -4911,26 +4913,35 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                           return sortedCats.map((cat) => {
                             const isSingle = groups[cat].length <= 1;
+                            // Le titre de section fait doublon avec la chip
+                            // active quand cette catégorie est filtrée.
+                            const showGroupHeader =
+                              selectedCategory === "all" ||
+                              cat !== selectedCategory;
                             return (
                             <div
                               key={cat}
                               className="   duration-500"
                             >
-                              <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
-                                <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
-                                  {cat}
-                                </h3>
-                                <button
-                                  onClick={() => {
-                                    setSelectedCategory(cat);
-                                    window.location.href = `/?cat=${encodeURIComponent(cat)}`;
-                                  }}
-                                  className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
-                                >
-                                  Voir tout
-                                  <ChevronRight size={13} strokeWidth={3} />
-                                </button>
-                              </div>
+                              {showGroupHeader && (
+                                <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
+                                  <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
+                                    {cat}
+                                  </h3>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCategory(cat);
+                                      navigate(
+                                        `/?cat=${encodeURIComponent(cat)}`,
+                                      );
+                                    }}
+                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
+                                  >
+                                    Voir tout
+                                    <ChevronRight size={13} strokeWidth={3} />
+                                  </button>
+                                </div>
+                              )}
                               <div className={`${isSingle ? "hidden md:grid" : "grid"} grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                 {mobileSlice(groups[cat]).map(renderCard)}
                                 {/* Desktop only: full category */}
@@ -5177,26 +5188,35 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                             return sortedCats.map((cat) => {
                               const isSingle = groups[cat].length <= 1;
+                              // Pas de titre de groupe redondant avec la
+                              // catégorie déjà filtrée via les chips.
+                              const showGroupHeader =
+                                selectedCategory === "all" ||
+                                cat !== selectedCategory;
                               return (
                               <div
                                 key={cat}
                                 className="   duration-500"
                               >
-                                <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
-                                  <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
-                                    {cat}
-                                  </h3>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedCategory(cat);
-                                      window.location.href = `${location.pathname}?cat=${encodeURIComponent(cat)}`;
-                                    }}
-                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
-                                  >
-                                    Voir tout
-                                    <ChevronRight size={13} strokeWidth={3} />
-                                  </button>
-                                </div>
+                                {showGroupHeader && (
+                                  <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
+                                    <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
+                                      {cat}
+                                    </h3>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedCategory(cat);
+                                        navigate(
+                                          `${location.pathname}?cat=${encodeURIComponent(cat)}`,
+                                        );
+                                      }}
+                                      className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
+                                    >
+                                      Voir tout
+                                      <ChevronRight size={13} strokeWidth={3} />
+                                    </button>
+                                  </div>
+                                )}
                                 <div className={`${isSingle ? "hidden md:grid" : "grid"} grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                   {mobileSlice(groups[cat]).map(renderCard)}
                                   {/* Desktop only: full category */}
