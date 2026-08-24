@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test:k6": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/browse.js",
     "test:k6:smoke": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/smoke.js",
-    "test:k6:writes": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/writes.js"
+    "test:k6:writes": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/writes.js",
+    "test:k6:spike": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/spike.js",
+    "test:k6:full": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/full.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.6",

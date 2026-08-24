@@ -8,15 +8,55 @@ import { StoreData } from '@/types'
 export async function fetchMarketplaceData(): Promise<StoreData[]> {
   try {
     const [storesData, productsData, productStatsData] = await Promise.all([
-      db.select().from(stores),
-      db.select().from(products).where(eq(products.isOnline, true)),
+      db
+        .select({
+          id: stores.id,
+          userId: stores.userId,
+          name: stores.name,
+          slug: stores.slug,
+          email: stores.email,
+          phone: stores.phone,
+          address: stores.address,
+          ninea: stores.ninea,
+          description: stores.description,
+          views: stores.views,
+          settings: sql<
+            Record<string, unknown> | null
+          >`${stores.settings} - 'logo'`,
+          hasLogo: sql<boolean>`(${stores.settings} -> 'logo') IS NOT NULL`,
+        })
+        .from(stores),
+      db
+        .select({
+          id: products.id,
+          storeId: products.storeId,
+          name: products.name,
+          description: products.description,
+          price: products.price,
+          originalPrice: products.originalPrice,
+          stock: products.stock,
+          mainCategory: products.mainCategory,
+          businessType: products.businessType,
+          wholesalePrice: products.wholesalePrice,
+          wholesaleMinQty: products.wholesaleMinQty,
+          isOnline: products.isOnline,
+          views: products.views,
+          image: sql<
+            string | null
+          >`CASE WHEN ${products.image} LIKE 'data:%' THEN NULL ELSE ${products.image} END`,
+          hasImage: sql<boolean>`${products.image} IS NOT NULL`,
+        })
+        .from(products)
+        .where(eq(products.isOnline, true)),
       db.select().from(productStats).catch(() => [])
     ]);
 
     const toImageRef = (
       uri: string | null | undefined,
+      hasImage: boolean | null | undefined,
       apiId: string
-    ): string => (uri && uri.startsWith('data:') ? `/api/image/${apiId}` : uri || '');
+    ): string =>
+      uri || (hasImage ? `/api/image/${apiId}` : '');
 
     const productStatsMap = Object.fromEntries((productStatsData || []).map((s: any) => [s.productId, s]));
 
@@ -27,8 +67,8 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
     });
 
     const marketplaceStores: StoreData[] = (storesData || []).map((s: any) => {
-      const settingsObj = { ...(s.settings || {}) };
-      if (typeof settingsObj.logo === 'string' && settingsObj.logo.startsWith('data:')) {
+      const settingsObj: Record<string, unknown> = { ...(s.settings || {}) };
+      if (s.hasLogo) {
         settingsObj.logo = `/api/image/s${s.id}`;
       }
       const description = s.description || settingsObj.description || '';
@@ -58,7 +98,7 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
               name: p.name,
               price: Number(p.price) || 0,
               originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
-              image: toImageRef(p.image, p.id),
+              image: toImageRef(p.image, p.hasImage, p.id),
               stock: p.stock || 0,
               mainCategory: p.mainCategory || '',
               description: p.description || '',
