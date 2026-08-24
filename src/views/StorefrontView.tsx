@@ -713,6 +713,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [cardInfo, setCardInfo] = useState({ number: "", expiry: "", cvc: "" });
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [expandedCartStores, setExpandedCartStores] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Save customer info to localStorage when it changes
   React.useEffect(() => {
@@ -3079,6 +3082,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   (sum, i) => sum + (i.quantity || 1),
                   0,
                 );
+                const isStoreExpanded =
+                  expandedCartStores.has(storeId);
+                const visibleItems = isStoreExpanded
+                  ? storeItems
+                  : storeItems.slice(0, 3);
                 return (
                   <div
                     key={storeId}
@@ -3096,7 +3104,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </span>
                     </div>
                     <div className="divide-y divide-gray-50">
-                      {storeItems.map((item) => {
+                      {visibleItems.map((item) => {
                         const unitPrice = getEffectiveItemPrice(item);
                         const qty = item.quantity || 1;
                         const hasWholesale = !!(
@@ -3224,6 +3232,31 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         );
                       })}
                     </div>
+                    {storeItems.length > 3 && (
+                      <button
+                        onClick={() =>
+                          setExpandedCartStores((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(storeId)) next.delete(storeId);
+                            else next.add(storeId);
+                            return next;
+                          })
+                        }
+                        aria-expanded={isStoreExpanded}
+                        className="w-full flex items-center justify-center gap-1.5 py-3 border-t border-gray-50 text-[10px] font-black uppercase tracking-widest text-[#f56b2a] hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
+                      >
+                        {isStoreExpanded ? (
+                          <>
+                            Réduire <ChevronUp size={12} />
+                          </>
+                        ) : (
+                          <>
+                            Voir tout ({storeItems.length})
+                            <ChevronDown size={12} />
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -3741,15 +3774,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
               }}
             >
-              <div className="flex items-center gap-3 px-4 pt-3">
-                <div className="leading-none min-w-0">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">
-                    Total
-                  </p>
-                  <p className="text-lg font-black text-gray-900 truncate tabular-nums">
-                    {formatCurrency(Number(cartTotal) || 0)}
-                  </p>
-                </div>
+              <div className="px-3 pt-2.5">
                 {checkoutStage === "cart" && (
                   <Button
                     onClick={() => {
@@ -3760,14 +3785,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       }, 500);
                     }}
                     loading={isCheckoutTransitioning}
-                    loadingText="..."
+                    loadingText="Chargement..."
                     fullWidth
                     size="lg"
-                    className="flex-1 !py-4 !text-sm"
+                    className="!py-4 !text-sm uppercase tracking-wide"
                     icon={<ArrowRight size={16} />}
                     iconPosition="right"
                   >
-                    Livraison
+                    Passer à la livraison
                   </Button>
                 )}
                 {(checkoutStage === "shipping" ||
@@ -3776,16 +3801,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     form="checkout-form"
                     type="submit"
                     loading={isProcessingPayment}
-                    loadingText="..."
+                    loadingText="Chargement..."
                     fullWidth
                     size="lg"
-                    className="flex-1 !py-4 !text-sm"
+                    className="!py-4 !text-sm uppercase tracking-wide"
                     icon={<ArrowRight size={16} />}
                     iconPosition="right"
                   >
                     {checkoutStage === "shipping"
-                      ? "Paiement"
-                      : "Confirmer"}
+                      ? "Passer au paiement"
+                      : "Confirmer la commande"}
                   </Button>
                 )}
               </div>
