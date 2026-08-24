@@ -1866,33 +1866,36 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       selectedStore.description ||
       (selectedStore.settings as any)?.description ||
       "Votre destination shopping préférée pour des produits locaux et de qualité.";
+    const handleStoreShare = () => {
+      const url = window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: selectedStore.settings.name,
+          url,
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url);
+        localNotify("Lien de la boutique copié !", "success");
+      }
+    };
     return (
       <div className="mb-4 md:mb-6    duration-700">
-        {/* Store Header Card */}
         <div className="bg-white rounded-[28px] md:rounded-[40px] overflow-hidden shadow-xl shadow-gray-200/50 border border-white relative">
-          {/* Cover / Background Pattern */}
-          <div className="h-24 md:h-48 bg-gradient-to-br from-[#f56b2a] via-[#ff8a50] to-[#ff9d6c] relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <Store
-                size={150}
-                className="absolute -right-10 -top-10 text-white rotate-12"
-              />
-              <Zap
-                size={100}
-                className="absolute left-10 bottom-0 text-white -rotate-12"
-                fill="currentColor"
-              />
-            </div>
-            {/* Decorative dots pattern */}
+          {/* Immersive Cover */}
+          <div className="h-36 md:h-56 bg-gradient-to-br from-[#f56b2a] via-[#ff7a3d] to-[#ffb08a] relative overflow-hidden">
+            {/* Blurred blobs */}
+            <div className="absolute -top-16 -left-16 w-64 h-64 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-[#ffd9c2]/40 rounded-full blur-3xl pointer-events-none" />
+            {/* Dots pattern */}
             <div
-              className="absolute inset-0 opacity-[0.07] pointer-events-none"
+              className="absolute inset-0 opacity-[0.08] pointer-events-none"
               style={{
                 backgroundImage:
                   "radial-gradient(circle, white 1.5px, transparent 1.5px)",
                 backgroundSize: "18px 18px",
               }}
             />
-            {/* Floating back button - Mobile */}
+            {/* Floating actions */}
             <button
               onClick={() => {
                 safeNavigate("/", {
@@ -1903,129 +1906,104 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 });
               }}
               aria-label="Retour au marché"
-              className="md:hidden absolute top-3 left-3 z-30 w-9 h-9 rounded-full bg-white/95 backdrop-blur shadow-lg flex items-center justify-center active:scale-90 transition-transform"
+              className="absolute top-4 left-4 z-30 w-10 h-10 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md border border-white/30 flex items-center justify-center active:scale-90 transition-all"
             >
-              <ChevronLeft size={18} strokeWidth={3} className="text-gray-900" />
+              <ChevronLeft size={20} strokeWidth={3} className="text-white" />
+            </button>
+            <button
+              onClick={handleStoreShare}
+              aria-label="Partager la boutique"
+              className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md border border-white/30 flex items-center justify-center active:scale-90 transition-all"
+            >
+              <Share2 size={17} className="text-white" />
             </button>
           </div>
 
-          <div className="px-4 md:px-12 pb-4 md:pb-6 relative">
-            {/* Compact Header Row */}
-            <div className="flex items-start gap-3 md:gap-4 -mt-9 md:-mt-16">
-              {/* Store Logo */}
-              <div className="w-[72px] h-[72px] md:w-24 md:h-24 rounded-2xl md:rounded-2xl bg-white p-1 shadow-xl ring-1 ring-gray-100 z-20 flex-shrink-0">
-                <div className="w-full h-full rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden">
+          <div className="px-4 md:px-12 pb-5 md:pb-8 relative">
+            {/* Centered identity */}
+            <div className="flex flex-col items-center text-center -mt-12 md:-mt-16">
+              {/* Logo medallion */}
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white p-1.5 shadow-2xl ring-1 ring-gray-100 z-20">
+                <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden">
                   {selectedStore.settings?.logo ? (
                     <img
                       src={selectedStore.settings.logo}
                       alt={selectedStore.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
-                    <>
-                      <Store size={28} className="text-[#f56b2a] md:hidden" />
-                      <Store size={40} className="text-[#f56b2a] hidden md:block" />
-                    </>
+                    <Store size={34} className="text-[#f56b2a]" />
                   )}
                 </div>
               </div>
 
-              {/* Store Info */}
-              <div className="flex-grow min-w-0 pt-10 md:pt-16">
-                {/* Name + Verified + Country */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-lg md:text-3xl font-black text-gray-900 truncate max-w-full">
-                    {selectedStore.settings.name}
-                  </h2>
-                  <ShieldCheck
-                    size={16}
-                    strokeWidth={3}
-                    className="text-green-500 flex-shrink-0"
-                  />
-                  {(() => {
-                    const countryValue =
-                      selectedStore.address || selectedStore.settings?.address;
-                    if (countryValue) {
-                      return (
-                        <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full text-[9px] md:text-xs font-black whitespace-nowrap">
-                          <Globe size={10} strokeWidth={3} className="text-blue-400" />
-                          <span>{countryValue}</span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
+              {/* Name + verified */}
+              <div className="flex items-center justify-center gap-1.5 mt-3">
+                <h2 className="text-xl md:text-3xl font-black text-gray-900 truncate max-w-[75%]">
+                  {selectedStore.settings.name}
+                </h2>
+                <ShieldCheck
+                  size={18}
+                  strokeWidth={3}
+                  className="text-green-500 flex-shrink-0"
+                />
+              </div>
 
-                {/* Inline rating - Mobile */}
-                <div className="flex md:hidden items-center gap-1.5 mt-1">
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={11}
-                        fill={
-                          i < Math.round(selectedStore.rating || 0)
-                            ? "currentColor"
-                            : "none"
-                        }
-                        className={
-                          i < Math.round(selectedStore.rating || 0)
-                            ? "text-yellow-400"
-                            : "text-gray-200"
-                        }
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-black text-gray-900">
+              {/* Chips row: rating + country */}
+              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-100 text-gray-900 px-3 py-1 rounded-full">
+                  <Star
+                    size={12}
+                    fill="currentColor"
+                    className="text-yellow-400"
+                  />
+                  <span className="text-xs font-black">
                     {(selectedStore.rating || 0).toFixed(1)}
                   </span>
-                  <span className="text-[9px] font-bold text-gray-400">
-                    (
+                  <span className="text-[10px] font-bold text-gray-400">
+                    ·{" "}
                     {formatNumber(
                       selectedStore.products?.reduce(
                         (sum, p) => sum + (p.reviewCount || 0),
                         0,
                       ) || 0,
                     )}{" "}
-                    avis)
+                    avis
                   </span>
                 </div>
+                {(() => {
+                  const countryValue =
+                    selectedStore.address || selectedStore.settings?.address;
+                  if (!countryValue) return null;
+                  return (
+                    <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
+                      <Globe size={11} strokeWidth={3} className="text-blue-400" />
+                      <span className="text-[11px] md:text-xs font-black whitespace-nowrap">
+                        {countryValue}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Marketplace Return - Desktop Only */}
-              <button
-                onClick={() => {
-                  safeNavigate("/", {
-                    action: () => {
-                      setSearchTerm("");
-                      setSelectedCategory("all");
-                    },
-                  });
-                }}
-                className="hidden md:flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl font-black text-sm hover:bg-[#f56b2a] transition-all shadow-lg active:scale-95 flex-shrink-0 mt-16"
+              {/* Description - Expandable */}
+              <p
+                className={`mt-3 text-xs md:text-sm text-gray-500 leading-relaxed max-w-xl ${storeDescExpanded ? "" : "line-clamp-2"}`}
               >
-                <ChevronLeft size={16} strokeWidth={3} /> Marketplace
-              </button>
+                {descriptionText}
+              </p>
+              {descriptionText.length > 90 && (
+                <button
+                  onClick={() => setStoreDescExpanded((v) => !v)}
+                  className="mt-1 text-[10px] font-black text-[#f56b2a] uppercase tracking-wider active:opacity-60"
+                >
+                  {storeDescExpanded ? "Réduire" : "Voir plus"}
+                </button>
+              )}
             </div>
 
-            {/* Description - Expandable on mobile */}
-            <p
-              className={`mt-3 md:mt-3 text-xs md:text-sm text-gray-500 leading-relaxed ${storeDescExpanded ? "" : "line-clamp-2"}`}
-            >
-              {descriptionText}
-            </p>
-            {descriptionText.length > 90 && (
-              <button
-                onClick={() => setStoreDescExpanded((v) => !v)}
-                className="md:hidden mt-1 text-[10px] font-black text-[#f56b2a] uppercase tracking-wider active:opacity-60"
-              >
-                {storeDescExpanded ? "Réduire" : "Voir plus"}
-              </button>
-            )}
-
             {/* Store Dedicated Search Bar */}
-            <div className="mt-3 md:mt-4 max-w-2xl mx-auto">
+            <div className="mt-4 max-w-2xl mx-auto">
               <div className="relative group">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
                   <Search size={15} strokeWidth={3} />
@@ -2035,53 +2013,49 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   placeholder="Chercher dans cette boutique..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-xl font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border placeholder:text-gray-400"
+                  className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border placeholder:text-gray-400"
                 />
               </div>
             </div>
 
-            {/* Stats Row - Compact but visible */}
-            <div className="grid grid-cols-4 gap-1.5 md:gap-4 mt-3 md:mt-4">
+            {/* Stats Strip - Minimal with separators */}
+            <div className="grid grid-cols-4 mt-4 bg-gray-50/60 border border-gray-100 rounded-2xl divide-x divide-gray-200/70 overflow-hidden">
               {/* Products Count */}
-              <div className="bg-gray-50/80 p-2 md:p-3 rounded-xl md:rounded-xl border border-gray-100 flex flex-col items-center justify-center text-gray-900">
-                <span className="text-sm md:text-2xl font-black leading-tight">
+              <div className="py-3 px-1 flex flex-col items-center justify-center">
+                <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
                   {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
                 </span>
-                <span className="text-[7px] md:text-[9px] font-black text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
                   Produits
                 </span>
               </div>
-
               {/* Visitors Count */}
-              <div className="bg-orange-50/50 p-2 md:p-3 rounded-xl md:rounded-xl border border-orange-100/50 flex flex-col items-center justify-center text-[#f56b2a]">
-                <span className="text-sm md:text-2xl font-black leading-tight">
+              <div className="py-3 px-1 flex flex-col items-center justify-center">
+                <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
                   {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
                 </span>
-                <span className="text-[7px] md:text-[9px] font-black text-orange-400 uppercase tracking-wide whitespace-nowrap">
+                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
                   Visiteurs
                 </span>
               </div>
-
               {/* Reviews Count */}
-              <div className="bg-yellow-50/50 p-2 md:p-3 rounded-xl md:rounded-xl border border-yellow-100/50 flex flex-col items-center justify-center text-yellow-600">
-                <span className="text-sm md:text-2xl font-black leading-tight">
+              <div className="py-3 px-1 flex flex-col items-center justify-center">
+                <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
                   {formatNumber(selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0)}
                 </span>
-                <span className="text-[7px] md:text-[9px] font-black text-yellow-600 uppercase tracking-wide whitespace-nowrap text-center">
+                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap text-center">
                   Avis
                 </span>
               </div>
-
               {/* Rating */}
-              <div className="bg-green-50/50 p-2 md:p-3 rounded-xl md:rounded-xl border border-green-100/50 flex flex-col items-center justify-center text-green-600">
+              <div className="py-3 px-1 flex flex-col items-center justify-center">
                 <div className="flex items-center gap-0.5">
-                  <span className="text-sm md:text-2xl font-black leading-tight">
+                  <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
                     {selectedStore.rating?.toFixed(1) || "0.0"}
                   </span>
-                  <Star size={10} fill="currentColor" className="text-yellow-400 hidden md:block" />
-                  <Star size={8} fill="currentColor" className="text-yellow-400 md:hidden" />
+                  <Star size={10} fill="currentColor" className="text-yellow-400" />
                 </div>
-                <span className="text-[7px] md:text-[9px] font-black text-green-600 uppercase tracking-wide whitespace-nowrap">
+                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
                   Note
                 </span>
               </div>
