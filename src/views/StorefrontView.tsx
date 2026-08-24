@@ -4248,9 +4248,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div
               className={`relative overflow-hidden transition-all duration-300 ${headerCompact ? "max-h-0 opacity-0 md:max-h-24 md:opacity-100" : "max-h-24 opacity-100"}`}
             >
-              {/* En vue catégorie (?cat=) sur mobile, le header de page
-                  affiche déjà le titre : on masque la chip redondante. */}
-              <div className={`items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden md:flex" : "flex"}`}>
+              {/* En vue catégorie (?cat=), le header de page affiche déjà le
+                  titre : pas de rangée de chips en doublon (mobile ET desktop). */}
+              <div className={`items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
                 {categories.map((cat) => (
                 <button
                   key={cat}
