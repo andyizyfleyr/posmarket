@@ -4479,18 +4479,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             />
                           );
 
-                          // Mobile: max 4, but avoid an odd trailing card (3 -> 2)
+                          // Mobile: max 4, avoid odd trailing card (3 -> 2),
+                          // and hide single-product categories entirely
                           const mobileSlice = (arr: typeof pagedProducts) => {
                             const n = Math.min(4, arr.length);
                             return arr.slice(0, n === 3 ? 2 : n);
                           };
 
-                          return sortedCats.map((cat) => (
+                          return sortedCats.map((cat) => {
+                            const isSingle = groups[cat].length <= 1;
+                            return (
                             <div
                               key={cat}
                               className="   duration-500"
                             >
-                              <div className="flex items-center justify-between gap-3 mb-4">
+                              <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
                                 <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
                                   {cat}
                                 </h3>
@@ -4508,7 +4511,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <ChevronRight size={13} strokeWidth={3} />
                                 </button>
                               </div>
-                              <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                              <div className={`${isSingle ? "hidden md:grid" : "grid"} grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                 {mobileSlice(groups[cat]).map(renderCard)}
                                 {/* Desktop only: full category */}
                                 <div className="hidden md:contents">
@@ -4516,7 +4519,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 </div>
                               </div>
                             </div>
-                          ));
+                            );
+                          });
                         })()
                       )}
                     </div>
@@ -4744,18 +4748,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               />
                             );
 
-                            // Mobile: max 4, but avoid an odd trailing card (3 -> 2)
+                            // Mobile: max 4, avoid odd trailing card (3 -> 2),
+                            // and hide single-product categories entirely
                             const mobileSlice = (arr: typeof pagedProducts) => {
                               const n = Math.min(4, arr.length);
                               return arr.slice(0, n === 3 ? 2 : n);
                             };
 
-                            return sortedCats.map((cat) => (
+                            return sortedCats.map((cat) => {
+                              const isSingle = groups[cat].length <= 1;
+                              return (
                               <div
                                 key={cat}
                                 className="   duration-500"
                               >
-                                <div className="flex items-center justify-between gap-3 mb-4">
+                                <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
                                   <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
                                     {cat}
                                   </h3>
@@ -4773,7 +4780,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     <ChevronRight size={13} strokeWidth={3} />
                                   </button>
                                 </div>
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                                <div className={`${isSingle ? "hidden md:grid" : "grid"} grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                   {mobileSlice(groups[cat]).map(renderCard)}
                                   {/* Desktop only: full category */}
                                   <div className="hidden md:contents">
@@ -4781,7 +4788,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </div>
                                 </div>
                               </div>
-                            ));
+                              );
+                            });
                           })()
                         )
                       ) : !isLoadingMore ? (
