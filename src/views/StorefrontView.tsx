@@ -5036,9 +5036,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           location.pathname.startsWith("/store/") ||
           location.pathname.startsWith("/product/")) && (
         <div
-          className="fixed left-4 right-4 z-[1001] md:bottom-8 md:right-8 md:left-auto flex justify-center pointer-events-none px-2 md:px-0"
+          className="fixed left-0 right-0 z-[3000] px-3 pt-2"
           style={{
-            bottom: "calc(64px + env(safe-area-inset-bottom, 0px) + 12px)",
+            bottom: "env(safe-area-inset-bottom, 0px)",
+            paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
           }}
         >
           <button
@@ -5047,7 +5048,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               safeNavigate("/cart");
             }}
             disabled={isCartButtonLoading}
-            className="pointer-events-auto w-full max-w-sm md:w-auto bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_15px_40px_rgba(245,107,42,0.4)] md:shadow-2xl flex items-center justify-center gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
+            className="pointer-events-auto w-full bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_-10px_40px_rgba(245,107,42,0.45)] flex items-center justify-center gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
           >
             {isCartButtonLoading ? (
               <div className="flex items-center gap-3">
