@@ -25,9 +25,11 @@
       de la liste) → tests de charge toujours possibles.
 - [x] 10. **Cache-Control API** — couvert par `/api/image` (max-age=86400 + ISR CDN) ;
       ping/set-store non cacheables par nature.
-- [ ] 11. **Lazy load avis/recommandations** — à évaluer : les stats (avis agrégés) viennent
-      déjà avec le catalogue caché ; les avis détaillés ne sont chargés qu'à l'ouverture.
-      Priorité basse tant que le cache tourne.
+- [x] 11. **Lazy load avis/recommandations** — vérifié : déjà conforme.
+      Les avis détaillés sont chargés uniquement à l'ouverture de l'onglet
+      (StorefrontView ~ligne 1206, condition `storeTab === 'reviews'`, cache client) ;
+      les recommandations/similaires sont calculés depuis le catalogue en mémoire,
+      zéro requête réseau. Rien à changer.
 - [x] 12. **Monitoring requêtes lentes** — Neon embarque pg_stat_statements :
       console.neon.tech → onglet « Queries » (top requêtes par temps cumulé).
       Rien à installer ; vérifier après application des index.
