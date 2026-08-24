@@ -7,10 +7,11 @@
  *
  * (DATABASE_URL du .env.local = destination)
  */
-import { neon } from '@neondatabase/serverless';
+import { neon, Client } from '@neondatabase/serverless';
 
 const SRC = neon(process.env.OLD_DATABASE_URL!);
-const DST = neon(process.env.DATABASE_URL!);
+const DST = new Client({ connectionString: process.env.DATABASE_URL! });
+await DST.connect();
 
 // Ordre respectant les clés étrangères
 const TABLES = [
@@ -34,8 +35,11 @@ let totalRows = 0;
 
 for (const table of TABLES) {
   const cols = (
-    await DST`select column_name from information_schema.columns where table_schema='public' and table_name=${table} order by ordinal_position`
-  ).map((r: any) => r.column_name);
+    (await DST.query(
+      `select column_name from information_schema.columns where table_schema='public' and table_name=$1 order by ordinal_position`,
+      [table]
+    )).rows as any[]
+  ).map((r) => r.column_name);
   if (cols.length === 0) {
     console.log(`⚠ ${table} : absente de la destination, ignorée`);
     continue;
