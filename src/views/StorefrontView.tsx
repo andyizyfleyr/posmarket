@@ -1332,22 +1332,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const loadingRef = useRef(false);
   const currentPageRef = useRef(0);
 
-  // Categories present in the current store (for mobile filter chips)
-  const storeCategories = useMemo(() => {
-    if (!selectedStoreId) return [];
-    const counts = new Map<string, number>();
-    filteredProducts.forEach((p: any) => {
-      const cat = p.mainCategory || p.category || "Autre";
-      counts.set(cat, (counts.get(cat) || 0) + 1);
-    });
-    return Array.from(counts.entries()).sort((a, b) => {
-      const idxA = MAIN_CATEGORIES.indexOf(a[0]);
-      const idxB = MAIN_CATEGORIES.indexOf(b[0]);
-      return (
-        (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB) || b[1] - a[1]
-      );
-    });
-  }, [filteredProducts, selectedStoreId]);
+  // Active store category from ?cat= query param (category page mode)
+  const activeStoreCategory = useMemo(() => {
+    if (!selectedStoreId || !location.search) return null;
+    const c = new URLSearchParams(location.search).get("cat");
+    return c && c !== "all" ? c : null;
+  }, [selectedStoreId, location.search]);
+
+  // Keep selectedCategory in sync with the URL (back/forward support)
+  useEffect(() => {
+    const c = new URLSearchParams(location.search || "").get("cat");
+    setSelectedCategory(c && c !== "all" ? c : "all");
+  }, [location.search]);
 
   // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
   const loadPagedProducts = useCallback(
@@ -4602,89 +4598,132 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       />
                     </div>
 
-                    {/* Category filter chips - Mobile */}
-                    {storeCategories.length > 1 && (
-                      <div className="md:hidden flex overflow-x-auto no-scrollbar gap-2 pb-1 mb-5 -mr-4 pr-4">
+                    {/* Category page header */}
+                    {activeStoreCategory && (
+                      <div className="flex items-center justify-between mb-5">
                         <button
-                          onClick={() => setSelectedCategory("all")}
-                          className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] font-black border transition-all active:scale-95 ${selectedCategory === "all" ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-600 border-gray-200"}`}
+                          onClick={() => {
+                            setSelectedCategory("all");
+                            navigate(location.pathname);
+                            window.scrollTo({ top: 0 });
+                          }}
+                          className="flex items-center gap-2.5 min-w-0 active:opacity-60 transition-opacity"
                         >
-                          Tout
+                          <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                            <ChevronLeft size={18} strokeWidth={3} />
+                          </span>
+                          <span className="text-base md:text-xl font-black text-gray-900 truncate max-w-[55vw]">
+                            {activeStoreCategory}
+                          </span>
                         </button>
-                        {storeCategories.map(([cat, count]) => (
-                          <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] font-black border transition-all active:scale-95 whitespace-nowrap ${selectedCategory === cat ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100" : "bg-white text-gray-600 border-gray-200"}`}
-                          >
-                            {cat} ({count})
-                          </button>
-                        ))}
+                        <span className="text-[11px] font-bold text-gray-400 flex-shrink-0">
+                          {filteredProducts.length} produits
+                        </span>
                       </div>
                     )}
 
                     <div className="relative space-y-12">
                       {pagedProducts.length > 0 ? (
-                        /* Grouped sections for store products */
-                        (() => {
-                          const groups: Record<string, typeof pagedProducts> =
-                            {};
-                          pagedProducts.forEach((p: any) => {
-                            const cat = p.mainCategory || p.category || "Autre";
-                            if (!groups[cat]) groups[cat] = [];
-                            groups[cat].push(p);
-                          });
+                        activeStoreCategory ? (
+                          /* Full category grid */
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                            {pagedProducts.map((product) => (
+                              <ProductCard
+                                key={`${product.storeId}-${product.id}`}
+                                product={product as any}
+                                onAddToCart={addToCart as any}
+                                onBuyNow={buyNow as any}
+                                onStoreSelect={(id) =>
+                                  safeNavigate(
+                                    `/store/${product.storeSlug || id}`,
+                                  )
+                                }
+                                onClick={() =>
+                                  safeNavigate(
+                                    `/product/${generateProductSlug(product)}`,
+                                  )
+                                }
+                                className="w-full"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          /* Grouped sections - 4 products per category on mobile */
+                          (() => {
+                            const groups: Record<string, typeof pagedProducts> =
+                              {};
+                            pagedProducts.forEach((p: any) => {
+                              const cat = p.mainCategory || p.category || "Autre";
+                              if (!groups[cat]) groups[cat] = [];
+                              groups[cat].push(p);
+                            });
 
-                          // Maintain MAIN_CATEGORIES order
-                          const sortedCats = Object.keys(groups).sort(
-                            (a: string, b: string) => {
-                              const idxA = MAIN_CATEGORIES.indexOf(a);
-                              const idxB = MAIN_CATEGORIES.indexOf(b);
-                              return (
-                                (idxA === -1 ? 999 : idxA) -
-                                (idxB === -1 ? 999 : idxB)
-                              );
-                            },
-                          );
+                            // Maintain MAIN_CATEGORIES order
+                            const sortedCats = Object.keys(groups).sort(
+                              (a: string, b: string) => {
+                                const idxA = MAIN_CATEGORIES.indexOf(a);
+                                const idxB = MAIN_CATEGORIES.indexOf(b);
+                                return (
+                                  (idxA === -1 ? 999 : idxA) -
+                                  (idxB === -1 ? 999 : idxB)
+                                );
+                              },
+                            );
 
-                          return sortedCats.map((cat) => (
-                            <div
-                              key={cat}
-                              className="   duration-500"
-                            >
-                              {selectedCategory === "all" && (
-                                <div className="flex items-center gap-3 mb-6">
-                                  <div className="h-0.5 w-8 bg-[#f56b2a]" />
-                                  <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em] whitespace-nowrap">
+                            const renderCard = (product: any) => (
+                              <ProductCard
+                                key={`${product.storeId}-${product.id}`}
+                                product={product as any}
+                                onAddToCart={addToCart as any}
+                                onBuyNow={buyNow as any}
+                                onStoreSelect={(id) =>
+                                  safeNavigate(
+                                    `/store/${product.storeSlug || id}`,
+                                  )
+                                }
+                                onClick={() =>
+                                  safeNavigate(
+                                    `/product/${generateProductSlug(product)}`,
+                                  )
+                                }
+                                className="w-full"
+                              />
+                            );
+
+                            return sortedCats.map((cat) => (
+                              <div
+                                key={cat}
+                                className="   duration-500"
+                              >
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                  <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
                                     {cat}
                                   </h3>
-                                  <div className="flex-grow h-px bg-gray-100" />
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCategory(cat);
+                                      navigate(
+                                        `${location.pathname}?cat=${encodeURIComponent(cat)}`,
+                                      );
+                                      window.scrollTo({ top: 0 });
+                                    }}
+                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
+                                  >
+                                    Voir tout
+                                    <ChevronRight size={13} strokeWidth={3} />
+                                  </button>
                                 </div>
-                              )}
-                              <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
-                                {groups[cat].map((product) => (
-                                  <ProductCard
-                                    key={`${product.storeId}-${product.id}`}
-                                    product={product as any}
-                                    onAddToCart={addToCart as any}
-                                    onBuyNow={buyNow as any}
-                                    onStoreSelect={(id) =>
-                                      safeNavigate(
-                                        `/store/${product.storeSlug || id}`,
-                                      )
-                                    }
-                                    onClick={() =>
-                                      safeNavigate(
-                                        `/product/${generateProductSlug(product)}`,
-                                      )
-                                    }
-                                    className="w-full"
-                                  />
-                                ))}
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                                  {groups[cat].slice(0, 4).map(renderCard)}
+                                  {/* Desktop only: full category */}
+                                  <div className="hidden md:contents">
+                                    {groups[cat].slice(4).map(renderCard)}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ));
-                        })()
+                            ));
+                          })()
+                        )
                       ) : !isLoadingMore ? (
                         <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                           <Search size={48} className="text-gray-200 mb-4" />
