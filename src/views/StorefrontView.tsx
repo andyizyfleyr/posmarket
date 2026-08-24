@@ -1894,7 +1894,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       <div className="mb-5 md:mb-6    duration-700">
         <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
           {/* Cover */}
-          <div className="h-28 md:h-44 bg-gradient-to-r from-[#f56b2a] via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
+          <div className="h-[72px] md:h-32 bg-gradient-to-r from-[#f56b2a] via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
             <div className="absolute -right-14 -top-20 w-56 h-56 rounded-full border-[24px] border-white/10" />
             <div className="absolute -left-10 -bottom-24 w-48 h-48 rounded-full border-[18px] border-white/10" />
             <button
@@ -1923,8 +1923,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           {/* Body */}
           <div className="px-4 md:px-8 pb-4 relative">
             {/* Logo + name */}
-            <div className="flex items-end gap-3 -mt-9">
-              <div className="w-[72px] h-[72px] md:w-24 md:h-24 rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10">
+            <div className="flex items-end gap-3 -mt-7 md:-mt-10">
+              <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10">
                 {selectedStore.settings?.logo ? (
                   <img
                     src={selectedStore.settings.logo}
@@ -1994,7 +1994,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             )}
 
             {/* CTAs */}
-            <div className={`grid gap-2 mt-4 ${waDigits ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className={`grid gap-2 mt-3 ${waDigits ? "grid-cols-2" : "grid-cols-1"}`}>
               <button
                 onClick={() => {
                   setFollowedStores((prev) => {
