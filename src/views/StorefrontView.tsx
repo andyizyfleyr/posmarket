@@ -792,6 +792,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     null
   );
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
+  const [storeDescExpanded, setStoreDescExpanded] = useState(false);
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
@@ -1177,6 +1178,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       incrementStoreViews(selectedStoreId);
       setStoreTab("products"); // Reset to products tab on navigation
       setShowAllStoreReviews(false); // Reset see more
+      setStoreDescExpanded(false);
     }
   }, [selectedStoreId]);
 
@@ -1328,6 +1330,23 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const loadingRef = useRef(false);
   const currentPageRef = useRef(0);
+
+  // Categories present in the current store (for mobile filter chips)
+  const storeCategories = useMemo(() => {
+    if (!selectedStoreId) return [];
+    const counts = new Map<string, number>();
+    filteredProducts.forEach((p: any) => {
+      const cat = p.mainCategory || p.category || "Autre";
+      counts.set(cat, (counts.get(cat) || 0) + 1);
+    });
+    return Array.from(counts.entries()).sort((a, b) => {
+      const idxA = MAIN_CATEGORIES.indexOf(a[0]);
+      const idxB = MAIN_CATEGORIES.indexOf(b[0]);
+      return (
+        (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB) || b[1] - a[1]
+      );
+    });
+  }, [filteredProducts, selectedStoreId]);
 
   // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
   const loadPagedProducts = useCallback(
@@ -1843,12 +1862,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const renderStoreProfile = () => {
     if (!selectedStore) return null;
+    const descriptionText =
+      selectedStore.description ||
+      (selectedStore.settings as any)?.description ||
+      "Votre destination shopping préférée pour des produits locaux et de qualité.";
     return (
       <div className="mb-4 md:mb-6    duration-700">
         {/* Store Header Card */}
         <div className="bg-white rounded-[28px] md:rounded-[40px] overflow-hidden shadow-xl shadow-gray-200/50 border border-white relative">
-          {/* Cover / Background Pattern - Reduced height on mobile */}
-          <div className="h-14 md:h-48 bg-gradient-to-r from-[#f56b2a] to-[#ff9d6c] relative overflow-hidden">
+          {/* Cover / Background Pattern */}
+          <div className="h-24 md:h-48 bg-gradient-to-br from-[#f56b2a] via-[#ff8a50] to-[#ff9d6c] relative overflow-hidden">
             <div className="absolute inset-0 opacity-10 pointer-events-none">
               <Store
                 size={150}
@@ -1860,14 +1883,38 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 fill="currentColor"
               />
             </div>
+            {/* Decorative dots pattern */}
+            <div
+              className="absolute inset-0 opacity-[0.07] pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle, white 1.5px, transparent 1.5px)",
+                backgroundSize: "18px 18px",
+              }}
+            />
+            {/* Floating back button - Mobile */}
+            <button
+              onClick={() => {
+                safeNavigate("/", {
+                  action: () => {
+                    setSearchTerm("");
+                    setSelectedCategory("all");
+                  },
+                });
+              }}
+              aria-label="Retour au marché"
+              className="md:hidden absolute top-3 left-3 z-30 w-9 h-9 rounded-full bg-white/95 backdrop-blur shadow-lg flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <ChevronLeft size={18} strokeWidth={3} className="text-gray-900" />
+            </button>
           </div>
 
-          <div className="px-3 md:px-12 pb-2 md:pb-6 relative">
+          <div className="px-4 md:px-12 pb-4 md:pb-6 relative">
             {/* Compact Header Row */}
-            <div className="flex items-center gap-2 md:gap-4 -mt-8 md:-mt-16 backdrop-blur-sm bg-white/50 rounded-2xl px-3 py-2">
-              {/* Store Logo - Ultra Compact */}
-              <div className="w-12 h-12 md:w-24 md:h-24 rounded-xl md:rounded-2xl bg-white p-0.5 md:p-1 shadow-xl z-20 flex-shrink-0">
-                <div className="w-full h-full rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 overflow-hidden">
+            <div className="flex items-start gap-3 md:gap-4 -mt-9 md:-mt-16">
+              {/* Store Logo */}
+              <div className="w-[72px] h-[72px] md:w-24 md:h-24 rounded-2xl md:rounded-2xl bg-white p-1 shadow-xl ring-1 ring-gray-100 z-20 flex-shrink-0">
+                <div className="w-full h-full rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden">
                   {selectedStore.settings?.logo ? (
                     <img
                       src={selectedStore.settings.logo}
@@ -1876,7 +1923,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     />
                   ) : (
                     <>
-                      <Store size={20} className="text-[#f56b2a] md:hidden" />
+                      <Store size={28} className="text-[#f56b2a] md:hidden" />
                       <Store size={40} className="text-[#f56b2a] hidden md:block" />
                     </>
                   )}
@@ -1884,22 +1931,24 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
 
               {/* Store Info */}
-              <div className="flex-grow min-w-0">
-                {/* Name + Country */}
-                <div className="flex items-center gap-2 md:gap-4">
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <ShieldCheck size={14} strokeWidth={3} className="text-green-500 hidden md:block" />
-                    <h2 className="text-base md:text-3xl font-black text-gray-900">
-                      {selectedStore.settings.name}
-                    </h2>
-                  </div>
+              <div className="flex-grow min-w-0 pt-10 md:pt-16">
+                {/* Name + Verified + Country */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg md:text-3xl font-black text-gray-900 truncate max-w-full">
+                    {selectedStore.settings.name}
+                  </h2>
+                  <ShieldCheck
+                    size={16}
+                    strokeWidth={3}
+                    className="text-green-500 flex-shrink-0"
+                  />
                   {(() => {
-                    const countryValue = selectedStore.address || selectedStore.settings?.address;
+                    const countryValue =
+                      selectedStore.address || selectedStore.settings?.address;
                     if (countryValue) {
                       return (
-                        <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 md:px-3 py-1 rounded-full text-[8px] md:text-xs font-black whitespace-nowrap">
-                          <Globe size={10} strokeWidth={3} className="text-blue-400 hidden md:block" />
-                          <Globe size={8} strokeWidth={3} className="text-blue-400 md:hidden" />
+                        <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full text-[9px] md:text-xs font-black whitespace-nowrap">
+                          <Globe size={10} strokeWidth={3} className="text-blue-400" />
                           <span>{countryValue}</span>
                         </div>
                       );
@@ -1907,10 +1956,41 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     return null;
                   })()}
                 </div>
-                {/* Description */}
-                <p className="mt-2 md:mt-3 text-[11px] md:text-sm text-gray-500 leading-relaxed">
-                  {selectedStore.description || (selectedStore.settings as any)?.description || "Votre destination shopping préférée pour des produits locaux et de qualité."}
-                </p>
+
+                {/* Inline rating - Mobile */}
+                <div className="flex md:hidden items-center gap-1.5 mt-1">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={11}
+                        fill={
+                          i < Math.round(selectedStore.rating || 0)
+                            ? "currentColor"
+                            : "none"
+                        }
+                        className={
+                          i < Math.round(selectedStore.rating || 0)
+                            ? "text-yellow-400"
+                            : "text-gray-200"
+                        }
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-black text-gray-900">
+                    {(selectedStore.rating || 0).toFixed(1)}
+                  </span>
+                  <span className="text-[9px] font-bold text-gray-400">
+                    (
+                    {formatNumber(
+                      selectedStore.products?.reduce(
+                        (sum, p) => sum + (p.reviewCount || 0),
+                        0,
+                      ) || 0,
+                    )}{" "}
+                    avis)
+                  </span>
+                </div>
               </div>
 
               {/* Marketplace Return - Desktop Only */}
@@ -1923,92 +2003,89 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     },
                   });
                 }}
-                className="hidden md:flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl font-black text-sm hover:bg-[#f56b2a] transition-all shadow-lg active:scale-95 flex-shrink-0"
+                className="hidden md:flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl font-black text-sm hover:bg-[#f56b2a] transition-all shadow-lg active:scale-95 flex-shrink-0 mt-16"
               >
                 <ChevronLeft size={16} strokeWidth={3} /> Marketplace
               </button>
             </div>
 
-            {/* Store Dedicated Search Bar - Ultra Compact */}
-            <div className="mt-2 md:mt-4 max-w-2xl mx-auto">
+            {/* Description - Expandable on mobile */}
+            <p
+              className={`mt-3 md:mt-3 text-xs md:text-sm text-gray-500 leading-relaxed ${storeDescExpanded ? "" : "line-clamp-2"}`}
+            >
+              {descriptionText}
+            </p>
+            {descriptionText.length > 90 && (
+              <button
+                onClick={() => setStoreDescExpanded((v) => !v)}
+                className="md:hidden mt-1 text-[10px] font-black text-[#f56b2a] uppercase tracking-wider active:opacity-60"
+              >
+                {storeDescExpanded ? "Réduire" : "Voir plus"}
+              </button>
+            )}
+
+            {/* Store Dedicated Search Bar */}
+            <div className="mt-3 md:mt-4 max-w-2xl mx-auto">
               <div className="relative group">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
-                  <Search size={14} strokeWidth={3} />
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                  <Search size={15} strokeWidth={3} />
                 </div>
                 <input
                   type="text"
                   placeholder="Chercher dans cette boutique..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 md:py-3 bg-gray-50/80 border border-gray-100/50 rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border"
+                  className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-xl font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border placeholder:text-gray-400"
                 />
               </div>
             </div>
 
             {/* Stats Row - Compact but visible */}
-            <div className="grid grid-cols-4 gap-1 md:gap-4 mt-2 md:mt-4">
+            <div className="grid grid-cols-4 gap-1.5 md:gap-4 mt-3 md:mt-4">
               {/* Products Count */}
-              <div className="bg-gray-50/80 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-gray-100 flex flex-col items-center text-gray-900">
-                <span className="text-[10px] md:text-2xl font-black leading-none">
+              <div className="bg-gray-50/80 p-2 md:p-3 rounded-xl md:rounded-xl border border-gray-100 flex flex-col items-center justify-center text-gray-900">
+                <span className="text-sm md:text-2xl font-black leading-tight">
                   {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
                 </span>
-                <span className="text-[5px] md:text-[9px] font-black text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                <span className="text-[7px] md:text-[9px] font-black text-gray-500 uppercase tracking-wide whitespace-nowrap">
                   Produits
                 </span>
               </div>
 
               {/* Visitors Count */}
-              <div className="bg-orange-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-orange-100/50 flex flex-col items-center text-[#f56b2a]">
-                <span className="text-[10px] md:text-2xl font-black leading-none">
+              <div className="bg-orange-50/50 p-2 md:p-3 rounded-xl md:rounded-xl border border-orange-100/50 flex flex-col items-center justify-center text-[#f56b2a]">
+                <span className="text-sm md:text-2xl font-black leading-tight">
                   {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
                 </span>
-                <span className="text-[5px] md:text-[9px] font-black text-orange-400 uppercase tracking-wide whitespace-nowrap">
+                <span className="text-[7px] md:text-[9px] font-black text-orange-400 uppercase tracking-wide whitespace-nowrap">
                   Visiteurs
                 </span>
               </div>
 
               {/* Reviews Count */}
-              <div className="bg-yellow-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-yellow-100/50 flex flex-col items-center text-yellow-600">
-                <span className="text-[10px] md:text-2xl font-black leading-none">
+              <div className="bg-yellow-50/50 p-2 md:p-3 rounded-xl md:rounded-xl border border-yellow-100/50 flex flex-col items-center justify-center text-yellow-600">
+                <span className="text-sm md:text-2xl font-black leading-tight">
                   {formatNumber(selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0)}
                 </span>
-                <span className="text-[5px] md:text-[9px] font-black text-yellow-600 uppercase tracking-wide whitespace-nowrap text-center">
+                <span className="text-[7px] md:text-[9px] font-black text-yellow-600 uppercase tracking-wide whitespace-nowrap text-center">
                   Avis
                 </span>
               </div>
 
               {/* Rating */}
-              <div className="bg-green-50/50 p-1.5 md:p-3 rounded-lg md:rounded-xl border border-green-100/50 flex flex-col items-center text-green-600">
+              <div className="bg-green-50/50 p-2 md:p-3 rounded-xl md:rounded-xl border border-green-100/50 flex flex-col items-center justify-center text-green-600">
                 <div className="flex items-center gap-0.5">
-                  <span className="text-[10px] md:text-2xl font-black leading-none">
+                  <span className="text-sm md:text-2xl font-black leading-tight">
                     {selectedStore.rating?.toFixed(1) || "0.0"}
                   </span>
-                  <Star size={8} fill="currentColor" className="text-yellow-400 hidden md:block" />
-                  <Star size={6} fill="currentColor" className="text-yellow-400 md:hidden" />
+                  <Star size={10} fill="currentColor" className="text-yellow-400 hidden md:block" />
+                  <Star size={8} fill="currentColor" className="text-yellow-400 md:hidden" />
                 </div>
-                <span className="text-[5px] md:text-[9px] font-black text-green-600 uppercase tracking-wide whitespace-nowrap">
+                <span className="text-[7px] md:text-[9px] font-black text-green-600 uppercase tracking-wide whitespace-nowrap">
                   Note
                 </span>
               </div>
             </div>
-
-            {/* Mobile Return Link - Ultra Compact */}
-            <button
-              onClick={() => {
-                safeNavigate("/", {
-                  action: () => {
-                    setSearchTerm("");
-                    setSelectedCategory("all");
-                  },
-                });
-              }}
-              className="md:hidden mt-2 w-full flex items-center justify-center gap-1.5 text-gray-400 py-1 transition-all hover:text-gray-600"
-            >
-              <ChevronLeft size={12} strokeWidth={3} />
-              <span className="text-[9px] font-black uppercase tracking-wider">
-                Marché
-              </span>
-            </button>
           </div>
         </div>
       </div>
@@ -4512,16 +4589,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {renderStoreProfile()}
 
                 {/* Tabs Switcher - Native App Style */}
-                <div className="flex items-center gap-1 p-1 bg-gray-100/50 rounded-[20px] mb-6 max-w-fit mx-auto md:mx-0 border border-gray-100/50">
+                <div className="grid grid-cols-2 gap-1 p-1 bg-white/90 rounded-[20px] mb-5 max-w-full md:max-w-fit md:flex md:items-center md:mx-0 border border-gray-100/60 sticky top-[64px] md:static z-30 backdrop-blur-xl shadow-sm md:shadow-none">
                   <button
                     onClick={() => setStoreTab("products")}
-                    className={`px-6 py-2.5 rounded-[16px] font-black text-[11px] md:text-sm transition-all flex items-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-600 hover:text-gray-600"}`}
+                    className={`px-6 py-2.5 rounded-[16px] font-black text-xs md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
                   >
                     <ShoppingBasketIcon size={14} /> Produits
                   </button>
                   <button
                     onClick={() => setStoreTab("reviews")}
-                    className={`px-6 py-2.5 rounded-[16px] font-black text-[11px] md:text-sm transition-all flex items-center gap-2 ${storeTab === "reviews" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-600 hover:text-gray-600"}`}
+                    className={`px-6 py-2.5 rounded-[16px] font-black text-xs md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "reviews" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
                   >
                     <Star
                       size={14}
@@ -4536,6 +4613,27 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                 {storeTab === "products" ? (
                   <>
+                    {/* Category filter chips - Mobile */}
+                    {storeCategories.length > 1 && (
+                      <div className="md:hidden flex overflow-x-auto no-scrollbar gap-2 pb-1 mb-5 -mr-4 pr-4">
+                        <button
+                          onClick={() => setSelectedCategory("all")}
+                          className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] font-black border transition-all active:scale-95 ${selectedCategory === "all" ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-600 border-gray-200"}`}
+                        >
+                          Tout
+                        </button>
+                        {storeCategories.map(([cat, count]) => (
+                          <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`flex-shrink-0 px-4 py-2 rounded-full text-[11px] font-black border transition-all active:scale-95 whitespace-nowrap ${selectedCategory === cat ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100" : "bg-white text-gray-600 border-gray-200"}`}
+                          >
+                            {cat} ({count})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="relative space-y-12">
                       {pagedProducts.length > 0 ? (
                         /* Grouped sections for store products */
@@ -4565,14 +4663,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               key={cat}
                               className="   duration-500"
                             >
-                              <div className="flex items-center gap-3 mb-6">
-                                <div className="h-0.5 w-8 bg-[#f56b2a]" />
-                                <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em] whitespace-nowrap">
-                                  {cat}
-                                </h3>
-                                <div className="flex-grow h-px bg-gray-100" />
-                              </div>
-                              <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-5 md:gap-6 md:pb-0">
+                              {selectedCategory === "all" && (
+                                <div className="flex items-center gap-3 mb-6">
+                                  <div className="h-0.5 w-8 bg-[#f56b2a]" />
+                                  <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em] whitespace-nowrap">
+                                    {cat}
+                                  </h3>
+                                  <div className="flex-grow h-px bg-gray-100" />
+                                </div>
+                              )}
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                                 {groups[cat].map((product) => (
                                   <ProductCard
                                     key={`${product.storeId}-${product.id}`}
@@ -4589,7 +4689,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                         `/product/${generateProductSlug(product)}`,
                                       )
                                     }
-                                    className="w-[160px] xs:w-[190px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
+                                    className="w-full"
                                   />
                                 ))}
                               </div>
@@ -4638,14 +4738,82 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </div>
                     ) : storeReviews.length > 0 ? (
                       <div className="flex flex-col gap-4">
-                        <div className="flex md:grid md:grid-cols-2 gap-4 overflow-x-auto md:overflow-x-visible no-scrollbar pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
+                        {/* Rating Summary */}
+                        {(() => {
+                          const avg =
+                            storeReviews.reduce(
+                              (s, r) => s + (r.rating || 0),
+                              0,
+                            ) / storeReviews.length;
+                          const dist = [5, 4, 3, 2, 1].map((n) => ({
+                            n,
+                            count: storeReviews.filter(
+                              (r) => Math.round(r.rating) === n,
+                            ).length,
+                          }));
+                          return (
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 flex items-center gap-5">
+                              <div className="text-center flex-shrink-0">
+                                <p className="text-3xl md:text-4xl font-black text-gray-900 leading-none">
+                                  {avg.toFixed(1)}
+                                </p>
+                                <div className="flex gap-0.5 justify-center mt-1.5">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={12}
+                                      fill={
+                                        i < Math.round(avg)
+                                          ? "currentColor"
+                                          : "none"
+                                      }
+                                      className={
+                                        i < Math.round(avg)
+                                          ? "text-yellow-400"
+                                          : "text-gray-200"
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mt-1">
+                                  {storeReviews.length} avis
+                                </p>
+                              </div>
+                              <div className="flex-grow space-y-1">
+                                {dist.map(({ n, count }) => (
+                                  <div
+                                    key={n}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <span className="text-[9px] font-black text-gray-400 w-6 text-right">
+                                      {n}★
+                                    </span>
+                                    <div className="flex-grow h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-yellow-400 rounded-full transition-all duration-500"
+                                        style={{
+                                          width: `${storeReviews.length ? (count / storeReviews.length) * 100 : 0}%`,
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-[9px] font-bold text-gray-400 w-4">
+                                      {count}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
                           {(showAllStoreReviews
                             ? storeReviews
                             : storeReviews.slice(0, 5)
                           ).map((review) => (
                             <div
                               key={review.id}
-                              className="min-w-[280px] md:min-w-0 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md flex-shrink-0 md:flex-shrink"
+                              className="w-full bg-white p-4 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md"
                             >
                               <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-2">
@@ -4723,12 +4891,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           ))}
                         </div>
 
-                        {storeReviews.length > 3 && !showAllStoreReviews && (
+                        {storeReviews.length > 5 && !showAllStoreReviews && (
                           <button
                             onClick={() => setShowAllStoreReviews(true)}
                             className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl transition-all hover:bg-[#f56b2a] flex items-center justify-center gap-2"
                           >
-                            Voir plus d'avis ({storeReviews.length - 3})
+                            Voir plus d'avis ({storeReviews.length - 5})
                             <ChevronRight size={16} className="rotate-90" />
                           </button>
                         )}
