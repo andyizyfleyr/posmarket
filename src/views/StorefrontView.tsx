@@ -960,7 +960,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         }
         setPendingOrderData(null);
         setPendingCustomerInfo(null);
-        window.history.replaceState({}, "", window.location.pathname);
+        // Preserve Next.js history state (raw {} breaks the router and can
+        // trigger spontaneous back-navigations later)
+        window.history.replaceState(window.history.state, "", window.location.pathname);
       } else if (data.data?.statut === "pending") {
         notify("Paiement en cours de traitement...", "info");
       } else {
@@ -968,7 +970,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         setIsProcessingPayment(false);
         setPendingOrderData(null);
         setPendingCustomerInfo(null);
-        window.history.replaceState({}, "", window.location.pathname);
+        window.history.replaceState(window.history.state, "", window.location.pathname);
       }
     } catch (error) {
       console.error("Error checking payment status:", error);
