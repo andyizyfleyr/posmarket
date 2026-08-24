@@ -2998,7 +2998,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 },
               });
             }}
-            className="px-2.5 py-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-black text-[9px] uppercase tracking-tighter flex items-center gap-1 whitespace-nowrap"
+            className="px-3 py-2 -mr-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-black text-[10px] uppercase tracking-tight flex items-center gap-1 whitespace-nowrap"
           >
             <ChevronLeft size={12} /> Continuer les achats
           </button>
@@ -3049,7 +3049,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           </div>
         )}
 
-        <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-3 md:p-8">
+        <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-2.5 sm:p-3 md:p-8">
           {(checkoutStage === "cart" && cart.length > 0) && (
             <div className="space-y-3">
               {/* Réassurance */}
@@ -3139,9 +3139,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     )
                                   }
                                   aria-label={`Retirer ${item.product.name || "le produit"} du panier`}
-                                  className="shrink-0 p-1 -m-1 text-gray-300 hover:text-red-500 transition-colors"
+                                  className="shrink-0 p-2 -m-1.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-h-[18px]">
@@ -3164,7 +3164,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   )}
                               </div>
                               <div className="mt-auto pt-2 flex items-end justify-between gap-3">
-                                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-full p-0.5">
+                                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-full p-1 md:p-0.5">
                                   <button
                                     onClick={() =>
                                       updateQuantity(
@@ -3175,11 +3175,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       )
                                     }
                                     aria-label="Diminuer la quantité"
-                                    className="w-6 h-6 grid place-items-center rounded-full font-black text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
+                                    className="w-9 h-9 md:w-7 md:h-7 grid place-items-center rounded-full font-black text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
                                   >
                                     −
                                   </button>
-                                  <span className="w-6 text-center text-xs font-black text-gray-900 tabular-nums">
+                                  <span className="w-7 text-center text-xs font-black text-gray-900 tabular-nums">
                                     {qty}
                                   </span>
                                   <button
@@ -3192,7 +3192,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       )
                                     }
                                     aria-label="Augmenter la quantité"
-                                    className="w-6 h-6 grid place-items-center rounded-full font-black text-[#f56b2a] hover:bg-orange-50 transition-all"
+                                    className="w-9 h-9 md:w-7 md:h-7 grid place-items-center rounded-full font-black text-[#f56b2a] hover:bg-orange-50 active:bg-orange-100 transition-all"
                                   >
                                     +
                                   </button>
@@ -3572,128 +3572,128 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           )}
         </div>
         {checkoutStage !== "success" && cart.length > 0 && (
-          <div className="p-4 md:p-5 bg-white border-t border-gray-100">
-            {/* Récapitulatif */}
-            <div className="rounded-2xl bg-gray-50/80 border border-gray-100 p-3.5 space-y-1.5 mb-4">
-              <div className="flex justify-between items-center text-xs font-bold text-gray-500">
-                <span>
-                  Sous-total · {cartItemsCount} article
-                  {cartItemsCount > 1 ? "s" : ""}
-                </span>
-                <span className="font-black text-gray-700 tabular-nums">
-                  {formatCurrency(Number(baseCartTotal) || 0)}
-                </span>
-              </div>
-              {wholesaleSavings > 0 && (
-                <div className="flex justify-between items-center text-xs font-bold text-green-600">
-                  <span>Économies prix de gros</span>
-                  <span className="tabular-nums">
-                    -{formatCurrency(wholesaleSavings)}
+          <>
+            <div className="p-4 md:p-5 bg-white border-t border-gray-100 pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-5">
+              {/* Récapitulatif */}
+              <div className="rounded-2xl bg-gray-50/80 border border-gray-100 p-3.5 space-y-1.5 mb-4">
+                <div className="flex justify-between items-center text-xs font-bold text-gray-500">
+                  <span>
+                    Sous-total · {cartItemsCount} article
+                    {cartItemsCount > 1 ? "s" : ""}
+                  </span>
+                  <span className="font-black text-gray-700 tabular-nums">
+                    {formatCurrency(Number(baseCartTotal) || 0)}
                   </span>
                 </div>
-              )}
-              {promoApplied && (
-                <div className="flex justify-between items-center text-xs font-bold text-green-600">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 size={11} /> Code {promoApplied.code}
-                  </span>
-                  <span className="tabular-nums">
-                    -{formatCurrency(Number(discountAmount) || 0)}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between items-center pt-1.5 border-t border-gray-200/70 text-base font-black text-gray-900">
-                <span>Total</span>
-                <span className="text-[#f56b2a] tabular-nums">
-                  {formatCurrency(Number(cartTotal) || 0)}
-                </span>
-              </div>
-            </div>
-
-            {/* Code promo */}
-            {checkoutStage === "cart" && !promoApplied && (
-              <div className="mb-4">
-                {isPromoOpen ? (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={promoCodeInput}
-                      onChange={(e) => setPromoCodeInput(e.target.value)}
-                      placeholder="Votre code promo"
-                      autoFocus
-                      className="flex-grow px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-xs sm:text-sm uppercase w-full no-global-border"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handlePromoApply}
-                        disabled={!promoCodeInput.trim()}
-                        loading={isApplyingPromo}
-                        loadingText="Vérification..."
-                        variant="primary"
-                        size="sm"
-                        className="flex-1 sm:flex-initial"
-                      >
-                        Appliquer
-                      </Button>
-                      {!isApplyingPromo && (
-                        <button
-                          onClick={() => setIsPromoOpen(false)}
-                          className="px-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          Annuler
-                        </button>
-                      )}
-                    </div>
+                {wholesaleSavings > 0 && (
+                  <div className="flex justify-between items-center text-xs font-bold text-green-600">
+                    <span>Économies prix de gros</span>
+                    <span className="tabular-nums">
+                      -{formatCurrency(wholesaleSavings)}
+                    </span>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setIsPromoOpen(true)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] hover:border-[#f56b2a]/40 transition-colors"
-                  >
-                    <Tag size={12} /> Ajouter un code promo
-                  </button>
                 )}
+                {promoApplied && (
+                  <div className="flex justify-between items-center text-xs font-bold text-green-600">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 size={11} /> Code {promoApplied.code}
+                    </span>
+                    <span className="tabular-nums">
+                      -{formatCurrency(Number(discountAmount) || 0)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1.5 border-t border-gray-200/70 text-base font-black text-gray-900">
+                  <span>Total</span>
+                  <span className="text-[#f56b2a] tabular-nums">
+                    {formatCurrency(Number(cartTotal) || 0)}
+                  </span>
+                </div>
               </div>
-            )}
 
-            {promoApplied && (
-              <div className="mb-4 flex items-center justify-between gap-2 bg-green-50 px-3.5 py-2 rounded-xl border border-green-100">
-                <span className="flex items-center gap-1.5 text-green-700 font-black text-xs">
-                  <CheckCircle2 size={12} /> Code {promoApplied.code} appliqué
-                </span>
-                <button
-                  onClick={() => setPromoApplied(null)}
-                  aria-label="Retirer le code promo"
-                  className="p-1 text-green-600/60 hover:text-red-500 transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              {checkoutStage === "cart" && (
-                <Button
-                  onClick={() => {
-                    setIsCheckoutTransitioning(true);
-                    setTimeout(() => {
-                      setCheckoutStage("shipping");
-                      setIsCheckoutTransitioning(false);
-                    }, 500);
-                  }}
-                  loading={isCheckoutTransitioning}
-                  loadingText="Chargement..."
-                  fullWidth
-                  size="xl"
-                  icon={<ArrowRight size={18} />}
-                  iconPosition="right"
-                >
-                  Passer à la livraison
-                </Button>
+              {/* Code promo */}
+              {checkoutStage === "cart" && !promoApplied && (
+                <div className="mb-4">
+                  {isPromoOpen ? (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={(e) => setPromoCodeInput(e.target.value)}
+                        placeholder="Votre code promo"
+                        autoFocus
+                        className="flex-grow px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-xs sm:text-sm uppercase w-full no-global-border"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handlePromoApply}
+                          disabled={!promoCodeInput.trim()}
+                          loading={isApplyingPromo}
+                          loadingText="Vérification..."
+                          variant="primary"
+                          size="sm"
+                          className="flex-1 sm:flex-initial"
+                        >
+                          Appliquer
+                        </Button>
+                        {!isApplyingPromo && (
+                          <button
+                            onClick={() => setIsPromoOpen(false)}
+                            className="px-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            Annuler
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsPromoOpen(true)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] hover:border-[#f56b2a]/40 transition-colors"
+                    >
+                      <Tag size={12} /> Ajouter un code promo
+                    </button>
+                  )}
+                </div>
               )}
-              {(checkoutStage === "shipping" ||
-                checkoutStage === "payment") && (
-                <>
+
+              {promoApplied && (
+                <div className="mb-4 flex items-center justify-between gap-2 bg-green-50 px-3.5 py-2 rounded-xl border border-green-100">
+                  <span className="flex items-center gap-1.5 text-green-700 font-black text-xs">
+                    <CheckCircle2 size={12} /> Code {promoApplied.code} appliqué
+                  </span>
+                  <button
+                    onClick={() => setPromoApplied(null)}
+                    aria-label="Retirer le code promo"
+                    className="p-1 text-green-600/60 hover:text-red-500 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              <div className="hidden md:flex flex-col gap-3">
+                {checkoutStage === "cart" && (
+                  <Button
+                    onClick={() => {
+                      setIsCheckoutTransitioning(true);
+                      setTimeout(() => {
+                        setCheckoutStage("shipping");
+                        setIsCheckoutTransitioning(false);
+                      }, 500);
+                    }}
+                    loading={isCheckoutTransitioning}
+                    loadingText="Chargement..."
+                    fullWidth
+                    size="xl"
+                    icon={<ArrowRight size={18} />}
+                    iconPosition="right"
+                  >
+                    Passer à la livraison
+                  </Button>
+                )}
+                {(checkoutStage === "shipping" ||
+                  checkoutStage === "payment") && (
                   <Button
                     form="checkout-form"
                     type="submit"
@@ -3711,6 +3711,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       ? "Passer au paiement"
                       : "Confirmer la commande"}
                   </Button>
+                )}
+              </div>
+
+              {(checkoutStage === "shipping" ||
+                checkoutStage === "payment") && (
+                <div className="mt-3 md:mt-0">
                   <Button
                     onClick={() =>
                       handleStageChange(
@@ -3724,10 +3730,67 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   >
                     ← Retour à l'étape précédente
                   </Button>
-                </>
+                </div>
               )}
             </div>
-          </div>
+
+            {/* Barre fixe mobile : Total + action principale */}
+            <div
+              className="md:hidden fixed left-0 right-0 bottom-0 z-[3000] bg-white/95 backdrop-blur-xl border-t border-gray-100"
+              style={{
+                paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+              }}
+            >
+              <div className="flex items-center gap-3 px-4 pt-3">
+                <div className="leading-none min-w-0">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">
+                    Total
+                  </p>
+                  <p className="text-lg font-black text-gray-900 truncate tabular-nums">
+                    {formatCurrency(Number(cartTotal) || 0)}
+                  </p>
+                </div>
+                {checkoutStage === "cart" && (
+                  <Button
+                    onClick={() => {
+                      setIsCheckoutTransitioning(true);
+                      setTimeout(() => {
+                        setCheckoutStage("shipping");
+                        setIsCheckoutTransitioning(false);
+                      }, 500);
+                    }}
+                    loading={isCheckoutTransitioning}
+                    loadingText="..."
+                    fullWidth
+                    size="lg"
+                    className="flex-1 !py-4 !text-sm"
+                    icon={<ArrowRight size={16} />}
+                    iconPosition="right"
+                  >
+                    Livraison
+                  </Button>
+                )}
+                {(checkoutStage === "shipping" ||
+                  checkoutStage === "payment") && (
+                  <Button
+                    form="checkout-form"
+                    type="submit"
+                    loading={isProcessingPayment}
+                    loadingText="..."
+                    fullWidth
+                    size="lg"
+                    className="flex-1 !py-4 !text-sm"
+                    icon={<ArrowRight size={16} />}
+                    iconPosition="right"
+                  >
+                    {checkoutStage === "shipping"
+                      ? "Paiement"
+                      : "Confirmer"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
     );
