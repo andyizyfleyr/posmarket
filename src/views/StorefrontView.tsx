@@ -1880,186 +1880,211 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     };
     return (
       <div className="mb-4 md:mb-6    duration-700">
-        <div className="bg-white rounded-[28px] md:rounded-[40px] overflow-hidden shadow-xl shadow-gray-200/50 border border-white relative">
-          {/* Immersive Cover */}
-          <div className="h-36 md:h-56 bg-gradient-to-br from-[#f56b2a] via-[#ff7a3d] to-[#ffb08a] relative overflow-hidden">
-            {/* Blurred blobs */}
-            <div className="absolute -top-16 -left-16 w-64 h-64 bg-white/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-20 -right-10 w-72 h-72 bg-[#ffd9c2]/40 rounded-full blur-3xl pointer-events-none" />
-            {/* Dots pattern */}
-            <div
-              className="absolute inset-0 opacity-[0.08] pointer-events-none"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle, white 1.5px, transparent 1.5px)",
-                backgroundSize: "18px 18px",
-              }}
-            />
-            {/* Floating actions */}
-            <button
-              onClick={() => {
-                safeNavigate("/", {
-                  action: () => {
-                    setSearchTerm("");
-                    setSelectedCategory("all");
-                  },
-                });
-              }}
-              aria-label="Retour au marché"
-              className="absolute top-4 left-4 z-30 w-10 h-10 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md border border-white/30 flex items-center justify-center active:scale-90 transition-all"
-            >
-              <ChevronLeft size={20} strokeWidth={3} className="text-white" />
-            </button>
-            <button
-              onClick={handleStoreShare}
-              aria-label="Partager la boutique"
-              className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md border border-white/30 flex items-center justify-center active:scale-90 transition-all"
-            >
-              <Share2 size={17} className="text-white" />
-            </button>
-          </div>
+        {/* Detached action row */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => {
+              safeNavigate("/", {
+                action: () => {
+                  setSearchTerm("");
+                  setSelectedCategory("all");
+                },
+              });
+            }}
+            aria-label="Retour au marché"
+            className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-90 transition-all"
+          >
+            <ChevronLeft size={20} strokeWidth={3} className="text-gray-900" />
+          </button>
+          <button
+            onClick={handleStoreShare}
+            aria-label="Partager la boutique"
+            className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-90 transition-all"
+          >
+            <Share2 size={16} className="text-gray-900" />
+          </button>
+        </div>
 
-          <div className="px-4 md:px-12 pb-5 md:pb-8 relative">
-            {/* Centered identity */}
-            <div className="flex flex-col items-center text-center -mt-12 md:-mt-16">
-              {/* Logo medallion */}
-              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white p-1.5 shadow-2xl ring-1 ring-gray-100 z-20">
-                <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden">
-                  {selectedStore.settings?.logo ? (
-                    <img
-                      src={selectedStore.settings.logo}
-                      alt={selectedStore.name}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <Store size={34} className="text-[#f56b2a]" />
-                  )}
-                </div>
+        {/* Bento - Identity hero tile */}
+        <div className="relative bg-gray-900 rounded-[28px] md:rounded-[36px] p-5 md:p-8 overflow-hidden">
+          {/* Orange glow */}
+          <div className="absolute -top-24 -right-16 w-72 h-72 bg-[#f56b2a]/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-28 -left-10 w-64 h-64 bg-[#f56b2a]/10 rounded-full blur-3xl pointer-events-none" />
+          <div
+            className="absolute inset-0 opacity-[0.06] pointer-events-none"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, white 1px, transparent 1px)",
+              backgroundSize: "22px 22px",
+            }}
+          />
+
+          <div className="relative flex items-start gap-4">
+            {/* Square logo tile */}
+            <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-white/10 backdrop-blur border border-white/15 p-1 flex-shrink-0 shadow-xl">
+              <div className="w-full h-full rounded-xl bg-white flex items-center justify-center overflow-hidden">
+                {selectedStore.settings?.logo ? (
+                  <img
+                    src={selectedStore.settings.logo}
+                    alt={selectedStore.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Store size={26} className="text-[#f56b2a]" />
+                )}
               </div>
+            </div>
 
+            <div className="flex-grow min-w-0 pt-0.5">
               {/* Name + verified */}
-              <div className="flex items-center justify-center gap-1.5 mt-3">
-                <h2 className="text-xl md:text-3xl font-black text-gray-900 truncate max-w-[75%]">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h2 className="text-lg md:text-2xl font-black text-white truncate">
                   {selectedStore.settings.name}
                 </h2>
                 <ShieldCheck
-                  size={18}
+                  size={16}
                   strokeWidth={3}
-                  className="text-green-500 flex-shrink-0"
+                  className="text-green-400 flex-shrink-0"
                 />
               </div>
 
-              {/* Chips row: rating + country */}
-              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-100 text-gray-900 px-3 py-1 rounded-full">
-                  <Star
-                    size={12}
-                    fill="currentColor"
-                    className="text-yellow-400"
-                  />
-                  <span className="text-xs font-black">
-                    {(selectedStore.rating || 0).toFixed(1)}
-                  </span>
-                  <span className="text-[10px] font-bold text-gray-400">
-                    ·{" "}
-                    {formatNumber(
-                      selectedStore.products?.reduce(
-                        (sum, p) => sum + (p.reviewCount || 0),
-                        0,
-                      ) || 0,
-                    )}{" "}
-                    avis
-                  </span>
+              {/* Stars + country */}
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={12}
+                      fill={
+                        i < Math.round(selectedStore.rating || 0)
+                          ? "currentColor"
+                          : "none"
+                      }
+                      className={
+                        i < Math.round(selectedStore.rating || 0)
+                          ? "text-yellow-400"
+                          : "text-white/25"
+                      }
+                    />
+                  ))}
                 </div>
+                <span className="text-xs font-black text-white">
+                  {(selectedStore.rating || 0).toFixed(1)}
+                </span>
                 {(() => {
                   const countryValue =
                     selectedStore.address || selectedStore.settings?.address;
                   if (!countryValue) return null;
                   return (
-                    <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
-                      <Globe size={11} strokeWidth={3} className="text-blue-400" />
-                      <span className="text-[11px] md:text-xs font-black whitespace-nowrap">
-                        {countryValue}
-                      </span>
-                    </div>
+                    <>
+                      <span className="text-white/20">·</span>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <Globe
+                          size={11}
+                          strokeWidth={3}
+                          className="text-white/50 flex-shrink-0"
+                        />
+                        <span className="text-[11px] font-bold text-white/60 truncate">
+                          {countryValue}
+                        </span>
+                      </div>
+                    </>
                   );
                 })()}
               </div>
+            </div>
+          </div>
 
-              {/* Description - Expandable */}
-              <p
-                className={`mt-3 text-xs md:text-sm text-gray-500 leading-relaxed max-w-xl ${storeDescExpanded ? "" : "line-clamp-2"}`}
-              >
-                {descriptionText}
+          {/* Description - Expandable */}
+          <p
+            className={`relative mt-3 text-xs md:text-sm text-gray-400 leading-relaxed ${storeDescExpanded ? "" : "line-clamp-2"}`}
+          >
+            {descriptionText}
+          </p>
+          {descriptionText.length > 90 && (
+            <button
+              onClick={() => setStoreDescExpanded((v) => !v)}
+              className="relative mt-1 text-[10px] font-black text-[#ff9d6c] uppercase tracking-wider active:opacity-60"
+            >
+              {storeDescExpanded ? "Réduire" : "Voir plus"}
+            </button>
+          )}
+        </div>
+
+        {/* Bento - Stats cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+          {/* Products */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-3.5 flex items-center gap-3 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center flex-shrink-0">
+              <Package size={17} strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base md:text-xl font-black text-gray-900 leading-none">
+                {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
               </p>
-              {descriptionText.length > 90 && (
-                <button
-                  onClick={() => setStoreDescExpanded((v) => !v)}
-                  className="mt-1 text-[10px] font-black text-[#f56b2a] uppercase tracking-wider active:opacity-60"
-                >
-                  {storeDescExpanded ? "Réduire" : "Voir plus"}
-                </button>
-              )}
+              <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                Produits
+              </p>
             </div>
+          </div>
+          {/* Visitors */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-3.5 flex items-center gap-3 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0">
+              <Eye size={17} strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base md:text-xl font-black text-gray-900 leading-none">
+                {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
+              </p>
+              <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                Visiteurs
+              </p>
+            </div>
+          </div>
+          {/* Reviews */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-3.5 flex items-center gap-3 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-green-50 text-green-600 flex items-center justify-center flex-shrink-0">
+              <MessageCircle size={17} strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base md:text-xl font-black text-gray-900 leading-none">
+                {formatNumber(selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0)}
+              </p>
+              <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                Avis
+              </p>
+            </div>
+          </div>
+          {/* Rating */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-3.5 flex items-center gap-3 shadow-sm col-span-2 md:col-span-1">
+            <div className="w-9 h-9 rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center flex-shrink-0">
+              <Star size={17} strokeWidth={2.5} fill="currentColor" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base md:text-xl font-black text-gray-900 leading-none">
+                {selectedStore.rating?.toFixed(1) || "0.0"}
+                <span className="text-gray-300 text-xs font-bold"> /5</span>
+              </p>
+              <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                Note globale
+              </p>
+            </div>
+          </div>
+        </div>
 
-            {/* Store Dedicated Search Bar */}
-            <div className="mt-4 max-w-2xl mx-auto">
-              <div className="relative group">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
-                  <Search size={15} strokeWidth={3} />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Chercher dans cette boutique..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border placeholder:text-gray-400"
-                />
-              </div>
+        {/* Store Dedicated Search Bar */}
+        <div className="mt-2 max-w-2xl mx-auto">
+          <div className="relative group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+              <Search size={16} strokeWidth={3} />
             </div>
-
-            {/* Stats Strip - Minimal with separators */}
-            <div className="grid grid-cols-4 mt-4 bg-gray-50/60 border border-gray-100 rounded-2xl divide-x divide-gray-200/70 overflow-hidden">
-              {/* Products Count */}
-              <div className="py-3 px-1 flex flex-col items-center justify-center">
-                <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
-                  {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
-                </span>
-                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
-                  Produits
-                </span>
-              </div>
-              {/* Visitors Count */}
-              <div className="py-3 px-1 flex flex-col items-center justify-center">
-                <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
-                  {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
-                </span>
-                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
-                  Visiteurs
-                </span>
-              </div>
-              {/* Reviews Count */}
-              <div className="py-3 px-1 flex flex-col items-center justify-center">
-                <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
-                  {formatNumber(selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0)}
-                </span>
-                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap text-center">
-                  Avis
-                </span>
-              </div>
-              {/* Rating */}
-              <div className="py-3 px-1 flex flex-col items-center justify-center">
-                <div className="flex items-center gap-0.5">
-                  <span className="text-base md:text-2xl font-black text-gray-900 leading-tight">
-                    {selectedStore.rating?.toFixed(1) || "0.0"}
-                  </span>
-                  <Star size={10} fill="currentColor" className="text-yellow-400" />
-                </div>
-                <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
-                  Note
-                </span>
-              </div>
-            </div>
+            <input
+              type="text"
+              placeholder="Chercher dans cette boutique..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 md:py-3.5 bg-white border border-gray-100 rounded-2xl font-bold text-xs md:text-sm text-gray-700 shadow-sm focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/50 transition-all no-global-border placeholder:text-gray-400"
+            />
           </div>
         </div>
       </div>
