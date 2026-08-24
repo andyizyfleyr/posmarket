@@ -62,8 +62,8 @@ async function getProductSeoUncached(
                 and(
                     eq(products.isOnline, true),
                     or(
-                        eq(products.id, wanted),
-                        like(products.id, `${idPrefix}%`),
+                        sql`${products.id}::text = ${wanted}`,
+                        sql`${products.id}::text LIKE ${idPrefix + "%"}`,
                     ),
                 ),
             )
@@ -122,7 +122,7 @@ async function getStoreSeoUncached(slugOrId: string) {
                 hasLogo: sql<boolean>`(${stores.settings} -> 'logo') IS NOT NULL`,
             })
             .from(stores)
-            .where(or(eq(stores.slug, s), eq(stores.id, s)))
+            .where(or(eq(stores.slug, s), sql`${stores.id}::text = ${s}`))
             .limit(1);
         if (!row) return null;
 
