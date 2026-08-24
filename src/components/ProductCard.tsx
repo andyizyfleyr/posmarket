@@ -16,12 +16,30 @@ interface ProductCardProps {
   className?: string;
 }
 
+// Champs optionnels utilisés par la carte côté marketplace
+interface CardProductExtras {
+  stock?: number | null;
+  options?: unknown[];
+}
+
 const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onBuyNow, onStoreSelect, onClick, className = "" }) => {
+  const extras = product as CardProductExtras;
+  const hasOptions = Array.isArray(extras.options) && extras.options.length > 0;
+  const isOutOfStock = extras.stock === 0;
+
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    const current = product as CardProductExtras;
+    // Produit en rupture : on n'ajoute rien
+    if (current.stock === 0) return;
+    // Produit à options obligatoires : la fiche produit permet de choisir
+    if (Array.isArray(current.options) && current.options.length > 0) {
+      onClick?.();
+      return;
+    }
     onAddToCart(product);
-  }, [product, onAddToCart]);
+  }, [product, onAddToCart, onClick]);
 
   const handleBuyNow = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,9 +127,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
       <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
         <button
           onClick={handleAddToCart}
-          className="w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100"
+          disabled={isOutOfStock}
+          className={`w-full py-2 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tighter ${
+            isOutOfStock
+              ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+              : "bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100"
+          }`}
         >
-          Ajouter au panier
+          {isOutOfStock ? "Rupture de stock" : hasOptions ? "Choisir options" : "Ajouter au panier"}
         </button>
       </div>
     </div >

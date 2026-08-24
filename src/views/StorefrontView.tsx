@@ -146,6 +146,19 @@ interface CartItem {
   selectedOptions?: Record<string, string>;
 }
 
+// Compare deux ensembles d'options sans tenir compte de l'ordre des clés
+// (JSON.stringify dépend de l'ordre d'insertion -> fausses non-correspondances)
+const sameSelectedOptions = (
+  a?: Record<string, string> | null,
+  b?: Record<string, string> | null,
+): boolean => {
+  if (!a || !b) return !a && !b;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every((k) => a[k] === b[k]);
+};
+
 interface StorefrontViewProps {
   stores: StoreData[];
   onBackToApp: () => void | Promise<any>;
@@ -203,42 +216,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
   // ⚡ Helpers defined early for use in effects
-  const loadCartFromStorage = useCallback((): CartItem[] => {
-    try {
-      const stored = localStorage.getItem("storefront_cart");
-      if (stored) {
-        const { data, timestamp } = JSON.parse(stored);
-        // 24h expiration
-        const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-        if (!expired) return data;
-      }
-    } catch (e) {}
-    return [];
-  }, []);
-
-  const loadCustomerInfoFromStorage = useCallback(() => {
-    try {
-      const stored = localStorage.getItem("storefront_customer");
-      if (stored) {
-        const { data, timestamp } = JSON.parse(stored);
-        const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-        if (!expired) return data;
-      }
-    } catch (e) {}
-    return { name: "", phone: "", address: "", city: "", zip: "" };
-  }, []);
-
-  const loadPromoFromStorage = useCallback(() => {
-    try {
-      const stored = localStorage.getItem("storefront_promo");
-      if (stored) {
-        const { data, timestamp } = JSON.parse(stored);
-        const expired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-        if (!expired) return data;
-      }
-    } catch (e) {}
-    return null;
-  }, []);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerInfo, setCustomerInfo] = useState({
@@ -327,16 +304,22 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       try {
         const { data } = await supabase
           .from('products')
-          .select('id, name, price, image, stock, category, store_id')
+          .select('id, name, price, image, stock, category, store_id, isOnline')
           .textSearch('search_vector', searchTerm, {
             type: 'websearch',
             config: 'french'
           })
-          .limit(20);
-        
+          .limit(50);
+
+        // Même règle que la grille d'accueil : isOnline absent ou vrai.
+        // (Filtrage client : .or() indisponible sur ce client Supabase.)
+        const onlineResults = (data || []).filter(
+          (p: any) => p?.isOnline !== false,
+        );
+
         // Only use result if it's for the current search term
         if (ftsRequestRef.current?.term === searchTerm) {
-          setFtsResults(data || []);
+          setFtsResults(onlineResults.slice(0, 20));
         }
       } catch (err: any) {
         if (err.name !== 'AbortError') {
@@ -539,33 +522,35 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 🔄 Dynamique: Couper le loader quand pathname change ET contenu visible
   useEffect(() => {
     if (!isNavigating || navCompletedRef.current) return;
-    
+
     const currentPath = location.pathname;
     const targetPath = navTargetPathRef.current;
-    
+
     // Vérifier si on a atteint la destination
     if (currentPath !== targetPath) return;
-    
-    // pathname a changé! Attendre que le contenu soit visible
-    // On vérifie avec un MutationObserver ou un timer
+
+    // pathname a changé! Attendre que le contenu soit visible.
+    // Timer tracé pour être nettoyé au unmount, et nombre de retries plafonné
+    // (pas de boucle infinie de setTimeout).
+    let timer: ReturnType<typeof setTimeout>;
+    let retries = 0;
     const checkContentVisible = () => {
-      // Chercher le main content ou un élément significatif
       const mainContent = document.querySelector('main');
       const hasContent = mainContent && mainContent.children.length > 0;
       const duration = performance.now() - navStartTimeRef.current;
-      
-      if (hasContent) {
+
+      if (hasContent || ++retries > 20) {
         navCompletedRef.current = true;
         console.log(`[Navigation] Content ready → ${duration.toFixed(0)}ms (${(duration / 1000).toFixed(2)}s)`);
         setIsNavigating(false);
       } else {
-        // Réessayer dans 50ms
-        setTimeout(checkContentVisible, 50);
+        timer = setTimeout(checkContentVisible, 50);
       }
     };
-    
+
     // Commencer à vérifier après 100ms minimum
-    setTimeout(checkContentVisible, 100);
+    timer = setTimeout(checkContentVisible, 100);
+    return () => clearTimeout(timer);
   }, [location.pathname, isNavigating]);
 
   // 🔄 Smooth Checkout Stage Transitions
@@ -608,13 +593,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     } catch (e) {}
   }, []);
 
-  // Carousel auto-play
+  // Carousel auto-play - uniquement sur l'accueil, en pause au survol et
+  // quand l'onglet est masqué (la slide ne saute plus sous les yeux de
+  // l'utilisateur pendant qu'il interagit).
+  const [heroPaused, setHeroPaused] = useState(false);
   React.useEffect(() => {
+    if (location.pathname !== "/" || heroPaused || document.hidden) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % 3);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [location.pathname, heroPaused]);
 
   // Params logic moved to top
 
@@ -752,46 +741,72 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       console.warn("Could not save promo to localStorage", e);
     }
   }, [promoApplied, isMounted]);
-  // Load coupons from Supabase - for all stores in cart or current store
+  // Load coupons from Supabase - for all stores in cart or current store.
+  // Dépend des boutiques du PANIER (clé stable) : ajouter un produit d'une
+  // nouvelle boutique recharge les coupons même si on est déjà sur /cart.
+  const cartStoreIdsKey = useMemo(
+    () =>
+      isCartView
+        ? [
+            ...new Set(
+              cart
+                .map((item) => item.product?.storeId)
+                .filter(Boolean) as string[],
+            ),
+          ]
+            .sort()
+            .join("|")
+        : "",
+    [isCartView, cart],
+  );
+
   React.useEffect(() => {
     const loadCoupons = async () => {
+      let storeIds: string[] = [];
+
+      if (isCartView && cartStoreIdsKey) {
+        storeIds = cartStoreIdsKey.split("|");
+      } else if (selectedStoreParam) {
+        const currentStore = stores.find(
+          (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
+        );
+        if (currentStore) storeIds = [currentStore.id];
+      }
+
+      if (storeIds.length === 0) {
+        setCoupons([]);
+        return;
+      }
+
       try {
-        // Get unique store IDs from cart if on cart page
-        let storeIds: string[] = [];
-
-        if (isCartView && cart.length > 0) {
-          storeIds = [
-            ...new Set(cart.map((item) => item.product.storeId)),
-          ] as string[];
-        } else if (selectedStoreParam) {
-          const currentStore = stores.find(
-            (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
-          );
-          if (currentStore) storeIds = [currentStore.id];
-        }
-
-        if (storeIds.length === 0) return;
-
-        console.log("Loading coupons for stores:", storeIds);
-        const { data: storesData, error: storesError } = await supabase
-          .from("stores")
-          .select(
-            "id, name, email, phone, address, ninea, logo, slug, theme, description, settings",
-          )
-          .order("name");
         const { data } = await supabase
           .from("coupons")
           .select("*")
           .eq("active", true)
           .in("store_id", storeIds);
-        console.log("Coupons loaded:", data);
-        if (data) setCoupons(data);
+        setCoupons(data || []);
       } catch (e) {
         console.log("Coupons table not available", e);
       }
     };
     loadCoupons();
-  }, [selectedStoreParam, stores, isCartView]);
+  }, [selectedStoreParam, stores, isCartView, cartStoreIdsKey]);
+
+  // Un coupon restauré depuis localStorage peut avoir été désactivé ou
+  // supprimé entre-temps : on le retire s'il n'est plus valide.
+  React.useEffect(() => {
+    if (!promoApplied || coupons.length === 0) return;
+    const stillValid = coupons.some(
+      (c) => c.id === promoApplied.id && c.active,
+    );
+    if (!stillValid) {
+      setPromoApplied(null);
+      localNotify(
+        "Code promo expiré ou désactivé : il a été retiré de votre commande.",
+        "info",
+      );
+    }
+  }, [coupons, promoApplied]);
 const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     null
   );
@@ -834,6 +849,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       description: string,
       customer: { phone: string; name: string },
     ) => {
+      if (!fusionPayApiUrl) {
+        notify(
+          "Paiement par carte indisponible (configuration manquante). Choisissez le paiement à la livraison.",
+          "error",
+        );
+        setIsProcessingPayment(false);
+        return;
+      }
       try {
         const paymentData = {
           totalPrice: amount,
@@ -901,12 +924,48 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");
-    if (token && pendingOrderData && pendingCustomerInfo) {
-      checkFusionPayPaymentStatus(token);
+    if (!token) return;
+
+    // Après la redirection full-page, l'état React est perdu : on restaure
+    // la commande persistée en sessionStorage avant de vérifier le paiement.
+    let orderData = pendingOrderData;
+    let customer = pendingCustomerInfo;
+    if (!orderData || !customer) {
+      try {
+        const saved = sessionStorage.getItem("fusionpay_pending_order");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          orderData = parsed.ordersData;
+          customer = parsed.customer;
+          if (orderData) setPendingOrderData(orderData);
+          if (customer) setPendingCustomerInfo(customer);
+        }
+      } catch (e) {}
     }
+    if (orderData && customer) {
+      checkFusionPayPaymentStatus(token, orderData, customer);
+    } else {
+      // Token orphelin : nettoyer l'URL pour éviter une boucle au refresh
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const checkFusionPayPaymentStatus = async (token: string) => {
+  const clearFusionPayPending = () => {
+    try {
+      sessionStorage.removeItem("fusionpay_pending_order");
+    } catch (e) {}
+    setPendingOrderData(null);
+    setPendingCustomerInfo(null);
+  };
+
+  const checkFusionPayPaymentStatus = async (
+    token: string,
+    orderDataOverride?: NonNullable<typeof pendingOrderData>,
+    customerOverride?: typeof pendingCustomerInfo,
+  ) => {
+    const activeOrderData = orderDataOverride || pendingOrderData;
+    const activeCustomer = customerOverride || pendingCustomerInfo;
     try {
       const response = await fetch(
         `https://www.pay.moneyfusion.net/paiementNotif/${token}`,
@@ -914,8 +973,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       const data = await response.json();
 
       if (data.statut && data.data?.statut === "paid") {
-        if (pendingOrderData && pendingCustomerInfo) {
-          onMarketplaceCheckout(pendingOrderData, pendingCustomerInfo);
+        if (activeOrderData && activeCustomer) {
+          onMarketplaceCheckout(activeOrderData, activeCustomer);
         }
         playSuccessSound();
         const storeMap: Record<
@@ -958,11 +1017,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         setPromoCodeInput("");
         setCheckoutStage("success");
         // Send notifications after success screen is triggered
-        if (pendingOrderData) {
-          onNotifyPostCheckout(pendingOrderData);
+        if (activeOrderData) {
+          onNotifyPostCheckout(activeOrderData);
         }
-        setPendingOrderData(null);
-        setPendingCustomerInfo(null);
+        clearFusionPayPending();
         // Preserve Next.js history state (raw {} breaks the router and can
         // trigger spontaneous back-navigations later)
         window.history.replaceState(window.history.state, "", window.location.pathname);
@@ -971,8 +1029,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       } else {
         notify("Paiement échoué ou annulé", "error");
         setIsProcessingPayment(false);
-        setPendingOrderData(null);
-        setPendingCustomerInfo(null);
+        clearFusionPayPending();
         window.history.replaceState(window.history.state, "", window.location.pathname);
       }
     } catch (error) {
@@ -1259,12 +1316,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     // Define which categories belong to which vertical
     const verticalMap: Record<string, string[]> = {
       food: ["Alimentation & Boissons", "Restauration & Livraison Rapide"],
-      stay: ["Séjours, Expériences & Immobilier", "Maison & Bureau"],
       shopping: MAIN_CATEGORIES.filter(
         (cat) =>
           cat !== "Alimentation & Boissons" &&
-          cat !== "Restauration & Livraison Rapide" &&
-          cat !== "Séjours, Expériences & Immobilier",
+          cat !== "Restauration & Livraison Rapide",
       ),
     };
 
@@ -1374,47 +1429,58 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, [location.search]);
 
   // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
-  const loadPagedProducts = useCallback(
-    async (reset: boolean = false) => {
-      if (loadingRef.current && !reset) return;
+  // filteredProducts est lu via une ref : un simple rafraîchissement des
+  // données (nouvelles props stores) ne réinitialise plus la pagination.
+  const filteredProductsRef = useRef(filteredProducts);
+  filteredProductsRef.current = filteredProducts;
 
-      loadingRef.current = true;
-      setIsLoadingMore(true);
+  const loadPagedProducts = useCallback(async (reset: boolean = false) => {
+    if (loadingRef.current && !reset) return;
 
-      if (reset) {
-        currentPageRef.current = 0;
-        setPage(0);
-      }
+    loadingRef.current = true;
+    setIsLoadingMore(true);
 
-      const start = currentPageRef.current * PAGE_LIMIT;
-      const end = start + PAGE_LIMIT;
-      const nextBatch = filteredProducts.slice(start, end);
+    if (reset) {
+      currentPageRef.current = 0;
+      setPage(0);
+    }
 
-      setPagedProducts((prev) => (reset ? nextBatch : [...prev, ...nextBatch]));
-      setHasMore(end < filteredProducts.length);
+    const source = filteredProductsRef.current;
+    const start = currentPageRef.current * PAGE_LIMIT;
+    const end = start + PAGE_LIMIT;
+    const nextBatch = source.slice(start, end);
 
-      currentPageRef.current += 1;
-      setPage(currentPageRef.current);
+    setPagedProducts((prev) => (reset ? nextBatch : [...prev, ...nextBatch]));
+    setHasMore(end < source.length);
 
-      // Small delay to allow DOM to update and avoid instant double-trigger
-      setTimeout(() => {
-        setIsLoadingMore(false);
-        loadingRef.current = false;
-      }, 100);
-    },
-    [filteredProducts],
-  );
+    currentPageRef.current += 1;
+    setPage(currentPageRef.current);
 
-  // Reset pagination on filter change or navigation
+    // Small delay to allow DOM to update and avoid instant double-trigger
+    setTimeout(() => {
+      setIsLoadingMore(false);
+      loadingRef.current = false;
+    }, 100);
+  }, []);
+
+  // Reset pagination ONLY when a real filter changes (pas sur refresh data)
   useEffect(() => {
     loadPagedProducts(true);
   }, [
     selectedStoreId,
     selectedCategory,
     searchTerm,
-    filteredProducts,
     location.pathname,
-  ]); // Stable dependencies
+    loadPagedProducts,
+  ]);
+
+  // Rattrapage : si la liste vient d'arriver alors que la page affichée est
+  // vide (ex: premier chargement sans cache), on charge le premier lot.
+  useEffect(() => {
+    if (pagedProducts.length === 0 && filteredProducts.length > 0) {
+      loadPagedProducts(true);
+    }
+  }, [pagedProducts.length, filteredProducts.length, loadPagedProducts]);
 
   // Intersection Observer for Infinite Scroll (stable ref)
   useEffect(() => {
@@ -1488,14 +1554,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           item.product.id === product.id &&
           item.product.storeId === product.storeId &&
           (item.variantId === vid || (!item.variantId && !vid)) &&
-          JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions),
+          sameSelectedOptions(item.selectedOptions, selectedOptions),
       );
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id &&
           item.product.storeId === product.storeId &&
           (item.variantId === vid || (!item.variantId && !vid)) &&
-          JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions)
+          sameSelectedOptions(item.selectedOptions, selectedOptions)
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         );
@@ -1517,10 +1583,26 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     setTimeout(() => setCartNotif(false), 4000);
   };
 
-  const buyNow = (product: StorefrontProduct) => {
-    // Replace cart completely - this is a direct purchase
-    setCart([{ product, quantity: 1 }]);
-    setCheckoutStage('payment');
+  const buyNow = (
+    product: StorefrontProduct,
+    variantId?: string,
+    options?: Record<string, string>,
+  ) => {
+    // Achat direct : remplace le panier et ouvre le checkout (livraison)
+    safeNavigate("/cart", {
+      action: () => {
+        setCart([
+          {
+            product,
+            quantity: 1,
+            variantId: variantId || undefined,
+            selectedOptions: options,
+          },
+        ]);
+        setCheckoutStage("shipping");
+        setIsAccountView(false);
+      },
+    });
   };
 
   const addWholesaleToCart = (product: StorefrontProduct) => {
@@ -1731,10 +1813,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       if (paymentMethod === "card") {
         setIsProcessingPayment(true);
         setPendingOrderData(ordersData);
-        setPendingCustomerInfo({
+        const pendingCustomer = {
           ...customerInfo,
-          address: `${customerInfo.address}, ${customerInfo.city}`,
-        });
+          address: [customerInfo.address, customerInfo.city]
+            .filter(Boolean)
+            .join(", "),
+        };
+        setPendingCustomerInfo(pendingCustomer);
+        // La redirection vers FusionPay recharge la page : l'état React est
+        // perdu. On persiste la commande pour pouvoir la confirmer au retour.
+        try {
+          sessionStorage.setItem(
+            "fusionpay_pending_order",
+            JSON.stringify({ ordersData, customer: pendingCustomer }),
+          );
+        } catch (e) {}
         const totalAmount = Object.values(ordersData).reduce(
           (sum: number, order: any) => sum + order.total,
           0,
@@ -1754,7 +1847,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           try {
             const response = await onMarketplaceCheckout(ordersData, {
               ...customerInfo,
-              address: `${customerInfo.address}, ${customerInfo.city}`,
+              address: [customerInfo.address, customerInfo.city]
+                .filter(Boolean)
+                .join(", "),
             });
             if (response?.success) {
               playSuccessSound();
@@ -1895,7 +1990,38 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   };
 
   const renderStoreProfile = () => {
-    if (!selectedStore) return null;
+    if (!selectedStore) {
+      // Catalogue chargé mais boutique inconnue -> 404 explicite (au lieu
+      // d'une page blanche silencieuse)
+      if (!isInitialLoading && activeStores.length > 0) {
+        return (
+          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+              <Store size={30} />
+            </div>
+            <p className="text-base font-black text-gray-900">
+              Boutique introuvable
+            </p>
+            <p className="text-xs text-gray-500 font-bold mt-1 max-w-[280px]">
+              Cette boutique n&apos;existe pas ou n&apos;est plus disponible.
+            </p>
+            <Button
+              onClick={() => safeNavigate("/")}
+              loading={isNavigating}
+              loadingText="Chargement..."
+              variant="primary"
+              size="md"
+              className="mt-6"
+              icon={<ArrowRight size={14} />}
+              iconPosition="right"
+            >
+              Découvrir d&apos;autres boutiques
+            </Button>
+          </div>
+        );
+      }
+      return null;
+    }
     const descriptionText =
       selectedStore.description ||
       (selectedStore.settings as any)?.description ||
@@ -2103,6 +2229,35 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const renderProductDetails = () => {
     const product = selectedProductDetails;
     if (!product) {
+      // Catalogue chargé mais produit introuvable -> 404 explicite
+      if (!isInitialLoading && allProducts.length > 0) {
+        return (
+          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+              <Package size={30} />
+            </div>
+            <p className="text-base font-black text-gray-900">
+              Produit introuvable
+            </p>
+            <p className="text-xs text-gray-500 font-bold mt-1 max-w-[280px]">
+              Ce produit n&apos;existe plus ou n&apos;est pas disponible
+              actuellement.
+            </p>
+            <Button
+              onClick={() => safeNavigate("/")}
+              loading={isNavigating}
+              loadingText="Chargement..."
+              variant="primary"
+              size="md"
+              className="mt-6"
+              icon={<ArrowRight size={14} />}
+              iconPosition="right"
+            >
+              Retour à l&apos;accueil
+            </Button>
+          </div>
+        );
+      }
       return (
         <div className="flex flex-col items-center justify-center py-24 text-gray-400">
           <div className="w-14 h-14 border-4 border-[#f56b2a] border-t-transparent rounded-full animate-spin mb-5" />
@@ -2138,9 +2293,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       !hasOptions || options.every((o) => !!selectedOptions[o.id]);
     const matchedVariant = hasOptions
       ? product.variants?.find(
-          (v) =>
-            JSON.stringify(v.optionValues) ===
-            JSON.stringify(selectedOptions),
+          (v) => sameSelectedOptions(v.optionValues, selectedOptions),
         )
       : undefined;
 
@@ -2175,9 +2328,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     const resolveVariantId = () => {
       if (!hasOptions || !product.variants) return undefined;
       const variant = product.variants.find(
-        (v) =>
-          JSON.stringify(v.optionValues) ===
-          JSON.stringify(selectedOptions),
+        (v) => sameSelectedOptions(v.optionValues, selectedOptions),
       );
       return variant?.id;
     };
@@ -2201,7 +2352,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         );
         return;
       }
-      buyNow(product);
+      buyNow(product, resolveVariantId(), selectedOptions);
     };
 
     const handleShare = (e: React.MouseEvent) => {
@@ -2934,7 +3085,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         )}
 
         {/* ================= STICKY MOBILE ACTION BAR (M3 Floating style) ================= */}
-        {cartItemsCount === 0 && (
+        {(
           <div
             className="lg:hidden fixed left-0 right-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pt-3 pb-3"
             style={{
@@ -3925,7 +4076,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </Link>
 
               {/* Search Bar - Desktop Only version */}
-              <div className="hidden md:block flex-grow max-w-[600px] mx-8 relative">
+              <form
+                className="hidden md:block flex-grow max-w-[600px] mx-8 relative"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  // La recherche est live : on amène l'utilisateur sur la
+                  // grille de résultats (accueil) si nécessaire.
+                  if (!location.pathname.startsWith("/store/")) {
+                    safeNavigate("/");
+                  }
+                }}
+              >
                 <div className="flex items-center bg-white rounded-2xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl focus-within:shadow-orange-100/20 transition-all group">
                   <div className="pl-4 text-gray-600 group-focus-within:text-[#f56b2a]">
                     <Search size={18} strokeWidth={2.5} />
@@ -3939,14 +4100,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-transparent py-3 px-3 text-sm font-bold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none"
                   />
-                  <span
-                    aria-hidden="true"
-                    className="bg-[#f56b2a] hover:bg-[#d55a20] text-white px-6 py-3 font-black text-sm transition-all cursor-pointer select-none"
+                  <button
+                    type="submit"
+                    aria-label="Lancer la recherche"
+                    className="bg-[#f56b2a] hover:bg-[#d55a20] active:bg-[#c04e15] text-white px-6 py-3 font-black text-sm transition-all cursor-pointer select-none"
                   >
                     Rechercher
-                  </span>
+                  </button>
                 </div>
-              </div>
+              </form>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
@@ -4122,7 +4284,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         <div className="fixed inset-0 z-[1000] bg-white   duration-300 flex flex-col">
           <div className="p-4 border-b border-gray-100 flex items-center gap-3">
             <button
-              onClick={() => setIsSearchOpen(false)}
+              onClick={() => {
+                // Fermer = abandon : on ne garde pas un filtre fantôme qui
+                // fausserait la grille d'accueil au retour.
+                setIsSearchOpen(false);
+                setSearchTerm("");
+              }}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
               aria-label="Fermer la recherche"
             >
@@ -4168,7 +4335,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           key={store.id}
                           onClick={() => {
                             safeNavigate(`/store/${store.slug || store.id}`, {
-                              action: () => setIsSearchOpen(false),
+                              action: () => {
+                                setIsSearchOpen(false);
+                                setSearchTerm("");
+                              },
                             });
                           }}
                           className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]"
@@ -4225,7 +4395,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               safeNavigate(
                                 `/product/${generateProductSlug(product)}`,
                                 {
-                                  action: () => setIsSearchOpen(false),
+                                  action: () => {
+                                    setIsSearchOpen(false);
+                                    setSearchTerm("");
+                                  },
                                 },
                               );
                             }}
@@ -4238,7 +4411,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 safeNavigate(
                                   `/store/${product.storeSlug || id}`,
                                   {
-                                    action: () => setIsSearchOpen(false),
+                                    action: () => {
+                                      setIsSearchOpen(false);
+                                      setSearchTerm("");
+                                    },
                                   },
                                 );
                               }}
@@ -4313,7 +4489,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                 {/* Hero Bannière Premium - Carousel */}
                 {!searchTerm && selectedCategory === "all" && (
-                  <div className="mb-10 mt-2 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto">
+                  <div
+                    className="mb-10 mt-2 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto"
+                    onMouseEnter={() => setHeroPaused(true)}
+                    onMouseLeave={() => setHeroPaused(false)}
+                  >
                     <div
                       className="relative w-full min-h-[260px] md:h-[300px] flex transition-transform duration-700 ease-in-out"
                       style={{
@@ -4844,6 +5024,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <div className="flex items-center justify-between mb-5">
                         <a
                           href={location.pathname}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            safeNavigate(location.pathname);
+                          }}
                           className="flex items-center gap-2.5 min-w-0 active:opacity-60 transition-opacity"
                         >
                           <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
@@ -5202,14 +5386,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         !location.pathname ||
         location.pathname === "") && <MarketplaceFooter />}
 
-      {/* Sticky cart button - discovery pages only (home/store/product) */}
+      {/* Sticky cart button - discovery pages only (home/store).
+          Exclut /product : la fiche produit a sa propre barre d'action fixe. */}
       {cartItemsCount > 0 &&
         !isCartView &&
         !isFeedView &&
         checkoutStage !== "success" &&
         (location.pathname === "/" ||
-          location.pathname.startsWith("/store/") ||
-          location.pathname.startsWith("/product/")) && (
+          location.pathname.startsWith("/store/")) && (
         <div
           className="fixed left-0 right-0 z-[3000] px-3 pt-2"
           style={{
