@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'api.dicebear.com' },
       { protocol: 'https', hostname: 'updrjzaapvbtjdnpicra.supabase.co' },
+      { protocol: 'https', hostname: 'pub-18d489375e4146f48984e82e8f24581f.r2.dev' },
     ],
   },
 
