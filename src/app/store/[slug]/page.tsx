@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { fetchMarketplaceData, submitCheckoutAction, saveProductReviewAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
-import { findStoreInCatalog, absoluteImage, getCatalog } from "@/utils/catalog-seo";
+import { getStoreSeo, absoluteImage } from "@/utils/catalog-seo";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -10,8 +10,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const stores = await fetchMarketplaceData();
-    const store = findStoreInCatalog(stores, decodeURIComponent(slug));
+    const store = await getStoreSeo(slug);
     if (!store) {
         return { title: "Boutique introuvable", robots: { index: false } };
     }
@@ -35,8 +34,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function StorePage({ params }: Props) {
     const { slug } = await params;
-    const stores = await getCatalog();
-    const store = findStoreInCatalog(stores, decodeURIComponent(slug));
+    const [stores, store] = await Promise.all([
+        fetchMarketplaceData(),
+        getStoreSeo(slug),
+    ]);
 
     let jsonLd = null;
     if (store) {

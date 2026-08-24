@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { fetchMarketplaceData, submitCheckoutAction, saveProductReviewAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
-import { findProductInCatalog, absoluteImage } from "@/utils/catalog-seo";
+import { getProductSeo, absoluteImage } from "@/utils/catalog-seo";
 
 export const revalidate = 60;
 export const dynamicParams = true;
 
 type Props = { params: Promise<{ slug: string }> };
 
-async function resolve(params: Props["params"]) {
-    const { slug } = await params;
-    const stores = await fetchMarketplaceData();
-    return { stores, found: findProductInCatalog(stores, decodeURIComponent(slug)) };
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { found } = await resolve(params);
+    const { slug } = await params;
+    const found = await getProductSeo(slug);
     if (!found) {
         return { title: "Produit introuvable", robots: { index: false } };
     }
@@ -46,7 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-    const { stores, found } = await resolve(params);
+    const { slug } = await params;
+    const [stores, found] = await Promise.all([
+        fetchMarketplaceData(),
+        getProductSeo(slug),
+    ]);
 
     let jsonLd = null;
     if (found) {

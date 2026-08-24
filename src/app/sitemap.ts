@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getCatalog } from "@/utils/catalog-seo";
+import { fetchMarketplaceData } from "@/app/actions/marketplace";
 import { generateProductSlug } from "@/utils/slug";
 
 const SITE =
@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
 
     try {
-        const stores = await getCatalog();
+        const stores = await fetchMarketplaceData();
         for (const store of stores) {
             const storeSlug = store.slug || store.id;
             entries.push({
