@@ -793,6 +793,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   );
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
   const [storeDescExpanded, setStoreDescExpanded] = useState(false);
+  const [followedStores, setFollowedStores] = useState<Set<string>>(new Set());
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
@@ -1878,163 +1879,188 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         localNotify("Lien de la boutique copié !", "success");
       }
     };
+    const waDigits = (
+      selectedStore.phone ||
+      (selectedStore.settings as any)?.phone ||
+      ""
+    ).replace(/[^0-9]/g, "");
+    const isFollowed = followedStores.has(selectedStore.id);
+    const reviewCountTotal =
+      selectedStore.products?.reduce(
+        (sum, p) => sum + (p.reviewCount || 0),
+        0,
+      ) || 0;
     return (
-      <div className="mb-6 md:mb-8    duration-700">
-        {/* Ghost action row */}
-        <div className="flex items-center justify-between mb-2">
-          <button
-            onClick={() => {
-              safeNavigate("/", {
-                action: () => {
-                  setSearchTerm("");
-                  setSelectedCategory("all");
-                },
-              });
-            }}
-            aria-label="Retour au marché"
-            className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-gray-900 hover:bg-gray-100 active:scale-90 transition-all"
-          >
-            <ChevronLeft size={22} strokeWidth={2.5} />
-          </button>
-          <button
-            onClick={handleStoreShare}
-            aria-label="Partager la boutique"
-            className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-gray-900 hover:bg-gray-100 active:scale-90 transition-all"
-          >
-            <Share2 size={17} />
-          </button>
-        </div>
-
-        {/* Identity */}
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-[22px] md:rounded-[26px] bg-gray-50 ring-1 ring-gray-200/60 overflow-hidden flex-shrink-0 flex items-center justify-center">
-            {selectedStore.settings?.logo ? (
-              <img
-                src={selectedStore.settings.logo}
-                alt={selectedStore.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Store size={30} className="text-gray-300" />
-            )}
+      <div className="mb-5 md:mb-6    duration-700">
+        <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
+          {/* Cover */}
+          <div className="h-28 md:h-44 bg-gradient-to-r from-[#f56b2a] via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
+            <div className="absolute -right-14 -top-20 w-56 h-56 rounded-full border-[24px] border-white/10" />
+            <div className="absolute -left-10 -bottom-24 w-48 h-48 rounded-full border-[18px] border-white/10" />
+            <button
+              onClick={() => {
+                safeNavigate("/", {
+                  action: () => {
+                    setSearchTerm("");
+                    setSelectedCategory("all");
+                  },
+                });
+              }}
+              aria-label="Retour au marché"
+              className="absolute top-3 left-3 z-30 w-9 h-9 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
+            >
+              <ChevronLeft size={19} strokeWidth={3} className="text-white" />
+            </button>
+            <button
+              onClick={handleStoreShare}
+              aria-label="Partager la boutique"
+              className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
+            >
+              <Share2 size={15} className="text-white" />
+            </button>
           </div>
 
-          <div className="flex-grow min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h1 className="text-xl md:text-3xl font-black text-gray-900 tracking-tight truncate">
-                {selectedStore.settings.name}
-              </h1>
-              <ShieldCheck
-                size={17}
-                strokeWidth={3}
-                className="text-green-500 flex-shrink-0"
-              />
+          {/* Body */}
+          <div className="px-4 md:px-8 pb-4 relative">
+            {/* Logo + name */}
+            <div className="flex items-end gap-3 -mt-9">
+              <div className="w-[72px] h-[72px] md:w-24 md:h-24 rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10">
+                {selectedStore.settings?.logo ? (
+                  <img
+                    src={selectedStore.settings.logo}
+                    alt={selectedStore.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Store size={28} className="text-gray-300" />
+                )}
+              </div>
+              <div className="flex-grow min-w-0 pb-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h1 className="text-lg md:text-2xl font-black text-gray-900 truncate">
+                    {selectedStore.settings.name}
+                  </h1>
+                  <ShieldCheck
+                    size={15}
+                    strokeWidth={3}
+                    className="text-green-500 flex-shrink-0"
+                  />
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Star size={12} fill="currentColor" className="text-yellow-400" />
+                  <span className="text-xs font-black text-gray-900">
+                    {(selectedStore.rating || 0).toFixed(1)}
+                  </span>
+                  <span className="text-[11px] font-bold text-gray-400">
+                    ({formatNumber(reviewCountTotal)} avis)
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
-              <Star size={13} fill="currentColor" className="text-[#f56b2a]" />
-              <span className="text-sm font-black text-gray-900">
-                {(selectedStore.rating || 0).toFixed(1)}
-              </span>
-              <span className="text-xs font-bold text-gray-400 truncate">
-                (
-                {formatNumber(
-                  selectedStore.products?.reduce(
-                    (sum, p) => sum + (p.reviewCount || 0),
-                    0,
-                  ) || 0,
-                )}{" "}
-                avis)
-              </span>
+
+            {/* Meta line */}
+            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap text-[11px] font-bold text-gray-400">
               {(() => {
                 const countryValue =
                   selectedStore.address || selectedStore.settings?.address;
                 if (!countryValue) return null;
                 return (
-                  <>
-                    <span className="text-gray-200">·</span>
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin
-                        size={12}
-                        className="text-gray-300 flex-shrink-0"
-                      />
-                      <span className="text-xs font-bold text-gray-400 truncate">
-                        {countryValue}
-                      </span>
-                    </div>
-                  </>
+                  <div className="flex items-center gap-1">
+                    <MapPin size={12} className="text-gray-300" />
+                    <span className="truncate max-w-[160px]">{countryValue}</span>
+                  </div>
                 );
               })()}
+              <span className="text-gray-200">·</span>
+              <span>
+                {selectedStore.products?.filter((p) => p.isOnline !== false).length || 0}{" "}
+                produits en ligne
+              </span>
+            </div>
+
+            {/* Description */}
+            <p
+              className={`mt-2 text-xs md:text-sm text-gray-500 leading-relaxed ${storeDescExpanded ? "" : "line-clamp-2"}`}
+            >
+              {descriptionText}
+            </p>
+            {descriptionText.length > 90 && (
+              <button
+                onClick={() => setStoreDescExpanded((v) => !v)}
+                className="mt-0.5 text-[11px] font-black text-[#f56b2a]"
+              >
+                {storeDescExpanded ? "Réduire" : "Voir plus"}
+              </button>
+            )}
+
+            {/* CTAs */}
+            <div className={`grid gap-2 mt-4 ${waDigits ? "grid-cols-2" : "grid-cols-1"}`}>
+              <button
+                onClick={() => {
+                  setFollowedStores((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(selectedStore.id)) {
+                      next.delete(selectedStore.id);
+                      localNotify("Vous ne suivez plus cette boutique", "info");
+                    } else {
+                      next.add(selectedStore.id);
+                      localNotify("Boutique suivie !", "success");
+                    }
+                    return next;
+                  });
+                }}
+                className={`h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
+                  isFollowed
+                    ? "bg-green-50 text-green-700 border-2 border-green-200"
+                    : "bg-[#f56b2a] text-white shadow-lg shadow-orange-200/60 hover:bg-[#e05f22]"
+                }`}
+              >
+                <Heart
+                  size={16}
+                  fill={isFollowed ? "currentColor" : "none"}
+                />
+                {isFollowed ? "Suivi" : "Suivre"}
+              </button>
+              {waDigits && (
+                <a
+                  href={`https://wa.me/${waDigits}?text=${encodeURIComponent(`Bonjour ${selectedStore.settings.name}, je vous contacte depuis PosMarket.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-all active:scale-[0.97]"
+                >
+                  <MessageCircle size={16} />
+                  Contacter
+                </a>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Description */}
-        <p
-          className={`mt-3 text-[13px] md:text-sm text-gray-500 leading-relaxed ${storeDescExpanded ? "" : "line-clamp-2"}`}
-        >
-          {descriptionText}
-        </p>
-        {descriptionText.length > 90 && (
-          <button
-            onClick={() => setStoreDescExpanded((v) => !v)}
-            className="mt-0.5 text-[11px] font-black text-gray-900 underline underline-offset-2 decoration-gray-300 hover:decoration-[#f56b2a]"
-          >
-            {storeDescExpanded ? "Réduire" : "Voir plus"}
-          </button>
-        )}
-
-        {/* Stats line */}
-        <div className="mt-4 py-3 border-y border-gray-100 flex items-center justify-between px-1">
-          <div className="text-center">
-            <p className="text-sm md:text-lg font-black text-gray-900 leading-none">
-              {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
-            </p>
-            <p className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
-              Produits
-            </p>
-          </div>
-          <div className="w-px h-7 bg-gray-100" />
-          <div className="text-center">
-            <p className="text-sm md:text-lg font-black text-gray-900 leading-none">
-              {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
-            </p>
-            <p className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
-              Visiteurs
-            </p>
-          </div>
-          <div className="w-px h-7 bg-gray-100" />
-          <div className="text-center">
-            <p className="text-sm md:text-lg font-black text-gray-900 leading-none">
-              {formatNumber(selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.reviewCount || 0), 0) || 0)}
-            </p>
-            <p className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
-              Avis
-            </p>
-          </div>
-          <div className="w-px h-7 bg-gray-100" />
-          <div className="text-center">
-            <p className="text-sm md:text-lg font-black text-gray-900 leading-none">
-              {(selectedStore.rating || 0).toFixed(1)}
-            </p>
-            <p className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
-              Note
-            </p>
-          </div>
-        </div>
-
-        {/* Search pill */}
-        <div className="mt-4 max-w-2xl">
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
-              <Search size={16} strokeWidth={2.5} />
+          {/* Stats strip */}
+          <div className="grid grid-cols-3 divide-x divide-gray-200/60 border-t border-gray-100 bg-gray-50/60">
+            <div className="py-2.5 px-2 flex flex-col items-center">
+              <span className="text-sm md:text-xl font-black text-gray-900 leading-none">
+                {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
+              </span>
+              <span className="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+                Produits
+              </span>
             </div>
-            <input
-              type="text"
-              placeholder="Chercher dans cette boutique..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-full font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/40 transition-all no-global-border placeholder:text-gray-400"
-            />
+            <div className="py-2.5 px-2 flex flex-col items-center">
+              <span className="text-sm md:text-xl font-black text-gray-900 leading-none">
+                {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
+              </span>
+              <span className="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+                Visiteurs
+              </span>
+            </div>
+            <div className="py-2.5 px-2 flex flex-col items-center">
+              <span className="text-sm md:text-xl font-black text-gray-900 leading-none">
+                {(selectedStore.rating || 0).toFixed(1)}/5
+              </span>
+              <span className="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+                Note
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -4562,6 +4588,20 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                 {storeTab === "products" ? (
                   <>
+                    {/* Store search */}
+                    <div className="relative group mb-4">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                        <Search size={16} strokeWidth={2.5} />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Chercher dans cette boutique..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-full font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/40 transition-all no-global-border placeholder:text-gray-400"
+                      />
+                    </div>
+
                     {/* Category filter chips - Mobile */}
                     {storeCategories.length > 1 && (
                       <div className="md:hidden flex overflow-x-auto no-scrollbar gap-2 pb-1 mb-5 -mr-4 pr-4">
