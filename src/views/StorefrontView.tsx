@@ -4479,6 +4479,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             />
                           );
 
+                          // Mobile: max 4, but avoid an odd trailing card (3 -> 2)
+                          const mobileSlice = (arr: typeof pagedProducts) => {
+                            const n = Math.min(4, arr.length);
+                            return arr.slice(0, n === 3 ? 2 : n);
+                          };
+
                           return sortedCats.map((cat) => (
                             <div
                               key={cat}
@@ -4503,7 +4509,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 </button>
                               </div>
                               <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
-                                {groups[cat].slice(0, 4).map(renderCard)}
+                                {mobileSlice(groups[cat]).map(renderCard)}
                                 {/* Desktop only: full category */}
                                 <div className="hidden md:contents">
                                   {groups[cat].slice(4).map(renderCard)}
@@ -4738,6 +4744,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               />
                             );
 
+                            // Mobile: max 4, but avoid an odd trailing card (3 -> 2)
+                            const mobileSlice = (arr: typeof pagedProducts) => {
+                              const n = Math.min(4, arr.length);
+                              return arr.slice(0, n === 3 ? 2 : n);
+                            };
+
                             return sortedCats.map((cat) => (
                               <div
                                 key={cat}
@@ -4762,7 +4774,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
-                                  {groups[cat].slice(0, 4).map(renderCard)}
+                                  {mobileSlice(groups[cat]).map(renderCard)}
                                   {/* Desktop only: full category */}
                                   <div className="hidden md:contents">
                                     {groups[cat].slice(4).map(renderCard)}
