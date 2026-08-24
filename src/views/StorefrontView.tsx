@@ -1348,6 +1348,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     return c && c !== "all" ? c : null;
   }, [location.pathname, location.search]);
 
+  // Document title per page
+  useEffect(() => {
+    const cat = activeStoreCategory || activeHomeCategory;
+    if (cat) {
+      document.title = `${cat} · PosMarket`;
+    } else if (selectedStore?.settings?.name) {
+      document.title = `${selectedStore.settings.name} · PosMarket`;
+    }
+  }, [activeStoreCategory, activeHomeCategory, selectedStore]);
+
   // Keep selectedCategory in sync with the URL (back/forward support)
   useEffect(() => {
     const c = new URLSearchParams(location.search || "").get("cat");
@@ -4392,12 +4402,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     {/* Home category page header */}
                     {!searchTerm && activeHomeCategory && (
                       <div className="flex items-center justify-between mb-5">
-                        <button
-                          onClick={() => {
-                            setSelectedCategory("all");
-                            navigate("/");
-                            window.scrollTo({ top: 0 });
-                          }}
+                        <a
+                          href="/"
                           className="flex items-center gap-2.5 min-w-0 active:opacity-60 transition-opacity"
                         >
                           <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
@@ -4406,7 +4412,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <span className="text-base md:text-xl font-black text-gray-900 truncate max-w-[55vw]">
                             {activeHomeCategory}
                           </span>
-                        </button>
+                        </a>
                         <span className="text-[11px] font-bold text-gray-400 flex-shrink-0">
                           {filteredProducts.length} produits
                         </span>
@@ -4500,10 +4506,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 <button
                                   onClick={() => {
                                     setSelectedCategory(cat);
-                                    navigate(
-                                      `/?cat=${encodeURIComponent(cat)}`,
-                                    );
-                                    window.scrollTo({ top: 0 });
+                                    window.location.href = `/?cat=${encodeURIComponent(cat)}`;
                                   }}
                                   className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
                                 >
@@ -4659,12 +4662,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     {/* Category page header */}
                     {activeStoreCategory && (
                       <div className="flex items-center justify-between mb-5">
-                        <button
-                          onClick={() => {
-                            setSelectedCategory("all");
-                            navigate(location.pathname);
-                            window.scrollTo({ top: 0 });
-                          }}
+                        <a
+                          href={location.pathname}
                           className="flex items-center gap-2.5 min-w-0 active:opacity-60 transition-opacity"
                         >
                           <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
@@ -4673,7 +4672,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <span className="text-base md:text-xl font-black text-gray-900 truncate max-w-[55vw]">
                             {activeStoreCategory}
                           </span>
-                        </button>
+                        </a>
                         <span className="text-[11px] font-bold text-gray-400 flex-shrink-0">
                           {filteredProducts.length} produits
                         </span>
@@ -4769,10 +4768,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <button
                                     onClick={() => {
                                       setSelectedCategory(cat);
-                                      navigate(
-                                        `${location.pathname}?cat=${encodeURIComponent(cat)}`,
-                                      );
-                                      window.scrollTo({ top: 0 });
+                                      window.location.href = `${location.pathname}?cat=${encodeURIComponent(cat)}`;
                                     }}
                                     className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
                                   >
