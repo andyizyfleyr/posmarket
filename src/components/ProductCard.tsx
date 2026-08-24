@@ -5,6 +5,7 @@ import { Product } from '@/types';
 import { Plus, LayoutGrid, Star, Zap, Eye } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils';
 import ProductImage from './ProductImage';
+import { generateProductSlug } from '@/utils/slug';
 
 interface ProductCardProps {
   product: Product;
@@ -34,9 +35,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
 
   return (
     <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden group flex flex-col h-full shadow-sm relative will-change-transform ${className}`}>
-      {/* Product Content - Clickable Area */}
-      <div
-        onClick={handleClick}
+      {/* Product Content - Clickable Area (real crawlable link) */}
+      <a
+        href={`/product/${generateProductSlug(product)}`}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+          e.preventDefault();
+          handleClick();
+        }}
         className="flex-grow flex flex-col cursor-pointer"
       >
         <div className="relative aspect-square w-full overflow-hidden bg-white">
@@ -98,7 +104,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
             </div>
           </div>
         </div>
-      </div>
+      </a>
 
       <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
         <button
