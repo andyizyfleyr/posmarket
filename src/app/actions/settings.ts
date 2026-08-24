@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
+import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { stores, profiles, coupons, storeStaff } from '@/db/schema'
 import { eq } from 'drizzle-orm'
@@ -8,6 +9,11 @@ import { StoreSettings } from '@/types'
 
 export async function updateStoreSettingsAction(storeId: string, settings: StoreSettings) {
     try {
+        if (typeof settings.logo === 'string' && settings.logo.startsWith('data:')) {
+            const r2Logo = await uploadDataUriToR2(settings.logo, 'logos').catch(() => null);
+            if (r2Logo) settings = { ...settings, logo: r2Logo };
+        }
+
         const slug = settings.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
         const updateData: any = {

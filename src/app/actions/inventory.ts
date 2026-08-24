@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
+import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
@@ -24,12 +25,18 @@ export async function saveProductAction(product: any, storeId: string) {
       }
     }
 
+    let imageValue = product.image;
+    if (typeof imageValue === 'string' && imageValue.startsWith('data:')) {
+      const r2Url = await uploadDataUriToR2(imageValue, 'products').catch(() => null);
+      if (r2Url) imageValue = r2Url;
+    }
+
     const dataToSave = {
       storeId,
       name: product.name,
       price: product.price?.toString() || '0',
       originalPrice: (product.originalPrice || product.original_price)?.toString(),
-      image: product.image,
+      image: imageValue,
       stock: product.stock ?? 0,
       mainCategory: product.mainCategory || product.main_category,
       description: product.description,
