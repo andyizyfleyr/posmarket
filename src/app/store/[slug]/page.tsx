@@ -39,10 +39,20 @@ export default async function StorePage({ params }: Props) {
         getStoreSeo(slug),
     ]);
 
-    let jsonLd = null;
+    let jsonLd: any = null;
     if (store) {
         const products = (store.products || []).slice(0, 25);
-        jsonLd = {
+        const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+        jsonLd = [
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                    { "@type": "ListItem", position: 1, name: "Accueil", item: `${site}/` },
+                    { "@type": "ListItem", position: 2, name: store.settings?.name || "Boutique" },
+                ],
+            },
+            {
             "@context": "https://schema.org",
             "@type": "Store",
             name: store.settings?.name,
@@ -69,7 +79,8 @@ export default async function StorePage({ params }: Props) {
                     price: Math.round(p.price || 0),
                 })),
             },
-        };
+            },
+        ];
     }
 
     return (

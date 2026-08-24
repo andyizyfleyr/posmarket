@@ -805,7 +805,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   // Pagination & Infinite Scroll State
   const [page, setPage] = useState(0);
-  const [pagedProducts, setPagedProducts] = useState<StorefrontProduct[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -1330,6 +1329,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     selectedStoreId,
     selectedVertical,
   ]);
+
+  // First batch computed synchronously on server AND client (identical output
+  // => products are present in the SSR HTML, hydration-safe).
+  const [pagedProducts, setPagedProducts] = useState<StorefrontProduct[]>(() =>
+    filteredProducts.slice(0, PAGE_LIMIT),
+  );
 
   const loadingRef = useRef(false);
   const currentPageRef = useRef(0);

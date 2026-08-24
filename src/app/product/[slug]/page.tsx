@@ -47,10 +47,23 @@ export default async function ProductPage({ params }: Props) {
         getProductSeo(slug),
     ]);
 
-    let jsonLd = null;
+    let jsonLd: any = null;
     if (found) {
         const { product, store } = found;
-        jsonLd = {
+        const storeName = store.settings?.name || "PosMarket";
+        const storeSlug = store.slug || store.id;
+        const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+        jsonLd = [
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                    { "@type": "ListItem", position: 1, name: "Accueil", item: `${site}/` },
+                    { "@type": "ListItem", position: 2, name: storeName, item: `${site}/store/${storeSlug}` },
+                    { "@type": "ListItem", position: 3, name: product.name },
+                ],
+            },
+            {
             "@context": "https://schema.org",
             "@type": "Product",
             name: product.name,
@@ -75,7 +88,8 @@ export default async function ProductPage({ params }: Props) {
                     reviewCount: product.reviewCount || undefined,
                 },
             }),
-        };
+            },
+        ];
     }
 
     return (
