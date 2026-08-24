@@ -5047,12 +5047,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               safeNavigate("/cart");
             }}
             disabled={isCartButtonLoading}
-            className="pointer-events-auto w-full max-w-sm md:w-auto bg-[#f56b2a] text-white py-2.5 md:py-3 px-4 md:px-6 rounded-xl md:rounded-2xl shadow-[0_15px_40px_rgba(245,107,42,0.4)] md:shadow-2xl flex items-center justify-center gap-2 md:gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
+            className="pointer-events-auto w-full max-w-sm md:w-auto bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_15px_40px_rgba(245,107,42,0.4)] md:shadow-2xl flex items-center justify-center gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
           >
             {isCartButtonLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span className="text-[11px] uppercase tracking-wide font-black">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="text-sm uppercase tracking-wider font-black">
                   Chargement...
                 </span>
               </div>
@@ -5060,18 +5060,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               <>
                 <div className="relative flex-shrink-0">
                   <ShoppingCart
-                    size={17}
+                    size={20}
                     strokeWidth={3}
                     className="group-hover:rotate-12 transition-transform"
                   />
                   <span
                     key={cartItemsCount}
-                    className="absolute -top-2 -right-2 bg-gray-900 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black"
+                    className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black shadow-lg shadow-orange-100"
                   >
                     {cartItemsCount}
                   </span>
                 </div>
-                <span className="text-[11px] md:text-xs uppercase tracking-wide font-black whitespace-nowrap">
+                <span className="text-sm uppercase font-black whitespace-nowrap">
                   Voir mon panier <span className="opacity-40 mx-1">•</span>{" "}
                   {formatCurrency(Number(cartTotal) || 0)}
                 </span>
