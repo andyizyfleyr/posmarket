@@ -16,8 +16,8 @@
       - `/api/image/[id]` sert déjà de redirect pour toute URL http → compat ascendante
 - [x] 4. **unstable_cache** — fait (commit `9ec20e0`) : cache 5 min + invalidation updateTag.
 - [x] 5. **generateStaticParams** — N/A : storefront mono-route `[[...slug]]` avec ISR 60s.
-- [ ] 6. **Index SQL** — `supabase/migrations/20260824_performance_indexes.sql` écrit.
-      ⚠️ À APPLIQUER manuellement sur Neon (SQL Editor) puis cocher.
+- [x] 6. **Index SQL** — `supabase/migrations/20260824_performance_indexes.sql` appliqué
+      sur la NOUVELLE base Neon (8 index vérifiés via pg_indexes) pendant la migration.
 - [x] 7. **Driver HTTP Neon** — déjà en place (`drizzle-orm/neon-http`).
 - [x] 8. **Polling client** — faux positif : les 2 setInterval sont des carrousels UI locaux.
 - [x] 9. **Middleware anti-bots** — `src/middleware.ts` bloque scrapers/audit/scripts
@@ -34,10 +34,23 @@
       console.neon.tech → onglet « Queries » (top requêtes par temps cumulé).
       Rien à installer ; vérifier après application des index.
 
-## Reste à faire (humain)
+## Reste à faire (humain) — état au 24/08/2026
 
-1. Créer le bucket R2 (dashboard Cloudflare) + clés API + domain public
-2. Ajouter les 5 env vars dans Vercel → redeploy
-3. Appliquer `20260824_performance_indexes.sql` dans Neon SQL Editor
-4. Quand le quota Neon est rétabli : lancer la migration images
-   (`node --env-file=.env.local scripts/migrate-images-r2.mts`)
+Fait :
+1. ~~Bucket R2 + clés + URL publique~~ ✅
+2. ~~Env vars Vercel (DATABASE_URL nouvelle DB + 5 vars R2)~~ ✅ (recréées après reconstruction du projet)
+3. ~~Index SQL sur la nouvelle base Neon~~ ✅
+4. ~~Migration images vers R2~~ ✅ 63/63
+5. ~~Migration données Supabase → Neon~~ ✅ 551 lignes
+6. ~~Domaine posmarket-topaz.vercel.app réattaché au projet reconstruit~~ ✅
+7. ~~next/image remotePatterns R2~~ ✅ (`fb874eb`)
+
+Reste (dashboard uniquement, non automatisable par CLI) :
+- [ ] Reconnecter GitHub au projet Vercel `posmarket`
+      (Settings → Git → Connect `andyizyfleyr/posmarket`) → auto-déploiements au push
+- [ ] Supprimer l'ancien projet Neon `ep-gentle-haze` (console.neon.tech)
+- [ ] Supprimer le doublon Vercel `posmarket-two` (compte Matias — scope inaccessible du CLI actuel)
+- [ ] Révoquer/rotater la clé service_role Supabase (`updrjzaapvbtjdnpicra`)
+
+Reporté volontairement :
+- #2 LIMIT/pagination — à traiter si le catalogue dépasse ~500 produits

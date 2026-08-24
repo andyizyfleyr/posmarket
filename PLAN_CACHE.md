@@ -24,7 +24,7 @@ côté Data Cache Next.js **et** côté CDN Vercel.
       (le handler ne tourne qu'une fois par image/jour, ensuite réponse servie par Vercel)
 - [x] 5. **Page-level ISR** : conserver `revalidate = 60` existant sur la home (déjà actif)
 - [x] 6. Vérification : `npx tsc --noEmit` OK (eslint timeout environnemental connu, non bloquant)
-- [ ] 7. Commit + push
+- [x] 7. Commit + push (`9ec20e0`)
 
 ## Effet attendu
 
