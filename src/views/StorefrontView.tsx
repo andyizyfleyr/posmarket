@@ -712,6 +712,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
   const [cardInfo, setCardInfo] = useState({ number: "", expiry: "", cvc: "" });
   const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [isPromoOpen, setIsPromoOpen] = useState(false);
 
   // Save customer info to localStorage when it changes
   React.useEffect(() => {
@@ -1631,6 +1632,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     : 0;
   const cartTotal = baseCartTotal - discountAmount + shippingCost;
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Économies réalisées grâce aux tarifs de gros (hors coupon)
+  const wholesaleSavings = cart.reduce((sum, item) => {
+    if (item.variantId) return sum;
+    const saved =
+      (Number(item.product.price) - getEffectiveItemPrice(item)) *
+      (item.quantity || 1);
+    return sum + (saved > 0 ? saved : 0);
+  }, 0);
 
   const handlePromoApply = async () => {
     console.log("handlePromoApply called", { promoCodeInput, coupons });
@@ -2954,13 +2964,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const renderCart = () => {
     return (
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col    duration-500">
+      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col">
         <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
-          <h2 className="text-sm md:text-lg font-black flex items-center gap-1.5 leading-tight">
+          <h2 className="text-sm md:text-lg font-black flex items-center gap-2 leading-tight min-w-0">
             {checkoutStage === "cart" ? (
-              <ShoppingCart className="text-[#f56b2a]" size={16} />
+              <ShoppingCart className="text-[#f56b2a] shrink-0" size={16} />
             ) : (
-              <ShieldCheck className="text-green-500" size={16} />
+              <ShieldCheck className="text-green-500 shrink-0" size={16} />
             )}
             <span className="truncate">
               {checkoutStage === "cart"
@@ -2971,6 +2981,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     ? "Paiement"
                     : "Commande Validée"}
             </span>
+            {checkoutStage === "cart" && cartItemsCount > 0 && (
+              <span className="shrink-0 px-2 py-0.5 rounded-full bg-orange-50 text-[#f56b2a] text-[10px] font-black tabular-nums">
+                {cartItemsCount}
+              </span>
+            )}
           </h2>
           <button
             onClick={() => {
@@ -3036,37 +3051,73 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
         <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-3 md:p-8">
           {(checkoutStage === "cart" && cart.length > 0) && (
-              <div className="space-y-4">
-                {Array.from(
-                  new Set(
-                    cart
-                      .filter((i) => i.product?.storeId)
-                      .map((item) => item.product.storeId),
-                  ),
-                ).map((storeId) => (
+            <div className="space-y-3">
+              {/* Réassurance */}
+              <div className="flex items-center justify-center gap-5 py-2.5 bg-white rounded-full border border-gray-100 shadow-sm text-[9px] font-black uppercase tracking-widest text-gray-500">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="text-green-500" />
+                  Paiement sécurisé
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Truck size={13} className="text-[#f56b2a]" />
+                  Payez à la livraison
+                </span>
+              </div>
+
+              {Array.from(
+                new Set(
+                  cart
+                    .filter((i) => i.product?.storeId)
+                    .map((item) => item.product.storeId),
+                ),
+              ).map((storeId) => {
+                const storeItems = cart.filter(
+                  (i) => i.product?.storeId === storeId,
+                );
+                const storeName = storeItems[0]?.product.storeName || "Boutique";
+                const storeCount = storeItems.reduce(
+                  (sum, i) => sum + (i.quantity || 1),
+                  0,
+                );
+                return (
                   <div
                     key={storeId}
-                    className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100"
+                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
                   >
-                    <div className="flex items-center gap-2 mb-3 px-2">
-                      <Store size={12} className="text-[#f56b2a]" />
-                      <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
-                        Vendu par
-                      </span>
-                      <span className="text-[11px] font-black text-gray-900 border-b-2 border-orange-100 pb-0.5">
-                        {cart.find((i) => i.product?.storeId === storeId)
-                          ?.product.storeName || "Boutique"}
+                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-gray-50/70 border-b border-gray-100">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Store size={12} className="text-[#f56b2a] shrink-0" />
+                        <span className="text-[11px] font-black text-gray-900 truncate">
+                          {storeName}
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                        {storeCount} article{storeCount > 1 ? "s" : ""}
                       </span>
                     </div>
-                    <div className="space-y-4">
-                      {cart
-                        .filter((item) => item.product?.storeId === storeId)
-                        .map((item) => (
+                    <div className="divide-y divide-gray-50">
+                      {storeItems.map((item) => {
+                        const unitPrice = getEffectiveItemPrice(item);
+                        const qty = item.quantity || 1;
+                        const hasWholesale = !!(
+                          item.product.wholesalePrice &&
+                          Number(item.product.wholesaleMinQty) > 0
+                        );
+                        const wholesaleActive =
+                          hasWholesale &&
+                          qty >= Number(item.product.wholesaleMinQty);
+                        const wholesaleLeft = hasWholesale
+                          ? Math.max(
+                              0,
+                              Number(item.product.wholesaleMinQty) - qty,
+                            )
+                          : 0;
+                        return (
                           <div
                             key={`${item.product.id}-${item.variantId || "base"}`}
-                            className="flex gap-3"
+                            className="p-3 flex gap-3"
                           >
-                            <div className="w-16 h-16 flex-shrink-0">
+                            <div className="w-16 h-16 shrink-0">
                               <ProductImage
                                 src={item.product.image}
                                 alt={item.product.name || "Product Image"}
@@ -3074,29 +3125,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 showZoomEffect={false}
                               />
                             </div>
-                            <div className="flex-grow flex flex-col justify-between">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="text-sm font-bold text-gray-800 line-clamp-1">
-                                    {item.product.name || "Unknown Product"}
-                                  </h4>
-                                  {item.variantId && item.product.variants && (
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                      <Tag
-                                        size={10}
-                                        className="text-gray-400"
-                                      />
-                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                                        {
-                                          item.product.variants.find(
-                                            (v) => v.id === item.variantId,
-                                          )?.name
-                                        }
-                                      </span>
-                                    </div>
-                                  )}
-
-                                </div>
+                            <div className="flex-grow min-w-0 flex flex-col">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-bold text-gray-900 leading-tight line-clamp-1">
+                                  {item.product.name || "Unknown Product"}
+                                </h4>
                                 <button
                                   onClick={() =>
                                     removeFromCart(
@@ -3105,107 +3138,123 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       item.variantId,
                                     )
                                   }
-                                  className="text-gray-600 hover:text-red-500 p-1"
+                                  aria-label={`Retirer ${item.product.name || "le produit"} du panier`}
+                                  className="shrink-0 p-1 -m-1 text-gray-300 hover:text-red-500 transition-colors"
                                 >
-                                  <X size={14} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-black text-[#f56b2a] text-xs">
-                                      {formatCurrency(
-                                        getEffectiveItemPrice(item),
-                                      )}
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-h-[18px]">
+                                {item.variantId && item.product.variants && (
+                                  <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2 py-px text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                                    <Tag size={9} />
+                                    {
+                                      item.product.variants.find(
+                                        (v) => v.id === item.variantId,
+                                      )?.name
+                                    }
+                                  </span>
+                                )}
+                                {promoApplied &&
+                                  promoApplied.store_id ===
+                                    item.product.storeId && (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-green-600 uppercase tracking-wider">
+                                      <CheckCircle2 size={9} /> Coupon
                                     </span>
-                                    {item.product.wholesalePrice &&
-                                      Number(item.quantity) >=
-                                        Number(
-                                          item.product.wholesaleMinQty,
-                                        ) && (
-                                        <span className="text-[10px] text-gray-500 line-through font-bold">
-                                          {formatCurrency(
-                                            Number(item.product.price),
-                                          )}
-                                        </span>
-                                      )}
-                                  </div>
-                                  {item.product.wholesalePrice && (
-                                    <div
-                                      className={`mt-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${item.quantity >= (item.product.wholesaleMinQty || 0) ? "text-green-600" : "text-gray-600"}`}
+                                  )}
+                              </div>
+                              <div className="mt-auto pt-2 flex items-end justify-between gap-3">
+                                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-full p-0.5">
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(
+                                        item.product.id,
+                                        item.product.storeId,
+                                        -1,
+                                        item.variantId,
+                                      )
+                                    }
+                                    aria-label="Diminuer la quantité"
+                                    className="w-6 h-6 grid place-items-center rounded-full font-black text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-6 text-center text-xs font-black text-gray-900 tabular-nums">
+                                    {qty}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(
+                                        item.product.id,
+                                        item.product.storeId,
+                                        1,
+                                        item.variantId,
+                                      )
+                                    }
+                                    aria-label="Augmenter la quantité"
+                                    className="w-6 h-6 grid place-items-center rounded-full font-black text-[#f56b2a] hover:bg-orange-50 transition-all"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className="text-sm font-black text-gray-900 whitespace-nowrap tabular-nums">
+                                    {formatCurrency(unitPrice * qty)}
+                                  </span>
+                                  {hasWholesale && (
+                                    <span
+                                      className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-[#f56b2a]"}`}
                                     >
-                                      {item.quantity >=
-                                      (item.product.wholesaleMinQty || 0) ? (
+                                      {wholesaleActive ? (
                                         <>
-                                          <CheckCircle2 size={10} /> Tarif de
-                                          gros appliqué
+                                          <CheckCircle2 size={9} /> Prix de gros
                                         </>
                                       ) : (
                                         <>
-                                          <Zap size={10} fill="currentColor" />{" "}
-                                          Plus que{" "}
-                                          {Number(
-                                            item.product.wholesaleMinQty,
-                                          ) - item.quantity}{" "}
-                                          pour le prix de gros
+                                          <Zap size={9} fill="currentColor" />{" "}
+                                          +{wholesaleLeft} = prix de gros
                                         </>
                                       )}
-                                    </div>
-                                  )}
-                                  {promoApplied &&
-                                    promoApplied.store_id ===
-                                      item.product.storeId && (
-                                      <span className="text-[10px] text-green-600 font-bold">
-                                        Coupon appliqué
-                                      </span>
-                                    )}
-                                  <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 shadow-inner mt-2">
-                                    <button
-                                      onClick={() =>
-                                        updateQuantity(
-                                          item.product.id,
-                                          item.product.storeId,
-                                          -1,
-                                          item.variantId,
-                                        )
-                                      }
-                                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-xs font-black text-gray-900 w-4 text-center">
-                                      {item.quantity}
                                     </span>
-                                    <button
-                                      onClick={() =>
-                                        updateQuantity(
-                                          item.product.id,
-                                          item.product.storeId,
-                                          1,
-                                          item.variantId,
-                                        )
-                                      }
-                                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 font-bold"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           </div>
-                        ))}
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
+                );
+              })}
             </div>
           )}
           {(checkoutStage === "cart" && cart.length === 0) && (
-            <div className="h-full flex flex-col items-center justify-center py-20 text-gray-600">
-              <ShoppingCart size={64} className="opacity-20 mb-4" />
+            <div className="h-full flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="relative mb-5">
+                <div className="absolute inset-0 bg-orange-100 rounded-full blur-2xl opacity-60 scale-125" />
+                <div className="relative w-20 h-20 bg-white border border-gray-100 rounded-3xl grid place-items-center shadow-sm">
+                  <ShoppingCart size={30} className="text-[#f56b2a]/60" />
+                </div>
+              </div>
               <p className="text-lg font-black text-gray-900">
                 Votre panier est vide
               </p>
+              <p className="text-xs font-bold text-gray-500 mt-1 max-w-[240px] leading-relaxed">
+                Parcourez les boutiques et ajoutez vos produits favoris.
+              </p>
+              <Button
+                onClick={() => safeNavigate("/")}
+                loading={isNavigating}
+                loadingText="Chargement..."
+                variant="primary"
+                size="md"
+                className="mt-6"
+                icon={<ArrowRight size={14} />}
+                iconPosition="right"
+              >
+                Découvrir la boutique
+              </Button>
             </div>
           )}
           {(checkoutStage === "shipping" || checkoutStage === "payment") && (
@@ -3523,63 +3572,101 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           )}
         </div>
         {checkoutStage !== "success" && cart.length > 0 && (
-          <div className="p-4 bg-white border-t border-gray-100">
-            <div className="space-y-2 mb-6 text-sm">
-              <div className="flex justify-between items-center text-gray-500">
-                <span>Sous-total</span>
-                <span className="font-bold">
+          <div className="p-4 md:p-5 bg-white border-t border-gray-100">
+            {/* Récapitulatif */}
+            <div className="rounded-2xl bg-gray-50/80 border border-gray-100 p-3.5 space-y-1.5 mb-4">
+              <div className="flex justify-between items-center text-xs font-bold text-gray-500">
+                <span>
+                  Sous-total · {cartItemsCount} article
+                  {cartItemsCount > 1 ? "s" : ""}
+                </span>
+                <span className="font-black text-gray-700 tabular-nums">
                   {formatCurrency(Number(baseCartTotal) || 0)}
                 </span>
               </div>
-              {promoApplied && (
-                <div className="flex justify-between items-center text-green-600 font-bold">
-                  <span>Remise ({promoApplied.code})</span>
-                  <span>-{formatCurrency(Number(discountAmount) || 0)}</span>
+              {wholesaleSavings > 0 && (
+                <div className="flex justify-between items-center text-xs font-bold text-green-600">
+                  <span>Économies prix de gros</span>
+                  <span className="tabular-nums">
+                    -{formatCurrency(wholesaleSavings)}
+                  </span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-xl font-black text-gray-900 pt-2 border-t border-gray-100">
+              {promoApplied && (
+                <div className="flex justify-between items-center text-xs font-bold text-green-600">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 size={11} /> Code {promoApplied.code}
+                  </span>
+                  <span className="tabular-nums">
+                    -{formatCurrency(Number(discountAmount) || 0)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-1.5 border-t border-gray-200/70 text-base font-black text-gray-900">
                 <span>Total</span>
-                <span className="text-[#f56b2a]">
+                <span className="text-[#f56b2a] tabular-nums">
                   {formatCurrency(Number(cartTotal) || 0)}
                 </span>
               </div>
             </div>
 
-            {/* Code Promo Input */}
-            {!promoApplied && checkoutStage === "cart" && (
+            {/* Code promo */}
+            {checkoutStage === "cart" && !promoApplied && (
               <div className="mb-4">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={promoCodeInput}
-                    onChange={(e) => setPromoCodeInput(e.target.value)}
-                    placeholder="Code promo"
-                    className="flex-grow px-3 py-2.5 sm:px-4 sm:py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-xs sm:text-sm uppercase w-full"
-                  />
-                  <Button
-                    onClick={handlePromoApply}
-                    disabled={!promoCodeInput.trim()}
-                    loading={isApplyingPromo}
-                    loadingText="Vérification..."
-                    variant="secondary"
-                    size="sm"
+                {isPromoOpen ? (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value)}
+                      placeholder="Votre code promo"
+                      autoFocus
+                      className="flex-grow px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-xs sm:text-sm uppercase w-full no-global-border"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handlePromoApply}
+                        disabled={!promoCodeInput.trim()}
+                        loading={isApplyingPromo}
+                        loadingText="Vérification..."
+                        variant="primary"
+                        size="sm"
+                        className="flex-1 sm:flex-initial"
+                      >
+                        Appliquer
+                      </Button>
+                      {!isApplyingPromo && (
+                        <button
+                          onClick={() => setIsPromoOpen(false)}
+                          className="px-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          Annuler
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsPromoOpen(true)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] hover:border-[#f56b2a]/40 transition-colors"
                   >
-                    Appliquer
-                  </Button>
-                </div>
+                    <Tag size={12} /> Ajouter un code promo
+                  </button>
+                )}
               </div>
             )}
 
             {promoApplied && (
-              <div className="mb-4 flex flex-col sm:flex-row items-center justify-between gap-2 bg-green-50 px-3 sm:px-4 py-2.5 rounded-xl border border-green-100">
-                <span className="text-green-600 font-bold text-xs sm:text-sm">
-                  Code appliqué: {promoApplied.code}
+              <div className="mb-4 flex items-center justify-between gap-2 bg-green-50 px-3.5 py-2 rounded-xl border border-green-100">
+                <span className="flex items-center gap-1.5 text-green-700 font-black text-xs">
+                  <CheckCircle2 size={12} /> Code {promoApplied.code} appliqué
                 </span>
                 <button
                   onClick={() => setPromoApplied(null)}
-                  className="text-gray-600 hover:text-red-500 p-1"
+                  aria-label="Retirer le code promo"
+                  className="p-1 text-green-600/60 hover:text-red-500 transition-colors"
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </div>
             )}
@@ -3592,16 +3679,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     setTimeout(() => {
                       setCheckoutStage("shipping");
                       setIsCheckoutTransitioning(false);
-}, 500);
+                    }, 500);
                   }}
                   loading={isCheckoutTransitioning}
                   loadingText="Chargement..."
                   fullWidth
                   size="xl"
-                  icon={<ChevronLeft size={20} className="rotate-180" />}
+                  icon={<ArrowRight size={18} />}
                   iconPosition="right"
                 >
-                  Continuer la commande
+                  Passer à la livraison
                 </Button>
               )}
               {(checkoutStage === "shipping" ||
