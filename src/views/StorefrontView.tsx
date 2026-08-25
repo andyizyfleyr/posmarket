@@ -3043,7 +3043,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
               {/* CARD 5: DESCRIPTION */}
               <div className="bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
-                <div className="flex items-center gap-2 mb-2.5">
+                <div className="hidden md:flex items-center gap-2 mb-2.5">
                   <div className="h-0.5 w-6 bg-[#f56b2a] rounded-full" />
                   <h3 className="text-[9px] font-black text-gray-900 uppercase tracking-[0.15em]">
                     Description produit
