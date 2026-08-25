@@ -95,7 +95,6 @@ import {
 import { supabase } from "@/supabase";
 import { BuyerView } from "./BuyerView";
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
-import { MarketplaceBottomNav } from "@/components/MarketplaceBottomNav";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
 import { enablePushNotifications, isPushSupported } from "@/utils/push";
@@ -4252,16 +4251,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     );
   };
 
-  // Navigation mobile : masquée sur panier / produit / compte / accueil
-  const showBottomNav =
-    !isCartView &&
-    !selectedProductId &&
-    !isAccountViewUrl &&
-    !isFeedView &&
-    !isAccountView;
-
   return (
-    <div className={`flex flex-col min-h-screen bg-gray-50/50 font-sans md:pb-0 overflow-x-hidden w-full max-w-[100vw] ${showBottomNav ? "pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : ""}`}>
+    <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
       {!isOnline && (
         <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
@@ -5755,12 +5746,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         location.pathname === "") && <MarketplaceFooter />}
 
       {/* Sticky cart button - discovery pages only (home/store).
-          Exclut /product : la fiche produit a sa propre barre d'action fixe.
-          Masqué quand la bottom nav est visible (mobile). */}
+          Exclut /product : la fiche produit a sa propre barre d'action fixe. */}
       {cartItemsCount > 0 &&
         !isCartView &&
         !isFeedView &&
-        !showBottomNav &&
         checkoutStage !== "success" &&
         (location.pathname === "/" ||
           location.pathname.startsWith("/store/")) && (
@@ -6317,23 +6306,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           </div>
         );
       })()}
-
-      {/* 📱 Bottom Navigation mobile (Accueil / Recherche / Actualiser / Panier / Compte) */}
-      {showBottomNav && (
-        <MarketplaceBottomNav
-          cartItemsCount={cartItemsCount}
-          onHomeClick={() => safeNavigate("/")}
-          onSearchClick={() => setIsSearchOpen(true)}
-          onCartClick={() => safeNavigate("/cart")}
-          onAccountClick={() => {
-            if (user) safeNavigate("/mon-compte/commandes");
-            else {
-              setAuthMode("login");
-              setShowAuthModal(true);
-            }
-          }}
-        />
-      )}
 
       {/* 📲 Bannière installation PWA (mobile, accueil uniquement) */}
       {canInstallPwa && location.pathname === "/" && (
