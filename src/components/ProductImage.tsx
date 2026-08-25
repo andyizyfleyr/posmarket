@@ -15,6 +15,10 @@ interface ProductImageProps {
     children?: React.ReactNode;
 }
 
+// LQIP 1px réutilisable : placeholder="blur" sans import statique (images distantes)
+export const PRODUCT_BLUR_DATA_URL =
+    'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=';
+
 const ProductImage: React.FC<ProductImageProps> = ({
     src,
     alt,
@@ -41,6 +45,8 @@ const ProductImage: React.FC<ProductImageProps> = ({
                     style={{ objectFit: objectFit }}
                     onError={() => setError(true)}
                     priority={false}
+                    placeholder="blur"
+                    blurDataURL={PRODUCT_BLUR_DATA_URL}
                 />
             ) : (
                 <div className="flex flex-col items-center justify-center text-gray-300">

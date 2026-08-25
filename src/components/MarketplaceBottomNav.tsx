@@ -39,7 +39,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[1000] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-10_30px_rgba(0,0,0,0.05)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[900] bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-10px_30px_rgba(0,0,0,0.06)]">
       <div className="h-[64px] flex items-center justify-around px-4">
         
         {/* Accueil */}

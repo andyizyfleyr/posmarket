@@ -68,8 +68,8 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
-import { formatCurrency, playSuccessSound, formatNumber } from "@/utils";
-import ProductImage from "../components/ProductImage";
+import { formatCurrency, formatNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
+import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
@@ -95,6 +95,10 @@ import {
 import { supabase } from "@/supabase";
 import { BuyerView } from "./BuyerView";
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
+import { MarketplaceBottomNav } from "@/components/MarketplaceBottomNav";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
+import { enablePushNotifications, isPushSupported } from "@/utils/push";
 
 interface StorefrontProduct extends Product {
   storeId: string;
@@ -157,6 +161,29 @@ const sameSelectedOptions = (
   const keysB = Object.keys(b);
   if (keysA.length !== keysB.length) return false;
   return keysA.every((k) => a[k] === b[k]);
+};
+
+// Recherches récentes (max 6, dédupliquées)
+const RECENT_SEARCHES_KEY = "storefront_recent_searches";
+const loadRecentSearches = (): string[] => {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(RECENT_SEARCHES_KEY) || "[]",
+    ) as unknown;
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+};
+const saveRecentSearch = (term: string): string[] => {
+  const t = term.trim();
+  if (t.length < 2) return loadRecentSearches();
+  const list = [
+    t,
+    ...loadRecentSearches().filter((s) => s.toLowerCase() !== t.toLowerCase()),
+  ].slice(0, 6);
+  localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(list));
+  return list;
 };
 
 interface StorefrontViewProps {
@@ -615,6 +642,69 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // ⌨️ Décalage clavier : la barre checkout remonte au-dessus du clavier
+  const keyboardOffset = useKeyboardOffset();
+
+  // 📉 Onglets boutique : se replient quand on scrolle vers le bas
+  const [tabsHidden, setTabsHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+  React.useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const prev = lastScrollYRef.current;
+      lastScrollYRef.current = y;
+      if (y < 120) {
+        setTabsHidden(false);
+        return;
+      }
+      if (y - prev > 10) setTabsHidden(true);
+      else if (prev - y > 10) setTabsHidden(false);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // 🔎 Recherches récentes (localStorage)
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  React.useEffect(() => {
+    if (isSearchOpen) setRecentSearches(loadRecentSearches());
+  }, [isSearchOpen]);
+
+  // 📲 Bannière d'installation PWA
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
+  React.useEffect(() => {
+    const check = () => {
+      const w = window as unknown as { __pwaInstallPrompt?: unknown };
+      const dismissed = localStorage.getItem("pwa_install_dismissed") === "1";
+      const standalone = window.matchMedia("(display-mode: standalone)").matches;
+      setCanInstallPwa(!!w.__pwaInstallPrompt && !dismissed && !standalone);
+    };
+    check();
+    window.addEventListener("pwa:install-available", check);
+    return () => window.removeEventListener("pwa:install-available", check);
+  }, []);
+
+  const installPwa = async () => {
+    const w = window as unknown as {
+      __pwaInstallPrompt?: { prompt: () => Promise<void> };
+    };
+    if (!w.__pwaInstallPrompt) return;
+    try {
+      await w.__pwaInstallPrompt.prompt();
+    } catch (e) {}
+    (window as unknown as { __pwaInstallPrompt?: unknown }).__pwaInstallPrompt = null;
+    setCanInstallPwa(false);
+  };
+
+  const dismissInstall = () => {
+    localStorage.setItem("pwa_install_dismissed", "1");
+    setCanInstallPwa(false);
+  };
+
+  // 👉 Swipe-to-delete panier
+  const [swipeState, setSwipeState] = useState<{ key: string; dx: number } | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+
   // Params logic moved to top
 
   // Review form state
@@ -692,6 +782,31 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     };
     loadAddresses();
   }, [user?.id]);
+
+  // 🏠 Pré-remplissage automatique de l'adresse par défaut à l'étape livraison
+  const addressAutoFilledRef = useRef(false);
+  useEffect(() => {
+    if (
+      checkoutStage === "shipping" &&
+      user?.id &&
+      !addressAutoFilledRef.current &&
+      buyerAddresses.length > 0 &&
+      !customerInfo.address
+    ) {
+      const def =
+        buyerAddresses.find((a) => a.is_default) || buyerAddresses[0];
+      addressAutoFilledRef.current = true;
+      setSelectedAddressId(def.id);
+      setCustomerInfo((ci) => ({
+        ...ci,
+        name: ci.name || def.full_name || "",
+        phone: ci.phone || formatPhoneSN(def.phone || ""),
+        address: def.address || "",
+        city: def.city || "",
+      }));
+      localNotify("Adresse enregistrée pré-remplie ✅", "info");
+    }
+  }, [checkoutStage, user?.id, buyerAddresses, customerInfo.address]);
 
   // Auto-redirect to home if hitting /mon-compte without session (only for exact /mon-compte, not sub-paths)
   useEffect(() => {
@@ -830,6 +945,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+  // 📳 Pull-to-refresh (accueil + boutiques)
+  const handlePtrRefresh = useCallback(() => {
+    window.location.reload();
+  }, []);
+  const { pull: ptrPull, refreshing: ptrRefreshing } = usePullToRefresh(
+    (location.pathname === "/" || location.pathname.startsWith("/store/")) &&
+      !isSearchOpen &&
+      !showAuthModal &&
+      !isImageModalOpen,
+    handlePtrRefresh,
+  );
   const [currentZoomImage, setCurrentZoomImage] = useState<string | null>(null);
   // Galerie snapshot pour la navigation ‹ › dans le modal plein écran
   const [zoomGallery, setZoomGallery] = useState<string[]>([]);
@@ -1248,6 +1375,20 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       .catch(() => {});
   }, []);
 
+  // 🖼️ Précharge données + image (touchstart / hover sur ProductCard)
+  const warmProduct = useCallback(
+    (p: { id: string; image?: string }) => {
+      prefetchProduct(p.id);
+      if (p.image) {
+        try {
+          const img = document.createElement("img");
+          img.src = p.image;
+        } catch (e) {}
+      }
+    },
+    [prefetchProduct],
+  );
+
   // 🚀 Predictive Init: Prefetch top recommendations (only once, only if online)
   const prefetchDoneRef = React.useRef(false);
   useEffect(() => {
@@ -1572,6 +1713,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       });
   }, [stores, selectedVertical]);
 
+  const buzz = () => {
+    try {
+      navigator.vibrate?.(12);
+    } catch (e) {}
+  };
+
   const addToCart = (
     product: StorefrontProduct,
     variantId?: string,
@@ -1615,6 +1762,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     setLastAddedProduct(
       addedVariant ? { ...product, price: addedVariant.price } : product,
     );
+    buzz();
     setCartNotif(true);
     onNotifyCartInterest(product.storeId, product.name);
     setTimeout(() => setCartNotif(false), 4000);
@@ -1667,6 +1815,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       return [...prev, { product, quantity: Number(product.wholesaleMinQty) }];
     });
     setLastAddedProduct(product);
+    buzz();
     setCartNotif(true);
     setCheckoutStage("cart"); // Go straight to cart to see savings
     // Alert the store owner
@@ -1874,7 +2023,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           Math.round(totalAmount),
           "Commande sur " + (stores[0]?.name || "POS Pro"),
           {
-            phone: customerInfo.phone || "01010101",
+            phone: (customerInfo.phone || "01010101").replace(/\s/g, ""),
             name: customerInfo.name || "Client",
           },
         );
@@ -1884,6 +2033,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           try {
             const response = await onMarketplaceCheckout(ordersData, {
               ...customerInfo,
+              phone: (customerInfo.phone || "").replace(/\s/g, ""),
               address: [customerInfo.address, customerInfo.city]
                 .filter(Boolean)
                 .join(", "),
@@ -2057,7 +2207,23 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           </div>
         );
       }
-      return null;
+      return (
+        <div className="mb-5 md:mb-6">
+          <div className="bg-white rounded-[24px] overflow-hidden ring-1 ring-gray-100">
+            <div className="h-[72px] md:h-32 skeleton" />
+            <div className="px-4 md:px-8 pb-5">
+              <div className="flex items-end gap-3 -mt-7 md:-mt-10">
+                <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl skeleton ring-4 ring-white" />
+                <div className="flex-grow space-y-2 pb-1">
+                  <div className="h-5 w-1/3 skeleton rounded" />
+                  <div className="h-3 w-1/4 skeleton rounded" />
+                </div>
+              </div>
+              <div className="h-3 w-2/3 skeleton rounded mt-4" />
+            </div>
+          </div>
+        </div>
+      );
     }
     const descriptionText =
       selectedStore.description ||
@@ -2296,11 +2462,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         );
       }
       return (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-          <div className="w-14 h-14 border-4 border-[#f56b2a] border-t-transparent rounded-full animate-spin mb-5" />
-          <p className="text-xs font-black uppercase tracking-[0.25em]">
-            Chargement du produit...
-          </p>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="aspect-square rounded-[24px] skeleton" />
+            <div className="space-y-4">
+              <div className="h-4 w-1/3 skeleton rounded" />
+              <div className="h-7 w-3/4 skeleton rounded" />
+              <div className="h-24 w-full skeleton rounded-2xl" />
+              <div className="h-12 w-full skeleton rounded-full" />
+            </div>
+          </div>
         </div>
       );
     }
@@ -3123,6 +3294,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   onClick={() =>
                     safeNavigate(`/product/${generateProductSlug(relProduct)}`)
                   }
+                  onPrefetch={() => warmProduct({ id: relProduct.id, image: relProduct.image })}
                   className="w-[145px] xs:w-[160px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"
                 />
               ))}
@@ -3317,11 +3489,54 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               Number(item.product.wholesaleMinQty) - qty,
                             )
                           : 0;
+                        const itemKey = `${item.product.id}-${item.variantId || "base"}`;
+                        const isSwipeOpen = swipeState?.key === itemKey;
+                        const swipeDx = isSwipeOpen ? Math.min(swipeState.dx, 0) : 0;
                         return (
                           <div
-                            key={`${item.product.id}-${item.variantId || "base"}`}
-                            className="p-3 flex gap-3"
+                            key={itemKey}
+                            className="relative bg-white overflow-hidden"
                           >
+                                {/* Couche supprimable (cachée derrière) */}
+                                <div className="absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center">
+                                  <button
+                                    onClick={() => {
+                                      removeFromCart(
+                                        item.product.id,
+                                        item.product.storeId,
+                                        item.variantId,
+                                      );
+                                      setSwipeState(null);
+                                      localNotify("Article retiré du panier", "info");
+                                    }}
+                                    className="text-white flex flex-col items-center gap-1 p-2"
+                                    aria-label="Supprimer"
+                                  >
+                                    <Trash2 size={16} />
+                                    <span className="text-[9px] font-black uppercase">Retirer</span>
+                                  </button>
+                                </div>
+                                {/* Contenu glissant */}
+                                <div
+                                  className="relative p-3 flex gap-3 bg-white"
+                                  style={{ transform: `translateX(${swipeDx}px)`, transition: swipeStartRef.current ? 'none' : 'transform 0.25s ease' }}
+                                  onTouchStart={(e) => {
+                                    swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                  }}
+                                  onTouchMove={(e) => {
+                                    const st = swipeStartRef.current;
+                                    if (!st) return;
+                                    const dy = e.touches[0].clientY - st.y;
+                                    const ddx = e.touches[0].clientX - st.x;
+                                    if (Math.abs(dy) > Math.abs(ddx)) return;
+                                    e.preventDefault();
+                                    setSwipeState({ key: itemKey, dx: Math.max(-96, Math.min(0, ddx)) });
+                                  }}
+                                  onTouchEnd={() => {
+                                    setSwipeState((s) => (s && s.dx < -56 ? { key: s.key, dx: -80 } : null));
+                                    swipeStartRef.current = null;
+                                  }}
+                                >
                             <div className="w-16 h-16 shrink-0">
                               <ProductImage
                                 src={item.product.image}
@@ -3426,6 +3641,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               </div>
                             </div>
                           </div>
+                        </div>
                         );
                       })}
                     </div>
@@ -3544,11 +3760,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             onChange={(e) =>
                               setCustomerInfo({
                                 ...customerInfo,
-                                phone: e.target.value,
+                                phone: formatPhoneSN(e.target.value),
                               })
                             }
-                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border"
+                            className={`w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border ${customerInfo.phone && !isValidPhoneSN(customerInfo.phone) ? "border-red-200 bg-red-50/40" : "border-gray-100"}`}
                           />
+                          {customerInfo.phone && !isValidPhoneSN(customerInfo.phone) && (
+                            <p className="text-[9px] font-bold text-red-500 ml-1 mt-1">Numéro invalide — ex : +221 77 123 45 67</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3797,6 +4016,20 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     return null;
                   })()}
                 </div>
+                {isPushSupported() && (
+                  <button
+                    onClick={async () => {
+                      const r = await enablePushNotifications();
+                      localNotify(
+                        r.ok ? "Notifications activées" : r.reason === "denied" ? "Notifications refusées" : "Notifications indisponibles",
+                        r.ok ? "success" : "info",
+                      );
+                    }}
+                    className="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] transition-colors"
+                  >
+                    🔔 M&apos;alerter de ma commande
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -3969,6 +4202,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               className="md:hidden fixed left-0 right-0 bottom-0 z-[3000] bg-white/95 backdrop-blur-xl border-t border-gray-100"
               style={{
                 paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+                bottom: keyboardOffset || 0,
               }}
             >
               <div className="px-3 pt-2.5">
@@ -4018,8 +4252,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     );
   };
 
+  // Navigation mobile : masquée sur panier / produit / compte / accueil
+  const showBottomNav =
+    !isCartView &&
+    !selectedProductId &&
+    !isAccountViewUrl &&
+    !isFeedView &&
+    !isAccountView;
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+    <div className={`flex flex-col min-h-screen bg-gray-50/50 font-sans md:pb-0 overflow-x-hidden w-full max-w-[100vw] ${showBottomNav ? "pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0" : ""}`}>
       {/* Global Connectivity Banner */}
       {!isOnline && (
         <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
@@ -4184,7 +4426,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       strokeWidth={2.5}
                     />
                     {cartItemsCount > 0 && (
-                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black text-white  ">
+                      <div key={cartItemsCount} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black text-white animate-pop">
                         {cartItemsCount}
                       </div>
                     )}
@@ -4294,6 +4536,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     fill
                     className="object-cover"
                     sizes="48px"
+                    placeholder="blur"
+                    blurDataURL={PRODUCT_BLUR_DATA_URL}
                   />
                 </div>
                 <div className="flex-grow min-w-0">
@@ -4446,6 +4690,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <div
                             key={product.id}
                             onClick={() => {
+                              if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
                               safeNavigate(
                                 `/product/${generateProductSlug(product)}`,
                                 {
@@ -4472,6 +4717,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   },
                                 );
                               }}
+                              onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                             />
                           </div>
                         ))
@@ -4496,6 +4742,39 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Recherches récentes */}
+                {recentSearches.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-1.5">
+                        <RotateCcw size={12} /> Recherches récentes
+                      </h3>
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem(RECENT_SEARCHES_KEY);
+                          setRecentSearches([]);
+                        }}
+                        className="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        Effacer
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {recentSearches.map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => {
+                            setSearchTerm(term);
+                            setRecentSearches(saveRecentSearch(term));
+                          }}
+                          className="px-3.5 py-2 bg-white hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-bold text-gray-600 border border-gray-100 transition-all active:scale-95"
+                        >
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-2">
                   <Zap
                     size={12}
@@ -4515,7 +4794,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   ].map((tag) => (
                     <button
                       key={tag}
-                      onClick={() => setSearchTerm(tag)}
+                      onClick={() => {
+                        setSearchTerm(tag);
+                        setRecentSearches(saveRecentSearch(tag));
+                      }}
                       className="px-4 py-2 bg-gray-50 hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-bold text-gray-600 border border-gray-100 transition-all active:scale-95"
                     >
                       {tag}
@@ -4847,22 +5129,24 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         /* Simple grid for search results / category page */
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                           {pagedProducts.map((product) => (
-                            <ProductCard
-                              key={`${product.storeId}-${product.id}`}
-                              product={product as any}
-                              onAddToCart={addToCart as any}
-                              onBuyNow={buyNow as any}
-                              onStoreSelect={(id) =>
-                                safeNavigate(
-                                  `/store/${product.storeSlug || id}`,
-                                )
-                              }
-                              onClick={() =>
-                                safeNavigate(
-                                  `/product/${generateProductSlug(product)}`,
-                                )
-                              }
-                            />
+                              <ProductCard
+                                key={`${product.storeId}-${product.id}`}
+                                product={product as any}
+                                onAddToCart={addToCart as any}
+                                onBuyNow={buyNow as any}
+                                onStoreSelect={(id) =>
+                                  safeNavigate(
+                                    `/store/${product.storeSlug || id}`,
+                                  )
+                                }
+                                onClick={() =>
+                                  safeNavigate(
+                                    `/product/${generateProductSlug(product)}`,
+                                  )
+                                }
+                                onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                                className="w-full"
+                              />
                           ))}
                         </div>
                       ) : (
@@ -4904,6 +5188,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   `/product/${generateProductSlug(product)}`,
                                 )
                               }
+                              onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                               className="w-full"
                             />
                           );
@@ -5053,7 +5338,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {renderStoreProfile()}
 
                 {/* Tabs Switcher - Native App Style */}
-                <div className="grid grid-cols-2 gap-1 p-1 bg-white/90 rounded-[20px] mb-5 max-w-full md:max-w-fit md:flex md:items-center md:mx-0 border border-gray-100/60 sticky top-[64px] md:static z-30 backdrop-blur-xl shadow-sm md:shadow-none">
+                <div className={`grid grid-cols-2 gap-1 p-1 bg-white/90 rounded-[20px] mb-5 max-w-full md:max-w-fit md:flex md:items-center md:mx-0 border border-gray-100/60 sticky top-[64px] md:static z-30 backdrop-blur-xl shadow-sm md:shadow-none ${tabsHidden ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"} transition-all duration-300`}>
                   <button
                     onClick={() => setStoreTab("products")}
                     className={`px-6 py-3 rounded-[16px] font-black text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
@@ -5136,6 +5421,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     `/product/${generateProductSlug(product)}`,
                                   )
                                 }
+                                onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                 className="w-full"
                               />
                             ))}
@@ -5179,6 +5465,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     `/product/${generateProductSlug(product)}`,
                                   )
                                 }
+                                onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                 className="w-full"
                               />
                             );
@@ -5468,17 +5755,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         location.pathname === "") && <MarketplaceFooter />}
 
       {/* Sticky cart button - discovery pages only (home/store).
-          Exclut /product : la fiche produit a sa propre barre d'action fixe. */}
+          Exclut /product : la fiche produit a sa propre barre d'action fixe.
+          Masqué quand la bottom nav est visible (mobile). */}
       {cartItemsCount > 0 &&
         !isCartView &&
         !isFeedView &&
+        !showBottomNav &&
         checkoutStage !== "success" &&
         (location.pathname === "/" ||
           location.pathname.startsWith("/store/")) && (
         <div
           className="fixed left-0 right-0 z-[3000] px-3 pt-2"
           style={{
-            bottom: "env(safe-area-inset-bottom, 0px)",
+            bottom: keyboardOffset || "env(safe-area-inset-bottom, 0px)",
             paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
           }}
         >
@@ -5980,7 +6269,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         };
         return (
           <div
-            className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center duration-300"
+            className="fixed inset-0 z-[1200] bg-black/95 backdrop-blur-xl flex items-center justify-center duration-300"
             onClick={() => setIsImageModalOpen(false)}
           >
             <button
@@ -5997,7 +6286,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               <div className="relative w-full h-full">
                 <img
                   src={zoomSrc}
-                  className="w-full h-full object-contain shadow-2xl rounded-2xl select-none pointer-events-none"
+                  className="w-full h-full object-contain shadow-2xl rounded-2xl select-none"
+                  style={{ touchAction: "pinch-zoom" }}
                   draggable={false}
                   alt="Full Size Product"
                 />
@@ -6027,6 +6317,58 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           </div>
         );
       })()}
+
+      {/* 📱 Bottom Navigation mobile (Accueil / Recherche / Actualiser / Panier / Compte) */}
+      {showBottomNav && (
+        <MarketplaceBottomNav
+          cartItemsCount={cartItemsCount}
+          onHomeClick={() => safeNavigate("/")}
+          onSearchClick={() => setIsSearchOpen(true)}
+          onCartClick={() => safeNavigate("/cart")}
+          onAccountClick={() => {
+            if (user) safeNavigate("/mon-compte/commandes");
+            else {
+              setAuthMode("login");
+              setShowAuthModal(true);
+            }
+          }}
+        />
+      )}
+
+      {/* 📲 Bannière installation PWA (mobile, accueil uniquement) */}
+      {canInstallPwa && location.pathname === "/" && (
+        <div
+          className="md:hidden fixed left-3 right-3 z-[880]"
+          style={{
+            bottom: "calc(76px + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          <div className="bg-gray-900 text-white rounded-2xl p-3 flex items-center gap-3 shadow-2xl">
+            <div className="w-9 h-9 bg-[#f56b2a] rounded-xl grid place-items-center shrink-0">
+              <ShoppingBasketIcon size={18} />
+            </div>
+            <div className="flex-grow min-w-0">
+              <p className="text-xs font-black">Installer PosMarket</p>
+              <p className="text-[10px] text-white/60 font-bold">
+                Accès rapide depuis ton écran d&apos;accueil
+              </p>
+            </div>
+            <button
+              onClick={installPwa}
+              className="px-3 py-2 bg-white text-gray-900 rounded-xl text-[10px] font-black uppercase shrink-0 active:scale-95 transition-transform"
+            >
+              Installer
+            </button>
+            <button
+              onClick={dismissInstall}
+              aria-label="Fermer"
+              className="p-1.5 -m-1 text-white/50 hover:text-white shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

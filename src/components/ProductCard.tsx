@@ -13,6 +13,7 @@ interface ProductCardProps {
   onBuyNow?: (product: Product) => void;
   onStoreSelect?: (storeId: string) => void;
   onClick?: () => void;
+  onPrefetch?: () => void;
   className?: string;
 }
 
@@ -22,7 +23,7 @@ interface CardProductExtras {
   options?: unknown[];
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onBuyNow, onStoreSelect, onClick, className = "" }) => {
+const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onBuyNow, onStoreSelect, onClick, onPrefetch, className = "" }) => {
   const extras = product as CardProductExtras;
   const hasOptions = Array.isArray(extras.options) && extras.options.length > 0;
   const isOutOfStock = extras.stock === 0;
@@ -56,6 +57,8 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
       {/* Product Content - Clickable Area (real crawlable link) */}
       <a
         href={`/product/${generateProductSlug(product)}`}
+        onTouchStart={onPrefetch}
+        onMouseEnter={onPrefetch}
         onClick={(e) => {
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
           e.preventDefault();

@@ -2,6 +2,7 @@ const CACHE_NAME = 'marketplace-premium-cache-v3';
 const MAX_ENTRIES = 200;
 const STATIC_ASSETS = [
     '/manifest.json',
+    '/offline',
 ];
 
 // 🚀 INSTALL: Pre-cache critical assets (Simulate Cache Reserve)
@@ -42,8 +43,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 🛡️ Skip navigation requests - let them pass through without SW interception
+    // 🛡️ Navigation requests : réseau d'abord, page /offline en secours
     if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request).catch(() =>
+                caches.match('/offline').then((r) => r || Response.error())
+            )
+        );
         return;
     }
 
@@ -112,4 +118,29 @@ self.addEventListener('fetch', (event) => {
 
     // 🌐 Default: Network Only
     return;
+});
+
+// 🔔 Push notifications
+self.addEventListener('push', (event) => {
+    let data = {};
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch (e) {
+        data = { body: event.data ? event.data.text() : '' };
+    }
+    const title = data.title || 'PosMarket';
+    event.waitUntil(
+        self.registration.showNotification(title, {
+            body: data.body || '',
+            icon: data.icon || '/favicon.ico',
+            badge: '/favicon.ico',
+            data: { url: data.url || '/' },
+        })
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = (event.notification.data && event.notification.data.url) || '/';
+    event.waitUntil(clients.openWindow(url));
 });

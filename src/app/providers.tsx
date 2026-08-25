@@ -7,6 +7,18 @@ import { OnboardingProvider } from '@/components/Onboarding/OnboardingContext';
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
+  // 📲 Capture le prompt d'installation PWA (banner custom côté storefront)
+  useEffect(() => {
+    const onBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      (window as unknown as { __pwaInstallPrompt?: Event }).__pwaInstallPrompt = e;
+      window.dispatchEvent(new Event('pwa:install-available'));
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    return () =>
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  }, []);
+
   // 🚀 Register Service Worker (Caching Manager)
   useEffect(() => {
     if (!('serviceWorker' in navigator) || window.location.hostname === 'localhost') return;
