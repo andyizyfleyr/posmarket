@@ -59,7 +59,7 @@ export async function sendPushNotification(
 export async function sendOrderNotification(storeName: string, total: number, storeId: string) {
   return sendPushNotification(
     `store_${storeId}`,
-    'Nouvelle Commande ! 🛍️',
+    'Nouvelle Commande !',
     `Une commande de ${total.toLocaleString()} CFA a été placée sur la boutique ${storeName}.`,
     { type: 'NEW_ORDER', store_id: storeId }
   );

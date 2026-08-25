@@ -28,6 +28,7 @@ import {
   Gift,
   Zap,
   Bell,
+  PartyPopper,
   MessageCircle,
   Plus,
   ArrowRight,
@@ -803,7 +804,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         address: def.address || "",
         city: def.city || "",
       }));
-      localNotify("Adresse enregistrée pré-remplie ✅", "info");
+      localNotify("Adresse enregistrée pré-remplie", "info");
     }
   }, [checkoutStage, user?.id, buyerAddresses, customerInfo.address]);
 
@@ -3998,7 +3999,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     );
                     const storePhone = store?.phone || store?.settings?.phone;
                     if (completedOrderStores.length === 1 && storePhone && completedOrderItems.length > 0) {
-                      const waMsg = `📦 NOUVELLE COMMANDE #${Date.now().toString().slice(-6)}\n\nClient: ${customerInfo.name || "Anonyme"}\nTéléphone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Espèces" : "Carte"}`;
+                      const waMsg = `NOUVELLE COMMANDE #${Date.now().toString().slice(-6)}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
                       const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
 
                       return (
@@ -4042,7 +4043,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     }}
                     className="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] transition-colors"
                   >
-                    🔔 M&apos;alerter de ma commande
+                    <Bell size={12} className="inline -mt-0.5" /> M&apos;alerter de ma commande
                   </button>
                 )}
               </div>
@@ -5616,8 +5617,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     key={n}
                                     className="flex items-center gap-2"
                                   >
-                                    <span className="text-[9px] font-black text-gray-400 w-6 text-right">
-                                      {n}★
+                                    <span className="text-[9px] font-black text-gray-400 w-6 text-right flex items-center justify-end gap-0.5">
+                                      {n}<Star size={8} fill="currentColor" />
                                     </span>
                                     <div className="flex-grow h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                       <div
@@ -6243,7 +6244,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     </div>
                   </div>
                   <h3 className="text-lg font-black text-gray-900 mb-1">
-                    Merci ! 🎉
+                    <PartyPopper size={20} className="inline text-[#f56b2a] -mt-1" /> Merci !
                   </h3>
                   <p className="text-[11px] text-gray-600 font-medium">
                     Votre avis a été publié avec succès

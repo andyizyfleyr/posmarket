@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  Package
+  Package,
+  Hand
 } from 'lucide-react';
 import Image from 'next/image';
 import { Order, Product, StaffRole, StaffPermissions } from '@/types';
@@ -328,7 +329,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h1 className="text-base md:text-3xl font-black text-gray-900 tracking-tight leading-none truncate">
-                Salut, {userName || 'Utilisateur'} 👋
+                Salut, {userName || 'Utilisateur'} <Hand size={20} className="inline -mt-1" />
               </h1>
               {store?.business_type && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-orange-100 text-orange-700">
