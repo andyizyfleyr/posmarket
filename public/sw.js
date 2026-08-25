@@ -1,4 +1,4 @@
-const CACHE_NAME = 'marketplace-premium-cache-v2';
+const CACHE_NAME = 'marketplace-premium-cache-v3';
 const MAX_ENTRIES = 200;
 const STATIC_ASSETS = [
     '/manifest.json',
@@ -72,9 +72,28 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // ⚡ Strategy for STATIC FILES (JS, CSS, Fonts): Stale-While-Revalidate
-    // Sert le cache instantanément mais rafraîchit en arrière-plan → jamais de vieux bundle bloqué après un déploiement.
-    if (request.destination === 'font' || request.destination === 'script' || request.destination === 'style') {
+    // ⚡ Strategy for STATIC FILES (JS, CSS): Network-First
+    // Après un déploiement, le nouveau bundle est TOUJOURS chargé dès la
+    // première requête (le cache ne sert qu'en fallback hors-ligne).
+    // Fonts: Stale-While-Revalidate (jamais bloquantes, stables).
+    if (request.destination === 'script' || request.destination === 'style') {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const clone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+                    }
+                    return networkResponse;
+                })
+                .catch(() =>
+                    caches.open(CACHE_NAME).then((cache) => cache.match(request))
+                )
+        );
+        return;
+    }
+
+    if (request.destination === 'font') {
         event.respondWith(
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(request).then((cachedResponse) => {
