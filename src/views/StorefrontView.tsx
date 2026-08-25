@@ -3004,7 +3004,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               )}
 
               {/* CARD 4: AVAILABILITY & DELIVERY */}
-              <div className="bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
+              <div className="hidden md:block bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
                 {/* Stock meter */}
                 <div className="mb-4">
                   {stockValue !== null && stockValue > 0 && (
