@@ -3108,7 +3108,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         >
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2">
-              <div className="h-0.5 w-6 bg-yellow-400 rounded-full" />
+              <div className="hidden md:block h-0.5 w-6 bg-yellow-400 rounded-full" />
               <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
                 Avis de la communauté
               </h3>
@@ -3275,7 +3275,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         {relatedProducts.length > 0 && (
           <section id="pd-similaires" className="mt-3.5 scroll-mt-14">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <div className="h-0.5 w-6 bg-[#f56b2a] rounded-full" />
+              <div className="hidden md:block h-0.5 w-6 bg-[#f56b2a] rounded-full" />
               <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
                 Recommandations similaires
               </h3>
