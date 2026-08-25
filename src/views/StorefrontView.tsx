@@ -2811,32 +2811,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               {/* CARD 1: MAIN INFO (Title, Price, Store, Rating) */}
               <div className="bg-white rounded-[24px] lg:rounded-none border lg:border-none border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] lg:shadow-none p-4 lg:p-0">
                 {/* Store Row */}
-                <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="mb-3">
                   <Link
                     to={`/store/${product.storeSlug || product.storeId}`}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-full border transition-all active:scale-95 ${accentBg}`}
+                    className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 hover:text-[#f56b2a] transition-colors"
                   >
-                    {isFood ? "🧑‍🍳" : "📦"} {product.storeName}
-                    <ChevronRight size={10} strokeWidth={3} />
+                    Vendu par
+                    <span className="font-black text-gray-900 max-w-[180px] truncate inline-block align-bottom">
+                      {product.storeName}
+                    </span>
                   </Link>
-                  {!isFood && (
-                    <span className="inline-flex items-center gap-1 text-[8px] font-black text-gray-500 uppercase tracking-wider bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                      <Truck size={10} className="text-[#f56b2a]" />
-                      Livraison express
-                    </span>
-                  )}
-                  {stockValue !== null && stockValue > 0 && (
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-full border ${
-                        isLowStock
-                          ? "bg-amber-50 text-amber-600 border-amber-200"
-                          : "bg-green-50 text-green-600 border-green-200"
-                      }`}
-                    >
-                      <CheckCircle2 size={10} />
-                      Disponibilité : En stock
-                    </span>
-                  )}
                 </div>
 
                 {/* Title */}
