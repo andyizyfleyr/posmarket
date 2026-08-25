@@ -4252,7 +4252,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50 font-sans md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+    <div className="flex flex-col bg-gray-50/50 font-sans md:min-h-screen md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
       {!isOnline && (
         <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
