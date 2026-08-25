@@ -94,18 +94,18 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
 
         <div className="p-1.5 md:p-2 flex flex-col flex-grow bg-white">
           <div className="mb-1">
-            <h3 className="text-[11px] md:text-xs font-bold text-gray-800 line-clamp-1 leading-tight will-change-contents">
+            <h3 className="text-[9px] md:text-[11px] font-bold text-gray-800 line-clamp-1 leading-tight will-change-contents">
               {product.name}
             </h3>
           </div>
 
           <div className="mt-auto">
             <div className="flex items-baseline gap-1 mb-1.5">
-              <span className="text-[#1a1a1a] font-black text-sm">
+              <span className="text-[#1a1a1a] font-black text-[10px] md:text-sm">
                 {formatCurrency(product.price)}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-[9px] md:text-[8px] text-gray-500 line-through">
+                <span className="text-[8px] md:text-[9px] text-gray-500 line-through">
                   {formatCurrency(product.originalPrice)}
                 </span>
               )}
@@ -131,7 +131,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         <button
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`w-full py-2.5 rounded-lg flex items-center justify-center gap-1 text-[10px] md:text-[9px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tight ${
+          className={`w-full py-2.5 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[10px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tight ${
             isOutOfStock
               ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
               : "bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100"
