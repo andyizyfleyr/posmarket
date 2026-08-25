@@ -2721,7 +2721,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {isFood && (
                   <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-50 text-green-700 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-sm z-10">
                     <Clock size={10} className="flex-shrink-0" />
-                    Fraîchement préparé · {product.deliveryTime || "30-45 min"}
+                    Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
                   </div>
                 )}
 
@@ -2763,7 +2763,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   {isFood && (
                     <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-green-100 text-green-700 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
                       <Clock size={11} />
-                      Fraîchement préparé · {product.deliveryTime || "30-45 min"}
+                      Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
                     </div>
                   )}
                 </div>
@@ -2862,7 +2862,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <span className="w-1 h-1 bg-gray-200 rounded-full" />
                   <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
                     <ShoppingBag size={11} className={accentText} />
-                    {formatNumber(product.salesCount || 0)} vendus
+                    {formatNumber(product.salesCount || 0)} {isFood ? 'commandes' : 'vendus'}
                   </span>
                   {!isFood && product.views != null && (
                     <>
@@ -2878,7 +2878,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Price block - Premium Inside Card */}
                 <div className="relative overflow-hidden rounded-[20px] border border-[#f56b2a]/10 bg-gradient-to-br from-[#f56b2a]/5 via-white to-white p-3.5">
                   <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">
-                    {hasOptions && !allSelected ? "À partir de" : "Tarif unique"}
+                    {hasOptions && !allSelected ? "À partir de" : (isFood ? "Prix" : "Tarif unique")}
                   </span>
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span
@@ -3030,7 +3030,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <div className="flex items-center gap-2 mb-2.5">
                   <div className="hidden md:block h-0.5 w-6 bg-[#f56b2a] rounded-full" />
                   <h3 className="text-[9px] font-black text-gray-900 uppercase tracking-[0.15em]">
-                    Description produit
+                    {isFood ? 'Détails du plat' : 'Description produit'}
                   </h3>
                 </div>
                 <div
@@ -3068,7 +3068,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   className="sm:flex-[1.4]"
                   icon={<ShoppingCart size={19} strokeWidth={2.5} />}
                 >
-                  Ajouter au panier
+                  {isFood ? "Commander" : "Ajouter au panier"}
                 </Button>
                 <Button
                   onClick={handleBuyNow}
@@ -3078,9 +3078,28 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   size="xl"
                   className="!border-gray-900 !text-gray-900 hover:!bg-gray-900 hover:!text-white"
                 >
-                  Acheter maintenant
+                  {isFood ? "Commander maintenant" : "Acheter maintenant"}
                 </Button>
               </div>
+
+              {/* Trust band */}
+              {isFood ? (
+                <div className="hidden lg:flex items-center justify-center gap-4 pt-3 text-[9px] font-bold text-gray-400">
+                  <span className="flex items-center gap-1"><Clock size={10} /> Préparé à la commande</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Fraîcheur garantie</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison rapide</span>
+                </div>
+              ) : (
+                <div className="hidden lg:flex items-center justify-center gap-4 pt-3 text-[9px] font-bold text-gray-400">
+                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Paiement à la livraison</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><RotateCcw size={10} /> Retour 7 jours</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison sécurisée</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3094,7 +3113,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div className="flex items-center gap-2">
               <div className="hidden md:block h-0.5 w-6 bg-yellow-400 rounded-full" />
               <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
-                Avis de la communauté
+                Avis {isFood ? 'sur le repas' : 'sur le produit'}
               </h3>
             </div>
             <Button
@@ -3111,7 +3130,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               size="sm"
               icon={<MessageCircle size={12} />}
             >
-              Donner mon avis
+              {isFood ? 'Noter ce repas' : 'Donner mon avis'}
             </Button>
           </div>
 
@@ -3139,7 +3158,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   ))}
                 </div>
                 <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
-                  {formatNumber(reviewTotal)} notes et avis
+                  {formatNumber(reviewTotal)} {isFood ? 'avis clients' : 'notes et avis'}
                 </p>
               </div>
             </div>
@@ -3246,7 +3265,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       Aucun avis rédigé
                     </p>
                     <p className="text-[9px] text-gray-400 mt-0.5 font-medium">
-                      Partagez votre avis pour aider la communauté !
+                      {isFood ? 'Soyez le premier à donner votre avis !' : 'Partagez votre avis pour aider la communauté !'}
                     </p>
                   </div>
                 )}
@@ -3261,7 +3280,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div className="flex items-center gap-2 mb-3 px-1">
               <div className="hidden md:block h-0.5 w-6 bg-[#f56b2a] rounded-full" />
               <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
-                Recommandations similaires
+                {isFood ? 'Vous aimerez aussi' : 'Recommandations similaires'}
               </h3>
             </div>
             <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-5 md:gap-6">
@@ -3293,6 +3312,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
             }}
           >
+            {isFood ? (
+              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-bold text-gray-400">
+                <span className="flex items-center gap-1"><Clock size={8} /> Fraîcheur garantie</span>
+                <span className="w-0.5 h-0.5 bg-gray-200 rounded-full" />
+                <span className="flex items-center gap-1"><Truck size={8} /> Livraison rapide</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-bold text-gray-400">
+                <span className="flex items-center gap-1"><ShieldCheck size={8} /> Paiement à la livraison</span>
+                <span className="w-0.5 h-0.5 bg-gray-200 rounded-full" />
+                <span className="flex items-center gap-1"><RotateCcw size={8} /> Retour 7j</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleAddToCart}
@@ -3300,7 +3332,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 className="flex-1 border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
               >
                 <ShoppingCart size={14} strokeWidth={2.5} />
-                Panier
+                {isFood ? 'Commander' : 'Panier'}
               </button>
               <button
                 onClick={handleBuyNow}
@@ -3308,7 +3340,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 className="flex-[1.2] bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 shadow-md shadow-orange-500/10 transition-all disabled:opacity-50"
               >
                 <Zap size={14} fill="currentColor" />
-                {isOutOfStock ? "Rupture" : "Acheter"}
+                {isOutOfStock ? "Rupture" : (isFood ? "Commander" : "Acheter")}
               </button>
             </div>
           </div>
