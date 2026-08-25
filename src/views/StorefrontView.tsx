@@ -4766,24 +4766,28 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   </div>
                 )}
 
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-                    {searchTerm ? (
-                      <>
-                        <ShoppingCart className="text-[#f56b2a]" size={20} />{" "}
-                        Résultats produits
-                      </>
-                    ) : selectedCategory !== "all" ? (
-                      <>
-                        <Zap className="text-yellow-500" /> {selectedCategory}
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="text-yellow-500" /> Recommandations
-                      </>
-                    )}
-                  </h2>
-                </div>
+                {/* Titre de section — masqué en page catégorie dédiée (?cat=)
+                    car le header « ← Catégorie · N produits » fait déjà foi */}
+                {!activeHomeCategory && (
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                      {searchTerm ? (
+                        <>
+                          <ShoppingCart className="text-[#f56b2a]" size={20} />{" "}
+                          Résultats produits
+                        </>
+                      ) : selectedCategory !== "all" ? (
+                        <>
+                          <Zap className="text-yellow-500" /> {selectedCategory}
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="text-yellow-500" /> Recommandations
+                        </>
+                      )}
+                    </h2>
+                  </div>
+                )}
 
                 {/* Skeleton Grid when loading and no data */}
                 {isInitialLoading && pagedProducts.length === 0 && (
