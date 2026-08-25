@@ -4802,7 +4802,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       )}
 
       <main
-        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 flex-grow`}
+        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8`}
       >
         <Routes>
           <Route
