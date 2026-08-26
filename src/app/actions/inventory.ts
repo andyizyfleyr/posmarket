@@ -68,7 +68,31 @@ export async function saveProductAction(product: any, storeId: string) {
     }
 
     updateTag('marketplace');
-    return { success: true, product: savedProduct };
+
+    if (!savedProduct) return { success: false, error: 'Produit introuvable' };
+
+    const safe = {
+      id: savedProduct.id,
+      storeId: savedProduct.storeId,
+      name: savedProduct.name,
+      price: Number(savedProduct.price) || 0,
+      originalPrice: savedProduct.originalPrice ? Number(savedProduct.originalPrice) : null,
+      stock: Number(savedProduct.stock) || 0,
+      category: savedProduct.category,
+      mainCategory: savedProduct.mainCategory,
+      image: savedProduct.image,
+      description: savedProduct.description,
+      isOnline: savedProduct.isOnline,
+      views: Number(savedProduct.views) || 0,
+      wholesalePrice: savedProduct.wholesalePrice ? Number(savedProduct.wholesalePrice) : null,
+      wholesaleMinQty: savedProduct.wholesaleMinQty,
+      businessType: savedProduct.businessType,
+      options: savedProduct.options || [],
+      variants: savedProduct.variants || [],
+      createdAt: savedProduct.createdAt?.toISOString?.() || null,
+    };
+
+    return { success: true, product: safe };
   } catch (error: any) {
     console.error('Error saving product with Drizzle:', error);
     return { success: false, error: error.message };
