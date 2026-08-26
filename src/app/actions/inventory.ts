@@ -40,8 +40,9 @@ export async function saveProductAction(product: any, storeId: string) {
       name: product.name,
       price: product.price?.toString() || '0',
       originalPrice: (product.originalPrice || product.original_price)?.toString(),
+      category: product.category,
       image: imageValue,
-      stock: product.stock ?? 0,
+      stock: Math.round(product.stock ?? 0),
       mainCategory: product.mainCategory || product.main_category,
       description: product.description,
       isOnline: product.isOnline !== undefined ? product.isOnline : true,
@@ -67,7 +68,6 @@ export async function saveProductAction(product: any, storeId: string) {
     }
 
     revalidatePath('/inventory');
-    revalidatePath('/');
     updateTag('marketplace');
     return { success: true, product: savedProduct };
   } catch (error: any) {
@@ -80,7 +80,6 @@ export async function deleteProductAction(id: string) {
   try {
     await db.delete(products).where(eq(products.id, id));
     revalidatePath('/inventory');
-    revalidatePath('/');
     updateTag('marketplace');
     return { success: true };
   } catch (error: any) {
@@ -95,7 +94,6 @@ export async function bulkDeleteProductsAction(ids: string[]) {
       await db.delete(products).where(inArray(products.id, ids));
     }
     revalidatePath('/inventory');
-    revalidatePath('/');
     updateTag('marketplace');
     return { success: true };
   } catch (error: any) {

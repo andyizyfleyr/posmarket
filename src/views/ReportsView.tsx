@@ -24,6 +24,8 @@ interface ReportsViewProps {
   customers: Customer[];
   storeSettings: StoreSettings;
   store?: any;
+  permissions?: any;
+  userRole?: any;
 }
 
 const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSettings, store }) => {
@@ -32,7 +34,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
 
   const handlePrint = () => {
     const originalTitle = document.title;
-    document.title = storeSettings.name;
+    document.title = storeSettings.name || 'Boutique';
     window.print();
     document.title = originalTitle;
   };
@@ -266,9 +268,9 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, customers, storeSetti
                    className="print-only bg-white p-4 md:p-6 shadow-2xl border border-gray-100 w-full text-[9pt] font-mono leading-tight rounded-sm"
                 >
                   <div className="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
-                    <h1 className="font-black text-sm uppercase tracking-tighter">{storeSettings.name}</h1>
-                    <p className="text-[7pt] text-gray-600 mt-1">{storeSettings.address}</p>
-                    <p className="text-[7pt] text-gray-500 font-mono mt-0.5">{storeSettings.phone} • {storeSettings.email}</p>
+                    <h1 className="font-black text-sm uppercase tracking-tighter">{storeSettings.name || 'Boutique'}</h1>
+                    <p className="text-[7pt] text-gray-600 mt-1">{storeSettings.address || ''}</p>
+                    <p className="text-[7pt] text-gray-500 font-mono mt-0.5">{[storeSettings.phone, storeSettings.email].filter(Boolean).join(' • ')}</p>
                     <div className="mt-3 text-[7pt] text-gray-500">
                       <p>CMD #{selectedOrder.id.slice(-8).toUpperCase()}</p>
                       <p>{new Date(selectedOrder.date).toLocaleString('fr-FR')}</p>

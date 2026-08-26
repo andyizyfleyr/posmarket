@@ -1939,6 +1939,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       } else {
         localNotify("Ce code promo n'existe pas pour cette boutique.", "error");
       }
+    } catch {
+      localNotify("Erreur lors de l'application du code promo.", "error");
     } finally {
       setIsApplyingPromo(false);
     }
@@ -2021,10 +2023,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
         initiateFusionPayPayment(
           Math.round(totalAmount),
-          "Commande sur " + (stores[0]?.name || "POS Pro"),
+          "Commande sur " + (stores[0]?.name || ""),
           {
-            phone: (customerInfo.phone || "01010101").replace(/\s/g, ""),
-            name: customerInfo.name || "Client",
+            phone: (customerInfo.phone || "").replace(/\s/g, ""),
+            name: customerInfo.name || "",
           },
         );
       } else {

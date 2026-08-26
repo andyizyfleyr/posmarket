@@ -36,7 +36,6 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
         }).where(eq(profiles.id, user.id));
 
         revalidatePath('/subscription');
-        revalidatePath('/', 'layout');
         return { success: true };
     } catch (error: any) {
         console.error('Error updating subscription:', error);

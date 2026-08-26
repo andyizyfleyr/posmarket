@@ -98,7 +98,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
 
     const handlePrint = () => {
         const originalTitle = document.title;
-        document.title = storeSettings.name;
+        document.title = storeSettings.name || 'Facture';
         window.print();
         document.title = originalTitle;
     };
@@ -677,11 +677,11 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                         </div>
                                     </div>
                                     <div className="text-left md:text-right text-[10px] md:text-sm w-full md:w-auto bg-gray-50 md:bg-transparent p-4 md:p-0 rounded-xl">
-                                        <h2 className="text-sm md:text-xl font-black text-[#f56b2a] mb-1 md:mb-2">{storeSettings.name}</h2>
-                                        <p className="text-gray-500 whitespace-pre-line leading-relaxed">{storeSettings.address}</p>
+                                        <h2 className="text-sm md:text-xl font-black text-[#f56b2a] mb-1 md:mb-2">{storeSettings.name || 'Boutique'}</h2>
+                                        <p className="text-gray-500 whitespace-pre-line leading-relaxed">{storeSettings.address || ''}</p>
                                         <div className="mt-2 space-y-0.5">
-                                            <p className="text-gray-700 font-bold">{storeSettings.phone}</p>
-                                            <p className="text-gray-500">{storeSettings.email}</p>
+                                            {storeSettings.phone && <p className="text-gray-700 font-bold">{storeSettings.phone}</p>}
+                                            {storeSettings.email && <p className="text-gray-500">{storeSettings.email}</p>}
                                         </div>
                                     </div>
                                 </div>

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getStoreCookie, setStoreCookie } from '@/utils/store-cookie';
 import LayoutClientWrapper from '@/components/LayoutClientWrapper';
 import { StoreData, SubscriptionPlan, SubscriptionTier } from '@/types';
-import { SUBSCRIPTION_PLANS, DEFAULT_STORE_SETTINGS } from '@/constants';
+import { SUBSCRIPTION_PLANS } from '@/constants';
 import { safeSupabaseFetch } from '@/utils/supabase/retry';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

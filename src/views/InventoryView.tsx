@@ -255,6 +255,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           router.refresh();
           setSelectedIds(new Set());
         }
+      } catch {
+        // silent
       } finally {
         setIsSubmitting(false);
       }
@@ -286,11 +288,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       if (result.success) {
         setShowSuccessToast(editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !');
         setTimeout(() => setShowSuccessToast(null), 3000);
-        router.refresh();
         setIsModalOpen(false);
       } else {
         alert('Erreur: ' + (result.error || 'Impossible d\'enregistrer le produit'));
       }
+    } catch (err: any) {
+      alert('Erreur: ' + (err.message || 'Une erreur est survenue'));
     } finally {
       setIsSubmitting(false);
     }
@@ -810,7 +813,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           required
                           type="number"
                           value={formData.price ?? ''}
-                          onChange={e => setFormData({ ...formData, price: e.target.value ? Math.round(parseFloat(e.target.value)) : undefined })}
+                          onChange={e => setFormData({ ...formData, price: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
                           placeholder="0"
                           className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
@@ -823,7 +826,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <input
                           type="number"
                           value={formData.stock ?? ''}
-                          onChange={e => setFormData({ ...formData, stock: e.target.value ? parseFloat(e.target.value) : undefined })}
+                          onChange={e => setFormData({ ...formData, stock: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
                           placeholder="0"
                           className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
@@ -1105,7 +1108,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   value={variant.price}
                                   onChange={e => {
                                     const newVariants = [...formData.variants!];
-                                    newVariants[idx].price = parseFloat(e.target.value) || 0;
+                                    newVariants[idx].price = parseInt(e.target.value) || 0;
                                     setFormData({ ...formData, variants: newVariants });
                                   }}
                                   className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
@@ -1117,7 +1120,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   value={variant.stock}
                                   onChange={e => {
                                     const newVariants = [...formData.variants!];
-                                    newVariants[idx].stock = parseFloat(e.target.value) || 0;
+                                    newVariants[idx].stock = parseInt(e.target.value) || 0;
                                     setFormData({ ...formData, variants: newVariants });
                                   }}
                                   className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
@@ -1173,7 +1176,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               <input
                                 type="number"
                                 value={formData.wholesalePrice ?? ''}
-                                onChange={e => setFormData({ ...formData, wholesalePrice: e.target.value ? Math.round(parseFloat(e.target.value)) : 0 })}
+                                onChange={e => setFormData({ ...formData, wholesalePrice: e.target.value ? parseInt(e.target.value) || 0 : 0 })}
                                 placeholder="0"
                                 className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                               />

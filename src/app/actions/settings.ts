@@ -28,7 +28,6 @@ export async function updateStoreSettingsAction(storeId: string, settings: Store
 
         await db.update(stores).set(updateData).where(eq(stores.id, storeId));
 
-        revalidatePath('/', 'layout');
         revalidatePath('/settings');
         updateTag('marketplace');
         return { success: true };
@@ -43,7 +42,7 @@ export async function createStoreAction(settings: StoreSettings, userId: string)
         const slug = settings.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         
         const [newStore] = await db.insert(stores).values({
-            userId: userId || '00000000-0000-0000-0000-000000000000',
+            userId,
             name: settings.name,
             slug,
             settings,
@@ -65,7 +64,7 @@ export async function createStoreAction(settings: StoreSettings, userId: string)
 export async function deleteStoreAction(id: string) {
     try {
         await db.delete(stores).where(eq(stores.id, id));
-        revalidatePath('/', 'layout');
+        revalidatePath('/settings');
         updateTag('marketplace');
         return { success: true };
     } catch (error: any) {

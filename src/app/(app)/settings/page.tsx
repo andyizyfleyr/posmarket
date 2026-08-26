@@ -49,9 +49,26 @@ export default async function SettingsPage() {
     customers = data.customers;
     orders = data.orders;
 
-    // Fetch staff
+    // Fetch staff with profile emails
     const { data: staffData } = await supabase.from('store_staff').select('*').eq('store_id', storeId);
-    staff = staffData || [];
+    const staffList = (staffData || []).map((s: any) => ({
+      ...s,
+      userId: s.user_id || s.userId,
+      storeId: s.store_id || s.storeId,
+    }));
+
+    // Fetch profiles for staff members
+    const staffUserIds = staffList.map((s: any) => s.userId).filter(Boolean);
+    if (staffUserIds.length > 0) {
+      const { data: profilesData } = await supabase.from('profiles').select('id, email, full_name').in('id', staffUserIds);
+      const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]));
+      staff = staffList.map((s: any) => {
+        const profile = profilesMap.get(s.userId);
+        return { ...s, email: profile?.email, fullName: profile?.full_name };
+      });
+    } else {
+      staff = staffList;
+    }
     
     // Fetch coupons
     const { data: couponData } = await supabase.from('coupons').select('*').eq('store_id', storeId);

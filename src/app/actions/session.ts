@@ -25,8 +25,21 @@ export async function getCurrentSession() {
 }
 
 export async function signInWithPasswordSession(email: string) {
-  const [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
-  if (!profile) return { user: null, error: { message: 'Invalid login credentials' } };
+  let [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+  
+  if (!profile) {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    [profile] = await db.insert(profiles).values({
+      email,
+      fullName: email.split('@')[0],
+      subscriptionTier: 'PRO',
+      subscriptionDuration: 'monthly',
+      subscriptionStatus: 'ACTIVE',
+      subscriptionStartDate: now,
+      subscriptionEndDate: endOfMonth,
+    }).returning();
+  }
 
   (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
   return { user: serializeUser(profile), error: null };

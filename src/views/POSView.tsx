@@ -229,7 +229,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
   const handlePrint = () => {
     const originalTitle = document.title;
-    document.title = storeSettings.name;
+    document.title = storeSettings?.name || 'POS';
     window.print();
     document.title = originalTitle;
   };
@@ -552,9 +552,9 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             <div className="flex-grow overflow-y-auto p-6 bg-gray-50">
               <div ref={receiptRef} id="receipt-print" className="print-only bg-white p-6 shadow-sm border border-gray-200 mx-auto w-[80mm] text-[10pt] font-mono">
                 <div className="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
-                  <h1 className="text-xl font-black uppercase tracking-tighter text-gray-900">{storeSettings.name}</h1>
-                  <p className="text-[8pt] text-gray-600 mt-1">{storeSettings.address}</p>
-                  <p className="text-[8pt] text-gray-500 font-mono mt-0.5">{storeSettings.phone} • {storeSettings.email}</p>
+                  <h1 className="text-xl font-black uppercase tracking-tighter text-gray-900">{storeSettings?.name || 'Boutique'}</h1>
+                  <p className="text-[8pt] text-gray-600 mt-1">{storeSettings?.address || ''}</p>
+                  <p className="text-[8pt] text-gray-500 font-mono mt-0.5">{[storeSettings?.phone, storeSettings?.email].filter(Boolean).join(' • ')}</p>
                 </div>
                 <div className="border-b border-dashed border-gray-300 pb-2 mb-2 space-y-1">
                   <div className="flex justify-between"><span>DATE:</span><span>{new Date().toLocaleDateString('fr-FR')}</span></div>

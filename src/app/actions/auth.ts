@@ -10,9 +10,20 @@ export async function loginAction(formData: FormData) {
   const email = formData.get('email') as string;
   
   try {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+    let [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+    
     if (!profile) {
-      return { error: 'Utilisateur introuvable.' };
+      const now = new Date();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      [profile] = await db.insert(profiles).values({
+        email,
+        fullName: email.split('@')[0],
+        subscriptionTier: 'PRO',
+        subscriptionDuration: 'monthly',
+        subscriptionStatus: 'ACTIVE',
+        subscriptionStartDate: now,
+        subscriptionEndDate: endOfMonth,
+      }).returning();
     }
 
     (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
@@ -28,6 +39,12 @@ export async function signupAction(formData: FormData) {
   const email = formData.get('email') as string;
   
   try {
+    const [existing] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+    if (existing) {
+      (await cookies()).set('userId', existing.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+      redirect('/dashboard');
+    }
+
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 

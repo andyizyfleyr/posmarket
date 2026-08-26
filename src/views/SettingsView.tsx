@@ -564,14 +564,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     <User size={20} />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h4 className="font-black text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{member.userId}</h4>
+                                                    <h4 className="font-black text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{(member as any).fullName || (member as any).email || member.userId?.slice(0, 8)}</h4>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className={`text-[8px] md:text-[9px] font-black px-1.5 md:px-2 py-0.5 rounded-full ${member.role === 'OWNER' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-[#f56b2a]'}`}>
                                                             {member.role}
                                                         </span>
                                                         <span className="text-[9px] md:text-[10px] text-gray-400 font-bold flex items-center gap-1 truncate">
                                                             <Store size={8} className="md:size-[10px]" />
-                                                            {stores.find(s => s.id === member.storeId)?.settings.name || 'Boutique'}
+                                                            {stores.find(s => s.id === member.storeId)?.name || 'Boutique'}
                                                         </span>
                                                     </div>
                                                 </div>

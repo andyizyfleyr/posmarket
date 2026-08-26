@@ -5,29 +5,33 @@ import { profiles } from '@/db/schema';
 import { QueryBuilder, runQuery } from '@/db/query';
 
 async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('userId')?.value;
-  if (!userId) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('userId')?.value;
+    if (!userId) {
+      return { user: null };
+    }
+
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1);
+
+    if (!profile) {
+      return { user: null };
+    }
+
+    return {
+      user: {
+        id: profile.id,
+        email: profile.email,
+        user_metadata: { full_name: profile.fullName },
+      },
+    };
+  } catch {
     return { user: null };
   }
-
-  const [profile] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.id, userId))
-    .limit(1);
-
-  if (!profile) {
-    return { user: null };
-  }
-
-  return {
-    user: {
-      id: profile.id,
-      email: profile.email,
-      user_metadata: { full_name: profile.fullName },
-    },
-  };
 }
 
 export async function createClient() {

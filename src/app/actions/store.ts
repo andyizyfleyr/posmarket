@@ -87,7 +87,7 @@ export async function quickCreateStoreAction(name: string, businessType: string)
     const { cookies } = await import('next/headers');
     (await cookies()).set('currentStoreId', newStore.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
 
-    revalidatePath('/', 'layout');
+    revalidatePath('/dashboard');
     updateTag('marketplace');
     return { success: true, store: newStore };
   } catch (error: any) {
@@ -117,7 +117,7 @@ export async function quickDeleteStoreAction(storeId: string) {
 
     await db.delete(stores).where(eq(stores.id, storeId));
 
-    revalidatePath('/', 'layout');
+    revalidatePath('/dashboard');
     updateTag('marketplace');
     return { success: true };
   } catch (error: any) {
@@ -129,6 +129,6 @@ export async function quickDeleteStoreAction(storeId: string) {
 export async function clearStoreCookieAction() {
   const { cookies } = await import('next/headers');
   (await cookies()).delete('currentStoreId');
-  revalidatePath('/', 'layout');
+  revalidatePath('/dashboard');
   return { success: true };
 }

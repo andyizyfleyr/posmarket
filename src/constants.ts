@@ -1,15 +1,8 @@
 
-import { Product, Customer, StoreSettings, SubscriptionPlan } from '@/types';
-
-export const DEFAULT_STORE_SETTINGS: StoreSettings = {
-  name: "POS Pro Dakar",
-  email: "contact@pospro.sn",
-  phone: "+221 33 800 00 00",
-  address: "Avenue Cheikh Anta Diop, Dakar",
-  ninea: "SN 001234567"
-};
+import { SubscriptionPlan } from '@/types';
  
 export const MAIN_CATEGORIES = [
+  'Cosmétique & Emballage',
   'Électronique & High-Tech',
   'Mode & Accessoires',
   'Épicerie & Supermarché',
@@ -25,6 +18,15 @@ export const MAIN_CATEGORIES = [
 ];
 
 export const CATEGORY_MAPPING: Record<string, string> = {
+  'Boîtes pour Crème de Visage': 'Cosmétique & Emballage',
+  'Boîtes pour Savon': 'Cosmétique & Emballage',
+  'Boîtes pour Gel Douche': 'Cosmétique & Emballage',
+  'Boîtes pour Poudre': 'Cosmétique & Emballage',
+  'Boîtes pour Parfum': 'Cosmétique & Emballage',
+  'Boîtes pour Lotion': 'Cosmétique & Emballage',
+  'Boîtes pour Huile': 'Cosmétique & Emballage',
+  'Matière Première': 'Cosmétique & Emballage',
+  'Outils Professionnels': 'Cosmétique & Emballage',
   'Électronique': 'Électronique & High-Tech',
   'Téléphones & Tablettes': 'Électronique & High-Tech',
   'Audio': 'Électronique & High-Tech',
@@ -60,110 +62,6 @@ export const CATEGORY_MAPPING: Record<string, string> = {
   'Bébés': 'Jouets & Enfants',
   'Général': 'Divers'
 };
-
-export const PRODUCTS: Product[] = [
-  {
-    id: '1',
-    sku: 'VY-137-A1',
-    barcode: '9851605829838',
-    name: 'Liseuse Kindle Paperwhite',
-    price: 1238,
-    image: 'https://picsum.photos/seed/kindle/400/300',
-    stock: 36,
-    category: 'Électronique',
-    mainCategory: 'Électronique & High-Tech'
-  },
-  {
-    id: '2',
-    sku: 'OJ-140-A1',
-    barcode: '9218461096277',
-    name: 'GoPro HERO10 Black',
-    price: 749,
-    originalPrice: 960,
-    image: 'https://picsum.photos/seed/gopro/400/300',
-    stock: 42,
-    category: 'Électronique',
-    mainCategory: 'Électronique & High-Tech',
-    hasOptions: true
-  },
-  {
-    id: '3',
-    sku: 'FK-135',
-    barcode: '0804488039787',
-    name: 'Batterie Externe Anker PowerCore',
-    price: 109,
-    originalPrice: 447,
-    image: 'https://picsum.photos/seed/anker/400/300',
-    stock: 16,
-    category: 'Accessoires',
-    mainCategory: 'Mode & Beauté'
-  },
-  {
-    id: '4',
-    sku: 'GV-125',
-    barcode: '8197752924868',
-    name: 'Montre de Luxe (Produit 54)',
-    price: 848,
-    originalPrice: 1283,
-    image: 'https://picsum.photos/seed/watch/400/300',
-    stock: 13,
-    category: 'Accessoires',
-    mainCategory: 'Mode & Beauté'
-  },
-  {
-    id: '5',
-    sku: 'YM-175-A1',
-    barcode: '1939540765874',
-    name: 'Écouteurs Bose QuietComfort',
-    price: 93,
-    image: 'https://picsum.photos/seed/bose/400/300',
-    stock: 19,
-    category: 'Audio',
-    mainCategory: 'Électronique & High-Tech',
-    hasOptions: true
-  },
-  {
-    id: '6',
-    sku: 'H3-109',
-    barcode: '8694063449375',
-    name: 'Téléviseur LG OLED Série C1',
-    price: 45,
-    originalPrice: 51,
-    image: 'https://picsum.photos/seed/lgtv/400/300',
-    stock: 10,
-    category: 'Télévision',
-    mainCategory: 'Électronique & High-Tech'
-  },
-  {
-    id: '7',
-    sku: 'FD-141',
-    barcode: '1596200835102',
-    name: 'Aspirateur Dyson V11',
-    price: 325,
-    originalPrice: 716,
-    image: 'https://picsum.photos/seed/dyson/400/300',
-    stock: 19,
-    category: 'Maison',
-    mainCategory: 'Maison & Bureau'
-  },
-  {
-    id: '8',
-    sku: 'SO-148-A1',
-    barcode: '4488902340862',
-    name: 'Nintendo Switch Modèle OLED',
-    price: 633,
-    image: 'https://picsum.photos/seed/switch/400/300',
-    stock: 57,
-    category: 'Gaming',
-    mainCategory: 'Électronique & High-Tech'
-  }
-];
-
-export const CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'John Doe', email: 'john@exemple.fr', phone: '06 01 02 03 04', address: 'Dakar, Sénégal', totalSpent: 0, ordersCount: 0 },
-  { id: 'c2', name: 'Sarah Wilson', email: 'sarah@exemple.fr', phone: '06 02 03 04 05', address: 'Dakar, Sénégal', totalSpent: 0, ordersCount: 0 },
-  { id: 'c3', name: 'Michel Brun', email: 'michel@exemple.fr', phone: '06 03 04 05 06', address: 'Dakar, Sénégal', totalSpent: 0, ordersCount: 0 },
-];
 
 export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', SubscriptionPlan> = {
   STARTER: {

@@ -339,23 +339,18 @@ export default function AdminView() {
                  </div>
                  <div className="space-y-4">
                     {[
-                      { l: 'Base de Données', v: 'Optimisée', s: 'green' },
-                      { l: 'Latence Réseau', v: '18ms', s: 'green' },
-                      { l: 'Vérification SSL', v: 'Valide', s: 'green' },
+                      { l: 'Base de Données', v: 'Neon PostgreSQL', s: 'green' },
+                      { l: 'Hébergement', v: 'Vercel', s: 'green' },
+                      { l: 'Stockage Fichiers', v: 'Cloudflare R2', s: 'green' },
                     ].map((item, idx) => (
                       <div key={idx} className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.l}</span>
-                          <div className={`w-2 h-2 rounded-full bg-${item.s}-500 animate-pulse`} />
+                          <div className={`w-2 h-2 rounded-full bg-${item.s}-500`} />
                         </div>
                         <div className="text-xs font-black text-gray-700">{item.v}</div>
                       </div>
                     ))}
-                 </div>
-                 <div className="mt-8 pt-6 border-t border-gray-100">
-                    <p className="text-[10px] text-gray-400 font-bold leading-relaxed">
-                       Statut plateforme global : <span className="text-green-600 font-black">100% OK</span>. Aucun incident majeur détecté.
-                    </p>
                  </div>
               </div>
             </div>

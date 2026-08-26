@@ -351,7 +351,7 @@ const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               className="w-8 h-8 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl cursor-pointer hover:scale-105 transition-all active:scale-95 bg-white flex items-center justify-center group"
             >
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'Jacques'}`} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`} alt="Avatar" className="w-full h-full object-cover" />
             </button>
 
             {showProfileDropdown && (
@@ -361,7 +361,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   <div className="p-6 border-b border-gray-50 bg-gray-50/30">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-md">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'Jacques'}`} className="w-full h-full object-cover" />
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px]">{userEmail?.split('@')[0]}</span>

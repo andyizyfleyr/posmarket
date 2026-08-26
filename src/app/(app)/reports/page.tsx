@@ -3,6 +3,7 @@ import { fetchStoreData } from '@/app/actions/store';
 import { loadOrdersForStore } from '@/lib/load-store-data';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
+import { getPermissionsForUser } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 
 export default async function ReportsPage() {
@@ -20,6 +21,7 @@ export default async function ReportsPage() {
     fetchStoreData(storeId, undefined, { products: false, invoices: false })
   ]);
   const { customers, store } = storeData;
+  const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   return (
     <ReportsView 
@@ -27,6 +29,8 @@ export default async function ReportsPage() {
       customers={customers as any} 
       storeSettings={store?.settings || {}}
       store={store as any}
+      permissions={permissions as any}
+      userRole={role as any}
     />
   );
 }

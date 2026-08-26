@@ -234,6 +234,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onB
         console.error('Save address error:', res.error);
         notify?.(res.error || 'Erreur', 'error');
       }
+    } catch (err: any) {
+      notify?.(err.message || 'Une erreur est survenue', 'error');
     } finally {
       setIsSavingAddress(false);
     }

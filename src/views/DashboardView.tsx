@@ -317,9 +317,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     <div className="flex-grow overflow-y-auto overflow-x-hidden p-2 md:p-8 custom-scrollbar bg-gray-50/50">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 md:mb-8 gap-1 md:gap-6">
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="md:hidden w-8 h-8 rounded-xl overflow-hidden border border-white shadow-lg flex-shrink-0 relative">
+              <div className="md:hidden w-8 h-8 rounded-xl overflow-hidden border border-white shadow-lg flex-shrink-0 relative">
             <Image 
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userRole || 'Admin'}`} 
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName || 'user'}`} 
               alt="Avatar"
               fill
               className="object-cover bg-orange-50"
