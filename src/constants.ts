@@ -25,6 +25,7 @@ export const CATEGORY_MAPPING: Record<string, string> = {
   'Boîtes pour Parfum': 'Cosmétique & Emballage',
   'Boîtes pour Lotion': 'Cosmétique & Emballage',
   'Boîtes pour Huile': 'Cosmétique & Emballage',
+  'Boîtes pour Sérum': 'Cosmétique & Emballage',
   'Matière Première': 'Cosmétique & Emballage',
   'Outils Professionnels': 'Cosmétique & Emballage',
   'Électronique': 'Électronique & High-Tech',
