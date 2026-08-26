@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath, updateTag } from 'next/cache'
+import { updateTag } from 'next/cache'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles } from '@/db/schema'
@@ -67,7 +67,6 @@ export async function saveProductAction(product: any, storeId: string) {
         .returning();
     }
 
-    revalidatePath('/inventory');
     updateTag('marketplace');
     return { success: true, product: savedProduct };
   } catch (error: any) {
@@ -79,7 +78,6 @@ export async function saveProductAction(product: any, storeId: string) {
 export async function deleteProductAction(id: string) {
   try {
     await db.delete(products).where(eq(products.id, id));
-    revalidatePath('/inventory');
     updateTag('marketplace');
     return { success: true };
   } catch (error: any) {
@@ -93,7 +91,6 @@ export async function bulkDeleteProductsAction(ids: string[]) {
     if (ids.length > 0) {
       await db.delete(products).where(inArray(products.id, ids));
     }
-    revalidatePath('/inventory');
     updateTag('marketplace');
     return { success: true };
   } catch (error: any) {

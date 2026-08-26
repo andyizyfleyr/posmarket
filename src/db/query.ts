@@ -1,5 +1,5 @@
 import { eq, and, inArray, desc, asc, sql } from 'drizzle-orm';
-import { updateTag } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { db } from './index';
 import * as schema from './schema';
 import { QuerySpec, QueryResult, QueryBuilder } from './builder';
@@ -77,6 +77,7 @@ function revalidateCatalog(table: any) {
   if (!CATALOG_TABLES.has(String(table))) return;
   try {
     updateTag('marketplace');
+    revalidatePath('/store');
   } catch {
     // ignore: called outside action/route context
   }
@@ -92,6 +93,7 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
           .set({ views: sql`${schema.products.views} + 1` })
           .where(eq(schema.products.id, pId));
       }
+      revalidateCatalog('products');
       return { data: null, error: null };
     }
 
@@ -103,6 +105,7 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
           .set({ views: sql`${schema.stores.views} + 1` })
           .where(eq(schema.stores.id, pId));
       }
+      revalidateCatalog('stores');
       return { data: null, error: null };
     }
 

@@ -36,7 +36,6 @@ import ProductImage from '../components/ProductImage';
 import Loader from '../components/Loader';
 import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
-import { useRouter } from '@/components/RouterPolyfill';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 
 interface InventoryViewProps {
@@ -56,7 +55,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   subscription,
   businessType = 'shopping',
 }) => {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewType, setViewType] = useState<'grid' | 'table'>('table');
   const [productType, setProductType] = useState<'all' | 'pos' | 'marketplace'>('all');
@@ -75,7 +73,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState<string | null>(null);
 
-  // Sync local state when props change (after router.refresh)
+  // Sync local state when props change (after server re-render)
   useEffect(() => {
     setLocalProducts(initialProducts || []);
     setOffset(initialProducts?.length || 0);
@@ -235,7 +233,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     if (confirm('Voulez-vous vraiment supprimer ce produit ?')) {
       const result = await deleteProductAction(id);
       if (result.success) {
-        router.refresh();
+        setLocalProducts(prev => prev.filter(p => p.id !== id));
         setSelectedIds(prev => {
           const next = new Set(prev);
           next.delete(id);
@@ -252,7 +250,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       try {
         const result = await bulkDeleteProductsAction(Array.from(selectedIds));
         if (result.success) {
-          router.refresh();
+          setLocalProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
           setSelectedIds(new Set());
         }
       } catch {
@@ -285,7 +283,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setIsSubmitting(true);
     try {
       const result = await saveProductAction(editingProduct ? { ...editingProduct, ...formData } : formData, currentStoreId || '');
-      if (result.success) {
+      if (result.success && result.product) {
+        const saved = { ...result.product, price: Number(result.product.price) || 0, originalPrice: result.product.originalPrice ? Number(result.product.originalPrice) : undefined } as unknown as Product;
+        setLocalProducts(prev => {
+          if (editingProduct?.id) {
+            return prev.map(p => p.id === editingProduct.id ? { ...p, ...saved, id: p.id } : p);
+          }
+          return [saved, ...prev];
+        });
+        setShowSuccessToast(editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !');
+        setTimeout(() => setShowSuccessToast(null), 3000);
+        setIsModalOpen(false);
+      } else if (result.success) {
         setShowSuccessToast(editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !');
         setTimeout(() => setShowSuccessToast(null), 3000);
         setIsModalOpen(false);
@@ -1320,6 +1329,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   </Button>
                 ) : (
                   <Button
+                    type="button"
                     onClick={handleSubmit}
                     loading={isSubmitting}
                     loadingText="Envoi..."
