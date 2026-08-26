@@ -309,20 +309,32 @@ const Navbar: React.FC<NavbarProps> = ({
         )}
 
         <div className="flex items-center gap-2 ml-auto">
-          {!isSeller && (
-            <button
-              onClick={() => onViewChange('subscription')}
-              className={`flex items-center gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-2xl border shadow-sm hover:bg-orange-100 transition-all active:scale-95 ${
-                'text-[#f56b2a] bg-orange-50 border-orange-100'
-              }`}
-              title="Gérer l'abonnement"
-            >
-              <Clock size={16} />
-              <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
-                {userSubscription ? <><span className="md:hidden">-</span>{getDaysRemaining(userSubscription.endDate)}J<span className="hidden md:inline"> restants</span></> : '...'}
-              </span>
-            </button>
-          )}
+          {!isSeller && userSubscription && (() => {
+            const daysLeft = getDaysRemaining(userSubscription.endDate);
+            const isExpired = new Date(userSubscription.endDate) < new Date();
+            const isUrgent = daysLeft <= 7 && !isExpired;
+            const badgeClass = isExpired
+              ? 'text-red-600 bg-red-50 border-red-100 hover:bg-red-100'
+              : isUrgent
+                  ? 'text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100'
+                  : 'text-green-700 bg-green-50 border-green-100 hover:bg-green-100';
+            return (
+              <button
+                onClick={() => onViewChange('subscription')}
+                className={`flex items-center gap-2 px-2 py-1.5 md:px-4 md:py-2 rounded-2xl border shadow-sm transition-all active:scale-95 ${badgeClass}`}
+                title="Gérer l'abonnement"
+              >
+                <Clock size={16} />
+                <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
+                  {isExpired ? (
+                    <><span className="md:hidden">-</span>Expiré</>
+                  ) : (
+                    <><span className="md:hidden">-</span>{daysLeft}J<span className="hidden md:inline"> restants</span></>
+                  )}
+                </span>
+              </button>
+            );
+          })()}
 
           <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
             <button

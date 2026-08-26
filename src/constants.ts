@@ -176,9 +176,9 @@ export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', Subscr
     features: {
       maxStores: 1,
       maxProducts: 50,
-      enableStorefront: true,
-      enableAdvancedReports: true,
-      enableCustomReceipts: true
+      enableStorefront: false,
+      enableAdvancedReports: false,
+      enableCustomReceipts: false
     }
   },
   PRO: {
@@ -193,7 +193,7 @@ export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', Subscr
       maxProducts: 500,
       enableStorefront: true,
       enableAdvancedReports: true,
-      enableCustomReceipts: true
+      enableCustomReceipts: false
     }
   },
   ENTERPRISE: {

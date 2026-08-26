@@ -3,9 +3,11 @@
 import { revalidatePath, updateTag } from 'next/cache'
 import { dbFetchStores, dbFetchStoreData, dbCreateStore, StoreDataFields } from '@/db/api'
 import { db } from '@/db'
-import { stores } from '@/db/schema'
+import { stores, profiles } from '@/db/schema'
 import { eq, count } from 'drizzle-orm'
 import { SubscriptionTier, SubscriptionDuration } from '@/types'
+import { SUBSCRIPTION_PLANS } from '@/constants'
+import { createClient } from '@/utils/supabase/server'
 
 export async function fetchStores() {
   try {
@@ -60,11 +62,27 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
  * Quick store creation from the navbar — only needs a name.
  */
 export async function quickCreateStoreAction(name: string, businessType: string) {
-  // Mock / default user ID or session fallback for Drizzle transition
-  const defaultUserId = '00000000-0000-0000-0000-000000000000';
-
   try {
-    const newStore = await dbCreateStore(defaultUserId, name, businessType);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Non authentifié' };
+
+    // Check store limit based on subscription tier
+    const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    const tier = (profile?.subscriptionTier || 'PRO') as SubscriptionTier;
+    const plan = SUBSCRIPTION_PLANS[tier] || SUBSCRIPTION_PLANS.PRO;
+    const maxStores = plan.features.maxStores;
+
+    const [{ value: currentStoreCount }] = await db
+      .select({ value: count() })
+      .from(stores)
+      .where(eq(stores.userId, user.id));
+
+    if (currentStoreCount >= maxStores) {
+      return { success: false, error: `Limite de ${maxStores} boutique(s) atteinte pour votre abonnement ${plan.name}. Passez à un plan supérieur pour créer plus de boutiques.` };
+    }
+
+    const newStore = await dbCreateStore(user.id, name, businessType);
 
     const { cookies } = await import('next/headers');
     (await cookies()).set('currentStoreId', newStore.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });

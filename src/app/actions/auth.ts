@@ -28,12 +28,17 @@ export async function signupAction(formData: FormData) {
   const email = formData.get('email') as string;
   
   try {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
     const [newProfile] = await db.insert(profiles).values({
       email,
       fullName: name,
       subscriptionTier: 'PRO',
       subscriptionDuration: 'monthly',
       subscriptionStatus: 'ACTIVE',
+      subscriptionStartDate: now,
+      subscriptionEndDate: endOfMonth,
     }).returning();
 
     (await cookies()).set('userId', newProfile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });

@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     duration: profile?.subscription_duration || 'monthly',
     startDate: profile?.subscription_start_date || new Date().toISOString(),
     endDate: profile?.subscription_end_date || new Date().toISOString(),
-    status: profile?.subscription_status || 'EXPIRED' // Default to EXPIRED
+    status: (profile?.subscription_status || 'ACTIVE') as 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
   } as any;
 
   const currentPlan = SUBSCRIPTION_PLANS[userSubscription.tier as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.PRO;

@@ -100,7 +100,24 @@ export async function updateUserAdminStatus(userId: string, isAdmin: boolean) {
 
 export async function updateUserSubscription(userId: string, tier: string, duration: string) {
     try {
-        await db.update(profiles).set({ subscriptionTier: tier, subscriptionDuration: duration }).where(eq(profiles.id, userId));
+        const startDate = new Date();
+        let endDate = new Date();
+
+        if (duration === 'monthly') {
+            endDate.setMonth(startDate.getMonth() + 1);
+        } else if (duration === 'quarterly') {
+            endDate.setMonth(startDate.getMonth() + 3);
+        } else if (duration === 'annual') {
+            endDate.setFullYear(startDate.getFullYear() + 1);
+        }
+
+        await db.update(profiles).set({
+            subscriptionTier: tier,
+            subscriptionDuration: duration,
+            subscriptionStartDate: startDate,
+            subscriptionEndDate: endDate,
+            subscriptionStatus: 'ACTIVE'
+        }).where(eq(profiles.id, userId));
         revalidatePath('/admin');
         return { success: true };
     } catch (error: any) {

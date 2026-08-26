@@ -39,6 +39,9 @@ export async function signUpSession(name: string, email: string) {
     return { user: serializeUser(existing), error: null };
   }
 
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
   const [profile] = await db
     .insert(profiles)
     .values({
@@ -46,6 +49,8 @@ export async function signUpSession(name: string, email: string) {
       fullName: name,
       subscriptionTier: 'PRO',
       subscriptionStatus: 'ACTIVE',
+      subscriptionStartDate: now,
+      subscriptionEndDate: endOfMonth,
     })
     .returning();
 

@@ -5,13 +5,17 @@ import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
+import { createClient } from '@/utils/supabase/server'
 
 export async function saveProductAction(product: any, storeId: string) {
   try {
     // 1. Check Limits for NEW products
     if (!product.id) {
-      const defaultUserId = '00000000-0000-0000-0000-000000000000';
-      const [profile] = await db.select().from(profiles).where(eq(profiles.id, defaultUserId)).limit(1);
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Non authentifié' };
+
+      const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1);
       const [{ count: productsCount }] = await db
         .select({ count: sql<number>`count(*)` })
         .from(products)
