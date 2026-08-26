@@ -183,6 +183,20 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     if (product) {
       setEditingProduct(product);
       setCurrentStep(1);
+      const rawOptions = Array.isArray(product.options) ? product.options : [];
+      const safeOptions = rawOptions.map((o: any) => ({
+        id: o.id || Math.random().toString(36).substr(2, 9),
+        name: o.name || '',
+        values: Array.isArray(o.values) ? o.values : typeof o.values === 'string' ? o.values.split(',').map((v: string) => v.trim()).filter(Boolean) : [],
+      }));
+      const rawVariants = Array.isArray(product.variants) ? product.variants : [];
+      const safeVariants = rawVariants.map((v: any) => ({
+        id: v.id || Math.random().toString(36).substr(2, 9),
+        name: v.name || '',
+        optionValues: v.optionValues || {},
+        price: v.price || 0,
+        stock: v.stock || 0,
+      }));
       const initialFormData: Partial<Product> & { isOnline: boolean, images: string[] } = {
         name: product.name || '',
         price: product.price ?? undefined,
@@ -199,8 +213,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         deliveryTime: product.deliveryTime || '',
         preparationTime: product.preparationTime || '',
         businessType: product.businessType || (product.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 'shopping'),
-        options: product.options || [],
-        variants: product.variants || []
+        options: safeOptions,
+        variants: safeVariants
       };
       setFormData(initialFormData);
     } else {
@@ -987,7 +1001,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                 </div>
                                 <input
                                   type="text"
-                                  value={option.values.join(', ')}
+                                  value={Array.isArray(option.values) ? option.values.join(', ') : ''}
                                   onChange={e => {
                                     const newOptions = [...formData.options!];
                                     newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');

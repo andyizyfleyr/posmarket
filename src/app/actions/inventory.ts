@@ -67,8 +67,6 @@ export async function saveProductAction(product: any, storeId: string) {
         .returning();
     }
 
-    updateTag('marketplace');
-
     if (!savedProduct) return { success: false, error: 'Produit introuvable' };
 
     const safe = {
@@ -102,7 +100,6 @@ export async function saveProductAction(product: any, storeId: string) {
 export async function deleteProductAction(id: string) {
   try {
     await db.delete(products).where(eq(products.id, id));
-    updateTag('marketplace');
     return { success: true };
   } catch (error: any) {
     console.error('Error deleting product with Drizzle:', error);
