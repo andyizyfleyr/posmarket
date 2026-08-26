@@ -1,4 +1,4 @@
-import { SubscriptionView } from '@/views/SubscriptionView';
+import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
 import { updateSubscriptionAction } from '@/app/actions/subscription';
 
@@ -19,11 +19,10 @@ export default async function SubscriptionPage() {
   };
 
   return (
-    <SubscriptionView 
+    <SubscriptionClientWrapper
       currentSubscription={userSubscription as any}
       userRole={profile?.is_super_admin ? 'SUPER_ADMIN' : 'OWNER'}
       onUpdateSubscription={updateSubscriptionAction}
     />
   );
 }
-

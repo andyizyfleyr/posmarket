@@ -108,7 +108,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const currentStore = stores.find(s => s.id === currentStoreId) || stores[0] || null;
 
   let currentUserRole: any = 'OWNER';
-  if (profile?.isSuperAdmin) {
+  if (profile?.is_super_admin) {
     currentUserRole = 'SUPER_ADMIN';
   } else if (currentStore) {
     if (currentStore.ownerId !== user.id) {

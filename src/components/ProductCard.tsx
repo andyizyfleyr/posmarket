@@ -131,13 +131,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         <button
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`w-full py-2.5 rounded-lg flex items-center justify-center gap-1 text-[8px] md:text-[10px] font-black transition-all border active:scale-95 whitespace-nowrap tracking-tight ${
+          aria-label={isOutOfStock ? "Rupture de stock" : hasOptions ? "Choisir les options" : `Ajouter ${product.name} au panier`}
+          className={`w-full min-h-[36px] py-2.5 rounded-lg flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-black transition-all duration-200 border active:scale-95 whitespace-nowrap tracking-tight ${
             isOutOfStock
               ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
-              : "bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white border-gray-100"
+              : "bg-gray-50 text-gray-900 hover:bg-[#f56b2a] hover:text-white hover:border-[#f56b2a] border-gray-100"
           }`}
         >
-          {isOutOfStock ? "Rupture de stock" : hasOptions ? "Choisir options" : "Ajouter au panier"}
+          {isOutOfStock ? "Rupture" : hasOptions ? "Choisir" : <><Plus size={12} /> Ajouter</>}
         </button>
       </div>
     </div >

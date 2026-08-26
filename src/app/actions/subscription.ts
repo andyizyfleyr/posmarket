@@ -5,14 +5,20 @@ import { db } from '@/db'
 import { profiles } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { SubscriptionTier, SubscriptionDuration } from '@/types'
+import { createClient } from '@/utils/supabase/server'
 
 export async function updateSubscriptionAction(tier: SubscriptionTier, duration: SubscriptionDuration) {
     try {
-        const defaultUserId = '00000000-0000-0000-0000-000000000000';
-        
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return { success: false, error: 'Utilisateur non authentifié' };
+        }
+
         const startDate = new Date();
         let endDate = new Date();
-        
+
         if (duration === 'monthly') {
             endDate.setMonth(startDate.getMonth() + 1);
         } else if (duration === 'quarterly') {
@@ -27,13 +33,13 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
             subscriptionStartDate: startDate,
             subscriptionEndDate: endDate,
             subscriptionStatus: 'ACTIVE'
-        }).where(eq(profiles.id, defaultUserId));
-        
+        }).where(eq(profiles.id, user.id));
+
         revalidatePath('/subscription');
         revalidatePath('/', 'layout');
         return { success: true };
     } catch (error: any) {
-        console.error('Error updating subscription with Drizzle:', error);
+        console.error('Error updating subscription:', error);
         return { success: false, error: error.message };
     }
 }

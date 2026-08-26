@@ -415,12 +415,14 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                 </div>
             </div>
 
-            {/* Détails de commande sidebar/modal style - Legacy Design */}
+            {/* Détails de commande sidebar/modal style */}
             {selectedOrder && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white h-full md:h-auto md:max-h-[85vh] w-full md:max-w-xl md:rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-500 overflow-hidden">
+                <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white h-[85vh] md:h-auto md:max-h-[85vh] w-full md:max-w-xl md:rounded-3xl shadow-2xl flex flex-col animate-slide-up md:animate-in md:zoom-in-95 md:duration-500 overflow-hidden rounded-t-3xl md:rounded-3xl">
                         <div className="p-4 md:p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                            <div className="flex items-center gap-3 md:gap-4">
+                            {/* Mobile drag handle */}
+                            <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full" />
+                            <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-0">
                                 <button onClick={() => setSelectedOrder(null)} className="md:hidden p-1.5 -ml-1 text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></button>
                                 <div>
                                     <h2 className="text-lg md:text-xl font-black text-gray-900 tracking-tight whitespace-nowrap">Commande #{selectedOrder.id.slice(-6).toUpperCase()}</h2>
@@ -535,12 +537,12 @@ const OrdersView: React.FC<OrdersViewProps> = ({
 
             {/* Custom Toast Notification */}
             {toast.type && (
-                <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-5 duration-300 flex items-center gap-3 border ${
+                <div className={`fixed bottom-[88px] left-1/2 -translate-x-1/2 z-[200] px-5 py-3 rounded-2xl shadow-2xl animate-slide-up flex items-center gap-2.5 border max-w-[90vw] ${
                     toast.type === 'success' ? 'bg-green-600 text-white border-green-500' : 
                     toast.type === 'error' ? 'bg-red-600 text-white border-red-500' : 'bg-gray-800 text-white border-gray-700'
                 }`}>
-                    {toast.type === 'success' ? <CheckCircle2 size={18} /> : toast.type === 'error' ? <AlertCircle size={18} /> : <ShoppingBag size={18} />}
-                    <span className="text-sm font-black tracking-tight">{toast.message}</span>
+                    {toast.type === 'success' ? <CheckCircle2 size={16} /> : toast.type === 'error' ? <AlertCircle size={16} /> : <ShoppingBag size={16} />}
+                    <span className="text-xs md:text-sm font-black tracking-tight whitespace-nowrap">{toast.message}</span>
                 </div>
             )}
         </div>

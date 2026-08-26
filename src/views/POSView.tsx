@@ -329,7 +329,9 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
       {/* Right Side: Cart */}
       <div id="tour-pos-cart" className={`
-        ${showCartOnMobile ? 'flex fixed inset-0 z-[60] bg-white' : 'hidden'}
+        ${showCartOnMobile
+          ? 'flex fixed inset-0 z-[60] bg-white animate-slide-up'
+          : 'hidden'}
         md:flex md:relative md:w-[380px] lg:w-[420px] flex-shrink-0 bg-white shadow-xl flex flex-col h-full overflow-hidden border-l border-gray-200
       `}>
         <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
@@ -518,28 +520,32 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         </div>
       </div>
 
-      {/* Mobile Floating Cart Button - Legacy Look */}
+      {/* Mobile Floating Cart Button */}
       {cart.length > 0 && !showCartOnMobile && (
         <button
           onClick={() => setShowCartOnMobile(true)}
-          className="md:hidden fixed bottom-20 right-4 z-40 bg-[#f56b2a] text-white p-3 rounded-full shadow-2xl flex items-center gap-2 animate-bounce"
+          aria-label={`Voir le panier, ${cart.length} articles, ${formatCurrency(totals.total)}`}
+          className="md:hidden fixed bottom-[72px] right-4 z-40 bg-[#f56b2a] text-white pl-3 pr-4 py-2.5 rounded-2xl shadow-[0_4px_20px_rgba(245,107,42,0.4)] flex items-center gap-2.5 fab-pulse active:scale-95 transition-transform"
         >
           <div className="relative">
             <ShoppingBasket size={18} />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#f56b2a]">
+            <span className="absolute -top-1.5 -right-1.5 bg-white text-[#f56b2a] text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
               {cart.length}
             </span>
           </div>
-          <span className="font-black text-sm pr-1">{formatCurrency(totals.total)}</span>
+          <span className="font-black text-sm">{formatCurrency(totals.total)}</span>
+          <ArrowRight size={14} className="opacity-70" />
         </button>
       )}
 
-      {/* Checkout Success Modal - Legacy Look */}
+      {/* Checkout Success Modal - Mobile bottom sheet / Desktop centered */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white md:rounded-3xl shadow-2xl w-full md:max-w-lg overflow-hidden flex flex-col max-h-[90vh] rounded-t-3xl md:rounded-3xl animate-slide-up md:animate-in md:zoom-in-95 md:duration-500">
             <div className="p-6 text-center border-b border-gray-100">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 size={32} /></div>
+              {/* Mobile drag handle */}
+              <div className="md:hidden w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-success-bounce"><CheckCircle2 size={32} /></div>
               <h2 className="text-2xl font-bold text-gray-800">Succès !</h2>
               <p className="text-gray-500 text-sm">Commande {currentOrderId.slice(-8).toUpperCase()} validée.</p>
             </div>
@@ -581,8 +587,8 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 <button onClick={handlePrint} className="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl font-bold"><Printer size={18} /> Imprimer</button>
                 <button onClick={handleDownloadPDF} className="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl font-bold"><Download size={18} /> PDF</button>
               </div>
-              <button onClick={closeCheckout} className="w-full py-4 bg-[#f56b2a] text-white font-bold rounded-xl">
-                'Nouvelle Vente'
+              <button onClick={closeCheckout} className="w-full py-4 bg-[#f56b2a] text-white font-bold rounded-xl active:scale-[0.98] transition-transform">
+                Nouvelle Vente
               </button>
             </div>
           </div>

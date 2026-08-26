@@ -338,7 +338,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden relative">
-      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-4 pointer-events-none items-end">
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none items-end max-w-[90vw]">
         {toastNotifications.map(notif => (
           <Toast key={notif.id} notification={notif} onRemove={removeToast} />
         ))}
@@ -370,7 +370,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             onLogout={onLogout}
           />
         )}
-        <main className="flex-grow overflow-hidden flex flex-col bg-white pb-16 md:pb-0 relative">
+        <main className="flex-grow overflow-hidden flex flex-col bg-white pb-20 md:pb-0 relative">
           <div key={`${currentView}-${currentStore?.id}`} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
             {children}
           </div>
