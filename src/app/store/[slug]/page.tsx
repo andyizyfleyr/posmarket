@@ -39,7 +39,7 @@ export default async function StorePage({ params }: Props) {
         getStoreSeo(slug),
     ]);
 
-    let jsonLd: any = null;
+    let jsonLd: Record<string, unknown>[] | null = null;
     if (store) {
         const products = (store.products || []).slice(0, 25);
         const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
@@ -67,7 +67,7 @@ export default async function StorePage({ params }: Props) {
             }),
             hasOfferCatalog: {
                 "@type": "OfferCatalog",
-                itemListElement: products.map((p: any) => ({
+                itemListElement: products.map((p) => ({
                     "@type": "Offer",
                     itemOffered: {
                         "@type": "Product",

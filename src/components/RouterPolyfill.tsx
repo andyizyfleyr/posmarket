@@ -63,10 +63,14 @@ export const useMatch = (pattern: string) => {
     return pathname === pattern ? { params: {} } : null;
 };
 
-export const Link = React.forwardRef<HTMLAnchorElement, any>((props, ref) => {
+type LinkProps = { to?: string; href?: string } & Omit<React.ComponentProps<typeof NextLink>, 'href'>;
+
+export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => {
     const { to, href, ...rest } = props;
     return <NextLink href={to || href || '#'} ref={ref} {...rest} />;
 });
+
+Link.displayName = 'Link';
 
 export const Routes = ({ children }: { children: React.ReactNode }) => {
     const pathname = useNextPathname() || '/';
@@ -75,7 +79,7 @@ export const Routes = ({ children }: { children: React.ReactNode }) => {
     // Find the first matching child
     for (const child of childrenArray) {
         if (React.isValidElement(child)) {
-            const { path, index } = child.props as any;
+            const { path, index } = child.props as { path?: string; index?: boolean };
             
             if (index && pathname === '/') return <>{child}</>;
             

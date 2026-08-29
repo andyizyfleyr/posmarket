@@ -36,7 +36,7 @@ const BottomNavItem: React.FC<BottomNavItemProps> = ({ id, icon, label, active =
     <div className={`relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 ${
       active ? 'scale-110' : 'scale-100 active:scale-95'
     }`}>
-      {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, {
+      {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
         size: 20,
         strokeWidth: active ? 2.5 : 1.8
       }) : icon}

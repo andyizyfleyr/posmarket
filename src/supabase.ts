@@ -22,15 +22,15 @@ export const supabase = {
       const { user } = await getCurrentSession();
       return { data: { user }, error: null };
     },
-    async signUp({ email, password, options }: any) {
-      const result = await signUpSession(options?.data?.full_name || 'Utilisateur', email);
+    async signUp(args: { email: string; password?: string; options?: { data?: { full_name?: string } } }) {
+      const result = await signUpSession(args.options?.data?.full_name || 'Utilisateur', args.email);
       return {
         data: { user: result.user, session: result.user ? { user: result.user } : null },
         error: result.error,
       };
     },
-    async signInWithPassword({ email }: any) {
-      const result = await signInWithPasswordSession(email);
+    async signInWithPassword(args: { email: string; password?: string }) {
+      const result = await signInWithPasswordSession(args.email);
       return {
         data: { user: result.user, session: result.user ? { user: result.user } : null },
         error: result.error,
@@ -39,20 +39,20 @@ export const supabase = {
     async signOut() {
       return signOutSession();
     },
-    async setSession(session: any) {
+    async setSession(session?: { user?: { id?: string } | null } | null) {
       return setSessionUser(session?.user?.id || null);
     },
   },
   from(table: string) {
     return new QueryBuilder(table, clientExecutor);
   },
-  rpc(name: string, args?: any) {
-    const builder: QueryBuilder<any> = new QueryBuilder('', clientExecutor);
+  rpc(name: string, args?: unknown) {
+    const builder = new QueryBuilder('', clientExecutor);
     builder.rpc(name, args);
     return builder;
   },
   functions: {
-    async invoke(fn: string, opts: any) {
+    async invoke(fn: string, opts?: { body?: unknown }) {
       if (fn === 'create-staff') {
         return execRpc('create-staff', opts?.body);
       }

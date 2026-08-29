@@ -29,9 +29,9 @@ import { getCustomersAction } from '@/app/actions/customers';
 
 interface CustomersViewProps {
   customers: Customer[];
-  onSaveCustomer?: (customer: any) => Promise<any>;
-  onDeleteCustomer?: (id: string) => Promise<any>;
-  onBulkDeleteCustomers?: (ids: string[]) => Promise<any>;
+  onSaveCustomer?: (customer: Customer) => Promise<{ success: boolean; error?: string }>;
+  onDeleteCustomer?: (id: string) => Promise<{ success: boolean; error?: string }>;
+  onBulkDeleteCustomers?: (ids: string[]) => Promise<{ success: boolean; error?: string }>;
   userRole?: StaffRole;
   permissions: StaffPermissions;
   currentStoreId?: string;
@@ -69,7 +69,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
         if (currentStoreId) {
             const res = await getCustomersAction(currentStoreId, 0, 10, searchTerm);
             if (res.success && res.customers) {
-                setLocalCustomers(res.customers as any);
+                setLocalCustomers(res.customers as unknown as Customer[]);
                 setOffset(res.customers.length);
                 setHasMore(res.hasMore || false);
             }
@@ -91,7 +91,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     setIsLoadingMore(true);
     const res = await getCustomersAction(currentStoreId, offset, 10, searchTerm);
     if (res.success && res.customers) {
-        setLocalCustomers(prev => [...prev, ...(res.customers as any)]);
+        setLocalCustomers(prev => [...prev, ...(res.customers as unknown as Customer[])]);
         setOffset(prev => prev + (res.customers?.length || 0));
         setHasMore(res.hasMore || false);
     }
@@ -112,14 +112,16 @@ const CustomersView: React.FC<CustomersViewProps> = ({
 
   // Form state
   const [formData, setFormData] = useState<Partial<Customer>>({
+    id: '',
     name: '',
     phone: '',
+    address: '',
     totalSpent: 0,
     ordersCount: 0
   });
 
   const filteredCustomers = useMemo(() => {
-    let result = [...localCustomers].filter(c => {
+    const result = [...localCustomers].filter(c => {
       if (activeSegment === 'all') return true;
       const { isVIP, isInactive } = getSegment(c);
       if (activeSegment === 'vip') return isVIP;
@@ -229,10 +231,10 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const customerData: any = editingCustomer ? { ...editingCustomer, ...formData } : formData;
+      const customerData = editingCustomer ? { ...editingCustomer, ...formData } : formData;
       const dbCustomer = {
         ...(customerData.id && { id: customerData.id }),
-        store_id: currentStoreId || (localCustomers[0] as any)?.store_id,
+        store_id: currentStoreId || (localCustomers[0] as unknown as { store_id?: string })?.store_id,
         name: customerData.name,
         phone: customerData.phone,
         address: customerData.address,
@@ -241,7 +243,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
       };
 
       if (onSaveCustomer) {
-        await onSaveCustomer(customerData);
+        await onSaveCustomer(customerData as Customer);
       } else {
         const { error } = await supabase.from('customers').upsert(dbCustomer);
         if (error) throw error;
@@ -288,14 +290,14 @@ const CustomersView: React.FC<CustomersViewProps> = ({
 
       <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-1.5 md:pb-2 no-scrollbar">
         {[
-          { id: 'all', label: 'Tous', count: localCustomers.length },
-          { id: 'vip', label: 'VIP', count: localCustomers.filter(c => getSegment(c).isVIP).length },
-          { id: 'inactive', label: 'Inactifs', count: localCustomers.filter(c => getSegment(c).isInactive).length },
+          { id: 'all' as const, label: 'Tous', count: localCustomers.length },
+          { id: 'vip' as const, label: 'VIP', count: localCustomers.filter(c => getSegment(c).isVIP).length },
+          { id: 'inactive' as const, label: 'Inactifs', count: localCustomers.filter(c => getSegment(c).isInactive).length },
         ].map(segment => (
           <button
             key={segment.id}
             onClick={() => {
-                setActiveSegment(segment.id as any);
+                setActiveSegment(segment.id);
                 setSelectedIds(new Set());
             }}
             className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap border ${activeSegment === segment.id ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}`}

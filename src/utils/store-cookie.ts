@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { safeSupabaseFetch } from './supabase/retry';
+import type { QueryBuilder } from '@/db/builder';
 
 export const getStoreCookie = async () => {
   const cookieStore = await cookies();
@@ -16,8 +17,12 @@ export const clearStoreCookie = async () => {
   cookieStore.delete('currentStoreId');
 };
 
-export const getEffectiveStoreId = async (supabase: any, session: any): Promise<string | null> => {
-  if (!session?.user) return null;
+type SupabaseClientLike = { from: (table: string) => QueryBuilder };
+type AuthSession = { user?: { id?: string } | null } | null;
+
+export const getEffectiveStoreId = async (supabase: SupabaseClientLike, session: AuthSession): Promise<string | null> => {
+  const userId = session?.user?.id;
+  if (!userId) return null;
   
   const currentId = await getStoreCookie();
   
@@ -28,12 +33,12 @@ export const getEffectiveStoreId = async (supabase: any, session: any): Promise<
       supabase.from('stores')
         .select('id')
         .eq('id', currentId)
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .single(),
       supabase.from('store_staff')
         .select('id')
         .eq('store_id', currentId)
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .single()
     ]);
 
@@ -42,10 +47,10 @@ export const getEffectiveStoreId = async (supabase: any, session: any): Promise<
 
   // Fallback to finding ANY store they have access to
   // 1. Owned stores
-  const { data: owned } = await safeSupabaseFetch<any[]>(
+  const { data: owned } = await safeSupabaseFetch<{ id: string }[]>(
     () => supabase.from('stores')
       .select('id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .limit(1)
   );
   
@@ -54,10 +59,10 @@ export const getEffectiveStoreId = async (supabase: any, session: any): Promise<
   }
 
   // 2. Staff stores
-  const { data: staff } = await safeSupabaseFetch<any[]>(
+  const { data: staff } = await safeSupabaseFetch<{ store_id: string }[]>(
     () => supabase.from('store_staff')
       .select('store_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .limit(1)
   );
 

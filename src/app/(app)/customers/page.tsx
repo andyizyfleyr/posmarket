@@ -5,6 +5,7 @@ import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
+import { Customer, StaffRole, StaffPermissions } from '@/types';
 
 export default async function CustomersPage() {
   const supabase = await createClient();
@@ -20,7 +21,7 @@ export default async function CustomersPage() {
   const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
 
   // Define client-side compatible wrappers for server actions
-  async function onSaveCustomer(customer: any) {
+  async function onSaveCustomer(customer: Customer) {
     'use server';
     return await saveCustomerAction(customer, storeId!);
   }
@@ -37,9 +38,9 @@ export default async function CustomersPage() {
 
   return (
     <CustomersView 
-      customers={customers as any} 
-      permissions={permissions as any}
-      userRole={role as any}
+      customers={customers as unknown as Customer[]} 
+      permissions={permissions as unknown as StaffPermissions}
+      userRole={role as unknown as StaffRole}
       currentStoreId={storeId}
       onSaveCustomer={onSaveCustomer}
       onDeleteCustomer={onDeleteCustomer}

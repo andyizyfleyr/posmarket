@@ -1,9 +1,9 @@
 import { supabase } from '@/supabase';
-import { Product, Customer, Order, StoreSettings, Invoice, Staff, UserProfile, UserSubscription } from '@/types';
+import { Product, Customer, Order, StoreSettings, Invoice, UserSubscription } from '@/types';
 import { generateSlug } from '@/utils';
 
 export const saveProduct = async (product: Partial<Product>, storeId: string) => {
-    const dataToSave: any = {
+    const dataToSave = {
         store_id: storeId,
         name: product.name,
         price: product.price,
@@ -16,16 +16,14 @@ export const saveProduct = async (product: Partial<Product>, storeId: string) =>
         description: product.description,
         business_type: product.businessType || 'shopping',
         options: product.options || [],
-        variants: product.variants || []
+        variants: product.variants || [],
+        images: product.images || [],
+        is_online: product.isOnline,
     };
-
-    // Add images and is_online only if they are present in the product object
-    if (product.images !== undefined) dataToSave.images = product.images;
-    if (product.isOnline !== undefined) dataToSave.is_online = product.isOnline;
 
     // Clean dataToSave to remove any undefined fields that might cause SQL errors
     Object.keys(dataToSave).forEach(key => {
-        if (dataToSave[key] === undefined) delete dataToSave[key];
+        if (dataToSave[key as keyof typeof dataToSave] === undefined) delete dataToSave[key as keyof typeof dataToSave];
     });
 
     if (product.id && !product.id.startsWith('temp-')) {
@@ -190,8 +188,8 @@ export const bulkDeleteOrders = async (ids: string[]) => {
     if (error) throw error;
 };
 
-export const addProductReview = async (storeId: string, productId: string, review: any) => {
-    const dataToInsert: any = {
+export const addProductReview = async (storeId: string, productId: string, review: { author?: string | null; rating?: number | null; comment?: string | null }) => {
+    const dataToInsert = {
         store_id: storeId,
         product_id: productId,
         author_name: review.author || 'Anonyme',
@@ -265,7 +263,7 @@ export const saveInvoice = async (invoice: Invoice, storeId: string) => {
             .select()
             .single();
         if (error) throw error;
-        invId = data.id;
+        invId = (data as { id: string } | null)?.id || invId;
     }
 
     const invoiceItems = invoice.items.map(item => ({
@@ -297,7 +295,7 @@ export const deleteStore = async (id: string) => {
 export const incrementProductViews = async (id: string) => {
     try {
         const { error } = await supabase.rpc('increment_product_views', { p_id: id });
-        if (error) console.warn('[API] increment_product_views failed:', error.message);
+        if (error) console.warn('[API] increment_product_views failed:', (error as { message?: unknown })?.message);
     } catch (e) {
         console.error('[API] increment_product_views error:', e);
     }
@@ -306,7 +304,7 @@ export const incrementProductViews = async (id: string) => {
 export const incrementStoreViews = async (storeId: string) => {
     try {
         const { error } = await supabase.rpc('increment_store_views', { p_id: storeId });
-        if (error) console.warn('[API] increment_store_views failed:', error.message);
+        if (error) console.warn('[API] increment_store_views failed:', (error as { message?: unknown })?.message);
     } catch (e) {
         console.error('[API] increment_store_views error:', e);
     }
@@ -349,7 +347,7 @@ export const updateUserProfile = async (userId: string, updates: { full_name?: s
     };
 };
 
-export const saveStaff = async (staff: any, storeId: string) => {
+export const saveStaff = async (staff: { id?: string; email?: string; password?: string; role?: string; userId?: string }, storeId: string) => {
     // If we have an email and password, it means we are creating/linking a managed account
     if (staff.email && staff.password) {
         try {
@@ -366,10 +364,10 @@ export const saveStaff = async (staff: any, storeId: string) => {
 
             if (functionError) {
                 // If the error message is generic, try to get more from data
-                const message = data?.error || functionError.message;
+                const message = String((data as { error?: unknown } | null)?.error || (functionError as { message?: unknown })?.message || '');
 
                 // Handle already registered users
-                if (message?.toLowerCase().includes('already registered')) {
+                if (message.toLowerCase().includes('already registered')) {
                     const userId = await getProfileByEmail(staff.email);
                     if (userId) {
                         const { error } = await supabase
@@ -382,7 +380,7 @@ export const saveStaff = async (staff: any, storeId: string) => {
                 throw new Error(message || "L'Edge Function a retourné une erreur (vérifiez vos logs Supabase).");
             }
 
-            if (data?.error) throw new Error(data.error);
+            if ((data as { error?: unknown } | null)?.error) throw new Error(String((data as { error?: unknown } | null)?.error));
         } catch (error) {
             console.error('Staff creation error:', error);
             throw error;
@@ -408,7 +406,7 @@ export const getProfileByEmail = async (email: string) => {
         .rpc('get_user_id_by_email', { p_email: email });
 
     if (error) throw error;
-    return data as string | null;
+    return data as unknown as string | null;
 };
 
 export const deleteStaff = async (id: string) => {

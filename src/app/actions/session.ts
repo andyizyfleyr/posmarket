@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 
-function serializeUser(profile: any) {
+function serializeUser(profile: typeof profiles.$inferSelect) {
   return {
     id: profile.id,
     email: profile.email,

@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import Image from "next/image";
-import { Skeleton, ProductSkeleton } from "@/components/Skeleton";
+import { ProductSkeleton } from "@/components/Skeleton";
 import {
   ShoppingCart,
   Search,
@@ -22,28 +22,22 @@ import {
   CheckCircle2,
   User,
   Phone,
-  Mail,
   Truck,
   ShieldCheck,
-  Gift,
   Zap,
   Bell,
   PartyPopper,
   MessageCircle,
-  Plus,
   ArrowRight,
   Loader2,
   ChevronRight,
   ChevronDown,
   ChevronUp,
   ShoppingBasketIcon,
-  Globe,
   Package,
-  Edit2,
   Trash2,
   Home,
   Briefcase,
-  LogOut,
   ArrowLeft,
   AlertCircle,
   Clock,
@@ -58,14 +52,10 @@ import {
 import {
   StoreData,
   Product,
-  Customer,
-  Order,
-  ViewType,
   NotificationType,
   Review,
   Coupon,
   ToastNotification,
-  BusinessVertical,
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
@@ -75,6 +65,7 @@ import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
 import { MarketplaceFooter } from "@/components/MarketplaceFooter";
+import type { BuyerAddress } from "@/components/buyer/accountTypes";
 import {
   Routes,
   Route,
@@ -83,14 +74,12 @@ import {
   Link,
   useLocation,
   useMatch,
-  useRouter,
 } from "@/components/RouterPolyfill";
 import {
   incrementProductViews,
   incrementStoreViews,
 } from "@/supabase-api";
 import {
-  fetchMarketplaceProducts,
   fetchProductReviews,
 } from "@/hooks/useSupabaseData";
 import { supabase } from "@/supabase";
@@ -106,34 +95,34 @@ interface StorefrontProduct extends Product {
   storeSlug?: string;
 }
 
-const categoryImages: Record<string, string> = {
-  all: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80",
-  "Électronique & High-Tech":
-    "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&q=80",
-  "Maison & Bureau":
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=80",
-  "Mode & Beauté":
-    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80",
-  "Alimentation & Boissons":
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80",
-  "Santé & Bien-être":
-    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80",
-  "Sport & Loisirs":
-    "https://images.unsplash.com/photo-1517836357463-d25dfeac00dc?w=600&q=80",
-  "Auto & Moto":
-    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=80",
-  "Restauration & Livraison Rapide":
-    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80",
-  "Séjours, Expériences & Immobilier":
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
-  "Jouets & Enfants":
-    "https://images.unsplash.com/photo-1532330393533-443990a51d10?w=300&q=80",
-  "Bricolage & Jardin":
-    "https://images.unsplash.com/photo-1585913661635-2170c5891553?w=300&q=80",
-  "Livres & Papeterie":
-    "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=300&q=80",
-  Divers:
-    "https://images.unsplash.com/photo-1456324504439-367921d17449?w=300&q=80",
+type FtsRow = {
+  id: string;
+  name: string;
+  price: number | string;
+  image: string | null;
+  stock: number | null;
+  category: string | null;
+  store_id: string;
+  isOnline: boolean | null;
+};
+
+export type CheckoutStoreOrderDraft = {
+  items: Array<{ product: StorefrontProduct; quantity: number }>;
+  subtotal: number;
+  discountAmount?: number;
+  promoCode?: string | null;
+  shippingCost?: number;
+  paymentMethod?: string;
+  total: number;
+};
+
+export type CheckoutCustomerDraft = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  zip?: string;
 };
 
 const getOptimizedImageUrl = (url: string, isSlow: boolean) => {
@@ -188,18 +177,23 @@ const saveRecentSearch = (term: string): string[] => {
 
 interface StorefrontViewProps {
   stores: StoreData[];
-  onBackToApp: () => void | Promise<any>;
+  onBackToApp: () => void | Promise<void>;
   onMarketplaceCheckout: (
-    ordersData: Record<string, any>,
-    customerData: any,
-  ) => Promise<any>;
+    ordersData: Record<string, CheckoutStoreOrderDraft>,
+    customerData: CheckoutCustomerDraft,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
   onAddReview: (
     storeId: string,
     productId: string,
-    review: any,
-  ) => Promise<any>;
-  onNotifyCartInterest: (storeId: string, productName: string) => Promise<any>;
-  onNotifyPostCheckout: (ordersData: Record<string, any>) => Promise<any>;
+    review: Review,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  onNotifyCartInterest: (
+    storeId: string,
+    productName: string,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  onNotifyPostCheckout: (
+    ordersData: Record<string, CheckoutStoreOrderDraft>,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
   notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
@@ -216,7 +210,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const params = useParams();
   const { isOnline, isSlow } = useNetworkStatus();
   const storeViewTracked = React.useRef<string | null>(null);
   const productViewTracked = React.useRef<string | null>(null);
@@ -253,15 +246,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     zip: "",
   });
   const [promoApplied, setPromoApplied] = useState<Coupon | null>(null);
-  const [selectedVertical, setSelectedVertical] = useState<
-    "all" | "shopping" | "food"
-  >("all");
+  const [selectedVertical] = useState<"all" | "shopping" | "food">("all");
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [ftsResults, setFtsResults] = useState<any[]>([]);
+  const [ftsResults, setFtsResults] = useState<StorefrontProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
-  const [urlKey, setUrlKey] = useState(0);
+  const [, setUrlKey] = useState(0);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
 
   // 0. URL Change Listener - Force re-render on navigation
@@ -340,16 +331,27 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
         // Même règle que la grille d'accueil : isOnline absent ou vrai.
         // (Filtrage client : .or() indisponible sur ce client Supabase.)
-        const onlineResults = (data || []).filter(
-          (p: any) => p?.isOnline !== false,
-        );
+        const rows = (data || []) as FtsRow[];
+        const onlineResults = rows.filter((p) => p?.isOnline !== false);
 
         // Only use result if it's for the current search term
         if (ftsRequestRef.current?.term === searchTerm) {
-          setFtsResults(onlineResults.slice(0, 20));
+          setFtsResults(
+            onlineResults.slice(0, 20).map((p) => ({
+              id: p.id,
+              name: p.name,
+              price: Number(p.price),
+              image: p.image || "",
+              stock: p.stock ?? 0,
+              category: p.category || "Autre",
+              storeId: p.store_id,
+              storeName: "",
+              storeSlug: undefined,
+            }) as StorefrontProduct),
+          );
         }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
+      } catch (err) {
+        if ((err as { name?: string } | null)?.name !== "AbortError") {
           console.error("FTS Search Error:", err);
         }
       } finally {
@@ -385,7 +387,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             setIsInitialLoading(false);
           }
         }
-      } catch (e) {}
+      } catch {}
 
       try {
         const savedCart = localStorage.getItem("storefront_cart");
@@ -395,7 +397,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             setCart(data);
           }
         }
-      } catch (e) {}
+      } catch {}
 
       try {
         const savedCustomer = localStorage.getItem("storefront_customer");
@@ -405,7 +407,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             setCustomerInfo(data);
           }
         }
-      } catch (e) {}
+      } catch {}
 
       try {
         const savedPromo = localStorage.getItem("storefront_promo");
@@ -415,7 +417,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             setPromoApplied(data);
           }
         }
-      } catch (e) {}
+      } catch {}
     }, 0);
 
     return () => clearTimeout(timer);
@@ -439,9 +441,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const allProducts = useMemo(() => {
     const products: StorefrontProduct[] = [];
-    activeStores.forEach((store: any) => {
+    activeStores.forEach((store) => {
       if (store.products) {
-        store.products.forEach((product: any) => {
+        store.products.forEach((product) => {
           // Only include products that are marked as online
           if (product.isOnline !== false) {
             products.push({
@@ -479,7 +481,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           timestamp: Date.now(),
         }),
       );
-    } catch (e) {}
+    } catch {}
   }, [stores, allProducts, isMounted]);
 
   // 3. Save cart to localStorage when it changes (throttled, only after mounting)
@@ -586,7 +588,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       setCheckoutStage(newStage);
       stageTargetRef.current = newStage;
     },
-    [checkoutStage],
+    [],
   );
 
   // 🔄 Couper le loader quand l'étape de checkout a changé
@@ -602,23 +604,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [cartNotif, setCartNotif] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [buyerDataCache, setBuyerDataCache] = useState<any>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-
-  // Load cached buyer data on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("buyer_data_cache");
-      if (saved) setBuyerDataCache(JSON.parse(saved));
-    } catch (e) {}
-  }, []);
-
-  const updateBuyerCache = useCallback((newData: any) => {
-    setBuyerDataCache(newData);
-    try {
-      localStorage.setItem("buyer_data_cache", JSON.stringify(newData));
-    } catch (e) {}
-  }, []);
 
   // Carousel auto-play - uniquement sur l'accueil, en pause au survol et
   // quand l'onglet est masqué (la slide ne saute plus sous les yeux de
@@ -691,7 +677,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     if (!w.__pwaInstallPrompt) return;
     try {
       await w.__pwaInstallPrompt.prompt();
-    } catch (e) {}
+    } catch {}
     (window as unknown as { __pwaInstallPrompt?: unknown }).__pwaInstallPrompt = null;
     setCanInstallPwa(false);
   };
@@ -729,7 +715,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     productId: string;
     productName: string;
   } | null>(null);
-  const [reviewedProducts, setReviewedProducts] = useState<string[]>([]);
+  const [, setReviewedProducts] = useState<string[]>([]);
   const [completedOrderItems, setCompletedOrderItems] = useState<
     Array<{ name: string; quantity: number; price: number }>
   >([]);
@@ -769,7 +755,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, []);
 
   // Fetch buyer addresses when user is set
-  const [buyerAddresses, setBuyerAddresses] = useState<any[]>([]);
+  const [buyerAddresses, setBuyerAddresses] = useState<BuyerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   useEffect(() => {
     const loadAddresses = async () => {
@@ -806,7 +792,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       }));
       localNotify("Adresse enregistrée pré-remplie", "info");
     }
-  }, [checkoutStage, user?.id, buyerAddresses, customerInfo.address]);
+  }, [checkoutStage, user?.id, buyerAddresses, customerInfo.address, localNotify]);
 
   // Auto-redirect to home if hitting /mon-compte without session (only for exact /mon-compte, not sub-paths)
   useEffect(() => {
@@ -822,9 +808,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, [isAccountViewUrl, user, isMounted]);
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [rememberMe, setRememberMe] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
-  const [cardInfo, setCardInfo] = useState({ number: "", expiry: "", cvc: "" });
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isPromoOpen, setIsPromoOpen] = useState(false);
   const [expandedCartStores, setExpandedCartStores] = useState<Set<string>>(
@@ -909,7 +893,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           .select("*")
           .eq("active", true)
           .in("store_id", storeIds);
-        setCoupons(data || []);
+        setCoupons((data || []) as unknown as Coupon[]);
       } catch (e) {
         console.log("Coupons table not available", e);
       }
@@ -931,7 +915,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         "info",
       );
     }
-  }, [coupons, promoApplied]);
+  }, [coupons, promoApplied, localNotify]);
 const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     null
   );
@@ -950,7 +934,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const handlePtrRefresh = useCallback(() => {
     window.location.reload();
   }, []);
-  const { pull: ptrPull, refreshing: ptrRefreshing } = usePullToRefresh(
+  usePullToRefresh(
     (location.pathname === "/" || location.pathname.startsWith("/store/")) &&
       !isSearchOpen &&
       !showAuthModal &&
@@ -975,7 +959,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm]);
 
   // Pagination & Infinite Scroll State
-  const [page, setPage] = useState(0);
+  const [, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -991,9 +975,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<Record<
     string,
-    any
+    CheckoutStoreOrderDraft
   > | null>(null);
-  const [pendingCustomerInfo, setPendingCustomerInfo] = useState<any>(null);
+  const [pendingCustomerInfo, setPendingCustomerInfo] =
+    useState<CheckoutCustomerDraft | null>(null);
 
   const initiateFusionPayPayment = useCallback(
     async (
@@ -1092,7 +1077,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           if (orderData) setPendingOrderData(orderData);
           if (customer) setPendingCustomerInfo(customer);
         }
-      } catch (e) {}
+      } catch {}
     }
     if (orderData && customer) {
       checkFusionPayPaymentStatus(token, orderData, customer);
@@ -1106,7 +1091,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const clearFusionPayPending = () => {
     try {
       sessionStorage.removeItem("fusionpay_pending_order");
-    } catch (e) {}
+    } catch {}
     setPendingOrderData(null);
     setPendingCustomerInfo(null);
   };
@@ -1224,24 +1209,33 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       }
       setShowAuthModal(false);
       setAuthForm({ name: "", email: "", password: "" });
-    } catch (err: any) {
-      notify(err.message || "Erreur d'authentification", "error");
+    } catch (err) {
+      notify(
+        (err instanceof Error
+          ? err.message
+          : (err as { message?: string } | null)?.message) ||
+          "Erreur d'authentification",
+        "error",
+      );
     } finally {
       setIsProcessingAuth(false);
     }
   };
 
   const handleLogout = async () => {
-    const confirmed = window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
-    if (confirmed) {
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {}
-      setUser(null);
-      setCustomerInfo({ name: "", phone: "", address: "", city: "", zip: "" });
-      setIsAccountView(false);
-      localNotify("Déconnexion réussie", "info");
-    }
+    // La confirmation est gérée par la modale de l'espace compte (BuyerView).
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    setUser(null);
+    setCustomerInfo({ name: "", phone: "", address: "", city: "", zip: "" });
+    setIsAccountView(false);
+    safeNavigate("/");
+    localNotify("Déconnexion réussie", "info");
+  };
+
+  const handleUserUpdate = (updates: { name: string }) => {
+    setUser((prev) => (prev ? { ...prev, name: updates.name || prev.name } : prev));
   };
 
   const globalSearchStores = useMemo(() => {
@@ -1325,7 +1319,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         if (!cancelled) {
           setProductReviews((prev) => ({
             ...prev,
-            [selectedProductId]: reviews,
+            [selectedProductId]: reviews as unknown as Review[],
           }));
           setLoadingReviews((prev) => ({
             ...prev,
@@ -1369,7 +1363,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     fetchProductReviews(productId)
       .then((reviews) => {
         if (reviews && reviews.length > 0) {
-          setProductReviews((prev) => ({ ...prev, [productId]: reviews }));
+          setProductReviews((prev) => ({ ...prev, [productId]: reviews as unknown as Review[] }));
         }
       })
       .catch(() => {});
@@ -1383,7 +1377,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         try {
           const img = document.createElement("img");
           img.src = p.image;
-        } catch (e) {}
+        } catch {}
       }
     },
     [prefetchProduct],
@@ -1398,7 +1392,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       allProducts.slice(0, 6).forEach((p) => prefetchProduct(p.id));
     }, 2000);
     return () => clearTimeout(timer);
-  }, [isMounted, allProducts.length, prefetchProduct]);
+  }, [isMounted, allProducts.length, allProducts, prefetchProduct]);
 
   // Track store views - only increment once per store per session
   const lastVisitedStoreRef = useRef<string | null>(null);
@@ -1414,29 +1408,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       setShowAllStoreReviews(false); // Reset see more
       setStoreDescExpanded(false);
     }
-  }, [selectedStoreId]);
+  }, [selectedStoreId, selectedStoreParam]);
 
   useEffect(() => {
     setShowAllProductReviews(false); // Reset see more on product change
   }, [selectedProductId]);
-
-  const storeProducts = useMemo(() => {
-    if (!selectedStoreId) return [];
-    return allProducts.filter((p) => {
-      const isFromStore = p.storeId === selectedStoreId;
-      const name = p.name || "";
-      const category = p.category || "";
-      const mCategory = p.mainCategory || "";
-      const matchesSearch = name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" ||
-        category === selectedCategory ||
-        mCategory === selectedCategory;
-      return isFromStore && matchesSearch && matchesCategory;
-    });
-  }, [allProducts, selectedStoreId, searchTerm, selectedCategory]);
 
   // Fetch store-wide reviews (with caching)
   useEffect(() => {
@@ -1467,7 +1443,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             comment: r.comment,
             date: r.created_at,
             productId: r.product_id,
-          }));
+          })) as unknown as Review[];
           storeReviewsCacheRef.current[selectedStoreId] = reviews;
           setStoreReviews(reviews);
         }
@@ -1716,7 +1692,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const buzz = () => {
     try {
       navigator.vibrate?.(12);
-    } catch (e) {}
+    } catch {}
   };
 
   const addToCart = (
@@ -1789,6 +1765,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       },
     });
   };
+
+  const handleCardAddToCart = (p: Product) => addToCart(p as StorefrontProduct);
+  const handleCardBuyNow = (p: Product) => buyNow(p as StorefrontProduct);
 
   const addWholesaleToCart = (product: StorefrontProduct) => {
     if (!product.wholesaleMinQty) return;
@@ -1952,7 +1931,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     else if (checkoutStage === "payment") {
       if (isProcessingPayment) return;
 
-      const ordersData: Record<string, any> = {};
+      const ordersData: Record<string, CheckoutStoreOrderDraft> = {};
       cart.forEach((item) => {
         if (!ordersData[item.product.storeId]) {
           ordersData[item.product.storeId] = {
@@ -1968,7 +1947,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       });
       Object.keys(ordersData).forEach((storeId) => {
         const storeOrder = ordersData[storeId];
-        storeOrder.subtotal = storeOrder.items.reduce((sum: number, i: any) => {
+        storeOrder.subtotal = storeOrder.items.reduce((sum, i) => {
           const price =
             i.product.wholesalePrice &&
             i.product.wholesaleMinQty &&
@@ -2015,9 +1994,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             "fusionpay_pending_order",
             JSON.stringify({ ordersData, customer: pendingCustomer }),
           );
-        } catch (e) {}
+        } catch {}
         const totalAmount = Object.values(ordersData).reduce(
-          (sum: number, order: any) => sum + order.total,
+          (sum: number, order) => sum + order.total,
           0,
         );
 
@@ -2117,7 +2096,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     };
 
     try {
-      let result: any;
+      let result: { success?: boolean; error?: string } | undefined;
       if (postOrderReviewTarget) {
         result = await onAddReview(
           postOrderReviewTarget.storeId,
@@ -2165,17 +2144,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     } finally {
       setIsSubmittingReview(false);
     }
-  };
-
-  const openPostOrderReview = (
-    storeId: string,
-    productId: string,
-    productName: string,
-  ) => {
-    setPostOrderReviewTarget({ storeId, productId, productName });
-    setNewReview({ author: customerInfo.name || "", rating: 5, comment: "" });
-    setReviewStep(1);
-    setShowReviewForm(true);
   };
 
   const renderStoreProfile = () => {
@@ -2229,7 +2197,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     }
     const descriptionText =
       selectedStore.description ||
-      (selectedStore.settings as any)?.description ||
+      selectedStore.settings?.description ||
       "Votre destination shopping préférée pour des produits locaux et de qualité.";
     const handleStoreShare = () => {
       const url = window.location.href;
@@ -2245,7 +2213,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     };
     const waDigits = (
       selectedStore.phone ||
-      (selectedStore.settings as any)?.phone ||
+      selectedStore.settings?.phone ||
       ""
     ).replace(/[^0-9]/g, "");
     const isFollowed = followedStores.has(selectedStore.id);
@@ -2288,12 +2256,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           <div className="px-4 md:px-8 pb-4 relative">
             {/* Logo + name */}
             <div className="flex items-end gap-3 -mt-7 md:-mt-10">
-              <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10">
+              <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10 relative">
                 {selectedStore.settings?.logo ? (
-                  <img
+                  <Image
                     src={selectedStore.settings.logo}
-                    alt={selectedStore.name}
-                    className="w-full h-full object-cover"
+                    alt={selectedStore.name || "Boutique"}
+                    fill
+                    sizes="80px"
+                    className="object-cover"
                   />
                 ) : (
                   <Store size={28} className="text-gray-300" />
@@ -2583,9 +2553,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     const reviewTotal =
       product.reviewCount || product.reviews?.length || 0;
     const accentText = isFood ? "text-green-600" : "text-[#f56b2a]";
-    const accentBg = isFood
-      ? "bg-green-50 text-green-700 border-green-200"
-      : "bg-orange-50 text-[#f56b2a] border-orange-200";
 
     const openZoom = (img: string) => {
       setCurrentZoomImage(img);
@@ -3290,9 +3257,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               {relatedProducts.map((relProduct) => (
                 <ProductCard
                   key={`${relProduct.storeId}-${relProduct.id}`}
-                  product={relProduct as any}
-                  onAddToCart={addToCart as any}
-                  onBuyNow={buyNow as any}
+                  product={relProduct}
+                  onAddToCart={handleCardAddToCart}
+                  onBuyNow={handleCardBuyNow}
                   onStoreSelect={(id) =>
                     safeNavigate(`/store/${relProduct.storeSlug || id}`)
                   }
@@ -4209,7 +4176,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     size="sm"
                     fullWidth
                   >
-                    ← Retour à l'étape précédente
+                    ← Retour à l&apos;étape précédente
                   </Button>
                 </div>
               )}
@@ -4282,7 +4249,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       {(isAccountView || isAccountViewUrl) && user && (
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
-            userEmail={user.email}
+            user={{ id: user.id, name: user.name, email: user.email }}
             accountTab={location.pathname.split('/mon-compte/')[1] || 'commandes'}
             onBack={() => {
               if (isAccountViewUrl) safeNavigate("/");
@@ -4290,8 +4257,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             }}
             notify={notify}
             onLogout={handleLogout}
-            cachedData={buyerDataCache}
-            onUpdateCache={updateBuyerCache}
+            onUserUpdate={handleUserUpdate}
           />
         </div>
       )}
@@ -4651,14 +4617,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           }}
                           className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]"
                         >
-                          <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50">
+                          <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50 relative">
                             {store.settings?.logo ? (
-                              <img
-                                loading="lazy"
-                                decoding="async"
-                                src={store.settings.logo}
-                                alt={store.name}
-                                className="w-full h-full object-cover"
+                              <Image
+                                src={store.settings.logo ?? ""}
+                                alt={store.name || "Boutique"}
+                                fill
+                                sizes="56px"
+                                className="object-cover"
                               />
                             ) : (
                               <Store className="text-[#f56b2a]" size={28} />
@@ -4714,8 +4680,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             className="cursor-pointer"
                           >
                             <ProductCard
-                              product={product as any}
-                              onAddToCart={addToCart as any}
+                              product={product}
+                              onAddToCart={handleCardAddToCart}
                               onStoreSelect={(id) => {
                                 safeNavigate(
                                   `/store/${product.storeSlug || id}`,
@@ -4741,10 +4707,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <Search size={32} />
                       </div>
                       <p className="text-gray-900 font-black">
-                        Pas de résultats pour "{searchTerm}"
+                        Pas de résultats pour &quot;{searchTerm}&quot;
                       </p>
                       <p className="text-gray-600 text-xs mt-1 font-bold">
-                        Vérifiez l'orthographe ou essayez un autre mot.
+                        Vérifiez l&apos;orthographe ou essayez un autre mot.
                       </p>
                     </div>
                   )
@@ -4858,12 +4824,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             Commerçant
                           </div>
                           <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            C'est le moment{" "}
+                            C&apos;est le moment{" "}
                             <span className="text-[#f56b2a]">de vendre</span>
                           </h2>
                           <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
                             Boostez votre visibilité et attirez plus de clients
-                            dès aujourd'hui sur notre plateforme express.
+                            dès aujourd&apos;hui sur notre plateforme express.
                           </p>
                           <Button
                             onClick={() =>
@@ -5023,14 +4989,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           }
                           className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center group active:scale-[0.98]"
                         >
-                          <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50">
+                          <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-inner overflow-hidden border-2 border-orange-50 relative">
                             {store.settings?.logo ? (
-                              <img
-                                loading="lazy"
-                                decoding="async"
-                                src={store.settings.logo}
-                                alt={store.name}
-                                className="w-full h-full object-cover"
+                              <Image
+                                src={store.settings.logo ?? ""}
+                                alt={store.name || "Boutique"}
+                                fill
+                                sizes="56px"
+                                className="object-cover"
                               />
                             ) : (
                               <Store className="text-[#f56b2a]" size={28} />
@@ -5117,8 +5083,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     {/* Home category page header */}
                     {!searchTerm && activeHomeCategory && (
                       <div className="flex items-center justify-between mb-5">
-                        <a
-                          href="/"
+                        <Link
+                          to="/"
                           className="flex items-center gap-2.5 min-w-0 active:opacity-60 transition-opacity"
                         >
                           <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
@@ -5127,7 +5093,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <span className="text-base md:text-xl font-black text-gray-900 truncate max-w-[55vw]">
                             {activeHomeCategory}
                           </span>
-                        </a>
+                        </Link>
                         <span className="text-[11px] font-bold text-gray-400 flex-shrink-0">
                           {filteredProducts.length} produits
                         </span>
@@ -5141,9 +5107,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           {pagedProducts.map((product) => (
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
-                                product={product as any}
-                                onAddToCart={addToCart as any}
-                                onBuyNow={buyNow as any}
+                                product={product}
+                                onAddToCart={handleCardAddToCart}
+                                onBuyNow={handleCardBuyNow}
                                 onStoreSelect={(id) =>
                                   safeNavigate(
                                     `/store/${product.storeSlug || id}`,
@@ -5164,7 +5130,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         (() => {
                           const groups: Record<string, typeof pagedProducts> =
                             {};
-                          pagedProducts.forEach((p: any) => {
+                          pagedProducts.forEach((p) => {
                             const cat = p.mainCategory || p.category || "Autre";
                             if (!groups[cat]) groups[cat] = [];
                             groups[cat].push(p);
@@ -5182,12 +5148,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             },
                           );
 
-                          const renderCard = (product: any) => (
+                          const renderCard = (product: StorefrontProduct) => (
                             <ProductCard
                               key={`${product.storeId}-${product.id}`}
-                              product={product as any}
-                              onAddToCart={addToCart as any}
-                              onBuyNow={buyNow as any}
+                              product={product}
+                              onAddToCart={handleCardAddToCart}
+                              onBuyNow={handleCardBuyNow}
                               onStoreSelect={(id) =>
                                 safeNavigate(
                                   `/store/${product.storeSlug || id}`,
@@ -5418,9 +5384,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             {pagedProducts.map((product) => (
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
-                                product={product as any}
-                                onAddToCart={addToCart as any}
-                                onBuyNow={buyNow as any}
+                                product={product}
+                                onAddToCart={handleCardAddToCart}
+                                onBuyNow={handleCardBuyNow}
                                 onStoreSelect={(id) =>
                                   safeNavigate(
                                     `/store/${product.storeSlug || id}`,
@@ -5441,7 +5407,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           (() => {
                             const groups: Record<string, typeof pagedProducts> =
                               {};
-                            pagedProducts.forEach((p: any) => {
+                            pagedProducts.forEach((p) => {
                               const cat = p.mainCategory || p.category || "Autre";
                               if (!groups[cat]) groups[cat] = [];
                               groups[cat].push(p);
@@ -5459,12 +5425,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               },
                             );
 
-                            const renderCard = (product: any) => (
+                            const renderCard = (product: StorefrontProduct) => (
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
-                                product={product as any}
-                                onAddToCart={addToCart as any}
-                                onBuyNow={buyNow as any}
+                                product={product}
+                                onAddToCart={handleCardAddToCart}
+                                onBuyNow={handleCardBuyNow}
                                 onStoreSelect={(id) =>
                                   safeNavigate(
                                     `/store/${product.storeSlug || id}`,
@@ -5730,7 +5696,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             onClick={() => setShowAllStoreReviews(true)}
                             className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl transition-all hover:bg-[#f56b2a] flex items-center justify-center gap-2"
                           >
-                            Voir plus d'avis ({storeReviews.length - 5})
+                            Voir plus d&apos;avis ({storeReviews.length - 5})
                             <ChevronRight size={16} className="rotate-90" />
                           </button>
                         )}
@@ -5744,7 +5710,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           Aucun avis pour le moment
                         </p>
                         <p className="text-[11px] text-gray-500 mt-2 text-center max-w-[200px]">
-                          Les avis des clients sur les produits s'afficheront
+                          Les avis des clients sur les produits s&apos;afficheront
                           ici.
                         </p>
                       </div>
@@ -5960,7 +5926,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
             <div className="p-6 md:p-8">
               <p className="text-gray-600 font-medium text-sm md:text-base leading-relaxed mb-6 text-center">
-                Rejoignez nos commerçants d'élite et bénéficiez d'une visibilité
+                Rejoignez nos commerçants d&apos;élite et bénéficiez d&apos;une visibilité
                 exceptionnelle sur leboncoin marketplace.
               </p>
 
@@ -5992,7 +5958,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       Badge de Confiance
                     </h4>
                     <p className="text-[10px] text-gray-500 font-medium">
-                      Bénéficiez d'un badge exclusif qui rassure vos acheteurs.
+                      Bénéficiez d&apos;un badge exclusif qui rassure vos acheteurs.
                     </p>
                   </div>
                 </div>
@@ -6292,11 +6258,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative w-full h-full">
-                <img
+                <Image
                   src={zoomSrc}
-                  className="w-full h-full object-contain shadow-2xl rounded-2xl select-none"
+                  fill
+                  sizes="100vw"
+                  className="object-contain shadow-2xl rounded-2xl select-none"
                   style={{ touchAction: "pinch-zoom" }}
-                  draggable={false}
                   alt="Full Size Product"
                 />
                 {canNavigate && (

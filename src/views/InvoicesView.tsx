@@ -49,7 +49,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
             setLoadingInvoiceItems(true);
             setSelectedInvoiceItems(selectedInvoice.items || []);
             fetchInvoiceItems(selectedInvoice.id).then(items => {
-                setSelectedInvoiceItems(items);
+                setSelectedInvoiceItems(items as unknown as InvoiceItem[]);
                 setLoadingInvoiceItems(false);
             });
         }
@@ -203,7 +203,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
             items,
             subtotal,
             total,
-            status: (newInvoice.status as any) || 'DRAFT',
+            status: (newInvoice.status as Invoice['status']) || 'DRAFT',
             customerName: newInvoice.customerName || 'Client',
             customerEmail: newInvoice.customerEmail || '',
             customerAddress: newInvoice.customerAddress || '',
@@ -216,7 +216,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
             } else {
                 const { error } = await supabase.from('invoices').upsert({
                     ...invoice,
-                    store_id: (invoices?.[0] as any)?.store_id
+                    store_id: (invoices?.[0] as unknown as { store_id?: string })?.store_id
                 });
                 if (error) throw error;
                 router.refresh();
@@ -448,7 +448,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 whitespace-nowrap">Date d'émission</label>
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 whitespace-nowrap">Date d&apos;émission</label>
                                                 <input
                                                     type="date"
                                                     value={newInvoice.date}
@@ -471,7 +471,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 whitespace-nowrap">Statut Initial</label>
                                                 <select
                                                     value={newInvoice.status}
-                                                    onChange={e => setNewInvoice({ ...newInvoice, status: e.target.value as any })}
+                                                    onChange={e => setNewInvoice({ ...newInvoice, status: e.target.value as Invoice['status'] })}
                                                     className={`w-full border-2 rounded-2xl px-5 py-4 text-sm font-black focus:outline-none transition-all shadow-sm ${getStatusColor(newInvoice.status || 'DRAFT')}`}
                                                 >
                                                     <option value="DRAFT">Brouillon</option>
@@ -764,7 +764,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
                                         <select
                                             value={selectedInvoice.status}
                                             onChange={async (e) => {
-                                                const updated = { ...selectedInvoice, status: e.target.value as any };
+                                                const updated = { ...selectedInvoice, status: e.target.value as Invoice['status'] };
                                                 if (onSaveInvoice) {
                                                     await onSaveInvoice(updated);
                                                 } else {

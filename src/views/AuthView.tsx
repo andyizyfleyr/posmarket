@@ -7,7 +7,7 @@ import { NotificationType } from '@/types';
 import Button from '@/components/Button';
 
 interface AuthViewProps {
-    onLogin: (user: any) => void;
+    onLogin: (user: unknown) => void;
     notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
@@ -39,9 +39,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                 if (!email || !password || !name) throw new Error('Veuillez remplir tous les champs');
                 result = await signupAction(formData);
             }
-        } catch (error: any) {
-            if (error.message === 'NEXT_REDIRECT') throw error;
-            setErrorMsg(error.message || 'Une erreur est survenue');
+        } catch (error: unknown) {
+            const e = error as { message?: unknown } | null;
+            if (e && e.message === 'NEXT_REDIRECT') throw error;
+            setErrorMsg(e && typeof e.message === 'string' ? e.message : 'Une erreur est survenue');
             setLoading(false);
             return;
         }

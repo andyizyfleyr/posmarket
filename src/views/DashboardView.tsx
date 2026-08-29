@@ -37,7 +37,17 @@ interface DashboardViewProps {
   };
 }
 
-const StatCard = ({ title, value, icon, trend, trendValue, color, compact }: any) => (
+interface StatCardProps {
+  title: string;
+  value: React.ReactNode;
+  icon: React.ReactElement<{ className?: string }>;
+  trend?: 'up' | 'down';
+  trendValue?: string;
+  color: string;
+  compact?: boolean;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, trendValue, color, compact }) => (
   <div className={`bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-100/20 hover:scale-[1.02] transition-all duration-500 group cursor-default
     ${compact ? 'p-2 md:p-6' : 'p-4 md:p-6'}`}>
     <div className={`flex items-center justify-between ${compact ? 'mb-1.5 md:mb-5' : 'mb-3 md:mb-5'}`}>
@@ -90,13 +100,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     setSelectedVertical(store?.business_type || 'all');
   }, [store?.business_type]);
 
-  const getVertical = (product: any): string => {
+  const getVertical = (product?: Product | { businessType?: string; business_type?: string; mainCategory?: string; main_category?: string } | null): string => {
     if (!product) return 'shopping';
     // Champ direct
-    const bt = product.businessType || product.business_type;
-    if (bt) return bt;
+    const bt = product.businessType || (product as Record<string, unknown>).business_type;
+    if (bt) return String(bt);
     // Fallback via la catégorie principale
-    const mc = product.mainCategory || product.main_category;
+    const mc = product.mainCategory || (product as Record<string, unknown>).main_category;
     if (mc === 'Restauration & Livraison Rapide') return 'food';
     return 'shopping';
   };
@@ -122,7 +132,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
 
     const orderMatchesVertical = (o: Order) => {
       if (selectedVertical === 'all') return true;
-      return (o.items || []).some((item: any) => getVertical(item.product) === selectedVertical);
+      return (o.items || []).some((item: { product?: Product }) => getVertical(item.product) === selectedVertical);
     };
 
     const currentFinalOrders = orders.filter(o => {
@@ -287,7 +297,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     // (p.salesCount vient de product_stats qui reflète déjà ces mêmes orders — ne pas additionner les deux)
     const salesMap: Record<string, number> = {};
     (orders || []).forEach(order => {
-      (order.items || []).forEach((item: any) => {
+      (order.items || []).forEach((item: { product?: { id?: string } | null; quantity?: number | null }) => {
         const id = item.product?.id;
         if (id) {
           salesMap[id] = (salesMap[id] || 0) + (item.quantity || 1);
@@ -342,12 +352,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                   <div className="flex items-center gap-2 mt-2 md:mt-4 overflow-x-auto no-scrollbar pb-1">
                       {[
                           { id: 'all', label: 'Global', icon: Package, activeClass: 'bg-gray-500 border-gray-500 text-white shadow-lg' },
-                          { id: 'shopping', label: 'Shopping', icon: ShoppingBag, activeClass: 'bg-orange-500 border-orange-500 text-white shadow-lg' },
-                          { id: 'food', label: 'Resto', icon: Zap, activeClass: 'bg-yellow-500 border-yellow-500 text-white shadow-lg' },
+                          { id: 'shopping' as const, label: 'Shopping', icon: ShoppingBag, activeClass: 'bg-orange-500 border-orange-500 text-white shadow-lg' },
+                          { id: 'food' as const, label: 'Resto', icon: Zap, activeClass: 'bg-yellow-500 border-yellow-500 text-white shadow-lg' },
                       ].map(v => (
-                          <button
-                              key={v.id}
-                              onClick={() => setSelectedVertical(v.id as any)}
+                           <button
+                               key={v.id}
+                               onClick={() => setSelectedVertical(v.id as 'all' | 'shopping' | 'food')}
                               className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? v.activeClass : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                           >
                               <v.icon size={14} /> {v.label}
@@ -381,7 +391,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           title={store?.business_type === 'food' ? "Ventes Resto" : "Ventes effectuées"}
           value={formatCurrency(filteredMetrics.revenue.current)}
           icon={<DollarSign size={14} />}
-          trend={filteredMetrics.revenue.trend}
+          trend={filteredMetrics.revenue.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.revenue.pct}%`}
           color="bg-[#f56b2a]"
           compact={true}
@@ -390,7 +400,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           title={store?.business_type === 'food' ? "Plats servis" : "Commandes"}
           value={filteredMetrics.orders.current}
           icon={<ShoppingBag size={14} />}
-          trend={filteredMetrics.orders.trend}
+          trend={filteredMetrics.orders.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.orders.pct}%`}
           color="bg-purple-600"
           compact={true}
@@ -399,7 +409,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           title="Panier Moyen"
           value={formatCurrency(filteredMetrics.basket.current)}
           icon={<Zap size={14} />}
-          trend={filteredMetrics.basket.trend}
+          trend={filteredMetrics.basket.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.basket.pct}%`}
           color="bg-blue-600"
           compact={true}
@@ -408,7 +418,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           title="Trafic Boutique"
           value={formatNumber(filteredMetrics.traffic.current)}
           icon={<Eye size={14} />}
-          trend={filteredMetrics.traffic.trend}
+          trend={filteredMetrics.traffic.trend as unknown as 'up' | 'down' | undefined}
           trendValue={filteredMetrics.traffic.pct}
           color="bg-orange-600"
           compact={true}
@@ -441,7 +451,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       <Calendar size={14} className="group-hover:rotate-3 transition-transform" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Période d'analyse</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Période d&apos;analyse</span>
                       <span className="text-[10px] md:text-xs font-black text-gray-700 whitespace-nowrap">
                         {mounted ? `${new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Chargement...'}
                       </span>
@@ -550,8 +560,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                             <span className="text-[10px] font-black text-gray-800">{new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                           </div>
                           <div className="h-4 w-px bg-gray-100" />
-                          <div className="flex flex-col text-right">
-                            <span className="text-[8px] font-black text-gray-400 uppercase">Jusqu'au</span>
+                           <div className="flex flex-col text-right">
+                             <span className="text-[8px] font-black text-gray-400 uppercase">Jusqu&apos;au</span>
                             <span className="text-[10px] font-black text-gray-800">{new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                           </div>
                         </div>

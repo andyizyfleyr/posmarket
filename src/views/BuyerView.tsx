@@ -1,1022 +1,414 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useNavigate, useLocation } from '@/components/RouterPolyfill';
+import React, { useState } from 'react';
+import { useNavigate } from '@/components/RouterPolyfill';
 import { useRouter as useNextRouter } from 'next/navigation';
-import { 
-  Package, MapPin, User, Star, ChevronRight, 
-  Clock, CheckCircle2, Truck, AlertCircle, ShoppingBag, 
-  Plus, Edit2, Trash2, Home, Briefcase, Bell, LogOut, 
-  ArrowLeft, X, Phone, Mail, MessageCircle, ShieldCheck,
-  ArrowRight, Download
+import {
+  ArrowLeft,
+  RefreshCcw,
+  Package,
+  MapPin,
+  Star,
+  User,
+  LogOut,
+  AlertTriangle,
 } from 'lucide-react';
-import Button from '@/components/Button';
-import { formatCurrency } from '@/utils';
-import { 
-  fetchBuyerOrdersAction, 
-  fetchBuyerAddressesAction, 
-  saveBuyerAddressAction, 
-  deleteBuyerAddressAction,
-  fetchBuyerReviewsAction,
-  saveProductReviewAction
-} from '@/app/actions/marketplace';
-import { NotificationType } from '@/types';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useBuyerData } from '@/components/buyer/useBuyerData';
+import { OrdersTab, ReviewTargetProduct } from '@/components/buyer/OrdersTab';
+import { AddressesTab } from '@/components/buyer/AddressesTab';
+import { ReviewsTab } from '@/components/buyer/ReviewsTab';
+import { ProfileTab } from '@/components/buyer/ProfileTab';
+import { AddressModal } from '@/components/buyer/AddressModal';
+import { ReviewModal } from '@/components/buyer/ReviewModal';
+import { Modal } from '@/components/buyer/Modal';
+import {
+  BuyerAddress,
+  BuyerTabId,
+  NotifyFn,
+} from '@/components/buyer/accountTypes';
+import { PanelSkeleton } from '@/components/buyer/accountUtils';
 
 interface BuyerViewProps {
-  userEmail: string;
+  user: { id?: string; name: string; email: string };
   accountTab?: string;
   onBack: () => void;
-  notify?: (message: string, type: 'success' | 'error' | 'info' | 'warning', title?: string) => void;
+  notify?: NotifyFn;
   onLogout: () => void;
-  cachedData?: any;
-  onUpdateCache?: (data: any) => void;
+  onUserUpdate: (updates: { name: string }) => void;
 }
 
-type TabType = 'orders' | 'addresses' | 'reviews' | 'profile';
+const TABS: Array<{
+  id: BuyerTabId;
+  path: string;
+  label: string;
+  desc: string;
+  icon: React.ElementType;
+}> = [
+  { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
+  { id: 'addresses', path: 'adresses', label: 'Adresses', desc: 'Vos adresses de livraison', icon: MapPin },
+  { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
+  { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
+];
 
-export const BuyerView: React.FC<BuyerViewProps> = ({ userEmail, accountTab, onBack, notify, onLogout, cachedData, onUpdateCache }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('orders');
-  const [mobileView, setMobileView] = useState<'menu' | 'detail'>('menu');
-  const [showContent, setShowContent] = useState(false);
-  const [orders, setOrders] = useState<any[]>(cachedData?.orders || []);
-  const [addresses, setAddresses] = useState<any[]>(cachedData?.addresses || []);
-  const [reviews, setReviews] = useState<any[]>(cachedData?.reviews || []);
-  const [loading, setLoading] = useState(!cachedData);
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<any>(null);
+const TAB_FROM_PATH: Record<string, BuyerTabId> = {
+  commandes: 'orders',
+  adresses: 'addresses',
+  avis: 'reviews',
+  profil: 'profile',
+};
 
-  const { isOnline, isSlow } = useNetworkStatus();
+const AVATAR_COLORS = [
+  'from-[#f56b2a] to-orange-400',
+  'from-sky-500 to-blue-400',
+  'from-emerald-500 to-teal-400',
+  'from-violet-500 to-purple-400',
+];
+
+const avatarInitial = (name: string) => (name || 'U')[0].toUpperCase();
+
+export const BuyerView: React.FC<BuyerViewProps> = ({
+  user,
+  accountTab,
+  onBack,
+  notify,
+  onLogout,
+  onUserUpdate,
+}) => {
   const navigate = useNavigate();
   const nextRouter = useNextRouter();
-  const [internalLoading, setInternalLoading] = useState(false);
-  const [isSlowConnection, setIsSlowConnection] = useState(false);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product: null as any });
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [isSavingAddress, setIsSavingAddress] = useState(false);
-  const [isDeletingAddress, setIsDeletingAddress] = useState(false);
-  const [orderPage, setOrderPage] = useState(1);
-  const [hasMoreOrders, setHasMoreOrders] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [totalOrders, setTotalOrders] = useState(0);
-
-  // Tab map
-  const tabMap: Record<string, TabType> = {
-    'commandes': 'orders',
-    'adresses': 'addresses',
-    'avis': 'reviews',
-    'profil': 'profile'
-  };
-
-  // Sync activeTab from URL
-  useEffect(() => {
-    const tabFromUrl = accountTab || 'commandes';
-    const newTab = tabMap[tabFromUrl];
-    if (newTab) {
-      setActiveTab(newTab);
-      // On mobile, go directly to detail view if tab is specified
-      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-        setMobileView('detail');
-      }
-    }
-  }, [accountTab]);
-
-  // Handle navigation to different tabs
-  const handleTabNavigation = (tabId: string) => {
-    const mappedTab = tabMap[tabId] || 'orders';
-    setActiveTab(mappedTab);
-    setMobileView('detail');
-    setShowContent(true); // Show content overlay on mobile
-    nextRouter.push(`/mon-compte/${tabId}`);
-  };
-
-  // Handle initial data fetch and subsequent tab changes
-  useEffect(() => {
-    if (userEmail) {
-      const isInitialMount = !orders.length && !addresses.length && !reviews.length;
-      loadData(isInitialMount);
-    }
-  }, [userEmail, activeTab]);
-
-  const loadData = async (forceAll = false) => {
-    setLoading(true);
-    setInternalLoading(true);
-    setIsSlowConnection(false);
-    
-    try {
-      // Manual timeout promise
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT')), 10000)
-      );
-
-      // Race against timeout
-      const loadPromise = (async () => {
-        if (forceAll) {
-          const [ordersRes, addressesRes, reviewsRes] = await Promise.all([
-            fetchBuyerOrdersAction(1, 3), // Initial batch of 3
-            fetchBuyerAddressesAction(),
-            fetchBuyerReviewsAction()
-          ]);
-
-          if (ordersRes.success && 'orders' in ordersRes) {
-            setOrders(ordersRes.orders || []);
-            setTotalOrders(ordersRes.totalCount || 0);
-            setHasMoreOrders((ordersRes.orders?.length || 0) < (ordersRes.totalCount || 0));
-          } else if (ordersRes.error === 'Unauthorized') {
-             notify?.("Veuillez vous reconnecter pour voir vos données", "info");
-          }
-          
-          if (addressesRes.success && 'addresses' in addressesRes) setAddresses(addressesRes.addresses || []);
-          if (reviewsRes.success && 'reviews' in reviewsRes) setReviews(reviewsRes.reviews || []);
-        } else {
-          if (activeTab === 'orders') {
-            const res = await fetchBuyerOrdersAction(1, 3);
-            if (res.success && 'orders' in res) {
-              setOrders(res.orders || []);
-              setTotalOrders(res.totalCount || 0);
-              setHasMoreOrders((res.orders?.length || 0) < (res.totalCount || 0));
-            } else if (res.error === 'Unauthorized') {
-               notify?.("Veuillez vous reconnecter", "info");
-            }
-          } else if (activeTab === 'addresses') {
-            const res = await fetchBuyerAddressesAction();
-            if (res.success && 'addresses' in res) setAddresses(res.addresses || []);
-          } else if (activeTab === 'reviews') {
-            const res = await fetchBuyerReviewsAction();
-            if (res.success && 'reviews' in res) setReviews(res.reviews || []);
-          }
-        }
-      })();
-
-      await Promise.race([loadPromise, timeoutPromise]);
-    } catch (err: any) {
-      console.error("Erreur de chargement:", err);
-      if (err.message === 'TIMEOUT') {
-        setIsSlowConnection(true);
-      } else {
-        notify?.("Erreur lors de la récupération des données", "error");
-      }
-    } finally {
-      setLoading(false);
-      setInternalLoading(false);
-      
-      // Update cache
-      if (onUpdateCache) {
-        onUpdateCache({
-            orders: forceAll ? orders : (activeTab === 'orders' ? orders : cachedData?.orders),
-            addresses: forceAll ? addresses : (activeTab === 'addresses' ? addresses : cachedData?.addresses),
-            reviews: forceAll ? reviews : (activeTab === 'reviews' ? reviews : cachedData?.reviews)
-        });
-      }
-    }
-
-  };
-
-  const loadMoreOrders = async () => {
-    if (loadingMore || !hasMoreOrders) return;
-    
-    setLoadingMore(true);
-    const nextPage = orderPage + 1;
-    
-    try {
-      const res = await fetchBuyerOrdersAction(nextPage, 3);
-      if (res.success && res.orders) {
-        setOrders(prev => [...prev, ...res.orders!]);
-        setOrderPage(nextPage);
-        setHasMoreOrders((orders.length + res.orders.length) < (res.totalCount || 0));
-      }
-    } catch (err) {
-      console.error("Load more error:", err);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  const renderSkeleton = () => (
-    <div className="space-y-3 animate-pulse">
-      {[1, 2, 3].map(i => (
-        <div key={i} className="bg-white rounded-2xl h-32 border border-gray-100" />
-      ))}
-      {(isSlow || isSlowConnection || loading) && (
-        <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex items-center gap-2">
-          <Clock size={16} className="text-[#f56b2a] animate-pulse" />
-          <p className="text-[10px] font-bold text-[#f56b2a] uppercase">Connexion lente ou chargement en cours...</p>
-        </div>
-      )}
-    </div>
+  const [activeTab, setActiveTab] = useState<BuyerTabId>(
+    TAB_FROM_PATH[accountTab || 'commandes'] || 'orders',
   );
+  const [addressModal, setAddressModal] = useState<{
+    open: boolean;
+    editing: BuyerAddress | null;
+  }>({ open: false, editing: null });
+  const [reviewTarget, setReviewTarget] = useState<
+    (ReviewTargetProduct & { store_id: string }) | null
+  >(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const [prevAccountTab, setPrevAccountTab] = useState<string | undefined>(accountTab);
 
-  const handleSaveAddress = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSavingAddress(true);
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      id: editingAddress?.id,
-      name: formData.get('name'),
-      fullName: formData.get('fullName'),
-      phone: formData.get('phone'),
-      address: formData.get('address'),
-      city: formData.get('city'),
-      isDefault: formData.get('isDefault') === 'on'
-    };
+  const data = useBuyerData(notify);
 
-    try {
-      const res = await saveBuyerAddressAction(data);
-      if (res.success) {
-        notify?.('Adresse enregistrée', 'success');
-        setShowAddressModal(false);
-        loadData();
-      } else {
-        console.error('Save address error:', res.error);
-        notify?.(res.error || 'Erreur', 'error');
-      }
-    } catch (err: any) {
-      notify?.(err.message || 'Une erreur est survenue', 'error');
-    } finally {
-      setIsSavingAddress(false);
-    }
-  };
+  // Synchronise l'onglet actif avec l'URL (/mon-compte/...) sans effet :
+  // ajustement pendant le rendu quand la prop change (pattern React officiel).
+  if (accountTab !== prevAccountTab) {
+    setPrevAccountTab(accountTab);
+    const t = TAB_FROM_PATH[accountTab || 'commandes'];
+    if (t) setActiveTab(t);
+  }
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
+  const showError = !!data.error && data.error !== dismissedError;
 
-  const confirmLogout = async () => {
-    onLogout();
-  };
-
-  const handleMobileTabSelect = (tab: TabType) => {
+  const handleTabChange = (tab: BuyerTabId) => {
+    if (tab === activeTab) return;
     setActiveTab(tab);
-    setMobileView('detail');
-  };
-
-  const handleBack = () => {
-    if (mobileView === 'detail') {
-      setMobileView('menu');
-    } else {
-      onBack();
-    }
+    const def = TABS.find((t) => t.id === tab);
+    nextRouter.push(`/mon-compte/${def?.path || tab}`);
   };
 
   const handleDeleteAddress = async (id: string) => {
-    if (confirm('Supprimer cette adresse ?')) {
-      const res = await deleteBuyerAddressAction(id);
-      if (res.success) {
-        notify?.('Adresse supprimée', 'info');
-        loadData();
-      } else {
-        console.error('Delete address error:', res.error);
-      }
-    }
+    setDeletingAddressId(id);
+    await data.deleteAddress(id);
+    setDeletingAddressId(null);
   };
 
-  const handleSaveReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewData.product) return;
-    
-    setIsSubmittingReview(true);
-    try {
-      const res = await saveProductReviewAction(
-        reviewData.product.store_id, 
-        reviewData.product.id, 
-        { rating: reviewData.rating, comment: reviewData.comment, author: userEmail.split('@')[0] }
+  const handleReviewSubmit = async (rating: number, comment: string) => {
+    if (!reviewTarget) return false;
+    return data.submitReview(reviewTarget.store_id, reviewTarget.id, {
+      rating,
+      comment,
+      author: user.name,
+    });
+  };
+
+  const activeTabDef = TABS.find((t) => t.id === activeTab) || TABS[0];
+
+  const panel = (() => {
+    if (showError) {
+      return (
+        <div className="bg-red-50 border border-red-100 rounded-[24px] p-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black text-red-600">Une erreur est survenue</p>
+            <p className="text-[11px] font-bold text-red-400 mt-0.5">{data.error}</p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => {
+                  setDismissedError(data.error ?? null);
+                  data.refreshAll();
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
+              >
+                Réessayer
+              </button>
+              <button
+                onClick={() => setDismissedError(data.error ?? null)}
+                className="px-4 py-2 bg-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-wider border border-red-100"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       );
-      
-      if (res.success) {
-        notify?.("Avis publié avec succès !", "success");
-        setShowReviewModal(false);
-        setReviewData({ rating: 5, comment: '', product: null });
-        loadData(true); // Refresh all data to update review counts/list
-      } else {
-        notify?.(res.error || "Erreur lors de la publication", "error");
-      }
-    } catch (err) {
-      notify?.("Erreur de connexion", "error");
-    } finally {
-      setIsSubmittingReview(false);
     }
-  };
 
-  const getStatusInfo = (status: string, businessType?: string) => {
-    const isFood = businessType === 'food';
-
-    switch (status) {
-      case 'COMPLETED': 
-        return { 
-          label: isFood ? 'Dégusté' : 'Livré', 
-          color: 'bg-green-100 text-green-700', 
-          icon: <CheckCircle2 size={12} /> 
-        };
-      case 'READY': 
-        return { 
-          label: isFood ? 'Prêt' : 'Prêt pour retrait', 
-          color: 'bg-blue-100 text-blue-700', 
-          icon: <Clock size={12} /> 
-        };
-      case 'SHIPPED': 
-        return { 
-          label: isFood ? 'En cours de livraison' : 'Expédié', 
-          color: 'bg-purple-100 text-purple-700', 
-          icon: <Truck size={12} /> 
-        };
-      case 'PENDING': 
-        return { 
-          label: isFood ? 'En cuisine' : 'En attente', 
-          color: 'bg-amber-100 text-amber-700', 
-          icon: <Clock size={12} /> 
-        };
-      case 'CANCELLED': 
-        return { 
-          label: 'Annulé', 
-          color: 'bg-red-100 text-red-700', 
-          icon: <X size={12} /> 
-        };
-      default: 
-        return { 
-          label: 'Statut inconnu', 
-          color: 'bg-gray-100 text-gray-700', 
-          icon: <AlertCircle size={12} /> 
-        };
+    switch (activeTab) {
+      case 'orders':
+        return (
+          <OrdersTab
+            orders={data.orders}
+            loading={data.loading}
+            loadingMore={data.loadingMore}
+            hasMoreOrders={data.hasMoreOrders}
+            onLoadMore={data.loadMoreOrders}
+            onReviewProduct={(product, storeId) =>
+              setReviewTarget({ ...product, store_id: storeId })
+            }
+            onBrowse={() => navigate('/')}
+          />
+        );
+      case 'addresses':
+        return (
+          <AddressesTab
+            addresses={data.addresses}
+            loading={data.loading}
+            deletingId={deletingAddressId}
+            onAdd={() => setAddressModal({ open: true, editing: null })}
+            onEdit={(addr) => setAddressModal({ open: true, editing: addr })}
+            onDelete={handleDeleteAddress}
+          />
+        );
+      case 'reviews':
+        return <ReviewsTab reviews={data.reviews} loading={data.loading} />;
+      case 'profile':
+        return (
+          <ProfileTab
+            user={user}
+            notify={notify}
+            onUserUpdate={(name) => {
+              onUserUpdate({ name });
+            }}
+            onLogout={() => setShowLogoutModal(true)}
+          />
+        );
+      default:
+        return null;
     }
+  })();
+
+  const counts: Record<BuyerTabId, number> = {
+    orders: data.totalOrders,
+    addresses: data.addresses.length,
+    reviews: data.reviews.length,
+    profile: 0,
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-24 md:pb-12">
-      <div className="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-30 transition-all">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={handleBack} className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
+    <div className="min-h-screen bg-[#F8FAFC] pb-16 md:pb-8">
+      {/* En-tête sticky */}
+      <div className="bg-white/85 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-30 transition-all">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform"
+            aria-label="Retour"
+          >
             <ArrowLeft size={22} />
           </button>
-<h1 className="text-base font-black text-[#002f34] tracking-tight">
-              {activeTab === 'orders' ? 'Mes commandes' :
-              activeTab === 'addresses' ? 'Mes adresses' :
-              activeTab === 'reviews' ? 'Mes avis' : 'Profil'}
-            </h1>
-          <div className="flex items-center gap-1">
-            <button onClick={() => loadData(true)} className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform">
-              <Clock size={22} className={loading ? "animate-spin" : ""} />
-            </button>
-          </div>
+          <h1 className="text-base font-black text-[#002f34] tracking-tight">
+            Mon compte
+          </h1>
+          <button
+            onClick={data.refreshAll}
+            className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-90 transition-transform"
+            aria-label="Rafraîchir"
+          >
+            <RefreshCcw size={20} className={data.refreshing ? 'animate-spin text-[#f56b2a]' : ''} />
+          </button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto md:px-4 md:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          
-          {/* On mobile: menu is always visible, content shows when tab selected */}
-          {/* On desktop: sidebar menu visible, content shown next to it */}
-          <div className="space-y-5">
-            <div className="bg-white md:bg-gradient-to-br md:from-white md:to-orange-50/40 md:rounded-[32px] p-5 md:p-8 md:border border-gray-100 md:shadow-sm relative overflow-hidden group">
-              {/* Decorative background elements */}
+      <div className="max-w-6xl mx-auto px-4 py-4 md:py-8">
+        <div className="lg:grid lg:grid-cols-[290px_1fr] lg:gap-8">
+          {/* ---- Colonne latérale ---- */}
+          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            {/* Carte identité */}
+            <div className="bg-white lg:bg-gradient-to-br lg:from-white lg:to-orange-50/40 rounded-[28px] p-5 md:p-6 border border-gray-100 shadow-sm relative overflow-hidden">
               <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none hidden md:block" />
-              
-              <div className="relative flex items-center gap-4 md:flex-col md:gap-5 md:text-center z-10">
-                <div className="w-12 h-12 md:w-24 md:h-24 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-2xl md:rounded-full flex items-center justify-center text-white text-xl md:text-3xl font-black shadow-lg md:shadow-xl shadow-orange-200/50 ring-2 md:ring-4 ring-white">
-                  {userEmail[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-base md:text-2xl font-black text-[#002f34] truncate tracking-tight">{userEmail.split('@')[0]}</h2>
-                  <p className="text-[10px] md:text-xs text-gray-400 font-bold mt-0.5">{userEmail}</p>
-                  
-                  <div className="flex md:justify-center items-center gap-4 mt-2">
-                    <div className="text-left md:text-center">
-                       <p className="text-xs font-black text-[#002f34]">{totalOrders}</p>
-                       <p className="text-[8px] md:text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Commandes</p>
-                    </div>
-                    <div className="w-px h-5 bg-gray-100" />
-                    <div className="text-left md:text-center">
-                       <p className="text-xs font-black text-[#002f34]">{reviews.length}</p>
-                       <p className="text-[8px] md:text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Avis</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Menu + Desktop Sidebar */}
-            <div className="space-y-2 px-4 md:px-0 pb-safe md:pb-0">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-4">Ma navigation</h3>
-              {[
-                { id: 'commandes', tabId: 'orders', label: 'Mes commandes', path: '/mon-compte/commandes', icon: Package, desc: `${totalOrders} commande${totalOrders > 1 ? 's' : ''} passée${totalOrders > 1 ? 's' : ''}` },
-                { id: 'adresses', tabId: 'addresses', label: 'Adresses de livraison', path: '/mon-compte/adresses', icon: MapPin, desc: `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` },
-                { id: 'avis', tabId: 'reviews', label: 'Mes avis publiés', path: '/mon-compte/avis', icon: Star, desc: `${reviews.length} avis partagé${reviews.length > 1 ? 's' : ''}` },
-                { id: 'profil', tabId: 'profile', label: 'Mon profil & Sécurité', path: '/mon-compte/profil', icon: User, desc: 'Paramètres du compte' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabNavigation(item.id)}
-                  className={`w-full flex items-center justify-between p-4 rounded-[24px] border shadow-sm active:scale-[0.98] active:bg-gray-50 transition-all group ${
-                    activeTab === item.tabId 
-                      ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20' 
-                      : 'bg-white border-gray-100'
-                  }`}
+              <div className="relative z-10 flex items-center gap-4 lg:flex-col lg:gap-4 lg:text-center">
+                <div
+                  className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_COLORS[0]} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-black shadow-lg shadow-orange-200/50 ring-2 ring-white`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-11 h-11 rounded-2xl bg-gray-50 flex items-center justify-center transition-colors ${activeTab === item.tabId ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'text-gray-400 group-hover:text-[#f56b2a]'}`}>
-                      <item.icon size={20} />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-black text-[#002f34]">{item.label}</p>
-                      <p className="text-[10px] text-gray-400 font-bold">{item.desc}</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </button>
-              ))}
-            </div>
-          </div>
+                  {avatarInitial(user.name)}
+                </div>
+                <div className="flex-1 min-w-0 lg:w-full">
+                  <p className="text-base lg:text-xl font-black text-[#002f34] truncate tracking-tight">
+                    {user.name}
+                  </p>
+                  <p className="text-[10px] lg:text-[11px] text-gray-400 font-bold mt-0.5 truncate">
+                    {user.email}
+                  </p>
+                  {data.refreshing && (
+                    <p className="text-[9px] text-[#f56b2a] font-bold mt-1 inline-flex items-center gap-1">
+                      <RefreshCcw size={10} className="animate-spin" /> Synchronisation...
+                    </p>
+                  )}
+                </div>
+              </div>
 
-          {/* Mobile Content Overlay - shown when clicking menu item */}
-          {showContent && (
-            <div className="lg:hidden fixed inset-0 top-16 z-[800] bg-white overflow-y-auto pb-24">
-              <button 
-                onClick={() => setShowContent(false)}
-                className="sticky top-0 w-full flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-500 hover:text-gray-700"
-              >
-                <ChevronRight size={16} className="rotate-180" />
-                Retour au menu
-              </button>
-              
-              <div className="px-4 py-4">
-                {activeTab === 'orders' && (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes commandes</h2>
-                    
-                    {loading ? renderSkeleton() : orders.length === 0 ? (
-                      <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Package size={32} className="text-gray-300" />
-                        </div>
-                        <p className="text-sm font-bold text-gray-500">Aucune commande trouvée</p>
-                        <p className="text-xs text-gray-400 mt-2">Vos commandes apparaîtront ici une fois validées.</p>
-                      </div>
-                    ) : (
-                      orders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                          <div className="p-4 border-b border-gray-50 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
-                                <Package size={18} className="text-[#f56b2a]" />
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-gray-400 font-black uppercase">#{order.id.slice(-6)} • {(() => { try { return new Date(order.date).toLocaleDateString('fr-FR'); } catch { return ''; } })()}</p>
-                                <p className="text-sm font-black text-[#002f34]">{(() => { const stores = order.stores; return Array.isArray(stores) ? stores[0]?.name : stores?.name || 'Boutique'; })()}</p>
-                              </div>
-                            </div>
-                            <div className={`px-3 py-1.5 rounded-full text-[10px] font-black flex items-center gap-1 ${getStatusInfo(order.status, order.order_items?.[0]?.products?.business_type).color}`}>
-                              {getStatusInfo(order.status, order.order_items?.[0]?.products?.business_type).icon}
-                              {getStatusInfo(order.status, order.order_items?.[0]?.products?.business_type).label}
-                            </div>
-                          </div>
-                          <div className="p-4 space-y-3">
-                            {order.order_items?.map((item: any) => {
-                              const product = Array.isArray(item.products) ? item.products[0] : item.products;
-                              return (
-                                <div key={item.id} className="flex items-center gap-3">
-                                  <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden relative shrink-0">
-                                    {product?.image && <Image src={product.image} alt={product?.name || ''} fill className="object-cover" sizes="48px" />}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
-                                    <p className="text-xs text-gray-500">{`${item.quantity} x ${formatCurrency(item.price)}`}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <button 
-                                      onClick={() => {
-                                        setReviewData({ rating: 5, comment: '', product: { ...product, store_id: order.store_id } });
-                                        setShowReviewModal(true);
-                                      }}
-                                      className="w-9 h-9 bg-orange-50 text-[#f56b2a] rounded-xl flex items-center justify-center shrink-0"
-                                    >
-                                      <Star size={14} fill="currentColor" />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="px-4 py-3 bg-gray-50 border-t border-gray-50 flex justify-between">
-                            <span className="text-xs text-gray-400 font-bold">Total</span>
-                            <span className="text-sm font-black text-[#002f34]">{formatCurrency(order.total)}</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'addresses' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-black text-[#002f34]">Mes adresses</h2>
-                      <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-lg text-xs font-black flex items-center gap-1">
-                        <Plus size={12} /> Ajouter
-                      </button>
+              {/* Statistiques */}
+              <div className="relative z-10 flex justify-center items-center gap-4 lg:gap-5 mt-4 pt-4 border-t border-gray-100/70">
+                {[
+                  { value: counts.orders, label: 'Commandes' },
+                  { value: counts.reviews, label: 'Avis' },
+                  { value: counts.addresses, label: 'Adresses' },
+                ].map((s, i) => (
+                  <React.Fragment key={s.label}>
+                    {i > 0 && <div className="w-px h-5 bg-gray-100" />}
+                    <div className="text-center">
+                      <p className="text-xs lg:text-sm font-black text-[#002f34]">
+                        {data.loading ? '–' : s.value}
+                      </p>
+                      <p className="text-[8px] lg:text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                        {s.label}
+                      </p>
                     </div>
-                    {loading ? (
-                      <div className="space-y-3">
-                        {[1,2].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse" />)}
-                      </div>
-                    ) : addresses.length === 0 ? (
-                      <div className="text-center py-12">
-                        <MapPin size={40} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-sm font-bold text-gray-500 mb-4">Aucune adresse enregistrée</p>
-                        <button onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} className="px-5 py-2.5 bg-[#f56b2a] text-white rounded-xl text-xs font-black">
-                          <Plus size={14} className="inline mr-1" /> Ajouter une adresse
-                        </button>
-                      </div>
-                    ) : (
-                      addresses.map((addr) => (
-                        <div key={addr.id} className={`bg-white rounded-2xl p-4 border ${addr.is_default ? 'border-[#f56b2a] ring-1 ring-[#f56b2a]/10' : 'border-gray-100'}`}>
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
-                                {addr.name === 'Maison' ? <Home size={18} /> : addr.name === 'Bureau' ? <Briefcase size={18} /> : <MapPin size={18} />}
-                              </div>
-                              <div>
-                                <p className="font-black text-[#002f34]">{addr.name}</p>
-                                {addr.is_default && <span className="text-[9px] font-black text-[#f56b2a] uppercase">Par défaut</span>}
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              <button onClick={() => { setEditingAddress(addr); setShowAddressModal(true); }} className="p-2 text-gray-400">
-                                <Edit2 size={14} />
-                              </button>
-                              <button onClick={() => handleDeleteAddress(addr.id)} className="p-2 text-red-300">
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="pl-[52px]">
-                            <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
-                            <p className="text-[11px] text-gray-500 font-bold">{addr.address}</p>
-                            <p className="text-[11px] text-gray-400 font-bold uppercase">{addr.city}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'reviews' && (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-black text-[#002f34]">Mes avis</h2>
-                    {loading ? (
-                      <div className="space-y-3">
-                        {[1,2].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse" />)}
-                      </div>
-                    ) : reviews.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Star size={40} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-sm font-bold text-gray-500">Aucun avis publié</p>
-                      </div>
-                    ) : (
-                      reviews.map((rev) => {
-                        const product = Array.isArray(rev.products) ? rev.products[0] : rev.products;
-                        const store = Array.isArray(rev.stores) ? rev.stores[0] : rev.stores;
-                        return (
-                          <div key={rev.id} className="bg-white rounded-2xl p-4 border border-gray-100">
-                            <div className="flex gap-4 mb-3">
-                              <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden relative shrink-0">
-                                {product?.image && <Image src={product.image} alt={product?.name || ''} fill className="object-cover" sizes="56px" />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[9px] text-[#f56b2a] font-black uppercase">{store?.name || 'Boutique'}</p>
-                                <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
-                                <div className="flex gap-0.5 mt-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={12} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} strokeWidth={i < rev.rating ? 0 : 2.5} />
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="bg-gray-50 p-3 rounded-xl">
-                              <p className="text-xs font-bold text-gray-600 italic">"{rev.comment}"</p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'profile' && (
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-black text-[#002f34]">Mon profil</h2>
-                    <div className="bg-white rounded-2xl p-4 border border-gray-100">
-                      <p className="text-sm font-black text-[#002f34]">{userEmail}</p>
-                      <button onClick={handleLogout} className="mt-4 text-xs font-bold text-red-500">Se déconnecter</button>
-                    </div>
-                  </div>
-                )}
+                  </React.Fragment>
+                ))}
               </div>
             </div>
-          )}
 
-          <div className="lg:col-span-3 px-4 md:px-0 hidden lg:block">
-            {activeTab === 'orders' && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes commandes</h2>
-                
-                {loading ? renderSkeleton() : orders.length === 0 ? (
-                  <div className="bg-white rounded-[32px] p-10 text-center text-gray-400 border border-gray-100 shadow-sm">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5">
-                      <Package className="w-10 h-10 text-gray-300" />
-                    </div>
-                    <p className="text-base font-black text-gray-600 tracking-tight">Aucune commande trouvée</p>
-                    <p className="text-xs font-medium mt-2">Vos commandes apparaîtront ici une fois validées.</p>
-                  </div>
-                ) : (
-                  orders.map((order) => (
-                    <div key={order.id} className="bg-white rounded-[28px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300">
-                      <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/10">
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-50">
-                              <Package className="text-[#f56b2a]" size={18} />
-                           </div>
-<div>
-                              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">#{order.id.slice(-6)} • {(() => { try { return new Date(order.date).toLocaleDateString('fr-FR'); } catch { return 'Date invalide'; } })()}</p>
-                              <p className="text-sm font-black text-[#002f34]">{(() => { const stores = order.stores; return Array.isArray(stores) ? stores[0]?.name : stores?.name || 'Boutique'; })()}</p>
-                            </div>
-                         </div>
-                        <div className={`px-3 py-1.5 rounded-full text-[10px] font-black flex items-center gap-1.5 ${getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).color}`}>
-                          {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).icon}
-                          {getStatusInfo(order.status, Array.isArray(order.order_items) ? order.order_items[0]?.products?.business_type : undefined).label}
-                        </div>
-                      </div>
-                      <div className="p-4 space-y-4">
-                        {order.order_items?.map((item: any) => {
-                          const product = Array.isArray(item.products) ? item.products[0] : item.products;
-                          return (
-                            <div key={item.id} className="group/item border-b border-gray-50 last:border-0 pb-3 last:pb-0">
-                              <div className="flex gap-3 items-center justify-between mb-2">
-                                <div className="flex gap-3 items-center flex-1 min-w-0">
-                                  <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden shrink-0 border border-gray-100 relative">
-                                    <Image 
-                                      src={product?.image} 
-                                      alt={product?.name || 'Produit'}
-                                      fill
-                                      className="object-cover" 
-                                      sizes="48px"
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
-                                    <p className="text-xs font-bold text-gray-400">
-                                       {`${item.quantity} x ${formatCurrency(item.price)}`}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button 
-                                    onClick={() => {
-                                      setReviewData({ 
-                                        rating: 5, 
-                                        comment: '', 
-                                        product: { ...product, store_id: order.store_id } 
-                                      });
-                                      setShowReviewModal(true);
-                                    }}
-                                    className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-[#f56b2a] rounded-xl hover:bg-[#f56b2a] hover:text-white transition-all active:scale-90"
-                                    title="Laisser un avis"
-                                  >
-                                    <Star size={16} fill="currentColor" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="px-3 py-2.5 bg-gray-50/20 flex items-center justify-between border-t border-gray-50 text-sm font-bold">
-                         <span className="text-gray-400 text-xs">Total</span>
-                         <span className="text-[#002f34]">{formatCurrency(order.total)}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-
-                {hasMoreOrders && orders.length > 0 && (
-                  <div className="pt-4 flex justify-center">
-                    <Button 
-                      onClick={loadMoreOrders} 
-                      loading={loadingMore}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full px-8 text-[10px] font-black uppercase tracking-widest border-gray-200"
-                    >
-                      Voir plus de commandes
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'addresses' && (
-              <div className="space-y-4 ">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="text-lg font-black text-[#002f34] tracking-tight">Mes adresses</h2>
-                  <button 
-                    onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} 
-                    className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#f56b2a] text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-lg shadow-orange-100 active:scale-95 transition-all"
+            {/* Navigation desktop */}
+            <nav className="hidden lg:block space-y-2">
+              {TABS.map((tab) => {
+                const isActive = tab.id === activeTab;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`w-full flex items-center gap-3 p-4 rounded-[20px] border transition-all active:scale-[0.98] ${
+                      isActive
+                        ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20'
+                        : 'bg-white border-gray-100 shadow-sm hover:border-gray-200'
+                    }`}
                   >
-                    <Plus size={16} /> Ajouter
-                  </button>
-                </div>
-                <button 
-                  onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} 
-                  className="md:hidden flex items-center justify-center gap-2 w-full py-3 mb-4 bg-[#f56b2a] text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-lg shadow-orange-100 active:scale-95 transition-all"
-                >
-                  <Plus size={16} /> Ajouter une adresse
-                </button>
-                {loading ? renderSkeleton() : addresses.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-300">
-                      <MapPin size={32} />
-                    </div>
-                    <p className="text-sm font-black text-gray-500 mb-6">Aucune adresse enregistrée</p>
-                    <button 
-                      onClick={() => { setEditingAddress(null); setShowAddressModal(true); }} 
-                      className="flex items-center gap-2 px-6 py-3 bg-[#f56b2a] text-white rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg shadow-orange-100 active:scale-95 transition-all"
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
+                      }`}
                     >
-                      <Plus size={18} /> Ajouter une adresse
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {addresses.map((addr) => (
-                      <div key={addr.id} className={`bg-white p-4 rounded-[24px] border transition-all ${addr.is_default ? 'border-[#f56b2a] shadow-md ring-1 ring-[#f56b2a]/10' : 'border-gray-100 shadow-sm'}`}>
-                         <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
-                                  {addr.name === 'Maison' ? <Home size={18} /> : addr.name === 'Bureau' ? <Briefcase size={18} /> : <MapPin size={18} />}
-                               </div>
-                               <div>
-                                 <p className="font-black text-[#002f34] text-sm">{addr.name}</p>
-                                 {addr.is_default && <span className="text-[9px] font-black text-[#f56b2a] uppercase tracking-widest">Par défaut</span>}
-                               </div>
-                            </div>
-                            <div className="flex gap-1">
-                               <button onClick={() => { setEditingAddress(addr); setShowAddressModal(true); }} className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-90 transition-all"><Edit2 size={16} /></button>
-                               <button onClick={() => handleDeleteAddress(addr.id)} className="p-2 text-red-300 hover:text-red-500 active:scale-90 transition-all"><Trash2 size={16} /></button>
-                            </div>
-                         </div>
-                         <div className="pl-[52px]">
-                           <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
-                           <p className="text-[11px] text-gray-500 font-bold mt-1">{addr.address}</p>
-                           <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">{addr.city}</p>
-                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'profile' && (
-               <div className="space-y-3 ">
-                  <h2 className="text-base font-bold text-[#002f34] px-1">Profil & Paramètres</h2>
-                  <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-4">
-                       <div className="flex items-center gap-3">
-                         <div className="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-[#f56b2a] text-xl font-bold">
-                           {userEmail[0].toUpperCase()}
-                         </div>
-                         <div className="flex-1">
-                           <p className="text-sm font-black text-[#002f34]">{userEmail.split('@')[0]}</p>
-                           <p className="text-[10px] text-gray-400 font-bold">Membre Marketplace</p>
-                         </div>
-                       </div>
-                       <div className="space-y-3">
-                         <div className="space-y-1">
-                           <label className="text-[9px] text-gray-400 font-bold px-1">E-mail</label>
-                           <div className="px-3 py-2.5 bg-gray-50 rounded-lg text-xs font-semibold text-gray-500 flex items-center gap-2">
-                              <Mail size={14} /> {userEmail}
-                           </div>
-                         </div>
-                         <button onClick={handleLogout} className="flex items-center gap-2 w-full py-4 px-4 bg-red-50 text-red-500 font-bold text-xs rounded-xl border border-red-100 active:bg-red-100">
-                            <LogOut size={18} /> Se déconnecter
-                         </button>
-                       </div>
-                  </div>
-               </div>
-            )}
-
-            {activeTab === 'reviews' && (
-              <div className="space-y-4 ">
-                <h2 className="text-lg font-black text-[#002f34] px-1 tracking-tight">Mes avis</h2>
-                {loading ? renderSkeleton() : reviews.length === 0 ? (
-                  <div className="bg-white rounded-[32px] p-12 text-center border border-gray-100 shadow-sm">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 text-gray-300">
-                      <Star size={32} />
+                      <Icon size={18} />
                     </div>
-                    <p className="text-sm font-black text-gray-600">Aucun avis publié pour le moment.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {reviews.map((rev) => {
-                      const product = Array.isArray(rev.products) ? rev.products[0] : rev.products;
-                      const store = Array.isArray(rev.stores) ? rev.stores[0] : rev.stores;
-                      return (
-                        <div key={rev.id} className="bg-white p-4 rounded-[28px] border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                           <div className="flex gap-4 mb-3">
-                             <div className="w-14 h-14 bg-gray-50 rounded-2xl overflow-hidden border border-gray-50 relative shrink-0">
-                               <Image 
-                                 src={product?.image} 
-                                 alt={product?.name || 'Produit'}
-                                 fill
-                                 className="object-cover" 
-                                 sizes="56px"
-                               />
-                             </div>
-                             <div className="flex-1 min-w-0">
-                                <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-widest truncate">{store?.name || 'Boutique'}</p>
-                                <p className="text-sm font-black text-[#002f34] truncate mb-1">{product?.name}</p>
-                                <div className="flex gap-1">
-                                   {[...Array(5)].map((_, i) => (
-                                     <Star key={i} size={12} fill={i < rev.rating ? "#fbbf24" : "none"} className={i < rev.rating ? "text-amber-400" : "text-gray-200"} strokeWidth={i < rev.rating ? 0 : 2.5} />
-                                   ))}
-                                </div>
-                             </div>
-                           </div>
-                           <div className="bg-gray-50/50 p-4 rounded-[20px] relative">
-                             <div className="absolute -top-2 left-4 w-4 h-4 bg-gray-50/50 rotate-45" />
-                             <p className="text-xs font-bold text-gray-600 leading-relaxed italic">"{rev.comment}"</p>
-                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-black text-[#002f34]">{tab.label}</p>
+                      <p className="text-[10px] text-gray-400 font-bold truncate">{tab.desc}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      {tab.id === 'profile' ? '' : counts[tab.id]}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* ---- Zone de contenu ---- */}
+          <main className="mt-4 lg:mt-0">
+            {/* Navigation mobile : tuiles onglets */}
+            <div className="lg:hidden -mx-4 px-4 mb-4">
+              <div className="grid grid-cols-4 gap-2">
+                {TABS.map((tab) => {
+                  const isActive = tab.id === activeTab;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-all active:scale-95 ${
+                        isActive
+                          ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]'
+                          : 'bg-white border-gray-100 shadow-sm text-gray-400'
+                      }`}
+                    >
+                      <Icon size={20} />
+                      <span className="text-[9px] font-black uppercase tracking-wide">
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+
+            <div className="mb-4 lg:hidden">
+              <h2 className="text-lg font-black text-[#002f34] tracking-tight">
+                {activeTabDef.label}
+              </h2>
+              <p className="text-[11px] text-gray-400 font-bold">{activeTabDef.desc}</p>
+            </div>
+
+            {data.loading ? <PanelSkeleton rows={3} /> : panel}
+          </main>
         </div>
       </div>
 
-      {showAddressModal && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
-           <div className="absolute inset-0 bg-[#002f34]/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-t-[32px] md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[85vh] md:max-h-[92vh]">
-             <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-                <h3 className="text-base font-black text-[#002f34]">{editingAddress ? 'Modifier' : 'Ajouter'} une adresse</h3>
-                <button onClick={() => setShowAddressModal(false)} className="p-2 text-gray-400 hover:text-gray-600 active:scale-90 transition-transform">
-                  <X size={24} />
-                </button>
+      {/* ---- Modales ---- */}
+      {addressModal.open && (
+        <AddressModal
+          address={addressModal.editing}
+          onClose={() => setAddressModal({ open: false, editing: null })}
+          onSave={data.saveAddress}
+        />
+      )}
+
+      {reviewTarget && (
+        <ReviewModal
+          product={reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          onSubmit={handleReviewSubmit}
+        />
+      )}
+
+      {showLogoutModal && (
+        <Modal
+          title="Déconnexion"
+          subtitle="Vous quittez votre compte"
+          icon={<LogOut size={20} />}
+          onClose={() => setShowLogoutModal(false)}
+        >
+          <div className="p-6">
+            <p className="text-sm font-bold text-gray-500 leading-relaxed">
+              Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
+            </p>
+            <div className="space-y-3 mt-6">
+              <button
+                onClick={onLogout}
+                className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
+              >
+                Oui, me déconnecter
+              </button>
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-sm active:scale-95 transition-all"
+              >
+                Annuler
+              </button>
             </div>
-            
-            <form onSubmit={handleSaveAddress} className="p-6 space-y-4 overflow-y-auto pb-28 md:pb-6">
-                <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400">Label (ex: Maison, Bureau)</label>
-                      <input name="name" defaultValue={editingAddress?.name} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400">Nom complet</label>
-                      <input name="fullName" defaultValue={editingAddress?.full_name} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400">Téléphone</label>
-                        <input name="phone" defaultValue={editingAddress?.phone} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400">Ville</label>
-                        <input name="city" defaultValue={editingAddress?.city} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400">Adresse exacte</label>
-                      <input name="address" defaultValue={editingAddress?.address} required className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold" />
-                    </div>
-
-                    <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer" id="default-address-toggle">
-                      <input type="checkbox" name="isDefault" defaultChecked={editingAddress?.is_default} className="w-5 h-5 rounded text-[#f56b2a]" />
-                      <span className="text-xs font-bold text-gray-600">Définir par défaut</span>
-                    </label>
-                </div>
-
-                <div className="flex gap-3 pt-2 shrink-0 pb-6">
-                    <button type="button" onClick={() => setShowAddressModal(false)} className="flex-1 py-3 px-4 border-2 border-gray-100 text-gray-700 font-bold text-xs rounded-2xl hover:bg-gray-50 transition-all">Annuler</button>
-                    <button type="submit" className="flex-[2] py-3 px-4 bg-[#f56b2a] text-white font-bold text-xs rounded-2xl shadow-md shadow-orange-100 hover:bg-[#e55a1b] transition-all">Enregistrer</button>
-                </div>
-            </form>
           </div>
-        </div>
-      )}
-       {showReviewModal && (
-        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center">
-           <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md" onClick={() => !isSubmittingReview && setShowReviewModal(false)} />
-           <div className="relative bg-white w-full max-w-sm rounded-t-[40px] md:rounded-[40px] overflow-hidden shadow-2xl flex flex-col">
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white relative">
-                  <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f56b2a] mr-3">
-                    <Star size={20} fill="currentColor" />
-                  </div>
-                  <div className="flex-1">
-                      <h3 className="text-sm font-black text-[#002f34] uppercase tracking-tight">
-                        {reviewData.product?.business_type === 'food' ? 'Noter votre repas' : 
-                         'Noter le produit'}
-                      </h3>
-                      <p className="text-[10px] text-gray-400 font-bold truncate max-w-[200px]">{reviewData.product?.name}</p>
-                  </div>
-                  <button onClick={() => setShowReviewModal(false)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                    <X size={20} />
-                  </button>
-              </div>
-              
-              <form onSubmit={handleSaveReview} className="p-8 space-y-8">
-                  <div className="flex flex-col items-center gap-4 py-4 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Votre note</p>
-                      <div className="flex gap-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={() => setReviewData({ ...reviewData, rating: star })}
-                            className="p-1 transition-transform active:scale-90"
-                          >
-                            <Star 
-                              size={32} 
-                              fill={star <= reviewData.rating ? "#fbbf24" : "none"} 
-                              className={star <= reviewData.rating ? "text-amber-400 drop-shadow-md" : "text-gray-200"} 
-                              strokeWidth={star <= reviewData.rating ? 0 : 2}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-xs font-black text-[#f56b2a] uppercase tracking-widest">
-                        {reviewData.rating === 5 ? 'Excellent !' : reviewData.rating >= 4 ? 'Très bien' : reviewData.rating >= 3 ? 'Bien' : 'Moyen'}
-                      </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Commentaire</label>
-                    <textarea 
-                       required
-                       placeholder={
-                         reviewData.product?.business_type === 'food' ? "Comment était votre repas ?" :
-                         "Partagez votre expérience avec ce produit..."
-                       }
-                       value={reviewData.comment}
-                       onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
-                       className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold min-h-[120px] focus:ring-2 focus:ring-[#f56b2a]/20 transition-all no-global-border resize-none"
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    loading={isSubmittingReview}
-                    variant="secondary"
-                    fullWidth
-                    size="lg"
-                    icon={<ArrowRight size={16} />}
-                    iconPosition="right"
-                  >
-                    Publier mon avis
-                  </Button>
-              </form>
-           </div>
-        </div>
-      )}
-       {showLogoutModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
-           <div className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md  duration-300" onClick={() => setShowLogoutModal(false)} />
-           <div className="relative bg-white w-full max-w-[320px] rounded-[32px] overflow-hidden shadow-2xl ">
-              <div className="p-8 text-center">
-                 <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
-                    <LogOut size={32} />
-                 </div>
-                 <h3 className="text-lg font-black text-[#002f34] mb-2">Déconnexion ?</h3>
-                 <p className="text-xs font-bold text-gray-500 leading-relaxed mb-8">
-                    Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
-                 </p>
-                 <div className="space-y-3">
-                    <button 
-                      onClick={confirmLogout}
-                      className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
-                    >
-                      Oui, me déconnecter
-                    </button>
-                    <button 
-                      onClick={() => setShowLogoutModal(false)}
-                      className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-sm active:scale-95 transition-all"
-                    >
-                      Annuler
-                    </button>
-                 </div>
-              </div>
-           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 };
-
 
 export default BuyerView;

@@ -1,16 +1,28 @@
 'use client';
 
-import { StorefrontView } from '@/views/StorefrontView';
+import { StorefrontView, CheckoutStoreOrderDraft, CheckoutCustomerDraft } from '@/views/StorefrontView';
 import { useRouter } from 'next/navigation';
-import { StoreData } from '@/types';
+import { StoreData, Review } from '@/types';
 
 interface StorefrontWrapperProps {
   stores: StoreData[];
   onBackToApp?: () => Promise<void>;
-  onMarketplaceCheckout: (ordersData: any, customerData: any) => Promise<any>;
-  onAddReview: (storeId: string, productId: string, review: any) => Promise<any>;
-  onNotifyCartInterest: (storeId: string, productName: string) => Promise<any>;
-  onNotifyPostCheckout: (ordersData: any) => Promise<any>;
+  onMarketplaceCheckout: (
+    ordersData: Record<string, CheckoutStoreOrderDraft>,
+    customerData: CheckoutCustomerDraft,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  onAddReview: (
+    storeId: string,
+    productId: string,
+    review: Review,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  onNotifyCartInterest: (
+    storeId: string,
+    productName: string,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  onNotifyPostCheckout: (
+    ordersData: Record<string, CheckoutStoreOrderDraft>,
+  ) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
 export function StorefrontWrapper({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {

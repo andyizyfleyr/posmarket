@@ -47,7 +47,7 @@ export default async function ProductPage({ params }: Props) {
         getProductSeo(slug),
     ]);
 
-    let jsonLd: any = null;
+    let jsonLd: Record<string, unknown>[] | null = null;
     if (found) {
         const { product, store } = found;
         const storeName = store.settings?.name || "PosMarket";

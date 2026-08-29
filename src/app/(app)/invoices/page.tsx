@@ -4,6 +4,7 @@ import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
+import { StoreSettings, Invoice, Customer, Product, StaffRole, StaffPermissions } from '@/types';
 
 export default async function InvoicesPage() {
   const supabase = await createClient();
@@ -20,12 +21,12 @@ export default async function InvoicesPage() {
 
   return (
     <InvoicesView 
-      invoices={invoices as any} 
-      products={products as any}
-      customers={customers as any}
-      storeSettings={store?.settings || {}}
-      permissions={permissions as any}
-      userRole={role as any}
+      invoices={invoices as unknown as Invoice[]} 
+      products={products as unknown as Product[]}
+      customers={customers as unknown as Customer[]}
+      storeSettings={store?.settings as StoreSettings}
+      permissions={permissions as unknown as StaffPermissions}
+      userRole={role as unknown as StaffRole}
     />
   );
 }

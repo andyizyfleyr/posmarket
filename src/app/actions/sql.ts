@@ -7,6 +7,6 @@ export async function execQuery(spec: QuerySpec) {
   return runQuery(spec);
 }
 
-export async function execRpc(name: string, args?: any) {
+export async function execRpc(name: string, args?: unknown) {
   return runQuery({ table: '', method: 'select', rpc: name, rpcArgs: args });
 }

@@ -7,7 +7,27 @@ import { products, profiles } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
 
-export async function saveProductAction(product: any, storeId: string) {
+type ProductInput = {
+  id?: string;
+  name?: string;
+  price?: string | number;
+  originalPrice?: string | number;
+  original_price?: string | number;
+  category?: string;
+  image?: string | null;
+  stock?: number;
+  mainCategory?: string;
+  main_category?: string;
+  description?: string | null;
+  isOnline?: boolean;
+  wholesalePrice?: string | number;
+  wholesaleMinQty?: number;
+  businessType?: string;
+  options?: unknown[];
+  variants?: unknown[];
+};
+
+export async function saveProductAction(product: ProductInput, storeId: string) {
   try {
     // 1. Check Limits for NEW products
     if (!product.id) {
@@ -37,7 +57,7 @@ export async function saveProductAction(product: any, storeId: string) {
 
     const dataToSave = {
       storeId,
-      name: product.name,
+      name: product.name || '',
       price: product.price?.toString() || '0',
       originalPrice: (product.originalPrice || product.original_price)?.toString(),
       category: product.category,
@@ -91,9 +111,9 @@ export async function saveProductAction(product: any, storeId: string) {
     };
 
     return { success: true, product: safe };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving product with Drizzle:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -101,9 +121,9 @@ export async function deleteProductAction(id: string) {
   try {
     await db.delete(products).where(eq(products.id, id));
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting product with Drizzle:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -114,9 +134,9 @@ export async function bulkDeleteProductsAction(ids: string[]) {
     }
     updateTag('marketplace');
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error bulk deleting products with Drizzle:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -128,7 +148,7 @@ export async function getProductsAction(
   options: { productType?: 'all' | 'pos' | 'marketplace', businessType?: 'all' | 'shopping' | 'food' } = {}
 ) {
   try {
-    let conditions = [eq(products.storeId, storeId)];
+    const conditions = [eq(products.storeId, storeId)];
 
     if (options.productType && options.productType !== 'all') {
       if (options.productType === 'pos') {
@@ -164,9 +184,9 @@ export async function getProductsAction(
 
     return {
       success: true,
-      products: (productsList || []).map((p: any) => ({
+      products: (productsList || []).map((p) => ({
         ...p,
-        price: parseFloat(p.price) || 0,
+        price: parseFloat(p.price ?? '') || 0,
         originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
         isOnline: p.isOnline !== false,
         wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
@@ -179,8 +199,8 @@ export async function getProductsAction(
       hasMore: total > (offset + productsList.length),
       total
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching products with Drizzle:', error);
-    return { success: false, error: error.message, products: [], total: 0 };
+    return { success: false, error: error instanceof Error ? error.message : String(error), products: [], total: 0 };
   }
 }

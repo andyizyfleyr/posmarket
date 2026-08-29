@@ -1,4 +1,5 @@
 import { safeSupabaseFetch } from './supabase/retry';
+import type { QueryBuilder } from '@/db/builder';
 
 export const FULL_PERMISSIONS = {
   canManageStores: true,
@@ -12,15 +13,17 @@ export const FULL_PERMISSIONS = {
   canManageInvoices: true
 };
 
-export const getPermissionsForUser = async (supabase: any, userId: string, storeId: string) => {
+type SupabaseClientLike = { from: (table: string) => QueryBuilder };
+
+export const getPermissionsForUser = async (supabase: SupabaseClientLike, userId: string, storeId: string) => {
   const [storeRes, profileRes, staffRes] = await Promise.all([
-    safeSupabaseFetch<any>(
+    safeSupabaseFetch<{ user_id: string }>(
       () => supabase.from('stores').select('user_id').eq('id', storeId).single()
     ),
-    safeSupabaseFetch<any>(
+    safeSupabaseFetch<{ is_super_admin: boolean }>(
       () => supabase.from('profiles').select('is_super_admin').eq('id', userId).single()
     ),
-    safeSupabaseFetch<any>(
+    safeSupabaseFetch<{ role: string; permissions: Record<string, boolean> | null }>(
       () => supabase.from('store_staff')
         .select('role, permissions')
         .eq('store_id', storeId)

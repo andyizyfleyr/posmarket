@@ -50,7 +50,16 @@ import { formatCurrency, formatNumber } from '@/utils';
 
 type AdminTab = 'dashboard' | 'stores' | 'users' | 'inventory' | 'orders' | 'system';
 
-const AdminStatCard = ({ title, value, icon, trend, trendValue, color }: any) => (
+interface AdminStatCardProps {
+  title: string;
+  value: React.ReactNode;
+  icon: React.ReactElement<{ className?: string }>;
+  trend?: 'up' | 'down';
+  trendValue?: string;
+  color: string;
+}
+
+const AdminStatCard: React.FC<AdminStatCardProps> = ({ title, value, icon, trend, trendValue, color }) => (
   <div className="bg-white p-3 md:p-6 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
     <div className="flex items-center justify-between mb-1.5 md:mb-4">
       <div className={`p-1.5 md:p-3 rounded-xl md:rounded-2xl ${color} text-white shadow-lg ${color.replace('bg-', 'shadow-')}/20`}>
@@ -87,8 +96,9 @@ export default function AdminView() {
     fetchData();
 
     // Sync with Supreme Sidebar
-    const handleAdminTabChange = (e: any) => {
-      if (e.detail) setActiveTab(e.detail as AdminTab);
+    const handleAdminTabChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) setActiveTab(customEvent.detail as AdminTab);
     };
 
     window.addEventListener('setAdminTab', handleAdminTabChange);
@@ -229,7 +239,7 @@ export default function AdminView() {
         <div className="flex items-center gap-4">
            <div className="px-6 py-4 bg-white border border-gray-100 rounded-[2rem] shadow-sm flex items-center gap-6">
               <div>
-                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Réseau d'Élite</p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Réseau d&apos;Élite</p>
                  <p className="text-lg font-black text-gray-900 tracking-tighter">{stats?.totalStores || 0} <span className="text-xs font-bold text-gray-400">Magasins</span></p>
               </div>
               <div className="w-px h-8 bg-gray-100" />
@@ -376,10 +386,10 @@ export default function AdminView() {
                </div>
             </div>
             
-            <div className="space-y-4">
+             <div className="space-y-4">
               {(() => {
-                const groups: Record<string, { profile: any, stores: any[] }> = {};
-                stores.forEach(s => {
+                const groups: Record<string, { profile: { full_name?: string | null; email?: string | null }; stores: Array<{ id: string; name?: string | null; email?: string | null; user_id: string; profiles?: { full_name?: string | null; email?: string | null } | null; [key: string]: unknown }> }> = {};
+                (stores as Array<{ id: string; name?: string | null; email?: string | null; user_id: string; profiles?: { full_name?: string | null; email?: string | null } | null; [key: string]: unknown }>).forEach(s => {
                   const uid = s.user_id;
                   if (!groups[uid]) {
                     // Si pas de profil, on crée un objet virtuel avec l'email de la boutique par défaut
@@ -463,12 +473,12 @@ export default function AdminView() {
                                          </button>
                                      </div>
                                   </div>
-                                  <h4 className="text-sm font-black text-gray-900 truncate mb-1">{s.name}</h4>
-                                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mb-6">{s.slug}.pos.sn</p>
-                                  
-                                  <div className="flex flex-col gap-2 mb-6">
-                                     {s.email && <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400 truncate"><Mail size={10} /> {s.email}</div>}
-                                     {s.phone && <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400"><Phone size={10} /> {s.phone}</div>}
+                                   <h4 className="text-sm font-black text-gray-900 truncate mb-1">{String(s.name || '')}</h4>
+                                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mb-6">{String(s.slug || '')}.pos.sn</p>
+                                   
+                                   <div className="flex flex-col gap-2 mb-6">
+                                      {s.email && <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400 truncate"><Mail size={10} /> {String(s.email)}</div>}
+                                      {s.phone !== undefined && s.phone !== null && <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400"><Phone size={10} /> {String(s.phone)}</div>}
                                      <div className="flex items-center gap-2 mt-1">
                                         {s.status === 'PENDING' ? (
                                            <span className="px-2 py-0.5 bg-yellow-50 text-yellow-600 text-[8px] font-black rounded-md border border-yellow-100 uppercase animate-pulse">En attente</span>
@@ -524,7 +534,7 @@ export default function AdminView() {
                                   <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
                                      <div className="text-[9px] font-black text-gray-400 uppercase">Impact Global</div>
                                      <div className="text-[10px] font-black text-orange-600">
-                                         {formatNumber(s.views || 0)} Visites
+                                          {formatNumber(Number(s.views) || 0)} Visites
                                      </div>
                                   </div>
                                </div>
@@ -650,12 +660,12 @@ export default function AdminView() {
                    </div>
                    <div>
                       <h3 className="text-xl font-black text-gray-900">Protocoles Système</h3>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Niveau d'Administration : Suprême</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Niveau d&apos;Administration : Suprême</p>
                    </div>
                 </div>
                 <div className="space-y-4">
                   {[
-                    { t: 'Maintenance Civile', d: 'Suspend l\'activité publique globale', a: false },
+                    { t: 'Maintenance Civile', d: 'Suspend l&apos;activité publique globale', a: false },
                     { t: 'Indexation Automatique', d: 'Optimisation continue du catalogue', a: true },
                     { t: 'Rapports Hebdo', d: 'Envoi automatique aux commerçants', a: true },
                   ].map((item, idx) => (

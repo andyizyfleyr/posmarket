@@ -177,9 +177,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                  <div className="mb-12">
                     <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
                         {isRejected ? (
-                            <>Votre boutique <span className="text-slate-900 font-bold">"{currentStore.name || 'Sans nom'}"</span> n'a pas pu être activée après examen de nos services de sécurité.</>
+                            <>Votre boutique <span className="text-slate-900 font-bold">&quot;{currentStore.name || 'Sans nom'}&quot;</span> n&apos;a pas pu être activée après examen de nos services de sécurité.</>
                         ) : (
-                            <>Bienvenue, <span className="text-slate-900 font-bold">"{currentStore.name || 'Sans nom'}"</span>. Votre boutique est en cours de validation. Pour accélérer le processus, veuillez compléter les informations ci-dessous.</>
+                            <>Bienvenue, <span className="text-slate-900 font-bold">&quot;{currentStore.name || 'Sans nom'}&quot;</span>. Votre boutique est en cours de validation. Pour accélérer le processus, veuillez compléter les informations ci-dessous.</>
                         )}
                     </p>
                  </div>
@@ -241,7 +241,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                                         <option value="">Sélectionner un pays</option>
                                         <option value="Sénégal">Sénégal</option>
                                         <option value="Bénin">Bénin</option>
-                                        <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                                        <option value="Côte d&apos;Ivoire">Côte d&apos;Ivoire</option>
                                         <option value="Togo">Togo</option>
                                         <option value="Cameroun">Cameroun</option>
                                     </select>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useOnboarding } from './OnboardingContext';
-import { ChevronRight, ChevronLeft, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Sparkles } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
 
 interface TourStep {

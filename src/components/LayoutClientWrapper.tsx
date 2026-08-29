@@ -2,10 +2,15 @@
 
 import React, { useState, useCallback } from 'react';
 import MainLayout from '@/components/MainLayout';
-import { StoreData, StaffRole, SubscriptionPlan, UserSubscription } from '@/types';
+import { StoreData, StaffRole, SubscriptionPlan, UserSubscription, ViewType, ToastNotification, NotificationType } from '@/types';
 import { useRouter, usePathname } from '@/components/RouterPolyfill';
 import { createClient } from '@/utils/supabase/client';
 import { quickCreateStoreAction, quickDeleteStoreAction, clearStoreCookieAction } from '@/app/actions/store';
+
+interface FlutterWindow {
+  FlutterNotifications?: { postMessage: (message: string) => void };
+  restoreSession?: (sessionJson: string) => Promise<void>;
+}
 
 export default function LayoutClientWrapper({
   children,
@@ -28,23 +33,18 @@ export default function LayoutClientWrapper({
   const pathname = usePathname();
 
   // Extract ViewType from pathname
-  const currentView = (pathname.split('/')[1] || 'dashboard') as any;
+  const currentView = (pathname.split('/')[1] || 'dashboard') as ViewType;
 
-  const [toastNotifications, setToastNotifications] = useState<any[]>([]);
+  const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const isOnline = true;
   
   // Notify Flutter App if we are running inside the WebView
   React.useEffect(() => {
     const supabase = createClient();
-    
-    // 1. Listen for commands FROM the mobile app
-    const handleMobileMessage = async (event: MessageEvent) => {
-      // Note: In typical WebView setup, messages from native don't come via window.postMessage 
-      // unless we inject them that way. We'll provide a global function for Flutter to call.
-    };
+    const flutterWindow = window as unknown as FlutterWindow;
 
-    (window as any).restoreSession = async (sessionJson: string) => {
+    flutterWindow.restoreSession = async (sessionJson: string) => {
       try {
         const session = JSON.parse(sessionJson);
         await supabase.auth.setSession(session);
@@ -59,38 +59,39 @@ export default function LayoutClientWrapper({
       const { data: { session } } = await supabase.auth.getSession();
       const { data: { user } } = await supabase.auth.getUser();
 
-      if ((window as any).FlutterNotifications) {
+      if (flutterWindow.FlutterNotifications) {
         if (session) {
-          (window as any).FlutterNotifications.postMessage(`setSession:${JSON.stringify(session)}`);
+          flutterWindow.FlutterNotifications.postMessage(`setSession:${JSON.stringify(session)}`);
         }
         if (user?.id) {
-          (window as any).FlutterNotifications.postMessage(`subscribe:${user.id}`);
+          flutterWindow.FlutterNotifications.postMessage(`subscribe:${user.id}`);
         } else if (currentStore?.id) {
-          (window as any).FlutterNotifications.postMessage(`subscribe:${currentStore.id}`);
+          flutterWindow.FlutterNotifications.postMessage(`subscribe:${currentStore.id}`);
         }
       }
     };
 
     // 2. Request session from mobile app on startup
-    if ((window as any).FlutterNotifications) {
-       (window as any).FlutterNotifications.postMessage('requestSession');
+    if (flutterWindow.FlutterNotifications) {
+       flutterWindow.FlutterNotifications.postMessage('requestSession');
     }
 
     syncSession();
-  }, [currentStore?.id]);
+  }, [currentStore?.id, router]);
 
-  const notify = useCallback((message: string, type = 'info', title?: string) => {
+  const notify = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToastNotifications(prev => [...prev, { id, message, type, title }]);
   }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();
-    if (typeof window !== 'undefined' && (window as any).FlutterNotifications) {
+    const flutterWindow = window as unknown as FlutterWindow;
+    if (typeof window !== 'undefined' && flutterWindow.FlutterNotifications) {
       if (currentStore?.id) {
-        (window as any).FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
+        flutterWindow.FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
       }
-      (window as any).FlutterNotifications.postMessage(`clearSession`);
+      flutterWindow.FlutterNotifications.postMessage(`clearSession`);
     }
     await supabase.auth.signOut();
     await clearStoreCookieAction();

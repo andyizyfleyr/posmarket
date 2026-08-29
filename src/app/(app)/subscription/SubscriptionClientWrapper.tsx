@@ -3,11 +3,11 @@
 import React, { useState, useCallback } from 'react';
 import { SubscriptionView } from '@/views/SubscriptionView';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
-import { UserSubscription, SubscriptionDuration, SubscriptionTier, NotificationType } from '@/types';
+import { UserSubscription, SubscriptionDuration, SubscriptionTier, NotificationType, StaffRole } from '@/types';
 
 interface SubscriptionClientWrapperProps {
   currentSubscription: UserSubscription;
-  onUpdateSubscription: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<any>;
+  onUpdateSubscription: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined }>;
   userRole?: string;
 }
 
@@ -23,7 +23,7 @@ export default function SubscriptionClientWrapper({ currentSubscription, onUpdat
     <>
       <SubscriptionView
         currentSubscription={currentSubscription}
-        userRole={userRole as any}
+        userRole={userRole as StaffRole}
         onUpdateSubscription={onUpdateSubscription}
         notify={notify}
       />

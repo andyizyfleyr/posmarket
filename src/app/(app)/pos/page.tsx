@@ -4,6 +4,7 @@ import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
+import { Product, Customer, StaffPermissions, StoreSettings } from '@/types';
 
 export default async function POSPage() {
   const supabase = await createClient();
@@ -20,11 +21,11 @@ export default async function POSPage() {
 
   return (
     <POSView 
-      products={products as any} 
-      customers={customers as any} 
+      products={products as unknown as Product[]} 
+      customers={customers as unknown as Customer[]} 
       currentStoreId={storeId}
-      storeSettings={(store?.settings || {}) as any}
-      permissions={permissions as any}
+      storeSettings={(store?.settings || {}) as StoreSettings}
+      permissions={permissions as unknown as StaffPermissions}
       businessType={store?.business_type}
     />
   );

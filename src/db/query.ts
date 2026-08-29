@@ -1,4 +1,6 @@
 import { eq, and, inArray, desc, asc, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
+import type { AnyPgTable, PgColumn } from 'drizzle-orm/pg-core';
 import { revalidatePath, updateTag } from 'next/cache';
 import { db } from './index';
 import * as schema from './schema';
@@ -7,7 +9,7 @@ import { QuerySpec, QueryResult, QueryBuilder } from './builder';
 export * from './builder';
 export { QueryBuilder };
 
-const tableRegistry: Record<string, any> = {
+const tableRegistry: Record<string, AnyPgTable> = {
   profiles: schema.profiles,
   stores: schema.stores,
   categories: schema.categories,
@@ -22,32 +24,40 @@ const tableRegistry: Record<string, any> = {
   product_reviews: schema.productReviews,
   store_staff: schema.storeStaff,
   store_stats: schema.storeStats,
+  buyer_addresses: schema.buyerAddresses,
 };
 
-type ColumnInfo = { col: any; key: string };
+type ColumnInfo = { col: PgColumn; key: string };
 
-function getTable(tableName: string): any | null {
+function isColumn(value: unknown): value is PgColumn {
+  if (typeof value !== 'object' || value === null) return false;
+  return typeof (value as { name?: unknown }).name === 'string';
+}
+
+function getTable(tableName: string): AnyPgTable | null {
   return tableRegistry[tableName] || null;
 }
 
-function getColumnInfo(table: any): Map<string, ColumnInfo> {
+type DynamicTable = AnyPgTable & { id: PgColumn };
+
+function getColumnInfo(table: AnyPgTable): Map<string, ColumnInfo> {
   const map = new Map<string, ColumnInfo>();
   for (const [key, col] of Object.entries(table)) {
-    if (col && typeof col === 'object' && 'name' in col && (col as any).name) {
-      const info = { col, key };
+    if (isColumn(col)) {
+      const info: ColumnInfo = { col, key };
       map.set(key, info);
-      map.set((col as any).name as string, info);
+      map.set(col.name, info);
     }
   }
   return map;
 }
 
-function toDbValues(values: any, columns: Map<string, ColumnInfo>): any {
+function toDbValues(values: unknown, columns: Map<string, ColumnInfo>): unknown {
   if (Array.isArray(values)) {
     return values.map((v) => toDbValues(v, columns));
   }
-  const out: any = {};
-  for (const [key, value] of Object.entries(values || {})) {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values ?? {})) {
     const info = columns.get(key);
     if (info) {
       out[info.key] = value;
@@ -56,25 +66,25 @@ function toDbValues(values: any, columns: Map<string, ColumnInfo>): any {
   return out;
 }
 
-function toSnake(table: any, row: any): any {
+function toSnake(table: AnyPgTable, row: Record<string, unknown>): Record<string, unknown> {
   if (row == null) return row;
   const columns = getColumnInfo(table);
-  const out: any = {};
+  const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
     const info = columns.get(key);
-    out[info ? (info.col as any).name : key] = value;
+    out[info ? info.col.name : key] = value;
   }
   return out;
 }
 
-function toSnakeRows(table: any, rows: any[]): any[] {
+function toSnakeRows(table: AnyPgTable, rows: Record<string, unknown>[]): Record<string, unknown>[] {
   return (rows || []).map((r) => toSnake(table, r));
 }
 
 const CATALOG_TABLES = new Set(['stores', 'products']);
 
-function revalidateCatalog(table: any) {
-  if (!CATALOG_TABLES.has(String(table))) return;
+function revalidateCatalog(table: string) {
+  if (!CATALOG_TABLES.has(table)) return;
   try {
     updateTag('marketplace');
     revalidatePath('/store');
@@ -83,10 +93,11 @@ function revalidateCatalog(table: any) {
   }
 }
 
-async function runRpc(name: string, args: any): Promise<QueryResult> {
+async function runRpc(name: string, argsRaw: unknown): Promise<QueryResult> {
+  const args = (argsRaw && typeof argsRaw === 'object' ? argsRaw : {}) as Record<string, unknown>;
   try {
     if (name === 'increment_product_views') {
-      const pId = args?.p_id;
+      const pId = args.p_id ? String(args.p_id) : undefined;
       if (pId) {
         await db
           .update(schema.products)
@@ -98,7 +109,7 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
     }
 
     if (name === 'increment_store_views') {
-      const pId = args?.p_id;
+      const pId = args.p_id ? String(args.p_id) : undefined;
       if (pId) {
         await db
           .update(schema.stores)
@@ -110,7 +121,7 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
     }
 
     if (name === 'get_user_id_by_email') {
-      const email = args?.p_email;
+      const email = args.p_email ? String(args.p_email) : '';
       if (!email) return { data: null, error: null };
       const [profile] = await db
         .select({ id: schema.profiles.id })
@@ -122,8 +133,8 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
 
     if (name === 'create-staff') {
       const body = args || {};
-      const email = body.email;
-      const role = body.role || 'SELLER';
+      const email = String(body.email || '');
+      const role = String(body.role || 'SELLER');
       const storeId = body.storeId || body.store_id;
       const permissions = body.permissions || {};
 
@@ -135,14 +146,14 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
       if (!profile) {
         [profile] = await db
           .insert(schema.profiles)
-          .values({ email, fullName: body.name || email?.split('@')[0] || 'Staff' })
+          .values({ email, fullName: String(body.name || '') || email?.split('@')[0] || 'Staff' } as never)
           .returning();
       }
 
       if (storeId) {
         await db
           .insert(schema.storeStaff)
-          .values({ storeId, userId: profile.id, role, permissions })
+          .values({ storeId: String(storeId), userId: profile.id, role, permissions } as never)
           .onConflictDoNothing();
       }
 
@@ -150,40 +161,42 @@ async function runRpc(name: string, args: any): Promise<QueryResult> {
     }
 
     if (name === 'create_order_full') {
-      const orderData = args?.p_order || {};
-      const items = args?.p_items || [];
+      const orderData = (args?.p_order || {}) as Record<string, unknown>;
+      const items = Array.isArray(args?.p_items)
+        ? (args.p_items as Array<Record<string, unknown>>)
+        : [];
       const [newOrder] = await db
         .insert(schema.orders)
         .values({
-          storeId: orderData.store_id,
-          customerId: orderData.customer_id || null,
-          date: orderData.date ? new Date(orderData.date) : new Date(),
-          status: orderData.status || 'PENDING',
-          paymentMethod: orderData.payment_method || 'ESPECES',
-          type: orderData.type || 'IN_STORE',
-          promoCode: orderData.promo_code || null,
+          storeId: String(orderData.store_id || ''),
+          customerId: orderData.customer_id ? String(orderData.customer_id) : null,
+          date: orderData.date ? new Date(String(orderData.date)) : new Date(),
+          status: String(orderData.status || 'PENDING'),
+          paymentMethod: String(orderData.payment_method || 'ESPECES'),
+          type: String(orderData.type || 'IN_STORE'),
+          promoCode: orderData.promo_code ? String(orderData.promo_code) : null,
           subtotal: String(orderData.subtotal ?? 0),
           total: String(orderData.total ?? 0),
           discountAmount: String(orderData.discount_amount ?? 0),
-        })
+        } as never)
         .returning();
 
       if (items.length > 0) {
         await db.insert(schema.orderItems).values(
-          items.map((item: any) => ({
+          items.map((item) => ({
             orderId: newOrder.id,
-            productId: item.product_id || null,
-            quantity: item.quantity || 0,
+            productId: item.product_id ? String(item.product_id) : null,
+            quantity: Number(item.quantity) || 0,
             unitPrice: String(item.price ?? 0),
-            total: String((item.price ?? 0) * (item.quantity || 0)),
-          }))
+            total: String((Number(item.price) || 0) * (Number(item.quantity) || 0)),
+          })) as never
         );
       }
       return { data: newOrder.id, error: null };
     }
 
     return { data: null, error: { message: `RPC '${name}' not implemented` } };
-  } catch (e: any) {
+  } catch (e) {
     return { data: null, error: e };
   }
 }
@@ -200,12 +213,12 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
   const columns = getColumnInfo(table);
 
   try {
-    const conditions: any[] = [];
+    const conditions: SQL<unknown>[] = [];
     for (const f of spec.filters || []) {
       const info = columns.get(f.column);
       if (!info) continue;
-      if (f.op === 'eq') conditions.push(eq(info.col, f.value));
-      else if (f.op === 'in') conditions.push(inArray(info.col, f.value as any[]));
+      if (f.op === 'eq') conditions.push(eq(info.col, f.value as never));
+      else if (f.op === 'in') conditions.push(inArray(info.col, f.value as never[]));
     }
 
     // ---------- DELETE ----------
@@ -219,17 +232,19 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     if (spec.method === 'insert' || spec.method === 'upsert') {
       const dbRows = toDbValues(spec.values, columns);
       if (spec.method === 'upsert') {
-        const setObj: any = {};
-        const firstRow = Array.isArray(dbRows) ? dbRows[0] || {} : dbRows;
+        const setObj: Record<string, unknown> = {};
+        const firstRow = Array.isArray(dbRows)
+          ? (dbRows[0] as Record<string, unknown>)
+          : (dbRows as Record<string, unknown>);
         for (const [key, value] of Object.entries(firstRow)) {
           if (key !== 'id') setObj[key] = value;
         }
         await db
           .insert(table)
-          .values(dbRows)
-          .onConflictDoUpdate({ target: table.id, set: setObj });
+          .values(dbRows as never)
+          .onConflictDoUpdate({ target: (table as DynamicTable).id, set: setObj as never });
       } else {
-        await db.insert(table).values(dbRows);
+        await db.insert(table).values(dbRows as never);
       }
       revalidateCatalog(spec.table);
       return { data: null, error: null };
@@ -238,7 +253,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     // ---------- UPDATE ----------
     if (spec.method === 'update') {
       const dbValues = toDbValues(spec.values, columns);
-      await db.update(table).set(dbValues).where(conditions.length ? and(...conditions) : undefined);
+      await db.update(table).set(dbValues as never).where(conditions.length ? and(...conditions) : undefined);
       revalidateCatalog(spec.table);
       return { data: null, error: null };
     }
@@ -259,7 +274,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     }
 
     const selectedCols = spec.selectColumns && spec.selectColumns.length > 0;
-    let selectObj: any = null;
+    let selectObj: Record<string, PgColumn> | null = null;
     if (selectedCols) {
       selectObj = {};
       for (const name of spec.selectColumns!) {
@@ -269,7 +284,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     }
 
     const base = selectedCols
-      ? db.select(selectObj).from(table).where(whereClause)
+      ? db.select(selectObj!).from(table).where(whereClause)
       : db.select().from(table).where(whereClause);
 
     if (spec.order?.column) {
@@ -290,7 +305,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     }
 
     return { data: toSnakeRows(table, rows), error: null, count: rows.length };
-  } catch (e: any) {
+  } catch (e) {
     return { data: null, error: e };
   }
 }

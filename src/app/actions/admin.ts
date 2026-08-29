@@ -5,6 +5,10 @@ import { stores, profiles, orders, products } from '@/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? errorMessage(error) : String(error);
+}
+
 export async function getGlobalStats() {
     try {
         const [
@@ -19,7 +23,7 @@ export async function getGlobalStats() {
             db.select({ count: sql<number>`count(*)` }).from(products),
         ]);
 
-        const totalSales = (allOrders || []).reduce((acc: number, order: any) => acc + (parseFloat(order.total) || 0), 0);
+        const totalSales = (allOrders || []).reduce((acc: number, order) => acc + (parseFloat(order.total ?? '') || 0), 0);
 
         return {
             totalStores: Number(totalStores) || 0,
@@ -28,7 +32,7 @@ export async function getGlobalStats() {
             totalProducts: Number(totalProducts) || 0,
             pendingStores: 0
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching global stats with Drizzle:', error);
         return { totalStores: 0, totalUsers: 0, totalSales: 0, totalProducts: 0, pendingStores: 0 };
     }
@@ -38,7 +42,7 @@ export async function getAllStores() {
     try {
         const storesList = await db.select().from(stores).orderBy(desc(stores.createdAt));
         return storesList || [];
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching all stores with Drizzle:', error);
         return [];
     }
@@ -48,7 +52,7 @@ export async function getAllUsers() {
     try {
         const usersList = await db.select().from(profiles).orderBy(desc(profiles.createdAt));
         return usersList || [];
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching all users with Drizzle:', error);
         return [];
     }
@@ -58,7 +62,7 @@ export async function getGlobalProducts(limit = 100) {
     try {
         const productsList = await db.select().from(products).orderBy(desc(products.createdAt)).limit(limit);
         return productsList || [];
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching global products with Drizzle:', error);
         return [];
     }
@@ -68,8 +72,8 @@ export async function updateStoreApproval(storeId: string, status: string) {
     try {
         revalidatePath('/admin');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        return { success: false, error: errorMessage(error) };
     }
 }
 
@@ -77,8 +81,8 @@ export async function updateUserRole(userId: string, isSuperAdmin: boolean) {
     try {
         revalidatePath('/admin');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        return { success: false, error: errorMessage(error) };
     }
 }
 
@@ -88,8 +92,8 @@ export async function forceDeleteStore(storeId: string) {
         revalidatePath('/admin');
         updateTag('marketplace');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        return { success: false, error: errorMessage(error) };
     }
 }
 
@@ -101,7 +105,7 @@ export async function updateUserAdminStatus(userId: string, isAdmin: boolean) {
 export async function updateUserSubscription(userId: string, tier: string, duration: string) {
     try {
         const startDate = new Date();
-        let endDate = new Date();
+        const endDate = new Date();
 
         if (duration === 'monthly') {
             endDate.setMonth(startDate.getMonth() + 1);
@@ -120,8 +124,8 @@ export async function updateUserSubscription(userId: string, tier: string, durat
         }).where(eq(profiles.id, userId));
         revalidatePath('/admin');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        return { success: false, error: errorMessage(error) };
     }
 }
 
@@ -133,7 +137,7 @@ export async function getGlobalOrders() {
     try {
         const ordersList = await db.select().from(orders).orderBy(desc(orders.date)).limit(100);
         return ordersList || [];
-    } catch (error: any) {
+    } catch (error: unknown) {
         return [];
     }
 }
@@ -141,3 +145,4 @@ export async function getGlobalOrders() {
 export async function updateStoreStatusAction(storeId: string, status: string) {
     return updateStoreApproval(storeId, status);
 }
+

@@ -8,7 +8,7 @@ import { useRouter } from '@/components/RouterPolyfill';
 
 interface SubscriptionViewProps {
     currentSubscription: UserSubscription;
-    onUpdateSubscription?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<any>;
+    onUpdateSubscription?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string }>;
     notify?: (message: string, type: NotificationType, title?: string) => void;
     userRole?: StaffRole;
 }
@@ -64,7 +64,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
         }
     };
 
-    const planIcons: Record<string, { Icon: any; colorClass: string; bgClass: string }> = {
+    const planIcons: Record<string, { Icon: React.ComponentType<{ size?: number; className?: string }>; colorClass: string; bgClass: string }> = {
         'STARTER': { Icon: Star, colorClass: 'text-green-600', bgClass: 'bg-green-50' },
         'PRO': { Icon: Award, colorClass: 'text-[#f56b2a]', bgClass: 'bg-orange-50' },
         'ENTERPRISE': { Icon: Zap, colorClass: 'text-purple-600', bgClass: 'bg-purple-50' }
@@ -133,7 +133,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                     <div className="mt-6 bg-orange-50 border border-orange-100 p-4 md:p-5 rounded-2xl flex items-center gap-3 max-w-md mx-auto">
                         <Users size={20} className="text-[#f56b2a] shrink-0" />
                         <p className="text-xs md:text-sm text-slate-600 text-left">
-                            En tant que vendeur, l'abonnement est géré par le propriétaire de la boutique.
+                            En tant que vendeur, l&apos;abonnement est géré par le propriétaire de la boutique.
                         </p>
                     </div>
                 )}

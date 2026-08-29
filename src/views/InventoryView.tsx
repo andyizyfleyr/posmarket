@@ -141,10 +141,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       setIsLoadingMore(true);
       const res = await getProductsAction(currentStoreId || '', 0, 10, searchTerm, { 
         productType,
-        businessType: selectedVertical as any
+        businessType: selectedVertical as 'all' | 'shopping' | 'food'
       });
       if (res.success) {
-        setLocalProducts(res.products as any);
+        setLocalProducts(res.products as unknown as Product[]);
         setOffset(res.products?.length || 0);
         setHasMore(res.hasMore || false);
       }
@@ -159,10 +159,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setIsLoadingMore(true);
     const res = await getProductsAction(currentStoreId || '', offset, 10, searchTerm, { 
       productType,
-      businessType: selectedVertical as any
+      businessType: selectedVertical as 'all' | 'shopping' | 'food'
     });
     if (res.success && res.products) {
-      setLocalProducts(prev => [...prev, ...(res.products as any)]);
+      setLocalProducts(prev => [...prev, ...(res.products as unknown as Product[])]);
       setOffset(prev => prev + (res.products?.length || 0));
       setHasMore(res.hasMore || false);
     }
@@ -184,13 +184,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       setEditingProduct(product);
       setCurrentStep(1);
       const rawOptions = Array.isArray(product.options) ? product.options : [];
-      const safeOptions = rawOptions.map((o: any) => ({
+      const safeOptions = (rawOptions as any[]).map((o: any) => ({
         id: o.id || Math.random().toString(36).substr(2, 9),
         name: o.name || '',
         values: Array.isArray(o.values) ? o.values : typeof o.values === 'string' ? o.values.split(',').map((v: string) => v.trim()).filter(Boolean) : [],
       }));
       const rawVariants = Array.isArray(product.variants) ? product.variants : [];
-      const safeVariants = rawVariants.map((v: any) => ({
+      const safeVariants = (rawVariants as any[]).map((v: any) => ({
         id: v.id || Math.random().toString(36).substr(2, 9),
         name: v.name || '',
         optionValues: v.optionValues || {},
@@ -315,8 +315,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       } else {
         alert('Erreur: ' + (result.error || 'Impossible d\'enregistrer le produit'));
       }
-    } catch (err: any) {
-      alert('Erreur: ' + (err.message || 'Une erreur est survenue'));
+    } catch (err: unknown) {
+      alert('Erreur: ' + (err instanceof Error ? err.message : 'Une erreur est survenue'));
     } finally {
       setIsSubmitting(false);
     }
@@ -399,7 +399,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             ].filter(v => v.id === 'all' || v.id === businessType).map(v => (
               <button
                 key={v.id}
-                onClick={() => setSelectedVertical(v.id as any)}
+                onClick={() => setSelectedVertical(v.id as 'all' | 'shopping' | 'food')}
                 className={`
                   flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-black transition-all whitespace-nowrap border-2
                   ${selectedVertical === v.id
@@ -950,21 +950,21 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             </button>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div className="col-span-1">
-                                <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Type d'Option</label>
-                                <select
-                                  value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as any).isCustom ? '' : 'custom')}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    const newOptions = [...formData.options!];
-                                    if (val === 'custom') {
-                                      newOptions[optIdx].name = '';
-                                      (newOptions[optIdx] as any).isCustom = true;
-                                    } else {
-                                      newOptions[optIdx].name = val;
-                                      (newOptions[optIdx] as any).isCustom = false;
-                                    }
-                                    setFormData({ ...formData, options: newOptions });
-                                  }}
+                                 <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Type d&apos;Option</label>
+                                 <select
+                                   value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as unknown as { isCustom?: boolean }).isCustom ? '' : 'custom')}
+                                   onChange={e => {
+                                     const val = e.target.value;
+                                     const newOptions = [...formData.options!];
+                                     if (val === 'custom') {
+                                       newOptions[optIdx].name = '';
+                                       (newOptions[optIdx] as unknown as { isCustom?: boolean }).isCustom = true;
+                                     } else {
+                                       newOptions[optIdx].name = val;
+                                       (newOptions[optIdx] as unknown as { isCustom?: boolean }).isCustom = false;
+                                     }
+                                     setFormData({ ...formData, options: newOptions });
+                                   }}
                                   className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
                                 >
                                   <option value="">Sélectionner...</option>
@@ -1068,22 +1068,22 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              // Cartesian product generator
-                              const options = formData.options!;
-                              const combinations: any[] = [];
+                               // Cartesian product generator
+                               const options = formData.options!;
+                               const combinations: Array<Record<string, string>> = [];
 
-                              const combine = (optIdx: number, current: any) => {
-                                if (optIdx === options.length) {
-                                  combinations.push(current);
-                                  return;
-                                }
-                                const option = options[optIdx];
-                                option.values.forEach(val => {
-                                  combine(optIdx + 1, { ...current, [option.id]: val });
-                                });
-                              };
+                               const combine = (optIdx: number, current: Record<string, string>) => {
+                                 if (optIdx === options.length) {
+                                   combinations.push(current);
+                                   return;
+                                 }
+                                 const option = options[optIdx];
+                                 option.values.forEach(val => {
+                                   combine(optIdx + 1, { ...current, [option.id]: val });
+                                 });
+                               };
 
-                              combine(0, {});
+                               combine(0, {});
 
                               const newVariants = combinations.map(combo => {
                                 const name = Object.values(combo).join(' / ');
@@ -1280,7 +1280,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">La première image sera l'image principale du produit.</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>

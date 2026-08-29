@@ -36,45 +36,33 @@ export const OnboardingProvider: React.FC<{
   ordersCount,
   settingsConfigured
 }) => {
-  const [isTourActive, setIsTourActive] = useState(false);
+  const [isTourActive, setIsTourActive] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem(ONBOARDING_KEY);
+    const steps = saved ? (JSON.parse(saved) as string[]) : [];
+    if (steps.includes('full_tour_completed')) return false;
+    const path = window.location.pathname;
+    if (path.startsWith('/store') || path.startsWith('/product')) return false;
+    return true;
+  });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(ONBOARDING_KEY) : null;
-    return saved ? JSON.parse(saved) : [];
+    return saved ? (JSON.parse(saved) as string[]) : [];
   });
 
-  const [checklist, setChecklist] = useState({
+  const checklist = {
     storeCreated: storesCount > 0,
     productAdded: productsCount > 0,
     firstSale: ordersCount > 0,
-    settingsConfigured: settingsConfigured
-  });
-
-  useEffect(() => {
-    setChecklist(prev => ({
-      ...prev,
-      storeCreated: storesCount > 0,
-      productAdded: productsCount > 0,
-      firstSale: ordersCount > 0,
-      settingsConfigured: settingsConfigured
-    }));
-  }, [storesCount, productsCount, ordersCount, settingsConfigured]);
+    settingsConfigured: settingsConfigured,
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(ONBOARDING_KEY, JSON.stringify(completedSteps));
     }
   }, [completedSteps]);
-
-  useEffect(() => {
-    // Auto-start tour only if never completed and not on a public path
-    const isPublicPath = typeof window !== 'undefined' ? (window.location.pathname.startsWith('/store') || window.location.pathname.startsWith('/product')) : false;
-    const hasCompletedTour = completedSteps.includes('full_tour_completed');
-    
-    if (!hasCompletedTour && !isPublicPath) {
-      setIsTourActive(true);
-    }
-  }, []);
 
   const startTour = () => {
     if (!completedSteps.includes('full_tour_completed')) {

@@ -11,9 +11,9 @@ export const supabaseFetchWithTimeout = (timeout = 20000) => {
       });
       clearTimeout(id);
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(id);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error(`Supabase Request Timeout (${timeout}ms): ${input.toString()}`);
       }
       throw error;
@@ -21,14 +21,14 @@ export const supabaseFetchWithTimeout = (timeout = 20000) => {
   };
 };
 
-export async function safeSupabaseFetch<T>(queryFactory: () => any, retries = 3): Promise<{ data: T | null; error: any }> {
-  let lastError = null
+export async function safeSupabaseFetch<T>(queryFactory: () => PromiseLike<{ data: unknown; error: unknown }>, retries = 3): Promise<{ data: T | null; error: unknown | null }> {
+  let lastError: unknown = null
   let attempt = 0
   
   while (attempt < retries) {
     try {
       const result = await queryFactory()
-      if (!result.error) return result
+      if (!result.error) return result as { data: T | null; error: unknown }
       
       lastError = result.error
       const errStr = JSON.stringify(lastError)
@@ -41,13 +41,14 @@ export async function safeSupabaseFetch<T>(queryFactory: () => any, retries = 3)
           continue
         }
       }
-      return result
-    } catch (e: any) {
+      return result as { data: T | null; error: unknown }
+    } catch (e: unknown) {
       lastError = e
-      const isNetworkError = e.name === 'AbortError' || 
-                            e.message?.includes('ECONNRESET') || 
-                            e.message?.includes('fetch failed') ||
-                            e.message?.includes('aborted');
+      const err = e as Error
+      const isNetworkError = err.name === 'AbortError' ||
+                            err.message?.includes('ECONNRESET') ||
+                            err.message?.includes('fetch failed') ||
+                            err.message?.includes('aborted');
                             
       if (isNetworkError) {
         attempt++

@@ -13,9 +13,9 @@ export async function fetchStores() {
   try {
     const storesList = await dbFetchStores();
     return { success: true, stores: storesList };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching stores with Drizzle:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -44,7 +44,7 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
         store: null
       }
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching store data with Drizzle:', error);
     return {
       products: [],
@@ -53,7 +53,7 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
       invoices: [],
       store: null,
       subscription: null,
-      errors: { general: error.message }
+      errors: { general: error instanceof Error ? error.message : String(error) }
     };
   }
 }
@@ -90,9 +90,9 @@ export async function quickCreateStoreAction(name: string, businessType: string)
     revalidatePath('/dashboard');
     updateTag('marketplace');
     return { success: true, store: newStore };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating store with Drizzle:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -120,9 +120,9 @@ export async function quickDeleteStoreAction(storeId: string) {
     revalidatePath('/dashboard');
     updateTag('marketplace');
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting store with Drizzle:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 

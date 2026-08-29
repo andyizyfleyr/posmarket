@@ -33,13 +33,15 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
 
   // Animate badge when count changes
   useEffect(() => {
-    if (cartItemsCount !== prevCartCount.current && cartItemsCount > 0) {
-      setBadgeAnimating(true);
-      const timer = setTimeout(() => setBadgeAnimating(false), 300);
-      prevCartCount.current = cartItemsCount;
-      return () => clearTimeout(timer);
-    }
+    if (cartItemsCount === prevCartCount.current) return;
     prevCartCount.current = cartItemsCount;
+    if (cartItemsCount <= 0) return;
+
+    const timers = [
+      setTimeout(() => setBadgeAnimating(true), 50),
+      setTimeout(() => setBadgeAnimating(false), 350),
+    ];
+    return () => timers.forEach((t) => clearTimeout(t));
   }, [cartItemsCount]);
 
   const handleRefresh = () => {

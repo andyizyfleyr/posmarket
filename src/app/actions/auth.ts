@@ -28,9 +28,9 @@ export async function loginAction(formData: FormData) {
 
     (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
     redirect('/dashboard');
-  } catch (error: any) {
-    if (error.message?.includes('NEXT_REDIRECT')) throw error;
-    return { error: error.message };
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message?.includes('NEXT_REDIRECT')) throw error;
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -60,9 +60,9 @@ export async function signupAction(formData: FormData) {
 
     (await cookies()).set('userId', newProfile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
     redirect('/subscription');
-  } catch (error: any) {
-    if (error.message?.includes('NEXT_REDIRECT')) throw error;
-    return { error: error.message };
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message?.includes('NEXT_REDIRECT')) throw error;
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 

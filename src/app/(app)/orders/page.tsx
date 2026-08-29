@@ -6,6 +6,7 @@ import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
+import { Order, StaffRole, StaffPermissions } from '@/types';
 
 export default async function OrdersPage() {
   const supabase = await createClient();
@@ -26,11 +27,11 @@ export default async function OrdersPage() {
 
   return (
     <OrdersView 
-      orders={orders as any} 
-      permissions={permissions as any}
-      userRole={role as any}
+      orders={orders as unknown as Order[]} 
+      permissions={permissions as unknown as StaffPermissions}
+      userRole={role as unknown as StaffRole}
       currentStoreId={storeId}
-      store={store as any}
+      store={store as unknown as { id: string; name?: string | null; settings?: { [key: string]: unknown } | null }}
     />
   );
 }

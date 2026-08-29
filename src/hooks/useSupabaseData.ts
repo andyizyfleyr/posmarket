@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/supabase';
 import { StoreData, Staff } from '@/types';
 
@@ -8,55 +8,63 @@ import { StoreData, Staff } from '@/types';
    FORMATTERS (UI SAFE)
 ========================================================= */
 
-const formatOrder = (o: any, customersMap: Record<string, any>) => ({
-  id: o.id,
-  date: o.date,
-  subtotal: o.subtotal || 0,
-  total: o.total || 0,
-  discountAmount: o.discount_amount || 0,
-  promoCode: o.promo_code || '',
-  paymentMethod: o.payment_method || 'CASH',
-  status: o.status || 'PENDING',
-  type: o.type || 'IN_STORE',
+type Row = Record<string, unknown>;
 
-  customer: customersMap[o.customer_id]
-    ? {
-        id: customersMap[o.customer_id].id,
-        name: customersMap[o.customer_id].name,
-        email: customersMap[o.customer_id].email || '',
-        phone: customersMap[o.customer_id].phone || '',
-        address: customersMap[o.customer_id].address || '',
-        totalSpent: customersMap[o.customer_id].total_spent || 0,
-        ordersCount: customersMap[o.customer_id].orders_count || 0
-      }
-    : undefined
-});
+const formatOrder = (o: Row, customersMap: Record<string, Row>) => {
+  const customer = o.customer_id ? customersMap[String(o.customer_id)] : undefined;
+  return {
+    id: o.id,
+    date: o.date,
+    subtotal: o.subtotal || 0,
+    total: o.total || 0,
+    discountAmount: o.discount_amount || 0,
+    promoCode: o.promo_code || '',
+    paymentMethod: o.payment_method || 'CASH',
+    status: o.status || 'PENDING',
+    type: o.type || 'IN_STORE',
 
-const formatInvoice = (inv: any, customersMap: Record<string, any>) => ({
-  id: inv.id,
-  invoiceNumber: inv.invoice_number,
-  date: inv.date,
-  dueDate: inv.due_date,
-  customerName: inv.customer_name,
-  customerEmail: inv.customer_email,
-  customerAddress: inv.customer_address,
-  subtotal: inv.subtotal || 0,
-  total: inv.total || 0,
-  status: inv.status || 'DRAFT',
-  notes: inv.notes || '',
+    customer: customer
+      ? {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email || '',
+          phone: customer.phone || '',
+          address: customer.address || '',
+          totalSpent: customer.total_spent || 0,
+          ordersCount: customer.orders_count || 0
+        }
+      : undefined
+  };
+};
 
-  customer: customersMap[inv.customer_id]
-    ? {
-        id: customersMap[inv.customer_id].id,
-        name: customersMap[inv.customer_id].name,
-        email: customersMap[inv.customer_id].email || '',
-        phone: customersMap[inv.customer_id].phone || '',
-        address: customersMap[inv.customer_id].address || '',
-        totalSpent: customersMap[inv.customer_id].total_spent || 0,
-        ordersCount: customersMap[inv.customer_id].orders_count || 0
-      }
-    : undefined
-});
+const formatInvoice = (inv: Row, customersMap: Record<string, Row>) => {
+  const customer = inv.customer_id ? customersMap[String(inv.customer_id)] : undefined;
+  return {
+    id: inv.id,
+    invoiceNumber: inv.invoice_number,
+    date: inv.date,
+    dueDate: inv.due_date,
+    customerName: inv.customer_name,
+    customerEmail: inv.customer_email,
+    customerAddress: inv.customer_address,
+    subtotal: inv.subtotal || 0,
+    total: inv.total || 0,
+    status: inv.status || 'DRAFT',
+    notes: inv.notes || '',
+
+    customer: customer
+      ? {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email || '',
+          phone: customer.phone || '',
+          address: customer.address || '',
+          totalSpent: customer.total_spent || 0,
+          ordersCount: customer.orders_count || 0
+        }
+      : undefined
+  };
+};
 
 /* =========================================================
    FETCH STORE BUNDLE (CORE ENGINE)
@@ -110,15 +118,15 @@ const fetchStoreBundle = async (storeId: string) => {
     ]);
 
   const customersMap = Object.fromEntries(
-    (customersRes.data || []).map((c) => [c.id, c])
+    (customersRes.data || []).map((c) => [String(c.id), c])
   );
 
   const statsMap = Object.fromEntries(
-    (statsRes.data || []).map((s) => [s.product_id, s])
+    (statsRes.data || []).map((s) => [String(s.product_id), s])
   );
 
   return {
-    products: (productsRes.data || []).map((p: any) => ({
+    products: (productsRes.data || []).map((p) => ({
       id: p.id,
       name: p.name,
       price: p.price,
@@ -133,9 +141,9 @@ const fetchStoreBundle = async (storeId: string) => {
       isOnline: p.is_online,
       views: p.views,
       businessType: p.business_type,
-      rating: statsMap[p.id]?.average_rating || 0,
-      reviewCount: statsMap[p.id]?.review_count || 0,
-      salesCount: statsMap[p.id]?.total_sales || 0
+      rating: (statsMap[String(p.id)] as Record<string, unknown> | undefined)?.average_rating || 0,
+      reviewCount: (statsMap[String(p.id)] as Record<string, unknown> | undefined)?.review_count || 0,
+      salesCount: (statsMap[String(p.id)] as Record<string, unknown> | undefined)?.total_sales || 0
     })),
 
     orders: (ordersRes.data || []).map((o) => ({
@@ -158,13 +166,13 @@ const fetchStoreBundle = async (storeId: string) => {
       ordersCount: c.orders_count
     })),
 
-    staff: (staffRes.data || []).map((s: any) => ({
+    staff: (staffRes.data || []).map((s) => ({
       id: s.id,
       storeId: s.store_id,
       userId: s.user_id,
       role: s.role,
       permissions: s.permissions || {}
-    })) as Staff[]
+    })) as unknown as Staff[]
   };
 };
 
@@ -173,10 +181,9 @@ const fetchStoreBundle = async (storeId: string) => {
 ========================================================= */
 
 export const useSupabaseData = (
-  session: any,
+  session: { user?: { id?: string | null } | null } | null | undefined,
   activeStoreId?: string
 ) => {
-  const queryClient = useQueryClient();
   const userId = session?.user?.id;
 
   /* ---------------- STORES ---------------- */
@@ -216,9 +223,9 @@ export const useSupabaseData = (
       return {
         ...s,
         ...storeBundleQuery.data
-      } as StoreData;
+      } as unknown as StoreData;
     }
-    return s as StoreData;
+    return s as unknown as StoreData;
   });
 
   /* ---------------- RETURN ---------------- */
@@ -251,7 +258,7 @@ export const fetchOrderItems = async (orderId: string) => {
         .eq('order_id', orderId);
     if (error) throw error;
 
-    const productIds = [...new Set((data || []).map((i: any) => i.product_id).filter(Boolean))];
+    const productIds = [...new Set((data || []).map((i) => String(i.product_id || '')).filter(Boolean))];
     if (productIds.length === 0) return data || [];
 
     const { data: productsData } = await supabase
@@ -259,11 +266,11 @@ export const fetchOrderItems = async (orderId: string) => {
         .select('id, name, price, image, business_type, main_category')
         .in('id', productIds);
 
-    const productsMap = Object.fromEntries((productsData || []).map((p: any) => [p.id, p]));
-    return (data || []).map((i: any) => ({ ...i, product: productsMap[i.product_id] }));
+    const productsMap = Object.fromEntries((productsData || []).map((p) => [String(p.id), p]));
+    return (data || []).map((i) => ({ ...i, product: productsMap[String(i.product_id)] }));
 };
 
-export const fetchInvoiceItems = async (invoiceId: string) => {
+export const fetchInvoiceItems = async (invoiceId: string): Promise<Record<string, unknown>[]> => {
     const { data, error } = await supabase
         .from('invoice_items')
         .select('*')
@@ -272,7 +279,7 @@ export const fetchInvoiceItems = async (invoiceId: string) => {
     return data;
 };
 
-export const fetchProductReviews = async (productId: string) => {
+export const fetchProductReviews = async (productId: string): Promise<Record<string, unknown>[]> => {
     const { data, error } = await supabase
         .from('product_reviews')
         .select('*')
@@ -289,7 +296,7 @@ export const fetchMarketplaceProducts = async () => {
         .eq('is_online', true)
         .limit(50);
     if (error) throw error;
-    return (data || []).map((p: any) => ({
+    return (data || []).map((p) => ({
         ...p,
         originalPrice: p.original_price,
         mainCategory: p.main_category,

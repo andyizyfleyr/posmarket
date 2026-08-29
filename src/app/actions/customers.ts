@@ -5,11 +5,23 @@ import { db } from '@/db'
 import { customers } from '@/db/schema'
 import { eq, or, and, sql, inArray, desc } from 'drizzle-orm'
 
-export async function saveCustomerAction(customer: any, storeId: string) {
+type CustomerInput = {
+    id?: string;
+    name?: string;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    totalSpent?: string | number;
+    total_spent?: string | number;
+    ordersCount?: number;
+    orders_count?: number;
+}
+
+export async function saveCustomerAction(customer: CustomerInput, storeId: string) {
     try {
         const dataToSave = {
             storeId,
-            name: customer.name,
+            name: customer.name || '',
             email: customer.email,
             phone: customer.phone,
             address: customer.address,
@@ -33,9 +45,9 @@ export async function saveCustomerAction(customer: any, storeId: string) {
 
         revalidatePath('/customers');
         return { success: true, customer: savedCustomer };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error saving customer with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -44,9 +56,9 @@ export async function deleteCustomerAction(id: string) {
         await db.delete(customers).where(eq(customers.id, id));
         revalidatePath('/customers');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting customer with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -57,15 +69,15 @@ export async function bulkDeleteCustomersAction(ids: string[]) {
         }
         revalidatePath('/customers');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error bulk deleting customers with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
 export async function getCustomersAction(storeId: string, offset: number = 0, limit: number = 10, search: string = '') {
     try {
-        let conditions = [eq(customers.storeId, storeId)];
+        const conditions = [eq(customers.storeId, storeId)];
 
         if (search) {
             conditions.push(or(
@@ -92,16 +104,16 @@ export async function getCustomersAction(storeId: string, offset: number = 0, li
 
         return { 
             success: true, 
-            customers: (customersList || []).map((c: any) => ({
+            customers: (customersList || []).map((c) => ({
                 ...c,
-                totalSpent: parseFloat(c.totalSpent) || 0,
+                totalSpent: parseFloat(c.totalSpent ?? '') || 0,
                 ordersCount: Number(c.ordersCount) || 0,
             })), 
             hasMore: total > (offset + customersList.length),
             total
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching customers with Drizzle:', error);
-        return { success: false, error: error.message, customers: [], total: 0 };
+        return { success: false, error: error instanceof Error ? error.message : String(error), customers: [], total: 0 };
     }
 }

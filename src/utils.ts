@@ -39,7 +39,8 @@ export const isValidPhoneSN = (value: string): boolean => {
 
 export const playSuccessSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const audioContext = new AudioContextCtor();
     
     // Resume context on mobile
     if (audioContext.state === 'suspended') {
@@ -61,7 +62,7 @@ export const playSuccessSound = () => {
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.4);
-  } catch (e) {
+  } catch {
     console.log('Sound not supported');
   }
 };

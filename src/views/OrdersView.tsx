@@ -30,7 +30,7 @@ interface OrdersViewProps {
     currentStoreId?: string;
     permissions?: StaffPermissions;
     userRole?: StaffRole;
-    store?: any;
+    store?: { id: string; name?: string | null; settings?: { [key: string]: unknown } | null } | null;
 }
 
 const OrdersView: React.FC<OrdersViewProps> = ({ 
@@ -68,7 +68,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                 setIsSearching(true);
                 const res = await getOrdersAction(currentStoreId, 0, 10, searchTerm, filterStatus);
                 if (res.success && res.orders) {
-                    setLocalOrders(res.orders as any);
+                    setLocalOrders(res.orders as unknown as Order[]);
                     setOffset(res.orders.length);
                     setHasMore(res.hasMore || false);
                     setSelectedOrderIds([]); // Reset selection when filter changes
@@ -82,9 +82,12 @@ const OrdersView: React.FC<OrdersViewProps> = ({
 
     // Sync with server-side refresh
     useEffect(() => {
-        setLocalOrders(initialOrders);
-        setOffset(initialOrders.length);
-        setHasMore((initialOrders.length || 0) >= 10);
+        const timer = setTimeout(() => {
+            setLocalOrders(initialOrders);
+            setOffset(initialOrders.length);
+            setHasMore((initialOrders.length || 0) >= 10);
+        }, 0);
+        return () => clearTimeout(timer);
     }, [initialOrders]);
 
     const handleLoadMore = async () => {
@@ -92,7 +95,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         setIsLoadingMore(true);
         const res = await getOrdersAction(currentStoreId, offset, 10, searchTerm, filterStatus);
         if (res.success && res.orders) {
-            setLocalOrders(prev => [...prev, ...(res.orders as any)]);
+            setLocalOrders(prev => [...prev, ...(res.orders as unknown as Order[])]);
             setOffset(prev => prev + (res.orders?.length || 0));
             setHasMore(res.hasMore || false);
         }
@@ -100,15 +103,19 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     useEffect(() => {
-        if (selectedOrder) {
+        if (!selectedOrder) {
+            setSelectedOrderItems([]);
+            return;
+        }
+        const timer = setTimeout(() => {
             setLoadingOrderItems(true);
             setSelectedOrderItems(selectedOrder.items || []);
             fetchOrderItems(selectedOrder.id).then(items => {
-                setSelectedOrderItems(items as any);
+                setSelectedOrderItems(items as unknown as CartItem[]);
                 setLoadingOrderItems(false);
             });
-        }
-        return () => setSelectedOrderItems([]);
+        }, 0);
+        return () => clearTimeout(timer);
     }, [selectedOrder?.id]);
 
     const filteredOrders = useMemo(() => {
@@ -145,7 +152,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         }
     };
 
-    const handleUpdateStatus = async (orderId: string, status: any) => {
+    const handleUpdateStatus = async (orderId: string, status?: Order['status']) => {
+        if (!status) return;
         const result = await updateOrderStatusAction(orderId, status);
         if (result.success) {
             router.refresh();
@@ -203,14 +211,14 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         Commandes
                     </h1>
                     <div className="flex items-center gap-2 mt-1 md:mt-2">
-                         {[
-                            { id: 'all', label: 'Toutes', icon: Package, color: 'gray' },
-                            { id: 'shopping', label: 'Shop', icon: ShoppingBag, color: 'orange' },
-                            { id: 'food', label: 'Resto', icon: Zap, color: 'yellow' }
-                        ].map(v => (
-                            <button
-                                key={v.id}
-                                onClick={() => setSelectedVertical(v.id as any)}
+                             {[
+                                { id: 'all' as const, label: 'Toutes', icon: Package, color: 'gray' },
+                                { id: 'shopping' as const, label: 'Shop', icon: ShoppingBag, color: 'orange' },
+                                { id: 'food' as const, label: 'Resto', icon: Zap, color: 'yellow' }
+                            ].map(v => (
+                                <button
+                                    key={v.id}
+                                    onClick={() => setSelectedVertical(v.id)}
                                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black transition-all border-2 ${selectedVertical === v.id ? `bg-${v.color}-500 border-${v.color}-500 text-white` : 'bg-white border-gray-100 text-gray-400'}`}
                             >
                                 <v.icon size={12} /> {v.label}
@@ -250,7 +258,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         Attente ({localOrders.filter(o => o.status === 'PENDING').length})
                     </button>
                     <button
-                        onClick={() => setFilterStatus('READY' as any)}
+                        onClick={() => setFilterStatus('READY')}
                         className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${filterStatus === 'READY' ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-100' : 'text-gray-400 hover:text-gray-900'}`}
                     >
                         Prêtes ({localOrders.filter(o => o.status === 'READY').length})

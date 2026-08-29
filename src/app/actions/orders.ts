@@ -6,7 +6,23 @@ import { orders, orderItems, customers, products } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
 
-export async function createOrderAction(order: any, storeId: string) {
+type OrderItemInput = {
+  product?: { id?: string; price?: number | string } | null;
+  quantity?: number;
+}
+
+type OrderInput = {
+  customer?: { id?: string } | null;
+  date?: string | Date;
+  status?: string;
+  paymentMethod?: string;
+  subtotal?: number | string;
+  total?: number | string;
+  discountAmount?: number | string;
+  items?: OrderItemInput[];
+}
+
+export async function createOrderAction(order: OrderInput, storeId: string) {
     try {
         const dbOrder = {
             storeId,
@@ -22,12 +38,12 @@ export async function createOrderAction(order: any, storeId: string) {
         const [orderData] = await db.insert(orders).values(dbOrder).returning();
         
         if (order.items && order.items.length > 0) {
-            const itemsToInsert = order.items.map((item: any) => ({
+            const itemsToInsert = order.items.map((item) => ({
                 orderId: orderData.id,
                 productId: item.product?.id || null,
-                quantity: item.quantity,
-                unitPrice: (item.product?.price || 0).toString(),
-                total: ((item.product?.price || 0) * item.quantity).toString(),
+                quantity: item.quantity ?? 1,
+                unitPrice: String(item.product?.price ?? 0),
+                total: String(Number(item.product?.price ?? 0) * (item.quantity ?? 1)),
             }));
             
             await db.insert(orderItems).values(itemsToInsert);
@@ -36,7 +52,7 @@ export async function createOrderAction(order: any, storeId: string) {
         if (order.customer?.id) {
             const [customer] = await db.select().from(customers).where(eq(customers.id, order.customer.id)).limit(1);
             if (customer) {
-                const newSpent = parseFloat(customer.totalSpent || '0') + (order.total || 0);
+                const newSpent = parseFloat(customer.totalSpent || '0') + Number(order.total || 0);
                 const newCount = customer.ordersCount + 1;
                 await db.update(customers)
                     .set({ totalSpent: newSpent.toString(), ordersCount: newCount })
@@ -45,16 +61,16 @@ export async function createOrderAction(order: any, storeId: string) {
         }
         
         invalidateOrdersCache(storeId);
-        if (storeId) revalidateTag(`orders:${storeId}`, undefined as any);
+        if (storeId) revalidateTag(`orders:${storeId}`, undefined as never);
         revalidatePath('/orders');
         revalidatePath('/pos');
         revalidatePath('/inventory');
         revalidatePath('/dashboard');
         
         return { success: true, order: orderData };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Order creation error with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -63,12 +79,12 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
         const storeId = await getStoreIdForOrder(orderId);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
         invalidateOrdersCache(storeId);
-        if (storeId) revalidateTag(`orders:${storeId}`, undefined as any);
+        if (storeId) revalidateTag(`orders:${storeId}`, undefined as never);
         revalidatePath('/orders');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating order status with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -77,12 +93,12 @@ export async function deleteOrderAction(id: string) {
         const storeId = await getStoreIdForOrder(id);
         await db.delete(orders).where(eq(orders.id, id));
         invalidateOrdersCache(storeId);
-        if (storeId) revalidateTag(`orders:${storeId}`, undefined as any);
+        if (storeId) revalidateTag(`orders:${storeId}`, undefined as never);
         revalidatePath('/orders');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting order with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -97,14 +113,14 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
             await db.delete(orders).where(inArray(orders.id, ids));
             storeIds.forEach(sid => {
                 invalidateOrdersCache(sid);
-                revalidateTag(`orders:${sid}`, undefined as any);
+                revalidateTag(`orders:${sid}`, undefined as never);
             });
         }
         revalidatePath('/orders');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error bulk deleting orders with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -119,14 +135,14 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
             storeIds.forEach(sid => {
                 invalidateOrdersCache(sid);
-                revalidateTag(`orders:${sid}`, undefined as any);
+                revalidateTag(`orders:${sid}`, undefined as never);
             });
         }
         revalidatePath('/orders');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error bulk updating order status with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -161,24 +177,24 @@ export async function getOrdersAction(
 
         const total = Number(totalCount) || 0;
 
-        const orderIds = (ordersList || []).map((o: any) => o.id);
-        let customersMap: Record<string, any> = {};
+        const orderIds = (ordersList || []).map((o) => o.id);
+        let customersMap: Record<string, (typeof customers.$inferSelect)> = {};
         if (orderIds.length > 0) {
-            const customerIds = [...new Set((ordersList || []).map((o: any) => o.customerId).filter(Boolean))];
+            const customerIds = [...new Set((ordersList || []).map((o) => o.customerId).filter((x): x is string => Boolean(x)))];
             if (customerIds.length > 0) {
                 const customerRows = await db.select().from(customers).where(inArray(customers.id, customerIds));
-                customersMap = Object.fromEntries(customerRows.map((c: any) => [c.id, c]));
+                customersMap = Object.fromEntries(customerRows.map((c) => [c.id, c]));
             }
         }
 
         return { 
             success: true, 
-            orders: (ordersList || []).map((o: any) => {
+            orders: (ordersList || []).map((o) => {
                 const customer = o.customerId ? customersMap[o.customerId] : undefined;
                 return {
                     ...o,
-                    total: parseFloat(o.total) || 0,
-                    subtotal: parseFloat(o.subtotal) || 0,
+                    total: parseFloat(o.total ?? '') || 0,
+                    subtotal: parseFloat(o.subtotal ?? '') || 0,
                     discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
                     customer: customer
                         ? {
@@ -194,8 +210,8 @@ export async function getOrdersAction(
             hasMore: total > (offset + ordersList.length),
             total
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error getting orders with Drizzle:', error);
-        return { success: false, orders: [], hasMore: false, total: 0, error: error.message };
+        return { success: false, orders: [], hasMore: false, total: 0, error: error instanceof Error ? error.message : String(error) };
     }
 }

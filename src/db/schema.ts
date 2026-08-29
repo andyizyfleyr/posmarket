@@ -5,6 +5,7 @@ export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   fullName: text('full_name'),
+  phone: text('phone'),
   avatarUrl: text('avatar_url'),
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
   subscriptionTier: text('subscription_tier').default('PRO'),
@@ -75,10 +76,24 @@ export const customers = pgTable('customers', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const buyerAddresses = pgTable('buyer_addresses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  fullName: text('full_name').notNull(),
+  phone: text('phone').notNull(),
+  address: text('address').notNull(),
+  city: text('city').notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
   customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  buyerUserId: uuid('buyer_user_id').references(() => profiles.id, { onDelete: 'set null' }),
+  buyerEmail: text('buyer_email'),
   total: numeric('total', { precision: 12, scale: 2 }).notNull(),
   subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull(),
   discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).default('0'),
@@ -140,6 +155,7 @@ export const productReviews = pgTable('product_reviews', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
   productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'set null' }),
   authorName: text('author_name').default('Anonyme').notNull(),
   rating: integer('rating').notNull(),
   comment: text('comment'),
@@ -237,4 +253,8 @@ export const categoriesRelations = relations(categories, ({ one }) => ({
 export const customersRelations = relations(customers, ({ one, many }) => ({
   store: one(stores, { fields: [customers.storeId], references: [stores.id] }),
   orders: many(orders),
+}));
+
+export const buyerAddressesRelations = relations(buyerAddresses, ({ one }) => ({
+  user: one(profiles, { fields: [buyerAddresses.userId], references: [profiles.id] }),
 }));

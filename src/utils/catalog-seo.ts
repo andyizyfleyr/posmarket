@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { stores, products, productStats } from "@/db/schema";
-import { eq, or, and, like, sql } from "drizzle-orm";
+import { eq, or, and, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { generateProductSlug } from "@/utils/slug";
 
@@ -31,9 +31,27 @@ function imgRef(
  * Matches by exact id OR by public slug (name-slug ending with id prefix).
  * Never loads the full catalog.
  */
+type ProductSeoData = {
+  id: string;
+  name: string | null;
+  description: string;
+  price: number;
+  stock: number;
+  image: string;
+  rating: number;
+  reviewCount: number;
+};
+
+type StoreSeoData = {
+  id: string;
+  slug: string | null;
+  phone: string;
+  settings: { name: string | null };
+};
+
 async function getProductSeoUncached(
     slugOrId: string,
-): Promise<{ product: any; store: any } | null> {
+): Promise<{ product: ProductSeoData; store: StoreSeoData } | null> {
     try {
         const wanted = decodeURIComponent(slugOrId);
         const idPrefix = wanted.split("-").pop() || "";
@@ -48,7 +66,7 @@ async function getProductSeoUncached(
                 stock: products.stock,
                 image: imgSql(),
                 hasImage:
-                    sql<boolean>`${products.image} IS NOT NULL` as any,
+                    sql<boolean>`${products.image} IS NOT NULL`,
                 avgRating: productStats.averageRating,
                 reviewCount: productStats.reviewCount,
                 storeName: stores.name,
@@ -84,9 +102,9 @@ async function getProductSeoUncached(
                 price: Number(row.price) || 0,
                 stock: row.stock || 0,
                 image: imgRef(row.image as string | null, row.hasImage, row.id),
-                rating: row.avgRating ? parseFloat(row.avgRating as any) : 0,
+                rating: row.avgRating ? parseFloat(row.avgRating ?? '') : 0,
                 reviewCount: row.reviewCount
-                    ? parseInt(row.reviewCount as any)
+                    ? Number(row.reviewCount)
                     : 0,
             },
             store: {
@@ -155,7 +173,7 @@ async function getStoreSeoUncached(slugOrId: string) {
                     ((settingsObj.description as string) || ""),
                 logo: settingsObj.logo as string | undefined,
             },
-            products: prodRows.map((p: any) => ({
+            products: prodRows.map((p) => ({
                 id: p.id,
                 name: p.name,
                 price: Number(p.price) || 0,

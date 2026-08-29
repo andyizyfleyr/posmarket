@@ -60,7 +60,7 @@ export default function NoStoreFound() {
         
         <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">Bienvenue sur votre PDV !</h2>
         <p className="text-slate-500 mb-10 font-medium leading-relaxed max-w-sm mx-auto">
-          Pour commencer, donnez un nom à votre première boutique. C'est l'endroit où vous gérerez vos ventes et stocks.
+          Pour commencer, donnez un nom à votre première boutique. C&apos;est l&apos;endroit où vous gérerez vos ventes et stocks.
         </p>
 
         <form onSubmit={handleCreate} className="space-y-4">
@@ -82,13 +82,13 @@ export default function NoStoreFound() {
              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left ml-2">Modèle de boutique</p>
              <div className="grid grid-cols-1 gap-2">
                 {[
-                  { id: 'shopping', label: 'SHOP', desc: 'Shopping & E-commerce', color: 'orange' },
-                  { id: 'food', label: 'RESTO', desc: 'Cuisine & Restauration', color: 'yellow' }
+                  { id: 'shopping' as const, label: 'SHOP', desc: 'Shopping & E-commerce', color: 'orange' },
+                  { id: 'food' as const, label: 'RESTO', desc: 'Cuisine & Restauration', color: 'yellow' }
                 ].map((type) => (
                   <button
                     key={type.id}
                     type="button"
-                    onClick={() => setBusinessType(type.id as any)}
+                    onClick={() => setBusinessType(type.id)}
                     className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${businessType === type.id ? 'border-[#f56b2a] bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
                     <div className="text-left">

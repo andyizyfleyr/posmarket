@@ -16,24 +16,22 @@ export async function updateStoreSettingsAction(storeId: string, settings: Store
 
         const slug = settings.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-        const updateData: any = {
+        await db.update(stores).set({
             name: settings.name,
             slug,
             email: settings.email,
             phone: settings.phone,
             address: settings.address,
             ninea: settings.ninea,
-            settings: settings
-        };
-
-        await db.update(stores).set(updateData).where(eq(stores.id, storeId));
+            settings,
+        }).where(eq(stores.id, storeId));
 
         revalidatePath('/settings');
         updateTag('marketplace');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating store settings with Drizzle:', error);
-        return { success: false, error: "Impossible de mettre à jour la boutique : " + error.message };
+        return { success: false, error: "Impossible de mettre à jour la boutique : " + (error instanceof Error ? error.message : String(error)) };
     }
 }
 
@@ -55,9 +53,9 @@ export async function createStoreAction(settings: StoreSettings, userId: string)
         revalidatePath('/settings');
         updateTag('marketplace');
         return { success: true, store: newStore };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating store with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -67,29 +65,37 @@ export async function deleteStoreAction(id: string) {
         revalidatePath('/settings');
         updateTag('marketplace');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting store with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
-export async function updateProfileSettingsAction(userId: string, data: { fullName: string, email: string }) {
+export async function updateProfileSettingsAction(userId: string, data: { fullName: string, email?: string, avatarUrl?: string }) {
     try {
-        await db.update(profiles).set({
-            fullName: data.fullName,
-            email: data.email
-        }).where(eq(profiles.id, userId));
+        const updateData: Record<string, string> = {};
+        if (data.fullName) updateData.fullName = data.fullName;
+        if (data.email) updateData.email = data.email;
+
+        await db.update(profiles).set(updateData as Partial<typeof profiles.$inferInsert>).where(eq(profiles.id, userId));
 
         revalidatePath('/settings');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating profile with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
 // Coupons
-export async function saveCouponAction(coupon: any, storeId: string) {
+type CouponInput = {
+  code?: string;
+  discountPct?: number | string;
+  active?: boolean;
+  expiresAt?: string | Date | null;
+}
+
+export async function saveCouponAction(coupon: CouponInput, storeId: string) {
     try {
         if (!coupon || !coupon.code) return { success: false, error: 'Code promo manquant' };
 
@@ -103,9 +109,9 @@ export async function saveCouponAction(coupon: any, storeId: string) {
 
         revalidatePath('/settings');
         return { success: true, coupon: saved };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error saving coupon with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -114,9 +120,9 @@ export async function deleteCouponAction(id: string) {
         await db.delete(coupons).where(eq(coupons.id, id));
         revalidatePath('/settings');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting coupon with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -125,14 +131,20 @@ export async function toggleCouponAction(id: string, active: boolean) {
         await db.update(coupons).set({ active }).where(eq(coupons.id, id));
         revalidatePath('/settings');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error toggling coupon with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
 // Staff
-export async function addStaffAction(staff: any, storeId: string) {
+type StaffInput = {
+  email?: string;
+  role?: string;
+  password?: string;
+}
+
+export async function addStaffAction(staff: StaffInput, storeId: string) {
     try {
         const email = staff?.email;
         if (!email) return { success: false, error: 'Email manquant' };
@@ -153,9 +165,9 @@ export async function addStaffAction(staff: any, storeId: string) {
 
         revalidatePath('/settings');
         return { success: true, staff: { ...staff, id: profile.id, userId: profile.id } };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error adding staff with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
@@ -164,12 +176,12 @@ export async function deleteStaffAction(id: string) {
         await db.delete(storeStaff).where(eq(storeStaff.id, id));
         revalidatePath('/settings');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting staff with Drizzle:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
 
-export async function updateProfileAction(userId: string, data: any) {
+export async function updateProfileAction(userId: string, data: { fullName: string, email?: string, avatarUrl?: string }) {
     return updateProfileSettingsAction(userId, data);
 }

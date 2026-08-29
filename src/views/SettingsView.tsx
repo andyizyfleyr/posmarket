@@ -61,7 +61,15 @@ interface SettingsViewProps {
 }
 
 // Sub-components for better performance (memoization)
-const SettingItem = React.memo(({ icon, title, description, badge, onClick }: any) => (
+interface SettingItemProps {
+    icon: React.ReactElement<{ size?: number; className?: string }>;
+    title: string;
+    description: string;
+    badge?: string;
+    onClick?: () => void;
+}
+
+const SettingItem = React.memo<SettingItemProps>(({ icon, title, description, badge, onClick }) => (
     <div 
         onClick={onClick}
         className="flex items-center justify-between p-2.5 md:p-4 hover:bg-orange-50/50 transition-all cursor-pointer group rounded-xl md:rounded-2xl border border-transparent hover:border-orange-100"
@@ -81,8 +89,14 @@ const SettingItem = React.memo(({ icon, title, description, badge, onClick }: an
         </div>
     </div>
 ));
+SettingItem.displayName = 'SettingItem';
 
-const SectionHeader = React.memo(({ title, icon }: any) => (
+interface SectionHeaderProps {
+    title: string;
+    icon: React.ReactElement<{ size?: number; className?: string }>;
+}
+
+const SectionHeader = React.memo<SectionHeaderProps>(({ title, icon }) => (
     <div className="flex items-center gap-2.5 md:gap-3 mb-3 md:mb-6">
         <div className="p-1.5 md:p-2 bg-[#f56b2a] rounded-lg md:rounded-xl text-white">
             {React.cloneElement(icon, { size: 14, className: 'md:size-[18px]' })}
@@ -90,6 +104,7 @@ const SectionHeader = React.memo(({ title, icon }: any) => (
         <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-widest leading-none">{title}</h3>
     </div>
 ));
+SectionHeader.displayName = 'SectionHeader';
 
 const SettingsView: React.FC<SettingsViewProps> = ({
     storeSettings,
@@ -186,8 +201,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             } else {
                 if (notify) notify(result.error || 'Erreur lors de la création', 'error');
             }
-        } catch (err: any) {
-            if (notify) notify(err.message, 'error');
+        } catch (err: unknown) {
+            if (notify) notify(err instanceof Error ? err.message : 'Erreur', 'error');
         } finally {
             setLoadingCoupons(false);
         }
@@ -201,8 +216,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 if (notify) notify('Code promo supprimé', 'info');
                 router.refresh();
             } else { throw new Error(result.error); }
-        } catch (err: any) {
-            if (notify) notify(err.message, 'error');
+        } catch (err: unknown) {
+            if (notify) notify(err instanceof Error ? err.message : 'Erreur', 'error');
         } finally {
             setLoadingCoupons(false);
         }
@@ -247,9 +262,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             } else {
                 throw new Error(result.error);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            if (notify) notify(err.message || "Erreur lors de la sauvegarde", "error");
+            if (notify) notify(err instanceof Error ? err.message : "Erreur lors de la sauvegarde", "error");
         } finally {
             setIsSaving(false);
         }
@@ -306,8 +321,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             } else {
                 throw new Error(result.error);
             }
-        } catch (err: any) {
-            if (notify) notify(err.message, 'error');
+        } catch (err: unknown) {
+            if (notify) notify(err instanceof Error ? err.message : 'Erreur', 'error');
         } finally {
             setIsUpdatingProfile(false);
         }
@@ -334,8 +349,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 if (notify) notify("Membre supprimé", 'info');
                 router.refresh();
             } else { throw new Error(result.error); }
-        } catch (err: any) {
-            if (notify) notify(err.message, 'error');
+        } catch (err: unknown) {
+            if (notify) notify(err instanceof Error ? err.message : 'Erreur', 'error');
         }
     };
 
@@ -427,11 +442,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                 value={localSettings.country || ''}
                                                 onChange={(e) => setLocalSettings(prev => ({ ...prev, country: e.target.value }))}
                                             >
-                                                <option value="">Sélectionnez un pays</option>
-                                                <option value="Bénin">Bénin</option>
-                                                <option value="Côte d'Ivoire">Côte d'Ivoire</option>
-                                                <option value="Togo">Togo</option>
-                                                <option value="Cameroun">Cameroun</option>
+                                                 <option value="">Sélectionnez un pays</option>
+                                                 <option value="Bénin">Bénin</option>
+                                                 <option value="Côte d&apos;Ivoire">Côte d&apos;Ivoire</option>
+                                                 <option value="Togo">Togo</option>
+                                                 <option value="Cameroun">Cameroun</option>
                                             </select>
                                             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 md:size-4 rotate-90 pointer-events-none" size={14} />
                                         </div>
@@ -548,7 +563,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {staff.length === 0 ? (
                                     <div className="col-span-full py-12 text-center text-gray-400 font-bold border-2 border-dashed border-gray-100 rounded-3xl">
-                                        Aucun membre d'équipe enregistré.
+                                        Aucun membre d&apos;équipe enregistré.
                                     </div>
                                 ) : (
                                     staff.map(member => (
@@ -564,7 +579,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     <User size={20} />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h4 className="font-black text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{(member as any).fullName || (member as any).email || member.userId?.slice(0, 8)}</h4>
+                                                     <h4 className="font-black text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{(member as unknown as { fullName?: string; email?: string }).fullName || (member as unknown as { fullName?: string; email?: string }).email || member.userId?.slice(0, 8)}</h4>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className={`text-[8px] md:text-[9px] font-black px-1.5 md:px-2 py-0.5 rounded-full ${member.role === 'OWNER' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-[#f56b2a]'}`}>
                                                             {member.role}
@@ -664,9 +679,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 
                                 <div className="p-4 bg-orange-50/50 rounded-2xl md:rounded-3xl border border-orange-100/50 flex gap-3 mt-8">
                                     <ShieldCheck size={18} className="text-[#f56b2a] flex-shrink-0" />
-                                    <p className="text-[#f56b2a] text-[10px] md:text-xs font-medium leading-relaxed">
-                                        <strong>Conseil :</strong> Les codes promo sont sensibles à la casse. Vos clients verront ces remises s'appliquer automatiquement s'ils saisissent le code correspondant dans leur panier.
-                                    </p>
+                                     <p className="text-[#f56b2a] text-[10px] md:text-xs font-medium leading-relaxed">
+                                         <strong>Conseil :</strong> Les codes promo sont sensibles à la casse. Vos clients verront ces remises s&apos;appliquer automatiquement s&apos;ils saisissent le code correspondant dans leur panier.
+                                     </p>
                                 </div>
                             </section>
                         </div>
@@ -686,7 +701,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                         <form onSubmit={handleSubmitStaff} className="p-6 md:p-8 space-y-5 md:space-y-6 overflow-y-auto custom-scrollbar">
                             <div className="space-y-1.5">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Email de l'employé</label>
+                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Email de l&apos;employé</label>
                                 <div className="relative group">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
                                     <input
@@ -731,7 +746,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             )}
 
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Niveau d'accès (Rôle)</label>
+                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Niveau d&apos;accès (Rôle)</label>
                                 <div className="p-4 bg-orange-50 border-2 border-[#f56b2a] rounded-2xl flex items-center justify-between shadow-lg shadow-orange-100/50">
                                     <div>
                                         <span className="font-black text-sm text-[#f56b2a]">VENDEUR (SELLER)</span>

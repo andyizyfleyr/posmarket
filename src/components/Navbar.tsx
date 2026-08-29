@@ -76,7 +76,9 @@ const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   useEffect(() => {
-    if (currentStore?.id) setIsSwitching(false);
+    if (!currentStore?.id) return;
+    const timer = setTimeout(() => setIsSwitching(false), 0);
+    return () => clearTimeout(timer);
   }, [currentStore?.id]);
 
   const getViewTitle = () => {

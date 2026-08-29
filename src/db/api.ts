@@ -3,11 +3,58 @@ import { products, customers, orders, orderItems, stores, profiles, productStats
 import { eq, desc, inArray } from 'drizzle-orm';
 import { Product, Customer } from '@/types';
 
+type StoreRow = typeof stores.$inferSelect;
+type ProductRow = typeof products.$inferSelect;
+type CustomerRow = typeof customers.$inferSelect;
+type ProductStatsRow = typeof productStats.$inferSelect;
+type ProfileRow = typeof profiles.$inferSelect;
+type InvoiceRow = typeof invoices.$inferSelect;
+
+type OrderRes = {
+  id: string;
+  storeId: string;
+  customerId: string | null;
+  date: Date;
+  status: string;
+  type: string;
+  paymentMethod: string;
+  subtotal: string | null;
+  total: string | null;
+  discountAmount: string | null;
+  promoCode: string | null;
+  customer: {
+    id: string;
+    name: string | null;
+    email: string;
+    phone: string;
+    address: string;
+    totalSpent: string | null;
+    ordersCount: number | null;
+  } | undefined;
+};
+
+type OrderItemBundle = {
+  product: {
+    id: string;
+    name: string | null;
+    price: number;
+    image: string | null;
+    storeId: string | null;
+    businessType: string | null;
+    mainCategory: string | null;
+  } | null;
+  quantity: number | null;
+  unitPrice: string | null;
+  total: string | null;
+};
+
+type OrdersCacheData = { ordersRes: OrderRes[]; itemsByOrder: Record<string, OrderItemBundle[]> };
+
 export async function dbFetchStores() {
   return await db.select().from(stores);
 }
 
-function toSnakeStore(store: any): any {
+function toSnakeStore(store: StoreRow | null) {
   if (!store) return store;
   return {
     id: store.id,
@@ -38,7 +85,7 @@ export interface StoreDataFields {
 
 // ---- Orders cache (per store, short TTL, invalidated on writes) ----
 const ORDER_CACHE_TTL = 20_000;
-const ordersCache = new Map<string, { ts: number; data: { ordersRes: any[]; itemsByOrder: Record<string, any[]> } }>();
+const ordersCache = new Map<string, { ts: number; data: OrdersCacheData }>();
 
 export function invalidateOrdersCache(storeId: string | null) {
   if (storeId) ordersCache.delete(`orders:${storeId}`);
@@ -80,7 +127,7 @@ async function getOrdersForStore(storeId: string) {
     .orderBy(desc(orders.date))
     .limit(100);
 
-  const ordersRes = (rows || []).map((o: any) => ({
+  const ordersRes: OrderRes[] = (rows || []).map((o) => ({
     id: o.id,
     storeId: o.storeId,
     customerId: o.customerId,
@@ -105,9 +152,9 @@ async function getOrdersForStore(storeId: string) {
       : undefined,
   }));
 
-  const orderIds = ordersRes.map((o: any) => o.id);
+  const orderIds = ordersRes.map((o) => o.id);
 
-  let itemsByOrder: Record<string, any[]> = {};
+  let itemsByOrder: Record<string, OrderItemBundle[]> = {};
   if (orderIds.length > 0) {
     const joinedRows = await db
       .select({
@@ -127,7 +174,7 @@ async function getOrdersForStore(storeId: string) {
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(inArray(orderItems.orderId, orderIds));
 
-    itemsByOrder = (joinedRows || []).reduce((acc: Record<string, any[]>, item: any) => {
+    itemsByOrder = (joinedRows || []).reduce((acc: Record<string, OrderItemBundle[]>, item) => {
       if (!acc[item.orderId]) acc[item.orderId] = [];
       acc[item.orderId].push({
         product: item.productId
@@ -154,15 +201,15 @@ async function getOrdersForStore(storeId: string) {
   return data;
 }
 
-function formatOrder(o: any, itemsByOrder: Record<string, any[]>) {
+function formatOrder(o: OrderRes, itemsByOrder: Record<string, OrderItemBundle[]>) {
   return {
     id: o.id,
     date: o.date,
     status: o.status,
     type: o.type,
     paymentMethod: o.paymentMethod,
-    subtotal: parseFloat(o.subtotal) || 0,
-    total: parseFloat(o.total) || 0,
+    subtotal: parseFloat(o.subtotal ?? '') || 0,
+    total: parseFloat(o.total ?? '') || 0,
     discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
     promoCode: o.promoCode,
     customer: o.customer,
@@ -172,7 +219,7 @@ function formatOrder(o: any, itemsByOrder: Record<string, any[]>) {
 
 export async function fetchFormattedOrders(storeId: string) {
   const { ordersRes, itemsByOrder } = await getOrdersForStore(storeId);
-  return (ordersRes || []).map((o: any) => formatOrder(o, itemsByOrder));
+  return (ordersRes || []).map((o) => formatOrder(o, itemsByOrder));
 }
 
 export async function dbFetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
@@ -183,7 +230,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     invoices: fields?.invoices !== false,
   };
 
-  const tasks: Promise<any>[] = [
+  const tasks = [
     db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
     needs.products ? db.select().from(products).where(eq(products.storeId, storeId)).limit(200) : Promise.resolve([]),
     needs.orders ? getOrdersForStore(storeId) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
@@ -201,7 +248,15 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     invoicesRes,
     statsRes,
     profileRes
-  ] = await Promise.all(tasks);
+  ] = (await Promise.all(tasks)) as [
+    StoreRow[],
+    ProductRow[],
+    OrdersCacheData,
+    CustomerRow[],
+    InvoiceRow[],
+    ProductStatsRow[],
+    ProfileRow[]
+  ];
 
   const store = storeRes[0] || null;
   const { ordersRes, itemsByOrder } = ordersData;
@@ -212,18 +267,18 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     profile = fallbackProfile || null;
   }
 
-  const statsMap = Object.fromEntries((statsRes || []).map((s: any) => [s.productId, s]));
+  const statsMap = Object.fromEntries((statsRes || []).map((s) => [s.productId, s]));
 
-  const formattedProducts = (productsRes || []).map((p: any) => {
-    const stats = statsMap[p.id] || {};
+  const formattedProducts = (productsRes || []).map((p) => {
+    const stats: ProductStatsRow | null | undefined = statsMap[p.id] || null;
     return {
       ...p,
-      price: parseFloat(p.price) || 0,
+      price: parseFloat(p.price ?? '') || 0,
       originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
       isOnline: p.isOnline !== false,
-      salesCount: Number(stats.totalSales) || 0,
-      reviewCount: Number(stats.reviewCount) || 0,
-      rating: Number(stats.averageRating) || 0,
+      salesCount: Number(stats?.totalSales) || 0,
+      reviewCount: Number(stats?.reviewCount) || 0,
+      rating: Number(stats?.averageRating) || 0,
       views: Number(p.views) || 0,
       wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
       wholesaleMinQty: p.wholesaleMinQty,
@@ -235,11 +290,11 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
   });
 
   // Order items are already joined (with customer via LEFT JOIN) in getOrdersForStore
-  const formattedOrders = (ordersRes || []).map((o: any) => formatOrder(o, itemsByOrder));
+  const formattedOrders = (ordersRes || []).map((o) => formatOrder(o, itemsByOrder));
 
-  const formattedCustomers = (customersRes || []).map((c: any) => ({
+  const formattedCustomers = (customersRes || []).map((c) => ({
     ...c,
-    totalSpent: parseFloat(c.totalSpent) || 0,
+    totalSpent: parseFloat(c.totalSpent ?? '') || 0,
     ordersCount: Number(c.ordersCount) || 0,
   }));
 
@@ -265,6 +320,7 @@ export async function dbCreateStore(userId: string, name: string, businessType: 
       phone: '',
       address: '',
       ninea: '',
+      businessType: businessType === 'food' ? 'food' : 'shopping',
       settings: {},
     })
     .returning();
@@ -272,7 +328,7 @@ export async function dbCreateStore(userId: string, name: string, businessType: 
 }
 
 export async function dbSaveProduct(product: Partial<Product>, storeId: string) {
-  const dataToSave: any = {
+  const dataToSave: Partial<typeof products.$inferInsert> = {
     storeId,
     name: product.name || '',
     price: product.price?.toString() || '0',
@@ -300,7 +356,7 @@ export async function dbSaveProduct(product: Partial<Product>, storeId: string) 
   } else {
     const [inserted] = await db
       .insert(products)
-      .values(dataToSave)
+      .values(dataToSave as typeof products.$inferInsert)
       .returning();
     return inserted;
   }

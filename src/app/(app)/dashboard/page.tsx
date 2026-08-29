@@ -4,8 +4,8 @@ import { loadOrdersForStore } from '@/lib/load-store-data';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
-import { safeSupabaseFetch } from '@/utils/supabase/retry';
 import NoStoreFound from '@/components/NoStoreFound';
+import { Product, Order, StaffRole, StaffPermissions } from '@/types';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -26,12 +26,12 @@ export default async function DashboardPage() {
 
   return (
     <DashboardView 
-      products={products as any} 
-      orders={orders as any} 
-      store={store}
+      products={products as unknown as Product[]} 
+      orders={orders as unknown as Order[]} 
+      store={store ? (store as { id: string; name?: string; business_type?: 'shopping' | 'food'; views?: number; [key: string]: unknown }) : undefined}
       userName={store?.name || user.email?.split('@')[0]}
-      userRole={role as any}
-      permissions={permissions as any}
+      userRole={role as unknown as StaffRole}
+      permissions={permissions as unknown as StaffPermissions}
     />
   );
 }

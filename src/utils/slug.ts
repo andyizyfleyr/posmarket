@@ -1,4 +1,4 @@
-export function generateProductSlug(product: any): string {
+export function generateProductSlug(product: { id?: string; name?: string }): string {
     if (!product || !product.id) return '';
     
     // Si pas de nom public, on retourne juste l'ID

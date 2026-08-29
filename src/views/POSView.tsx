@@ -66,7 +66,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           .select('*')
           .eq('active', true)
           .eq('store_id', currentStoreId);
-        if (data) setCoupons(data);
+        if (data) setCoupons(data as unknown as Coupon[]);
       } catch (e) {
         console.log('Coupons table not available');
       }
@@ -218,9 +218,9 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         playSuccessSound();
         setShowCheckoutModal(true);
         router.refresh();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        if (notify) notify(err.message || "Erreur lors de l'enregistrement du paiement", 'error');
+        if (notify) notify(err instanceof Error ? err.message : "Erreur lors de l'enregistrement du paiement", 'error');
       } finally {
         setIsProcessing(false);
       }
@@ -421,12 +421,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type de Commande</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { id: 'IN_STORE', label: 'En Magasin', icon: <ShoppingBasket size={14} /> },
-                    { id: 'PICKUP', label: 'Click & Collect', icon: <Clock size={14} /> }
+                    { id: 'IN_STORE' as const, label: 'En Magasin', icon: <ShoppingBasket size={14} /> },
+                    { id: 'PICKUP' as const, label: 'Click & Collect', icon: <Clock size={14} /> }
                   ].map((type) => (
                     <button
                       key={type.id}
-                      onClick={() => setOrderType(type.id as any)}
+                      onClick={() => setOrderType(type.id)}
                       className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border transition-all ${orderType === type.id
                         ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-200'
                         : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'

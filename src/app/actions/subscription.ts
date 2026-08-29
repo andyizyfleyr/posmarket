@@ -17,7 +17,7 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
         }
 
         const startDate = new Date();
-        let endDate = new Date();
+        const endDate = new Date();
 
         if (duration === 'monthly') {
             endDate.setMonth(startDate.getMonth() + 1);
@@ -37,8 +37,8 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
 
         revalidatePath('/subscription');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating subscription:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }

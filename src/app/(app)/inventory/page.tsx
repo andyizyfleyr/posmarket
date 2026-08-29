@@ -5,6 +5,7 @@ import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
+import { BusinessVertical, Product, StaffRole, StaffPermissions } from '@/types';
 
 export default async function InventoryPage() {
   const supabase = await createClient();
@@ -21,12 +22,12 @@ export default async function InventoryPage() {
 
   return (
     <InventoryView 
-      products={products as any} 
-      permissions={permissions as any}
-      userRole={role as any}
+      products={products as unknown as Product[]} 
+      permissions={permissions as unknown as StaffPermissions}
+      userRole={role as unknown as StaffRole}
       currentStoreId={storeId}
       subscription={subscription || undefined}
-      businessType={store?.business_type}
+      businessType={store?.business_type as BusinessVertical | undefined}
     />
   );
 }
