@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getGlobalOrders, getAllStores } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
+import Pagination from '@/components/Pagination';
 import { formatCurrency } from '@/utils';
 
 interface OrderRow {
@@ -36,6 +37,8 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const fetchData = async () => {
     const [ordersData, storesData] = await Promise.all([getGlobalOrders(), getAllStores()]);
@@ -58,6 +61,10 @@ export default function AdminOrdersPage() {
     const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const statusBadge = (status?: string | null) => {
     switch (status) {
@@ -86,13 +93,13 @@ export default function AdminOrdersPage() {
             type="text"
             placeholder="Chercher une commande, une boutique, un client..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
           />
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-black uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
         >
           <option value="ALL">Tous les statuts</option>
@@ -107,7 +114,7 @@ export default function AdminOrdersPage() {
           <div className="p-12 text-center text-gray-400 text-sm font-bold">Aucune commande trouvée</div>
         )}
         <div className="space-y-4 p-6">
-          {filtered.map((o) => {
+          {paginated.map((o) => {
             const store = o.store_id ? storeMap.get(o.store_id) : undefined;
             const date = o.date || o.created_at;
             return (
@@ -140,6 +147,8 @@ export default function AdminOrdersPage() {
           })}
         </div>
       </div>
+
+      <Pagination total={filtered.length} page={safePage} pageSize={PAGE_SIZE} onPageChange={setPage} />
     </div>
   );
 }

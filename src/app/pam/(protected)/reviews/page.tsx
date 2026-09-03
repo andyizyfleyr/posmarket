@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { getGlobalReviews, getAllStores, getGlobalProducts, deleteReview } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
+import Pagination from '@/components/Pagination';
 
 interface ReviewRow {
   id: string;
@@ -35,6 +36,8 @@ export default function AdminReviewsPage() {
   const [search, setSearch] = useState('');
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<ReviewRow | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchData = async () => {
     const [reviewsData, storesData, productsData] = await Promise.all([getGlobalReviews(500), getAllStores(), getGlobalProducts(1000)]);
@@ -59,6 +62,10 @@ export default function AdminReviewsPage() {
       store?.name?.toLowerCase().includes(term) ||
       product?.name?.toLowerCase().includes(term);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleDelete = async (review: ReviewRow) => {
     setConfirm(null);
@@ -96,7 +103,7 @@ export default function AdminReviewsPage() {
           type="text"
           placeholder="Chercher par auteur, commentaire, boutique, produit..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="w-full md:w-[480px] pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
         />
       </div>
@@ -105,7 +112,7 @@ export default function AdminReviewsPage() {
         {filtered.length === 0 && (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-bold">Aucun avis trouvé</div>
         )}
-        {filtered.map((r) => {
+        {paginated.map((r) => {
           const store = r.store_id ? storeMap.get(r.store_id) : undefined;
           const product = r.product_id ? productMap.get(r.product_id) : undefined;
           return (
@@ -151,6 +158,8 @@ export default function AdminReviewsPage() {
           );
         })}
       </div>
+
+      <Pagination total={filtered.length} page={safePage} pageSize={PAGE_SIZE} onPageChange={setPage} />
 
       {confirm && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

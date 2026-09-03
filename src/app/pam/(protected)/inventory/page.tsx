@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getGlobalProducts, getAllStores, deleteProduct } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
+import Pagination from '@/components/Pagination';
 import { formatCurrency } from '@/utils';
 
 interface ProductRow {
@@ -36,6 +37,8 @@ export default function AdminInventoryPage() {
   const [search, setSearch] = useState('');
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<ProductRow | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const fetchData = async () => {
     const [productsData, storesData] = await Promise.all([getGlobalProducts(500), getAllStores()]);
@@ -55,6 +58,10 @@ export default function AdminInventoryPage() {
       p.name?.toLowerCase().includes(term) ||
       store?.name?.toLowerCase().includes(term);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleDelete = async (product: ProductRow) => {
     setConfirm(null);
@@ -82,7 +89,7 @@ export default function AdminInventoryPage() {
             type="text"
             placeholder="Chercher un produit ou une boutique..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
           />
         </div>
@@ -101,7 +108,7 @@ export default function AdminInventoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.map((p) => {
+              {paginated.map((p) => {
                 const store = p.store_id ? storeMap.get(p.store_id) : undefined;
                 const lowStock = (p.stock ?? 0) <= 5;
                 return (
@@ -150,6 +157,8 @@ export default function AdminInventoryPage() {
           </table>
         </div>
       </div>
+
+      <Pagination total={filtered.length} page={safePage} pageSize={PAGE_SIZE} onPageChange={setPage} />
 
       {confirm && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { getGlobalInvoices, getAllStores } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
+import Pagination from '@/components/Pagination';
 import { formatCurrency } from '@/utils';
 
 interface InvoiceRow {
@@ -37,6 +38,8 @@ export default function AdminInvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const fetchData = async () => {
     const [invoicesData, storesData] = await Promise.all([getGlobalInvoices(500), getAllStores()]);
@@ -61,6 +64,10 @@ export default function AdminInvoicesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader size="lg" /></div>;
   }
@@ -79,13 +86,13 @@ export default function AdminInvoicesPage() {
             type="text"
             placeholder="Chercher par numéro, client, boutique..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
           />
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-black uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
         >
           <option value="ALL">Tous les statuts</option>
@@ -100,7 +107,7 @@ export default function AdminInvoicesPage() {
         {filtered.length === 0 && (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-bold">Aucune facture trouvée</div>
         )}
-        {filtered.map((inv) => {
+        {paginated.map((inv) => {
           const store = inv.store_id ? storeMap.get(inv.store_id) : undefined;
           const date = inv.date || inv.created_at;
           return (
@@ -129,6 +136,8 @@ export default function AdminInvoicesPage() {
           );
         })}
       </div>
+
+      <Pagination total={filtered.length} page={safePage} pageSize={PAGE_SIZE} onPageChange={setPage} />
     </div>
   );
 }

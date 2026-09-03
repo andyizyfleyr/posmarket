@@ -16,6 +16,7 @@ import {
   deleteUser
 } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
+import Pagination from '@/components/Pagination';
 import { SubscriptionTier } from '@/types';
 
 interface UserRow {
@@ -34,6 +35,8 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<{ id: string; name: string; action: 'admin' | 'revoke' | 'delete' } | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchData = async () => {
     const data = await getAllUsers();
@@ -68,6 +71,10 @@ export default function AdminUsersPage() {
     return !term || u.email?.toLowerCase().includes(term) || u.full_name?.toLowerCase().includes(term);
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader size="lg" /></div>;
   }
@@ -85,7 +92,7 @@ export default function AdminUsersPage() {
           type="text"
           placeholder="Chercher un utilisateur..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="w-full md:w-96 pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
         />
       </div>
@@ -102,7 +109,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.map((u) => (
+              {paginated.map((u) => (
                 <tr key={u.id} className="hover:bg-orange-50/20 group transition-colors">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
@@ -181,6 +188,8 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
+
+      <Pagination total={filtered.length} page={safePage} pageSize={PAGE_SIZE} onPageChange={setPage} />
 
       {confirm && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
