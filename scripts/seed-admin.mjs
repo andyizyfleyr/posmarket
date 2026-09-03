@@ -54,12 +54,13 @@ async function main() {
 
   const hash = await bcrypt.hash(password, 12);
 
-  const existing = await sql`SELECT id, is_root FROM admin_users WHERE username = ${username} LIMIT 1`;
+  const existing = await sql`SELECT id, is_root, email FROM admin_users WHERE username = ${username} LIMIT 1`;
 
   if (existing.length > 0) {
     await sql`
       UPDATE admin_users
-      SET password_hash = ${hash}, email = ${email || existing[0].email},
+      SET password_hash = ${hash},
+          email = ${email && email.length ? email : existing[0].email},
           display_name = ${displayName}, is_active = true
       WHERE username = ${username}
     `;
