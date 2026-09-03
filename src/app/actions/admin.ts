@@ -160,6 +160,23 @@ export async function getStoreProducts(storeId: string) {
   }
 }
 
+export async function getAllStoreProductCounts(): Promise<Record<string, number>> {
+  try {
+    const rows = await db
+      .select({ storeId: products.storeId, count: sql<number>`count(*)` })
+      .from(products)
+      .groupBy(products.storeId);
+    const map: Record<string, number> = {};
+    (rows || []).forEach(r => {
+      if (r.storeId) map[r.storeId] = Number(r.count) || 0;
+    });
+    return map;
+  } catch (error: unknown) {
+    console.error('Error fetching store product counts:', error);
+    return {};
+  }
+}
+
 export async function getStoreReviews(storeId: string) {
   try {
     const storeReviews = await db.select().from(productReviews).where(eq(productReviews.storeId, storeId)).orderBy(desc(productReviews.createdAt));

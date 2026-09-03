@@ -17,15 +17,16 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/utils';
 
-export default async function StoreDetailPage({ params }: { params: { id: string } }) {
-  const store = await getStoreById(params.id);
+export default async function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const store = await getStoreById(id);
   if (!store) notFound();
 
   const [owner, orders, products, reviews] = await Promise.all([
     store.userId ? getUserById(store.userId) : Promise.resolve(null),
-    getStoreOrders(params.id),
-    getStoreProducts(params.id),
-    getStoreReviews(params.id),
+    getStoreOrders(id),
+    getStoreProducts(id),
+    getStoreReviews(id),
   ]);
 
   const totalSales = orders.reduce((acc, o) => acc + (parseFloat(o.total ?? '') || 0), 0);

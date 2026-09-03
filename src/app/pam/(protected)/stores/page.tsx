@@ -17,13 +17,15 @@ import {
   Calendar,
   ChevronRight,
   AlertTriangle,
-  ShieldCheck
+  ShieldCheck,
+  Package
 } from 'lucide-react';
 import {
   getAllStores,
   updateStoreStatusAction,
   deleteStoreAdmin,
-  getAllUsers
+  getAllUsers,
+  getAllStoreProductCounts
 } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
 import { formatNumber } from '@/utils';
@@ -93,11 +95,17 @@ export default function AdminStoresPage() {
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState<{ type: 'delete' | 'status'; id: string; status?: StoreStatus } | null>(null);
   const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
 
   const fetchData = async () => {
-    const [storesData, usersData] = await Promise.all([getAllStores(), getAllUsers()]);
+    const [storesData, usersData, counts] = await Promise.all([
+      getAllStores(),
+      getAllUsers(),
+      getAllStoreProductCounts()
+    ]);
     setStores(storesData);
     setUsers(usersData);
+    setProductCounts(counts);
     setLoading(false);
   };
 
@@ -322,6 +330,9 @@ export default function AdminStoresPage() {
                                   <div className="flex items-center gap-2 mt-3">
                                     <span className="text-sm font-bold text-orange-600 flex items-center gap-1.5">
                                       <Eye size={14} /> {formatNumber(Number(s.views) || 0)} visites
+                                    </span>
+                                    <span className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                      <Package size={14} className="text-[#f56b2a]" /> {formatNumber(productCounts[s.id] || 0)} produit{(productCounts[s.id] || 0) > 1 ? 's' : ''}
                                     </span>
                                   </div>
                                 </div>

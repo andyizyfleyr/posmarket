@@ -21,13 +21,14 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   COMPLETED: { label: 'Validée', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
 };
 
-export default async function OrderDetailPage({ params }: { params: { id: string } }) {
+export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const allOrders = await getGlobalOrders(100000);
-  const order = allOrders.find(o => o.id === params.id);
+  const order = allOrders.find(o => o.id === id);
   if (!order) notFound();
 
   const [items, store] = await Promise.all([
-    getOrderItems(params.id),
+    getOrderItems(id),
     order.storeId ? getStoreById(order.storeId) : Promise.resolve(null),
   ]);
 

@@ -14,11 +14,12 @@ import {
   Wallet
 } from 'lucide-react';
 
-export default async function UserDetailPage({ params }: { params: { id: string } }) {
-  const user = await getUserById(params.id);
+export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getUserById(id);
   if (!user) notFound();
 
-  const userStores = await getUserStores(params.id);
+  const userStores = await getUserStores(id);
 
   const totalTeams = userStores.length;
 
