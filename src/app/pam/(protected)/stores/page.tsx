@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Store,
@@ -11,10 +11,13 @@ import {
   CheckCircle2,
   XCircle,
   Ban,
-  ChevronDown,
+  RotateCcw,
   Mail,
   Phone,
-  TrendingUp
+  Calendar,
+  ChevronRight,
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
 import {
   getAllStores,
@@ -39,12 +42,46 @@ interface StoreRow {
   views?: number | null;
   business_type?: string | null;
   created_at?: string | null;
+  address?: string | null;
+  ninea?: string | null;
 }
 
 interface ProfileRow {
   id: string;
   email?: string | null;
   full_name?: string | null;
+  phone?: string | null;
+}
+
+interface OwnerStores {
+  owner: ProfileRow;
+  stores: StoreRow[];
+}
+
+const STATUS_META: Record<string, { label: string; classes: string; dot: string }> = {
+  PENDING: { label: 'En attente', classes: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', dot: 'bg-amber-500' },
+  APPROVED: { label: 'Active', classes: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', dot: 'bg-emerald-500' },
+  REJECTED: { label: 'Refusée', classes: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200', dot: 'bg-rose-500' },
+  DISABLED: { label: 'Désactivée', classes: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200', dot: 'bg-slate-400' },
+};
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const meta = STATUS_META[status || ''] ?? STATUS_META.DISABLED;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${meta.classes}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
+}
+
+function Avatar({ name, email }: { name?: string | null; email?: string | null }) {
+  const letter = (name?.[0] || email?.[0] || 'U').toUpperCase();
+  return (
+    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-600 flex items-center justify-center text-white font-black text-lg shrink-0 shadow-sm">
+      {letter}
+    </div>
+  );
 }
 
 export default function AdminStoresPage() {
@@ -53,9 +90,9 @@ export default function AdminStoresPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState<{ type: 'delete' | 'status'; id: string; status?: StoreStatus } | null>(null);
+  const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     const [storesData, usersData] = await Promise.all([getAllStores(), getAllUsers()]);
@@ -90,65 +127,106 @@ export default function AdminStoresPage() {
     await fetchData();
   };
 
-  const userMap = new Map(users.map(u => [u.id, u]));
+  const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
-  const filtered = stores.filter(s => {
-    const term = search.toLowerCase();
-    const owner = s.user_id ? userMap.get(s.user_id) : undefined;
-    const matchesSearch = !term ||
-      s.name?.toLowerCase().includes(term) ||
-      s.slug?.toLowerCase().includes(term) ||
-      owner?.email?.toLowerCase().includes(term) ||
-      owner?.full_name?.toLowerCase().includes(term);
-    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const counts = useMemo(() => ({
+    total: stores.length,
+    pending: stores.filter(s => s.status === 'PENDING').length,
+    approved: stores.filter(s => s.status === 'APPROVED').length,
+    disabled: stores.filter(s => s.status === 'DISABLED').length,
+  }), [stores]);
 
-  const groups: Record<string, { owner: ProfileRow; stores: StoreRow[] }> = {};
-  filtered.forEach(s => {
-    const owner = s.user_id && userMap.get(s.user_id);
-    const uid = s.user_id || 'unknown';
-    if (!groups[uid]) {
-      groups[uid] = {
-        owner: owner || {
-          id: uid,
-          email: s.email || 'Email non renseigné',
-          full_name: s.email ? `Compte ${s.email.split('@')[0]}` : `Compte #${uid.substring(0, 8)}`
-        },
-        stores: []
-      };
-    }
-    groups[uid].stores.push(s);
-  });
+  const { filtered, groups } = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    const result = stores.filter(s => {
+      const owner = s.user_id ? userMap.get(s.user_id) : undefined;
+      const matchesSearch = !term ||
+        s.name?.toLowerCase().includes(term) ||
+        s.slug?.toLowerCase().includes(term) ||
+        s.email?.toLowerCase().includes(term) ||
+        owner?.email?.toLowerCase().includes(term) ||
+        owner?.full_name?.toLowerCase().includes(term);
+      const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    const grouped: Record<string, OwnerStores> = {};
+    result.forEach(s => {
+      const uid = s.user_id || 'unknown';
+      const owner = s.user_id ? userMap.get(s.user_id) : undefined;
+      if (!grouped[uid]) {
+        grouped[uid] = {
+          owner: owner || {
+            id: uid,
+            email: s.email || `Compte #${uid.substring(0, 8)}`,
+            full_name: s.email ? `Compte ${s.email.split('@')[0]}` : undefined
+          },
+          stores: []
+        };
+      }
+      grouped[uid].stores.push(s);
+    });
+    return { filtered: result, groups: Object.values(grouped) };
+  }, [stores, search, statusFilter, userMap]);
+
+  const toggleOwner = (uid: string) => {
+    setExpandedOwners(prev => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid); else next.add(uid);
+      return next;
+    });
+  };
 
   if (loading) {
     return <div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader size="lg" /></div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8">
+      {/* En-tête */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Boutiques</h1>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Gestion groupée par compte propriétaire</p>
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Boutiques</h1>
+          <p className="text-sm text-gray-500 mt-1">Gestion globale des boutiques de la plateforme, regroupées par propriétaire.</p>
         </div>
       </div>
 
+      {/* Statistiques */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+        {[
+          { label: 'Total', value: counts.total, icon: <Store size={18} />, color: 'text-gray-700 bg-gray-100', ring: 'ring-gray-200' },
+          { label: 'En attente', value: counts.pending, icon: <AlertTriangle size={18} />, color: 'text-amber-600 bg-amber-50', ring: 'ring-amber-200' },
+          { label: 'Actives', value: counts.approved, icon: <ShieldCheck size={18} />, color: 'text-emerald-600 bg-emerald-50', ring: 'ring-emerald-200' },
+          { label: 'Désactivées', value: counts.disabled, icon: <Ban size={18} />, color: 'text-slate-600 bg-slate-100', ring: 'ring-slate-200' },
+        ].map(s => (
+          <button
+            key={s.label}
+            onClick={() => setStatusFilter(s.label === 'Total' ? 'ALL' : s.label === 'En attente' ? 'PENDING' : s.label === 'Actives' ? 'APPROVED' : 'DISABLED' as StatusFilter)}
+            className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === (s.label === 'Total' ? 'ALL' : s.label === 'En attente' ? 'PENDING' : s.label === 'Actives' ? 'APPROVED' : 'DISABLED') ? 'ring-2 ring-[#f56b2a]/30' : ''}`}
+          >
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.color} mb-3`}>{s.icon}</div>
+            <p className="text-2xl font-black text-gray-900">{s.value}</p>
+            <p className="text-xs font-bold text-gray-400 mt-0.5">{s.label}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Barre de filtres */}
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Chercher un propriétaire ou une boutique..."
+            placeholder="Rechercher une boutique, un slug, un email ou un propriétaire…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] placeholder:text-gray-400 text-sm font-medium text-gray-900 shadow-sm transition-all"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-black uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
+          className="px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-bold text-gray-700 cursor-pointer shadow-sm md:w-52"
         >
           <option value="ALL">Tous les statuts</option>
           <option value="PENDING">En attente</option>
@@ -158,142 +236,172 @@ export default function AdminStoresPage() {
         </select>
       </div>
 
-      <div className="space-y-4">
-        {Object.keys(groups).length === 0 && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-bold">
-            Aucune boutique trouvée
-          </div>
-        )}
-        {Object.keys(groups).map((uid) => {
-          const group = groups[uid];
-          const isExpanded = expandedUserId === uid;
-          return (
-            <div key={uid} className={`bg-white rounded-3xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md overflow-hidden ${isExpanded ? 'ring-2 ring-orange-500/20' : ''}`}>
-              <div
-                onClick={() => setExpandedUserId(isExpanded ? null : uid)}
-                className="p-6 flex items-center justify-between cursor-pointer group"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg bg-gray-900 group-hover:scale-105 transition-transform">
-                    {group.owner.full_name?.[0]?.toUpperCase() || group.owner.email?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-tight">
-                      {group.owner.full_name || group.owner.email || 'Utilisateur'}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-3 mt-1.5">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <Mail size={12} className="text-orange-500" /> {group.owner.email}
-                      </span>
-                      <span className="px-3 py-1 bg-orange-50 text-orange-600 text-[9px] font-black rounded-lg border border-orange-100 uppercase">
-                        {group.stores.length} boutique(s)
-                      </span>
+      {/* Résultat */}
+      {groups.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
+          <div className="w-16 h-16 mx-auto bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4"><Store size={28} /></div>
+          <p className="text-gray-900 font-black text-lg">Aucune boutique trouvée</p>
+          <p className="text-sm text-gray-500 mt-1">Essayez de modifier votre recherche ou vos filtres.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {groups.map(group => {
+            const uid = group.owner.id;
+            const expanded = expandedOwners.has(uid);
+            const pendingCount = group.stores.filter(s => s.status === 'PENDING').length;
+            return (
+              <div key={uid} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* En-tête propriétaire */}
+                <div className="bg-gradient-to-br from-gray-50 to-white px-5 md:px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <Avatar name={group.owner.full_name} email={group.owner.email} />
+                    <div className="min-w-0">
+                      <h3 className="text-base font-black text-gray-900 truncate">
+                        {group.owner.full_name || 'Compte propriétaire'}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm text-gray-500 font-medium truncate flex items-center gap-1.5">
+                          <Mail size={14} className="text-gray-400" /> {group.owner.email}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className={`p-4 rounded-2xl bg-gray-50 text-gray-400 transition-all ${isExpanded ? 'rotate-180 bg-orange-500 text-white shadow-lg shadow-orange-200' : 'group-hover:bg-gray-100'}`}>
-                  <ChevronDown size={22} />
-                </div>
-              </div>
-
-              {isExpanded && (
-                <div className="px-6 pb-6 bg-gray-50/30 animate-in slide-in-from-top-4 duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-6 border-t border-gray-100">
-                    {group.stores.map(s => (
-                      <div key={s.id} className="bg-white border border-gray-100 rounded-3xl p-6 hover:shadow-xl transition-all">
-                        <div className="flex items-start justify-between mb-5">
-                          <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-orange-500 font-black shadow-sm border border-gray-100">
-                            <Store size={22} />
-                          </div>
-                          <div className="flex gap-2">
-                            <Link
-                              href={`/pam/stores/${s.id}`}
-                              className="p-2.5 bg-gray-50 text-[#f56b2a] rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-sm flex items-center justify-center min-w-[40px]"
-                              title="Voir les détails"
-                            >
-                              <Eye size={18} />
-                            </Link>
-                            <button
-                              onClick={() => setConfirmOpen({ type: 'delete', id: s.id })}
-                              disabled={processing.has(`delete-${s.id}`)}
-                              className="p-2.5 bg-gray-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm flex items-center justify-center min-w-[40px] disabled:opacity-50"
-                              title="Supprimer"
-                            >
-                              {processing.has(`delete-${s.id}`) ? <RefreshCcw size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                            </button>
-                          </div>
-                        </div>
-                        <h4 className="text-sm font-black text-gray-900 truncate mb-1">{s.name || 'Sans nom'}</h4>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mb-5">/{s.slug}</p>
-                        <div className="flex flex-col gap-2 mb-5">
-                          {s.email && <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400 truncate"><Mail size={10} /> {s.email}</div>}
-                          {s.phone && <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400"><Phone size={10} /> {s.phone}</div>}
-                          <div className="flex items-center gap-2 mt-1">
-                            {s.status === 'PENDING' ? (
-                              <span className="px-2 py-0.5 bg-yellow-50 text-yellow-600 text-[8px] font-black rounded-md border border-yellow-100 uppercase animate-pulse">En attente</span>
-                            ) : s.status === 'REJECTED' ? (
-                              <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[8px] font-black rounded-md border border-red-100 uppercase">Refusée</span>
-                            ) : s.status === 'DISABLED' ? (
-                              <span className="px-2 py-0.5 bg-gray-50 text-gray-400 text-[8px] font-black rounded-md border border-gray-100 uppercase">Désactivée</span>
-                            ) : (
-                              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black rounded-md border border-emerald-100 uppercase">Active</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2 mb-5">
-                          {s.status === 'PENDING' && (
-                            <>
-                              <button
-                                onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'APPROVED' })}
-                                disabled={processing.has(`status-${s.id}`)}
-                                className="flex items-center justify-center gap-1.5 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 transition-all shadow-md shadow-emerald-100 disabled:opacity-50"
-                              >
-                                <CheckCircle2 size={12} /> Valider
-                              </button>
-                              <button
-                                onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'REJECTED' })}
-                                disabled={processing.has(`status-${s.id}`)}
-                                className="flex items-center justify-center gap-1.5 py-2 bg-red-50 text-red-500 border border-red-100 rounded-xl text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
-                              >
-                                <XCircle size={12} /> Refuser
-                              </button>
-                            </>
-                          )}
-                          {(s.status === 'REJECTED' || s.status === 'DISABLED') && (
-                            <button
-                              onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'APPROVED' })}
-                              disabled={processing.has(`status-${s.id}`)}
-                              className="flex items-center justify-center gap-1.5 py-2 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
-                            >
-                              <TrendingUp size={12} /> Réactiver
-                            </button>
-                          )}
-                          {s.status === 'APPROVED' && (
-                            <button
-                              onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'DISABLED' })}
-                              disabled={processing.has(`status-${s.id}`)}
-                              className="flex items-center justify-center gap-1.5 py-2 bg-gray-50 text-gray-400 border border-gray-100 rounded-xl text-[9px] font-black uppercase hover:bg-gray-100 hover:text-red-500 transition-all disabled:opacity-50"
-                            >
-                              <Ban size={12} /> Désactiver
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
-                          <span className="text-[9px] font-black text-gray-400 uppercase">Impact</span>
-                          <span className="text-[10px] font-black text-orange-600">{formatNumber(Number(s.views) || 0)} visites</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-bold text-gray-700 ring-1 ring-gray-200">
+                      <Store size={14} className="text-[#f56b2a]" />
+                      {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''}
+                    </span>
+                    {pendingCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-sm font-bold ring-1 ring-amber-200">
+                        <AlertTriangle size={14} /> {pendingCount} en attente
+                      </span>
+                    )}
+                    <button
+                      onClick={() => toggleOwner(uid)}
+                      className="p-2 text-gray-400 hover:text-[#f56b2a] transition-colors"
+                      aria-label={expanded ? 'Réduire' : 'Déplier'}
+                    >
+                      <ChevronRight size={20} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
 
+                {/* Boutiques */}
+                {expanded && (
+                  <div className="divide-y divide-gray-100 border-t border-gray-100">
+                    {group.stores.map(s => {
+                      const statusBusy = processing.has(`status-${s.id}`);
+                      const deleteBusy = processing.has(`delete-${s.id}`);
+                      return (
+                        <div key={s.id} className="px-5 md:px-6 py-5 hover:bg-gray-50/50 transition-colors">
+                          <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                            {/* Infos boutique */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-[#f56b2a] shrink-0">
+                                  <Store size={20} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Link href={`/pam/stores/${s.id}`} className="text-base font-black text-gray-900 hover:text-[#f56b2a] transition-colors truncate">
+                                      {s.name || 'Boutique sans nom'}
+                                    </Link>
+                                    <StatusBadge status={s.status} />
+                                    {s.business_type && (
+                                      <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
+                                        {s.business_type === 'food' ? 'Alimentation' : 'Shopping'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-400 font-mono mt-0.5">/{s.slug}</p>
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-[13px] text-gray-500">
+                                    {s.email && <span className="flex items-center gap-1.5 truncate"><Mail size={14} className="text-gray-400 shrink-0" /> {s.email}</span>}
+                                    {s.phone && <span className="flex items-center gap-1.5"><Phone size={14} className="text-gray-400 shrink-0" /> {s.phone}</span>}
+                                    {s.created_at && <span className="flex items-center gap-1.5"><Calendar size={14} className="text-gray-400 shrink-0" /> {new Date(s.created_at).toLocaleDateString('fr-FR')}</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-3">
+                                    <span className="text-sm font-bold text-orange-600 flex items-center gap-1.5">
+                                      <Eye size={14} /> {formatNumber(Number(s.views) || 0)} visites
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch lg:w-40 shrink-0">
+                              {s.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'APPROVED' })}
+                                    disabled={statusBusy}
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all shadow-sm disabled:opacity-50"
+                                  >
+                                    {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} Approuver
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'REJECTED' })}
+                                    disabled={statusBusy}
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold ring-1 ring-rose-200 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
+                                  >
+                                    <XCircle size={15} /> Refuser
+                                  </button>
+                                </>
+                              )}
+                              {(s.status === 'REJECTED' || s.status === 'DISABLED') && (
+                                <button
+                                  onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'APPROVED' })}
+                                  disabled={statusBusy}
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold ring-1 ring-emerald-200 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                                >
+                                  {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <RotateCcw size={15} />} Réactiver
+                                </button>
+                              )}
+                              {s.status === 'APPROVED' && (
+                                <button
+                                  onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'DISABLED' })}
+                                  disabled={statusBusy}
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-slate-500 rounded-xl text-sm font-bold ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-700 transition-all disabled:opacity-50"
+                                >
+                                  {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Ban size={15} />} Désactiver
+                                </button>
+                              )}
+                              <div className="flex gap-2 lg:w-full">
+                                <Link
+                                  href={`/pam/stores/${s.id}`}
+                                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#f56b2a] rounded-xl text-sm font-bold ring-1 ring-orange-200 hover:bg-[#f56b2a] hover:text-white transition-all"
+                                >
+                                  <Eye size={15} /> Détails
+                                </Link>
+                                <button
+                                  onClick={() => setConfirmOpen({ type: 'delete', id: s.id })}
+                                  disabled={deleteBusy}
+                                  className="inline-flex items-center justify-center px-3 py-2 bg-white text-rose-500 rounded-xl ring-1 ring-rose-200 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
+                                  title="Supprimer"
+                                >
+                                  {deleteBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {!expanded && (
+                  <div className="px-5 md:px-6 py-3 border-t border-gray-100 bg-gray-50/40 text-[13px] text-gray-400 font-medium">
+                    {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''} — cliquer pour afficher le détail
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modale de confirmation */}
       {confirmOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
