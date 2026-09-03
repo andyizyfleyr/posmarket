@@ -162,6 +162,12 @@ export const productReviews = pgTable('product_reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const systemSettings = pgTable('system_settings', {
+  key: text('key').primaryKey().notNull(),
+  value: text('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const storeStaff = pgTable('store_staff', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
