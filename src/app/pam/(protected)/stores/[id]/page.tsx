@@ -33,7 +33,7 @@ export default async function StoreDetailPage({ params }: { params: { id: string
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/stores" className="inline-flex items-center gap-2 text-sm font-black text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
+      <Link href="/pam/stores" className="inline-flex items-center gap-2 text-sm font-black text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
         <ChevronLeft size={18} /> Boutiques
       </Link>
 
@@ -147,7 +147,7 @@ export default async function StoreDetailPage({ params }: { params: { id: string
               </span>
             )}
           </div>
-          <Link href={`/admin/users/${owner.id}`} className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
+          <Link href={`/pam/users/${owner.id}`} className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
             Voir le profil <span aria-hidden>→</span>
           </Link>
         </div>

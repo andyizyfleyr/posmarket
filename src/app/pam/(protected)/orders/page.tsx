@@ -113,7 +113,7 @@ export default function AdminOrdersPage() {
             return (
               <Link
                 key={o.id}
-                href={`/admin/orders/${o.id}`}
+                href={`/pam/orders/${o.id}`}
                 className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all group"
               >
                 <div className="flex items-center gap-4">

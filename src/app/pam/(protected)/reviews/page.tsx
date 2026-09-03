@@ -132,7 +132,7 @@ export default function AdminReviewsPage() {
                       <span className="flex items-center gap-1"><Package size={11} className="text-[#f56b2a]" /> {product.name}</span>
                     )}
                     {store && (
-                      <Link href={`/admin/stores/${store.id}`} className="flex items-center gap-1 hover:text-[#f56b2a] transition-colors">
+                      <Link href={`/pam/stores/${store.id}`} className="flex items-center gap-1 hover:text-[#f56b2a] transition-colors">
                         <Store size={11} className="text-[#f56b2a]" /> {store.name}
                       </Link>
                     )}

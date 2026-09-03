@@ -119,7 +119,7 @@ export default function AdminInventoryPage() {
                     </td>
                     <td className="px-6 py-5">
                       {store ? (
-                        <Link href={`/admin/stores/${store.id}`} className="text-xs font-black text-[#f56b2a] hover:underline">{store.name}</Link>
+                        <Link href={`/pam/stores/${store.id}`} className="text-xs font-black text-[#f56b2a] hover:underline">{store.name}</Link>
                       ) : <span className="text-xs text-gray-400 font-bold">—</span>}
                     </td>
                     <td className="px-6 py-5">

@@ -14,7 +14,6 @@ import {
   CreditCard,
   ShoppingBag,
   Gift,
-  Shield,
   Globe,
   TrendingUp,
   Store,
@@ -133,16 +132,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, 
             label="Réglages"
             active={currentView === 'settings'}
             onClick={() => onViewChange('settings')}
-          />
-        )}
-
-        {userRole === 'SUPER_ADMIN' && (
-          <SidebarItem
-            id="tour-sidebar-admin"
-            icon={<Shield size={22} className="text-[#f56b2a]" />}
-            label="Admin"
-            active={false}
-            onClick={() => onViewChange('admin')}
           />
         )}
 

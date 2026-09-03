@@ -207,7 +207,7 @@ export default function AdminStoresPage() {
                           </div>
                           <div className="flex gap-2">
                             <Link
-                              href={`/admin/stores/${s.id}`}
+                              href={`/pam/stores/${s.id}`}
                               className="p-2.5 bg-gray-50 text-[#f56b2a] rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-sm flex items-center justify-center min-w-[40px]"
                               title="Voir les détails"
                             >

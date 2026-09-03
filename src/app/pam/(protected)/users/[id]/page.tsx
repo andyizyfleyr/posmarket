@@ -24,7 +24,7 @@ export default async function UserDetailPage({ params }: { params: { id: string 
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/users" className="inline-flex items-center gap-2 text-sm font-black text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
+      <Link href="/pam/users" className="inline-flex items-center gap-2 text-sm font-black text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
         <ChevronLeft size={18} /> Utilisateurs
       </Link>
 
@@ -90,7 +90,7 @@ export default async function UserDetailPage({ params }: { params: { id: string 
             {userStores.map((s) => (
               <Link
                 key={s.id}
-                href={`/admin/stores/${s.id}`}
+                href={`/pam/stores/${s.id}`}
                 className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all group"
               >
                 <div className="flex items-center gap-4">

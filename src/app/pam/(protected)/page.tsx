@@ -58,10 +58,10 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <StatCard title="Boutiques" value={stats.totalStores} icon={<Store size={20} />} color="bg-[#f56b2a]" link="/admin/stores" />
-        <StatCard title="Utilisateurs" value={stats.totalUsers} icon={<Users size={20} />} color="bg-purple-600" link="/admin/users" />
-        <StatCard title="Ventes Globales" value={formatCurrency(stats.totalSales)} icon={<TrendingUp size={20} />} color="bg-green-600" link="/admin/orders" />
-        <StatCard title="Produits" value={stats.totalProducts} icon={<Package size={20} />} color="bg-orange-600" link="/admin/inventory" />
+        <StatCard title="Boutiques" value={stats.totalStores} icon={<Store size={20} />} color="bg-[#f56b2a]" link="/pam/stores" />
+        <StatCard title="Utilisateurs" value={stats.totalUsers} icon={<Users size={20} />} color="bg-purple-600" link="/pam/users" />
+        <StatCard title="Ventes Globales" value={formatCurrency(stats.totalSales)} icon={<TrendingUp size={20} />} color="bg-green-600" link="/pam/orders" />
+        <StatCard title="Produits" value={stats.totalProducts} icon={<Package size={20} />} color="bg-orange-600" link="/pam/inventory" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -70,7 +70,7 @@ export default async function AdminDashboardPage() {
             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
               <TrendingUp className="text-[#f56b2a]" size={20} /> Dernières Boutiques
             </h3>
-            <Link href="/admin/stores" className="text-[10px] font-black uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
+            <Link href="/pam/stores" className="text-[10px] font-black uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
               Tout voir
             </Link>
           </div>
@@ -78,7 +78,7 @@ export default async function AdminDashboardPage() {
             {stores.slice(0, 8).map((s) => (
               <Link
                 key={s.id}
-                href={`/admin/stores/${s.id}`}
+                href={`/pam/stores/${s.id}`}
                 className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all group"
               >
                 <div className="flex items-center gap-4">
@@ -112,7 +112,7 @@ export default async function AdminDashboardPage() {
             <h3 className="text-lg font-black text-gray-900">Sentinel Système</h3>
           </div>
           {stats.pendingStores > 0 && (
-            <Link href="/admin/stores" className="flex items-center gap-3 p-4 mb-4 bg-yellow-50 rounded-2xl border border-yellow-100 hover:bg-yellow-100/60 transition-all">
+            <Link href="/pam/stores" className="flex items-center gap-3 p-4 mb-4 bg-yellow-50 rounded-2xl border border-yellow-100 hover:bg-yellow-100/60 transition-all">
               <AlertCircle size={20} className="text-yellow-500 flex-shrink-0" />
               <div>
                 <p className="text-xs font-black text-yellow-700">{stats.pendingStores} boutique(s) en attente de validation</p>

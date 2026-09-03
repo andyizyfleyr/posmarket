@@ -168,6 +168,18 @@ export const systemSettings = pgTable('system_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const adminUsers = pgTable('admin_users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  username: text('username').notNull().unique(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  displayName: text('display_name'),
+  isRoot: boolean('is_root').default(false).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const storeStaff = pgTable('store_staff', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),

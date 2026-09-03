@@ -16,7 +16,6 @@ import {
   User as UserIcon,
   Trash2,
   HelpCircle,
-  Shield,
   ShoppingBag
 } from 'lucide-react';
 import Loader from '@/components/Loader';
@@ -400,18 +399,6 @@ const Navbar: React.FC<NavbarProps> = ({
                       >
                         <UserIcon size={18} className="text-gray-400" />
                         Modifier le Profil
-                      </button>
-                    )}
-                    {userRole === 'SUPER_ADMIN' && (
-                      <button
-                        onClick={() => {
-                          onViewChange('admin');
-                          setShowProfileDropdown(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all text-sm font-black"
-                      >
-                        <Shield size={18} className="text-indigo-600" />
-                        Administration
                       </button>
                     )}
                     <div className="h-px bg-gray-100 my-2 mx-2" />

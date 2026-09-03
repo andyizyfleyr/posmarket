@@ -12,8 +12,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/reports') ||
     request.nextUrl.pathname.startsWith('/settings') ||
     request.nextUrl.pathname.startsWith('/subscription') ||
-    request.nextUrl.pathname.startsWith('/invoices') ||
-    request.nextUrl.pathname.startsWith('/admin')
+    request.nextUrl.pathname.startsWith('/invoices')
 
   if (!userId && isProtectedRoute) {
     const url = request.nextUrl.clone()

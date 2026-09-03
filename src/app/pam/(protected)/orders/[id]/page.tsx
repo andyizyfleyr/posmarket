@@ -35,7 +35,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/orders" className="inline-flex items-center gap-2 text-sm font-black text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
+      <Link href="/pam/orders" className="inline-flex items-center gap-2 text-sm font-black text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
         <ChevronLeft size={18} /> Transactions
       </Link>
 
@@ -71,7 +71,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2"><Store size={16} className="text-[#f56b2a]" /> Boutique</h3>
           {store ? (
-            <Link href={`/admin/stores/${store.id}`} className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all">
+            <Link href={`/pam/stores/${store.id}`} className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all">
               <div className="w-11 h-11 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#f56b2a] font-black">
                 <Store size={20} />
               </div>

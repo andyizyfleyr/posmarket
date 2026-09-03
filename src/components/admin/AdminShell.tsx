@@ -14,8 +14,7 @@ import {
   FileText,
   Settings,
   LogOut,
-  Activity,
-  ChevronLeft
+  Activity
 } from 'lucide-react';
 
 interface AdminNavItem {
@@ -25,18 +24,18 @@ interface AdminNavItem {
 }
 
 const NAV_ITEMS: AdminNavItem[] = [
-  { href: '/admin', label: 'Surveillance', icon: <LayoutDashboard size={20} /> },
-  { href: '/admin/stores', label: 'Boutiques', icon: <Store size={20} /> },
-  { href: '/admin/users', label: 'Utilisateurs', icon: <Users size={20} /> },
-  { href: '/admin/orders', label: 'Transactions', icon: <Wallet size={20} /> },
-  { href: '/admin/inventory', label: 'Inventaire', icon: <Package size={20} /> },
-  { href: '/admin/reviews', label: 'Avis', icon: <Star size={20} /> },
-  { href: '/admin/invoices', label: 'Factures', icon: <FileText size={20} /> },
-  { href: '/admin/settings', label: 'Paramètres', icon: <Settings size={20} /> },
+  { href: '/pam', label: 'Surveillance', icon: <LayoutDashboard size={20} /> },
+  { href: '/pam/stores', label: 'Boutiques', icon: <Store size={20} /> },
+  { href: '/pam/users', label: 'Utilisateurs', icon: <Users size={20} /> },
+  { href: '/pam/orders', label: 'Transactions', icon: <Wallet size={20} /> },
+  { href: '/pam/inventory', label: 'Inventaire', icon: <Package size={20} /> },
+  { href: '/pam/reviews', label: 'Avis', icon: <Star size={20} /> },
+  { href: '/pam/invoices', label: 'Factures', icon: <FileText size={20} /> },
+  { href: '/pam/settings', label: 'Paramètres', icon: <Settings size={20} /> },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === '/admin') return pathname === '/admin';
+  if (href === '/pam') return pathname === '/pam';
   return pathname.startsWith(href);
 }
 
@@ -54,10 +53,8 @@ export default function AdminShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
-    const { createClient } = await import('@/utils/supabase/client');
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
+    const { adminLogout } = await import('@/app/actions/admin-auth');
+    await adminLogout();
     router.refresh();
   };
 
@@ -100,12 +97,6 @@ export default function AdminShell({
           <p className="text-xs font-black text-gray-400 uppercase tracking-wider">{userName}</p>
           <p className="text-[10px] text-gray-600 lowercase font-bold">{userEmail}</p>
         </div>
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all text-[11px] font-black uppercase tracking-tighter"
-        >
-          <ChevronLeft size={18} className="text-gray-500" /> Quitter l&apos;admin
-        </button>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-[11px] font-black uppercase tracking-tighter"
