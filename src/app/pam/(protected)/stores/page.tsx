@@ -24,6 +24,7 @@ import {
   getAllStores,
   updateStoreStatusAction,
   deleteStoreAdmin,
+  deleteStoresBulk,
   getAllUsers,
   getAllStoreProductCounts
 } from '@/app/actions/admin';
@@ -93,9 +94,11 @@ export default function AdminStoresPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [processing, setProcessing] = useState<Set<string>>(new Set());
-  const [confirmOpen, setConfirmOpen] = useState<{ type: 'delete' | 'status'; id: string; status?: StoreStatus } | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState<{ type: 'delete' | 'deleteBulk' | 'status'; id: string; status?: StoreStatus } | null>(null);
   const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const fetchData = async () => {
     const [storesData, usersData, counts] = await Promise.all([
@@ -133,6 +136,24 @@ export default function AdminStoresPage() {
     await deleteStoreAdmin(storeId);
     setProcessingId(`delete-${storeId}`, false);
     await fetchData();
+  };
+
+  const handleBulkDeleteStores = async () => {
+    const ids = Array.from(selected);
+    setConfirmOpen(null);
+    setBulkBusy(true);
+    await deleteStoresBulk(ids);
+    setSelected(new Set());
+    setBulkBusy(false);
+    await fetchData();
+  };
+
+  const toggleRow = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
@@ -244,6 +265,30 @@ export default function AdminStoresPage() {
         </select>
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-orange-50/60 border border-orange-100 rounded-2xl px-4 py-3">
+          <p className="text-sm font-black text-gray-700">
+            {selected.size} boutique{selected.size > 1 ? 's' : ''} sélectionnée{selected.size > 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-4 py-2 rounded-xl text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+            >
+              Désélectionner
+            </button>
+            <button
+              onClick={() => setConfirmOpen({ type: 'deleteBulk', id: '' })}
+              disabled={bulkBusy}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
+            >
+              {bulkBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              Supprimer
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Résultat */}
       {groups.length === 0 ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
@@ -301,8 +346,15 @@ export default function AdminStoresPage() {
                       const statusBusy = processing.has(`status-${s.id}`);
                       const deleteBusy = processing.has(`delete-${s.id}`);
                       return (
-                        <div key={s.id} className="px-5 md:px-6 py-5 hover:bg-gray-50/50 transition-colors">
+                        <div key={s.id} className={`px-5 md:px-6 py-5 transition-colors ${selected.has(s.id) ? 'bg-orange-50/60' : 'hover:bg-gray-50/50'}`}>
                           <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                            <input
+                              type="checkbox"
+                              checked={selected.has(s.id)}
+                              onChange={() => toggleRow(s.id)}
+                              className="w-4 h-4 mt-1 accent-[#f56b2a] cursor-pointer shrink-0"
+                              aria-label={`Sélectionner ${s.name || s.id}`}
+                            />
                             {/* Infos boutique */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start gap-3">
@@ -417,12 +469,14 @@ export default function AdminStoresPage() {
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-black text-gray-900 mb-2">
-              {confirmOpen.type === 'delete' ? 'Supprimer cette boutique ?' : 'Confirmer le changement de statut'}
+              {confirmOpen.type === 'delete' ? 'Supprimer cette boutique ?' : confirmOpen.type === 'deleteBulk' ? `Supprimer ${selected.size} boutique${selected.size > 1 ? 's' : ''} ?` : 'Confirmer le changement de statut'}
             </h3>
             <p className="text-sm text-gray-500 font-medium mb-6">
               {confirmOpen.type === 'delete'
                 ? 'Toutes les données associées (produits, commandes, clients) seront définitivement supprimées. Cette action est irréversible.'
-                : 'Voulez-vous vraiment changer le statut de cette boutique ?'}
+                : confirmOpen.type === 'deleteBulk'
+                  ? `Les ${selected.size} boutique${selected.size > 1 ? 's' : ''} sélectionnée${selected.size > 1 ? 's' : ''} et toutes leurs données seront définitivement supprimées. Cette action est irréversible.`
+                  : 'Voulez-vous vraiment changer le statut de cette boutique ?'}
             </p>
             <div className="flex gap-3">
               <button
@@ -434,10 +488,12 @@ export default function AdminStoresPage() {
               <button
                 onClick={() => confirmOpen.type === 'delete'
                   ? handleDelete(confirmOpen.id)
-                  : handleStatus(confirmOpen.id, confirmOpen.status!)
+                  : confirmOpen.type === 'deleteBulk'
+                    ? handleBulkDeleteStores()
+                    : handleStatus(confirmOpen.id, confirmOpen.status!)
                 }
                 className={`flex-1 py-3 rounded-xl text-sm font-black text-white transition-all ${
-                  confirmOpen.type === 'delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
+                  confirmOpen.type === 'delete' || confirmOpen.type === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
                 }`}
               >
                 Confirmer

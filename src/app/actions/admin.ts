@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings } from '@/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
 
 function errorMessage(error: unknown): string {
@@ -263,6 +263,30 @@ export async function forceDeleteStore(storeId: string) {
 
 export async function deleteStoreAdmin(storeId: string) {
   return forceDeleteStore(storeId);
+}
+
+export async function deleteUsersBulk(userIds: string[]) {
+  if (!userIds.length) return { success: true, deleted: 0 };
+  try {
+    await db.delete(profiles).where(inArray(profiles.id, userIds));
+    revalidatePath('/pam/users');
+    updateTag('marketplace');
+    return { success: true, deleted: userIds.length };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
+export async function deleteStoresBulk(storeIds: string[]) {
+  if (!storeIds.length) return { success: true, deleted: 0 };
+  try {
+    await db.delete(stores).where(inArray(stores.id, storeIds));
+    revalidatePath('/pam/stores');
+    updateTag('marketplace');
+    return { success: true, deleted: storeIds.length };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
 }
 
 export async function deleteReview(reviewId: string) {

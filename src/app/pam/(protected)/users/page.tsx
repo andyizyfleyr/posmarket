@@ -13,7 +13,8 @@ import {
   getAllUsers,
   updateUserAdminStatus,
   updateUserSubscription,
-  deleteUser
+  deleteUser,
+  deleteUsersBulk
 } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
 import Pagination from '@/components/Pagination';
@@ -34,9 +35,11 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [processing, setProcessing] = useState<Set<string>>(new Set());
-  const [confirm, setConfirm] = useState<{ id: string; name: string; action: 'admin' | 'revoke' | 'delete' } | null>(null);
+  const [confirm, setConfirm] = useState<{ id: string; name: string; action: 'admin' | 'revoke' | 'delete' | 'deleteBulk' } | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const fetchData = async () => {
     const data = await getAllUsers();
@@ -75,6 +78,37 @@ export default function AdminUsersPage() {
   const safePage = Math.min(page, totalPages);
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  const pageIds = paginated.map(u => u.id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every(id => selected.has(id));
+
+  const toggleRow = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllOnPage = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach(id => next.delete(id));
+      else pageIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selected);
+    setConfirm(null);
+    setBulkBusy(true);
+    await deleteUsersBulk(ids);
+    setSelected(new Set());
+    setBulkBusy(false);
+    setPage(1);
+    await fetchData();
+  };
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader size="lg" /></div>;
   }
@@ -97,12 +131,45 @@ export default function AdminUsersPage() {
         />
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-orange-50/60 border border-orange-100 rounded-2xl px-4 py-3">
+          <p className="text-sm font-black text-gray-700">
+            {selected.size} élément{selected.size > 1 ? 's' : ''} sélectionné{selected.size > 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-4 py-2 rounded-xl text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+            >
+              Désélectionner
+            </button>
+            <button
+              onClick={() => setConfirm({ id: '', name: `${selected.size} utilisateur${selected.size > 1 ? 's' : ''}`, action: 'deleteBulk' })}
+              disabled={bulkBusy}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
+            >
+              {bulkBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              Supprimer
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-400 border-b border-gray-100">
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Utilisateur</th>
+                <th className="px-4 py-5 w-12">
+                  <input
+                    type="checkbox"
+                    checked={allOnPageSelected}
+                    onChange={toggleAllOnPage}
+                    className="w-4 h-4 accent-[#f56b2a] cursor-pointer"
+                    aria-label="Tout sélectionner"
+                  />
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Utilisateur</th>
                 <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Rôle</th>
                 <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Abonnement</th>
                 <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-right">Actions</th>
@@ -110,8 +177,17 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {paginated.map((u) => (
-                <tr key={u.id} className="hover:bg-orange-50/20 group transition-colors">
-                  <td className="px-8 py-6">
+                <tr key={u.id} className={`transition-colors ${selected.has(u.id) ? 'bg-orange-50/40' : 'hover:bg-orange-50/20 group'}`}>
+                  <td className="px-4 py-6">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(u.id)}
+                      onChange={() => toggleRow(u.id)}
+                      className="w-4 h-4 accent-[#f56b2a] cursor-pointer"
+                      aria-label={`Sélectionner ${u.email || u.id}`}
+                    />
+                  </td>
+                  <td className="px-6 py-6">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${u.is_super_admin ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-gray-100 text-gray-400'}`}>
                         {u.email?.[0]?.toUpperCase() || 'U'}
@@ -196,17 +272,19 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mx-auto
               ${confirm.action === 'admin' ? 'bg-orange-50 text-[#f56b2a]' : confirm.action === 'revoke' ? 'bg-gray-50 text-gray-500' : 'bg-red-50 text-red-500'}">
-              {confirm.action === 'delete' ? <Trash2 size={24} /> : confirm.action === 'revoke' ? <Shield size={24} /> : <Shield size={24} />}
+              {confirm.action === 'delete' || confirm.action === 'deleteBulk' ? <Trash2 size={24} /> : confirm.action === 'revoke' ? <Shield size={24} /> : <Shield size={24} />}
             </div>
             <h3 className="text-lg font-black text-gray-900 text-center mb-2">
-              {confirm.action === 'admin' ? 'Promouvoir super admin ?' : confirm.action === 'revoke' ? 'Révoquer les droits admin ?' : 'Supprimer ce compte ?'}
+              {confirm.action === 'admin' ? 'Promouvoir super admin ?' : confirm.action === 'revoke' ? 'Révoquer les droits admin ?' : confirm.action === 'deleteBulk' ? `Supprimer ${confirm.name} ?` : 'Supprimer ce compte ?'}
             </h3>
             <p className="text-sm text-gray-500 font-medium text-center mb-6">
-              {confirm.action === 'delete'
-                ? `Toutes les boutiques et données de « ${confirm.name} » seront supprimées. Action irréversible.`
-                : confirm.action === 'revoke'
-                  ? `« ${confirm.name} » perdra ses droits d'administration.`
-                  : `« ${confirm.name} » recevra les droits d'administration de la plateforme.`}
+              {confirm.action === 'deleteBulk'
+                ? `Les comptes sélectionnés et toutes leurs boutiques et données seront définitivement supprimés. Action irréversible.`
+                : confirm.action === 'delete'
+                  ? `Toutes les boutiques et données de « ${confirm.name} » seront supprimées. Action irréversible.`
+                  : confirm.action === 'revoke'
+                    ? `« ${confirm.name} » perdra ses droits d'administration.`
+                    : `« ${confirm.name} » recevra les droits d'administration de la plateforme.`}
             </p>
             <div className="flex gap-3">
               <button
@@ -219,7 +297,9 @@ export default function AdminUsersPage() {
                 onClick={async () => {
                   const c = confirm;
                   setConfirm(null);
-                  if (c.action === 'delete') {
+                  if (c.action === 'deleteBulk') {
+                    await handleBulkDelete();
+                  } else if (c.action === 'delete') {
                     await handleDeleteUser(c.id);
                   } else {
                     setProcessingId(`admin-${c.id}`, true);
@@ -229,7 +309,7 @@ export default function AdminUsersPage() {
                   }
                 }}
                 className={`flex-1 py-3 rounded-xl text-sm font-black text-white transition-all ${
-                  confirm.action === 'delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
+                  confirm.action === 'delete' || confirm.action === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
                 }`}
               >
                 Confirmer
