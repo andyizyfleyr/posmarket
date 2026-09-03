@@ -173,7 +173,7 @@ export async function getStoreReviews(storeId: string) {
 export async function updateStoreApproval(storeId: string, status: string) {
   try {
     await db.update(stores).set({ status }).where(eq(stores.id, storeId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/stores');
     updateTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
@@ -184,7 +184,7 @@ export async function updateStoreApproval(storeId: string, status: string) {
 export async function updateUserRole(userId: string, isSuperAdmin: boolean) {
   try {
     await db.update(profiles).set({ isSuperAdmin }).where(eq(profiles.id, userId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/users');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -215,7 +215,7 @@ export async function updateUserSubscription(userId: string, tier: string, durat
       subscriptionEndDate: endDate,
       subscriptionStatus: 'ACTIVE'
     }).where(eq(profiles.id, userId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/users');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -225,7 +225,8 @@ export async function updateUserSubscription(userId: string, tier: string, durat
 export async function deleteUser(userId: string) {
   try {
     await db.delete(profiles).where(eq(profiles.id, userId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/users');
+    updateTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -235,7 +236,7 @@ export async function deleteUser(userId: string) {
 export async function forceDeleteStore(storeId: string) {
   try {
     await db.delete(stores).where(eq(stores.id, storeId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/stores');
     updateTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
@@ -250,7 +251,8 @@ export async function deleteStoreAdmin(storeId: string) {
 export async function deleteReview(reviewId: string) {
   try {
     await db.delete(productReviews).where(eq(productReviews.id, reviewId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/reviews');
+    updateTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -260,7 +262,8 @@ export async function deleteReview(reviewId: string) {
 export async function deleteProduct(productId: string) {
   try {
     await db.delete(products).where(eq(products.id, productId));
-    revalidatePath('/admin');
+    revalidatePath('/pam/inventory');
+    updateTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -299,7 +302,7 @@ export async function updateSystemSettings(settings: { maintenance: boolean; aut
         .values({ key, value: String(value) })
         .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value), updatedAt: new Date() } });
     }
-    revalidatePath('/admin');
+    revalidatePath('/pam/settings');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
