@@ -200,7 +200,7 @@ interface StorefrontViewProps {
 
 
 function categoryToSlug(cat: string): string {
-  return encodeURIComponent(cat.replace(/&/g, "et").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-"));
+  return encodeURIComponent(cat);
 }
 
 

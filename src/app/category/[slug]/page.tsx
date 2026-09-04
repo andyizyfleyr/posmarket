@@ -7,7 +7,7 @@ export const revalidate = 60;
 type Props = { params: Promise<{ slug: string }> };
 
 function decodeCategorySlug(slug: string): string {
-    return decodeURIComponent(slug).replace(/-/g, " ");
+    return decodeURIComponent(slug);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
