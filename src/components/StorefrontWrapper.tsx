@@ -6,6 +6,7 @@ import { StoreData, Review } from '@/types';
 
 interface StorefrontWrapperProps {
   stores: StoreData[];
+  initialCategory?: string;
   onBackToApp?: () => Promise<void>;
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
@@ -25,12 +26,13 @@ interface StorefrontWrapperProps {
   ) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
-export function StorefrontWrapper({ stores, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
+export function StorefrontWrapper({ stores, initialCategory, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const router = useRouter();
 
   return (
     <StorefrontView
       stores={stores}
+      initialCategory={initialCategory}
       onBackToApp={async () => {
         if (onBackToApp) {
           await onBackToApp();

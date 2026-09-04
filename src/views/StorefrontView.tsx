@@ -177,6 +177,7 @@ const saveRecentSearch = (term: string): string[] => {
 
 interface StorefrontViewProps {
   stores: StoreData[];
+  initialCategory?: string;
   onBackToApp: () => void | Promise<void>;
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
@@ -198,8 +199,14 @@ interface StorefrontViewProps {
 }
 
 
+function categoryToSlug(cat: string): string {
+  return encodeURIComponent(cat.replace(/&/g, "et").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-"));
+}
+
+
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
+  initialCategory,
   onBackToApp,
   onMarketplaceCheckout,
   onAddReview,
@@ -231,7 +238,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
   const prefetchedProducts = useRef<Set<string>>(new Set());
 
   // ⚡ Helpers defined early for use in effects
@@ -1546,17 +1553,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   // Active store category from ?cat= query param (category page mode)
   const activeStoreCategory = useMemo(() => {
-    if (!selectedStoreId || !location.search) return null;
-    const c = new URLSearchParams(location.search).get("cat");
-    return c && c !== "all" ? c : null;
-  }, [selectedStoreId, location.search]);
+    if (!selectedStoreId) return null;
+    const c = location.search ? new URLSearchParams(location.search).get("cat") : null;
+    const cat = c && c !== "all" ? c : null;
+    return cat || (initialCategory && selectedStoreId ? initialCategory : null);
+  }, [selectedStoreId, location.search, initialCategory]);
 
-  // Active category page on home (?cat=)
+  // Active category page on home (?cat= or /category/[slug])
   const activeHomeCategory = useMemo(() => {
-    if (location.pathname !== "/") return null;
-    const c = new URLSearchParams(location.search || "").get("cat");
-    return c && c !== "all" ? c : null;
-  }, [location.pathname, location.search]);
+    if (location.pathname !== "/" && !location.pathname.startsWith("/category")) return null;
+    const c = location.search ? new URLSearchParams(location.search || "").get("cat") : null;
+    return (c && c !== "all" ? c : null) || initialCategory || null;
+  }, [location.pathname, location.search, initialCategory]);
 
   // Document title per page
   useEffect(() => {
@@ -1571,8 +1579,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // Keep selectedCategory in sync with the URL (back/forward support)
   useEffect(() => {
     const c = new URLSearchParams(location.search || "").get("cat");
-    setSelectedCategory(c && c !== "all" ? c : "all");
-  }, [location.search]);
+    setSelectedCategory((c && c !== "all" ? c : null) || initialCategory || "all");
+  }, [location.search, initialCategory]);
 
   // 🔥 Infinite Scroll (Client-Side from Cache) - Instant & Bug-free
   // filteredProducts est lu via une ref : un simple rafraîchissement des
@@ -5213,10 +5221,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </h3>
                                   <button
                                     onClick={() => {
-                                      setSelectedCategory(cat);
-                                      navigate(
-                                        `/?cat=${encodeURIComponent(cat)}`,
-                                      );
+                                      window.location.href = `/category/${categoryToSlug(cat)}`;
                                     }}
                                     className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
                                   >
@@ -5490,10 +5495,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     </h3>
                                     <button
                                       onClick={() => {
-                                        setSelectedCategory(cat);
-                                        navigate(
-                                          `${location.pathname}?cat=${encodeURIComponent(cat)}`,
-                                        );
+                                        window.location.href = `/category/${categoryToSlug(cat)}`;
                                       }}
                                       className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
                                     >
