@@ -82,6 +82,8 @@ import {
 import {
   fetchProductReviews,
 } from "@/hooks/useSupabaseData";
+import { useCoupons, useStoreReviews, useProductReviews } from "@/hooks/useMarketplaceData";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/supabase";
 import { BuyerView } from "./BuyerView";
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
@@ -216,6 +218,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { isOnline, isSlow } = useNetworkStatus();
   const storeViewTracked = React.useRef<string | null>(null);
   const productViewTracked = React.useRef<string | null>(null);
@@ -875,37 +878,30 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [isCartView, cart],
   );
 
+  // 💾 Coupons (React Query) - for all stores in cart or current store.
+  // Dépend des boutiques du PANIER (clé stable) : ajouter un produit d'une
+  // nouvelle boutique recharge les coupons même si on est déjà sur /cart.
+  const couponStoreIds = useMemo(() => {
+    if (isCartView && cartStoreIdsKey) {
+      return cartStoreIdsKey.split("|");
+    } else if (selectedStoreParam) {
+      const currentStore = stores.find(
+        (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
+      );
+      return currentStore ? [currentStore.id] : [];
+    }
+    return [];
+  }, [isCartView, cartStoreIdsKey, selectedStoreParam, stores]);
+
+  const couponsQuery = useCoupons(couponStoreIds);
+
   React.useEffect(() => {
-    const loadCoupons = async () => {
-      let storeIds: string[] = [];
+    setCoupons((couponsQuery.data || []) as unknown as Coupon[]);
+  }, [couponsQuery.data]);
 
-      if (isCartView && cartStoreIdsKey) {
-        storeIds = cartStoreIdsKey.split("|");
-      } else if (selectedStoreParam) {
-        const currentStore = stores.find(
-          (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
-        );
-        if (currentStore) storeIds = [currentStore.id];
-      }
-
-      if (storeIds.length === 0) {
-        setCoupons([]);
-        return;
-      }
-
-      try {
-        const { data } = await supabase
-          .from("coupons")
-          .select("*")
-          .eq("active", true)
-          .in("store_id", storeIds);
-        setCoupons((data || []) as unknown as Coupon[]);
-      } catch (e) {
-        console.log("Coupons table not available", e);
-      }
-    };
-    loadCoupons();
-  }, [selectedStoreParam, stores, isCartView, cartStoreIdsKey]);
+  React.useEffect(() => {
+    if (couponStoreIds.length === 0) setCoupons([]);
+  }, [couponStoreIds.length]);
 
   // Un coupon restauré depuis localStorage peut avoir été désactivé ou
   // supprimé entre-temps : on le retire s'il n'est plus valide.
@@ -1260,7 +1256,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [loadingReviews, setLoadingReviews] = useState<Record<string, boolean>>(
     {},
   );
-  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
   const selectedProductDetails = useMemo(() => {
     if (!rawUrlProductId) return null;
@@ -1295,6 +1290,31 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const selectedProductId = selectedProductDetails?.id || null;
 
+  // 💾 Product reviews (React Query) - deduped + cached across navigation
+  const productReviewsQuery = useProductReviews(selectedProductId);
+
+  React.useEffect(() => {
+    if (!selectedProductId) return;
+    if (productReviewsQuery.data) {
+      setProductReviews((prev) => {
+        if (prev[selectedProductId]) return prev;
+        return {
+          ...prev,
+          [selectedProductId]: productReviewsQuery.data as unknown as Review[],
+        };
+      });
+    }
+  }, [selectedProductId, productReviewsQuery.data]);
+
+  React.useEffect(() => {
+    if (!selectedProductId) return;
+    if (productReviewsQuery.isFetching) {
+      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: true }));
+    } else {
+      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: false }));
+    }
+  }, [selectedProductId, productReviewsQuery.isFetching]);
+
   // Track product views - only increment once per product per session
   useEffect(() => {
     if (
@@ -1309,43 +1329,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       setProductSwipeIdx(0);
     }
   }, [selectedProductId, selectedProductDetails]);
-
-  // Fetch product reviews (with cleanup + caching)
-  useEffect(() => {
-    if (!selectedProductId) return;
-    
-    // Skip if already cached
-    if (productReviews[selectedProductId]) return;
-    
-    let cancelled = false;
-    setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: true }));
-    
-    fetchProductReviews(selectedProductId)
-      .then((reviews) => {
-        if (!cancelled) {
-          setProductReviews((prev) => ({
-            ...prev,
-            [selectedProductId]: reviews as unknown as Review[],
-          }));
-          setLoadingReviews((prev) => ({
-            ...prev,
-            [selectedProductId]: false,
-          }));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLoadingReviews((prev) => ({
-            ...prev,
-            [selectedProductId]: false,
-          }));
-        }
-      });
-    
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedProductId, reviewRefreshKey, productReviews]);
 
   // Update selectedOptions when selectedProductDetails changes
   React.useEffect(() => {
@@ -1420,47 +1403,32 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     setShowAllProductReviews(false); // Reset see more on product change
   }, [selectedProductId]);
 
-  // Fetch store-wide reviews (with caching)
-  useEffect(() => {
-    if (!selectedStoreId || storeTab !== "reviews") return;
-    
-    // Skip if already cached
-    if (storeReviewsCacheRef.current[selectedStoreId]) {
-      setStoreReviews(storeReviewsCacheRef.current[selectedStoreId]);
-      return;
+  // 💾 Store-wide reviews (React Query) - deduped + cached across navigation
+  const storeReviewsQuery = useStoreReviews(
+    selectedStoreId,
+    storeTab === "reviews",
+  );
+
+  React.useEffect(() => {
+    if (storeReviewsQuery.data) {
+      setStoreReviews(storeReviewsQuery.data as unknown as Review[]);
     }
-    
-    setLoadingStoreReviews(true);
-    const fetchReviews = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("product_reviews")
-          .select("*")
-          .eq("store_id", selectedStoreId)
-          .order("created_at", { ascending: false });
+  }, [storeReviewsQuery.data]);
 
-        if (error) throw error;
+  React.useEffect(() => {
+    if (storeReviewsQuery.isFetching) {
+      setLoadingStoreReviews(true);
+    } else {
+      setLoadingStoreReviews(false);
+    }
+  }, [storeReviewsQuery.isFetching, storeReviewsQuery.isPending]);
 
-        if (data) {
-          const reviews = data.map((r) => ({
-            id: r.id,
-            author: r.author_name,
-            rating: r.rating,
-            comment: r.comment,
-            date: r.created_at,
-            productId: r.product_id,
-          })) as unknown as Review[];
-          storeReviewsCacheRef.current[selectedStoreId] = reviews;
-          setStoreReviews(reviews);
-        }
-      } catch (e) {
-        console.error("Error fetching store reviews:", e);
-      } finally {
-        setLoadingStoreReviews(false);
-      }
-    };
-    fetchReviews();
-  }, [selectedStoreId, storeTab]);
+  React.useEffect(() => {
+    if (selectedStoreId && storeReviewsQuery.isFetching) {
+      storeReviewsCacheRef.current[selectedStoreId] =
+        storeReviewsQuery.data as unknown as Review[];
+    }
+  }, [selectedStoreId, storeReviewsQuery.isFetching, storeReviewsQuery.data]);
 
   const categories = useMemo(() => {
     const all = ["all", ...MAIN_CATEGORIES];
@@ -2133,7 +2101,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         return;
       }
 
-      setReviewRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({ queryKey: ["product-reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["store-reviews"] });
       setReviewStep(4);
       setTimeout(() => {
         setNewReview({ author: "", rating: 5, comment: "" });
