@@ -4804,123 +4804,129 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Hero Bannière Premium - Carousel */}
                 {!searchTerm && selectedCategory === "all" && (
                   <div
-                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[32px] md:rounded-[40px] isolation-auto"
+                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
                     onMouseEnter={() => setHeroPaused(true)}
                     onMouseLeave={() => setHeroPaused(false)}
                   >
                     <div
-                      className="relative w-full min-h-[260px] md:h-[300px] flex transition-transform duration-700 ease-in-out"
-                      style={{
-                        transform: `translateX(-${currentSlide * 100}%)`,
-                      }}
+                      className="relative w-full flex transition-transform duration-700 ease-in-out"
+                      style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                     >
                       {/* Slide 1 - Vendre */}
-                      <div className="min-w-full relative bg-gradient-to-br from-[#fff1eb] to-[#ace0f9]/20 flex items-center justify-center border border-white">
-                        <div className="absolute left-0 top-0 w-full h-full overflow-hidden">
-                          <div className="absolute -left-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl" />
-                          <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-100/40 rounded-full blur-3xl" />
-                        </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-orange-100 mb-6 font-black text-[10px] text-[#f56b2a] uppercase tracking-widest">
-                            <Zap size={14} fill="currentColor" /> Offre
-                            Commerçant
+                      <div className="min-w-full relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
+                        <div className="absolute -left-10 bottom-0 w-40 h-40 bg-blue-100/40 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
+                          <div className="flex-1 text-center md:text-left">
+                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-3 py-1 rounded-full mb-4 font-black text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                              <Zap size={12} fill="currentColor" /> Offre Commerçant
+                            </div>
+                            <h2 className="text-[26px] md:text-[38px] font-black text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                              C&apos;est le moment <br className="hidden md:block" />
+                              <span className="text-[#f56b2a]">de vendre</span>
+                            </h2>
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-semibold mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                              Boostez votre visibilité et attirez plus de clients
+                              dès aujourd&apos;hui.
+                            </p>
+                            <Button
+                              onClick={() => safeNavigate(user ? "/dashboard" : "/login")}
+                              loading={isNavigating}
+                              variant="secondary"
+                              size="lg"
+                            >
+                              Commencer maintenant
+                            </Button>
                           </div>
-                          <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            C&apos;est le moment{" "}
-                            <span className="text-[#f56b2a]">de vendre</span>
-                          </h2>
-                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
-                            Boostez votre visibilité et attirez plus de clients
-                            dès aujourd&apos;hui sur notre plateforme express.
-                          </p>
-                          <Button
-                            onClick={() =>
-                              safeNavigate(user ? "/dashboard" : "/login")
-                            }
-                            loading={isNavigating}
-                            variant="secondary"
-                            size="xl"
-                          >
-                            Commencer maintenant
-                          </Button>
+                          <div className="hidden md:flex items-center justify-center flex-shrink-0">
+                            <div className="w-24 h-24 bg-[#f56b2a]/10 rounded-3xl flex items-center justify-center">
+                              <Zap size={40} className="text-[#f56b2a]" fill="currentColor" />
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Slide 2 - Gestion */}                      <div className="min-w-full relative bg-gradient-to-br from-[#e0f2fe] to-[#f0f9ff] flex items-center justify-center border border-white">
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute right-0 top-0 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl" />
-                        </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
-                            <ShieldCheck size={14} /> Gestion Pro
+                      {/* Slide 2 - Gestion */}
+                      <div className="min-w-full relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#f0f9ff] via-white to-[#e0f2fe]/40" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-blue-400/8 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
+                          <div className="flex-1 text-center md:text-left">
+                            <div className="inline-flex items-center gap-1.5 bg-blue-500/10 px-3 py-1 rounded-full mb-4 font-black text-[10px] text-blue-600 uppercase tracking-widest">
+                              <ShieldCheck size={12} /> Gestion Pro
+                            </div>
+                            <h2 className="text-[26px] md:text-[38px] font-black text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                              Gérez votre <br className="hidden md:block" />
+                              <span className="text-blue-500">stock facilement</span>
+                            </h2>
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-semibold mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                              Un inventaire synchronisé et des alertes
+                              automatiques pour ne jamais manquer une vente.
+                            </p>
+                            <Button
+                              onClick={() => safeNavigate(user ? "/dashboard" : "/login")}
+                              loading={isNavigating}
+                              variant="secondary"
+                              size="lg"
+                            >
+                              Commencer maintenant
+                            </Button>
                           </div>
-                          <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            Gérez votre{" "}
-                            <span className="text-blue-500">
-                              stock facilement
-                            </span>
-                          </h2>
-                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
-                            Un inventaire synchronisé et des alertes
-                            automatiques pour ne jamais manquer une vente.
-                          </p>
-                          <Button
-                            onClick={() =>
-                              safeNavigate(user ? "/dashboard" : "/login")
-                            }
-                            loading={isNavigating}
-                            variant="secondary"
-                            size="xl"
-                          >
-                            Commencer maintenant
-                          </Button>
+                          <div className="hidden md:flex items-center justify-center flex-shrink-0">
+                            <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center">
+                              <ShieldCheck size={40} className="text-blue-500" />
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Slide 3 - Croissance */}
-                      <div className="min-w-full relative bg-gradient-to-br from-[#fef2f2] to-[#fff1f2] flex items-center justify-center border border-white">
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-100/30 rounded-full blur-[100px]" />
-                        </div>
-                        <div className="relative z-10 flex flex-col items-center text-center px-4 py-8 md:py-0 max-w-2xl">
-                          <div className="inline-flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full mb-6 font-black text-[10px] uppercase tracking-widest">
-                            <Heart size={14} fill="currentColor" /> Communauté
+                      {/* Slide 3 - Communauté */}
+                      <div className="min-w-full relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff5f5] via-white to-[#fef2f2]" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-red-400/8 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
+                          <div className="flex-1 text-center md:text-left">
+                            <div className="inline-flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full mb-4 font-black text-[10px] text-red-500 uppercase tracking-widest">
+                              <Heart size={12} fill="currentColor" /> Communauté
+                            </div>
+                            <h2 className="text-[26px] md:text-[38px] font-black text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                              Rejoignez <br className="hidden md:block" />
+                              <span className="text-red-500">le succès</span>
+                            </h2>
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-semibold mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                              Faites partie des 500+ commerçants qui ont déjà
+                              transformé leur manière de vendre.
+                            </p>
+                            <Button
+                              onClick={() => safeNavigate(user ? "/dashboard" : "/login")}
+                              loading={isNavigating}
+                              variant="secondary"
+                              size="lg"
+                            >
+                              Commencer maintenant
+                            </Button>
                           </div>
-                          <h2 className="text-2xl md:text-[40px] font-black text-gray-900 mb-4 tracking-tight leading-[1.1]">
-                            Rejoignez{" "}
-                            <span className="text-red-500">le succès</span>
-                          </h2>
-                          <p className="text-gray-500 text-xs md:text-base font-bold mb-6 max-w-md">
-                            Faites partie des 500+ commerçants qui ont déjà
-                            transformé leur manière de vendre.
-                          </p>
-                          <Button
-                            onClick={() =>
-                              safeNavigate(user ? "/dashboard" : "/login")
-                            }
-                            loading={isNavigating}
-                            variant="secondary"
-                            size="xl"
-                          >
-                            Commencer maintenant
-                          </Button>
+                          <div className="hidden md:flex items-center justify-center flex-shrink-0">
+                            <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center">
+                              <Heart size={40} className="text-red-500" fill="currentColor" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Pagination Dots - pastille visuelle fine mais zone
-                        de tap élargie (44px) pour le pouce */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+                    {/* Pagination Dots */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
                       {[0, 1, 2].map((idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
-                          aria-label={`Aller à la diapositive ${idx + 1}`}
-                          aria-current={currentSlide === idx}
-                          className="p-2.5 -m-1 flex items-center cursor-pointer"
+                          aria-label={`Slide ${idx + 1}`}
+                          className="p-2 -m-1 flex items-center cursor-pointer"
                         >
                           <span
-                            className={`h-1.5 rounded-full transition-all ${currentSlide === idx ? "w-8 bg-gray-900" : "w-2 bg-gray-300"}`}
+                            className={`h-[6px] rounded-full transition-all duration-300 ${currentSlide === idx ? "w-6 bg-gray-900" : "w-[6px] bg-gray-300"}`}
                           />
                         </button>
                       ))}
