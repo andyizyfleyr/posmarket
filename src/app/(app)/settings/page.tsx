@@ -1,9 +1,8 @@
 import SettingsView from '@/views/SettingsView';
-import { fetchStoreData } from '@/app/actions/store';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser, FULL_PERMISSIONS } from '@/utils/permissions';
-import { StoreSettings, StoreData, Product, Customer, Order, Staff, StaffRole, StaffPermissions, Coupon } from '@/types';
+import { StoreSettings, StoreData, Staff, StaffRole, StaffPermissions, Coupon } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,9 +28,6 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
   
   let currentStore: StoreRowLite | null = null;
-  let products: Product[] = [];
-  let customers: Customer[] = [];
-  let orders: Order[] = [];
   let staff: Staff[] = [];
   let coupons: Coupon[] = [];
   let stores: StoreData[] = [];
@@ -54,11 +50,6 @@ export default async function SettingsPage() {
   if (storeId) {
     const { data: storeRes } = await supabase.from('stores').select('*').eq('id', storeId).single();
     currentStore = storeRes as unknown as StoreRowLite;
-
-    const data = await fetchStoreData(storeId);
-    products = data.products as unknown as Product[];
-    customers = data.customers as unknown as Customer[];
-    orders = data.orders as unknown as Order[];
 
     // Fetch staff with profile emails
     const { data: staffData } = await supabase.from('store_staff').select('*').eq('store_id', storeId);
@@ -107,9 +98,6 @@ export default async function SettingsPage() {
   return (
     <SettingsView 
       storeSettings={mergedSettings}
-      products={products}
-      customers={customers}
-      orders={orders}
       staff={staff}
       coupons={coupons}
       userRole={role}

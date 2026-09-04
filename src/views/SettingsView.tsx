@@ -41,14 +41,11 @@ import {
     Info
 } from 'lucide-react';
 
-import { StoreSettings, Product, Customer, Order, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
+import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
 import { supabase } from '@/supabase';
 
 interface SettingsViewProps {
     storeSettings: StoreSettings;
-    products: Product[];
-    customers: Customer[];
-    orders: Order[];
     staff: Staff[];
     coupons?: Coupon[];
     userRole: StaffRole;
@@ -109,9 +106,6 @@ SectionHeader.displayName = 'SectionHeader';
 
 const SettingsView: React.FC<SettingsViewProps> = ({
     storeSettings,
-    products,
-    customers,
-    orders,
     staff,
     coupons: initialCoupons = [],
     userRole,
