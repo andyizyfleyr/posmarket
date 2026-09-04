@@ -56,6 +56,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://updrjzaapvbtjdnpicra.supabase.co" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://pub-18d489375e4146f48984e82e8f24581f.r2.dev" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://updrjzaapvbtjdnpicra.supabase.co" />
+        <link rel="dns-prefetch" href="https://pub-18d489375e4146f48984e82e8f24581f.r2.dev" />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <NextTopLoader 
           color="#f56b2a"
