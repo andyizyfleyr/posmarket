@@ -5,7 +5,7 @@ import { unstable_cache } from "next/cache";
 import { generateProductSlug } from "@/utils/slug";
 
 const SITE =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-eight.vercel.app";
 
 export function absoluteImage(url?: string | null): string | undefined {
     if (!url) return undefined;

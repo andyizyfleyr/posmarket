@@ -42,7 +42,7 @@ export default async function StorePage({ params }: Props) {
     let jsonLd: Record<string, unknown>[] | null = null;
     if (store) {
         const products = (store.products || []).slice(0, 25);
-        const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+        const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-eight.vercel.app";
         jsonLd = [
             {
                 "@context": "https://schema.org",

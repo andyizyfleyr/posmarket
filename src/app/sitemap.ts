@@ -4,7 +4,7 @@ import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
 
 const SITE =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-eight.vercel.app";
 
 export const revalidate = 3600;
 

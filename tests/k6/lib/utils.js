@@ -1,6 +1,6 @@
 import http from 'k6/http';
 
-export const BASE_URL = (__ENV.BASE_URL || 'https://posmarket-topaz.vercel.app').replace(/\/+$/, '');
+export const BASE_URL = (__ENV.BASE_URL || 'https://posmarket-eight.vercel.app').replace(/\/+$/, '');
 
 function toProductSlug(name, id) {
   const clean = name

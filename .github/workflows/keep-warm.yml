@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Neon
-        run: curl -fsS --max-time 30 https://posmarket-topaz.vercel.app/api/ping
+        run: curl -fsS --max-time 30 https://posmarket-eight.vercel.app/api/ping

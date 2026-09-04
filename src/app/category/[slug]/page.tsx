@@ -19,7 +19,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
     const category = decodeCategorySlug(slug);
-    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-eight.vercel.app";
     return {
         title: `${category}`,
         description: `Découvrez tous les produits de la catégorie ${category} sur PosMarket.`,
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoryPage({ params }: Props) {
     const { slug } = await params;
     const category = decodeCategorySlug(slug);
-    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
+    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-eight.vercel.app";
     const stores = await fetchMarketplaceData();
 
     const categoryProducts = (stores || [])
