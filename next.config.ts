@@ -6,6 +6,8 @@ const ip = getLocalIp();
 const nextConfig: NextConfig = {
   allowedDevOrigins: [ip],
 
+  reactCompiler: true,
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },

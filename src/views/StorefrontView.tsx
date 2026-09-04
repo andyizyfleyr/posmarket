@@ -541,7 +541,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       navCompletedRef.current = false;
       navTargetPathRef.current = targetPathname;
       navStartTimeRef.current = performance.now();
-      console.log(`[Navigation] Started → "${path}"`);
+      if (process.env.NODE_ENV !== 'production') console.log(`[Navigation] Started → "${path}"`);
       setNavigationKey(prev => prev + 1);
       setIsNavigating(true);
 
@@ -576,7 +576,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
       if (hasContent || ++retries > 20) {
         navCompletedRef.current = true;
-        console.log(`[Navigation] Content ready → ${duration.toFixed(0)}ms (${(duration / 1000).toFixed(2)}s)`);
+        if (process.env.NODE_ENV !== 'production') console.log(`[Navigation] Content ready → ${duration.toFixed(0)}ms (${(duration / 1000).toFixed(2)}s)`);
         setIsNavigating(false);
       } else {
         timer = setTimeout(checkContentVisible, 50);
@@ -1900,7 +1900,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, 0);
 
   const handlePromoApply = async () => {
-    console.log("handlePromoApply called", { promoCodeInput, coupons });
     const inputCode = promoCodeInput.trim().toUpperCase();
     setIsApplyingPromo(true);
 

@@ -64,7 +64,7 @@ export function StorefrontWrapper({ stores, initialCategory, onBackToApp, onMark
       onNotifyCartInterest={onNotifyCartInterest}
       onNotifyPostCheckout={onNotifyPostCheckout}
       notify={(msg, type) => {
-          console.log(`${type}: ${msg}`);
+          if (process.env.NODE_ENV !== 'production') console.log(`${type}: ${msg}`);
       }}
     />
   );

@@ -17,12 +17,12 @@ export async function optimizeImage(file: File): Promise<File> {
   };
 
   try {
-    console.log(`[ImageOptimization] Original: ${file.size / 1024 / 1024} Mo`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[ImageOptimization] Original: ${file.size / 1024 / 1024} Mo`);
     
     // Compression et conversion
     const compressedFile = await imageCompression(file, options);
     
-    console.log(`[ImageOptimization] Optimisée: ${compressedFile.size / 1024 / 1024} Mo (WebP)`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[ImageOptimization] Optimisée: ${compressedFile.size / 1024 / 1024} Mo (WebP)`);
     
     // Retourne le nouveau fichier WebP
     return compressedFile;

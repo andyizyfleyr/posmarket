@@ -64,7 +64,6 @@ export const saveCustomer = async (customer: Partial<Customer>, storeId: string)
         orders_count: customer.ordersCount,
     };
 
-    console.log(`[API] Saving customer in store ${storeId}...`, dataToSave);
     if (customer.id && !customer.id.startsWith('temp-')) {
         const { data, error } = await supabase
             .from('customers')
@@ -76,7 +75,6 @@ export const saveCustomer = async (customer: Partial<Customer>, storeId: string)
             console.error('[API] Error updating customer:', error);
             throw error;
         }
-        console.log('[API] Customer updated:', data.id);
         return data;
     } else {
         const { data, error } = await supabase
@@ -88,7 +86,6 @@ export const saveCustomer = async (customer: Partial<Customer>, storeId: string)
             console.error('[API] Error inserting customer:', error);
             throw error;
         }
-        console.log('[API] Customer created:', data.id);
         return data;
     }
 };

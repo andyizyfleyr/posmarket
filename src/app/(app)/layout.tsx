@@ -44,16 +44,13 @@ interface StaffEntryData {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  console.log('[Layout] Entering AppLayout...');
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    console.log('[Layout] No user found, redirecting to /login');
     redirect('/login');
   }
 
-  console.log(`[Layout] User authenticated: ${user.id}. Fetching profile...`);
 
   // Fetch basic profile + stores + staff entries in parallel
   const [profileRes, ownedStoresRes, staffEntriesRes] = await Promise.all([
@@ -86,7 +83,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   let staffStores: StoreRowData[] = [];
   if (staffStoreIds.length > 0) {
-    console.log(`[Layout] Fetching ${staffStoreIds.length} staff stores...`);
     const { data } = await safeSupabaseFetch<StoreRowData[]>(
        () => supabase.from('stores').select('*').in('id', staffStoreIds)
     );
@@ -130,8 +126,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       invoices: []
     } as unknown as StoreData;
   });
-
-  console.log(`[Layout] Fetched ${stores.length} stores for user ${user.id}`);
 
   let currentStoreId = await getStoreCookie();
 
