@@ -4469,7 +4469,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             >
               {/* En vue catégorie (?cat=), le header de page affiche déjà le
                   titre : pas de rangée de chips en doublon (mobile ET desktop). */}
-              <div className={`items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
+              <div className={`items-center gap-2 py-2 overflow-x-hidden md:overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
                 {categories.map((cat) => (
                 <button
                   key={cat}
