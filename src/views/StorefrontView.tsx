@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
 import {
@@ -64,7 +65,10 @@ import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage"
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
-import { MarketplaceFooter } from "@/components/MarketplaceFooter";
+const MarketplaceFooter = dynamic(
+  () => import("@/components/MarketplaceFooter").then((m) => m.MarketplaceFooter),
+  { ssr: true },
+);
 import type { BuyerAddress } from "@/components/buyer/accountTypes";
 import {
   Routes,
@@ -85,7 +89,10 @@ import {
 import { useCoupons, useStoreReviews, useProductReviews } from "@/hooks/useMarketplaceData";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/supabase";
-import { BuyerView } from "./BuyerView";
+const BuyerView = dynamic(
+  () => import("./BuyerView").then((m) => m.BuyerView),
+  { ssr: true },
+);
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
