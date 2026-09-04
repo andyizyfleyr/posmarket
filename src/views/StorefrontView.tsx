@@ -4442,7 +4442,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
             {/* Full Width Search Bar - Mobile Only (se replie au scroll) */}
             <div
-              className={`md:hidden overflow-hidden transition-[max-height,opacity,padding] duration-300 ${headerCompact ? "max-h-0 pb-0 opacity-0" : "max-h-24 pb-2 opacity-100"}`}
+              className={`md:hidden overflow-hidden ${headerCompact ? "h-0 opacity-0" : "opacity-100"}`}
             >
               <div className="flex items-center bg-white rounded-xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl transition-all group">
                 <div className="pl-3 text-gray-600 group-focus-within:text-[#f56b2a]">
@@ -4462,9 +4462,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </div>
 
             {/* Dynamic Horizontal Categories - Scrollable with scroll hint.
-                Sur mobile, la rangée se replie quand le header est compact. */}
+                Sur mobile, les catégories disparaissent instantanément (pas
+                d'animation) pour éviter le jitter du header sticky. */}
             <div
-              className={`relative overflow-hidden transition-[max-height,opacity] duration-300 ${headerCompact ? "max-h-0 opacity-0 md:max-h-24 md:opacity-100" : "max-h-24 opacity-100"}`}
+              className={`relative overflow-hidden ${headerCompact ? "h-0 opacity-0 md:h-auto md:opacity-100" : "opacity-100"}`}
             >
               {/* En vue catégorie (?cat=), le header de page affiche déjà le
                   titre : pas de rangée de chips en doublon (mobile ET desktop). */}
