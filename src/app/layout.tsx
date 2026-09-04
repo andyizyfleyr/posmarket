@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import NextTopLoader from 'nextjs-toploader';
 import "./globals.css";
@@ -40,6 +40,13 @@ export const metadata: Metadata = {
       "Découvrez les meilleures boutiques et produits sur notre marketplace ultra-rapide. Vendez et achetez en toute sécurité.",
   },
   robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

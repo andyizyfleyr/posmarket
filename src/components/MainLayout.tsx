@@ -337,7 +337,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+    <div className="flex h-dvh bg-gray-50 overflow-hidden relative">
       <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none items-end max-w-[90vw]">
         {toastNotifications.map(notif => (
           <Toast key={notif.id} notification={notif} onRemove={removeToast} />
@@ -352,7 +352,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         businessType={currentStore?.business_type}
       />
 
-      <div className="flex flex-col flex-grow overflow-hidden relative w-full">
+      <div className="flex flex-col flex-grow relative w-full min-w-0">
         {currentView !== 'admin' && (
           <Navbar
             currentView={currentView}
@@ -370,8 +370,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             onLogout={onLogout}
           />
         )}
-        <main className="flex-grow overflow-hidden flex flex-col bg-white pb-20 md:pb-0 relative">
-          <div key={`${currentView}-${currentStore?.id}`} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <main className="flex-grow flex flex-col bg-white pb-20 md:pb-0 relative overflow-hidden">
+          <div key={`${currentView}-${currentStore?.id}`} className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-y-auto">
             {children}
           </div>
         </main>
