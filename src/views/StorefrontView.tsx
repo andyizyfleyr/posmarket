@@ -4961,9 +4961,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <h3 className="font-bold text-gray-900 text-[12px] leading-tight line-clamp-1">
                                     {store.settings?.name || "Boutique"}
                                   </h3>
-                                  <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-                                    @{(store.slug || "boutique").toLowerCase()}
-                                  </p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 pt-2 border-t border-gray-50">

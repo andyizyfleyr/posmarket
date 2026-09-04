@@ -13,6 +13,7 @@ import {
     updateProfileAction
 } from '@/app/actions/settings';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
+import Image from "next/image";
 import {
     Settings,
     Store,
@@ -341,6 +342,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         }
     };
 
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const optimizedFile = await optimizeImage(file);
+                const base64 = await fileToBase64(optimizedFile);
+                setLocalSettings(prev => ({ ...prev, logo: base64 }));
+            } catch (err) {
+                if (notify) notify("Erreur lors de l'optimisation de l'image", "error");
+            }
+        }
+    };
+
     const handleDeleteStaffLocal = async (id: string) => {
         if (!confirm("Supprimer ce membre de l'équipe ?")) return;
         try {
@@ -397,6 +411,33 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <div className="space-y-6 md:space-y-12 animate-in fade-in slide-in-from-right-4 duration-300">
                             <div>
                                 <SectionHeader title="Informations de la Boutique" icon={<Store />} />
+                                <div className="flex flex-col items-center mb-6">
+                                    <label className="relative group cursor-pointer">
+                                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 group-hover:border-[#f56b2a] group-hover:bg-orange-50 transition-all flex items-center justify-center overflow-hidden">
+                                            {localSettings.logo ? (
+                                                <Image
+                                                    src={localSettings.logo}
+                                                    alt="Logo boutique"
+                                                    fill
+                                                    sizes="96px"
+                                                    className="object-cover"
+                                                />
+                                            ) : (
+                                                <Store className="text-gray-300 group-hover:text-[#f56b2a] transition-colors" size={32} />
+                                            )}
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#f56b2a] rounded-full flex items-center justify-center shadow-lg">
+                                            <Camera size={14} className="text-white" />
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleLogoUpload}
+                                        />
+                                    </label>
+                                    <p className="text-[9px] md:text-[10px] text-gray-400 font-bold mt-2">Logo de la boutique</p>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     <div>
                                         <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Nom de la Boutique</label>
