@@ -5223,6 +5223,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     onClick={() => {
                                       window.location.href = `/category/${categoryToSlug(cat)}`;
                                     }}
+                                    onMouseEnter={() => {
+                                      const catUrl = `/category/${categoryToSlug(cat)}`;
+                                      const link = document.createElement("link");
+                                      link.rel = "prefetch";
+                                      link.href = catUrl;
+                                      document.head.appendChild(link);
+                                    }}
                                     className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
                                   >
                                     Voir tout
@@ -5496,6 +5503,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     <button
                                       onClick={() => {
                                         window.location.href = `/category/${categoryToSlug(cat)}`;
+                                      }}
+                                      onMouseEnter={() => {
+                                        const catUrl = `/category/${categoryToSlug(cat)}`;
+                                        const link = document.createElement("link");
+                                        link.rel = "prefetch";
+                                        link.href = catUrl;
+                                        document.head.appendChild(link);
                                       }}
                                       className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
                                     >

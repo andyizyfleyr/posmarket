@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { fetchMarketplaceData } from "@/app/actions/marketplace";
 import { generateProductSlug } from "@/utils/slug";
+import { MAIN_CATEGORIES } from "@/constants";
 
 const SITE =
     process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-topaz.vercel.app";
@@ -11,6 +12,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const entries: MetadataRoute.Sitemap = [
         { url: `${SITE}/`, changeFrequency: "daily", priority: 1 },
     ];
+
+    // Category pages
+    for (const cat of MAIN_CATEGORIES) {
+        entries.push({
+            url: `${SITE}/category/${encodeURIComponent(cat)}`,
+            changeFrequency: "daily",
+            priority: 0.7,
+        });
+    }
 
     try {
         const stores = await fetchMarketplaceData();
