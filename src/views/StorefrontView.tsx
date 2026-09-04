@@ -4933,38 +4933,55 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <h2 className="text-xl font-black text-gray-900 mb-4 md:mb-6 tracking-tight">
                         Boutiques partenaires
                       </h2>
-                      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
+                      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
                         {partnerStores.slice(0, 6).map((store) => (
                           <div
                             key={store.id}
                             onClick={() =>
                               safeNavigate(`/store/${store.slug || store.id}`)
                             }
-                            className="min-w-[180px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm cursor-pointer flex flex-col items-center text-center group will-change-transform"
+                            className="min-w-[200px] max-w-[220px] bg-white rounded-2xl border border-gray-100 shadow-sm cursor-pointer group active:scale-[0.98] transition-all overflow-hidden flex-shrink-0"
                           >
-                            <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:scale-110">
-                              <Store className="text-[#f56b2a]" size={28} />
-                            </div>
-                            <h3 className="font-bold text-gray-800 text-xs mb-1">
-                              {store.settings?.name || "Boutique"}
-                            </h3>
-                            <div className="flex flex-col gap-0.5">
-                              <p className="text-[10px] text-gray-600 font-black">
-                                {
-                                  (store.products || []).filter(
+                            <div className="p-4">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner overflow-hidden border border-gray-100 relative flex-shrink-0">
+                                  {store.settings?.logo ? (
+                                    <Image
+                                      src={store.settings.logo ?? ""}
+                                      alt={store.settings?.name || "Boutique"}
+                                      fill
+                                      sizes="44px"
+                                      className="object-cover"
+                                    />
+                                  ) : (
+                                    <Store className="text-[#f56b2a]" size={22} />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h3 className="font-bold text-gray-900 text-[12px] leading-tight line-clamp-1">
+                                    {store.settings?.name || "Boutique"}
+                                  </h3>
+                                  <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                    @{(store.slug || "boutique").toLowerCase()}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
+                                <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
+                                  {(store.products || []).filter(
                                     (p) => p.isOnline !== false && p.image,
-                                  ).length
-                                }{" "}
-                                Produits
-                              </p>
-                              <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-wider">
-                                {formatNumber((store.views || 0) +
-                                  (store.products?.reduce(
-                                    (sum, p) => sum + (p.views || 0),
-                                    0,
-                                  ) || 0))}{" "}
-                                Visites
-                              </p>
+                                  ).length}{" "}
+                                  prod.
+                                </span>
+                                <span className="text-[10px] font-bold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-md">
+                                  {formatNumber((store.views || 0) +
+                                    (store.products?.reduce(
+                                      (sum, p) => sum + (p.views || 0),
+                                      0,
+                                    ) || 0))}{" "}
+                                  vues
+                                </span>
+                              </div>
                             </div>
                           </div>
                         ))}
