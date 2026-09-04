@@ -198,6 +198,9 @@ interface StorefrontViewProps {
 }
 
 
+const DEFAULT_STORE_LOGO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='24' fill='%23f5f6f7'/%3E%3Crect x='24' y='52' width='72' height='44' rx='6' fill='%23f56b2a' opacity='0.12'/%3E%3Cpath d='M30 54h60v8H30z' fill='%23f56b2a'/%3E%3Cpath d='M36 42l24-16 24 16' stroke='%23f56b2a' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='34' y='60' width='16' height='14' rx='2' fill='%23f56b2a' opacity='0.25'/%3E%3Crect x='54' y='60' width='16' height='14' rx='2' fill='%23f56b2a' opacity='0.25'/%3E%3Crect x='74' y='60' width='12' height='14' rx='2' fill='%23f56b2a' opacity='0.25'/%3E%3Crect x='48' y='78' width='24' height='18' rx='3' fill='%23f56b2a' opacity='0.35'/%3E%3C/svg%3E";
+
+
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
@@ -2266,7 +2269,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     className="object-cover"
                   />
                 ) : (
-                  <Store size={28} className="text-gray-300" />
+                  <Image src={DEFAULT_STORE_LOGO} alt="Boutique" fill sizes="80px" className="object-cover" />
                 )}
               </div>
               <div className="flex-grow min-w-0 pb-1">
@@ -4626,7 +4629,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 className="object-cover"
                               />
                             ) : (
-                              <Store className="text-[#f56b2a]" size={28} />
+                              <Image src={DEFAULT_STORE_LOGO} alt="Boutique" fill sizes="56px" className="object-cover" />
                             )}
                           </div>
                           <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
@@ -4954,7 +4957,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       className="object-cover"
                                     />
                                   ) : (
-                                    <Store className="text-[#f56b2a]" size={22} />
+                                    <Image src={DEFAULT_STORE_LOGO} alt="Boutique" fill sizes="44px" className="object-cover" />
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -5012,7 +5015,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 className="object-cover"
                               />
                             ) : (
-                              <Store className="text-[#f56b2a]" size={28} />
+                              <Image src={DEFAULT_STORE_LOGO} alt="Boutique" fill sizes="56px" className="object-cover" />
                             )}
                           </div>
                           <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">

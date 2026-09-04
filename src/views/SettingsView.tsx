@@ -413,7 +413,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <SectionHeader title="Informations de la Boutique" icon={<Store />} />
                                 <div className="flex flex-col items-center mb-6">
                                     <label className="relative group cursor-pointer">
-                                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 group-hover:border-[#f56b2a] group-hover:bg-orange-50 transition-all flex items-center justify-center overflow-hidden">
+                                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 group-hover:border-[#f56b2a] group-hover:bg-orange-50 transition-all flex items-center justify-center overflow-hidden relative">
                                             {localSettings.logo ? (
                                                 <Image
                                                     src={localSettings.logo}
