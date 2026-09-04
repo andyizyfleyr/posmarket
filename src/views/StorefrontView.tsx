@@ -4461,15 +4461,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
 
-            {/* Dynamic Horizontal Categories - Scrollable with scroll hint.
-                Sur mobile, les catégories disparaissent instantanément (pas
-                d'animation) pour éviter le jitter du header sticky. */}
+            {/* Dynamic Horizontal Categories - Desktop only (causes jitter on mobile sticky header) */}
             <div
-              className={`relative overflow-hidden ${headerCompact ? "h-0 opacity-0 md:h-auto md:opacity-100" : "opacity-100"}`}
+              className={`relative overflow-hidden hidden md:block ${headerCompact ? "h-0 opacity-0 md:h-auto md:opacity-100" : "opacity-100"}`}
             >
               {/* En vue catégorie (?cat=), le header de page affiche déjà le
                   titre : pas de rangée de chips en doublon (mobile ET desktop). */}
-              <div className={`items-center gap-2 py-2 overflow-x-hidden md:overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
+              <div className={`items-center gap-2 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
                 {categories.map((cat) => (
                 <button
                   key={cat}
