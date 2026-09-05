@@ -238,6 +238,27 @@ export function ProductDetailsView(props: any) {
       }
     };
 
+    const mobileGalleryRef = React.useRef<HTMLDivElement | null>(null);
+
+    const galleryScroll = (dir: 1 | -1) => {
+      const el = mobileGalleryRef.current;
+      if (!el) return;
+      el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
+    };
+
+    const galleryGoTo = (idx: number) => {
+      const el = mobileGalleryRef.current;
+      if (!el) return;
+      el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+    };
+
+    const stepGallery = (dir: 1 | -1) => {
+      const idx = galleryImages.indexOf(currentImage);
+      const next = (idx + dir + galleryImages.length) % galleryImages.length;
+      const img = galleryImages[next];
+      if (img) setSelectedDetailImage(img);
+    };
+
     const scrollToSection = (id: string) => {
       document
         .getElementById(id)
@@ -316,6 +337,7 @@ export function ProductDetailsView(props: any) {
               {/* Mobile: Swipeable Carousel inside an M3 Card */}
               <div className="lg:hidden relative bg-white overflow-hidden rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] mb-3.5 aspect-square">
                 <div
+                  ref={mobileGalleryRef}
                   className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory h-full"
                   onScroll={onGalleryScroll}
                 >
@@ -336,6 +358,56 @@ export function ProductDetailsView(props: any) {
                     </div>
                   ))}
                 </div>
+
+                {/* Manual slide arrows (mobile) */}
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        galleryScroll(-1);
+                      }}
+                      aria-label="Image précédente"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:scale-95 transition-all z-10"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        galleryScroll(1);
+                      }}
+                      aria-label="Image suivante"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:scale-95 transition-all z-10"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </>
+                )}
+
+                {/* Slide dots (mobile) */}
+                {galleryImages.length > 1 && (
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                    {galleryImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          galleryGoTo(idx);
+                        }}
+                        aria-label={`Aller à l'image ${idx + 1}`}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          idx === productSwipeIdx
+                            ? "w-4 bg-[#f56b2a]"
+                            : "w-1.5 bg-gray-400/60"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Expand overlay button */}
                 <button
@@ -385,7 +457,35 @@ export function ProductDetailsView(props: any) {
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/main:scale-105"
                   />
 
-                  {/* Hover overlay */}
+                  {/* Manual slide arrows (desktop) */}
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        stepGallery(-1);
+                      }}
+                      aria-label="Image précédente"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:scale-95 transition-all z-10"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        stepGallery(1);
+                      }}
+                      aria-label="Image suivante"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:scale-95 transition-all z-10"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </>
+                )}
+
+                {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover/main:bg-black/5 transition-colors duration-300 pointer-events-none" />
 
                   {discountPct > 0 && (
@@ -507,6 +607,14 @@ export function ProductDetailsView(props: any) {
                       <span className="font-semibold text-gray-800 truncate block text-xs">{product.unit}</span>
                     </div>
                   )}
+                  {!isFood && product.deliveryTime && (
+                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Délai de livraison</span>
+                      <span className="font-semibold text-gray-800 truncate block text-xs">
+                        {product.deliveryTime}
+                      </span>
+                    </div>
+                  )}
                   {isFood && (product.preparationTime || product.deliveryTime) && (
                     <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
                       <span className="block text-[9px] text-gray-400 uppercase font-semibold">Délai estimé</span>
@@ -544,9 +652,10 @@ export function ProductDetailsView(props: any) {
                 <div>
                   <h1 className="text-lg xl:text-xl font-bold text-gray-900 leading-snug tracking-tight">
                     {product.name}
-                    {product.unit && (
-                      <span className="ml-1.5 text-xs font-normal text-gray-400">
-                        ({product.unit})
+                    {product.unit && !hasOptions && (
+                      <span className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] font-black text-[#f56b2a] bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                        <Package size={10} strokeWidth={2.5} />
+                        {product.unit}
                       </span>
                     )}
                   </h1>
@@ -606,6 +715,11 @@ export function ProductDetailsView(props: any) {
                       <span className="text-2xl font-black text-gray-950 tracking-tight leading-none">
                         {formatCurrency(basePrice)}
                       </span>
+                      {product.unit && !hasOptions && (
+                        <span className="text-sm font-semibold text-gray-500">
+                          / {product.unit}
+                        </span>
+                      )}
                       {product.originalPrice && product.originalPrice > basePrice && (
                         <span className="text-xs text-gray-400 line-through font-medium">
                           {formatCurrency(product.originalPrice)}
@@ -781,7 +895,7 @@ export function ProductDetailsView(props: any) {
                       </span>
                       <span className="flex items-center justify-center gap-1 truncate">
                         <Truck size={11} className="text-purple-600 flex-shrink-0" />
-                        <span>Livraison suivie</span>
+                        <span>{product.deliveryTime ? product.deliveryTime : "Livraison suivie"}</span>
                       </span>
                     </>
                   )}
@@ -806,9 +920,10 @@ export function ProductDetailsView(props: any) {
                 {/* Title (Fine & compact) */}
                 <h2 className="text-sm font-bold text-gray-900 leading-snug tracking-tight mb-1.5">
                   {product.name}
-                  {product.unit && (
-                    <span className="inline ml-1 text-xs text-gray-400 font-normal">
-                      ({product.unit})
+                  {product.unit && !hasOptions && (
+                    <span className="inline-flex items-center gap-1 ml-1.5 align-middle text-[9px] font-black text-[#f56b2a] bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                      <Package size={9} strokeWidth={2.5} />
+                      {product.unit}
                     </span>
                   )}
                 </h2>
@@ -867,6 +982,11 @@ export function ProductDetailsView(props: any) {
                     <span className="text-lg font-black tracking-tight text-gray-950 leading-none">
                       {formatCurrency(basePrice)}
                     </span>
+                    {product.unit && !hasOptions && (
+                      <span className="text-[10px] font-semibold text-gray-500">
+                        /{product.unit}
+                      </span>
+                    )}
                     {product.originalPrice && product.originalPrice > basePrice && (
                       <span className="text-[11px] text-gray-400 line-through font-medium">
                         {formatCurrency(product.originalPrice)}
@@ -879,6 +999,14 @@ export function ProductDetailsView(props: any) {
                     </span>
                   )}
                 </div>
+
+                {/* Mobile delivery note */}
+                {!isFood && product.deliveryTime && (
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-2.5">
+                    <Truck size={11} className="text-blue-500 flex-shrink-0" />
+                    <span>Livraison en <b className="text-gray-800">{product.deliveryTime}</b></span>
+                  </div>
+                )}
 
                 {/* Mobile options: Fine chips */}
                 {hasOptions && (

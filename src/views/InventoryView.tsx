@@ -734,9 +734,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center justify-between relative px-1 md:px-2">
                 <div className="absolute top-1/2 left-0 right-0 h-px md:h-0.5 bg-gray-100 -translate-y-1/2 z-0 mx-6 md:mx-8" />
                 {[
-                  { s: 1, icon: Tag, label: 'Infos' },
-                  { s: 2, icon: DollarSign, label: 'Prix' },
-                  { s: 3, icon: ImageIcon, label: 'Médias' }
+                  { s: 1, icon: ImageIcon, label: 'Photos' },
+                  { s: 2, icon: Tag, label: 'Essentiels' },
+                  { s: 3, icon: DollarSign, label: 'Compléments' }
                 ].map((step) => (
                   <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
                     <div className={`
@@ -756,6 +756,68 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
             <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
               {currentStep === 1 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div className="flex flex-col gap-4">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Images du Produit</label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {(formData.images || []).map((img, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = formData.images.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, images: newImages, image: newImages[0] || '' });
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                          {idx === 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-black text-center py-0.5 uppercase">Principale</div>
+                          )}
+                        </div>
+                      ))}
+                      <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl hover:bg-orange-50 hover:border-orange-200 transition-all cursor-pointer group">
+                        <Plus size={18} className="md:size-5 text-gray-300 group-hover:text-[#f56b2a]" />
+                        <span className="text-[7px] md:text-[8px] font-black text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const files = Array.from(e.target.files || []) as File[];
+
+                            for (const file of files) {
+                              try {
+                                // Optimisation : Compression + Resolution + WebP
+                                const optimizedFile = await optimizeImage(file);
+                                // Conversion en Base64 pour le stockage actuel
+                                const base64 = await fileToBase64(optimizedFile);
+
+                                setFormData(prev => {
+                                  const newImages = [...prev.images, base64];
+                                  return {
+                                    ...prev,
+                                    images: newImages,
+                                    image: prev.image || newImages[0]
+                                  };
+                                });
+                              } catch (err) {
+                                console.error("Erreur lors de l'optimisation:", err);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 2 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
@@ -825,13 +887,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
                     </div>
 
-
-
-                </div>
-              )}
-
-              {currentStep === 2 && (
-                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
@@ -918,7 +973,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
                   )}
+                </div>
+              )}
 
+              {currentStep === 3 && (
+                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   {/* Variants & Options Section - AliExpress Style */}
                   {formData.businessType === 'shopping' && (
                     <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
@@ -1397,63 +1456,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex flex-col gap-4">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Images du Produit</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {(formData.images || []).map((img, idx) => (
-                        <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                          <img src={img} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newImages = formData.images.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, images: newImages, image: newImages[0] || '' });
-                            }}
-                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                          {idx === 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-black text-center py-0.5 uppercase">Principale</div>
-                          )}
-                        </div>
-                      ))}
-                      <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl hover:bg-orange-50 hover:border-orange-200 transition-all cursor-pointer group">
-                        <Plus size={18} className="md:size-5 text-gray-300 group-hover:text-[#f56b2a]" />
-                        <span className="text-[7px] md:text-[8px] font-black text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const files = Array.from(e.target.files || []) as File[];
-
-                            for (const file of files) {
-                              try {
-                                // Optimisation : Compression + Resolution + WebP
-                                const optimizedFile = await optimizeImage(file);
-                                // Conversion en Base64 pour le stockage actuel
-                                const base64 = await fileToBase64(optimizedFile);
-
-                                setFormData(prev => {
-                                  const newImages = [...prev.images, base64];
-                                  return {
-                                    ...prev,
-                                    images: newImages,
-                                    image: prev.image || newImages[0]
-                                  };
-                                });
-                              } catch (err) {
-                                console.error("Erreur lors de l'optimisation:", err);
-                              }
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
-                  </div>
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>
                     <textarea

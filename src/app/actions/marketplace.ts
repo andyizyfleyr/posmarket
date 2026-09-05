@@ -88,6 +88,10 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
           image: sql<
             string | null
           >`CASE WHEN ${products.image} LIKE 'data:%' THEN NULL ELSE ${products.image} END`,
+          images: products.images,
+          unit: products.unit,
+          deliveryTime: products.deliveryTime,
+          preparationTime: products.preparationTime,
           hasImage: sql<boolean>`${products.image} IS NOT NULL`,
         })
         .from(products)
@@ -143,6 +147,12 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               price: Number(p.price) || 0,
               originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
               image: toImageRef(p.image, p.hasImage, p.id),
+              images: Array.isArray(p.images)
+                ? (p.images as string[]).map((img) => toImageRef(img, p.hasImage, p.id))
+                : undefined,
+              unit: p.unit || undefined,
+              deliveryTime: p.deliveryTime || undefined,
+              preparationTime: p.preparationTime || undefined,
               stock: p.stock || 0,
               category: p.mainCategory || 'Autre',
               mainCategory: p.mainCategory || '',

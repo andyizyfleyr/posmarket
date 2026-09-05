@@ -1,10 +1,9 @@
 'use client';
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Product } from '@/types';
-import { Plus, LayoutGrid, Star, Zap, Eye } from 'lucide-react';
+import { Plus, LayoutGrid, Star, Eye } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils';
-import { getNormalizedWholesaleTiers } from '@/utils/wholesale';
 import ProductImage from './ProductImage';
 import { generateProductSlug } from '@/utils/slug';
 
@@ -53,10 +52,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
     onClick?.();
   }, [onClick]);
 
-  const normalizedTiers = useMemo(() => getNormalizedWholesaleTiers(product), [product]);
-  const firstTier = normalizedTiers[0];
-  const hasWholesale = !!firstTier;
-
   return (
     <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden group flex flex-col h-full shadow-sm relative will-change-transform ${className}`}>
       {/* Product Content - Clickable Area (real crawlable link) */}
@@ -81,11 +76,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
 
           {/* Badges on Image Content */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
-            {hasWholesale && firstTier && (
-              <div className="bg-[#f56b2a] text-white px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md">
-                <Zap size={9} fill="currentColor" /> Gros dès {firstTier.minQty}
-              </div>
-            )}
             {product.originalPrice && product.originalPrice > product.price && (
               <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shadow-md">
                 -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
@@ -116,13 +106,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
               )}
             </div>
 
-            {hasWholesale && firstTier && (
-              <div className="text-[8px] md:text-[9px] font-black text-[#d55a20] bg-orange-50/90 border border-orange-100 rounded px-1.5 py-0.5 mb-1.5 inline-flex items-center gap-1">
-                <span>Dès {firstTier.minQty} pcs :</span>
-                <span className="font-extrabold">{formatCurrency(firstTier.packagePrice)}</span>
-                <span className="text-[7.5px] opacity-75 font-semibold">({formatCurrency(firstTier.unitPrice)}/u)</span>
-              </div>
-            )}
             <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[14px]">
               {product.salesCount !== undefined && product.salesCount > 0 ? (
                 <div className="text-[9px] text-gray-600 font-bold opacity-70">

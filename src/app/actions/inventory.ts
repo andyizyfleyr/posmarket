@@ -15,6 +15,10 @@ type ProductInput = {
   original_price?: string | number;
   category?: string;
   image?: string | null;
+  images?: string[];
+  unit?: string;
+  deliveryTime?: string;
+  preparationTime?: string;
   stock?: number;
   mainCategory?: string;
   main_category?: string;
@@ -56,6 +60,28 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       if (r2Url) imageValue = r2Url;
     }
 
+    let imagesValue: string[] = (
+      Array.isArray(product.images) && product.images.length > 0
+        ? product.images
+        : product.image
+          ? [product.image]
+          : []
+    ).filter((img): img is string => typeof img === 'string' && !!img);
+
+    imagesValue = await Promise.all(
+      imagesValue.map(async (img) => {
+        if (img.startsWith('data:')) {
+          const r2Url = await uploadDataUriToR2(img, 'products').catch(() => null);
+          return r2Url || img;
+        }
+        return img;
+      })
+    );
+
+    if (imagesValue.length > 0 && !imageValue) {
+      imageValue = imagesValue[0];
+    }
+
     const dataToSave = {
       storeId,
       name: product.name || '',
@@ -63,6 +89,10 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       originalPrice: (product.originalPrice || product.original_price)?.toString(),
       category: product.category,
       image: imageValue,
+      images: imagesValue,
+      unit: product.unit || null,
+      deliveryTime: product.deliveryTime || null,
+      preparationTime: product.preparationTime || null,
       stock: Math.round(product.stock ?? 0),
       mainCategory: product.mainCategory || product.main_category,
       description: product.description,
@@ -101,6 +131,10 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       category: savedProduct.category,
       mainCategory: savedProduct.mainCategory,
       image: savedProduct.image,
+      images: (savedProduct.images as string[]) || [],
+      unit: savedProduct.unit || undefined,
+      deliveryTime: savedProduct.deliveryTime || undefined,
+      preparationTime: savedProduct.preparationTime || undefined,
       description: savedProduct.description,
       isOnline: savedProduct.isOnline,
       views: Number(savedProduct.views) || 0,
