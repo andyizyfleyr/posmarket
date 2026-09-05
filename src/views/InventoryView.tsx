@@ -210,6 +210,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         isOnline: product.isOnline ?? true,
         wholesalePrice: product.wholesalePrice,
         wholesaleMinQty: product.wholesaleMinQty,
+        wholesaleTiers: product.wholesaleTiers && product.wholesaleTiers.length > 0
+          ? product.wholesaleTiers
+          : (product.wholesalePrice && product.wholesaleMinQty ? [{ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) }] : []),
         deliveryTime: product.deliveryTime || '',
         preparationTime: product.preparationTime || '',
         businessType: product.businessType || (product.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 'shopping'),
@@ -231,6 +234,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         unit: 'pièce',
         description: '',
         isOnline: isOnline,
+        wholesalePrice: undefined,
+        wholesaleMinQty: undefined,
+        wholesaleTiers: [],
         deliveryTime: '',
         preparationTime: '',
         businessType: businessType,
@@ -1173,125 +1179,213 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
                       <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
-                          <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Vente en Gros</h4>
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Prix réduit pour de grandes quantités</p>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Vente en Gros & B2B</h4>
+                            <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#f56b2a] text-[9px] font-black uppercase">Grossiste</span>
+                          </div>
+                          <p className="text-[8px] md:text-[10px] text-gray-500 font-bold mt-0.5">
+                            Définissez vos prix de gros par quantité (ex : 400 000 FCFA dès 100 unités)
+                          </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            if (formData.wholesalePrice !== undefined) {
-                              setFormData({ ...formData, wholesalePrice: undefined, wholesaleMinQty: undefined });
+                            const isCurrentlyEnabled = (formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined;
+                            if (isCurrentlyEnabled) {
+                              setFormData({
+                                ...formData,
+                                wholesalePrice: undefined,
+                                wholesaleMinQty: undefined,
+                                wholesaleTiers: []
+                              });
                             } else {
-                              setFormData({ ...formData, wholesalePrice: (formData.price || 0) * 0.8, wholesaleMinQty: 10 });
+                              const baseP = Number(formData.price) || 0;
+                              const initialTier = {
+                                minQty: 100,
+                                price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0,
+                                unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0
+                              };
+                              setFormData({
+                                ...formData,
+                                wholesalePrice: initialTier.price,
+                                wholesaleMinQty: initialTier.minQty,
+                                wholesaleTiers: [initialTier]
+                              });
                             }
                           }}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${formData.wholesalePrice !== undefined ? 'bg-orange-50 text-[#f56b2a] border border-orange-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200/50' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
                         >
-                          {formData.wholesalePrice !== undefined ? 'ACTIVÉ' : 'DÉSACTIVER'}
+                          {((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'ACTIVÉ' : 'DÉSACTIVER'}
                         </button>
                       </div>
 
-                      {formData.wholesalePrice !== undefined && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-in slide-in-from-top-4 duration-300">
-                          <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Prix de Gros (XOF)</label>
-                            <div className="relative">
-                              <input
-                                type="number"
-                                value={formData.wholesalePrice ?? ''}
-                                onChange={e => setFormData({ ...formData, wholesalePrice: e.target.value ? parseInt(e.target.value) || 0 : 0 })}
-                                placeholder="0"
-                                className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                              />
-                              <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Qté Minimale</label>
-                            <input
-                              type="number"
-                              value={formData.wholesaleMinQty ?? ''}
-                              onChange={e => setFormData({ ...formData, wholesaleMinQty: e.target.value ? parseInt(e.target.value) : 1 })}
-                              placeholder="10"
-                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-orange-50/50 border border-orange-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Paliers dégressifs (wholesaleTiers) */}
-                      {formData.wholesalePrice !== undefined && (
-                        <div className="mt-4 md:mt-6 pt-4 border-t border-orange-100/50 animate-in slide-in-from-top-4 duration-300">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <h5 className="text-[10px] md:text-xs font-black text-gray-800">Paliers Dégressifs</h5>
-                              <p className="text-[8px] md:text-[9px] text-gray-400 font-bold">Prix réduit par quantité (optionnel)</p>
-                            </div>
+                      {(((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined)) && (
+                        <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                              Prix de gros configurés ({(formData.wholesaleTiers || []).length})
+                            </span>
                             <button
                               type="button"
                               onClick={() => {
                                 const tiers = [...(formData.wholesaleTiers || [])];
-                                const lastMinQty = tiers.length > 0 ? tiers[tiers.length - 1].minQty : (formData.wholesaleMinQty || 10);
-                                const lastPrice = tiers.length > 0 ? tiers[tiers.length - 1].price : (formData.wholesalePrice || formData.price || 0);
-                                tiers.push({ minQty: lastMinQty * 2, price: Math.round(lastPrice * 0.9) });
-                                setFormData({ ...formData, wholesaleTiers: tiers });
+                                const baseP = Number(formData.price) || 0;
+                                const lastMinQty = tiers.length > 0 ? tiers[tiers.length - 1].minQty : 100;
+                                const nextQty = lastMinQty >= 100 ? lastMinQty + 100 : lastMinQty * 2;
+                                const unitRatio = tiers.length > 0 ? 0.75 : 0.8;
+                                const nextPrice = baseP > 0 ? Math.round(baseP * nextQty * unitRatio) : 0;
+                                
+                                tiers.push({ minQty: nextQty, price: nextPrice, unitPrice: nextQty > 0 ? Math.round(nextPrice / nextQty) : 0 });
+                                const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty);
+                                setFormData({
+                                  ...formData,
+                                  wholesaleTiers: sorted,
+                                  wholesaleMinQty: sorted[0]?.minQty,
+                                  wholesalePrice: sorted[0]?.price
+                                });
                               }}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[9px] font-black uppercase tracking-wider hover:bg-orange-100 transition-all active:scale-95"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[10px] font-black hover:bg-orange-100 transition-all active:scale-95"
                             >
-                              <Plus size={12} /> Ajouter un palier
+                              <Plus size={13} strokeWidth={3} /> Ajouter un prix de gros
                             </button>
                           </div>
 
-                          {(formData.wholesaleTiers || []).length > 0 && (
-                            <div className="space-y-2">
-                              {(formData.wholesaleTiers || []).map((tier, idx) => (
-                                <div key={idx} className="flex items-center gap-2 md:gap-3 bg-orange-50/30 border border-orange-100/60 rounded-xl p-2.5 md:p-3">
-                                  <div className="flex-1 min-w-0">
-                                    <label className="block text-[8px] font-bold text-gray-400 uppercase mb-1">Dès (qté)</label>
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      value={tier.minQty}
-                                      onChange={e => {
-                                        const tiers = [...(formData.wholesaleTiers || [])];
-                                        tiers[idx] = { ...tiers[idx], minQty: parseInt(e.target.value) || 1 };
-                                        setFormData({ ...formData, wholesaleTiers: tiers });
-                                      }}
-                                      className="w-full px-3 py-2 bg-white border border-orange-100 rounded-lg text-sm font-black text-gray-800 focus:ring-2 focus:ring-orange-100 focus:border-[#f56b2a] outline-none transition-all"
-                                    />
+                          {(formData.wholesaleTiers || []).length === 0 ? (
+                            <div className="p-4 bg-orange-50/40 border border-orange-100 rounded-2xl text-center">
+                              <p className="text-xs font-bold text-gray-600 mb-2">Aucun palier de gros défini pour l&apos;instant</p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const baseP = Number(formData.price) || 0;
+                                  const t = { minQty: 100, price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0, unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0 };
+                                  setFormData({ ...formData, wholesaleTiers: [t], wholesaleMinQty: t.minQty, wholesalePrice: t.price });
+                                }}
+                                className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-xl text-xs font-black"
+                              >
+                                + Ajouter le 1er prix de gros
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {(formData.wholesaleTiers || []).map((tier, idx) => {
+                                const baseUnitPrice = Number(formData.price) || 0;
+                                const minQty = Math.max(1, Number(tier.minQty) || 1);
+                                const tierPrice = Number(tier.price) || 0;
+                                
+                                // Calcul automatique de l'unité et de l'avantage
+                                const effectiveUnit = tierPrice >= baseUnitPrice && minQty > 1
+                                  ? Math.round(tierPrice / minQty)
+                                  : (tierPrice > 0 ? tierPrice : baseUnitPrice);
+                                const normalTotal = baseUnitPrice * minQty;
+                                const packageTotal = tierPrice >= baseUnitPrice && minQty > 1 ? tierPrice : tierPrice * minQty;
+                                const savings = normalTotal > packageTotal ? normalTotal - packageTotal : 0;
+                                const savingsPct = normalTotal > 0 && savings > 0 ? Math.round((savings / normalTotal) * 100) : 0;
+
+                                return (
+                                  <div key={idx} className="bg-orange-50/40 border border-orange-100/80 rounded-2xl p-3 md:p-4 space-y-2">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                      <div className="w-6 h-6 rounded-lg bg-orange-500 text-white font-black text-xs flex items-center justify-center shrink-0">
+                                        {idx + 1}
+                                      </div>
+                                      <div className="w-32 md:w-36 shrink-0">
+                                        <label className="block text-[8px] font-black text-gray-500 uppercase mb-1">Dès (quantité)</label>
+                                        <div className="relative">
+                                          <input
+                                            type="number"
+                                            min="2"
+                                            value={tier.minQty}
+                                            onChange={e => {
+                                              const tiers = [...(formData.wholesaleTiers || [])];
+                                              const newQty = parseInt(e.target.value) || 1;
+                                              tiers[idx] = {
+                                                ...tiers[idx],
+                                                minQty: newQty,
+                                                unitPrice: newQty > 0 ? Math.round((tiers[idx].price || 0) / newQty) : 0
+                                              };
+                                              setFormData({
+                                                ...formData,
+                                                wholesaleTiers: tiers,
+                                                wholesaleMinQty: tiers[0]?.minQty,
+                                                wholesalePrice: tiers[0]?.price
+                                              });
+                                            }}
+                                            className="w-full px-3 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-black text-gray-800 focus:ring-2 focus:ring-orange-200 outline-none"
+                                            placeholder="100"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <div className="flex-1 min-w-0">
+                                        <label className="block text-[8px] font-black text-gray-500 uppercase mb-1">Prix de Gros total (XOF)</label>
+                                        <div className="relative">
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            value={tier.price}
+                                            onChange={e => {
+                                              const tiers = [...(formData.wholesaleTiers || [])];
+                                              const newPrice = parseInt(e.target.value) || 0;
+                                              const q = Math.max(1, tiers[idx].minQty || 1);
+                                              tiers[idx] = {
+                                                ...tiers[idx],
+                                                price: newPrice,
+                                                unitPrice: q > 0 ? Math.round(newPrice / q) : 0
+                                              };
+                                              setFormData({
+                                                ...formData,
+                                                wholesaleTiers: tiers,
+                                                wholesaleMinQty: tiers[0]?.minQty,
+                                                wholesalePrice: tiers[0]?.price
+                                              });
+                                            }}
+                                            className="w-full pl-3 pr-10 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-black text-[#f56b2a] focus:ring-2 focus:ring-orange-200 outline-none"
+                                            placeholder="400000"
+                                          />
+                                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400">XOF</span>
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const tiers = (formData.wholesaleTiers || []).filter((_, i) => i !== idx);
+                                          setFormData({
+                                            ...formData,
+                                            wholesaleTiers: tiers,
+                                            wholesaleMinQty: tiers[0]?.minQty,
+                                            wholesalePrice: tiers[0]?.price
+                                          });
+                                        }}
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-end"
+                                        title="Supprimer ce prix de gros"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
+
+                                    {/* Calculated feedback bar */}
+                                    <div className="flex flex-wrap items-center justify-between text-[9px] md:text-[10px] font-bold px-1 pt-1 border-t border-orange-100/60 text-gray-500">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-gray-400">Soit:</span>
+                                        <span className="text-gray-900 font-black">{formatCurrency(effectiveUnit)} / unité</span>
+                                        {baseUnitPrice > 0 && (
+                                          <span className="text-gray-400 line-through">({formatCurrency(baseUnitPrice)})</span>
+                                        )}
+                                      </div>
+                                      {savings > 0 && (
+                                        <div className="flex items-center gap-1 text-emerald-600 font-black">
+                                          <span>Économie : −{formatCurrency(savings)}</span>
+                                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[8px]">−{savingsPct}%</span>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <label className="block text-[8px] font-bold text-gray-400 uppercase mb-1">Prix unit. (XOF)</label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={tier.price}
-                                      onChange={e => {
-                                        const tiers = [...(formData.wholesaleTiers || [])];
-                                        tiers[idx] = { ...tiers[idx], price: parseInt(e.target.value) || 0 };
-                                        setFormData({ ...formData, wholesaleTiers: tiers });
-                                      }}
-                                      className="w-full px-3 py-2 bg-white border border-orange-100 rounded-lg text-sm font-black text-[#f56b2a] focus:ring-2 focus:ring-orange-100 focus:border-[#f56b2a] outline-none transition-all"
-                                    />
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const tiers = (formData.wholesaleTiers || []).filter((_: any, i: number) => i !== idx);
-                                      setFormData({ ...formData, wholesaleTiers: tiers });
-                                    }}
-                                    className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                    title="Supprimer ce palier"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              ))}
-                              {(formData.wholesaleTiers || []).length > 0 && (
-                                <p className="text-[8px] text-gray-400 font-bold px-1">
-                                  💡 Astuce : triez par quantité croissante. Le prix le plus avantageux s&apos;applique automatiquement.
-                                </p>
-                              )}
+                                );
+                              })}
+
+                              <p className="text-[9px] text-gray-400 font-bold px-1">
+                                💡 Le client bénéficie automatiquement du prix de gros dès qu&apos;il atteint la quantité minimale dans son panier.
+                              </p>
                             </div>
                           )}
                         </div>

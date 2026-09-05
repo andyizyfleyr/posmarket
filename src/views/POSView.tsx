@@ -27,6 +27,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { playSuccessSound, formatCurrency } from '@/utils';
+import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
 import ProductImage from '../components/ProductImage';
 import { Product, CartItem as ICartItem, Customer, PaymentMethod, Order, StoreSettings, StaffPermissions, NotificationType, Coupon } from '@/types';
 import Loader from '../components/Loader';
@@ -120,6 +121,9 @@ const POSCartItem = React.memo(({
   onUpdate: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
 }) => {
+  const unitPrice = getEffectiveWholesaleUnitPrice(item.product, item.quantity);
+  const isWholesale = unitPrice < item.product.price;
+
   return (
     <div className="flex items-center gap-2.5 py-2 border-b border-gray-50 last:border-0 group">
       <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 bg-gray-50">
@@ -134,7 +138,12 @@ const POSCartItem = React.memo(({
       <div className="flex-1 min-w-0">
         <h4 className="text-[11px] md:text-xs font-bold text-gray-800 truncate leading-tight">{item.product.name}</h4>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[10px] text-gray-400 font-semibold">{formatCurrency(item.product.price)}</span>
+          <span className={`text-[10px] ${isWholesale ? 'text-[#f56b2a] font-bold' : 'text-gray-400 font-semibold'}`}>
+            {formatCurrency(unitPrice)}
+          </span>
+          {isWholesale && (
+            <span className="text-[7.5px] bg-orange-100 text-[#f56b2a] font-black px-1 rounded uppercase">Gros</span>
+          )}
           <span className="text-[10px] text-gray-300">×</span>
           <span className="text-[10px] font-bold text-gray-600">{item.quantity}</span>
         </div>
@@ -157,7 +166,7 @@ const POSCartItem = React.memo(({
       </div>
       {/* Total + remove */}
       <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-        <span className="text-xs font-black text-gray-900 tabular-nums">{formatCurrency(item.product.price * item.quantity)}</span>
+        <span className="text-xs font-black text-gray-900 tabular-nums">{formatCurrency(unitPrice * item.quantity)}</span>
         <button
           onClick={() => onRemove(item.product.id)}
           className="text-gray-300 hover:text-red-500 transition-colors p-0.5"
@@ -302,7 +311,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   }, []);
 
   const totals = useMemo(() => {
-    const baseSubtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const baseSubtotal = cart.reduce((sum, item) => sum + (getEffectiveWholesaleUnitPrice(item.product, item.quantity) * item.quantity), 0);
     const discountAmount = promoApplied ? baseSubtotal * (promoApplied.discountPct / 100) : 0;
     const subtotal = baseSubtotal - discountAmount;
     const total = subtotal;
@@ -815,7 +824,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                       <tr key={item.product.id}>
                         <td className="py-1">{item.product.name}</td>
                         <td className="py-1 text-center">x{item.quantity}{item.product.unit && item.product.unit !== 'pièce' ? ` ${item.product.unit}` : ''}</td>
-                        <td className="py-1 text-right">{formatCurrency(item.product.price * item.quantity)}</td>
+                        <td className="py-1 text-right">{formatCurrency(getEffectiveWholesaleUnitPrice(item.product, item.quantity) * item.quantity)}</td>
                       </tr>
                     ))}
                   </tbody>

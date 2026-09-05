@@ -9,6 +9,7 @@ import Button from "@/components/Button";
 import ProductImage from "@/components/ProductImage";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber } from "@/utils";
+import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
 import { generateProductSlug } from "@/utils/slug";
 import { Link } from "@/components/RouterPolyfill";
 import type { NotificationType, Review } from "@/types";
@@ -136,15 +137,9 @@ export function ProductDetailsView(props: any) {
           )
         : 0;
 
-    const wholesaleTiers: Array<{ minQty: number; price: number }> = React.useMemo(() => {
-      if (product.wholesaleTiers && product.wholesaleTiers.length > 0) {
-        return [...product.wholesaleTiers].sort((a, b) => a.minQty - b.minQty);
-      }
-      if (product.wholesalePrice && product.wholesaleMinQty) {
-        return [{ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) }];
-      }
-      return [];
-    }, [product.wholesaleTiers, product.wholesalePrice, product.wholesaleMinQty]);
+    const wholesaleTiers = React.useMemo(() => {
+      return getNormalizedWholesaleTiers(product);
+    }, [product]);
 
     const hasWholesale = wholesaleTiers.length > 0 && !isFood;
 
@@ -623,54 +618,51 @@ export function ProductDetailsView(props: any) {
 
                   {/* Tableau des Paliers */}
                   <div className="space-y-2 mb-4">
-                    {wholesaleTiers.map((tier, idx) => {
-                      const tierDiscountPct = basePrice > tier.price 
-                        ? Math.round(((basePrice - tier.price) / basePrice) * 100) 
-                        : null;
-                      return (
-                        <div
-                          key={idx}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 gap-2.5"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-6 h-6 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-black flex items-center justify-center shrink-0">
-                              {idx + 1}
-                            </span>
-                            <div>
+                    {wholesaleTiers.map((tier, idx) => (
+                      <div
+                        key={idx}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 gap-2.5"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-6 h-6 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-black flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
                               <span className="text-xs font-black text-white">
                                 Dès {tier.minQty} pièces
                               </span>
-                              <span className="text-[10px] text-gray-400 block font-medium">
-                                Quantité minimale du palier
-                              </span>
+                              {tier.discountPct > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-black">
+                                  -{tier.discountPct}%
+                                </span>
+                              )}
                             </div>
-                          </div>
-
-                          <div className="flex items-center justify-between sm:justify-end gap-3">
-                            <div className="text-left sm:text-right">
-                              <span className="text-xs font-black text-orange-400">
-                                {formatCurrency(tier.price)}
-                              </span>
-                              <span className="text-[10px] text-gray-400 block">
-                                / pièce
-                              </span>
-                            </div>
-                            {tierDiscountPct && tierDiscountPct > 0 && (
-                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-[10px] font-black shrink-0">
-                                -{tierDiscountPct}%
-                              </span>
-                            )}
-                            <button
-                              onClick={() => addWholesaleToCart(product, tier.minQty)}
-                              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all shadow-sm shrink-0"
-                            >
-                              <ShoppingCart size={12} />
-                              Ajouter {tier.minQty}
-                            </button>
+                            <span className="text-[10px] text-gray-400 block font-medium">
+                              Soit {formatCurrency(tier.unitPrice)} / pièce
+                            </span>
                           </div>
                         </div>
-                      );
-                    })}
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3">
+                          <div className="text-left sm:text-right">
+                            <span className="text-xs sm:text-sm font-black text-orange-400">
+                              {formatCurrency(tier.packagePrice)}
+                            </span>
+                            <span className="text-[9px] text-gray-400 block font-bold uppercase">
+                              Prix du lot
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => addWholesaleToCart(product, tier.minQty)}
+                            className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all shadow-sm shrink-0"
+                          >
+                            <ShoppingCart size={12} />
+                            Ajouter {tier.minQty}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* WhatsApp B2B Quotation Button */}

@@ -13,6 +13,7 @@ export type BusinessVertical = 'shopping' | 'food';
 export interface WholesaleTier {
   minQty: number;
   price: number;
+  unitPrice?: number;
 }
 
 export interface Product {

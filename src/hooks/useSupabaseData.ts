@@ -76,7 +76,7 @@ const fetchStoreBundle = async (storeId: string) => {
       supabase
         .from('products')
         .select(
-          'id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type'
+          'id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type, wholesale_price, wholesale_min_qty, wholesale_tiers'
         )
         .eq('store_id', storeId)
         .limit(200),
@@ -141,6 +141,9 @@ const fetchStoreBundle = async (storeId: string) => {
       isOnline: p.is_online,
       views: p.views,
       businessType: p.business_type,
+      wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
+      wholesaleMinQty: p.wholesale_min_qty ? Number(p.wholesale_min_qty) : undefined,
+      wholesaleTiers: (p.wholesale_tiers as Array<{ minQty: number; price: number }>) || [],
       rating: (statsMap[String(p.id)] as Record<string, unknown> | undefined)?.average_rating || 0,
       reviewCount: (statsMap[String(p.id)] as Record<string, unknown> | undefined)?.review_count || 0,
       salesCount: (statsMap[String(p.id)] as Record<string, unknown> | undefined)?.total_sales || 0
@@ -292,7 +295,7 @@ export const fetchProductReviews = async (productId: string): Promise<Record<str
 export const fetchMarketplaceProducts = async () => {
     const { data, error } = await supabase
         .from('products')
-        .select('id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type')
+        .select('id, name, price, original_price, image, images, stock, category, main_category, unit, description, is_online, views, business_type, wholesale_price, wholesale_min_qty, wholesale_tiers')
         .eq('is_online', true)
         .limit(50);
     if (error) throw error;
@@ -300,6 +303,9 @@ export const fetchMarketplaceProducts = async () => {
         ...p,
         originalPrice: p.original_price,
         mainCategory: p.main_category,
-        isOnline: p.is_online
+        isOnline: p.is_online,
+        wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
+        wholesaleMinQty: p.wholesale_min_qty ? Number(p.wholesale_min_qty) : undefined,
+        wholesaleTiers: (p.wholesale_tiers as Array<{ minQty: number; price: number }>) || [],
     }));
 };

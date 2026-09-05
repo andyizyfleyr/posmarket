@@ -20,38 +20,33 @@ interface BulkOrderModalProps {
   formatCurrency: (amount: number) => string;
 }
 
+import { getNormalizedWholesaleTiers, getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
+
 function getWholesaleInfo(product: Product): {
   hasWholesale: boolean;
-  tiers: WholesaleTier[];
+  tiers: Array<{
+    minQty: number;
+    packagePrice: number;
+    unitPrice: number;
+    savings: number;
+    discountPct: number;
+  }>;
   minQty: number;
   bestPrice: number;
 } {
-  const tiers: WholesaleTier[] = [];
-
-  if (product.wholesaleTiers && product.wholesaleTiers.length > 0) {
-    tiers.push(...product.wholesaleTiers);
-  } else if (product.wholesalePrice && product.wholesaleMinQty) {
-    tiers.push({ minQty: product.wholesaleMinQty, price: product.wholesalePrice });
-  }
-
+  const tiers = getNormalizedWholesaleTiers(product);
   if (tiers.length === 0) {
     return { hasWholesale: false, tiers: [], minQty: 0, bestPrice: product.price };
   }
 
-  const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty);
-  const minQty = sorted[0].minQty;
-  const bestPrice = Math.min(...sorted.map((t) => t.price));
+  const minQty = tiers[0].minQty;
+  const bestPrice = Math.min(...tiers.map((t) => t.unitPrice));
 
-  return { hasWholesale: true, tiers: sorted, minQty, bestPrice };
+  return { hasWholesale: true, tiers, minQty, bestPrice };
 }
 
 function getEffectivePrice(product: Product, quantity: number): number {
-  const { tiers } = getWholesaleInfo(product);
-  if (tiers.length === 0) return product.price;
-
-  const sortedDesc = [...tiers].sort((a, b) => b.minQty - a.minQty);
-  const matched = sortedDesc.find((t) => quantity >= t.minQty);
-  return matched ? matched.price : product.price;
+  return getEffectiveWholesaleUnitPrice(product, quantity);
 }
 
 export function BulkOrderModal({
@@ -245,7 +240,7 @@ export function BulkOrderModal({
                           </div>
                           {activeTier && (
                             <div className="text-[9px] font-black text-green-600">
-                              → {formatCurrency(effectivePrice)}
+                              → {formatCurrency(effectivePrice)} / u
                             </div>
                           )}
                         </div>
@@ -263,7 +258,7 @@ export function BulkOrderModal({
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-[#f56b2a]'
                             }`}
                           >
-                            {tier.minQty}+ → {formatCurrency(tier.price)}
+                            {tier.minQty}+ → {formatCurrency(tier.packagePrice)} ({formatCurrency(tier.unitPrice)}/u)
                           </button>
                         ))}
                       </div>
@@ -312,7 +307,7 @@ export function BulkOrderModal({
 
                         {qty > 0 && nextTier && (
                           <div className="hidden md:block text-[8px] font-bold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                            +{nextTier.minQty - qty} pour {formatCurrency(nextTier.price)}/u
+                            +{nextTier.minQty - qty} pour {formatCurrency(nextTier.unitPrice)}/u
                           </div>
                         )}
                       </div>

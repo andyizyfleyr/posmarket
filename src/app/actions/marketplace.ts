@@ -82,6 +82,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
           businessType: products.businessType,
           wholesalePrice: products.wholesalePrice,
           wholesaleMinQty: products.wholesaleMinQty,
+          wholesaleTiers: products.wholesaleTiers,
           isOnline: products.isOnline,
           views: products.views,
           image: sql<
@@ -153,6 +154,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               salesCount: stats?.totalSales ? Number(stats.totalSales) : 0,
               wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
               wholesaleMinQty: p.wholesaleMinQty ?? undefined,
+              wholesaleTiers: (p.wholesaleTiers as Array<{ minQty: number; price: number }>) || [],
               businessType: (p.businessType as BusinessVertical) || undefined
             };
           }),

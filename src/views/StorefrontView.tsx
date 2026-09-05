@@ -61,6 +61,7 @@ import {
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
 import { formatCurrency, formatNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
+import { getTierUnitPrice } from "@/utils/wholesale";
 import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
@@ -1892,7 +1893,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     if (product.wholesaleTiers && product.wholesaleTiers.length > 0) {
       const sortedTiers = [...product.wholesaleTiers].sort((a, b) => b.minQty - a.minQty);
       const matched = sortedTiers.find((t) => quantity >= t.minQty);
-      if (matched) return Number(matched.price);
+      if (matched) return getTierUnitPrice(matched, basePrice);
     }
 
     // Legacy single wholesale tier
@@ -1901,7 +1902,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       product.wholesaleMinQty &&
       quantity >= product.wholesaleMinQty
     ) {
-      return Number(product.wholesalePrice);
+      return getTierUnitPrice({ minQty: product.wholesaleMinQty, price: Number(product.wholesalePrice) }, basePrice);
     }
     return basePrice;
   }, []);
