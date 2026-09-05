@@ -919,62 +919,99 @@ export function ProductDetailsView(props: any) {
                   </div>
                 )}
 
-                {/* Mobile wholesale (B2B) - aligned with desktop design, optimized for mobile */}
+                {/* Mobile wholesale (B2B) - Inline horizontal packs with high-converting commercial triggers */}
                 {hasWholesale && (
-                  <div className="bg-amber-50/50 border border-amber-200/70 rounded-2xl p-3.5 mb-4 text-gray-900 space-y-2.5">
+                  <div className="bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-amber-50/50 border border-amber-200/80 rounded-2xl p-3 mb-4 space-y-2.5">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
-                        <Zap size={13} className="text-[#f56b2a] fill-[#f56b2a]" />
-                        Tarifs Grossiste (B2B)
+                      <div className="flex items-center gap-1.5">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f56b2a] text-white shadow-xs">
+                          <Zap size={11} fill="currentColor" />
+                        </span>
+                        <span className="text-xs font-black text-gray-900 tracking-tight">
+                          Packs Malins · Plus t&apos;en prends, moins c&apos;est cher ! 💰
+                        </span>
                       </div>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200/60">
-                        B2B
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-500/15 text-[#e04e0f] border border-orange-500/30 shrink-0">
+                        Prix de Gros
                       </span>
                     </div>
 
-                    <div className="space-y-1.5">
-                      {wholesaleTiers.map((tier, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between py-2 px-2.5 rounded-xl bg-white border border-amber-200/60 shadow-xs text-xs"
-                        >
-                          <div className="min-w-0 pr-2">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-gray-900">Dès {tier.minQty} pcs</span>
-                              {tier.discountPct > 0 && (
-                                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded-md">
-                                  -{tier.discountPct}%
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[11px] text-gray-500 block font-medium mt-0.5">
-                              {formatCurrency(tier.unitPrice)} / pièce
-                            </span>
-                          </div>
+                    {/* Inline scrollable tier cards */}
+                    <div className="flex overflow-x-auto no-scrollbar gap-2 -mx-1 px-1 snap-x snap-mandatory py-0.5">
+                      {wholesaleTiers.map((tier, idx) => {
+                        const badge =
+                          idx === 0
+                            ? "Bon plan ⚡"
+                            : idx === 1
+                            ? "Le + populaire 🔥"
+                            : "Méga Éco 💎";
 
-                          <button
-                            type="button"
-                            onClick={() => addWholesaleToCart(product, tier.minQty)}
-                            className="h-8 px-2.5 rounded-lg bg-[#f56b2a] hover:bg-[#e04e0f] text-white text-[11px] font-bold flex items-center gap-1 active:scale-95 transition-all shadow-xs shrink-0"
+                        return (
+                          <div
+                            key={idx}
+                            className={`min-w-[150px] max-w-[170px] flex-shrink-0 snap-start bg-white rounded-xl p-2.5 border transition-all flex flex-col justify-between shadow-xs ${
+                              idx === 1
+                                ? "border-[#f56b2a] ring-1 ring-orange-200"
+                                : "border-amber-200/70"
+                            }`}
                           >
-                            <ShoppingCart size={12} strokeWidth={2.2} />
-                            <span>Ajouter {tier.minQty}</span>
-                          </button>
-                        </div>
-                      ))}
+                            <div>
+                              {/* Badge top */}
+                              <div className="flex items-center justify-between gap-1 mb-1.5">
+                                <span className="text-[9px] font-black text-[#e04e0f] bg-orange-50 border border-orange-200/60 px-1.5 py-0.5 rounded-md">
+                                  {badge}
+                                </span>
+                                {tier.discountPct > 0 && (
+                                  <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">
+                                    -{tier.discountPct}%
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Quantity */}
+                              <div className="text-xs font-black text-gray-900">
+                                Dès {tier.minQty} pièces
+                              </div>
+
+                              {/* Unit price */}
+                              <div className="text-[13px] font-black text-[#f56b2a] tracking-tight leading-tight mt-0.5">
+                                {formatCurrency(tier.unitPrice)}
+                                <span className="text-[9px] font-semibold text-gray-400 ml-0.5">/u</span>
+                              </div>
+
+                              {/* Total lot */}
+                              <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                Soit <span className="font-bold text-gray-800">{formatCurrency(tier.packagePrice)}</span> le lot
+                              </div>
+                            </div>
+
+                            {/* Action button */}
+                            <button
+                              type="button"
+                              onClick={() => addWholesaleToCart(product, tier.minQty)}
+                              className="w-full mt-2.5 py-1.5 rounded-lg bg-[#f56b2a] hover:bg-[#e04e0f] text-white text-[10px] font-black flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs"
+                            >
+                              <ShoppingCart size={11} strokeWidth={2.5} />
+                              <span>Je prends {tier.minQty}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
 
+                    {/* WhatsApp Negotiate Banner */}
                     {waDigits && (
                       <a
                         href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
-                          `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais un devis personnalisé gros volume. Merci !`
+                          `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un gros volume. Pouvez-vous me faire votre meilleur prix de gros ? Merci !`
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/70 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                        className="w-full py-2 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
                       >
-                        <MessageCircle size={13} className="text-emerald-600" />
-                        Demander un devis sur WhatsApp
+                        <MessageCircle size={13} className="text-emerald-600 shrink-0" />
+                        <span className="truncate">Gros carton ? Négocier le prix direct sur WhatsApp 🤝</span>
                       </a>
                     )}
                   </div>
