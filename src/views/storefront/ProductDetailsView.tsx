@@ -3,7 +3,8 @@ import Image from "next/image";
 import {
   Package, ArrowRight, ChevronRight, Share2, Maximize2, Zap, Clock, Star,
   ShoppingBag, Eye, ShoppingCart, AlertCircle, Check, MessageCircle,
-  ShieldCheck, RotateCcw, Truck, ChevronLeft, ArrowLeft, Loader2
+  ShieldCheck, RotateCcw, Truck, ChevronLeft, ArrowLeft, Loader2,
+  Store, CheckCircle2, PackageCheck, Heart
 } from "lucide-react";
 import Button from "@/components/Button";
 import ProductImage from "@/components/ProductImage";
@@ -244,11 +245,11 @@ export function ProductDetailsView(props: any) {
     };
 
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-40 lg:pb-12 bg-[#f8f9fc] lg:bg-transparent -mx-4 lg:mx-auto">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-40 lg:pb-16 bg-[#f8f9fc] lg:bg-transparent -mx-4 lg:mx-auto">
         {/* Breadcrumb (desktop only) */}
         <nav
           aria-label="Fil d'Ariane"
-          className="hidden md:flex items-center gap-2 mb-6 text-[11px] font-bold text-gray-400 uppercase tracking-widest px-4 lg:px-0 pt-4"
+          className="hidden md:flex items-center gap-2 mb-8 text-[11px] font-medium text-gray-400 px-4 lg:px-0 pt-6"
         >
           <button
             onClick={() => safeNavigate("/")}
@@ -256,7 +257,7 @@ export function ProductDetailsView(props: any) {
           >
             Accueil
           </button>
-          <ChevronRight size={11} />
+          <ChevronRight size={10} className="text-gray-300" />
           <button
             onClick={() =>
               safeNavigate("/", {
@@ -267,9 +268,9 @@ export function ProductDetailsView(props: any) {
           >
             {mainCat}
           </button>
-          <ChevronRight size={11} />
+          <ChevronRight size={10} className="text-gray-300" />
           <span
-            className="text-gray-900 truncate max-w-[280px]"
+            className="text-gray-700 font-semibold truncate max-w-[320px]"
             aria-current="page"
           >
             {product.name}
@@ -309,7 +310,7 @@ export function ProductDetailsView(props: any) {
 
         {/* ================= PRODUIT ================= */}
         <div id="pd-produit" className="scroll-mt-14">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-14 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-0 lg:gap-12 items-start">
             {/* ---------- Gallery ---------- */}
             <div className="relative lg:sticky lg:top-24">
               {/* Mobile: Swipeable Carousel inside an M3 Card */}
@@ -368,43 +369,66 @@ export function ProductDetailsView(props: any) {
                 )}
               </div>
 
-              {/* Desktop: main image + thumbnails */}
-              <div className="hidden lg:block space-y-3">
-                <div className="relative w-full aspect-square rounded-[32px] overflow-hidden bg-gradient-to-br from-gray-50 to-white border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.06)] group/main">
+              {/* Desktop: main image + thumbnails — Premium layout */}
+              <div className="hidden lg:block space-y-4">
+                <div
+                  className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100/80 shadow-[0_8px_40px_rgba(0,0,0,0.08)] group/main cursor-zoom-in"
+                  onClick={() => openZoom(currentImage)}
+                >
                   <Image
                     src={currentImage}
                     width={1000}
                     height={1000}
                     priority
                     alt={product.name}
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/main:scale-[1.04]"
+                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/main:scale-105"
                   />
 
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover/main:bg-black/5 transition-colors duration-300 pointer-events-none" />
+
                   {discountPct > 0 && (
-                    <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white text-[11px] font-black uppercase tracking-widest pl-3 pr-4 py-2 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-1">
-                      <Zap size={12} fill="currentColor" /> -{discountPct}%
+                    <div className="absolute top-5 left-5 bg-red-500 text-white text-[11px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl shadow-lg shadow-red-500/25 flex items-center gap-1.5 z-10">
+                      <Zap size={13} fill="currentColor" /> -{discountPct}%
                     </div>
                   )}
 
-                  <button
-                    onClick={() => openZoom(currentImage)}
-                    aria-label="Agrandir l'image"
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
-                  >
-                    <Maximize2 size={15} />
-                  </button>
+                  {/* Action buttons top-right */}
+                  <div className="absolute top-5 right-5 flex items-center gap-2 z-10">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleShare(e); }}
+                      aria-label="Partager"
+                      className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur-md border border-gray-200/60 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:shadow-md hover:scale-105 transition-all active:scale-95"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openZoom(currentImage); }}
+                      aria-label="Agrandir l'image"
+                      className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur-md border border-gray-200/60 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:shadow-md hover:scale-105 transition-all active:scale-95"
+                    >
+                      <Maximize2 size={16} />
+                    </button>
+                  </div>
 
                   {isFood && (
-                    <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-green-100 text-green-700 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
-                      <Clock size={11} />
+                    <div className="absolute bottom-5 left-5 flex items-center gap-2 bg-white/95 backdrop-blur-md border border-green-100 text-green-700 text-[10px] font-bold px-3.5 py-2 rounded-xl shadow-sm z-10">
+                      <Clock size={13} />
                       Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
+                    </div>
+                  )}
+
+                  {/* Image counter */}
+                  {galleryImages.length > 1 && (
+                    <div className="absolute bottom-5 right-5 bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-lg z-10">
+                      {(galleryImages.indexOf(currentImage) !== -1 ? galleryImages.indexOf(currentImage) : 0) + 1} / {galleryImages.length}
                     </div>
                   )}
                 </div>
 
                 {galleryImages.length > 1 && (
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="grid grid-cols-6 gap-2.5">
                     {galleryImages.slice(0, 6).map((img, idx) => {
                       const isActive =
                         currentImage === img ||
@@ -419,10 +443,10 @@ export function ProductDetailsView(props: any) {
                             setSelectedDetailImage(img);
                           }}
                           aria-label={`Voir l'image ${idx + 1}`}
-                          className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                          className={`aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${
                             isActive
-                              ? "border-[#f56b2a] ring-2 ring-orange-100 scale-[1.03]"
-                              : "border-transparent opacity-70 hover:opacity-100"
+                              ? "border-[#f56b2a] ring-2 ring-orange-100 shadow-md scale-[1.02]"
+                              : "border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-300 hover:shadow-sm"
                           }`}
                         >
                           <Image
@@ -431,7 +455,7 @@ export function ProductDetailsView(props: any) {
                             width={120}
                             height={120}
                             className="w-full h-full object-cover"
-                            sizes="80px"
+                            sizes="100px"
                           />
                         </button>
                       );
@@ -442,34 +466,52 @@ export function ProductDetailsView(props: any) {
             </div>
 
             {/* ---------- Details Layout ---------- */}
-            <div className="space-y-3.5">
-              {/* CARD 1: MAIN INFO (Title, Price, Store, Rating) */}
-              <div className="bg-white rounded-[24px] lg:rounded-none border lg:border-none border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] lg:shadow-none p-4 lg:p-0">
-                {/* Store Row */}
-                <div className="mb-3">
+            <div className="space-y-3.5 lg:space-y-0">
+              {/* Desktop wrapper card */}
+              <div className="bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] lg:shadow-[0_2px_20px_rgba(0,0,0,0.06)] p-4 lg:p-6">
+                {/* Store Row — Desktop Premium Badge */}
+                <div className="mb-3 lg:mb-5">
+                  {/* Mobile: simple text */}
                   <Link
                     to={`/store/${product.storeSlug || product.storeId}`}
-                    className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 hover:text-[#f56b2a] transition-colors"
+                    className="lg:hidden inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 hover:text-[#f56b2a] transition-colors"
                   >
                     Vendu par
                     <span className="font-black text-gray-900 max-w-[180px] truncate inline-block align-bottom">
                       {product.storeName}
                     </span>
                   </Link>
+                  {/* Desktop: Premium store badge */}
+                  <Link
+                    to={`/store/${product.storeSlug || product.storeId}`}
+                    className="hidden lg:inline-flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-gray-50/80 hover:bg-gray-100 border border-gray-100 transition-all group/store"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#f56b2a] to-[#e04e0f] flex items-center justify-center text-white text-sm font-black shadow-sm">
+                      {product.storeName?.[0]?.toUpperCase() || 'B'}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-xs font-black text-gray-900 truncate max-w-[220px] group-hover/store:text-[#f56b2a] transition-colors">
+                        {product.storeName}
+                      </span>
+                      <span className="block text-[10px] font-medium text-gray-400">Vendeur vérifié</span>
+                    </div>
+                    <ChevronRight size={14} className="text-gray-300 group-hover/store:text-[#f56b2a] transition-colors flex-shrink-0 ml-1" />
+                  </Link>
                 </div>
 
                 {/* Title */}
-                <h2 className="text-sm md:text-3xl font-black text-gray-900 leading-[1.2] tracking-tight mb-2">
+                <h2 className="text-sm md:text-[26px] xl:text-[28px] font-black text-gray-900 leading-[1.2] tracking-tight mb-2 lg:mb-3">
                   {product.name}
                   {product.unit && (
-                    <span className="block md:inline md:ml-2 text-[9px] md:text-base text-gray-400 font-bold align-middle">
+                    <span className="block md:inline md:ml-2 text-[9px] md:text-sm text-gray-400 font-semibold align-middle">
                       {product.unit}
                     </span>
                   )}
                 </h2>
 
-                {/* Rating & Sales Row */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-4 border-b border-gray-50 pb-3">
+                {/* Rating & Sales Row — Mobile: inline text / Desktop: chip badges */}
+                {/* Mobile */}
+                <div className="flex lg:hidden flex-wrap items-center gap-x-3 gap-y-1.5 mb-4 border-b border-gray-50 pb-3">
                   <div className="flex items-center gap-1">
                     <div className="flex text-yellow-400">
                       {[1, 2, 3, 4, 5].map((s) => (
@@ -509,21 +551,57 @@ export function ProductDetailsView(props: any) {
                     </>
                   )}
                 </div>
+                {/* Desktop: Chip badges */}
+                <div className="hidden lg:flex flex-wrap items-center gap-2 mb-5 pb-5 border-b border-gray-100">
+                  <button
+                    onClick={() => scrollToSection("pd-avis")}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50/80 border border-amber-100/80 hover:bg-amber-100 transition-colors cursor-pointer"
+                  >
+                    <div className="flex text-amber-400 gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={12}
+                          fill={
+                            s <= Math.round(product.rating || 0)
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-amber-800">
+                      {(product.rating || 0).toFixed(1)}
+                    </span>
+                    <span className="text-[10px] font-medium text-amber-600/70">
+                      ({formatNumber(reviewTotal)})
+                    </span>
+                  </button>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50/80 border border-gray-100/80 text-[11px] font-semibold text-gray-600">
+                    <ShoppingBag size={12} className={accentText} />
+                    {formatNumber(product.salesCount || 0)} {isFood ? 'commandes' : 'vendus'}
+                  </span>
+                  {!isFood && product.views != null && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50/80 border border-gray-100/80 text-[11px] font-semibold text-gray-500">
+                      <Eye size={12} />
+                      {formatNumber(product.views)}
+                    </span>
+                  )}
+                </div>
 
-                {/* Price block - Premium Inside Card */}
-                <div className="relative overflow-hidden rounded-[20px] border border-[#f56b2a]/10 bg-gradient-to-br from-[#f56b2a]/5 via-white to-white p-3.5">
+                {/* Price block — Mobile: compact / Desktop: premium */}
+                {/* Mobile */}
+                <div className="lg:hidden relative overflow-hidden rounded-[20px] border border-[#f56b2a]/10 bg-gradient-to-br from-[#f56b2a]/5 via-white to-white p-3.5">
                   <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">
                     {hasOptions && !allSelected ? "À partir de" : (isFood ? "Prix" : "Tarif unique")}
                   </span>
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span
-                      className={`text-lg md:text-4xl font-black tracking-tight leading-none ${accentText}`}
-                    >
+                    <span className={`text-lg font-black tracking-tight leading-none ${accentText}`}>
                       {formatCurrency(basePrice)}
                     </span>
                     {product.originalPrice && product.originalPrice > basePrice && (
                       <>
-                        <span className="text-[9px] md:text-xs text-gray-400 line-through font-bold">
+                        <span className="text-[9px] text-gray-400 line-through font-bold">
                           {formatCurrency(product.originalPrice)}
                         </span>
                         <span className="text-[9px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
@@ -538,20 +616,71 @@ export function ProductDetailsView(props: any) {
                     </span>
                   )}
                 </div>
-              </div>
+                {/* Desktop: Premium price section */}
+                <div className="hidden lg:block">
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 via-gray-850 to-gray-800 p-5 text-white">
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-[#f56b2a]/8 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/3" />
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.15em]">
+                          {hasOptions && !allSelected ? "À partir de" : (isFood ? "Prix" : "Tarif unique")}
+                        </span>
+                        {/* Stock badge */}
+                        {isOutOfStock ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded-md">
+                            <AlertCircle size={10} /> Rupture
+                          </span>
+                        ) : isLowStock ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-md animate-pulse">
+                            <AlertCircle size={10} /> {stockValue} restants
+                          </span>
+                        ) : stockValue !== null ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md">
+                            <CheckCircle2 size={10} /> En stock
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="flex items-baseline gap-3 flex-wrap">
+                        <span className="text-[36px] xl:text-[40px] font-black tracking-tight leading-none text-white">
+                          {formatCurrency(basePrice)}
+                        </span>
+                        {product.originalPrice && product.originalPrice > basePrice && (
+                          <span className="text-sm text-gray-500 line-through font-medium">
+                            {formatCurrency(product.originalPrice)}
+                          </span>
+                        )}
+                      </div>
+                      {product.originalPrice && product.originalPrice > basePrice && (
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                            <Zap size={10} fill="currentColor" /> -{discountPct}%
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-500">
+                            Économisez {formatCurrency(product.originalPrice - basePrice)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
               {/* CARD 2: OPTIONS / VARIANTS (M3 Chips) */}
               {hasOptions && (
-                <div className="bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
+                <div className="lg:border-t lg:border-gray-100 lg:pt-5 lg:mt-5">
+                  <div className="lg:hidden bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
+                    {/* Mobile options card - kept as is */}
+                  </div>
                   <div className="space-y-4">
                     {options.map((option: any) => (
                       <div key={option.id}>
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                          <h4 className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
                             {option.name}
                           </h4>
                           {selectedOptions[option.id] && (
-                            <span className="text-[10px] font-black text-[#f56b2a]">
+                            <span className="text-[10px] lg:text-[11px] font-black text-[#f56b2a]">
                               {selectedOptions[option.id]}
                             </span>
                           )}
@@ -682,9 +811,8 @@ export function ProductDetailsView(props: any) {
                 </div>
               )}
 
-              {/* CARD 4: AVAILABILITY & DELIVERY */}
-              <div className="hidden md:block bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
-                {/* Stock meter */}
+              {/* CARD 4: AVAILABILITY (mobile only — stock is now in desktop price section) */}
+              <div className="md:hidden bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
                 <div className="mb-4">
                   {stockValue !== null && stockValue > 0 && (
                     <>
@@ -720,57 +848,72 @@ export function ProductDetailsView(props: any) {
                 </div>
               </div>
 
-              {/* CTAs — desktop only (perfectly balanced 50/50 grid) */}
-              <div className="hidden lg:grid grid-cols-2 gap-3 pt-1">
+              {/* CTAs — desktop only (stacked full-width for premium feel) */}
+              <div className="hidden lg:flex flex-col gap-2.5 border-t border-gray-100 pt-5 mt-5">
                 <button
                   type="button"
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className="h-14 w-full bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-black text-xs sm:text-sm md:text-base rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group px-4"
+                  className="h-[52px] w-full bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-black text-[13px] rounded-xl flex items-center justify-center gap-2.5 shadow-md shadow-orange-500/15 hover:shadow-lg hover:shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
                 >
-                  <ShoppingCart size={19} strokeWidth={2.5} className="flex-shrink-0 transition-transform group-hover:scale-110" />
-                  <span className="whitespace-nowrap">{isFood ? "Commander" : "Ajouter au panier"}</span>
+                  <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0 transition-transform group-hover:scale-110" />
+                  <span>{isFood ? "Commander" : "Ajouter au panier"}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleBuyNow}
                   disabled={isOutOfStock}
-                  className="h-14 w-full bg-gray-900 hover:bg-black text-white font-black text-xs sm:text-sm md:text-base rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-gray-900/15 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group px-4 border border-gray-800"
+                  className="h-[52px] w-full bg-white hover:bg-gray-50 text-gray-900 font-black text-[13px] rounded-xl flex items-center justify-center gap-2.5 border-2 border-gray-200 hover:border-gray-300 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
                 >
-                  <Zap size={18} fill="currentColor" className="flex-shrink-0 text-amber-400 transition-transform group-hover:scale-110" />
-                  <span className="whitespace-nowrap">{isFood ? "Commander maintenant" : "Acheter maintenant"}</span>
+                  <Zap size={16} fill="currentColor" className="flex-shrink-0 text-[#f56b2a] transition-transform group-hover:scale-110" />
+                  <span>{isFood ? "Commander maintenant" : "Acheter maintenant"}</span>
                 </button>
               </div>
 
-              {/* Trust band — desktop */}
-              {isFood ? (
-                <div className="hidden lg:flex items-center justify-center gap-4 py-1 text-[9px] font-bold text-gray-400">
-                  <span className="flex items-center gap-1"><Clock size={10} /> Préparé à la commande</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Fraîcheur garantie</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison rapide</span>
-                </div>
-              ) : (
-                <div className="hidden lg:flex items-center justify-center gap-4 py-1 text-[9px] font-bold text-gray-400">
-                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Paiement à la livraison</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><RotateCcw size={10} /> Retour 7 jours</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison sécurisée</span>
-                </div>
-              )}
+              {/* Trust band — desktop: compact inline */}
+              <div className="hidden lg:flex items-center justify-between border-t border-gray-100 pt-4 mt-4">
+                {isFood ? (
+                  <>
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                      <Clock size={13} className="text-green-500" /> Préparé à la commande
+                    </span>
+                    <span className="w-px h-4 bg-gray-200" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                      <ShieldCheck size={13} className="text-emerald-500" /> Fraîcheur garantie
+                    </span>
+                    <span className="w-px h-4 bg-gray-200" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                      <Truck size={13} className="text-blue-500" /> Livraison rapide
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                      <ShieldCheck size={13} className="text-emerald-500" /> Paiement à la livraison
+                    </span>
+                    <span className="w-px h-4 bg-gray-200" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                      <RotateCcw size={13} className="text-blue-500" /> Retour 7 jours
+                    </span>
+                    <span className="w-px h-4 bg-gray-200" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500">
+                      <Truck size={13} className="text-purple-500" /> Livraison sécurisée
+                    </span>
+                  </>
+                )}
+              </div>
+              </div>{/* End desktop wrapper card */}
 
               {/* CARD 5: DESCRIPTION */}
-              <div className="bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
-                <div className="flex items-center gap-2 mb-2.5">
-                  <div className="hidden md:block h-0.5 w-6 bg-[#f56b2a] rounded-full" />
-                  <h3 className="text-[9px] font-black text-gray-900 uppercase tracking-[0.15em]">
+              <div className="bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] lg:shadow-[0_2px_20px_rgba(0,0,0,0.06)] p-4 lg:p-6 lg:mt-5">
+                <div className="flex items-center gap-2.5 mb-3 lg:mb-4">
+                  <div className="hidden md:block w-1 h-5 bg-[#f56b2a] rounded-full" />
+                  <h3 className="text-[9px] lg:text-xs font-black text-gray-900 uppercase tracking-[0.12em]">
                     {isFood ? 'Détails du plat' : 'Description produit'}
                   </h3>
                 </div>
                 <div
-                  className={`text-gray-600 text-[9px] md:text-xs leading-relaxed font-medium ${
+                  className={`text-gray-600 text-[9px] md:text-[13px] leading-relaxed lg:leading-[1.8] font-medium ${
                     !isDescriptionExpanded ? "line-clamp-4 md:line-clamp-none" : ""
                   }`}
                   style={{ whiteSpace: "pre-line" }}
@@ -799,12 +942,12 @@ export function ProductDetailsView(props: any) {
         {/* ================= AVIS (CARD-BASED) ================= */}
         <section
           id="pd-avis"
-          className="mt-3.5 bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4 lg:p-10 scroll-mt-14"
+          className="mt-3.5 lg:mt-10 bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4 lg:p-10 scroll-mt-14"
         >
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <div className="hidden md:block h-0.5 w-6 bg-yellow-400 rounded-full" />
-              <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
+          <div className="flex items-center justify-between mb-4 lg:mb-6 flex-wrap gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="hidden md:block w-1 h-5 bg-amber-400 rounded-full" />
+              <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.12em]">
                 Avis {isFood ? 'sur le repas' : 'sur le produit'}
               </h3>
             </div>
@@ -828,19 +971,19 @@ export function ProductDetailsView(props: any) {
 
           <div className="flex flex-col md:flex-row gap-6 md:gap-12">
             {/* Score summary */}
-            <div className="flex md:flex-col items-center md:items-start gap-3 md:min-w-[180px] md:border-r md:border-gray-100 md:pr-12">
-              <div className="text-center md:text-left">
-                <div className="flex items-baseline gap-1 justify-center md:justify-start">
-                  <span className="text-xl md:text-5xl font-black text-gray-900 tracking-tighter leading-none">
+            <div className="flex md:flex-col items-center md:items-center gap-3 md:min-w-[180px] md:border-r md:border-gray-100 md:pr-12">
+              <div className="text-center">
+                <div className="flex items-baseline gap-1 justify-center">
+                  <span className="text-xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none">
                     {(product.rating || 0).toFixed(1)}
                   </span>
-                  <span className="text-xs font-black text-gray-300">/5</span>
+                  <span className="text-xs md:text-lg font-black text-gray-300">/5</span>
                 </div>
-                <div className="flex text-yellow-400 mt-1 justify-center md:justify-start">
+                <div className="flex text-amber-400 mt-2 justify-center gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
-                      size={12}
+                      size={16}
                       fill={
                         s <= Math.round(product.rating || 0)
                           ? "currentColor"
@@ -849,7 +992,7 @@ export function ProductDetailsView(props: any) {
                     />
                   ))}
                 </div>
-                <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
+                <p className="text-[8px] md:text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-wider">
                   {formatNumber(reviewTotal)} {isFood ? 'avis clients' : 'notes et avis'}
                 </p>
               </div>
@@ -968,15 +1111,15 @@ export function ProductDetailsView(props: any) {
 
         {/* ================= SIMILAIRES ================= */}
         {relatedProducts.length > 0 && (
-          <section id="pd-similaires" className="mt-3.5 scroll-mt-14">
-            <div className="flex items-center gap-2 mb-3 px-1">
-              <div className="hidden md:block h-0.5 w-6 bg-[#f56b2a] rounded-full" />
-              <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.15em]">
+          <section id="pd-similaires" className="mt-3.5 lg:mt-14 scroll-mt-14">
+            <div className="flex items-center gap-2.5 mb-4 lg:mb-6 px-1">
+              <div className="hidden md:block w-1 h-5 bg-[#f56b2a] rounded-full" />
+              <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.12em]">
                 {isFood ? 'Vous aimerez aussi' : 'Recommandations similaires'}
               </h3>
             </div>
-            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-5 md:gap-6">
-              {relatedProducts.map((relProduct: StorefrontProduct) => (
+            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-4 lg:grid-cols-4 md:gap-5">
+              {relatedProducts.slice(0, 8).map((relProduct: StorefrontProduct) => (
                 <ProductCard
                   key={`${relProduct.storeId}-${relProduct.id}`}
                   product={relProduct}
