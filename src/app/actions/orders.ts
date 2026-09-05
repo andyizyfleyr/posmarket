@@ -61,7 +61,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
         }
         
         invalidateOrdersCache(storeId);
-        if (storeId) revalidateTag(`orders:${storeId}`, undefined as never);
+        if (storeId) revalidateTag(`orders:${storeId}`);
         revalidatePath('/orders');
         revalidatePath('/pos');
         revalidatePath('/inventory');
@@ -79,7 +79,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
         const storeId = await getStoreIdForOrder(orderId);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
         invalidateOrdersCache(storeId);
-        if (storeId) revalidateTag(`orders:${storeId}`, undefined as never);
+        if (storeId) revalidateTag(`orders:${storeId}`);
         revalidatePath('/orders');
         return { success: true };
     } catch (error: unknown) {
@@ -93,7 +93,7 @@ export async function deleteOrderAction(id: string) {
         const storeId = await getStoreIdForOrder(id);
         await db.delete(orders).where(eq(orders.id, id));
         invalidateOrdersCache(storeId);
-        if (storeId) revalidateTag(`orders:${storeId}`, undefined as never);
+        if (storeId) revalidateTag(`orders:${storeId}`);
         revalidatePath('/orders');
         return { success: true };
     } catch (error: unknown) {
@@ -113,7 +113,7 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
             await db.delete(orders).where(inArray(orders.id, ids));
             storeIds.forEach(sid => {
                 invalidateOrdersCache(sid);
-                revalidateTag(`orders:${sid}`, undefined as never);
+                revalidateTag(`orders:${sid}`);
             });
         }
         revalidatePath('/orders');
@@ -135,7 +135,7 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
             storeIds.forEach(sid => {
                 invalidateOrdersCache(sid);
-                revalidateTag(`orders:${sid}`, undefined as never);
+                revalidateTag(`orders:${sid}`);
             });
         }
         revalidatePath('/orders');
