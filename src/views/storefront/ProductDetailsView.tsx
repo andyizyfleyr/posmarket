@@ -720,6 +720,47 @@ export function ProductDetailsView(props: any) {
                 </div>
               </div>
 
+              {/* CTAs — desktop only (perfectly balanced 50/50 grid) */}
+              <div className="hidden lg:grid grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className="h-14 w-full bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-black text-xs sm:text-sm md:text-base rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group px-4"
+                >
+                  <ShoppingCart size={19} strokeWidth={2.5} className="flex-shrink-0 transition-transform group-hover:scale-110" />
+                  <span className="whitespace-nowrap">{isFood ? "Commander" : "Ajouter au panier"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  disabled={isOutOfStock}
+                  className="h-14 w-full bg-gray-900 hover:bg-black text-white font-black text-xs sm:text-sm md:text-base rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-gray-900/15 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group px-4 border border-gray-800"
+                >
+                  <Zap size={18} fill="currentColor" className="flex-shrink-0 text-amber-400 transition-transform group-hover:scale-110" />
+                  <span className="whitespace-nowrap">{isFood ? "Commander maintenant" : "Acheter maintenant"}</span>
+                </button>
+              </div>
+
+              {/* Trust band — desktop */}
+              {isFood ? (
+                <div className="hidden lg:flex items-center justify-center gap-4 py-1 text-[9px] font-bold text-gray-400">
+                  <span className="flex items-center gap-1"><Clock size={10} /> Préparé à la commande</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Fraîcheur garantie</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison rapide</span>
+                </div>
+              ) : (
+                <div className="hidden lg:flex items-center justify-center gap-4 py-1 text-[9px] font-bold text-gray-400">
+                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Paiement à la livraison</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><RotateCcw size={10} /> Retour 7 jours</span>
+                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison sécurisée</span>
+                </div>
+              )}
+
               {/* CARD 5: DESCRIPTION */}
               <div className="bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
                 <div className="flex items-center gap-2 mb-2.5">
@@ -751,50 +792,6 @@ export function ProductDetailsView(props: any) {
                   </button>
                 )}
               </div>
-
-              {/* CTAs — desktop only */}
-              <div className="hidden lg:flex flex-col sm:flex-row gap-3 pt-4">
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  variant="primary"
-                  fullWidth
-                  size="xl"
-                  className="sm:flex-[1.4]"
-                  icon={<ShoppingCart size={19} strokeWidth={2.5} />}
-                >
-                  {isFood ? "Commander" : "Ajouter au panier"}
-                </Button>
-                <Button
-                  onClick={handleBuyNow}
-                  disabled={isOutOfStock}
-                  variant="outline"
-                  fullWidth
-                  size="xl"
-                  className="!border-gray-900 !text-gray-900 hover:!bg-gray-900 hover:!text-white"
-                >
-                  {isFood ? "Commander maintenant" : "Acheter maintenant"}
-                </Button>
-              </div>
-
-              {/* Trust band */}
-              {isFood ? (
-                <div className="hidden lg:flex items-center justify-center gap-4 pt-3 text-[9px] font-bold text-gray-400">
-                  <span className="flex items-center gap-1"><Clock size={10} /> Préparé à la commande</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Fraîcheur garantie</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison rapide</span>
-                </div>
-              ) : (
-                <div className="hidden lg:flex items-center justify-center gap-4 pt-3 text-[9px] font-bold text-gray-400">
-                  <span className="flex items-center gap-1"><ShieldCheck size={10} /> Paiement à la livraison</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><RotateCcw size={10} /> Retour 7 jours</span>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1"><Truck size={10} /> Livraison sécurisée</span>
-                </div>
-              )}
             </div>
           </div>
         </div>
