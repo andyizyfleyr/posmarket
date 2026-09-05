@@ -928,7 +928,7 @@ export function ProductDetailsView(props: any) {
                   </div>
                 )}
 
-                {/* Mobile wholesale: Ultra-fine inline strip with commercial triggers */}
+                {/* Mobile wholesale: 100% visible inline pills (no hidden slide) with commercial triggers */}
                 {hasWholesale && (
                   <div className="py-2 px-2.5 rounded-xl bg-amber-50/60 border border-amber-200/70 mb-2.5">
                     <div className="flex items-center justify-between text-[10px] mb-1.5">
@@ -939,29 +939,41 @@ export function ProductDetailsView(props: any) {
                       <span className="font-bold text-[#e04e0f]">Plus t&apos;en prends, moins c&apos;est cher ! 🔥</span>
                     </div>
 
-                    {/* Rangée de pilules fines inline scrollable */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                    {/* Grille de paliers 100% visibles immédiatement sans aucun slide */}
+                    <div className={`grid gap-1.5 py-0.5 ${
+                      wholesaleTiers.length === 1
+                        ? "grid-cols-1"
+                        : wholesaleTiers.length === 2
+                        ? "grid-cols-2"
+                        : wholesaleTiers.length === 3
+                        ? "grid-cols-3"
+                        : "grid-cols-2"
+                    }`}>
                       {wholesaleTiers.map((tier, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => addWholesaleToCart(product, tier.minQty)}
-                          className="flex-shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-amber-200/80 hover:border-[#f56b2a] active:scale-95 transition-all text-left shadow-2xs group cursor-pointer"
+                          className="p-1.5 sm:p-2 rounded-lg bg-white border border-amber-200/80 hover:border-[#f56b2a] active:scale-95 transition-all text-left shadow-2xs group cursor-pointer flex flex-col justify-between"
                         >
-                          <span className="text-[10px] font-black text-gray-900 bg-amber-100/60 px-1 py-0.2 rounded">
-                            x{tier.minQty}
-                          </span>
-                          <span className="text-[11px] font-black text-[#f56b2a]">
-                            {formatCurrency(tier.unitPrice)}
-                          </span>
-                          {tier.discountPct > 0 && (
-                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
-                              -{tier.discountPct}%
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-black text-amber-950 bg-amber-100/70 px-1.5 py-0.2 rounded truncate">
+                              Dès {tier.minQty} pcs
                             </span>
-                          )}
-                          <span className="text-[9px] text-gray-400 font-semibold group-hover:text-[#f56b2a]">
-                            + Ajouter
-                          </span>
+                            {tier.discountPct > 0 && (
+                              <span className="text-[8px] sm:text-[9px] font-black text-emerald-700 bg-emerald-50 px-1 rounded flex-shrink-0">
+                                -{tier.discountPct}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-baseline justify-between gap-1">
+                            <span className="text-[11px] sm:text-xs font-black text-[#f56b2a] leading-tight">
+                              {formatCurrency(tier.unitPrice)}
+                            </span>
+                            <span className="text-[8px] sm:text-[9px] font-bold text-gray-400 group-hover:text-[#f56b2a] transition-colors flex-shrink-0">
+                              {wholesaleTiers.length >= 3 ? "+ Lot" : "+ Ajouter"}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
