@@ -806,15 +806,17 @@ export function ProductDetailsView(props: any) {
                           key={idx}
                           className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
                         >
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-gray-800">Dès {tier.minQty} pcs</span>
-                            {tier.discountPct > 0 && (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
-                                -{tier.discountPct}%
-                              </span>
-                            )}
-                            <span className="text-gray-400 text-[11px]">
-                              ({formatCurrency(tier.unitPrice)}/u)
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pcs</span>
+                              {tier.discountPct > 0 && (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
+                                  -{tier.discountPct}%
+                                </span>
+                              )}
+                            </div>
+                            <span className="font-bold text-gray-900">
+                              Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
                           </div>
                           <button
