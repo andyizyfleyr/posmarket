@@ -4,7 +4,7 @@ import {
   Package, ArrowRight, ChevronRight, Share2, Maximize2, Zap, Clock, Star,
   ShoppingBag, Eye, ShoppingCart, AlertCircle, Check, MessageCircle,
   ShieldCheck, RotateCcw, Truck, ChevronLeft, ArrowLeft, Loader2,
-  Store, CheckCircle2, PackageCheck, Heart
+  Store, CheckCircle2, PackageCheck, Heart, X
 } from "lucide-react";
 import Button from "@/components/Button";
 import ProductImage from "@/components/ProductImage";
@@ -764,10 +764,10 @@ export function ProductDetailsView(props: any) {
                   )}
                 </div>
 
-                {/* Options / Variantes */}
+                {/* Options / Variantes — SKU picker style */}
                 {hasOptions && (
                   <div className="border-t border-gray-100 pt-3">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-2.5">
                       <div className="flex items-center gap-1.5">
                         <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
                           <Package size={12} strokeWidth={2.5} />
@@ -785,19 +785,49 @@ export function ProductDetailsView(props: any) {
                       )}
                     </div>
 
-                    <div className="space-y-3.5">
+                    {selectedOptionCount > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Sélection :</span>
+                        {options.map((o: any) => {
+                          const v = selectedOptions[o.id];
+                          if (!v) return null;
+                          return (
+                            <span
+                              key={o.id}
+                              className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-[10px] font-bold text-gray-800"
+                            >
+                              {o.name}: {v}
+                              <button
+                                type="button"
+                                aria-label={`Retirer ${o.name}`}
+                                onClick={() =>
+                                  setSelectedOptions((prev: Record<string, string>) => {
+                                    const next = { ...prev };
+                                    delete next[o.id];
+                                    return next;
+                                  })
+                                }
+                                className="w-3.5 h-3.5 rounded-full bg-gray-100 hover:bg-[#f56b2a] hover:text-white flex items-center justify-center transition-colors"
+                              >
+                                <X size={8} strokeWidth={3} />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
                       {options.map((option: any) => {
                         const selectedVal = selectedOptions[option.id];
                         return (
                           <div key={option.id}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-xs font-black text-gray-800 uppercase tracking-wide">{option.name}</span>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-bold text-gray-900">{option.name}</span>
                               {selectedVal ? (
-                                <span className="flex items-center gap-0.5 text-[11px] font-bold text-[#f56b2a]">
-                                  <Check size={11} strokeWidth={3} /> {selectedVal}
-                                </span>
+                                <span className="text-xs font-bold text-[#f56b2a]">{selectedVal}</span>
                               ) : (
-                                <span className="text-[10px] font-semibold text-gray-300">Choisir</span>
+                                <span className="text-[10px] font-semibold text-gray-300">Choisissez...</span>
                               )}
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -808,20 +838,24 @@ export function ProductDetailsView(props: any) {
                                     key={val}
                                     type="button"
                                     onClick={() =>
-                                      setSelectedOptions((prev: Record<string, string>) => ({
-                                        ...prev,
-                                        [option.id]: val,
-                                      }))
+                                      setSelectedOptions((prev: Record<string, string>) => {
+                                        if (prev[option.id] === val) {
+                                          const next = { ...prev };
+                                          delete next[option.id];
+                                          return next;
+                                        }
+                                        return { ...prev, [option.id]: val };
+                                      })
                                     }
                                     aria-pressed={isSelected}
-                                    className={`relative px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
                                       isSelected
                                         ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
-                                        : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a]/50 hover:text-gray-900"
+                                        : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-gray-900"
                                     }`}
                                   >
                                     {isSelected && (
-                                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#f56b2a] rounded-full flex items-center justify-center">
+                                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
                                         <Check size={9} strokeWidth={3.5} className="text-white" />
                                       </span>
                                     )}
@@ -1079,17 +1113,17 @@ export function ProductDetailsView(props: any) {
                   </div>
                 )}
 
-                {/* Mobile options: Selector card */}
+                {/* Mobile options: SKU picker card */}
                 {hasOptions && (
-                  <div className="bg-white border border-gray-100 rounded-2xl p-3 mb-2.5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="bg-white border border-gray-100 rounded-2xl mb-2.5 shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50/60 border-b border-gray-100">
                       <div className="flex items-center gap-2">
                         <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
                           <Package size={13} strokeWidth={2.5} />
                         </span>
                         <div>
                           <p className="text-[11px] font-black text-gray-900 leading-tight">Options & Variantes</p>
-                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Personnalisez votre article</p>
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Sélectionnez pour commander</p>
                         </div>
                       </div>
                       {allSelected ? (
@@ -1097,66 +1131,104 @@ export function ProductDetailsView(props: any) {
                           <CheckCircle2 size={10} strokeWidth={3} /> Prêt à commander
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
+                        <span className="text-[10px] font-bold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full">
                           {selectedOptionCount}/{options.length}
                         </span>
                       )}
                     </div>
 
-                    <div className="space-y-3">
-                      {options.map((option: any) => {
-                        const selectedVal = selectedOptions[option.id];
-                        return (
-                          <div key={option.id}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[11px] font-black text-gray-800">{option.name}</span>
-                              {selectedVal ? (
-                                <span className="text-[10px] font-bold text-[#f56b2a]">{selectedVal}</span>
-                              ) : (
-                                <span className="text-[9px] font-semibold text-gray-300">Choisir</span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {option.values.map((val: string) => {
-                                const isSelected = selectedVal === val;
-                                return (
-                                  <button
-                                    key={val}
-                                    type="button"
-                                    onClick={() =>
-                                      setSelectedOptions((prev: Record<string, string>) => ({
-                                        ...prev,
-                                        [option.id]: val,
-                                      }))
-                                    }
-                                    aria-pressed={isSelected}
-                                    className={`relative px-3 py-2 min-h-[34px] rounded-xl text-[11px] font-bold transition-all border active:scale-95 ${
-                                      isSelected
-                                        ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
-                                        : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]/60"
-                                    }`}
-                                  >
-                                    {isSelected && (
-                                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#f56b2a] rounded-full flex items-center justify-center">
-                                        <Check size={9} strokeWidth={3.5} className="text-white" />
-                                      </span>
-                                    )}
-                                    {val}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <div className="p-3">
+                      {selectedOptionCount > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-gray-400">Sélection :</span>
+                          {options.map((o: any) => {
+                            const v = selectedOptions[o.id];
+                            if (!v) return null;
+                            return (
+                              <span
+                                key={o.id}
+                                className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-0.5 py-0.5 text-[10px] font-bold text-gray-800"
+                              >
+                                {o.name}: {v}
+                                <button
+                                  type="button"
+                                  aria-label={`Retirer ${o.name}`}
+                                  onClick={() =>
+                                    setSelectedOptions((prev: Record<string, string>) => {
+                                      const next = { ...prev };
+                                      delete next[o.id];
+                                      return next;
+                                    })
+                                  }
+                                  className="w-4 h-4 rounded-full bg-gray-100 hover:bg-[#f56b2a] hover:text-white flex items-center justify-center transition-colors"
+                                >
+                                  <X size={9} strokeWidth={3} />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                    {!allSelected && (
-                      <p className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
-                        <AlertCircle size={11} className="flex-shrink-0" />
-                        Choisissez vos options pour commander
-                      </p>
-                    )}
+                      <div className="space-y-3.5">
+                        {options.map((option: any) => {
+                          const selectedVal = selectedOptions[option.id];
+                          return (
+                            <div key={option.id}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-gray-900">{option.name}</span>
+                                {selectedVal ? (
+                                  <span className="text-[11px] font-bold text-[#f56b2a]">{selectedVal}</span>
+                                ) : (
+                                  <span className="text-[9px] font-semibold text-gray-300">Choisissez...</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {option.values.map((val: string) => {
+                                  const isSelected = selectedVal === val;
+                                  return (
+                                    <button
+                                      key={val}
+                                      type="button"
+                                      onClick={() =>
+                                        setSelectedOptions((prev: Record<string, string>) => {
+                                          if (prev[option.id] === val) {
+                                            const next = { ...prev };
+                                            delete next[option.id];
+                                            return next;
+                                          }
+                                          return { ...prev, [option.id]: val };
+                                        })
+                                      }
+                                      aria-pressed={isSelected}
+                                      className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-bold transition-all border active:scale-95 ${
+                                        isSelected
+                                          ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
+                                          : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
+                                      }`}
+                                    >
+                                      {isSelected && (
+                                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
+                                          <Check size={9} strokeWidth={3.5} className="text-white" />
+                                        </span>
+                                      )}
+                                      {val}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {!allSelected && (
+                        <p className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
+                          <AlertCircle size={11} className="flex-shrink-0" />
+                          Choisissez vos options pour commander
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
