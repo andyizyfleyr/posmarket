@@ -928,59 +928,49 @@ export function ProductDetailsView(props: any) {
                   </div>
                 )}
 
-                {/* Mobile wholesale: 100% visible inline pills (no hidden slide) with commercial triggers */}
+                {/* Mobile wholesale: Redesign compact & visible */}
                 {hasWholesale && (
-                  <div className="py-2 px-2.5 rounded-xl bg-amber-50/60 border border-amber-200/70 mb-2.5">
-                    <div className="flex items-center justify-between text-[10px] mb-1.5">
-                      <span className="font-black text-amber-950 flex items-center gap-1">
-                        <Zap size={11} className="text-[#f56b2a] fill-[#f56b2a]" />
-                        PRIX DE GROS DÉGRESSIF
-                      </span>
-                      <span className="font-bold text-[#e04e0f]">Plus t&apos;en prends, moins c&apos;est cher ! 🔥</span>
+                  <div className="bg-white rounded-2xl border border-amber-200/50 mb-2.5 overflow-hidden">
+                    <div className="px-3 py-2 bg-amber-50/50 border-b border-amber-100 flex items-center justify-between">
+                        <span className="text-[10px] font-black text-amber-950 flex items-center gap-1.5">
+                            <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
+                            PRIX DE GROS
+                        </span>
+                        <span className="text-[9px] font-bold text-[#e04e0f] uppercase">Dégressif</span>
                     </div>
-
-                    {/* Grille de paliers 100% visibles immédiatement sans aucun slide */}
-                    <div className={`grid gap-1.5 py-0.5 ${
-                      wholesaleTiers.length === 1
-                        ? "grid-cols-1"
-                        : wholesaleTiers.length === 2
-                        ? "grid-cols-2"
-                        : wholesaleTiers.length === 3
-                        ? "grid-cols-3"
-                        : "grid-cols-2"
-                    }`}>
+                    
+                    <div className="grid grid-cols-1 gap-px bg-amber-100/50">
                       {wholesaleTiers.map((tier, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => addWholesaleToCart(product, tier.minQty)}
-                          className="p-1.5 sm:p-2 rounded-lg bg-white border border-amber-200/80 hover:border-[#f56b2a] active:scale-95 transition-all text-left shadow-2xs group cursor-pointer flex flex-col justify-between"
+                          className="flex items-center justify-between px-3 py-2 bg-white hover:bg-amber-50 active:bg-amber-100 transition-colors cursor-pointer group"
                         >
-                          <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-[10px] font-black text-amber-950 bg-amber-100/70 px-1.5 py-0.2 rounded truncate">
-                              Dès {tier.minQty} pcs
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-gray-700 w-16">
+                                {tier.minQty}+ pcs
                             </span>
-                            {tier.discountPct > 0 && (
-                              <span className="text-[8px] sm:text-[9px] font-black text-emerald-700 bg-emerald-50 px-1 rounded flex-shrink-0">
+                            <span className="text-xs font-black text-[#f56b2a]">
+                              {formatCurrency(tier.unitPrice)}/u
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                             {tier.discountPct > 0 && (
+                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
                                 -{tier.discountPct}%
                               </span>
-                            )}
-                          </div>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-[11px] sm:text-xs font-black text-[#f56b2a] leading-tight">
-                              {formatCurrency(tier.unitPrice)}
-                            </span>
-                            <span className="text-[8px] sm:text-[9px] font-bold text-gray-400 group-hover:text-[#f56b2a] transition-colors flex-shrink-0">
-                              {wholesaleTiers.length >= 3 ? "+ Lot" : "+ Ajouter"}
-                            </span>
+                             )}
+                            <div className="px-2 py-1 rounded-lg bg-gray-900 text-white text-[9px] font-black uppercase">Ajouter</div>
                           </div>
                         </button>
                       ))}
                     </div>
 
                     {waDigits && (
-                      <div className="pt-1.5 mt-1.5 border-t border-amber-200/40 flex items-center justify-between text-[10px]">
-                        <span className="text-gray-500 font-medium">Gros carton / revendeur ?</span>
+                      <div className="px-3 py-2 bg-white border-t border-amber-100 flex items-center justify-between text-[10px]">
+                        <span className="text-gray-500 font-medium italic">Besoin d'un devis volume ?</span>
                         <a
                           href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
                             `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un gros volume. Pouvez-vous me faire votre meilleur prix de gros ? Merci !`
