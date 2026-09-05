@@ -803,88 +803,97 @@ export function ProductDetailsView(props: any) {
                   </Link>
                 </div>
 
-                {/* Title */}
-                <h2 className="text-base font-black text-gray-900 leading-snug tracking-tight mb-2">
+                {/* Title (Fine & compact) */}
+                <h2 className="text-sm font-bold text-gray-900 leading-snug tracking-tight mb-1.5">
                   {product.name}
                   {product.unit && (
-                    <span className="inline ml-1.5 text-xs text-gray-400 font-semibold align-middle">
-                      {product.unit}
+                    <span className="inline ml-1 text-xs text-gray-400 font-normal">
+                      ({product.unit})
                     </span>
                   )}
                 </h2>
 
-                {/* Rating & Sales */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-4 border-b border-gray-50 pb-3">
-                  <div className="flex items-center gap-1">
-                    <div className="flex text-yellow-400">
+                {/* Rating & Sales & Stock: Fine single line */}
+                <div className="flex items-center gap-1.5 text-[11px] mb-2.5 pb-2 border-b border-gray-100 flex-wrap">
+                  <div className="flex items-center gap-1 text-gray-800 font-bold">
+                    <div className="flex text-amber-400 gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
-                          size={12}
+                          size={10}
                           fill={s <= Math.round(product.rating || 0) ? "currentColor" : "none"}
                         />
                       ))}
                     </div>
-                    <span className="text-xs font-black text-gray-900">
-                      {(product.rating || 0).toFixed(1)}
-                    </span>
+                    <span>{(product.rating || 0).toFixed(1)}</span>
                     <button
                       onClick={() => scrollToSection("pd-avis")}
-                      className="text-[10px] font-bold text-gray-400 underline underline-offset-2 decoration-gray-200 hover:text-[#f56b2a]"
+                      className="text-[10px] font-normal text-gray-400 underline decoration-gray-200"
                     >
-                      ({formatNumber(reviewTotal)} avis)
+                      ({formatNumber(reviewTotal)})
                     </button>
                   </div>
-                  <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
-                    <ShoppingBag size={11} className={accentText} />
+
+                  <span className="text-gray-300">·</span>
+
+                  <span className="text-gray-500 text-[10px] flex items-center gap-0.5">
+                    <ShoppingBag size={10} className={accentText} />
                     {formatNumber(product.salesCount || 0)} {isFood ? 'commandes' : 'vendus'}
                   </span>
-                </div>
 
-                {/* Mobile price block */}
-                <div className="relative overflow-hidden rounded-[20px] border border-[#f56b2a]/10 bg-gradient-to-br from-[#f56b2a]/5 via-white to-white p-3.5 mb-4">
-                  <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">
-                    {hasOptions && !allSelected ? "À partir de" : (isFood ? "Prix" : "Tarif unique")}
-                  </span>
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className={`text-lg font-black tracking-tight leading-none ${accentText}`}>
-                      {formatCurrency(basePrice)}
+                  <span className="text-gray-300">·</span>
+
+                  {isOutOfStock ? (
+                    <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.2 rounded">
+                      Rupture
                     </span>
-                    {product.originalPrice && product.originalPrice > basePrice && (
-                      <>
-                        <span className="text-[9px] text-gray-400 line-through font-bold">
-                          {formatCurrency(product.originalPrice)}
-                        </span>
-                        <span className="text-[9px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
-                          -{discountPct}%
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  {product.originalPrice && product.originalPrice > basePrice && (
-                    <span className="mt-1.5 inline-flex text-[9px] font-black text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      Économisez {formatCurrency(product.originalPrice - basePrice)}
+                  ) : isLowStock ? (
+                    <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">
+                      Plus que {stockValue}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
+                      En stock
                     </span>
                   )}
                 </div>
 
-                {/* Mobile options */}
+                {/* Mobile price block: Fine, sleek & compact */}
+                <div className="p-2.5 rounded-xl bg-gray-50/80 border border-gray-100 mb-2.5 flex items-center justify-between">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">
+                      {hasOptions && !allSelected ? "Dès" : "Prix"}
+                    </span>
+                    <span className="text-lg font-black tracking-tight text-gray-950 leading-none">
+                      {formatCurrency(basePrice)}
+                    </span>
+                    {product.originalPrice && product.originalPrice > basePrice && (
+                      <span className="text-[11px] text-gray-400 line-through font-medium">
+                        {formatCurrency(product.originalPrice)}
+                      </span>
+                    )}
+                  </div>
+                  {product.originalPrice && product.originalPrice > basePrice && (
+                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                      -{discountPct}% Éco
+                    </span>
+                  )}
+                </div>
+
+                {/* Mobile options: Fine chips */}
                 {hasOptions && (
-                  <div className="space-y-3 pt-3 border-t border-gray-100 mb-4">
+                  <div className="space-y-2 mb-2.5">
                     {options.map((option: any) => (
                       <div key={option.id}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">
-                            {option.name}
-                          </h4>
+                        <div className="flex items-center justify-between mb-1 text-[11px]">
+                          <span className="font-bold text-gray-700">{option.name}</span>
                           {selectedOptions[option.id] && (
-                            <span className="text-[10px] font-black text-[#f56b2a]">
+                            <span className="font-semibold text-[#f56b2a] text-[10px]">
                               {selectedOptions[option.id]}
                             </span>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {option.values.map((val: string) => {
                             const isSelected = selectedOptions[option.id] === val;
                             return (
@@ -896,13 +905,13 @@ export function ProductDetailsView(props: any) {
                                     [option.id]: val,
                                   }))
                                 }
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all border active:scale-95 ${
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border active:scale-95 ${
                                   isSelected
-                                    ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-xs font-black"
+                                    ? "bg-gray-900 text-white border-gray-900 font-semibold shadow-2xs"
                                     : "bg-white text-gray-700 border-gray-200"
                                 }`}
                               >
-                                {isSelected && <Check size={10} strokeWidth={3} />}
+                                {isSelected && <Check size={10} strokeWidth={2.5} className="inline mr-1 -mt-0.5" />}
                                 {val}
                               </button>
                             );
@@ -911,141 +920,70 @@ export function ProductDetailsView(props: any) {
                       </div>
                     ))}
                     {!allSelected && (
-                      <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl">
-                        <AlertCircle size={12} className="flex-shrink-0" />
-                        Sélectionnez toutes les options
+                      <p className="flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-1 rounded-lg">
+                        <AlertCircle size={11} className="flex-shrink-0" />
+                        Choisissez vos options
                       </p>
                     )}
                   </div>
                 )}
 
-                {/* Mobile wholesale (B2B) - Inline horizontal packs with high-converting commercial triggers */}
+                {/* Mobile wholesale: Ultra-fine inline strip with commercial triggers */}
                 {hasWholesale && (
-                  <div className="bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-amber-50/50 border border-amber-200/80 rounded-2xl p-3 mb-4 space-y-2.5">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f56b2a] text-white shadow-xs">
-                          <Zap size={11} fill="currentColor" />
-                        </span>
-                        <span className="text-xs font-black text-gray-900 tracking-tight">
-                          Packs Malins · Plus t&apos;en prends, moins c&apos;est cher ! 💰
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-500/15 text-[#e04e0f] border border-orange-500/30 shrink-0">
-                        Prix de Gros
+                  <div className="py-2 px-2.5 rounded-xl bg-amber-50/60 border border-amber-200/70 mb-2.5">
+                    <div className="flex items-center justify-between text-[10px] mb-1.5">
+                      <span className="font-black text-amber-950 flex items-center gap-1">
+                        <Zap size={11} className="text-[#f56b2a] fill-[#f56b2a]" />
+                        PRIX DE GROS DÉGRESSIF
                       </span>
+                      <span className="font-bold text-[#e04e0f]">Plus t&apos;en prends, moins c&apos;est cher ! 🔥</span>
                     </div>
 
-                    {/* Inline scrollable tier cards */}
-                    <div className="flex overflow-x-auto no-scrollbar gap-2 -mx-1 px-1 snap-x snap-mandatory py-0.5">
-                      {wholesaleTiers.map((tier, idx) => {
-                        const badge =
-                          idx === 0
-                            ? "Bon plan ⚡"
-                            : idx === 1
-                            ? "Le + populaire 🔥"
-                            : "Méga Éco 💎";
-
-                        return (
-                          <div
-                            key={idx}
-                            className={`min-w-[150px] max-w-[170px] flex-shrink-0 snap-start bg-white rounded-xl p-2.5 border transition-all flex flex-col justify-between shadow-xs ${
-                              idx === 1
-                                ? "border-[#f56b2a] ring-1 ring-orange-200"
-                                : "border-amber-200/70"
-                            }`}
-                          >
-                            <div>
-                              {/* Badge top */}
-                              <div className="flex items-center justify-between gap-1 mb-1.5">
-                                <span className="text-[9px] font-black text-[#e04e0f] bg-orange-50 border border-orange-200/60 px-1.5 py-0.5 rounded-md">
-                                  {badge}
-                                </span>
-                                {tier.discountPct > 0 && (
-                                  <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">
-                                    -{tier.discountPct}%
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Quantity */}
-                              <div className="text-xs font-black text-gray-900">
-                                Dès {tier.minQty} pièces
-                              </div>
-
-                              {/* Unit price */}
-                              <div className="text-[13px] font-black text-[#f56b2a] tracking-tight leading-tight mt-0.5">
-                                {formatCurrency(tier.unitPrice)}
-                                <span className="text-[9px] font-semibold text-gray-400 ml-0.5">/u</span>
-                              </div>
-
-                              {/* Total lot */}
-                              <div className="text-[10px] text-gray-500 font-medium mt-0.5">
-                                Soit <span className="font-bold text-gray-800">{formatCurrency(tier.packagePrice)}</span> le lot
-                              </div>
-                            </div>
-
-                            {/* Action button */}
-                            <button
-                              type="button"
-                              onClick={() => addWholesaleToCart(product, tier.minQty)}
-                              className="w-full mt-2.5 py-1.5 rounded-lg bg-[#f56b2a] hover:bg-[#e04e0f] text-white text-[10px] font-black flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs"
-                            >
-                              <ShoppingCart size={11} strokeWidth={2.5} />
-                              <span>Je prends {tier.minQty}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
+                    {/* Rangée de pilules fines inline scrollable */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                      {wholesaleTiers.map((tier, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => addWholesaleToCart(product, tier.minQty)}
+                          className="flex-shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-amber-200/80 hover:border-[#f56b2a] active:scale-95 transition-all text-left shadow-2xs group cursor-pointer"
+                        >
+                          <span className="text-[10px] font-black text-gray-900 bg-amber-100/60 px-1 py-0.2 rounded">
+                            x{tier.minQty}
+                          </span>
+                          <span className="text-[11px] font-black text-[#f56b2a]">
+                            {formatCurrency(tier.unitPrice)}
+                          </span>
+                          {tier.discountPct > 0 && (
+                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
+                              -{tier.discountPct}%
+                            </span>
+                          )}
+                          <span className="text-[9px] text-gray-400 font-semibold group-hover:text-[#f56b2a]">
+                            + Ajouter
+                          </span>
+                        </button>
+                      ))}
                     </div>
 
-                    {/* WhatsApp Negotiate Banner */}
                     {waDigits && (
-                      <a
-                        href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
-                          `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un gros volume. Pouvez-vous me faire votre meilleur prix de gros ? Merci !`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-2 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
-                      >
-                        <MessageCircle size={13} className="text-emerald-600 shrink-0" />
-                        <span className="truncate">Gros carton ? Négocier le prix direct sur WhatsApp 🤝</span>
-                      </a>
+                      <div className="pt-1.5 mt-1.5 border-t border-amber-200/40 flex items-center justify-between text-[10px]">
+                        <span className="text-gray-500 font-medium">Gros carton / revendeur ?</span>
+                        <a
+                          href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
+                            `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un gros volume. Pouvez-vous me faire votre meilleur prix de gros ? Merci !`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
+                        >
+                          <MessageCircle size={11} className="text-emerald-600" />
+                          Négocier sur WhatsApp 🤝
+                        </a>
+                      </div>
                     )}
                   </div>
                 )}
-
-                {/* Mobile stock availability */}
-                <div>
-                  {stockValue !== null && stockValue > 0 && (
-                    <>
-                      <div className="flex items-center justify-end mb-1">
-                        {isLowStock && (
-                          <span className="text-[9px] font-black text-amber-600 animate-pulse">
-                            Dernières unités ({stockValue}) !
-                          </span>
-                        )}
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${
-                            isLowStock ? "bg-amber-400" : "bg-green-400"
-                          }`}
-                          style={{
-                            width: `${isLowStock ? Math.max(stockFill, 12) : stockFill}%`,
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-                  {isOutOfStock && (
-                    <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl">
-                      <AlertCircle size={12} /> Rupture de stock temporaire
-                    </p>
-                  )}
-                </div>
               </div>
 
               {/* Mobile Description Card */}
