@@ -245,11 +245,11 @@ export function ProductDetailsView(props: any) {
     };
 
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-40 lg:pb-16 bg-[#f8f9fc] lg:bg-transparent -mx-4 lg:mx-auto">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pb-40 lg:pb-16 bg-[#f8f9fc] lg:bg-transparent -mx-4 lg:mx-auto">
         {/* Breadcrumb (desktop only) */}
         <nav
           aria-label="Fil d'Ariane"
-          className="hidden md:flex items-center gap-2 mb-8 text-[11px] font-medium text-gray-400 px-4 lg:px-0 pt-6"
+          className="hidden md:flex items-center gap-2 mb-6 text-[11px] font-medium text-gray-400 px-4 lg:px-0 pt-5"
         >
           <button
             onClick={() => safeNavigate("/")}
@@ -310,7 +310,7 @@ export function ProductDetailsView(props: any) {
 
         {/* ================= PRODUIT ================= */}
         <div id="pd-produit" className="scroll-mt-14">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] gap-4 lg:gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr] gap-6 lg:gap-8 items-start">
             {/* ---------- Colonne Gauche: Galerie + Description (Desktop) ---------- */}
             <div className="space-y-4">
               {/* Mobile: Swipeable Carousel inside an M3 Card */}
@@ -369,19 +369,19 @@ export function ProductDetailsView(props: any) {
                 )}
               </div>
 
-              {/* Desktop: Main Image + Thumbnails */}
-              <div className="hidden lg:block space-y-3">
+              {/* Desktop: Main Image + Thumbnails (Compact Sizing) */}
+              <div className="hidden lg:block space-y-2.5">
                 <div
-                  className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] group/main cursor-zoom-in"
+                  className="relative w-full aspect-square max-h-[380px] xl:max-h-[420px] rounded-2xl overflow-hidden bg-white border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] group/main cursor-zoom-in"
                   onClick={() => openZoom(currentImage)}
                 >
                   <Image
                     src={currentImage}
-                    width={1000}
-                    height={1000}
+                    width={800}
+                    height={800}
                     priority
                     alt={product.name}
-                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    sizes="(max-width: 1024px) 100vw, 420px"
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/main:scale-105"
                   />
 
@@ -389,39 +389,39 @@ export function ProductDetailsView(props: any) {
                   <div className="absolute inset-0 bg-black/0 group-hover/main:bg-black/5 transition-colors duration-300 pointer-events-none" />
 
                   {discountPct > 0 && (
-                    <div className="absolute top-4 left-4 bg-red-500 text-white text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-md shadow-red-500/20 flex items-center gap-1 z-10">
-                      <Zap size={12} fill="currentColor" /> -{discountPct}%
+                    <div className="absolute top-3.5 left-3.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg shadow-md shadow-red-500/20 flex items-center gap-1 z-10">
+                      <Zap size={11} fill="currentColor" /> -{discountPct}%
                     </div>
                   )}
 
                   {/* Action buttons top-right */}
-                  <div className="absolute top-4 right-4 flex items-center gap-1.5 z-10">
+                  <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 z-10">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleShare(e); }}
                       aria-label="Partager"
-                      className="w-8 h-8 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
+                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
                     >
-                      <Share2 size={14} />
+                      <Share2 size={13} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); openZoom(currentImage); }}
                       aria-label="Agrandir l'image"
-                      className="w-8 h-8 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
+                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
                     >
-                      <Maximize2 size={14} />
+                      <Maximize2 size={13} />
                     </button>
                   </div>
 
                   {isFood && (
-                    <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-100 text-green-700 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xs z-10">
-                      <Clock size={12} />
+                    <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-100 text-green-700 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xs z-10">
+                      <Clock size={11} />
                       Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
                     </div>
                   )}
 
                   {/* Image counter */}
                   {galleryImages.length > 1 && (
-                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md z-10">
+                    <div className="absolute bottom-3.5 right-3.5 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md z-10">
                       {(galleryImages.indexOf(currentImage) !== -1 ? galleryImages.indexOf(currentImage) : 0) + 1} / {galleryImages.length}
                     </div>
                   )}
@@ -452,10 +452,10 @@ export function ProductDetailsView(props: any) {
                           <Image
                             src={img}
                             alt={`${product.name} - vue ${idx + 1}`}
-                            width={100}
-                            height={100}
+                            width={80}
+                            height={80}
                             className="w-full h-full object-cover"
-                            sizes="80px"
+                            sizes="70px"
                           />
                         </button>
                       );
@@ -465,7 +465,7 @@ export function ProductDetailsView(props: any) {
               </div>
 
               {/* Desktop: DESCRIPTION placed under the product image */}
-              <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5">
+              <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 xl:p-5">
                 <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-gray-100">
                   <div className="w-1 h-4 bg-[#f56b2a] rounded-full" />
                   <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
@@ -473,44 +473,44 @@ export function ProductDetailsView(props: any) {
                   </h3>
                 </div>
                 <div
-                  className="text-gray-600 text-[13px] leading-relaxed font-normal"
+                  className="text-gray-600 text-xs xl:text-[13px] leading-relaxed font-normal"
                   style={{ whiteSpace: "pre-line" }}
                 >
                   {descriptionText}
                 </div>
 
                 {/* Caractéristiques / Détails clés */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-4 mt-4 border-t border-gray-100 text-xs">
-                  <div className="bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
-                    <span className="block text-[10px] text-gray-400 uppercase font-semibold">Catégorie</span>
-                    <span className="font-semibold text-gray-800 truncate block">{mainCat}</span>
+                <div className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs">
+                  <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                    <span className="block text-[9px] text-gray-400 uppercase font-semibold">Catégorie</span>
+                    <span className="font-semibold text-gray-800 truncate block text-xs">{mainCat}</span>
                   </div>
-                  <div className="bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
-                    <span className="block text-[10px] text-gray-400 uppercase font-semibold">Boutique</span>
-                    <span className="font-semibold text-gray-800 truncate block">{product.storeName}</span>
+                  <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                    <span className="block text-[9px] text-gray-400 uppercase font-semibold">Boutique</span>
+                    <span className="font-semibold text-gray-800 truncate block text-xs">{product.storeName}</span>
                   </div>
-                  <div className="bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
-                    <span className="block text-[10px] text-gray-400 uppercase font-semibold">Disponibilité</span>
-                    <span className={`font-semibold truncate block ${isOutOfStock ? "text-red-600" : "text-emerald-700"}`}>
+                  <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                    <span className="block text-[9px] text-gray-400 uppercase font-semibold">Disponibilité</span>
+                    <span className={`font-semibold truncate block text-xs ${isOutOfStock ? "text-red-600" : "text-emerald-700"}`}>
                       {isOutOfStock ? "Rupture de stock" : "En stock"}
                     </span>
                   </div>
                   {product.sku && (
-                    <div className="bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
-                      <span className="block text-[10px] text-gray-400 uppercase font-semibold">Référence</span>
-                      <span className="font-semibold text-gray-800 truncate block">{product.sku}</span>
+                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Référence</span>
+                      <span className="font-semibold text-gray-800 truncate block text-xs">{product.sku}</span>
                     </div>
                   )}
                   {product.unit && (
-                    <div className="bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
-                      <span className="block text-[10px] text-gray-400 uppercase font-semibold">Unité</span>
-                      <span className="font-semibold text-gray-800 truncate block">{product.unit}</span>
+                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Format</span>
+                      <span className="font-semibold text-gray-800 truncate block text-xs">{product.unit}</span>
                     </div>
                   )}
                   {isFood && (product.preparationTime || product.deliveryTime) && (
-                    <div className="bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
-                      <span className="block text-[10px] text-gray-400 uppercase font-semibold">Délai estimé</span>
-                      <span className="font-semibold text-gray-800 truncate block">
+                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Délai estimé</span>
+                      <span className="font-semibold text-gray-800 truncate block text-xs">
                         {product.preparationTime || product.deliveryTime}
                       </span>
                     </div>
