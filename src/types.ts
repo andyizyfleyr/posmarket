@@ -10,6 +10,11 @@ export interface Review {
 
 export type BusinessVertical = 'shopping' | 'food';
 
+export interface WholesaleTier {
+  minQty: number;
+  price: number;
+}
+
 export interface Product {
   id: string;
   sku?: string;
@@ -33,6 +38,7 @@ export interface Product {
   views?: number;
   wholesalePrice?: number;
   wholesaleMinQty?: number;
+  wholesaleTiers?: WholesaleTier[];
   deliveryTime?: string;
   options?: ProductOption[];
   variants?: ProductVariant[];
@@ -130,6 +136,8 @@ export interface StoreSettings {
   currency?: string;
   language?: string;
   description?: string;
+  wholesaleEnabled?: boolean;
+  wholesaleMinOrderAmount?: number;
 }
 
 // GiftCard interface removed as the feature is being deleted

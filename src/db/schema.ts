@@ -6,6 +6,8 @@ export const profiles = pgTable('profiles', {
   email: text('email').notNull().unique(),
   fullName: text('full_name'),
   phone: text('phone'),
+  companyName: text('company_name'),
+  ninea: text('ninea'),
   avatarUrl: text('avatar_url'),
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
   subscriptionTier: text('subscription_tier').default('PRO'),
@@ -57,6 +59,7 @@ export const products = pgTable('products', {
   views: integer('views').default(0).notNull(),
   wholesalePrice: numeric('wholesale_price', { precision: 12, scale: 2 }),
   wholesaleMinQty: integer('wholesale_min_qty'),
+  wholesaleTiers: jsonb('wholesale_tiers').default([]),
   mainCategory: text('main_category'),
   businessType: text('business_type').default('shopping').notNull(), // 'shopping' or 'food'
   options: jsonb('options').default([]),

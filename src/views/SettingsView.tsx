@@ -38,7 +38,8 @@ import {
     Tag,
     Loader2,
     FileText,
-    Info
+    Info,
+    Zap
 } from 'lucide-react';
 
 import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
@@ -509,6 +510,61 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             <Info size={10} /> Chiffres, liens et codes interdits (Lettres uniquement)
                                         </p>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Section Vente en Gros & B2B */}
+                            <div className="pt-6 border-t border-gray-100">
+                                <SectionHeader title="Vente en Gros & Commandes Groupées (B2B)" icon={<Zap />} />
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-orange-50/60 rounded-2xl border border-orange-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-[#f56b2a]/20 text-[#f56b2a] flex items-center justify-center shrink-0">
+                                                <Zap size={20} className="fill-[#f56b2a]" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs md:text-sm font-black text-gray-900">Activer les commandes de gros (B2B)</h4>
+                                                <p className="text-[10px] md:text-xs text-gray-500 font-medium">Permet d&apos;afficher vos offres dégressives et le bouton de commande rapide</p>
+                                            </div>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={!!localSettings.wholesaleEnabled}
+                                                onChange={(e) => setLocalSettings(prev => ({ ...prev, wholesaleEnabled: e.target.checked }))}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f56b2a]"></div>
+                                        </label>
+                                    </div>
+
+                                    {localSettings.wholesaleEnabled && (
+                                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                                            <label className="block text-[10px] md:text-xs font-black text-gray-700 uppercase tracking-wider">
+                                                Montant Minimum de Commande Grossiste (F CFA)
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="1000"
+                                                    placeholder="Ex: 50000 (Laissez vide ou 0 pour aucun minimum)"
+                                                    className="w-full pl-4 pr-16 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                    value={localSettings.wholesaleMinOrderAmount || ''}
+                                                    onChange={(e) => setLocalSettings(prev => ({
+                                                        ...prev,
+                                                        wholesaleMinOrderAmount: e.target.value ? Number(e.target.value) : undefined,
+                                                    }))}
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                                                    F CFA
+                                                </span>
+                                            </div>
+                                            <p className="text-[9px] md:text-[10px] text-gray-500 font-medium">
+                                                Les acheteurs devront atteindre ce montant d&apos;achat dans votre boutique pour passer une commande avec tarifs grossistes.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -52,6 +52,15 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
     onClick?.();
   }, [onClick]);
 
+  const hasWholesaleTiers = Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0;
+  const wholesaleMinQty = hasWholesaleTiers 
+    ? Math.min(...product.wholesaleTiers!.map((t) => t.minQty))
+    : product.wholesaleMinQty;
+  const wholesalePriceDisplay = hasWholesaleTiers
+    ? product.wholesaleTiers!.reduce((min, t) => t.price < min ? t.price : min, product.wholesaleTiers![0].price)
+    : product.wholesalePrice;
+  const hasWholesale = !!(wholesalePriceDisplay && wholesaleMinQty);
+
   return (
     <div className={`bg-white rounded-xl border border-gray-100 overflow-hidden group flex flex-col h-full shadow-sm relative will-change-transform ${className}`}>
       {/* Product Content - Clickable Area (real crawlable link) */}
@@ -76,9 +85,9 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
 
           {/* Badges on Image Content */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
-            {product.wholesalePrice && (
+            {hasWholesale && (
               <div className="bg-[#f56b2a] text-white px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md">
-                <Zap size={9} fill="currentColor" /> Gros
+                <Zap size={9} fill="currentColor" /> Gros dès {wholesaleMinQty}
               </div>
             )}
             {product.originalPrice && product.originalPrice > product.price && (
@@ -100,7 +109,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
           </div>
 
           <div className="mt-auto">
-            <div className="flex items-baseline gap-1 mb-1.5">
+            <div className="flex items-baseline gap-1 mb-1">
               <span className="text-[#1a1a1a] font-black text-[10px] md:text-sm">
                 {formatCurrency(product.price)}
               </span>
@@ -110,6 +119,13 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
                 </span>
               )}
             </div>
+
+            {hasWholesale && wholesalePriceDisplay && (
+              <div className="text-[8px] md:text-[9px] font-black text-[#d55a20] bg-orange-50/90 border border-orange-100 rounded px-1.5 py-0.5 mb-1.5 inline-flex items-center gap-1">
+                <span>Dès {wholesaleMinQty} pcs :</span>
+                <span className="font-extrabold">{formatCurrency(wholesalePriceDisplay)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-1 -mt-1 mb-1.5 min-h-[14px]">
               {product.salesCount !== undefined && product.salesCount > 0 ? (
                 <div className="text-[9px] text-gray-600 font-bold opacity-70">

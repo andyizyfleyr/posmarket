@@ -279,7 +279,15 @@ const resolveCurrentBuyer = async () => {
   const { user } = await getCurrentSession();
   if (!user?.id) return { user: null };
   const [profile] = await db
-    .select({ id: profiles.id, email: profiles.email, fullName: profiles.fullName, phone: profiles.phone, createdAt: profiles.createdAt })
+    .select({
+      id: profiles.id,
+      email: profiles.email,
+      fullName: profiles.fullName,
+      phone: profiles.phone,
+      companyName: profiles.companyName,
+      ninea: profiles.ninea,
+      createdAt: profiles.createdAt
+    })
     .from(profiles)
     .where(eq(profiles.id, user.id))
     .limit(1);
@@ -607,12 +615,19 @@ export async function fetchBuyerReviewsAction() {
   }
 }
 
-export async function updateBuyerProfileAction(updates: { fullName?: string; phone?: string }) {
+export async function updateBuyerProfileAction(updates: {
+  fullName?: string;
+  phone?: string;
+  companyName?: string;
+  ninea?: string;
+}) {
   const { user } = await resolveCurrentBuyer();
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const fullName = String(updates?.fullName || '').trim();
   const phone = String(updates?.phone || '').trim();
+  const companyName = String(updates?.companyName || '').trim();
+  const ninea = String(updates?.ninea || '').trim();
 
   if (fullName && fullName.length < 2) {
     return { success: false, error: 'Le nom doit contenir au moins 2 caractères' };
@@ -621,6 +636,8 @@ export async function updateBuyerProfileAction(updates: { fullName?: string; pho
   const patch: Record<string, unknown> = {};
   if (fullName) patch.fullName = fullName;
   if (typeof updates?.phone !== 'undefined') patch.phone = phone || null;
+  if (typeof updates?.companyName !== 'undefined') patch.companyName = companyName || null;
+  if (typeof updates?.ninea !== 'undefined') patch.ninea = ninea || null;
 
   if (Object.keys(patch).length === 0) {
     return { success: false, error: 'Aucune modification à enregistrer' };
@@ -631,11 +648,25 @@ export async function updateBuyerProfileAction(updates: { fullName?: string; pho
       .update(profiles)
       .set(patch)
       .where(eq(profiles.id, user.id))
-      .returning({ id: profiles.id, email: profiles.email, fullName: profiles.fullName, phone: profiles.phone });
+      .returning({
+        id: profiles.id,
+        email: profiles.email,
+        fullName: profiles.fullName,
+        phone: profiles.phone,
+        companyName: profiles.companyName,
+        ninea: profiles.ninea,
+      });
     return {
       success: true,
       error: undefined,
-      user: { id: profile.id, email: profile.email, fullName: profile.fullName, phone: profile.phone || '' },
+      user: {
+        id: profile.id,
+        email: profile.email,
+        fullName: profile.fullName,
+        phone: profile.phone || '',
+        companyName: profile.companyName || '',
+        ninea: profile.ninea || '',
+      },
     };
   } catch (error) {
     console.error('Error updating buyer profile:', error);
@@ -654,6 +685,8 @@ export async function fetchBuyerProfileAction() {
       email: user.email,
       fullName: user.fullName || user.email?.split('@')[0] || 'Utilisateur',
       phone: user.phone || '',
+      companyName: user.companyName || '',
+      ninea: user.ninea || '',
     },
   };
 }

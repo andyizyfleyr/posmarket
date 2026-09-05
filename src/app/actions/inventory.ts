@@ -22,6 +22,7 @@ type ProductInput = {
   isOnline?: boolean;
   wholesalePrice?: string | number;
   wholesaleMinQty?: number;
+  wholesaleTiers?: Array<{ minQty: number; price: number }>;
   businessType?: string;
   options?: unknown[];
   variants?: unknown[];
@@ -68,6 +69,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       isOnline: product.isOnline !== undefined ? product.isOnline : true,
       wholesalePrice: product.wholesalePrice?.toString(),
       wholesaleMinQty: product.wholesaleMinQty,
+      wholesaleTiers: product.wholesaleTiers || [],
       businessType: product.businessType || 'shopping',
       options: product.options || [],
       variants: product.variants || []
@@ -104,6 +106,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       views: Number(savedProduct.views) || 0,
       wholesalePrice: savedProduct.wholesalePrice ? Number(savedProduct.wholesalePrice) : null,
       wholesaleMinQty: savedProduct.wholesaleMinQty,
+      wholesaleTiers: (savedProduct.wholesaleTiers as Array<{ minQty: number; price: number }>) || [],
       businessType: savedProduct.businessType,
       options: savedProduct.options || [],
       variants: savedProduct.variants || [],

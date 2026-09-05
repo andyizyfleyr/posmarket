@@ -136,6 +136,26 @@ export function ProductDetailsView(props: any) {
           )
         : 0;
 
+    const wholesaleTiers: Array<{ minQty: number; price: number }> = React.useMemo(() => {
+      if (product.wholesaleTiers && product.wholesaleTiers.length > 0) {
+        return [...product.wholesaleTiers].sort((a, b) => a.minQty - b.minQty);
+      }
+      if (product.wholesalePrice && product.wholesaleMinQty) {
+        return [{ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) }];
+      }
+      return [];
+    }, [product.wholesaleTiers, product.wholesalePrice, product.wholesaleMinQty]);
+
+    const hasWholesale = wholesaleTiers.length > 0 && !isFood;
+
+    const productStore = React.useMemo(() => {
+      if (!props.stores || !product?.storeId) return null;
+      return props.stores.find((s: any) => s.id === product.storeId);
+    }, [props.stores, product?.storeId]);
+
+    const storePhone = productStore?.phone || productStore?.settings?.phone;
+    const waDigits = storePhone ? String(storePhone).replace(/\D/g, "") : null;
+
     // --- Stock ---
     const stockValue =
       product.stock != null ? (product.stock as number) : null;
@@ -577,33 +597,96 @@ export function ProductDetailsView(props: any) {
                 </div>
               )}
 
-              {/* CARD 3: WHOLESALE (If available) */}
-              {product.wholesalePrice && !isFood && (
-                <div className="bg-gray-900 text-white rounded-[24px] p-4 shadow-lg shadow-gray-900/10 border border-gray-800">
-                  <button
-                    onClick={() => addWholesaleToCart(product)}
-                    className="w-full flex items-center justify-between group/ws"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-[#f56b2a] flex-shrink-0">
-                        <Package size={16} />
+              {/* CARD 3: WHOLESALE TIERS (If available) */}
+              {hasWholesale && (
+                <div className="bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white rounded-[24px] p-5 shadow-xl shadow-gray-950/20 border border-gray-700/60 overflow-hidden relative">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-[#f56b2a]/20 text-[#f56b2a] flex items-center justify-center border border-[#f56b2a]/30 shrink-0">
+                        <Zap size={20} className="fill-[#f56b2a]" />
                       </div>
-                      <div className="text-left min-w-0">
-                        <span className="block text-[9px] font-black uppercase tracking-[0.15em] text-[#f56b2a]">
-                          Offre grossiste
-                        </span>
-                        <span className="text-xs font-black truncate">
-                          {formatCurrency(product.wholesalePrice)}{" "}
-                          <span className="text-gray-400 font-bold">
-                            · dès {product.wholesaleMinQty} unités
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-wider text-white">
+                            Tarifs Grossiste & Dégressifs
                           </span>
-                        </span>
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                            B2B
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 font-medium">
+                          Tarifs dégressifs automatiques appliqués au panier
+                        </p>
                       </div>
                     </div>
-                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-gray-300 group-hover/ws:text-white transition-colors flex-shrink-0 ml-2">
-                      Lot <ArrowRight size={12} />
-                    </span>
-                  </button>
+                  </div>
+
+                  {/* Tableau des Paliers */}
+                  <div className="space-y-2 mb-4">
+                    {wholesaleTiers.map((tier, idx) => {
+                      const tierDiscountPct = basePrice > tier.price 
+                        ? Math.round(((basePrice - tier.price) / basePrice) * 100) 
+                        : null;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 gap-2.5"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-6 h-6 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-black flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <div>
+                              <span className="text-xs font-black text-white">
+                                Dès {tier.minQty} pièces
+                              </span>
+                              <span className="text-[10px] text-gray-400 block font-medium">
+                                Quantité minimale du palier
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3">
+                            <div className="text-left sm:text-right">
+                              <span className="text-xs font-black text-orange-400">
+                                {formatCurrency(tier.price)}
+                              </span>
+                              <span className="text-[10px] text-gray-400 block">
+                                / pièce
+                              </span>
+                            </div>
+                            {tierDiscountPct && tierDiscountPct > 0 && (
+                              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-[10px] font-black shrink-0">
+                                -{tierDiscountPct}%
+                              </span>
+                            )}
+                            <button
+                              onClick={() => addWholesaleToCart(product, tier.minQty)}
+                              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all shadow-sm shrink-0"
+                            >
+                              <ShoppingCart size={12} />
+                              Ajouter {tier.minQty}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* WhatsApp B2B Quotation Button */}
+                  {waDigits && (
+                    <a
+                      href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
+                        `Bonjour ${product.storeName}, je vous contacte concernant le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un volume important. Pouvez-vous me proposer une cotation personnalisée ? Merci !`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/30 font-black text-[11px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                    >
+                      <MessageCircle size={15} />
+                      Demander un devis personnalisé sur WhatsApp
+                    </a>
+                  )}
                 </div>
               )}
 

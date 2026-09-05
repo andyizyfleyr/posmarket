@@ -1218,6 +1218,84 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           </div>
                         </div>
                       )}
+
+                      {/* Paliers dégressifs (wholesaleTiers) */}
+                      {formData.wholesalePrice !== undefined && (
+                        <div className="mt-4 md:mt-6 pt-4 border-t border-orange-100/50 animate-in slide-in-from-top-4 duration-300">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h5 className="text-[10px] md:text-xs font-black text-gray-800">Paliers Dégressifs</h5>
+                              <p className="text-[8px] md:text-[9px] text-gray-400 font-bold">Prix réduit par quantité (optionnel)</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const tiers = [...(formData.wholesaleTiers || [])];
+                                const lastMinQty = tiers.length > 0 ? tiers[tiers.length - 1].minQty : (formData.wholesaleMinQty || 10);
+                                const lastPrice = tiers.length > 0 ? tiers[tiers.length - 1].price : (formData.wholesalePrice || formData.price || 0);
+                                tiers.push({ minQty: lastMinQty * 2, price: Math.round(lastPrice * 0.9) });
+                                setFormData({ ...formData, wholesaleTiers: tiers });
+                              }}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[9px] font-black uppercase tracking-wider hover:bg-orange-100 transition-all active:scale-95"
+                            >
+                              <Plus size={12} /> Ajouter un palier
+                            </button>
+                          </div>
+
+                          {(formData.wholesaleTiers || []).length > 0 && (
+                            <div className="space-y-2">
+                              {(formData.wholesaleTiers || []).map((tier, idx) => (
+                                <div key={idx} className="flex items-center gap-2 md:gap-3 bg-orange-50/30 border border-orange-100/60 rounded-xl p-2.5 md:p-3">
+                                  <div className="flex-1 min-w-0">
+                                    <label className="block text-[8px] font-bold text-gray-400 uppercase mb-1">Dès (qté)</label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={tier.minQty}
+                                      onChange={e => {
+                                        const tiers = [...(formData.wholesaleTiers || [])];
+                                        tiers[idx] = { ...tiers[idx], minQty: parseInt(e.target.value) || 1 };
+                                        setFormData({ ...formData, wholesaleTiers: tiers });
+                                      }}
+                                      className="w-full px-3 py-2 bg-white border border-orange-100 rounded-lg text-sm font-black text-gray-800 focus:ring-2 focus:ring-orange-100 focus:border-[#f56b2a] outline-none transition-all"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <label className="block text-[8px] font-bold text-gray-400 uppercase mb-1">Prix unit. (XOF)</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={tier.price}
+                                      onChange={e => {
+                                        const tiers = [...(formData.wholesaleTiers || [])];
+                                        tiers[idx] = { ...tiers[idx], price: parseInt(e.target.value) || 0 };
+                                        setFormData({ ...formData, wholesaleTiers: tiers });
+                                      }}
+                                      className="w-full px-3 py-2 bg-white border border-orange-100 rounded-lg text-sm font-black text-[#f56b2a] focus:ring-2 focus:ring-orange-100 focus:border-[#f56b2a] outline-none transition-all"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const tiers = (formData.wholesaleTiers || []).filter((_: any, i: number) => i !== idx);
+                                      setFormData({ ...formData, wholesaleTiers: tiers });
+                                    }}
+                                    className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                    title="Supprimer ce palier"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                              {(formData.wholesaleTiers || []).length > 0 && (
+                                <p className="text-[8px] text-gray-400 font-bold px-1">
+                                  💡 Astuce : triez par quantité croissante. Le prix le plus avantageux s&apos;applique automatiquement.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

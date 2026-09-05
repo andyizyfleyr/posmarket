@@ -2,12 +2,14 @@ import React from "react";
 import {
   ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard,
   User, Phone, Home, Briefcase, Truck, RotateCcw, Zap, CheckCircle2,
-  ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell
+  ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell,
+  FileText, AlertTriangle, MessageCircle
 } from "lucide-react";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { formatCurrency, formatPhoneSN, isValidPhoneSN } from "@/utils";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
+import { generateProformaPdf } from "@/utils/proforma";
 import type { StoreData } from "@/types";
 
 export interface CartCheckoutViewBundle {
@@ -84,6 +86,36 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     baseCartTotal, wholesaleSavings, discountAmount, cartTotal,
     completedOrderStores, completedOrderItems, completedOrderTotal,
   } = props;
+
+  const handleProceedToShipping = () => {
+    // Vérifier les MOQ (Minimum Order Quantity / Amount) par boutique
+    const storeIds = Array.from(
+      new Set(cart.filter((i) => i.product?.storeId).map((item) => item.product.storeId))
+    );
+    for (const sId of storeIds) {
+      const sObj = stores.find((s) => s.id === sId);
+      const minAmount = Number(sObj?.settings?.wholesaleMinOrderAmount || 0);
+      if (minAmount > 0) {
+        const sItems = cart.filter((i) => i.product?.storeId === sId);
+        const subtotal = sItems.reduce((sum, i) => sum + getEffectiveItemPrice(i) * (i.quantity || 1), 0);
+        if (subtotal < minAmount) {
+          const sName = sItems[0]?.product?.storeName || sObj?.name || "Boutique";
+          localNotify(
+            `Minimum de commande requis pour "${sName}" : ${formatCurrency(minAmount)} (actuel: ${formatCurrency(subtotal)})`,
+            "warning"
+          );
+          return;
+        }
+      }
+    }
+
+    setIsCheckoutTransitioning(true);
+    setTimeout(() => {
+      setCheckoutStage("shipping");
+      setIsCheckoutTransitioning(false);
+    }, 500);
+  };
+
   return (
 ﻿      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col">
         <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
@@ -195,7 +227,18 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 const storeItems = cart.filter(
                   (i) => i.product?.storeId === storeId,
                 );
-                const storeName = storeItems[0]?.product.storeName || "Boutique";
+                const storeObj = stores.find((s) => s.id === storeId);
+                const storeSettings = storeObj?.settings;
+                const storePhone = storeObj?.phone || storeSettings?.phone;
+                const waDigits = storePhone ? String(storePhone).replace(/\D/g, "") : null;
+                const storeMinOrder = Number(storeSettings?.wholesaleMinOrderAmount || 0);
+                const storeSubtotal = storeItems.reduce(
+                  (sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1),
+                  0,
+                );
+                const isBelowMinOrder = storeMinOrder > 0 && storeSubtotal < storeMinOrder;
+                const missingForMinOrder = Math.max(0, storeMinOrder - storeSubtotal);
+                const storeName = storeItems[0]?.product.storeName || storeObj?.name || "Boutique";
                 const storeCount = storeItems.reduce(
                   (sum, i) => sum + (i.quantity || 1),
                   0,
@@ -419,6 +462,71 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         )}
                       </button>
                     )}
+
+                    {/* Alerte Minimum de Commande B2B */}
+                    {isBelowMinOrder && (
+                      <div className="p-3 bg-amber-50 border-t border-amber-200/60 flex items-start gap-2.5">
+                        <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-[11px] text-amber-800 leading-tight">
+                          <span className="font-bold">Minimum de commande de gros :</span> {formatCurrency(storeMinOrder)}.
+                          <span className="block text-amber-700 mt-0.5">
+                            Il vous manque <strong className="font-black text-amber-900">{formatCurrency(missingForMinOrder)}</strong> pour atteindre le seuil de commande auprès de {storeName}.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions B2B Boutique (Devis Proforma PDF & WhatsApp) */}
+                    <div className="px-4 py-2.5 bg-gray-50/70 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-gray-500">
+                        Total {storeName} : <strong className="text-gray-900">{formatCurrency(storeSubtotal)}</strong>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            generateProformaPdf({
+                              reference: `PF-${Date.now().toString().slice(-6)}`,
+                              date: new Date().toLocaleDateString("fr-FR"),
+                              storeName: storeName,
+                              storePhone: storePhone,
+                              buyerName: customerInfo?.name || user?.name || "Client Professionnel",
+                              buyerPhone: customerInfo?.phone,
+                              items: storeItems.map((si) => ({
+                                name: si.product.name + (si.variantId ? ` (${si.variantId})` : ""),
+                                quantity: si.quantity || 1,
+                                unitPrice: getEffectiveItemPrice(si),
+                                total: getEffectiveItemPrice(si) * (si.quantity || 1),
+                              })),
+                              subtotal: storeSubtotal,
+                              total: storeSubtotal,
+                            });
+                            localNotify("Devis proforma téléchargé", "success");
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-[10px] font-black uppercase tracking-wider shadow-2xs hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
+                          title="Télécharger le devis proforma pour cette boutique"
+                        >
+                          <FileText size={12} className="text-[#f56b2a]" />
+                          Devis PDF
+                        </button>
+                        {waDigits && (
+                          <a
+                            href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
+                              `Bonjour ${storeName}, voici ma sélection de commande en gros :\n\n` +
+                              storeItems.map((si) => `• ${si.quantity || 1}x ${si.product.name} (${formatCurrency(getEffectiveItemPrice(si))}/u)`).join("\n") +
+                              `\n\nTotal estimé : ${formatCurrency(storeSubtotal)}\nPourriez-vous me confirmer vos disponibilités et les modalités de livraison ? Merci !`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#1ea952] border border-[#25D366]/30 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95"
+                            title="Contacter le grossiste sur WhatsApp"
+                          >
+                            <MessageCircle size={12} />
+                            WhatsApp B2B
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -887,13 +995,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               <div className="hidden md:flex flex-col gap-3">
                 {checkoutStage === "cart" && (
                   <Button
-                    onClick={() => {
-                      setIsCheckoutTransitioning(true);
-                      setTimeout(() => {
-                        setCheckoutStage("shipping");
-                        setIsCheckoutTransitioning(false);
-                      }, 500);
-                    }}
+                    onClick={handleProceedToShipping}
                     loading={isCheckoutTransitioning}
                     loadingText="Chargement..."
                     fullWidth
@@ -957,13 +1059,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               <div className="px-3 pt-2.5">
                 {checkoutStage === "cart" && (
                   <Button
-                    onClick={() => {
-                      setIsCheckoutTransitioning(true);
-                      setTimeout(() => {
-                        setCheckoutStage("shipping");
-                        setIsCheckoutTransitioning(false);
-                      }, 500);
-                    }}
+                    onClick={handleProceedToShipping}
                     loading={isCheckoutTransitioning}
                     loadingText="Chargement..."
                     fullWidth

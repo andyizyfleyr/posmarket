@@ -101,6 +101,10 @@ const ProductDetailsView = dynamic(
   () => import("./storefront/ProductDetailsView").then((m) => m.ProductDetailsView),
   { ssr: true },
 );
+const BulkOrderModal = dynamic(
+  () => import("@/components/storefront/BulkOrderModal").then((m) => m.BulkOrderModal),
+  { ssr: false },
+);
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
@@ -760,6 +764,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     password: "",
   });
   const [showPropulseModal, setShowPropulseModal] = useState(false);
+  const [isBulkOrderOpen, setIsBulkOrderOpen] = useState(false);
 
   // RESTORE USER SESSION
   useEffect(() => {
@@ -1445,8 +1450,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     }
   }, [selectedStoreId, storeReviewsQuery.isFetching, storeReviewsQuery.data]);
 
+  const WHOLESALE_FILTER = "wholesale";
   const categories = useMemo(() => {
-    const all = ["all", ...MAIN_CATEGORIES];
+    const all = ["all", WHOLESALE_FILTER, ...MAIN_CATEGORIES];
     if (selectedVertical === "all") return all;
 
     // Define which categories belong to which vertical
@@ -1459,7 +1465,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       ),
     };
 
-    return ["all", ...(verticalMap[selectedVertical] || [])];
+    return ["all", WHOLESALE_FILTER, ...(verticalMap[selectedVertical] || [])];
   }, [selectedVertical]);
 
   const filteredProducts = useMemo(() => {
@@ -1473,8 +1479,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         const matchesSearch =
           name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           storeName.toLowerCase().includes(searchTerm.toLowerCase());
+        const hasWholesale = !!(p.wholesalePrice || (p.wholesaleTiers && p.wholesaleTiers.length > 0));
         const matchesCategory =
           selectedCategory === "all" ||
+          (selectedCategory === WHOLESALE_FILTER ? hasWholesale : false) ||
           category === selectedCategory ||
           mCategory === selectedCategory;
 
@@ -1759,8 +1767,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const handleCardAddToCart = (p: Product) => addToCart(p as StorefrontProduct);
   const handleCardBuyNow = (p: Product) => buyNow(p as StorefrontProduct);
 
-  const addWholesaleToCart = (product: StorefrontProduct) => {
-    if (!product.wholesaleMinQty) return;
+  const addWholesaleToCart = (product: StorefrontProduct, minQty?: number) => {
+    const qty =
+      minQty ||
+      (product.wholesaleTiers && product.wholesaleTiers.length > 0
+        ? Math.min(...product.wholesaleTiers.map((t) => t.minQty))
+        : Number(product.wholesaleMinQty)) ||
+      1;
     setCart((prev) => {
       const existing = prev.find(
         (item) =>
@@ -1773,15 +1786,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           item.product.storeId === product.storeId
             ? {
                 ...item,
-                quantity: Math.max(
-                  item.quantity,
-                  Number(product.wholesaleMinQty),
-                ),
+                quantity: Math.max(item.quantity, qty),
               }
             : item,
         );
       }
-      return [...prev, { product, quantity: Number(product.wholesaleMinQty) }];
+      return [...prev, { product, quantity: qty }];
     });
     setLastAddedProduct(product);
     buzz();
@@ -1791,6 +1801,42 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     onNotifyCartInterest(product.storeId, product.name);
     setTimeout(() => setCartNotif(false), 4000);
   };
+
+  const handleBulkAddToCart = useCallback(
+    (items: Array<{ product: Product & { storeId: string; storeName: string; storeSlug?: string }; quantity: number }>) => {
+      setCart((prev) => {
+        const next = [...prev];
+        for (const item of items) {
+          const sp = item.product as StorefrontProduct;
+          const idx = next.findIndex(
+            (i) =>
+              i.product.id === sp.id &&
+              i.product.storeId === sp.storeId &&
+              !i.variantId,
+          );
+          if (idx >= 0) {
+            next[idx] = {
+              ...next[idx],
+              quantity: next[idx].quantity + item.quantity,
+            };
+          } else {
+            next.push({
+              product: sp,
+              quantity: item.quantity,
+            });
+          }
+        }
+        return next;
+      });
+      if (items.length > 0) {
+        setLastAddedProduct(items[0].product as StorefrontProduct);
+        buzz();
+        setCartNotif(true);
+        setTimeout(() => setCartNotif(false), 4000);
+      }
+    },
+    [buzz],
+  );
 
   const removeFromCart = (
     productId: string,
@@ -1836,11 +1882,20 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     const { product, quantity, variantId } = item;
 
     // If variant selected, use its price
+    let basePrice = Number(product.price);
     if (variantId && product.variants) {
       const variant = product.variants.find((v) => v.id === variantId);
-      if (variant) return Number(variant.price);
+      if (variant) basePrice = Number(variant.price);
     }
 
+    // Tiered wholesale pricing
+    if (product.wholesaleTiers && product.wholesaleTiers.length > 0) {
+      const sortedTiers = [...product.wholesaleTiers].sort((a, b) => b.minQty - a.minQty);
+      const matched = sortedTiers.find((t) => quantity >= t.minQty);
+      if (matched) return Number(matched.price);
+    }
+
+    // Legacy single wholesale tier
     if (
       product.wholesalePrice &&
       product.wholesaleMinQty &&
@@ -1848,7 +1903,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     ) {
       return Number(product.wholesalePrice);
     }
-    return Number(product.price);
+    return basePrice;
   }, []);
 
   const baseCartTotal = Math.max(
@@ -1937,12 +1992,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       Object.keys(ordersData).forEach((storeId) => {
         const storeOrder = ordersData[storeId];
         storeOrder.subtotal = storeOrder.items.reduce((sum, i) => {
-          const price =
-            i.product.wholesalePrice &&
-            i.product.wholesaleMinQty &&
-            i.quantity >= i.product.wholesaleMinQty
-              ? i.product.wholesalePrice
-              : i.product.price;
+          const price = getEffectiveItemPrice(i as CartItem);
           return sum + price * i.quantity;
         }, 0);
         // Only apply discount to the store that has the coupon
@@ -2695,16 +2745,31 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
                     selectedCategory === cat
-                      ? "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md"
-                      : "bg-white border-gray-100 text-gray-600 hover:border-gray-200"
+                      ? cat === WHOLESALE_FILTER
+                        ? "bg-gradient-to-r from-[#f56b2a] to-orange-500 border-[#f56b2a] text-white shadow-md shadow-orange-500/20"
+                        : "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md"
+                      : cat === WHOLESALE_FILTER
+                        ? "bg-orange-50 border-orange-200 text-[#d55a20] hover:border-[#f56b2a]"
+                        : "bg-white border-gray-100 text-gray-600 hover:border-gray-200"
                   }`}
                 >
-                  <div
-                    className={`w-1.5 h-1.5 rounded-full ${selectedCategory === cat ? "bg-white" : "bg-gray-200"}`}
-                  />
-                  {cat === "all" ? "Tout voir" : cat}
+                  {cat === WHOLESALE_FILTER ? (
+                    <Zap size={11} fill="currentColor" className="flex-shrink-0" />
+                  ) : (
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${selectedCategory === cat ? "bg-white" : "bg-gray-200"}`}
+                    />
+                  )}
+                  {cat === "all" ? "Tout voir" : cat === WHOLESALE_FILTER ? "Vente en gros" : cat}
                 </button>
               ))}
+                <button
+                  onClick={() => setIsBulkOrderOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-sm active:scale-95 whitespace-nowrap ml-1 flex-shrink-0"
+                >
+                  <Zap size={12} fill="currentColor" className="flex-shrink-0" />
+                  Commande rapide
+                </button>
               </div>
             </div>
           </div>
@@ -3333,7 +3398,27 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     )}
 
                     <div className="relative space-y-7 md:space-y-12">
-                      {searchTerm || activeHomeCategory ? (
+                      {selectedCategory === WHOLESALE_FILTER && (
+                        <div className="bg-gradient-to-r from-orange-500 via-[#f56b2a] to-amber-600 rounded-3xl p-5 md:p-6 text-white shadow-xl shadow-orange-500/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+                              <Zap size={24} className="text-white fill-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-base md:text-lg font-black tracking-tight">Espace Vente en Gros & Dégressif</h3>
+                              <p className="text-xs text-orange-100 font-medium">Tarifs dégressifs automatiques dès les quantités minimales atteintes</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setIsBulkOrderOpen(true)}
+                            className="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0"
+                          >
+                            <Zap size={14} fill="currentColor" />
+                            Tableau Commande Rapide
+                          </button>
+                        </div>
+                      )}
+                      {searchTerm || activeHomeCategory || selectedCategory === WHOLESALE_FILTER ? (
                         /* Simple grid for search results / category page */
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                           {pagedProducts.map((product) => (
@@ -3997,6 +4082,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               addWholesaleToCart={addWholesaleToCart}
               isDescriptionExpanded={isDescriptionExpanded}
               setIsDescriptionExpanded={setIsDescriptionExpanded}
+              stores={stores}
             />
           } />
           <Route path="cart" element={renderCart()} />
@@ -4604,6 +4690,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </button>
           </div>
         </div>
+      )}
+      {isBulkOrderOpen && (
+        <BulkOrderModal
+          isOpen={isBulkOrderOpen}
+          onClose={() => setIsBulkOrderOpen(false)}
+          products={allProducts as Array<StorefrontProduct>}
+          onAddToCart={handleBulkAddToCart}
+          formatCurrency={formatCurrency}
+        />
       )}
     </div>
   );
