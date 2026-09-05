@@ -129,7 +129,7 @@ type FtsRow = {
 };
 
 export type CheckoutStoreOrderDraft = {
-  items: Array<{ product: StorefrontProduct; quantity: number }>;
+  items: Array<{ product: StorefrontProduct; quantity: number; price?: number }>;
   subtotal: number;
   discountAmount?: number;
   promoCode?: string | null;
@@ -1988,6 +1988,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         ordersData[item.product.storeId].items.push({
           product: item.product,
           quantity: item.quantity,
+          price: getEffectiveItemPrice(item),
         });
       });
       Object.keys(ordersData).forEach((storeId) => {
@@ -2094,7 +2095,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 cart.map((item) => ({
                   name: item.product.name,
                   quantity: item.quantity,
-                  price: item.product.price,
+                  price: getEffectiveItemPrice(item),
                 })),
               );
               setCompletedOrderTotal(cartTotal);

@@ -266,10 +266,19 @@ export const fetchOrderItems = async (orderId: string) => {
 
     const { data: productsData } = await supabase
         .from('products')
-        .select('id, name, price, image, business_type, main_category')
+        .select('id, name, price, image, business_type, main_category, unit, wholesale_price, wholesale_min_qty, wholesale_tiers')
         .in('id', productIds);
 
-    const productsMap = Object.fromEntries((productsData || []).map((p) => [String(p.id), p]));
+    const productsMap = Object.fromEntries((productsData || []).map((p) => [
+        String(p.id),
+        {
+            ...p,
+            unit: p.unit || undefined,
+            wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
+            wholesaleMinQty: p.wholesale_min_qty ? Number(p.wholesale_min_qty) : undefined,
+            wholesaleTiers: (p.wholesale_tiers as Array<{ minQty: number; price: number }>) || [],
+        },
+    ]));
     return (data || []).map((i) => ({ ...i, product: productsMap[String(i.product_id)] }));
 };
 

@@ -262,9 +262,9 @@ export async function submitCheckoutAction(
           orderId: newOrder.id,
           productId: item.product?.id || null,
           quantity: Number(item.quantity || 1),
-          unitPrice: String(item.product?.price ?? item.price ?? 0),
+          unitPrice: String(item.price ?? item.product?.price ?? 0),
           total: String(
-            Number(item.product?.price ?? item.price ?? 0) * Number(item.quantity || 1)
+            Number(item.price ?? item.product?.price ?? 0) * Number(item.quantity || 1)
           ),
         }))
       );

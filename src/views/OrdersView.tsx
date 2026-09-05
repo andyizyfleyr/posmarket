@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
+import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
 import { fetchOrderItems } from '../hooks/useSupabaseData';
 import { updateOrderStatusAction, deleteOrderAction, bulkUpdateOrderStatusAction, bulkDeleteOrdersAction, getOrdersAction } from '@/app/actions/orders';
 import { useRouter } from '@/components/RouterPolyfill';
@@ -479,23 +480,40 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                         </div>
                                     ) : (
                                     <div className="space-y-2 md:space-y-3">
-                                        {selectedOrderItems.map((item, idx) => (
+                                        {selectedOrderItems.map((item, idx) => {
+                                            const baseUnit = Number(item.product?.price || 0);
+                                            const unitQty = Number(item.quantity || 1);
+                                            const effUnit = getEffectiveWholesaleUnitPrice(item.product as any, unitQty);
+                                            const isWholesale = effUnit > 0 && effUnit < baseUnit;
+                                            const lineTotal = effUnit * unitQty;
+                                            return (
                                             <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-3 border border-gray-50 rounded-xl md:rounded-2xl hover:bg-gray-50/50 transition-colors">
                                                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 flex-shrink-0">
                                                     <img src={item.product.image} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-grow min-w-0">
                                                     <div className="text-xs md:text-sm font-black text-gray-900 truncate">{item.product.name}</div>
-                                                    <div className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                                        {item.quantity} {item.product.unit || 'unité(s)'}
+                                                    <div className="text-[9px] md:text-[10px] text-gray-400 font-bold uppercase mt-0.5 flex items-center flex-wrap gap-1">
+                                                        {unitQty} {item.product.unit || 'unité(s)'}
+                                                        {isWholesale && (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[8px] md:text-[9px] font-black uppercase">
+                                                                Gros
+                                                            </span>
+                                                        )}
                                                     </div>
-
+                                                    <div className="text-[9px] md:text-[10px] text-gray-500 font-bold mt-0.5">
+                                                        {formatCurrency(effUnit)} / {item.product.unit || 'unité'}
+                                                    </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-xs md:text-sm font-black text-gray-900">{formatCurrency(item.quantity * (item.product.price || 0))}</div>
+                                                    <div className="text-xs md:text-sm font-black text-gray-900">{formatCurrency(lineTotal)}</div>
+                                                    {isWholesale && (
+                                                        <div className="text-[9px] md:text-[10px] font-bold text-gray-400 line-through">{formatCurrency(baseUnit * unitQty)}</div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                     )}
                                 </div>

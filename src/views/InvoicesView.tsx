@@ -22,6 +22,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Invoice, InvoiceItem, StoreSettings, Customer, Product, StaffPermissions, StaffRole, NotificationType } from '@/types';
 import { formatCurrency } from '@/utils';
+import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
 import { fetchInvoiceItems } from '../hooks/useSupabaseData';
 
 interface InvoicesViewProps {
@@ -156,8 +157,8 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
         const newItem: InvoiceItem = {
             description: product.name,
             quantity: quantity,
-            unitPrice: product.price,
-            total: product.price * quantity
+            unitPrice: getEffectiveWholesaleUnitPrice(product, quantity),
+            total: getEffectiveWholesaleUnitPrice(product, quantity) * quantity
         };
 
         setNewInvoice(prev => {
