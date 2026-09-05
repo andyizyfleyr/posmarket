@@ -363,6 +363,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         const rows = (data || []) as FtsRow[];
         const onlineResults = rows.filter((p) => p?.isOnline !== false);
 
+        // Fetch additional info (store slugs) to ensure navigation works
+        const storeIds = [...new Set(onlineResults.map(p => p.store_id))];
+        const { data: storesData } = await supabase
+          .from('stores')
+          .select('id, slug')
+          .in('id', storeIds);
+        
+        const storeMap = new Map(storesData?.map(s => [s.id, s.slug]));
+
         // Only use result if it's for the current search term
         if (ftsRequestRef.current?.term === searchTerm) {
           setFtsResults(
@@ -375,7 +384,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
               category: p.category || "Autre",
               storeId: p.store_id,
               storeName: "",
-              storeSlug: undefined,
+              storeSlug: storeMap.get(p.store_id) || undefined,
             }) as StorefrontProduct),
           );
         }
