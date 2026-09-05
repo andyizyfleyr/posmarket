@@ -246,7 +246,7 @@ export async function submitCheckoutAction(
           customerId,
           buyerUserId: user?.id || null,
           buyerEmail: user?.email || customer.email || null,
-          status: 'COMPLETED',
+          status: 'PENDING',
           paymentMethod: storeOrder?.paymentMethod || 'ESPECES',
           type: 'ONLINE',
           subtotal: String(subtotal),

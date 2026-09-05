@@ -138,17 +138,17 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const getStatusColor = (status?: string) => {
         switch (status) {
             case 'COMPLETED': return 'bg-green-500 text-white';
-            case 'PENDING': return 'bg-orange-500 text-white';
-            case 'READY': return 'bg-yellow-400 text-yellow-900';
+            case 'PENDING': return 'bg-amber-500 text-white';
+            case 'READY': return 'bg-blue-500 text-white';
             default: return 'bg-gray-100 text-gray-700';
         }
     };
 
     const getStatusLabel = (status?: string) => {
         switch (status) {
-            case 'COMPLETED': return 'Terminée';
-            case 'PENDING': return 'En attente';
-            case 'READY': return 'Prête';
+            case 'COMPLETED': return 'Livrée';
+            case 'PENDING': return 'Commandée';
+            case 'READY': return 'En cours';
             default: return 'Payée';
         }
     };
@@ -254,21 +254,21 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                     </button>
                     <button
                         onClick={() => setFilterStatus('PENDING')}
-                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${filterStatus === 'PENDING' ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' : 'text-gray-400 hover:text-gray-900'}`}
+                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${filterStatus === 'PENDING' ? 'bg-amber-500 text-white shadow-lg shadow-amber-100' : 'text-gray-400 hover:text-gray-900'}`}
                     >
-                        Attente ({localOrders.filter(o => o.status === 'PENDING').length})
+                        Commandées ({localOrders.filter(o => o.status === 'PENDING').length})
                     </button>
                     <button
                         onClick={() => setFilterStatus('READY')}
-                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${filterStatus === 'READY' ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-100' : 'text-gray-400 hover:text-gray-900'}`}
+                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${filterStatus === 'READY' ? 'bg-blue-500 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-gray-900'}`}
                     >
-                        Prêtes ({localOrders.filter(o => o.status === 'READY').length})
+                        En cours ({localOrders.filter(o => o.status === 'READY').length})
                     </button>
                     <button
                         onClick={() => setFilterStatus('COMPLETED')}
                         className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${filterStatus === 'COMPLETED' ? 'bg-green-500 text-white shadow-lg shadow-green-100' : 'text-gray-400 hover:text-gray-900'}`}
                     >
-                        Terminées ({localOrders.filter(o => o.status === 'COMPLETED').length})
+                        Livrées ({localOrders.filter(o => o.status === 'COMPLETED').length})
                     </button>
                 </div>
 
@@ -293,21 +293,21 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         <div className="flex items-center gap-1.5 md:gap-2">
                             <button 
                                 onClick={() => handleBulkUpdateStatus('PENDING')}
-                                className="px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] md:text-xs font-black transition-colors shadow-sm whitespace-nowrap"
+                                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] md:text-xs font-black transition-colors shadow-sm whitespace-nowrap"
                             >
-                                Attente
+                                Commandées
                             </button>
                             <button 
                                 onClick={() => handleBulkUpdateStatus('READY')}
-                                className="px-2.5 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 rounded-lg text-[10px] md:text-xs font-black transition-colors shadow-sm whitespace-nowrap"
+                                className="px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] md:text-xs font-black transition-colors shadow-sm whitespace-nowrap"
                             >
-                                Prêtes
+                                En cours
                             </button>
                             <button 
                                 onClick={() => handleBulkUpdateStatus('COMPLETED')}
                                 className="px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-[10px] md:text-xs font-black transition-colors shadow-sm whitespace-nowrap"
                             >
-                                Terminées
+                                Livrées
                             </button>
                             <button 
                                 onClick={handleBulkDelete}
@@ -548,13 +548,26 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 <AlertCircle size={16} className="md:w-[18px] md:h-[18px]" /> Fermer
                             </button>
                             <button
+                                disabled={selectedOrder.status === 'COMPLETED'}
                                 onClick={() => {
-                                    handleUpdateStatus(selectedOrder.id, 'COMPLETED');
-                                    setSelectedOrder(null);
+                                    const nextStatus = selectedOrder.status === 'PENDING' ? 'READY' : 'COMPLETED';
+                                    handleUpdateStatus(selectedOrder.id, nextStatus as Order['status']);
+                                    if (nextStatus === 'COMPLETED') setSelectedOrder(null);
                                 }}
-                                className="py-3 md:py-4 px-4 md:px-6 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-black hover:bg-[#d55a20] shadow-xl shadow-orange-100 transition-all flex items-center justify-center gap-2 text-xs md:text-sm whitespace-nowrap"
+                                className={`py-3 md:py-4 px-4 md:px-6 flex items-center justify-center gap-2 text-xs md:text-sm font-black rounded-xl md:rounded-2xl shadow-xl shadow-orange-100 transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    selectedOrder.status === 'PENDING'
+                                        ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-100'
+                                        : selectedOrder.status === 'READY'
+                                        ? 'bg-[#f56b2a] text-white hover:bg-[#d55a20] shadow-orange-100'
+                                        : 'bg-gray-100 text-gray-400'
+                                }`}
                             >
-                                <CheckCircle2 size={16} className="md:w-[18px] md:h-[18px]" /> {selectedOrder.status === 'COMPLETED' ? 'Terminé' : 'Valider'}
+                                <CheckCircle2 size={16} className="md:w-[18px] md:h-[18px]" />
+                                {selectedOrder.status === 'PENDING'
+                                    ? 'Passer en cours'
+                                    : selectedOrder.status === 'READY'
+                                    ? 'Marquer livrée'
+                                    : 'Livrée'}
                             </button>
                         </div>
                     </div>

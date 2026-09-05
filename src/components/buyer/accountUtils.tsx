@@ -5,7 +5,6 @@ import Image from 'next/image';
 import {
   CheckCircle2,
   Clock,
-  Truck,
   X,
   AlertCircle,
   Package,
@@ -19,30 +18,23 @@ export const normalizeImage = (uri?: string | null): string => {
 };
 
 export const getStatusInfo = (status: string, businessType?: string) => {
-  const isFood = businessType === 'food';
-
   switch (status) {
     case 'COMPLETED':
       return {
-        label: isFood ? 'Dégusté' : 'Livré',
+        label: 'Livré',
         color: 'bg-green-100 text-green-700',
         icon: <CheckCircle2 size={12} />,
       };
     case 'READY':
+    case 'SHIPPED':
       return {
-        label: isFood ? 'Prêt' : 'Prêt pour retrait',
+        label: 'En cours',
         color: 'bg-blue-100 text-blue-700',
         icon: <Clock size={12} />,
       };
-    case 'SHIPPED':
-      return {
-        label: isFood ? 'En cours de livraison' : 'Expédié',
-        color: 'bg-purple-100 text-purple-700',
-        icon: <Truck size={12} />,
-      };
     case 'PENDING':
       return {
-        label: isFood ? 'En cuisine' : 'En attente',
+        label: 'Commandé',
         color: 'bg-amber-100 text-amber-700',
         icon: <Clock size={12} />,
       };
