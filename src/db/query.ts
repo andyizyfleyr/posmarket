@@ -262,7 +262,8 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     if (spec.textSearch?.query) {
       const info = columns.get(spec.textSearch.column) || columns.get('name');
       if (info) {
-        conditions.push(sql`${info.col} ILIKE ${'%' + spec.textSearch.query + '%'}`);
+        const queryTerm = spec.textSearch.query;
+        conditions.push(sql`${info.col} @@ websearch_to_tsquery('french', ${queryTerm})`);
       }
     }
 
@@ -291,6 +292,11 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
       const info = columns.get(spec.order.column);
       if (info) {
         base.orderBy(spec.order.ascending === false ? desc(info.col) : asc(info.col));
+      }
+    } else if (spec.textSearch?.query) {
+      const info = columns.get(spec.textSearch.column) || columns.get('name');
+      if (info) {
+        base.orderBy(sql`ts_rank(${info.col}, websearch_to_tsquery('french', ${spec.textSearch.query})) DESC`);
       }
     }
 
