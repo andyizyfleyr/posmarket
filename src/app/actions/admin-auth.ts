@@ -86,8 +86,8 @@ export interface AdminSession {
 }
 
 export async function getAdminSession(): Promise<AdminSession | null> {
+  const cookieStore = await cookies();
   try {
-    const cookieStore = await cookies();
     const token = cookieStore.get(SESSION_COOKIE)?.value;
     if (!token) return null;
 

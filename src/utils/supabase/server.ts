@@ -5,8 +5,8 @@ import { profiles } from '@/db/schema';
 import { QueryBuilder, runQuery } from '@/db/query';
 
 async function getCurrentUser() {
+  const cookieStore = await cookies();
   try {
-    const cookieStore = await cookies();
     const userId = cookieStore.get('userId')?.value;
     if (!userId) {
       return { user: null };
