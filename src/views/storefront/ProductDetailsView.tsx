@@ -146,6 +146,22 @@ export function ProductDetailsView(props: any) {
 
     const hasWholesale = wholesaleTiers.length > 0 && !isFood;
 
+    const [addingWholesaleIdx, setAddingWholesaleIdx] = React.useState<number | null>(null);
+    const [addedWholesaleIdx, setAddedWholesaleIdx] = React.useState<number | null>(null);
+
+    const handleWholesaleAdd = (idx: number, minQty: number) => {
+      if (addingWholesaleIdx === idx || addedWholesaleIdx === idx) return;
+      setAddingWholesaleIdx(idx);
+      addWholesaleToCart(product, minQty);
+      setTimeout(() => {
+        setAddingWholesaleIdx(null);
+        setAddedWholesaleIdx(idx);
+      }, 700);
+      setTimeout(() => {
+        setAddedWholesaleIdx((prev) => (prev === idx ? null : prev));
+      }, 1900);
+    };
+
     const productStore = React.useMemo(() => {
       if (!props.stores || !product?.storeId) return null;
       return props.stores.find((s: any) => s.id === product.storeId);
@@ -807,34 +823,47 @@ export function ProductDetailsView(props: any) {
                       </span>
                     </div>
                     <div className="space-y-1.5">
-                      {wholesaleTiers.map((tier, idx) => (
+                      {wholesaleTiers.map((tier, idx) => {
+                        const isAdding = addingWholesaleIdx === idx;
+                        const isAdded = addedWholesaleIdx === idx;
+                        return (
                         <div
                           key={idx}
-                          className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
+                          className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
                         >
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pcs</span>
-                              {tier.discountPct > 0 && (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
-                                  -{tier.discountPct}%
-                                </span>
-                              )}
-                            </div>
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+                            <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pcs</span>
+                            <span className="text-gray-300">•</span>
                             <span className="font-bold text-gray-900">
                               Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
+                            {tier.discountPct > 0 && (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
+                                -{tier.discountPct}%
+                              </span>
+                            )}
                           </div>
                           <button
                             type="button"
-                            onClick={() => addWholesaleToCart(product, tier.minQty)}
-                            className="px-2 py-1 rounded-md bg-[#f56b2a] hover:bg-[#e04e0f] text-white text-[10px] font-bold flex items-center gap-1 transition-colors"
+                            onClick={() => handleWholesaleAdd(idx, tier.minQty)}
+                            className={`min-w-[86px] justify-center px-2 py-1 rounded-md text-white text-[10px] font-bold flex items-center gap-1 transition-colors ${
+                              isAdded ? "bg-emerald-600" : "bg-[#f56b2a] hover:bg-[#e04e0f]"
+                            }`}
                           >
-                            <ShoppingCart size={10} />
-                            Ajouter {tier.minQty}
+                            {isAdding ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : isAdded ? (
+                              <Check size={11} strokeWidth={3} />
+                            ) : (
+                              <>
+                                <ShoppingCart size={10} />
+                                Ajouter {tier.minQty}
+                              </>
+                            )}
                           </button>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {waDigits && (
                       <a
@@ -1076,32 +1105,49 @@ export function ProductDetailsView(props: any) {
                     </div>
                     
                     <div className="grid grid-cols-1 gap-px bg-amber-100/50">
-                      {wholesaleTiers.map((tier, idx) => (
+                      {wholesaleTiers.map((tier, idx) => {
+                        const isAdding = addingWholesaleIdx === idx;
+                        const isAdded = addedWholesaleIdx === idx;
+                        return (
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => addWholesaleToCart(product, tier.minQty)}
+                          onClick={() => handleWholesaleAdd(idx, tier.minQty)}
                           className="flex items-center justify-between px-3 py-2 bg-white hover:bg-amber-50 active:bg-amber-100 transition-colors cursor-pointer group"
                         >
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
                             <span className="text-[10px] font-black text-gray-700">
                                 Qté Min : {tier.minQty} pcs
                             </span>
+                            <span className="text-gray-300 font-black">•</span>
                             <span className="text-xs font-black text-[#f56b2a]">
                               Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                              {tier.discountPct > 0 && (
                               <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
                                 -{tier.discountPct}%
                               </span>
                              )}
-                            <div className="px-2 py-1 rounded-lg bg-gray-900 text-white text-[9px] font-black uppercase">Ajouter</div>
+                            <div
+                              className={`min-w-[52px] justify-center px-2 py-1 rounded-lg text-white text-[9px] font-black uppercase flex items-center gap-1 transition-colors ${
+                                isAdded ? "bg-emerald-600" : "bg-gray-900"
+                              }`}
+                            >
+                              {isAdding ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : isAdded ? (
+                                <Check size={11} strokeWidth={3} />
+                              ) : (
+                                "Ajouter"
+                              )}
+                            </div>
                           </div>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {waDigits && (
