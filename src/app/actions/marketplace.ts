@@ -5,7 +5,7 @@ import { stores, products, productStats, productReviews, orders, orderItems, cus
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { getCurrentSession } from '@/app/actions/session'
-import { StoreData, BusinessVertical } from '@/types'
+import { StoreData, BusinessVertical, ProductOption, ProductVariant } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
 
@@ -92,6 +92,8 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
           unit: products.unit,
           deliveryTime: products.deliveryTime,
           preparationTime: products.preparationTime,
+          options: products.options,
+          variants: products.variants,
           hasImage: sql<boolean>`${products.image} IS NOT NULL`,
         })
         .from(products)
@@ -165,6 +167,8 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
               wholesaleMinQty: p.wholesaleMinQty ?? undefined,
               wholesaleTiers: (p.wholesaleTiers as Array<{ minQty: number; price: number }>) || [],
+              options: (p.options as ProductOption[]) || [],
+              variants: (p.variants as ProductVariant[]) || [],
               businessType: (p.businessType as BusinessVertical) || undefined
             };
           }),
