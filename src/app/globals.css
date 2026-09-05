@@ -70,12 +70,13 @@ button, a, [role="button"], input, select, textarea {
 
 /* Print Styles */
   @media print {
-    body > *:not(.print-only) {
+    .no-print {
       display: none !important;
     }
 
     .print-only {
       visibility: visible !important;
+      display: block !important;
       position: absolute !important;
       left: 0 !important;
       top: 0 !important;

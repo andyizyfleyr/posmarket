@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { playSuccessSound, formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
+import { printPosReceipt, downloadPosReceiptPdf, ReceiptData } from '@/utils/receipt';
 import ProductImage from '../components/ProductImage';
 import { Product, CartItem as ICartItem, Customer, PaymentMethod, Order, StoreSettings, StaffPermissions, NotificationType, Coupon } from '@/types';
 import Loader from '../components/Loader';
@@ -196,6 +197,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   const [promoApplied, setPromoApplied] = useState<{ code: string, discountPct: number } | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [liveTime, setLiveTime] = useState('');
   const [promoInput, setPromoInput] = useState('');
 
@@ -224,7 +226,6 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     if (currentStoreId) loadCoupons();
   }, [currentStoreId]);
 
-  const receiptRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -368,31 +369,61 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     }, 600);
   };
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = storeSettings?.name || 'POS';
-    window.print();
-    document.title = originalTitle;
-  };
+  const getReceiptData = useCallback((): ReceiptData => {
+    return {
+      orderId: currentOrderId ? currentOrderId.slice(-8).toUpperCase() : 'CMD',
+      date: new Date().toLocaleDateString('fr-FR'),
+      storeName: storeSettings?.name || 'Point de Vente',
+      storeAddress: storeSettings?.address || undefined,
+      storePhone: storeSettings?.phone || undefined,
+      storeEmail: storeSettings?.email || undefined,
+      orderType,
+      paymentMethod: paymentMethod === PaymentMethod.CASH ? 'Espèces' : 'Carte',
+      customerName: selectedCustomer ? selectedCustomer.name : undefined,
+      items: cart.map(item => {
+        const unitPrice = getEffectiveWholesaleUnitPrice(item.product, item.quantity);
+        return {
+          name: item.product.name,
+          quantity: item.quantity,
+          unit: item.product.unit,
+          unitPrice,
+          total: unitPrice * item.quantity
+        };
+      }),
+      subtotal: totals.baseSubtotal,
+      discount: promoApplied ? {
+        code: promoApplied.code,
+        amount: totals.discountAmount
+      } : undefined,
+      total: totals.total
+    };
+  }, [currentOrderId, storeSettings, orderType, paymentMethod, selectedCustomer, cart, totals, promoApplied]);
 
-  const handleDownloadPDF = async () => {
-    if (!receiptRef.current) return;
-    const [html2canvasModule, jspdfModule] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf')
-    ]);
-    const html2canvas = html2canvasModule.default || html2canvasModule;
-    const { jsPDF } = jspdfModule;
-    const canvas = await html2canvas(receiptRef.current, {
-      scale: 2, logging: false, useCORS: true, allowTaint: true, backgroundColor: '#ffffff'
-    });
-    const imgData = canvas.toDataURL('image/png');
-    const pdfWidth = 80;
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Recu-${currentOrderId}.pdf`);
-  };
+  const handlePrint = useCallback(() => {
+    try {
+      const data = getReceiptData();
+      printPosReceipt(data);
+      if (notify) notify("Impression du reçu lancée", 'info');
+    } catch (err) {
+      console.error('Print error:', err);
+      if (notify) notify("Erreur lors de l'impression du reçu", 'error');
+    }
+  }, [getReceiptData, notify]);
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const data = getReceiptData();
+      downloadPosReceiptPdf(data);
+      if (notify) notify('Reçu PDF téléchargé avec succès !', 'success');
+    } catch (err) {
+      console.error('PDF error:', err);
+      if (notify) notify('Erreur lors du téléchargement du PDF', 'error');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }, [isDownloadingPdf, getReceiptData, notify]);
 
   const closeCheckout = () => {
     setShowCheckoutModal(false);
@@ -805,58 +836,33 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               </div>
             </div>
 
-            {/* Hidden printable receipt */}
-            <div className="hidden">
-              <div ref={receiptRef} id="receipt-print" className="print-only bg-white p-6 shadow-sm border border-gray-200 mx-auto w-[80mm] text-[10pt] font-mono">
-                <div className="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
-                  <h1 className="text-xl font-black uppercase tracking-tighter text-gray-900">{storeSettings?.name || 'Boutique'}</h1>
-                  <p className="text-[8pt] text-gray-600 mt-1">{storeSettings?.address || ''}</p>
-                  <p className="text-[8pt] text-gray-500 font-mono mt-0.5">{[storeSettings?.phone, storeSettings?.email].filter(Boolean).join(' • ')}</p>
-                </div>
-                <div className="border-b border-dashed border-gray-300 pb-2 mb-2 space-y-1">
-                  <div className="flex justify-between"><span>DATE:</span><span>{new Date().toLocaleDateString('fr-FR')}</span></div>
-                  <div className="flex justify-between"><span>CMD:</span><span>{currentOrderId.slice(-8).toUpperCase()}</span></div>
-                  <div className="flex justify-between"><span>TYPE:</span><span>{orderType === 'PICKUP' ? 'CLICK & COLLECT' : 'EN MAGASIN'}</span></div>
-                </div>
-                <table className="w-full text-left">
-                  <tbody>
-                    {cart.map(item => (
-                      <tr key={item.product.id}>
-                        <td className="py-1">{item.product.name}</td>
-                        <td className="py-1 text-center">x{item.quantity}{item.product.unit && item.product.unit !== 'pièce' ? ` ${item.product.unit}` : ''}</td>
-                        <td className="py-1 text-right">{formatCurrency(getEffectiveWholesaleUnitPrice(item.product, item.quantity) * item.quantity)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="mt-4 pt-2 border-t border-dashed border-gray-300 font-bold space-y-1">
-                  <div className="flex justify-between text-xs text-gray-600"><span>SOUS-TOTAL:</span><span>{formatCurrency(totals.baseSubtotal)}</span></div>
-                  {promoApplied && (
-                    <div className="flex justify-between text-[10px] text-gray-500"><span>Code Promo ({promoApplied.code}):</span><span>-{formatCurrency(totals.discountAmount)}</span></div>
-                  )}
-                  <div className="flex justify-between text-lg pt-2 border-t border-gray-200"><span>TOTAL:</span><span>{formatCurrency(totals.total)}</span></div>
-                </div>
-                <div className="mt-4 text-center text-[8pt]">MERCI DE VOTRE VISITE !</div>
-              </div>
-            </div>
-
             {/* Actions */}
             <div className="p-5 pt-2 flex flex-col gap-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <button
+                  type="button"
                   onClick={handlePrint}
-                  className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm"
                 >
-                  <Printer size={16} /> Imprimer
+                  <Printer size={16} className="text-[#f56b2a]" /> Imprimer
                 </button>
                 <button
+                  type="button"
                   onClick={handleDownloadPDF}
-                  className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  disabled={isDownloadingPdf}
+                  className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm disabled:opacity-50"
                 >
-                  <Download size={16} /> PDF
+                  {isDownloadingPdf ? (
+                    <Loader size="sm" color="text-[#f56b2a]" />
+                  ) : (
+                    <>
+                      <Download size={16} className="text-[#f56b2a]" /> PDF
+                    </>
+                  )}
                 </button>
               </div>
               <button
+                type="button"
                 onClick={closeCheckout}
                 className="w-full py-3.5 bg-gradient-to-r from-[#f56b2a] to-[#e04e0f] text-white font-black text-sm rounded-2xl active:scale-[0.98] transition-transform shadow-lg shadow-orange-200/30"
               >
