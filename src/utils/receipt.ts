@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import { formatCurrency } from '@/utils';
 
 export interface ReceiptItem {
@@ -29,23 +28,9 @@ export interface ReceiptData {
 }
 
 /**
- * Imprime le ticket de caisse thermique 80mm de façon isolée via un iframe.
- * Évite les pages blanches et les conflits CSS avec la page principale.
+ * Génère le HTML autonome et stylisé pour le ticket thermique 80mm.
  */
-export function printPosReceipt(data: ReceiptData): void {
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  iframe.style.zIndex = '-9999';
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentWindow?.document;
-  if (!doc) return;
-
+function buildReceiptHtml(data: ReceiptData): string {
   const itemsHtml = data.items.map(item => `
     <tr>
       <td style="padding: 4px 0; text-align: left; vertical-align: top; word-break: break-word;">${item.name}</td>
@@ -54,103 +39,151 @@ export function printPosReceipt(data: ReceiptData): void {
     </tr>
   `).join('');
 
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Recu-${data.orderId}</title>
-        <style>
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
-          body {
-            margin: 0;
-            padding: 6mm 4mm;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 10pt;
-            color: #000;
-            background: #fff;
-            width: 80mm;
-            box-sizing: border-box;
-          }
-          * { box-sizing: border-box; }
-          .center { text-align: center; }
-          .right { text-align: right; }
-          .left { text-align: left; }
-          .bold { font-weight: bold; }
-          .border-b { border-bottom: 1px dashed #333; padding-bottom: 6px; margin-bottom: 6px; }
-          .border-t { border-top: 1px dashed #333; padding-top: 6px; margin-top: 6px; }
-          table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 9.5pt; }
-          .row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 9pt; }
-          .total-row { display: flex; justify-content: space-between; font-size: 12pt; font-weight: bold; margin-top: 6px; }
-        </style>
-      </head>
-      <body>
-        <div class="center border-b">
-          <div class="bold" style="font-size: 13pt; text-transform: uppercase;">${data.storeName}</div>
-          ${data.storeAddress ? `<div style="font-size: 8.5pt; margin-top: 2px;">${data.storeAddress}</div>` : ''}
-          ${data.storePhone || data.storeEmail ? `<div style="font-size: 8pt; margin-top: 2px;">${[data.storePhone, data.storeEmail].filter(Boolean).join(' • ')}</div>` : ''}
-        </div>
-
-        <div class="border-b">
-          <div class="row"><span>DATE:</span><span>${data.date}</span></div>
-          <div class="row"><span>CMD:</span><span class="bold">#${data.orderId}</span></div>
-          <div class="row"><span>TYPE:</span><span>${data.orderType === 'PICKUP' ? 'CLICK & COLLECT' : 'EN MAGASIN'}</span></div>
-          <div class="row"><span>PAIEMENT:</span><span>${data.paymentMethod}</span></div>
-          ${data.customerName ? `<div class="row"><span>CLIENT:</span><span>${data.customerName}</span></div>` : ''}
-        </div>
-
-        <table>
-          <thead>
-            <tr style="border-bottom: 1px dashed #333;">
-              <th style="text-align: left; padding-bottom: 4px;">ARTICLE</th>
-              <th style="text-align: center; padding-bottom: 4px;">QTE</th>
-              <th style="text-align: right; padding-bottom: 4px;">TOTAL</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-
-        <div class="border-t">
-          <div class="row"><span>SOUS-TOTAL:</span><span>${formatCurrency(data.subtotal)}</span></div>
-          ${data.discount ? `<div class="row"><span>REMISE (${data.discount.code}):</span><span>-${formatCurrency(data.discount.amount)}</span></div>` : ''}
-          <div class="total-row border-t"><span>TOTAL:</span><span>${formatCurrency(data.total)}</span></div>
-        </div>
-
-        <div class="center" style="margin-top: 14px; font-size: 8.5pt;">
-          MERCI DE VOTRE VISITE !
-        </div>
-      </body>
-    </html>
-  `);
-  doc.close();
-
-  iframe.contentWindow?.focus();
-  setTimeout(() => {
-    try {
-      iframe.contentWindow?.print();
-    } catch (e) {
-      console.error('Print error:', e);
-    } finally {
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Recu-${data.orderId}</title>
+    <style>
+      @page {
+        size: 80mm auto;
+        margin: 2mm;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        margin: 0;
+        padding: 6mm 4mm;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 10pt;
+        color: #000;
+        background: #fff;
+        width: 80mm;
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .center { text-align: center; }
+      .bold { font-weight: bold; }
+      .border-b { border-bottom: 1px dashed #333; padding-bottom: 6px; margin-bottom: 6px; }
+      .border-t { border-top: 1px dashed #333; padding-top: 6px; margin-top: 6px; }
+      table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 9.5pt; }
+      .row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 9pt; }
+      .total-row { display: flex; justify-content: space-between; font-size: 12pt; font-weight: bold; margin-top: 6px; }
+      
+      @media print {
+        body {
+          width: 80mm !important;
+          margin: 0 !important;
+          padding: 4mm !important;
         }
-      }, 1500);
-    }
-  }, 250);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="center border-b">
+      <div class="bold" style="font-size: 13pt; text-transform: uppercase;">${data.storeName}</div>
+      ${data.storeAddress ? `<div style="font-size: 8.5pt; margin-top: 2px;">${data.storeAddress}</div>` : ''}
+      ${data.storePhone || data.storeEmail ? `<div style="font-size: 8pt; margin-top: 2px;">${[data.storePhone, data.storeEmail].filter(Boolean).join(' • ')}</div>` : ''}
+    </div>
+
+    <div class="border-b">
+      <div class="row"><span>DATE:</span><span>${data.date}</span></div>
+      <div class="row"><span>CMD:</span><span class="bold">#${data.orderId}</span></div>
+      <div class="row"><span>TYPE:</span><span>${data.orderType === 'PICKUP' ? 'CLICK & COLLECT' : 'EN MAGASIN'}</span></div>
+      <div class="row"><span>PAIEMENT:</span><span>${data.paymentMethod}</span></div>
+      ${data.customerName ? `<div class="row"><span>CLIENT:</span><span>${data.customerName}</span></div>` : ''}
+    </div>
+
+    <table>
+      <thead>
+        <tr style="border-bottom: 1px dashed #333;">
+          <th style="text-align: left; padding-bottom: 4px;">ARTICLE</th>
+          <th style="text-align: center; padding-bottom: 4px;">QTE</th>
+          <th style="text-align: right; padding-bottom: 4px;">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <div class="border-t">
+      <div class="row"><span>SOUS-TOTAL:</span><span>${formatCurrency(data.subtotal)}</span></div>
+      ${data.discount ? `<div class="row"><span>REMISE (${data.discount.code}):</span><span>-${formatCurrency(data.discount.amount)}</span></div>` : ''}
+      <div class="total-row border-t"><span>TOTAL:</span><span>${formatCurrency(data.total)}</span></div>
+    </div>
+
+    <div class="center" style="margin-top: 14px; font-size: 8.5pt;">
+      MERCI DE VOTRE VISITE !
+    </div>
+  </body>
+</html>`;
 }
 
 /**
- * Génère et télécharge directement un reçu PDF au format thermique 80mm vectoriel.
+ * Imprime le ticket de caisse thermique 80mm via un iframe isolé.
+ * L'iframe est dimensionné avec une vraie largeur (80mm) et placé hors-écran
+ * pour que le moteur de rendu de Chrome ne produise pas de page blanche.
+ */
+export function printPosReceipt(data: ReceiptData): void {
+  // Nettoyer les anciens iframes d'impression
+  document.querySelectorAll('iframe[data-pos-receipt]').forEach(el => el.remove());
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('data-pos-receipt', 'true');
+  // Dimensions réelles avec positionnement hors-écran (évite page blanche sous Chrome)
+  iframe.style.position = 'fixed';
+  iframe.style.top = '-10000px';
+  iframe.style.left = '-10000px';
+  iframe.style.width = '80mm';
+  iframe.style.height = '800px';
+  iframe.style.border = 'none';
+  iframe.style.zIndex = '-9999';
+  document.body.appendChild(iframe);
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!iframeDoc) {
+    console.error('[printPosReceipt] Cannot access iframe document');
+    iframe.remove();
+    return;
+  }
+
+  const html = buildReceiptHtml(data);
+  iframeDoc.open();
+  iframeDoc.write(html);
+  iframeDoc.close();
+
+  const triggerPrint = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (e) {
+      console.error('[printPosReceipt] Print failed:', e);
+    }
+    // Nettoyer après la fermeture du dialogue d'impression
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        iframe.remove();
+      }
+    }, 4000);
+  };
+
+  // Délai pour que le document soit complètement peint
+  setTimeout(triggerPrint, 400);
+}
+
+/**
+ * Génère et télécharge un reçu PDF au format thermique 80mm vectoriel.
  * Ultra rapide, fiable, fonctionne sur mobile et ordinateur sans dépendre de html2canvas.
  */
-export function downloadPosReceiptPdf(data: ReceiptData): void {
+export async function downloadPosReceiptPdf(data: ReceiptData): Promise<void> {
+  const jspdfModule = await import('jspdf');
+  const jsPDF = jspdfModule.jsPDF || (jspdfModule as any).default || jspdfModule;
+
   const itemHeight = 6;
   const baseHeight = 85 + (data.discount ? 8 : 0) + (data.customerName ? 6 : 0);
   const calculatedHeight = Math.max(110, baseHeight + data.items.length * itemHeight);

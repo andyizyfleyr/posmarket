@@ -70,6 +70,10 @@ button, a, [role="button"], input, select, textarea {
 
 /* Print Styles */
   @media print {
+    body > *:not(.print-only) {
+      display: none !important;
+    }
+
     .no-print {
       display: none !important;
     }

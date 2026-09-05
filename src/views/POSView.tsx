@@ -415,7 +415,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     setIsDownloadingPdf(true);
     try {
       const data = getReceiptData();
-      downloadPosReceiptPdf(data);
+      await downloadPosReceiptPdf(data);
       if (notify) notify('Reçu PDF téléchargé avec succès !', 'success');
     } catch (err) {
       console.error('PDF error:', err);
