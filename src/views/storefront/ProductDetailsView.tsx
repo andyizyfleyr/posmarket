@@ -4,7 +4,7 @@ import {
   Package, ArrowRight, ChevronRight, Share2, Maximize2, Zap, Clock, Star,
   ShoppingBag, Eye, ShoppingCart, AlertCircle, Check, MessageCircle,
   ShieldCheck, RotateCcw, Truck, ChevronLeft, ArrowLeft, Loader2,
-  Store, CheckCircle2, PackageCheck, Heart, X
+  Store, CheckCircle2, PackageCheck, Heart, X, ChevronDown
 } from "lucide-react";
 import Button from "@/components/Button";
 import ProductImage from "@/components/ProductImage";
@@ -151,6 +151,8 @@ export function ProductDetailsView(props: any) {
 
     const [addingWholesaleIdx, setAddingWholesaleIdx] = React.useState<number | null>(null);
     const [addedWholesaleIdx, setAddedWholesaleIdx] = React.useState<number | null>(null);
+    const [isOptionsExpanded, setIsOptionsExpanded] = React.useState(false);
+    const [isWholesaleExpanded, setIsWholesaleExpanded] = React.useState(false);
 
     const handleWholesaleAdd = (idx: number, minQty: number) => {
       if (addingWholesaleIdx === idx || addedWholesaleIdx === idx) return;
@@ -202,6 +204,7 @@ export function ProductDetailsView(props: any) {
 
     const handleAddToCart = () => {
       if (!allSelected) {
+        setIsOptionsExpanded(true);
         localNotify(
           "Veuillez sélectionner toutes les options",
           "warning",
@@ -217,6 +220,7 @@ export function ProductDetailsView(props: any) {
 
     const handleBuyNow = () => {
       if (!allSelected) {
+        setIsOptionsExpanded(true);
         localNotify(
           "Veuillez sélectionner toutes les options",
           "warning",
@@ -764,26 +768,35 @@ export function ProductDetailsView(props: any) {
                   )}
                 </div>
 
-                {/* Options / Variantes — SKU picker style */}
+                {/* Options / Variantes — SKU picker style (accordion) */}
                 {hasOptions && (
-                  <div className="border-t border-gray-100 pt-3">
-                    <div className="flex items-center justify-between mb-2.5">
+                  <div className="border-t border-gray-100 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
+                      aria-expanded={isOptionsExpanded}
+                      className="w-full flex items-center justify-between py-2 cursor-pointer select-none group"
+                    >
                       <div className="flex items-center gap-1.5">
                         <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
                           <Package size={12} strokeWidth={2.5} />
                         </span>
-                        <span className="text-sm font-black text-gray-900">Options & Variantes</span>
+                        <span className="text-sm font-black text-gray-900 group-hover:text-[#f56b2a] transition-colors">Options & Variantes</span>
+                        {allSelected ? (
+                          <span className="flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 size={11} strokeWidth={2.5} /> Tout sélectionné
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {selectedOptionCount}/{options.length} choisi{options.length > 1 ? "s" : ""}
+                          </span>
+                        )}
                       </div>
-                      {allSelected ? (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 size={11} strokeWidth={2.5} /> Tout sélectionné
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-gray-400">
-                          {selectedOptionCount}/{options.length} choisi{options.length > 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
+                      <ChevronDown size={16} strokeWidth={2.5} className={`transition-transform duration-300 text-gray-400 ${isOptionsExpanded ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {isOptionsExpanded && (
+                      <div className="pt-2.5 pb-1 animate-in slide-in-from-top-2 duration-300">
 
                     {selectedOptionCount > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2">
@@ -875,76 +888,88 @@ export function ProductDetailsView(props: any) {
                         Sélectionnez les options pour commander
                       </p>
                     )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Wholesale / B2B */}
                 {hasWholesale && (
-                  <div className="bg-amber-50/40 border border-amber-200/60 rounded-xl p-3 text-gray-900 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                  <div className="bg-amber-50/40 border border-amber-200/60 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsWholesaleExpanded(!isWholesaleExpanded)}
+                      aria-expanded={isWholesaleExpanded}
+                      className="w-full flex items-center justify-between px-3 py-3 cursor-pointer select-none group"
+                    >
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 group-hover:text-amber-950 transition-colors">
                         <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
                         Tarifs Grossiste (B2B)
                       </div>
-                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                        B2B
+                      <span className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                          B2B
+                        </span>
+                        <ChevronDown size={14} className={`transition-transform duration-300 text-amber-700 ${isWholesaleExpanded ? "rotate-180" : ""}`} />
                       </span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {wholesaleTiers.map((tier, idx) => {
-                        const isAdding = addingWholesaleIdx === idx;
-                        const isAdded = addedWholesaleIdx === idx;
-                        return (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
-                        >
-                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-                            <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pièces</span>
-                            <span className="text-gray-300">•</span>
-                            <span className="font-bold text-gray-900">
-                              Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
-                            </span>
-                            {tier.discountPct > 0 && (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
-                                -{tier.discountPct}%
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleWholesaleAdd(idx, tier.minQty)}
-                            className={`min-w-[86px] justify-center px-2 py-1 rounded-md text-white text-[10px] font-bold flex items-center gap-1 transition-colors ${
-                              isAdded ? "bg-emerald-600" : "bg-[#f56b2a] hover:bg-[#e04e0f]"
-                            }`}
+                    </button>
+                    {isWholesaleExpanded && (
+                      <div className="px-3 pb-3 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                        {wholesaleTiers.map((tier, idx) => {
+                          const isAdding = addingWholesaleIdx === idx;
+                          const isAdded = addedWholesaleIdx === idx;
+                          return (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
                           >
-                            {isAdding ? (
-                              <Loader2 size={11} className="animate-spin" />
-                            ) : isAdded ? (
-                              <Check size={11} strokeWidth={3} />
-                            ) : (
-                              <>
-                                <ShoppingCart size={10} />
-                                Ajouter {tier.minQty}
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        );
-                      })}
-                    </div>
-                    {waDigits && (
-                      <a
-                        href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
-                          `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais un devis personnalisé gros volume. Merci !`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline pt-0.5"
-                      >
-                        <MessageCircle size={12} />
-                        Demander un devis sur WhatsApp
-                      </a>
+                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+                              <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pièces</span>
+                              <span className="text-gray-300">•</span>
+                              <span className="font-bold text-gray-900">
+                                Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
+                              </span>
+                              {tier.discountPct > 0 && (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
+                                  -{tier.discountPct}%
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleWholesaleAdd(idx, tier.minQty)}
+                              className={`min-w-[86px] justify-center px-2 py-1 rounded-md text-white text-[10px] font-bold flex items-center gap-1 transition-colors ${
+                                isAdded ? "bg-emerald-600" : "bg-[#f56b2a] hover:bg-[#e04e0f]"
+                              }`}
+                            >
+                              {isAdding ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : isAdded ? (
+                                <Check size={11} strokeWidth={3} />
+                              ) : (
+                                <>
+                                  <ShoppingCart size={10} />
+                                  Ajouter {tier.minQty}
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          );
+                        })}
+                        {waDigits && (
+                          <a
+                            href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
+                              `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais un devis personnalisé gros volume. Merci !`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline pt-0.5"
+                          >
+                            <MessageCircle size={12} />
+                            Demander un devis sur WhatsApp
+                          </a>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1113,31 +1138,40 @@ export function ProductDetailsView(props: any) {
                   </div>
                 )}
 
-                {/* Mobile options: SKU picker card */}
+                {/* Mobile options: SKU picker card (accordion) */}
                 {hasOptions && (
                   <div className="bg-white border border-gray-100 rounded-2xl mb-2.5 shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50/60 border-b border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
+                      aria-expanded={isOptionsExpanded}
+                      className="w-full flex items-center justify-between px-3 py-3 active:bg-gray-50 transition-colors cursor-pointer select-none"
+                    >
                       <div className="flex items-center gap-2">
                         <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
                           <Package size={13} strokeWidth={2.5} />
                         </span>
-                        <div>
+                        <div className="text-left">
                           <p className="text-[11px] font-black text-gray-900 leading-tight">Options & Variantes</p>
-                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Sélectionnez pour commander</p>
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Touchez pour déplier</p>
                         </div>
                       </div>
-                      {allSelected ? (
-                        <span className="flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">
-                          <CheckCircle2 size={10} strokeWidth={3} /> Prêt à commander
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full">
-                          {selectedOptionCount}/{options.length}
-                        </span>
-                      )}
-                    </div>
+                      <div className="flex items-center gap-1.5">
+                        {allSelected ? (
+                          <span className="flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">
+                            <CheckCircle2 size={10} strokeWidth={3} /> Prêt à commander
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full">
+                            {selectedOptionCount}/{options.length}
+                          </span>
+                        )}
+                        <ChevronDown size={15} className={`transition-transform duration-300 text-gray-400 ${isOptionsExpanded ? "rotate-180" : ""}`} />
+                      </div>
+                    </button>
 
-                    <div className="p-3">
+                    {isOptionsExpanded && (
+                    <div className="p-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
                       {selectedOptionCount > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5">
                           <span className="text-[8px] font-black uppercase tracking-wider text-gray-400">Sélection :</span>
@@ -1229,20 +1263,30 @@ export function ProductDetailsView(props: any) {
                         </p>
                       )}
                     </div>
+                  )}
                   </div>
                 )}
 
-                {/* Mobile wholesale: Redesign compact & visible */}
+                {/* Mobile wholesale: Redesign compact & visible (accordion) */}
                 {hasWholesale && (
                   <div className="bg-white rounded-2xl border border-amber-200/50 mb-2.5 overflow-hidden">
-                    <div className="px-3 py-2 bg-amber-50/50 border-b border-amber-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsWholesaleExpanded(!isWholesaleExpanded)}
+                      aria-expanded={isWholesaleExpanded}
+                      className="w-full px-3 py-2.5 bg-amber-50/50 flex items-center justify-between active:bg-amber-100/60 transition-colors cursor-pointer select-none"
+                    >
                         <span className="text-[10px] font-black text-amber-950 flex items-center gap-1.5">
                             <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
                             PRIX DE GROS
                         </span>
-                        <span className="text-[9px] font-bold text-[#e04e0f] uppercase">Dégressif</span>
-                    </div>
-                    
+                        <span className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-bold text-[#e04e0f] uppercase">Dégressif</span>
+                            <ChevronDown size={14} className={`transition-transform duration-300 text-amber-700 ${isWholesaleExpanded ? "rotate-180" : ""}`} />
+                        </span>
+                    </button>
+                    {isWholesaleExpanded && (
+                    <>
                     <div className="grid grid-cols-1 gap-px bg-amber-100/50">
                       {wholesaleTiers.map((tier, idx) => {
                         const isAdding = addingWholesaleIdx === idx;
@@ -1304,6 +1348,8 @@ export function ProductDetailsView(props: any) {
                           Négocier sur WhatsApp 🤝
                         </a>
                       </div>
+                    )}
+                    </>
                     )}
                   </div>
                 )}
