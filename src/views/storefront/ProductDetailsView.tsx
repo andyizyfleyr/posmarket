@@ -832,7 +832,7 @@ export function ProductDetailsView(props: any) {
                           className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
                         >
                           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-                            <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pcs</span>
+                            <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pièces</span>
                             <span className="text-gray-300">•</span>
                             <span className="font-bold text-gray-900">
                               Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
@@ -1117,7 +1117,7 @@ export function ProductDetailsView(props: any) {
                         >
                           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
                             <span className="text-[10px] font-black text-gray-700">
-                                Qté Min : {tier.minQty} pcs
+                                Qté Min : {tier.minQty} pièces
                             </span>
                             <span className="text-gray-300 font-black">•</span>
                             <span className="text-xs font-black text-[#f56b2a]">

@@ -934,7 +934,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         >
                           <optgroup label="Standard">
-                            <option value="pièce">Pièce (pcs)</option>
+                            <option value="pièce">Pièce</option>
                             <option value="unité">Unité (u)</option>
                             <option value="douzaine">Douzaine</option>
                             <option value="paquet">Paquet</option>
