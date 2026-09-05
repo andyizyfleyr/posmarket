@@ -204,7 +204,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         category: product.category || 'Général',
         mainCategory: product.mainCategory || CATEGORY_MAPPING[product.category || ''] || 'Divers',
         image: product.image || '',
-        images: product.images || (product.image ? [product.image] : []),
+        images: (Array.isArray(product.images) && product.images.length > 0)
+          ? product.images
+          : (product.image ? [product.image] : []),
         unit: product.unit || 'pièce',
         description: product.description || '',
         isOnline: product.isOnline ?? true,
