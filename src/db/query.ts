@@ -263,7 +263,10 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
       const info = columns.get(spec.textSearch.column) || columns.get('name');
       if (info) {
         const queryTerm = spec.textSearch.query;
-        conditions.push(sql`${info.col} @@ websearch_to_tsquery('french', ${queryTerm})`);
+        // Permissive search: FTS (Ranked) OR ILIKE (Partial match fallback)
+        conditions.push(
+          sql`(${info.col} @@ websearch_to_tsquery('french', ${queryTerm}) OR ${info.col}::text ILIKE ${'%' + queryTerm + '%'})`
+        );
       }
     }
 
@@ -296,6 +299,7 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     } else if (spec.textSearch?.query) {
       const info = columns.get(spec.textSearch.column) || columns.get('name');
       if (info) {
+        // Sort by rank, preferring FTS matches over partial ILIKE matches
         base.orderBy(sql`ts_rank(${info.col}, websearch_to_tsquery('french', ${spec.textSearch.query})) DESC`);
       }
     }
