@@ -263,9 +263,14 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
       const info = columns.get(spec.textSearch.column) || columns.get('name');
       if (info) {
         const queryTerm = spec.textSearch.query;
-        // Permissive search: FTS (Ranked) OR ILIKE (Partial match fallback)
+        // Robust Search:
+        // 1. Full-Text Search (Ranked)
+        // 2. Trigram Similarity (Fuzzy matching)
+        // 3. ILIKE Fallback (Partial match)
         conditions.push(
-          sql`(${info.col} @@ websearch_to_tsquery('french', ${queryTerm}) OR ${info.col}::text ILIKE ${'%' + queryTerm + '%'})`
+          sql`(${info.col} @@ websearch_to_tsquery('french', ${queryTerm}) 
+            OR ${info.col}::text % ${queryTerm}
+            OR ${info.col}::text ILIKE ${'%' + queryTerm + '%'})`
         );
       }
     }
@@ -299,8 +304,8 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     } else if (spec.textSearch?.query) {
       const info = columns.get(spec.textSearch.column) || columns.get('name');
       if (info) {
-        // Sort by rank, preferring FTS matches over partial ILIKE matches
-        base.orderBy(sql`ts_rank(${info.col}, websearch_to_tsquery('french', ${spec.textSearch.query})) DESC`);
+        // Sort by a combination of FTS rank and Trigram similarity for best relevance
+        base.orderBy(sql`ts_rank(${info.col}, websearch_to_tsquery('french', ${spec.textSearch.query})) DESC, similarity(${info.col}::text, ${spec.textSearch.query}) DESC`);
       }
     }
 
