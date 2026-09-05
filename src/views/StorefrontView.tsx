@@ -391,13 +391,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       } catch (err) {
         if ((err as { name?: string } | null)?.name !== "AbortError") {
           console.error("FTS Search Error:", err);
+          if (ftsRequestRef.current?.term === searchTerm) {
+            setFtsResults([]);
+          }
         }
       } finally {
         if (ftsRequestRef.current?.term === searchTerm) {
           setIsSearching(false);
         }
       }
-    }, 500);
+    }, 300); // Réduit le délai pour plus de réactivité
 
     return () => {
       clearTimeout(delayDebounceFn);
