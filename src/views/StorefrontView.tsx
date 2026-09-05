@@ -4084,6 +4084,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               isDescriptionExpanded={isDescriptionExpanded}
               setIsDescriptionExpanded={setIsDescriptionExpanded}
               stores={stores}
+              cartItemsCount={cartItemsCount}
+              cartTotal={cartTotal}
             />
           } />
           <Route path="cart" element={renderCart()} />

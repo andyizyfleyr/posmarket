@@ -53,6 +53,8 @@ export function ProductDetailsView(props: any) {
     addWholesaleToCart,
     isDescriptionExpanded,
     setIsDescriptionExpanded,
+    cartItemsCount,
+    cartTotal,
   } = props;
     const product = selectedProductDetails;
     if (!product) {
@@ -188,6 +190,10 @@ export function ProductDetailsView(props: any) {
         return;
       }
       addToCart(product, resolveVariantId());
+    };
+
+    const goToCart = () => {
+      safeNavigate("/cart");
     };
 
     const handleBuyNow = () => {
@@ -1077,12 +1083,12 @@ export function ProductDetailsView(props: any) {
                           onClick={() => addWholesaleToCart(product, tier.minQty)}
                           className="flex items-center justify-between px-3 py-2 bg-white hover:bg-amber-50 active:bg-amber-100 transition-colors cursor-pointer group"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-gray-700 w-16">
-                                {tier.minQty}+ pcs
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] font-black text-gray-700">
+                                Qté Min : {tier.minQty} pcs
                             </span>
                             <span className="text-xs font-black text-[#f56b2a]">
-                              {formatCurrency(tier.unitPrice)}/u
+                              Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
                           </div>
                           
@@ -1375,22 +1381,33 @@ export function ProductDetailsView(props: any) {
               </div>
             )}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className="flex-1 border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
-              >
-                <ShoppingCart size={14} strokeWidth={2.5} />
-                {isFood ? 'Commander' : 'Panier'}
-              </button>
-              <button
-                onClick={handleBuyNow}
-                disabled={isOutOfStock}
-                className="flex-[1.2] bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 shadow-md shadow-orange-500/10 transition-all disabled:opacity-50"
-              >
-                <Zap size={14} fill="currentColor" />
-                {isOutOfStock ? "Rupture" : (isFood ? "Commander" : "Acheter")}
-              </button>
+              {cartItemsCount > 0 ? (
+                <button
+                  onClick={goToCart}
+                  className="w-full bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-orange-500/10 transition-all"
+                >
+                  <div className="relative flex-shrink-0">
+                    <ShoppingCart size={16} strokeWidth={2.5} />
+                    <span className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black">
+                      {cartItemsCount}
+                    </span>
+                  </div>
+                  Voir mon panier
+                  <span className="opacity-60">•</span>
+                  <span className="tabular-nums">
+                    {formatCurrency(Number(cartTotal) || 0)}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className="w-full border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ShoppingCart size={14} strokeWidth={2.5} />
+                  {isOutOfStock ? "Rupture" : (isFood ? 'Commander' : 'Ajouter au panier')}
+                </button>
+              )}
             </div>
           </div>
         )}
