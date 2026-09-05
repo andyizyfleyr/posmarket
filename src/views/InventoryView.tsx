@@ -1008,8 +1008,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                const removedId = option.id;
                                 const newOptions = formData.options?.filter((_, i) => i !== optIdx);
-                                setFormData({ ...formData, options: newOptions });
+                                const newVariants = (formData.variants || []).filter(v => !v.optionValues || !(removedId in v.optionValues));
+                                setFormData({ ...formData, options: newOptions, variants: newVariants });
                               }}
                               className="absolute -top-2 -right-2 w-6 h-6 bg-white shadow-md border border-gray-100 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/option:opacity-100 transition-all hover:bg-red-50"
                             >
@@ -1152,9 +1154,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                                combine(0, {});
 
+                              const comboKey = (o: Record<string, string>) =>
+                                Object.keys(o).sort().map(k => `${k}:${o[k]}`).join('|');
+
                               const newVariants = combinations.map(combo => {
                                 const name = Object.values(combo).join(' / ');
-                                const existing = formData.variants?.find(v => JSON.stringify(v.optionValues) === JSON.stringify(combo));
+                                const existing = formData.variants?.find(v => comboKey(v.optionValues) === comboKey(combo));
 
                                 return {
                                   id: existing?.id || Math.random().toString(36).substr(2, 9),
