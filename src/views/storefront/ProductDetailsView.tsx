@@ -919,37 +919,64 @@ export function ProductDetailsView(props: any) {
                   </div>
                 )}
 
-                {/* Mobile wholesale */}
+                {/* Mobile wholesale (B2B) - aligned with desktop design, optimized for mobile */}
                 {hasWholesale && (
-                  <div className="bg-gray-900 text-white rounded-2xl p-4 mb-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Zap size={14} className="text-[#f56b2a] fill-[#f56b2a]" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-white">
-                        Tarifs Grossiste
+                  <div className="bg-amber-50/50 border border-amber-200/70 rounded-2xl p-3.5 mb-4 text-gray-900 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                        <Zap size={13} className="text-[#f56b2a] fill-[#f56b2a]" />
+                        Tarifs Grossiste (B2B)
+                      </div>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200/60">
+                        B2B
                       </span>
                     </div>
+
                     <div className="space-y-1.5">
                       {wholesaleTiers.map((tier, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-xs"
+                          className="flex items-center justify-between py-2 px-2.5 rounded-xl bg-white border border-amber-200/60 shadow-xs text-xs"
                         >
-                          <div>
-                            <span className="font-bold text-white">Dès {tier.minQty} pièces</span>
-                            <span className="text-[10px] text-gray-400 block">
+                          <div className="min-w-0 pr-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-gray-900">Dès {tier.minQty} pcs</span>
+                              {tier.discountPct > 0 && (
+                                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded-md">
+                                  -{tier.discountPct}%
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-gray-500 block font-medium mt-0.5">
                               {formatCurrency(tier.unitPrice)} / pièce
                             </span>
                           </div>
+
                           <button
+                            type="button"
                             onClick={() => addWholesaleToCart(product, tier.minQty)}
-                            className="px-2.5 py-1 rounded-lg bg-orange-500 text-white font-bold text-[10px] flex items-center gap-1"
+                            className="h-8 px-2.5 rounded-lg bg-[#f56b2a] hover:bg-[#e04e0f] text-white text-[11px] font-bold flex items-center gap-1 active:scale-95 transition-all shadow-xs shrink-0"
                           >
-                            <ShoppingCart size={11} />
-                            Ajouter {tier.minQty}
+                            <ShoppingCart size={12} strokeWidth={2.2} />
+                            <span>Ajouter {tier.minQty}</span>
                           </button>
                         </div>
                       ))}
                     </div>
+
+                    {waDigits && (
+                      <a
+                        href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
+                          `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais un devis personnalisé gros volume. Merci !`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/70 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                      >
+                        <MessageCircle size={13} className="text-emerald-600" />
+                        Demander un devis sur WhatsApp
+                      </a>
+                    )}
                   </div>
                 )}
 
