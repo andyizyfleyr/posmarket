@@ -31,7 +31,7 @@ export interface PhoneInputProps {
 export const PhoneInput: React.FC<PhoneInputProps> = ({
   value,
   onChange,
-  defaultCountryCode = 'SN',
+  defaultCountryCode = DEFAULT_COUNTRY.code,
   placeholder,
   disabled = false,
   required = false,
