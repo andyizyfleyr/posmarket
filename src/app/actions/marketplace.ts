@@ -708,26 +708,28 @@ export async function fetchBuyerProfileAction() {
 }
 
 export async function searchProductsAction(query: string, limit: number = 30) {
-  // Normalize: trim, collapse internal spaces, lower-case for consistency
+  // Normalize: trim, collapse spaces (accent handling done in SQL via unaccent)
   const normalized = query.trim().replace(/\s+/g, ' ');
   if (!normalized || normalized.length < 2) {
     return { success: true, error: undefined, products: [] };
   }
 
   try {
-    // Use raw SQL for full control over pg_trgm + FTS ranking.
-    // The CTE computes a weighted rank_score combining:
-    //   - ts_rank on search_vector (French FTS, name=A desc=B weights) × 2.0
-    //   - trigram similarity on name                                    × 1.5
-    //   - trigram similarity on description                             × 0.5
-    // WHERE matches via FTS (@@ websearch_to_tsquery) OR trigram (%)
-    // OR ILIKE as final fallback for very short / unstemmed terms.
+    // Advanced CTE with 5 relevance layers:
+    //  1. FTS ts_rank on search_vector (accent-insensitive via immutable_unaccent)   × 2.0
+    //  2. pg_trgm similarity on unaccented name (typo tolerance)                     × 1.5
+    //  3. pg_trgm similarity on unaccented description                               × 0.3
+    //  4. Prefix bonus: name starts with query term                                  + 0.5
+    //  5. Store name match (brand search: "Nike" → all Nike products)                × 0.8
+    //  All multiplied by a log-damped popularity boost from product_stats
+    //  Final filter: rank_score > 0.08 (eliminates garbage results)
     const rows = await db.execute(sql`
       WITH ranked AS (
         SELECT
           p.id,
           p.name,
           p.price,
+          p.original_price,
           p.image,
           p.stock,
           p.main_category,
@@ -736,25 +738,55 @@ export async function searchProductsAction(query: string, limit: number = 30) {
           p.business_type,
           p.wholesale_price,
           p.wholesale_tiers,
+          p.views,
           s.name          AS store_name,
           s.slug          AS store_slug,
+          COALESCE(ps.total_sales, 0)     AS total_sales,
+          COALESCE(ps.average_rating, 0)  AS average_rating,
+          COALESCE(ps.review_count, 0)    AS review_count,
           (
-            ts_rank(p.search_vector, websearch_to_tsquery('french', ${normalized})) * 2.0
-            + similarity(p.name, ${normalized})                                     * 1.5
-            + similarity(coalesce(p.description, ''), ${normalized})                * 0.5
-          ) AS rank_score
+            -- 1. FTS relevance (unaccented — uses GIN index on search_vector)
+            ts_rank(p.search_vector, websearch_to_tsquery('french', immutable_unaccent(${normalized}))) * 2.0
+
+            -- 2. Trigram on unaccented name (typo tolerance)
+            + similarity(immutable_unaccent(p.name), immutable_unaccent(${normalized})) * 1.5
+
+            -- 3. Trigram on unaccented description (wider fuzzy surface)
+            + similarity(immutable_unaccent(coalesce(p.description, '')), immutable_unaccent(${normalized})) * 0.3
+
+            -- 4. Prefix bonus: query is a prefix of the product name → immediate match
+            + CASE
+                WHEN lower(immutable_unaccent(p.name)) LIKE lower(immutable_unaccent(${normalized})) || '%'
+                THEN 0.5 ELSE 0
+              END
+
+            -- 5. Store name match: brand/store searches surface relevant products
+            + similarity(immutable_unaccent(s.name), immutable_unaccent(${normalized})) * 0.8
+          )
+          -- Popularity boost: log-damped so viral products don't bury fresh ones
+          * (1.0 + ln(1.0 + COALESCE(ps.total_sales, 0)::float * 3
+                          + p.views::float * 0.1))
+          AS rank_score
         FROM products p
         JOIN stores s ON s.id = p.store_id
+        LEFT JOIN product_stats ps ON ps.product_id = p.id
         WHERE
           p.is_online = true
           AND (
-            p.search_vector @@ websearch_to_tsquery('french', ${normalized})
-            OR p.name        % ${normalized}
-            OR p.description % ${normalized}
-            OR p.name        ILIKE ${'%' + normalized + '%'}
+            -- FTS match (unaccented)
+            p.search_vector @@ websearch_to_tsquery('french', immutable_unaccent(${normalized}))
+            -- Trigram fuzzy on name
+            OR immutable_unaccent(p.name) % immutable_unaccent(${normalized})
+            -- Trigram fuzzy on description
+            OR immutable_unaccent(coalesce(p.description, '')) % immutable_unaccent(${normalized})
+            -- ILIKE fallback (prefix / partial)
+            OR p.name ILIKE ${'%' + normalized + '%'}
+            -- Store name match
+            OR s.name ILIKE ${'%' + normalized + '%'}
           )
       )
       SELECT * FROM ranked
+      WHERE rank_score > 0.08
       ORDER BY rank_score DESC
       LIMIT ${limit}
     `);
@@ -763,6 +795,7 @@ export async function searchProductsAction(query: string, limit: number = 30) {
       id: p.id as string,
       name: p.name as string,
       price: Number(p.price),
+      originalPrice: p.original_price ? Number(p.original_price) : undefined,
       image: (p.image as string) || '',
       stock: Number(p.stock) || 0,
       category: (p.main_category as string) || 'Autre',
@@ -774,6 +807,10 @@ export async function searchProductsAction(query: string, limit: number = 30) {
       businessType: ((p.business_type as string) || 'shopping') as BusinessVertical,
       wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
       wholesaleTiers: (p.wholesale_tiers as WholesaleTier[]) || [],
+      views: Number(p.views) || 0,
+      salesCount: Number(p.total_sales) || 0,
+      rating: Number(p.average_rating) || 0,
+      reviewCount: Number(p.review_count) || 0,
       rankScore: Number(p.rank_score) || 0,
     }));
 
@@ -784,3 +821,47 @@ export async function searchProductsAction(query: string, limit: number = 30) {
     return { success: false, error: message, products: [] };
   }
 }
+
+/** Lightweight autocomplete — returns up to 5 product name suggestions in < 50ms.
+ *  Uses only pg_trgm + ILIKE (no JOIN to product_stats) for maximum speed. */
+export async function searchSuggestionsAction(query: string) {
+  const normalized = query.trim().replace(/\s+/g, ' ');
+  if (!normalized || normalized.length < 2) {
+    return { success: true, suggestions: [] };
+  }
+
+  try {
+    const rows = await db.execute(sql`
+      SELECT DISTINCT ON (lower(immutable_unaccent(p.name)))
+        p.id,
+        p.name,
+        p.main_category,
+        s.name AS store_name,
+        similarity(immutable_unaccent(p.name), immutable_unaccent(${normalized})) AS sim
+      FROM products p
+      JOIN stores s ON s.id = p.store_id
+      WHERE
+        p.is_online = true
+        AND (
+          immutable_unaccent(p.name) % immutable_unaccent(${normalized})
+          OR p.name ILIKE ${normalized + '%'}
+          OR p.name ILIKE ${'%' + normalized + '%'}
+        )
+      ORDER BY lower(immutable_unaccent(p.name)), sim DESC
+      LIMIT 5
+    `);
+
+    const suggestions = (rows.rows as Record<string, unknown>[]).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      category: (r.main_category as string) || '',
+      storeName: (r.store_name as string) || '',
+    }));
+
+    return { success: true, suggestions };
+  } catch (error) {
+    console.error('[searchSuggestionsAction] error:', error);
+    return { success: true, suggestions: [] }; // fail silently for autocomplete
+  }
+}
+

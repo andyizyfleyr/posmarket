@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
@@ -331,7 +332,38 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return activeStores.find((s) => s.id === selectedStoreId) || null;
   }, [selectedStoreId, activeStores]);
 
-// 🔍 DEBOUNCED SERVER SEARCH (pg_trgm + FTS + weighted ts_rank ranking)
+  // Autocomplete suggestions (fast, lightweight — fires at 150ms)
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string; category: string; storeName: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<{ abort: () => void } | null>(null);
+
+  useEffect(() => {
+    const normalized = searchTerm.trim().replace(/\s+/g, ' ');
+    if (!normalized || normalized.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const t = setTimeout(async () => {
+      if (suggestionsRef.current) suggestionsRef.current.abort();
+      let aborted = false;
+      suggestionsRef.current = { abort: () => { aborted = true; } };
+      try {
+        const { searchSuggestionsAction } = await import('@/app/actions/marketplace');
+        const res = await searchSuggestionsAction(normalized);
+        if (!aborted && res.success) {
+          setSuggestions(res.suggestions);
+          setShowSuggestions(res.suggestions.length > 0);
+        }
+      } catch {}
+    }, 150);
+    return () => {
+      clearTimeout(t);
+      if (suggestionsRef.current) suggestionsRef.current.abort();
+    };
+  }, [searchTerm]);
+
+  // 🔍 DEBOUNCED SERVER SEARCH (pg_trgm + FTS + weighted ts_rank ranking)
   const ftsRequestRef = useRef<{ term: string; abort: () => void } | null>(null);
 
   useEffect(() => {
@@ -379,7 +411,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           setIsSearching(false);
         }
       }
-    }, 300);
+    }, 150);
 
     return () => {
       clearTimeout(delayDebounceFn);
@@ -1254,10 +1286,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const globalSearchStores = useMemo(() => {
     if (!searchTerm) return [];
-    const term = searchTerm.toLowerCase();
+    const term = normalizeSearchTerm(searchTerm);
     return stores.filter((s) => {
-      const name = (s.name || s.settings?.name || "").toLowerCase();
-      const slug = (s.slug || "").toLowerCase();
+      const name = normalizeSearchTerm(s.name || s.settings?.name || "");
+      const slug = normalizeSearchTerm(s.slug || "");
       return name.includes(term) || slug.includes(term);
     });
   }, [searchTerm, stores]);
@@ -2865,6 +2897,41 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </div>
           </div>
 
+          {/* Autocomplete suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="mx-4 mb-2 bg-white rounded-2xl shadow-lg border border-orange-100 overflow-hidden z-10">
+              {suggestions.map((s, i) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setSearchTerm(s.name);
+                    setShowSuggestions(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-orange-50 active:bg-orange-100 transition-colors border-b border-gray-50 last:border-0"
+                >
+                  <svg className="text-orange-400 shrink-0" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[12px] font-bold text-gray-800 truncate block">
+                      {highlightSegments(s.name, searchTerm).map((seg, j) =>
+                        seg.highlight
+                          ? <mark key={j} className="bg-orange-100 text-orange-600 not-italic font-black rounded px-0.5">{seg.text}</mark>
+                          : <span key={j}>{seg.text}</span>
+                      )}
+                    </span>
+                    {s.category && (
+                      <span className="text-[10px] text-gray-400 font-medium">{s.category}</span>
+                    )}
+                  </div>
+                  <svg className="text-gray-300 shrink-0" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M7 17 17 7M7 7h10v10"/>
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex-grow overflow-y-auto px-4 py-6">
             {searchTerm ? (
               <div className="space-y-8">
@@ -2934,29 +3001,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       {isSearching ? (
                         Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)
                       ) : (
-                        ftsResults.map((product) => (
-                          <div
-                            key={product.id}
-                            onClick={() => {
-                              if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
-                              safeNavigate(
-                                `/product/${generateProductSlug(product)}`,
-                                {
-                                  action: () => {
-                                    setIsSearchOpen(false);
-                                    setSearchTerm("");
-                                  },
-                                },
-                              );
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <ProductCard
-                              product={product}
-                              onAddToCart={handleCardAddToCart}
-                              onStoreSelect={(id) => {
+                        ftsResults.map((product) => {
+                          const segs = highlightSegments(product.name, searchTerm);
+                          const hasHighlight = segs.some(s => s.highlight);
+                          return (
+                            <div
+                              key={product.id}
+                              onClick={() => {
+                                if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
                                 safeNavigate(
-                                  `/store/${product.storeSlug || id}`,
+                                  `/product/${generateProductSlug(product)}`,
                                   {
                                     action: () => {
                                       setIsSearchOpen(false);
@@ -2965,10 +3019,36 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   },
                                 );
                               }}
-                              onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
-                            />
-                          </div>
-                        ))
+                              className="cursor-pointer relative group/result"
+                            >
+                              <ProductCard
+                                product={product}
+                                onAddToCart={handleCardAddToCart}
+                                onStoreSelect={(id) => {
+                                  safeNavigate(
+                                    `/store/${product.storeSlug || id}`,
+                                    {
+                                      action: () => {
+                                        setIsSearchOpen(false);
+                                        setSearchTerm("");
+                                      },
+                                    },
+                                  );
+                                }}
+                                onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                              />
+                              {hasHighlight && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm px-2 py-1 text-[10px] font-bold leading-tight truncate pointer-events-none rounded-b-xl border-t border-orange-100">
+                                  {segs.map((seg, i) =>
+                                    seg.highlight
+                                      ? <mark key={i} className="bg-orange-100 text-orange-600 rounded px-0.5 not-italic font-black">{seg.text}</mark>
+                                      : <span key={i} className="text-gray-700">{seg.text}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
