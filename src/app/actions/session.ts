@@ -20,7 +20,7 @@ function serializeUser(profile: typeof profiles.$inferSelect) {
 
 export async function getCurrentSession() {
   const cookieStore = await cookies();
-  const userId = cookieStore.get('userId')?.value;
+  const userId = cookieStore.get('buyerUserId')?.value;
   if (!userId) return { user: null };
 
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
@@ -47,14 +47,14 @@ export async function signInWithPasswordSession(email: string) {
     }).returning();
   }
 
-  (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+  (await cookies()).set('buyerUserId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
   return { user: serializeUser(profile), error: null };
 }
 
 export async function signUpSession(name: string, email: string) {
   const [existing] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
   if (existing) {
-    (await cookies()).set('userId', existing.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+    (await cookies()).set('buyerUserId', existing.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
     return { user: serializeUser(existing), error: null };
   }
 
@@ -74,21 +74,21 @@ export async function signUpSession(name: string, email: string) {
     })
     .returning();
 
-  (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+  (await cookies()).set('buyerUserId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
   return { user: serializeUser(profile), error: null };
 }
 
 export async function signOutSession() {
-  (await cookies()).delete('userId');
+  (await cookies()).delete('buyerUserId');
   return { error: null };
 }
 
 export async function setSessionUser(userId: string | null) {
   const cookieStore = await cookies();
   if (!userId) {
-    cookieStore.delete('userId');
+    cookieStore.delete('buyerUserId');
   } else {
-    cookieStore.set('userId', userId, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+    cookieStore.set('buyerUserId', userId, { path: '/', maxAge: 60 * 60 * 24 * 7 });
   }
   return { session: userId ? { user: { id: userId } } : null, error: null };
 }

@@ -358,8 +358,8 @@ const resolveCurrentBuyer = async (fallbackIdOrEmail?: string) => {
   if (profile?.id) {
     try {
       const cookieStore = await cookies();
-      if (!cookieStore.get('userId')?.value) {
-        cookieStore.set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+      if (!cookieStore.get('buyerUserId')?.value) {
+        cookieStore.set('buyerUserId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
       }
     } catch {}
   }
