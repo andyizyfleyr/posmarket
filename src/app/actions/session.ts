@@ -9,7 +9,12 @@ function serializeUser(profile: typeof profiles.$inferSelect) {
   return {
     id: profile.id,
     email: profile.email,
-    user_metadata: { full_name: profile.fullName },
+    user_metadata: { 
+      full_name: profile.fullName,
+      account_type: profile.accountType || 'buyer',
+    },
+    accountType: profile.accountType || 'buyer',
+    isSuperAdmin: profile.isSuperAdmin,
   };
 }
 
@@ -33,6 +38,7 @@ export async function signInWithPasswordSession(email: string) {
     [profile] = await db.insert(profiles).values({
       email,
       fullName: email.split('@')[0],
+      accountType: 'buyer',
       subscriptionTier: 'PRO',
       subscriptionDuration: 'monthly',
       subscriptionStatus: 'ACTIVE',
@@ -60,6 +66,7 @@ export async function signUpSession(name: string, email: string) {
     .values({
       email,
       fullName: name,
+      accountType: 'buyer',
       subscriptionTier: 'PRO',
       subscriptionStatus: 'ACTIVE',
       subscriptionStartDate: now,

@@ -18,12 +18,16 @@ export async function loginAction(formData: FormData) {
       [profile] = await db.insert(profiles).values({
         email,
         fullName: email.split('@')[0],
+        accountType: 'seller',
         subscriptionTier: 'PRO',
         subscriptionDuration: 'monthly',
         subscriptionStatus: 'ACTIVE',
         subscriptionStartDate: now,
         subscriptionEndDate: endOfMonth,
       }).returning();
+    } else if (profile.accountType === 'buyer') {
+      // Si un compte acheteur se connecte délibérément sur le portail vendeur, on active son statut vendeur
+      await db.update(profiles).set({ accountType: 'seller' }).where(eq(profiles.id, profile.id));
     }
 
     (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
@@ -41,6 +45,9 @@ export async function signupAction(formData: FormData) {
   try {
     const [existing] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
     if (existing) {
+      if (existing.accountType === 'buyer') {
+        await db.update(profiles).set({ accountType: 'seller' }).where(eq(profiles.id, existing.id));
+      }
       (await cookies()).set('userId', existing.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
       redirect('/dashboard');
     }
@@ -51,6 +58,7 @@ export async function signupAction(formData: FormData) {
     const [newProfile] = await db.insert(profiles).values({
       email,
       fullName: name,
+      accountType: 'seller',
       subscriptionTier: 'PRO',
       subscriptionDuration: 'monthly',
       subscriptionStatus: 'ACTIVE',

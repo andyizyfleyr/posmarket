@@ -287,9 +287,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [, setUrlKey] = useState(0);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
 
-  // 0. URL Change Listener - Force re-render on navigation
+  // 0. URL Change Listener - Only re-render on navigation popstate
   useEffect(() => {
-    setUrlKey(prev => prev + 1);
     const handlePopstate = () => setUrlKey(prev => prev + 1);
     window.addEventListener('popstate', handlePopstate);
     return () => window.removeEventListener('popstate', handlePopstate);
@@ -780,7 +779,16 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     id?: string;
     name: string;
     email: string;
-  } | null>(null);
+  } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('posmarket_buyer_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isSessionChecking, setIsSessionChecking] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authForm, setAuthForm] = useState({
@@ -793,19 +801,41 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   // RESTORE USER SESSION
   useEffect(() => {
+    let active = true;
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          name: session.user.user_metadata?.full_name || "Utilisateur",
-          email: session.user.email || "",
-        });
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!active) return;
+        if (session?.user) {
+          const u = {
+            id: session.user.id,
+            name: session.user.user_metadata?.full_name || "Utilisateur",
+            email: session.user.email || "",
+          };
+          setUser(u);
+          try {
+            localStorage.setItem('posmarket_buyer_user', JSON.stringify(u));
+          } catch {}
+        } else {
+          setUser(null);
+          try {
+            localStorage.removeItem('posmarket_buyer_user');
+          } catch {}
+        }
+      } catch {
+        // Ignorer les erreurs silencieuses
+      } finally {
+        if (active) {
+          setIsSessionChecking(false);
+        }
       }
     };
     checkSession();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Fetch buyer addresses when user is set
@@ -848,18 +878,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     }
   }, [checkoutStage, user?.id, buyerAddresses, customerInfo.address, localNotify]);
 
-  // Auto-redirect to home if hitting /mon-compte without session (only for exact /mon-compte, not sub-paths)
+  // Auto-redirect to home if hitting /mon-compte without session
   useEffect(() => {
-    if (isAccountViewUrl && user === null && isMounted) {
+    if (isAccountViewUrl && user === null && isMounted && !isSessionChecking) {
       const timer = setTimeout(() => {
-        // Only redirect if user is still null AND path is exactly /mon-compte (not sub-paths)
-        if (!user && (location.pathname === "/mon-compte" || location.pathname === "/account")) {
+        if (!user && (location.pathname === "/mon-compte" || location.pathname === "/account" || location.pathname.startsWith("/mon-compte/"))) {
           safeNavigate("/");
+          setShowAuthModal(true);
         }
-      }, 1500);
+      }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isAccountViewUrl, user, isMounted]);
+  }, [isAccountViewUrl, user, isMounted, isSessionChecking]);
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
@@ -1235,11 +1265,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           options: { data: { full_name: authForm.name } },
         });
         if (error) throw error;
-        setUser({
+        const u = {
           id: data.user?.id,
           name: authForm.name,
           email: authForm.email,
-        });
+        };
+        setUser(u);
+        try { localStorage.setItem('posmarket_buyer_user', JSON.stringify(u)); } catch {}
         notify("Compte créé ! Bienvenue.", "success");
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -1247,11 +1279,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           password: authForm.password,
         });
         if (error) throw error;
-        setUser({
+        const u = {
           id: data.user?.id,
           name: data.user?.user_metadata?.full_name || "Utilisateur",
           email: authForm.email,
-        });
+        };
+        setUser(u);
+        try { localStorage.setItem('posmarket_buyer_user', JSON.stringify(u)); } catch {}
         notify("Connexion réussie !", "success");
       }
       setShowAuthModal(false);
@@ -1275,6 +1309,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       await supabase.auth.signOut();
     } catch {}
     setUser(null);
+    try { localStorage.removeItem('posmarket_buyer_user'); } catch {}
+    try { localStorage.removeItem('buyer_data_cache_v2'); } catch {}
+    try { localStorage.removeItem('buyer_profile_cache'); } catch {}
     setCustomerInfo({ name: "", phone: "", address: "", city: "", zip: "" });
     setIsAccountView(false);
     safeNavigate("/");
@@ -1282,7 +1319,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   };
 
   const handleUserUpdate = (updates: { name: string }) => {
-    setUser((prev) => (prev ? { ...prev, name: updates.name || prev.name } : prev));
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, name: updates.name || prev.name };
+      try { localStorage.setItem('posmarket_buyer_user', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
   };
 
   const globalSearchStores = useMemo(() => {
@@ -2543,12 +2585,23 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           Vous êtes hors ligne • Reconnexion en cours...
         </div>
       )}
+      {/* Account Loading Skeleton if loading account page without cached session */}
+      {isAccountViewUrl && !user && isSessionChecking && (
+        <div className="fixed inset-0 z-[900] bg-[#fafafa] flex flex-col items-center justify-center p-6">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#f56b2a] to-orange-400 flex items-center justify-center shadow-lg shadow-[#f56b2a]/20 mb-4 animate-pulse">
+            <User className="text-white w-6 h-6" />
+          </div>
+          <div className="h-4 w-32 bg-gray-200 rounded-full animate-pulse mb-2" />
+          <div className="h-3 w-48 bg-gray-100 rounded-full animate-pulse" />
+        </div>
+      )}
+
       {/* BuyerView Overlay (Full screen for mobile/desktop) */}
       {(isAccountView || isAccountViewUrl) && user && (
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
             user={{ id: user.id, name: user.name, email: user.email }}
-            accountTab={location.pathname.split('/mon-compte/')[1] || 'commandes'}
+            accountTab={location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0] || 'commandes'}
             onBack={() => {
               if (isAccountViewUrl) safeNavigate("/");
               else setIsAccountView(false);
@@ -3201,7 +3254,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               dès aujourd&apos;hui.
                             </p>
                             <Button
-                              onClick={() => safeNavigate(user ? "/dashboard" : "/login")}
+                              onClick={() => safeNavigate("/login")}
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
@@ -3235,7 +3288,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               automatiques pour ne jamais manquer une vente.
                             </p>
                             <Button
-                              onClick={() => safeNavigate(user ? "/dashboard" : "/login")}
+                              onClick={() => safeNavigate("/login")}
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
@@ -3269,7 +3322,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               transformé leur manière de vendre.
                             </p>
                             <Button
-                              onClick={() => safeNavigate(user ? "/dashboard" : "/login")}
+                              onClick={() => safeNavigate("/login")}
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"

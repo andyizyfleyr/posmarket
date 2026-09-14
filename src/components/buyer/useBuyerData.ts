@@ -64,13 +64,18 @@ export function useBuyerData(
   const user = typeof userOrNotify === 'object' ? userOrNotify : null;
   const notify = typeof userOrNotify === 'function' ? userOrNotify : maybeNotify;
 
-  const [orders, setOrders] = useState<BuyerOrder[]>([]);
-  const [addresses, setAddresses] = useState<BuyerAddress[]>([]);
-  const [reviews, setReviews] = useState<BuyerReview[]>([]);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [hasMoreOrders, setHasMoreOrders] = useState(false);
+  const initialCache = typeof window !== 'undefined' ? readCache() : null;
+
+  const [orders, setOrders] = useState<BuyerOrder[]>(() => initialCache?.orders || []);
+  const [addresses, setAddresses] = useState<BuyerAddress[]>(() => initialCache?.addresses || []);
+  const [reviews, setReviews] = useState<BuyerReview[]>(() => initialCache?.reviews || []);
+  const [totalOrders, setTotalOrders] = useState<number>(() => initialCache?.totalOrders || 0);
+  const [hasMoreOrders, setHasMoreOrders] = useState<boolean>(() => {
+    const c = initialCache;
+    return c ? (c.orders?.length || 0) < (c.totalOrders || 0) : false;
+  });
   const [orderPage, setOrderPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => !initialCache);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,19 +155,14 @@ export function useBuyerData(
     }
   }, [reloadTab]);
 
-  // Montage : affichage instantané du cache puis rafraîchissement en arrière-plan.
+  // Montage : affichage instantané du cache puis rafraîchissement silencieux en arrière-plan si expiré
   useEffect(() => {
     cancelledRef.current = false;
     const cache = readCache();
-    if (cache) {
-      setOrders(cache.orders);
-      setAddresses(cache.addresses);
-      setReviews(cache.reviews);
-      setTotalOrders(cache.totalOrders);
-      setHasMoreOrders(cache.orders.length < (cache.totalOrders || 0));
-      setLoading(false);
+    const isStale = !cache || !cache.timestamp || Date.now() - cache.timestamp > 20000;
+    if (isStale) {
+      refreshAll();
     }
-    refreshAll();
     return () => {
       cancelledRef.current = true;
     };

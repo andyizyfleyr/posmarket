@@ -10,6 +10,7 @@ export const profiles = pgTable('profiles', {
   ninea: text('ninea'),
   avatarUrl: text('avatar_url'),
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
+  accountType: text('account_type').default('buyer'),
   subscriptionTier: text('subscription_tier').default('PRO'),
   subscriptionDuration: text('subscription_duration').default('monthly'),
   subscriptionStatus: text('subscription_status').default('ACTIVE'),

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@/components/RouterPolyfill';
 import { useRouter as useNextRouter } from 'next/navigation';
 import {
@@ -76,9 +76,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const nextRouter = useNextRouter();
-  const [activeTab, setActiveTab] = useState<BuyerTabId>(
-    TAB_FROM_PATH[accountTab || 'commandes'] || 'orders',
-  );
+  const [activeTab, setActiveTab] = useState<BuyerTabId>(() => {
+    return TAB_FROM_PATH[accountTab || 'commandes'] || 'orders';
+  });
   const [addressModal, setAddressModal] = useState<{
     open: boolean;
     editing: BuyerAddress | null;
@@ -89,17 +89,27 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
   const [dismissedError, setDismissedError] = useState<string | null>(null);
-  const [prevAccountTab, setPrevAccountTab] = useState<string | undefined>(accountTab);
 
   const data = useBuyerData(user, notify);
 
-  // Synchronise l'onglet actif avec l'URL (/mon-compte/...) sans effet :
-  // ajustement pendant le rendu quand la prop change (pattern React officiel).
-  if (accountTab !== prevAccountTab) {
-    setPrevAccountTab(accountTab);
+  // Synchronise l'onglet actif si accountTab change depuis l'extérieur (URL)
+  useEffect(() => {
     const t = TAB_FROM_PATH[accountTab || 'commandes'];
-    if (t) setActiveTab(t);
-  }
+    if (t && t !== activeTab) {
+      setActiveTab(t);
+    }
+  }, [accountTab]);
+
+  // Synchronise l'onglet lors de la navigation navigateur (bouton Précédent / Suivant)
+  useEffect(() => {
+    const handlePopstate = () => {
+      const match = window.location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0];
+      const targetTab = TAB_FROM_PATH[match || 'commandes'] || 'orders';
+      setActiveTab(targetTab);
+    };
+    window.addEventListener('popstate', handlePopstate);
+    return () => window.removeEventListener('popstate', handlePopstate);
+  }, []);
 
   const showError = !!data.error && data.error !== dismissedError;
 
@@ -107,7 +117,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     if (tab === activeTab) return;
     setActiveTab(tab);
     const def = TABS.find((t) => t.id === tab);
-    nextRouter.push(`/mon-compte/${def?.path || tab}`);
+    const newPath = `/mon-compte/${def?.path || tab}`;
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', newPath);
+    }
   };
 
   const handleDeleteAddress = async (id: string) => {

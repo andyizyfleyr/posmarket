@@ -11,6 +11,7 @@ interface ProfileData {
   email?: string | null;
   full_name?: string | null;
   is_super_admin?: boolean | null;
+  account_type?: string | null;
   subscription_tier?: string | null;
   subscription_duration?: string | null;
   subscription_start_date?: string | null;
@@ -69,6 +70,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: ownedStores } = ownedStoresRes;
   const { data: staffEntries } = staffEntriesRes;
 
+  const staffStoreIds = staffEntries?.map(s => s.store_id) || [];
+  const isSuperAdmin = !!profile?.is_super_admin || profile?.account_type === 'admin';
+  const hasOwnedStores = !!(ownedStores && ownedStores.length > 0);
+  const hasStaffStores = staffStoreIds.length > 0;
+  const isSellerAccount = profile?.account_type === 'seller';
+  const isAuthorizedSeller = isSuperAdmin || hasOwnedStores || hasStaffStores || isSellerAccount;
+
+  // Un compte acheteur marketplace ne peut pas accéder au tableau de bord s'il n'est pas vendeur
+  if (!isAuthorizedSeller) {
+    redirect('/mon-compte');
+  }
+
   const userSubscription: UserSubscription = {
     tier: (profile?.subscription_tier as SubscriptionTier) || 'PRO',
     duration: (profile?.subscription_duration as SubscriptionDuration) || 'monthly',
@@ -78,8 +91,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   };
 
   const currentPlan = SUBSCRIPTION_PLANS[userSubscription.tier as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.PRO;
-
-  const staffStoreIds = staffEntries?.map(s => s.store_id) || [];
 
   let staffStores: StoreRowData[] = [];
   if (staffStoreIds.length > 0) {

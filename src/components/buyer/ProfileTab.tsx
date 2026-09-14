@@ -13,18 +13,39 @@ interface ProfileTabProps {
   notify?: NotifyFn;
 }
 
+const PROFILE_CACHE_KEY = 'buyer_profile_cache';
+
+function readProfileCache(): { phone?: string; companyName?: string; ninea?: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function patchProfileCache(patch: { phone?: string; companyName?: string; ninea?: string }) {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = readProfileCache() || {};
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {}
+}
+
 export const ProfileTab: React.FC<ProfileTabProps> = ({
   user,
   onUserUpdate,
   onLogout,
   notify,
 }) => {
+  const initialProfile = readProfileCache();
   const [name, setName] = useState(user.name);
-  const [phone, setPhone] = useState('');
-  const [phoneRaw, setPhoneRaw] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [ninea, setNinea] = useState('');
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [phone, setPhone] = useState(() => (initialProfile?.phone ? formatPhoneSN(initialProfile.phone) : ''));
+  const [phoneRaw, setPhoneRaw] = useState(() => initialProfile?.phone || '');
+  const [companyName, setCompanyName] = useState(() => initialProfile?.companyName || '');
+  const [ninea, setNinea] = useState(() => initialProfile?.ninea || '');
+  const [loadingProfile, setLoadingProfile] = useState(() => !initialProfile);
   const [saving, setSaving] = useState(false);
   const [validation, setValidation] = useState<{ name?: string; phone?: string }>({});
 
@@ -35,14 +56,17 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   useEffect(() => {
     let active = true;
     (async () => {
-      setLoadingProfile(true);
       try {
         const res = await fetchBuyerProfileAction();
         if (active && res?.success && res.profile) {
-          setPhone(res.profile.phone || '');
-          setPhoneRaw(res.profile.phone || '');
-          setCompanyName((res.profile as any).companyName || '');
-          setNinea((res.profile as any).ninea || '');
+          const rawPhone = res.profile.phone || '';
+          const cName = (res.profile as any).companyName || '';
+          const nVal = (res.profile as any).ninea || '';
+          setPhone(rawPhone ? formatPhoneSN(rawPhone) : '');
+          setPhoneRaw(rawPhone);
+          setCompanyName(cName);
+          setNinea(nVal);
+          patchProfileCache({ phone: rawPhone, companyName: cName, ninea: nVal });
         }
       } catch {
         // silencieux : l'email reste visible, le téléphone reste vide
@@ -85,6 +109,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         notify?.('Profil mis à jour', 'success');
         onUserUpdate(trimmedName);
         setPhoneRaw(phoneRaw);
+        patchProfileCache({ phone: phoneRaw, companyName: companyName.trim(), ninea: ninea.trim() });
       } else {
         notify?.(res?.error || 'Erreur lors de la mise à jour du profil.', 'error');
       }
