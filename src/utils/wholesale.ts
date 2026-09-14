@@ -56,7 +56,7 @@ export function getNormalizedWholesaleTiers(product: Product): Array<{
   discountPct: number;
 }> {
   const tiers: WholesaleTier[] = [];
-  if (product.wholesaleTiers && product.wholesaleTiers.length > 0) {
+  if (Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0) {
     tiers.push(...product.wholesaleTiers);
   } else if (product.wholesalePrice && product.wholesaleMinQty) {
     tiers.push({ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) });

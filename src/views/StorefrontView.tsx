@@ -1305,11 +1305,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const selectedProductDetails = useMemo(() => {
     if (!rawUrlProductId) return null;
 
-    const matched = allProducts.find(
-      (p) =>
-        String(p.id) === rawUrlProductId ||
-        generateProductSlug(p) === rawUrlProductId,
-    );
+    const list = Array.isArray(allProducts) ? allProducts : [];
+    const targetSlug = decodeURIComponent(rawUrlProductId);
+    const shortPrefix = targetSlug.split("-").pop() || "";
+
+    const matched = list.find((p) => {
+      if (!p || !p.id) return false;
+      const pid = String(p.id);
+      if (pid === targetSlug || pid === rawUrlProductId) return true;
+      if (generateProductSlug(p) === targetSlug || generateProductSlug(p) === rawUrlProductId) return true;
+      if (shortPrefix && shortPrefix.length >= 4 && pid.startsWith(shortPrefix)) return true;
+      return false;
+    });
     if (!matched) return null;
 
     const product = matched;

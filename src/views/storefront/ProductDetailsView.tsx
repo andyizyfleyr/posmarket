@@ -102,7 +102,8 @@ export function ProductDetailsView(props: any) {
       );
     }
 
-    const relatedProducts = allProducts
+    const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
+    const relatedProducts = safeAllProducts
       .filter(
         (p: StorefrontProduct) =>
           ((p.category && p.category === product.category) ||
@@ -121,7 +122,9 @@ export function ProductDetailsView(props: any) {
       "Découvrez cet article exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
 
     // --- Pricing & variants ---
-    const options = product.options || [];
+    const options = Array.isArray(product.options) ? product.options : [];
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const reviews: Review[] = Array.isArray(product.reviews) ? product.reviews : [];
     const hasOptions = options.length > 0;
     const allSelected =
       !hasOptions || options.every((o: any) => !!selectedOptions[o.id]);
@@ -129,7 +132,7 @@ export function ProductDetailsView(props: any) {
       (o: any) => !!selectedOptions[o.id],
     ).length;
     const matchedVariant = hasOptions
-      ? product.variants?.find(
+      ? variants.find(
           (v: any) => sameSelectedOptions(v.optionValues, selectedOptions),
         )
       : undefined;
@@ -189,14 +192,14 @@ export function ProductDetailsView(props: any) {
     // --- Gallery ---
     const galleryImages = [
       ...(product.image ? [product.image] : []),
-      ...(product.images || []),
+      ...(Array.isArray(product.images) ? product.images : []),
     ].filter((img, i, arr) => !!img && arr.indexOf(img) === i);
     const currentImage = selectedDetailImage || product.image;
 
     // --- Actions (options-aware) ---
     const resolveVariantId = () => {
-      if (!hasOptions || !product.variants) return undefined;
-      const variant = product.variants.find(
+      if (!hasOptions || variants.length === 0) return undefined;
+      const variant = variants.find(
         (v: any) => sameSelectedOptions(v.optionValues, selectedOptions),
       );
       return variant?.id;
@@ -246,7 +249,7 @@ export function ProductDetailsView(props: any) {
     };
 
     const reviewTotal =
-      product.reviewCount || product.reviews?.length || 0;
+      product.reviewCount || reviews.length || 0;
     const accentText = isFood ? "text-green-600" : "text-[#f56b2a]";
 
     const openZoom = (img: string) => {
@@ -1451,12 +1454,12 @@ export function ProductDetailsView(props: any) {
 
             {/* Distribution + list */}
             <div className="flex-grow min-w-0">
-              {(product.reviews?.length || 0) > 0 && (
+              {reviews.length > 0 && (
                 <div className="mb-4 space-y-1">
                   {[5, 4, 3, 2, 1].map((star) => {
                     const count =
-                      product.reviews?.filter((r: Review) => r.rating === star).length || 0;
-                    const total = product.reviews?.length || 1;
+                      reviews.filter((r: Review) => r && r.rating === star).length || 0;
+                    const total = reviews.length || 1;
                     const pct = Math.round((count / total) * 100);
                     return (
                       <div key={star} className="flex items-center gap-3">
@@ -1484,12 +1487,12 @@ export function ProductDetailsView(props: any) {
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-5 h-5 text-[#f56b2a] animate-spin" />
                   </div>
-                ) : (product.reviews?.length || 0) > 0 ? (
+                ) : reviews.length > 0 ? (
                   <>
                     {(showAllProductReviews
-                      ? product.reviews
-                      : product.reviews?.slice(0, 3)
-                    )?.map((review: Review, idx: number) => (
+                      ? reviews
+                      : reviews.slice(0, 3)
+                    ).map((review: Review, idx: number) => (
                       <div key={idx} className="flex gap-3 py-3 first:pt-0 last:pb-0">
                         <div
                           className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] md:text-xs font-black ${
@@ -1534,12 +1537,12 @@ export function ProductDetailsView(props: any) {
                       </div>
                     ))}
 
-                    {product.reviews && product.reviews.length > 3 && !showAllProductReviews && (
+                    {reviews.length > 3 && !showAllProductReviews && (
                       <button
                         onClick={() => setShowAllProductReviews(true)}
                         className="w-full py-2.5 mt-2 bg-gray-50 text-gray-900 text-[8px] md:text-[10px] font-black uppercase tracking-wider rounded-xl border border-gray-100 hover:bg-gray-100 transition-all flex items-center justify-center gap-1.5"
                       >
-                        Voir les {product.reviews.length - 3} autres avis
+                        Voir les {reviews.length - 3} autres avis
                         <ChevronRight size={12} className="rotate-90" />
                       </button>
                     )}

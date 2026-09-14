@@ -166,9 +166,9 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               salesCount: stats?.totalSales ? Number(stats.totalSales) : 0,
               wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
               wholesaleMinQty: p.wholesaleMinQty ?? undefined,
-              wholesaleTiers: (p.wholesaleTiers as Array<{ minQty: number; price: number }>) || [],
-              options: (p.options as ProductOption[]) || [],
-              variants: (p.variants as ProductVariant[]) || [],
+              wholesaleTiers: Array.isArray(p.wholesaleTiers) ? (p.wholesaleTiers as Array<{ minQty: number; price: number }>) : [],
+              options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
+              variants: Array.isArray(p.variants) ? (p.variants as ProductVariant[]) : [],
               businessType: (p.businessType as BusinessVertical) || undefined
             };
           }),
@@ -806,7 +806,7 @@ export async function searchProductsAction(query: string, limit: number = 30) {
       isOnline: p.is_online !== false,
       businessType: ((p.business_type as string) || 'shopping') as BusinessVertical,
       wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
-      wholesaleTiers: (p.wholesale_tiers as WholesaleTier[]) || [],
+      wholesaleTiers: Array.isArray(p.wholesale_tiers) ? (p.wholesale_tiers as WholesaleTier[]) : [],
       views: Number(p.views) || 0,
       salesCount: Number(p.total_sales) || 0,
       rating: Number(p.average_rating) || 0,
