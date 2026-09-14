@@ -593,31 +593,29 @@ export async function saveBuyerAddressAction(address: SaveAddressPayload) {
   }
 
   try {
-    await db.transaction(async (tx) => {
-      if (isDefault) {
-        await tx
-          .update(buyerAddresses)
-          .set({ isDefault: false })
-          .where(eq(buyerAddresses.userId, user.id));
-      }
+    if (isDefault) {
+      await db
+        .update(buyerAddresses)
+        .set({ isDefault: false })
+        .where(eq(buyerAddresses.userId, user.id));
+    }
 
-      if (data.id) {
-        await tx
-          .update(buyerAddresses)
-          .set({ name, fullName, phone, address: addr, city, isDefault })
-          .where(and(eq(buyerAddresses.id, data.id), eq(buyerAddresses.userId, user.id)));
-      } else {
-        await tx.insert(buyerAddresses).values({
-          userId: user.id,
-          name,
-          fullName,
-          phone,
-          address: addr,
-          city,
-          isDefault,
-        });
-      }
-    });
+    if (data.id) {
+      await db
+        .update(buyerAddresses)
+        .set({ name, fullName, phone, address: addr, city, isDefault })
+        .where(and(eq(buyerAddresses.id, data.id), eq(buyerAddresses.userId, user.id)));
+    } else {
+      await db.insert(buyerAddresses).values({
+        userId: user.id,
+        name,
+        fullName,
+        phone,
+        address: addr,
+        city,
+        isDefault,
+      });
+    }
     return { success: true, error: undefined };
   } catch (error) {
     console.error('Error saving buyer address:', error);
