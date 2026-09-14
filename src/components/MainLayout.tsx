@@ -12,6 +12,8 @@ import {
   ChevronRight, Info
 } from 'lucide-react';
 import { updateStoreSettingsAction } from '@/app/actions/settings';
+import { PhoneInput } from '@/components/PhoneInput';
+import { CountrySelect } from '@/components/CountrySelect';
 import {
   ViewType,
   StaffRole,
@@ -215,38 +217,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                         {activeStep === 2 && (
                             <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
                                 <label className="text-[11px] font-bold text-slate-900 flex items-center gap-2">Numéro WhatsApp</label>
-                                <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#f56b2a] transition-colors"><Phone size={14} /></div>
-                                    <input 
-                                        type="tel"
-                                        className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#f56b2a]/10 focus:border-[#f56b2a] outline-none transition-all"
-                                        placeholder="221..."
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                                    />
-                                </div>
+                                <PhoneInput
+                                    value={formData.phone}
+                                    onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+                                />
                             </div>
                         )}
 
                         {activeStep === 3 && (
                             <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
                                 <label className="text-[11px] font-bold text-slate-900 flex items-center gap-2">Pays de résidence</label>
-                                <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#f56b2a] transition-colors"><MapPin size={14} /></div>
-                                    <select 
-                                        className="w-full h-12 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#f56b2a]/10 focus:border-[#f56b2a] outline-none transition-all appearance-none cursor-pointer"
-                                        value={formData.address}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                                    >
-                                        <option value="">Sélectionner un pays</option>
-                                        <option value="Sénégal">Sénégal</option>
-                                        <option value="Bénin">Bénin</option>
-                                        <option value="Côte d&apos;Ivoire">Côte d&apos;Ivoire</option>
-                                        <option value="Togo">Togo</option>
-                                        <option value="Cameroun">Cameroun</option>
-                                    </select>
-                                    <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" />
-                                </div>
+                                <CountrySelect
+                                    value={formData.address}
+                                    onChange={(name) => setFormData(prev => ({ ...prev, address: name }))}
+                                />
                             </div>
                         )}
 

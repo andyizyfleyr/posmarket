@@ -24,16 +24,18 @@ export const supabase = {
     },
     async signUp(args: { email: string; password?: string; options?: { data?: { full_name?: string } } }) {
       const result = await signUpSession(args.options?.data?.full_name || 'Utilisateur', args.email);
+      const err = (result as any).error;
       return {
         data: { user: result.user, session: result.user ? { user: result.user } : null },
-        error: result.error,
+        error: err ? (typeof err === 'string' ? { message: err } : err) : null,
       };
     },
     async signInWithPassword(args: { email: string; password?: string }) {
       const result = await signInWithPasswordSession(args.email);
+      const err = (result as any).error;
       return {
         data: { user: result.user, session: result.user ? { user: result.user } : null },
-        error: result.error,
+        error: err ? (typeof err === 'string' ? { message: err } : err) : null,
       };
     },
     async signOut() {

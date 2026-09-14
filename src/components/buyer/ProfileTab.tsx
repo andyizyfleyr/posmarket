@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, Phone, User as UserIcon, LogOut, Save, Loader2, Building2, FileSpreadsheet } from 'lucide-react';
 import { updateBuyerProfileAction, fetchBuyerProfileAction } from '@/app/actions/marketplace';
-import { isValidPhoneSN, formatPhoneSN } from '@/utils';
+import { isValidPhoneNumber, formatPhoneNumber } from '@/utils';
+import { PhoneInput } from '@/components/PhoneInput';
 import { NotifyFn } from './accountTypes';
 
 interface ProfileTabProps {
@@ -41,8 +42,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 }) => {
   const initialProfile = readProfileCache();
   const [name, setName] = useState(user.name);
-  const [phone, setPhone] = useState(() => (initialProfile?.phone ? formatPhoneSN(initialProfile.phone) : ''));
-  const [phoneRaw, setPhoneRaw] = useState(() => initialProfile?.phone || '');
+  const [phone, setPhone] = useState(() => initialProfile?.phone || '');
   const [companyName, setCompanyName] = useState(() => initialProfile?.companyName || '');
   const [ninea, setNinea] = useState(() => initialProfile?.ninea || '');
   const [loadingProfile, setLoadingProfile] = useState(() => !initialProfile);
@@ -62,8 +62,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           const rawPhone = res.profile.phone || '';
           const cName = (res.profile as any).companyName || '';
           const nVal = (res.profile as any).ninea || '';
-          setPhone(rawPhone ? formatPhoneSN(rawPhone) : '');
-          setPhoneRaw(rawPhone);
+          setPhone(rawPhone);
           setCompanyName(cName);
           setNinea(nVal);
           patchProfileCache({ phone: rawPhone, companyName: cName, ninea: nVal });
@@ -79,11 +78,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     };
   }, []);
 
-  const handlePhoneChange = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    const formatted = formatPhoneSN(digits);
-    setPhoneRaw(digits);
-    setPhone(formatted);
+  const handlePhoneChange = (val: string) => {
+    setPhone(val);
     setValidation((v) => ({ ...v, phone: undefined }));
   };
 
@@ -93,7 +89,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     const errors: { name?: string; phone?: string } = {};
 
     if (trimmedName.length < 2) errors.name = 'Le nom doit contenir au moins 2 caractères.';
-    if (phoneRaw && !isValidPhoneSN(phoneRaw)) errors.phone = 'Numéro de téléphone invalide.';
+    if (phone && !isValidPhoneNumber(phone)) errors.phone = 'Numéro de téléphone invalide.';
     setValidation(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -101,15 +97,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     try {
       const res = await updateBuyerProfileAction({
         fullName: trimmedName,
-        phone: phoneRaw,
+        phone: phone.trim(),
         companyName: companyName.trim(),
         ninea: ninea.trim(),
       });
       if (res?.success) {
         notify?.('Profil mis à jour', 'success');
         onUserUpdate(trimmedName);
-        setPhoneRaw(phoneRaw);
-        patchProfileCache({ phone: phoneRaw, companyName: companyName.trim(), ninea: ninea.trim() });
+        patchProfileCache({ phone: phone.trim(), companyName: companyName.trim(), ninea: ninea.trim() });
       } else {
         notify?.(res?.error || 'Erreur lors de la mise à jour du profil.', 'error');
       }
@@ -172,23 +167,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-gray-400 px-1">
-              Téléphone (Sénégal)
+              Numéro de téléphone
             </label>
-            <div className="relative">
-              <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-              <input
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                inputMode="tel"
-                placeholder="+221 77 000 00 00"
-                className={`${inputClass(validation.phone)} pl-11 ${
-                  loadingProfile ? 'opacity-50' : ''
-                }`}
-              />
-            </div>
-            {validation.phone && (
-              <p className="text-[10px] font-bold text-red-400 px-1">{validation.phone}</p>
-            )}
+            <PhoneInput
+              value={phone}
+              onChange={handlePhoneChange}
+              disabled={loadingProfile}
+              error={validation.phone}
+            />
           </div>
 
           {/* Section B2B Pro */}

@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
-import { formatCurrency, formatPhoneSN, isValidPhoneSN } from "@/utils";
+import { PhoneInput } from "@/components/PhoneInput";
+import { formatCurrency, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN } from "@/utils";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { StoreData } from "@/types";
 
@@ -558,26 +559,21 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         <label className="text-[10px] font-black text-gray-600 uppercase ml-1">
                           Téléphone Mobile
                         </label>
-                        <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
-                            <Phone size={18} />
-                          </div>
-                          <input
-                            required
-                            type="tel"
-                            value={customerInfo.phone}
-                            onChange={(e) =>
-                              setCustomerInfo({
-                                ...customerInfo,
-                                phone: formatPhoneSN(e.target.value),
-                              })
-                            }
-                            className={`w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border rounded-2xl font-bold text-gray-700 focus:bg-white transition-all no-global-border ${customerInfo.phone && !isValidPhoneSN(customerInfo.phone) ? "border-red-200 bg-red-50/40" : "border-gray-100"}`}
-                          />
-                          {customerInfo.phone && !isValidPhoneSN(customerInfo.phone) && (
-                            <p className="text-[9px] font-bold text-red-500 ml-1 mt-1">Numéro invalide — ex : +221 77 123 45 67</p>
-                          )}
-                        </div>
+                        <PhoneInput
+                          required
+                          value={customerInfo.phone}
+                          onChange={(phone) =>
+                            setCustomerInfo({
+                              ...customerInfo,
+                              phone,
+                            })
+                          }
+                          error={
+                            customerInfo.phone && !isValidPhoneNumber(customerInfo.phone)
+                              ? "Numéro de téléphone invalide"
+                              : undefined
+                          }
+                        />
                       </div>
                     </div>
                   </div>

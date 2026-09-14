@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const name = store.settings?.name || "Boutique";
     const desc =
         store.settings?.description?.slice(0, 155) ||
-        `Découvrez la boutique ${name} sur PosMarket. Livraison express au Sénégal.`;
+        `Découvrez la boutique ${name} sur PosMarket. Livraison rapide et sécurisée.`;
     const img = absoluteImage(store.settings?.logo);
     return {
         title: `${name} — Boutique officielle`,

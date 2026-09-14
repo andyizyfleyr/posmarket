@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const price = Math.round(product.price || 0);
     const desc =
         product.description?.slice(0, 155) ||
-        `Achetez ${name} à ${price} FCFA sur PosMarket. Livraison express partout au Sénégal.`;
+        `Achetez ${name} à ${price} FCFA sur PosMarket. Livraison rapide et sécurisée.`;
     const img = absoluteImage(product.image);
     return {
         title: `${name} — ${store.settings?.name || "PosMarket"}`,

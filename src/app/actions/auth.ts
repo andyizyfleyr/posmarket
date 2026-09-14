@@ -7,27 +7,20 @@ import { profiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function loginAction(formData: FormData) {
-  const email = formData.get('email') as string;
+  const email = (formData.get('email') as string)?.trim().toLowerCase();
   
   try {
-    let [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+    const [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
     
     if (!profile) {
-      const now = new Date();
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-      [profile] = await db.insert(profiles).values({
-        email,
-        fullName: email.split('@')[0],
-        accountType: 'seller',
-        subscriptionTier: 'PRO',
-        subscriptionDuration: 'monthly',
-        subscriptionStatus: 'ACTIVE',
-        subscriptionStartDate: now,
-        subscriptionEndDate: endOfMonth,
-      }).returning();
-    } else if (profile.accountType === 'buyer') {
-      // Si un compte acheteur se connecte délibérément sur le portail vendeur, on active son statut vendeur
-      await db.update(profiles).set({ accountType: 'seller' }).where(eq(profiles.id, profile.id));
+      return { error: "Aucun compte vendeur trouvé avec cet email. Veuillez créer un compte commerçant." };
+    }
+
+    // Un compte acheteur ne peut JAMAIS se connecter à l'espace vendeur
+    if (profile.accountType === 'buyer' && !profile.isSuperAdmin) {
+      return { 
+        error: "Ce compte est un compte client (acheteur). Vous ne pouvez pas l'utiliser pour accéder à l'espace vendeur. Veuillez créer un compte vendeur avec un autre email." 
+      };
     }
 
     (await cookies()).set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
@@ -39,17 +32,20 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function signupAction(formData: FormData) {
-  const name = formData.get('name') as string;
-  const email = formData.get('email') as string;
+  const name = (formData.get('name') as string)?.trim();
+  const email = (formData.get('email') as string)?.trim().toLowerCase();
   
   try {
     const [existing] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
     if (existing) {
       if (existing.accountType === 'buyer') {
-        await db.update(profiles).set({ accountType: 'seller' }).where(eq(profiles.id, existing.id));
+        return { 
+          error: "Cet email est déjà associé à un compte client (acheteur). Vous ne pouvez pas l'utiliser pour créer un compte vendeur. Veuillez utiliser un autre email." 
+        };
       }
-      (await cookies()).set('userId', existing.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
-      redirect('/dashboard');
+      return { 
+        error: "Un compte vendeur existe déjà avec cet email. Veuillez vous connecter." 
+      };
     }
 
     const now = new Date();

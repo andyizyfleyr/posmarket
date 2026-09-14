@@ -61,7 +61,7 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
-import { formatCurrency, formatNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
+import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
@@ -870,7 +870,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       setCustomerInfo((ci) => ({
         ...ci,
         name: ci.name || def.full_name || "",
-        phone: ci.phone || formatPhoneSN(def.phone || ""),
+        phone: ci.phone || formatPhoneNumber(def.phone || ""),
         address: def.address || "",
         city: def.city || "",
       }));

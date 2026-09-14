@@ -30,14 +30,22 @@ export async function getCurrentSession() {
 }
 
 export async function signInWithPasswordSession(email: string) {
-  let [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+  const cleanEmail = email?.trim().toLowerCase();
+  let [profile] = await db.select().from(profiles).where(eq(profiles.email, cleanEmail)).limit(1);
   
-  if (!profile) {
+  if (profile) {
+    if (profile.accountType === 'seller' || profile.accountType === 'admin' || profile.isSuperAdmin) {
+      return { 
+        user: null, 
+        error: "Cet email est associé à un compte commerçant (vendeur). Veuillez vous connecter sur le portail commerçant (/login)." 
+      };
+    }
+  } else {
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     [profile] = await db.insert(profiles).values({
-      email,
-      fullName: email.split('@')[0],
+      email: cleanEmail,
+      fullName: cleanEmail.split('@')[0],
       accountType: 'buyer',
       subscriptionTier: 'PRO',
       subscriptionDuration: 'monthly',
@@ -52,8 +60,15 @@ export async function signInWithPasswordSession(email: string) {
 }
 
 export async function signUpSession(name: string, email: string) {
-  const [existing] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+  const cleanEmail = email?.trim().toLowerCase();
+  const [existing] = await db.select().from(profiles).where(eq(profiles.email, cleanEmail)).limit(1);
   if (existing) {
+    if (existing.accountType === 'seller' || existing.accountType === 'admin' || existing.isSuperAdmin) {
+      return { 
+        user: null, 
+        error: "Cet email est déjà associé à un compte commerçant (vendeur). Veuillez vous connecter sur le portail commerçant (/login)." 
+      };
+    }
     (await cookies()).set('buyerUserId', existing.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
     return { user: serializeUser(existing), error: null };
   }
@@ -64,8 +79,8 @@ export async function signUpSession(name: string, email: string) {
   const [profile] = await db
     .insert(profiles)
     .values({
-      email,
-      fullName: name,
+      email: cleanEmail,
+      fullName: name?.trim(),
       accountType: 'buyer',
       subscriptionTier: 'PRO',
       subscriptionStatus: 'ACTIVE',

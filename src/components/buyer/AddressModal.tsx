@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { BuyerAddress, SaveAddressPayload } from './accountTypes';
-import { formatPhoneSN, isValidPhoneSN } from '@/utils';
+import { isValidPhoneNumber } from '@/utils';
+import { PhoneInput } from '@/components/PhoneInput';
 
 interface AddressModalProps {
   address?: BuyerAddress | null;
@@ -32,8 +33,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
   };
 
   const handlePhoneChange = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    setField('phone', formatPhoneSN(digits));
+    setField('phone', value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,16 +43,14 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
     const fullName = form.fullName.trim();
     const city = form.city.trim();
     const addr = form.address.trim();
-    let phoneDigits = form.phone.replace(/\D/g, '');
-    if (phoneDigits.startsWith('00221')) phoneDigits = phoneDigits.slice(5);
-    else if (phoneDigits.startsWith('221')) phoneDigits = phoneDigits.slice(3);
+    const phone = form.phone.trim();
 
     if (!name) errs.name = 'Ajoutez un label (ex : Maison).';
     if (!fullName) errs.fullName = 'Nom complet requis.';
     if (!city) errs.city = 'Ville requise.';
     if (!addr) errs.address = 'Adresse requise.';
-    if (!phoneDigits) errs.phone = 'Téléphone requis.';
-    else if (!isValidPhoneSN(phoneDigits)) errs.phone = 'Numéro invalide (ex : 77 000 00 00).';
+    if (!phone) errs.phone = 'Téléphone requis.';
+    else if (!isValidPhoneNumber(phone)) errs.phone = 'Numéro de téléphone invalide.';
 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -63,7 +61,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
         id: address?.id, 
         name, 
         fullName, 
-        phone: phoneDigits, 
+        phone, 
         city, 
         address: addr, 
         isDefault: form.isDefault 
@@ -90,28 +88,24 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto" noValidate>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400">Label</label>
-            <input
-              value={form.name}
-              onChange={(e) => setField('name', e.target.value)}
-              placeholder="Maison, Bureau..."
-              className={inputClass(errors.name)}
-            />
-            {errors.name && <p className="text-[10px] font-bold text-red-400">{errors.name}</p>}
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400">Téléphone</label>
-            <input
-              value={form.phone}
-              onChange={(e) => handlePhoneChange(e.target.value)}
-              inputMode="tel"
-              placeholder="77 000 00 00"
-              className={inputClass(errors.phone)}
-            />
-            {errors.phone && <p className="text-[10px] font-bold text-red-400">{errors.phone}</p>}
-          </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400">Label de l&apos;adresse</label>
+          <input
+            value={form.name}
+            onChange={(e) => setField('name', e.target.value)}
+            placeholder="Maison, Bureau, etc."
+            className={inputClass(errors.name)}
+          />
+          {errors.name && <p className="text-[10px] font-bold text-red-400">{errors.name}</p>}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400">Téléphone du destinataire</label>
+          <PhoneInput
+            value={form.phone}
+            onChange={handlePhoneChange}
+            error={errors.phone}
+          />
         </div>
 
         <div className="space-y-1">

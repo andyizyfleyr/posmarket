@@ -14,6 +14,8 @@ import {
 } from '@/app/actions/settings';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import Image from "next/image";
+import { PhoneInput } from '@/components/PhoneInput';
+import { CountrySelect } from '@/components/CountrySelect';
 import {
     Settings,
     Store,
@@ -458,34 +460,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     </div>
                                     <div>
                                         <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Numéro WhatsApp (Commande)</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
-                                            <input
-                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
-                                                placeholder="Ex: 221771234567 (Sans le +)"
-                                                value={localSettings.phone}
-                                                onChange={(e) => setLocalSettings(prev => ({ ...prev, phone: e.target.value }))}
-                                            />
-                                        </div>
-                                        <p className="text-[8px] md:text-[9px] text-gray-400 mt-1 font-bold italic px-1">Indicatif pays sans le + (ex: 221...)</p>
+                                        <PhoneInput
+                                            value={localSettings.phone}
+                                            onChange={(val) => setLocalSettings(prev => ({ ...prev, phone: val }))}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Pays</label>
-                                        <div className="relative">
-                                            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
-                                            <select
-                                                className="w-full pl-10 md:pl-11 pr-10 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all appearance-none cursor-pointer"
-                                                value={localSettings.country || ''}
-                                                onChange={(e) => setLocalSettings(prev => ({ ...prev, country: e.target.value }))}
-                                            >
-                                                 <option value="">Sélectionnez un pays</option>
-                                                 <option value="Bénin">Bénin</option>
-                                                 <option value="Côte d&apos;Ivoire">Côte d&apos;Ivoire</option>
-                                                 <option value="Togo">Togo</option>
-                                                 <option value="Cameroun">Cameroun</option>
-                                            </select>
-                                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 md:size-4 rotate-90 pointer-events-none" size={14} />
-                                        </div>
+                                        <CountrySelect
+                                            value={localSettings.country || ''}
+                                            onChange={(name) => setLocalSettings(prev => ({ ...prev, country: name }))}
+                                        />
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Description de la boutique</label>

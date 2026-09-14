@@ -24,8 +24,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { Customer, StaffRole, StaffPermissions } from '@/types';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatPhoneNumber } from '@/utils';
 import { getCustomersAction } from '@/app/actions/customers';
+import { PhoneInput } from '@/components/PhoneInput';
 
 interface CustomersViewProps {
   customers: Customer[];
@@ -429,7 +430,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                             </div>
                           </div>
                           <div className="flex md:hidden items-center gap-1.5 mt-0.5 text-[9px] text-gray-400 font-bold truncate whitespace-nowrap">
-                            <span className="truncate">{customer.phone}</span>
+                            <span className="truncate">{formatPhoneNumber(customer.phone)}</span>
                             <span className="text-gray-200">|</span>
                             <span className="text-green-600 font-black">{formatCurrency(customer.totalSpent || 0)}</span>
                           </div>
@@ -458,7 +459,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                   <div className="hidden md:table-cell px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Phone size={12} className="text-gray-400" /> {customer.phone}
+                        <Phone size={12} className="text-gray-400" /> {formatPhoneNumber(customer.phone)}
                       </div>
                     </div>
                   </div>
@@ -559,12 +560,10 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Téléphone</label>
-                  <input
+                  <PhoneInput
                     required
-                    type="tel"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] focus:outline-none transition-all"
+                    value={formData.phone || ''}
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
                   />
                 </div>
               </div>
