@@ -398,6 +398,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
         if (res.success && res.products) {
           setFtsResults(res.products);
+          setShowSuggestions(false); // dismiss autocomplete when full results arrive
         } else {
           setFtsResults([]);
         }
@@ -2867,6 +2868,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 // fausserait la grille d'accueil au retour.
                 setIsSearchOpen(false);
                 setSearchTerm("");
+                setShowSuggestions(false);
               }}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
               aria-label="Fermer la recherche"
@@ -2888,7 +2890,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               />
               {searchTerm && (
                 <button
-                  onClick={() => setSearchTerm("")}
+                  onClick={() => { setSearchTerm(""); setSuggestions([]); setShowSuggestions(false); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-600"
                 >
                   <X size={16} />
@@ -2897,34 +2899,43 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </div>
           </div>
 
-          {/* Autocomplete suggestions dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="mx-4 mb-2 bg-white rounded-2xl shadow-lg border border-orange-100 overflow-hidden z-10">
-              {suggestions.map((s, i) => (
+          {/* Autocomplete suggestions — closes when results arrive or user taps outside */}
+          {showSuggestions && !isSearching && ftsResults.length === 0 && suggestions.length > 0 && (
+            <div className="mx-3 mb-1 bg-white rounded-2xl overflow-hidden"
+              style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.10)', border: '1px solid #fff3ed' }}>
+              {suggestions.map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => {
+                  type="button"
+                  onMouseDown={(e) => {
+                    // Use mousedown to fire before onBlur of input
+                    e.preventDefault();
                     setSearchTerm(s.name);
                     setShowSuggestions(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-orange-50 active:bg-orange-100 transition-colors border-b border-gray-50 last:border-0"
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors border-b border-gray-50/80 last:border-0 active:bg-orange-50"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <svg className="text-orange-400 shrink-0" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  {/* Search icon */}
+                  <svg className="shrink-0 opacity-40" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#f56b2a" strokeWidth={2.5}>
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                   </svg>
+
                   <div className="flex-1 min-w-0">
-                    <span className="text-[12px] font-bold text-gray-800 truncate block">
+                    <p className="text-[12px] font-semibold text-gray-800 truncate leading-tight">
                       {highlightSegments(s.name, searchTerm).map((seg, j) =>
                         seg.highlight
-                          ? <mark key={j} className="bg-orange-100 text-orange-600 not-italic font-black rounded px-0.5">{seg.text}</mark>
+                          ? <mark key={j} style={{ background: '#fff3ed', color: '#f56b2a', borderRadius: 3, padding: '0 2px', fontWeight: 800, fontStyle: 'normal' }}>{seg.text}</mark>
                           : <span key={j}>{seg.text}</span>
                       )}
-                    </span>
+                    </p>
                     {s.category && (
-                      <span className="text-[10px] text-gray-400 font-medium">{s.category}</span>
+                      <p className="text-[10px] text-gray-400 mt-0.5 leading-none">{s.category}</p>
                     )}
                   </div>
-                  <svg className="text-gray-300 shrink-0" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+
+                  {/* Arrow up-left to fill in search */}
+                  <svg className="shrink-0 opacity-25" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M7 17 17 7M7 7h10v10"/>
                   </svg>
                 </button>
@@ -2995,22 +3006,49 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {(isSearching || ftsResults.length > 0) ? (
                   <div className="  duration-500 ">
                     <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <ShoppingCart size={12} /> {isSearching ? 'Recherche en cours...' : `Produits (${ftsResults.length})`}
+                      <ShoppingCart size={12} />
+                      {isSearching ? (
+                        <span className="flex items-center gap-1.5">
+                          Recherche
+                          <span className="flex gap-0.5">
+                            {[0,1,2].map(i => (
+                              <span key={i} className="w-1 h-1 rounded-full bg-orange-400 animate-bounce"
+                                style={{ animationDelay: `${i * 0.15}s` }} />
+                            ))}
+                          </span>
+                        </span>
+                      ) : (
+                        <span>{ftsResults.length > 0 ? `Produits (${ftsResults.length})` : 'Produits'}</span>
+                      )}
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       {isSearching ? (
                         Array.from({ length: 4 }).map((_, i) => <ProductSkeleton key={i} />)
                       ) : (
-                        ftsResults.map((product) => {
-                          const segs = highlightSegments(product.name, searchTerm);
-                          const hasHighlight = segs.some(s => s.highlight);
-                          return (
-                            <div
-                              key={product.id}
-                              onClick={() => {
-                                if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
+                        ftsResults.map((product) => (
+                          <div
+                            key={product.id}
+                            onClick={() => {
+                              if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
+                              setShowSuggestions(false);
+                              safeNavigate(
+                                `/product/${generateProductSlug(product)}`,
+                                {
+                                  action: () => {
+                                    setIsSearchOpen(false);
+                                    setSearchTerm("");
+                                  },
+                                },
+                              );
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <ProductCard
+                              product={product}
+                              onAddToCart={handleCardAddToCart}
+                              onStoreSelect={(id) => {
                                 safeNavigate(
-                                  `/product/${generateProductSlug(product)}`,
+                                  `/store/${product.storeSlug || id}`,
                                   {
                                     action: () => {
                                       setIsSearchOpen(false);
@@ -3019,50 +3057,25 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   },
                                 );
                               }}
-                              className="cursor-pointer relative group/result"
-                            >
-                              <ProductCard
-                                product={product}
-                                onAddToCart={handleCardAddToCart}
-                                onStoreSelect={(id) => {
-                                  safeNavigate(
-                                    `/store/${product.storeSlug || id}`,
-                                    {
-                                      action: () => {
-                                        setIsSearchOpen(false);
-                                        setSearchTerm("");
-                                      },
-                                    },
-                                  );
-                                }}
-                                onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
-                              />
-                              {hasHighlight && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm px-2 py-1 text-[10px] font-bold leading-tight truncate pointer-events-none rounded-b-xl border-t border-orange-100">
-                                  {segs.map((seg, i) =>
-                                    seg.highlight
-                                      ? <mark key={i} className="bg-orange-100 text-orange-600 rounded px-0.5 not-italic font-black">{seg.text}</mark>
-                                      : <span key={i} className="text-gray-700">{seg.text}</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
+                              onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                            />
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
                 ) : (
-                  !isSearching && globalSearchStores.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-500">
-                        <Search size={32} />
+                   !isSearching && globalSearchStores.length === 0 && searchTerm.trim().length >= 2 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                      <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                        style={{ background: 'linear-gradient(135deg, #fff3ed, #ffe8d6)' }}>
+                        <Search size={26} className="text-orange-400" />
                       </div>
-                      <p className="text-gray-900 font-black">
-                        Pas de résultats pour &quot;{searchTerm}&quot;
+                      <p className="text-gray-800 font-black text-[15px] mb-2">
+                        Aucun résultat pour « {searchTerm} »
                       </p>
-                      <p className="text-gray-600 text-xs mt-1 font-bold">
-                        Vérifiez l&apos;orthographe ou essayez un autre mot.
+                      <p className="text-gray-500 text-[12px] font-medium leading-relaxed">
+                        Essayez un autre mot, vérifiez l&apos;orthographe ou cherchez par catégorie.
                       </p>
                     </div>
                   )
