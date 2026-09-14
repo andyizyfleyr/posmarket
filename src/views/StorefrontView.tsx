@@ -115,6 +115,8 @@ export interface StorefrontProduct extends Product {
   storeId: string;
   storeName: string;
   storeSlug?: string;
+  /** Weighted relevance score from server search (ts_rank + pg_trgm similarity) */
+  rankScore?: number;
 }
 
 type FtsRow = {
@@ -329,83 +331,60 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return activeStores.find((s) => s.id === selectedStoreId) || null;
   }, [selectedStoreId, activeStores]);
 
-  // 🔍 DEBOUNCED FTS SEARCH (with deduplication)
-  const ftsRequestRef = useRef<{ term: string; controller: AbortController } | null>(null);
-  
+// 🔍 DEBOUNCED SERVER SEARCH (pg_trgm + FTS + weighted ts_rank ranking)
+  const ftsRequestRef = useRef<{ term: string; abort: () => void } | null>(null);
+
   useEffect(() => {
-    if (!searchTerm || searchTerm.length < 2) {
+    // Normalize: trim + collapse whitespace (ignore case/space differences)
+    const normalized = searchTerm.trim().replace(/\s+/g, ' ');
+
+    if (!normalized || normalized.length < 2) {
       setFtsResults([]);
       return;
     }
 
+    // Clear the client-side cache so results come exclusively from the server.
+    // This prevents stale cached products from leaking into the search display.
+    try { localStorage.removeItem('marketplace_data_cache'); } catch {}
+
     const delayDebounceFn = setTimeout(async () => {
-      // Cancel any pending request
       if (ftsRequestRef.current) {
-        ftsRequestRef.current.controller.abort();
+        ftsRequestRef.current.abort();
       }
-      
-      const controller = new AbortController();
-      ftsRequestRef.current = { term: searchTerm, controller };
+
+      let aborted = false;
+      const abort = () => { aborted = true; };
+      ftsRequestRef.current = { term: normalized, abort };
       setIsSearching(true);
-      
+
       try {
-        const { data } = await supabase
-          .from('products')
-          .select('id, name, price, image, stock, category, store_id, isOnline')
-          .textSearch('search_vector', searchTerm, {
-            type: 'websearch',
-            config: 'french'
-          })
-          .limit(50);
+        const { searchProductsAction } = await import('@/app/actions/marketplace');
+        // Pass normalized term — server action also normalizes, double-safe
+        const res = await searchProductsAction(normalized, 30);
 
-        // Même règle que la grille d'accueil : isOnline absent ou vrai.
-        // (Filtrage client : .or() indisponible sur ce client Supabase.)
-        const rows = (data || []) as FtsRow[];
-        const onlineResults = rows.filter((p) => p?.isOnline !== false);
+        if (aborted) return;
 
-        // Fetch additional info (store slugs) to ensure navigation works
-        const storeIds = [...new Set(onlineResults.map(p => p.store_id))];
-        const { data: storesData } = await supabase
-          .from('stores')
-          .select('id, slug')
-          .in('id', storeIds);
-        
-        const storeMap = new Map(storesData?.map(s => [s.id, s.slug]));
-
-        // Only use result if it's for the current search term
-        if (ftsRequestRef.current?.term === searchTerm) {
-          setFtsResults(
-            onlineResults.slice(0, 20).map((p) => ({
-              id: p.id,
-              name: p.name,
-              price: Number(p.price),
-              image: p.image || "",
-              stock: p.stock ?? 0,
-              category: p.category || "Autre",
-              storeId: p.store_id,
-              storeName: "",
-              storeSlug: storeMap.get(p.store_id) || undefined,
-            }) as StorefrontProduct),
-          );
+        if (res.success && res.products) {
+          setFtsResults(res.products);
+        } else {
+          setFtsResults([]);
         }
       } catch (err) {
-        if ((err as { name?: string } | null)?.name !== "AbortError") {
-          console.error("FTS Search Error:", err);
-          if (ftsRequestRef.current?.term === searchTerm) {
-            setFtsResults([]);
-          }
+        if (!aborted) {
+          console.error('[Search] Server error:', err);
+          setFtsResults([]);
         }
       } finally {
-        if (ftsRequestRef.current?.term === searchTerm) {
+        if (!aborted) {
           setIsSearching(false);
         }
       }
-    }, 300); // Réduit le délai pour plus de réactivité
+    }, 300);
 
     return () => {
       clearTimeout(delayDebounceFn);
-      if (ftsRequestRef.current?.term === searchTerm) {
-        ftsRequestRef.current.controller.abort();
+      if (ftsRequestRef.current) {
+        ftsRequestRef.current.abort();
       }
     };
   }, [searchTerm]);
@@ -1482,16 +1461,26 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, [selectedVertical]);
 
   const filteredProducts = useMemo(() => {
+    const normalized = searchTerm.trim().replace(/\s+/g, ' ');
+
+    // 🔍 SEARCH MODE: results come exclusively from the server (ftsResults).
+    // The server already applied pg_trgm + FTS + weighted ranking — no client-side
+    // text filtering to avoid overriding or polluting server relevance order.
+    if (normalized && normalized.length >= 2) {
+      if (!selectedStoreId) {
+        // Global search: return server results as-is (already ranked by ts_rank + similarity)
+        return ftsResults;
+      }
+      // Store-scoped search: restrict to the current store only
+      return ftsResults.filter((p) => p.storeId === selectedStoreId);
+    }
+
+    // 📦 BROWSE MODE: no search active → filter by category/store/vertical from cache
     return allProducts
       .filter((p) => {
         const isFromStore = !selectedStoreId || p.storeId === selectedStoreId;
-        const name = p.name || "";
-        const storeName = p.storeName || "";
         const category = p.category || "";
         const mCategory = p.mainCategory || "";
-        const matchesSearch =
-          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          storeName.toLowerCase().includes(searchTerm.toLowerCase());
         const hasWholesale = !!(p.wholesalePrice || (p.wholesaleTiers && p.wholesaleTiers.length > 0));
         const matchesCategory =
           selectedCategory === "all" ||
@@ -1504,20 +1493,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         if (selectedVertical !== "all") {
           const v =
             p.businessType ||
-            (            p.mainCategory === "Restauration & Livraison Rapide"
-              ? "food"
-              : "shopping");
+            (p.mainCategory === "Restauration & Livraison Rapide" ? "food" : "shopping");
           matchesVertical = v === selectedVertical;
         }
 
-        return (
-          isFromStore && matchesSearch && matchesCategory && matchesVertical
-        );
+        return isFromStore && matchesCategory && matchesVertical;
       })
       .sort((a, b) => {
-        if (searchTerm) return 0;
-
-        // 1. Group by Category first for the Home sections
+        // 1. Group by Category for Home sections
         const catA = a.mainCategory || a.category || "Autre";
         const catB = b.mainCategory || b.category || "Autre";
         if (catA !== catB) {
@@ -1527,19 +1510,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         }
 
         // 2. Within category: Top performers first
-        // Most sold
         const salesDiff = (b.salesCount || 0) - (a.salesCount || 0);
         if (salesDiff !== 0) return salesDiff;
 
-        // Best rated
         const ratingDiff = (b.rating || 0) - (a.rating || 0);
         if (ratingDiff !== 0) return ratingDiff;
 
-        // Most views
         return (b.views || 0) - (a.views || 0);
       });
   }, [
     allProducts,
+    ftsResults,
     searchTerm,
     selectedCategory,
     selectedStoreId,

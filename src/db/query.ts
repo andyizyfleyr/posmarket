@@ -260,18 +260,27 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
 
     // ---------- SELECT ----------
     if (spec.textSearch?.query) {
-      const info = columns.get(spec.textSearch.column) || columns.get('name');
-      if (info) {
-        const queryTerm = spec.textSearch.query;
-        // Robust Search:
-        // 1. Full-Text Search (Ranked)
-        // 2. Trigram Similarity (Fuzzy matching)
-        // 3. ILIKE Fallback (Partial match)
-        conditions.push(
-          sql`(${info.col} @@ websearch_to_tsquery('french', ${queryTerm}) 
-            OR ${info.col}::text % ${queryTerm}
-            OR ${info.col}::text ILIKE ${'%' + queryTerm + '%'})`
-        );
+      const nameInfo = columns.get('name');
+      const vectorInfo = columns.get('searchVector') || columns.get('search_vector');
+      const queryTerm = spec.textSearch.query.trim().replace(/\s+/g, ' ');
+
+      if (nameInfo) {
+        const conditions_parts: SQL<unknown>[] = [];
+
+        // FTS via search_vector generated column (preferred — uses GIN index)
+        if (vectorInfo) {
+          conditions_parts.push(
+            sql`${vectorInfo.col} @@ websearch_to_tsquery('french', ${queryTerm})`
+          );
+        }
+
+        // pg_trgm fuzzy match on name (GIN trgm index) — catches typos
+        conditions_parts.push(sql`${nameInfo.col} % ${queryTerm}`);
+
+        // ILIKE fallback for partial matches on very short terms
+        conditions_parts.push(sql`${nameInfo.col} ILIKE ${'%' + queryTerm + '%'}`);
+
+        conditions.push(sql`(${sql.join(conditions_parts, sql` OR `)})`);
       }
     }
 
@@ -302,12 +311,20 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
         base.orderBy(spec.order.ascending === false ? desc(info.col) : asc(info.col));
       }
     } else if (spec.textSearch?.query) {
-      const info = columns.get(spec.textSearch.column) || columns.get('name');
-      if (info) {
-        // Sort by a combination of FTS rank and Trigram similarity for best relevance
-        base.orderBy(sql`ts_rank(${info.col}, websearch_to_tsquery('french', ${spec.textSearch.query})) DESC, similarity(${info.col}::text, ${spec.textSearch.query}) DESC`);
+      const nameInfo = columns.get('name');
+      const vectorInfo = columns.get('searchVector') || columns.get('search_vector');
+      const queryTerm = spec.textSearch.query.trim().replace(/\s+/g, ' ');
+      if (vectorInfo && nameInfo) {
+        // Weighted rank: FTS ts_rank × 2 + trigram similarity on name × 1.5
+        base.orderBy(sql`
+          (ts_rank(${vectorInfo.col}, websearch_to_tsquery('french', ${queryTerm})) * 2.0
+          + similarity(${nameInfo.col}::text, ${queryTerm}) * 1.5) DESC
+        `);
+      } else if (nameInfo) {
+        base.orderBy(sql`similarity(${nameInfo.col}::text, ${queryTerm}) DESC`);
       }
     }
+
 
     if (spec.limit != null) base.limit(spec.limit);
     if (spec.offset != null) base.offset(spec.offset);

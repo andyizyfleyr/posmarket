@@ -5,7 +5,7 @@ import { stores, products, productStats, productReviews, orders, orderItems, cus
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { getCurrentSession } from '@/app/actions/session'
-import { StoreData, BusinessVertical, ProductOption, ProductVariant } from '@/types'
+import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
 
@@ -705,4 +705,82 @@ export async function fetchBuyerProfileAction() {
       ninea: user.ninea || '',
     },
   };
+}
+
+export async function searchProductsAction(query: string, limit: number = 30) {
+  // Normalize: trim, collapse internal spaces, lower-case for consistency
+  const normalized = query.trim().replace(/\s+/g, ' ');
+  if (!normalized || normalized.length < 2) {
+    return { success: true, error: undefined, products: [] };
+  }
+
+  try {
+    // Use raw SQL for full control over pg_trgm + FTS ranking.
+    // The CTE computes a weighted rank_score combining:
+    //   - ts_rank on search_vector (French FTS, name=A desc=B weights) × 2.0
+    //   - trigram similarity on name                                    × 1.5
+    //   - trigram similarity on description                             × 0.5
+    // WHERE matches via FTS (@@ websearch_to_tsquery) OR trigram (%)
+    // OR ILIKE as final fallback for very short / unstemmed terms.
+    const rows = await db.execute(sql`
+      WITH ranked AS (
+        SELECT
+          p.id,
+          p.name,
+          p.price,
+          p.image,
+          p.stock,
+          p.main_category,
+          p.store_id,
+          p.is_online,
+          p.business_type,
+          p.wholesale_price,
+          p.wholesale_tiers,
+          s.name          AS store_name,
+          s.slug          AS store_slug,
+          (
+            ts_rank(p.search_vector, websearch_to_tsquery('french', ${normalized})) * 2.0
+            + similarity(p.name, ${normalized})                                     * 1.5
+            + similarity(coalesce(p.description, ''), ${normalized})                * 0.5
+          ) AS rank_score
+        FROM products p
+        JOIN stores s ON s.id = p.store_id
+        WHERE
+          p.is_online = true
+          AND (
+            p.search_vector @@ websearch_to_tsquery('french', ${normalized})
+            OR p.name        % ${normalized}
+            OR p.description % ${normalized}
+            OR p.name        ILIKE ${'%' + normalized + '%'}
+          )
+      )
+      SELECT * FROM ranked
+      ORDER BY rank_score DESC
+      LIMIT ${limit}
+    `);
+
+    const products = (rows.rows as Record<string, unknown>[]).map((p) => ({
+      id: p.id as string,
+      name: p.name as string,
+      price: Number(p.price),
+      image: (p.image as string) || '',
+      stock: Number(p.stock) || 0,
+      category: (p.main_category as string) || 'Autre',
+      mainCategory: (p.main_category as string) || '',
+      storeId: p.store_id as string,
+      storeName: (p.store_name as string) || '',
+      storeSlug: (p.store_slug as string) || undefined,
+      isOnline: p.is_online !== false,
+      businessType: ((p.business_type as string) || 'shopping') as BusinessVertical,
+      wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
+      wholesaleTiers: (p.wholesale_tiers as WholesaleTier[]) || [],
+      rankScore: Number(p.rank_score) || 0,
+    }));
+
+    return { success: true, error: undefined, products };
+  } catch (error) {
+    console.error('[searchProductsAction] error:', error);
+    const message = error instanceof Error ? error.message : 'Erreur de recherche';
+    return { success: false, error: message, products: [] };
+  }
 }
