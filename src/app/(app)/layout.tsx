@@ -75,9 +75,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const hasOwnedStores = !!(ownedStores && ownedStores.length > 0);
   const hasStaffStores = staffStoreIds.length > 0;
   const isSellerAccount = profile?.account_type === 'seller';
-  const isAuthorizedSeller = isSuperAdmin || hasOwnedStores || hasStaffStores || isSellerAccount;
+  const isBuyerAccount = profile?.account_type === 'buyer';
+  const isAuthorizedSeller = isSuperAdmin || (!isBuyerAccount && (hasOwnedStores || hasStaffStores || isSellerAccount));
 
-  // Un compte acheteur marketplace ne peut pas accéder au tableau de bord s'il n'est pas vendeur
+  // Un compte acheteur marketplace ne peut JAMAIS accéder à l'espace vendeur
+  if (isBuyerAccount && !isSuperAdmin) {
+    redirect('/mon-compte');
+  }
+
   if (!isAuthorizedSeller) {
     redirect('/mon-compte');
   }

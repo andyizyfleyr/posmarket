@@ -22,11 +22,16 @@ async function getCurrentUser() {
       return { user: null };
     }
 
+    // Un compte acheteur ne doit jamais être retourné comme session vendeur valide
+    if (profile.accountType === 'buyer' && !profile.isSuperAdmin) {
+      return { user: null };
+    }
+
     return {
       user: {
         id: profile.id,
         email: profile.email,
-        user_metadata: { full_name: profile.fullName },
+        user_metadata: { full_name: profile.fullName, account_type: profile.accountType },
       },
     };
   } catch {
