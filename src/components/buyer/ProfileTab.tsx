@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Mail, Phone, User as UserIcon, LogOut, Save, Loader2, Building2, FileSpreadsheet } from 'lucide-react';
+import { Mail, Phone, User as UserIcon, LogOut, Save, Loader2 } from 'lucide-react';
 import { updateBuyerProfileAction, fetchBuyerProfileAction } from '@/app/actions/marketplace';
 import { isValidPhoneNumber, formatPhoneNumber } from '@/utils';
 import { PhoneInput } from '@/components/PhoneInput';
@@ -16,7 +16,7 @@ interface ProfileTabProps {
 
 const PROFILE_CACHE_KEY = 'buyer_profile_cache';
 
-function readProfileCache(): { phone?: string; companyName?: string; ninea?: string } | null {
+function readProfileCache(): { phone?: string } | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(PROFILE_CACHE_KEY);
@@ -26,7 +26,7 @@ function readProfileCache(): { phone?: string; companyName?: string; ninea?: str
   }
 }
 
-function patchProfileCache(patch: { phone?: string; companyName?: string; ninea?: string }) {
+function patchProfileCache(patch: { phone?: string }) {
   if (typeof window === 'undefined') return;
   try {
     const current = readProfileCache() || {};
@@ -43,8 +43,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const initialProfile = readProfileCache();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(() => initialProfile?.phone || '');
-  const [companyName, setCompanyName] = useState(() => initialProfile?.companyName || '');
-  const [ninea, setNinea] = useState(() => initialProfile?.ninea || '');
   const [loadingProfile, setLoadingProfile] = useState(() => !initialProfile);
   const [saving, setSaving] = useState(false);
   const [validation, setValidation] = useState<{ name?: string; phone?: string }>({});
@@ -60,12 +58,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         const res = await fetchBuyerProfileAction();
         if (active && res?.success && res.profile) {
           const rawPhone = res.profile.phone || '';
-          const cName = (res.profile as any).companyName || '';
-          const nVal = (res.profile as any).ninea || '';
           setPhone(rawPhone);
-          setCompanyName(cName);
-          setNinea(nVal);
-          patchProfileCache({ phone: rawPhone, companyName: cName, ninea: nVal });
+          patchProfileCache({ phone: rawPhone });
         }
       } catch {
         // silencieux : l'email reste visible, le téléphone reste vide
@@ -98,13 +92,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       const res = await updateBuyerProfileAction({
         fullName: trimmedName,
         phone: phone.trim(),
-        companyName: companyName.trim(),
-        ninea: ninea.trim(),
       });
       if (res?.success) {
         notify?.('Profil mis à jour', 'success');
         onUserUpdate(trimmedName);
-        patchProfileCache({ phone: phone.trim(), companyName: companyName.trim(), ninea: ninea.trim() });
+        patchProfileCache({ phone: phone.trim() });
       } else {
         notify?.(res?.error || 'Erreur lors de la mise à jour du profil.', 'error');
       }
@@ -175,46 +167,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               disabled={loadingProfile}
               error={validation.phone}
             />
-          </div>
-
-          {/* Section B2B Pro */}
-          <div className="pt-2 border-t border-gray-100 space-y-3">
-            <div className="flex items-center gap-2">
-              <Building2 size={15} className="text-[#f56b2a]" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-gray-800">
-                Informations Professionnelles (B2B / Devis)
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-gray-400 px-1">
-                Nom de l&apos;entreprise / Commerce
-              </label>
-              <div className="relative">
-                <Building2 size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className={`${inputClass()} pl-11`}
-                  placeholder="Ex : Établissements Diallo & Frères"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-gray-400 px-1">
-                Numéro NINEA / RCCM
-              </label>
-              <div className="relative">
-                <FileSpreadsheet size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input
-                  value={ninea}
-                  onChange={(e) => setNinea(e.target.value)}
-                  className={`${inputClass()} pl-11`}
-                  placeholder="Ex : 001234567 2V3"
-                />
-              </div>
-            </div>
           </div>
 
           <button
