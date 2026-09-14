@@ -57,7 +57,13 @@ function patchCache(patch: Partial<BuyerCache>) {
   }
 }
 
-export function useBuyerData(notify?: NotifyFn) {
+export function useBuyerData(
+  userOrNotify?: { id?: string; email?: string; name?: string } | null | NotifyFn,
+  maybeNotify?: NotifyFn,
+) {
+  const user = typeof userOrNotify === 'object' ? userOrNotify : null;
+  const notify = typeof userOrNotify === 'function' ? userOrNotify : maybeNotify;
+
   const [orders, setOrders] = useState<BuyerOrder[]>([]);
   const [addresses, setAddresses] = useState<BuyerAddress[]>([]);
   const [reviews, setReviews] = useState<BuyerReview[]>([]);
@@ -72,6 +78,10 @@ export function useBuyerData(notify?: NotifyFn) {
   const cancelledRef = useRef(false);
   const notifyRef = useRef<NotifyFn | undefined>(notify);
   notifyRef.current = notify;
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  const getFallback = () => userRef.current?.id || userRef.current?.email;
 
   const applyOrders = useCallback((res: BuyerOrdersResponse, resetPage: boolean) => {
     if (res?.success) {
@@ -91,12 +101,13 @@ export function useBuyerData(notify?: NotifyFn) {
   const reloadTab = useCallback(
     async (tab: BuyerTabId) => {
       setError(null);
+      const fallback = getFallback();
       if (tab === 'orders') {
-        const res = await fetchBuyerOrdersAction(1, ORDER_PAGE_SIZE);
+        const res = await fetchBuyerOrdersAction(1, ORDER_PAGE_SIZE, fallback);
         if (cancelledRef.current) return;
         applyOrders(res, true);
       } else if (tab === 'addresses') {
-        const res = await fetchBuyerAddressesAction();
+        const res = await fetchBuyerAddressesAction(fallback);
         if (cancelledRef.current) return;
         if (res?.success && 'addresses' in res) {
           setAddresses(res.addresses || []);
@@ -107,7 +118,7 @@ export function useBuyerData(notify?: NotifyFn) {
           setError(res?.error || 'Impossible de charger vos adresses.');
         }
       } else if (tab === 'reviews') {
-        const res = await fetchBuyerReviewsAction();
+        const res = await fetchBuyerReviewsAction(fallback);
         if (cancelledRef.current) return;
         if (res?.success && 'reviews' in res) {
           setReviews(res.reviews || []);
@@ -162,7 +173,7 @@ export function useBuyerData(notify?: NotifyFn) {
     setLoadingMore(true);
     try {
       const next = orderPage + 1;
-      const res = await fetchBuyerOrdersAction(next, ORDER_PAGE_SIZE);
+      const res = await fetchBuyerOrdersAction(next, ORDER_PAGE_SIZE, getFallback());
       if (cancelledRef.current) return;
       if (res?.success && Array.isArray(res.orders) && res.orders.length > 0) {
         setOrders((prev) => {
@@ -186,13 +197,22 @@ export function useBuyerData(notify?: NotifyFn) {
 
   const saveAddress = useCallback(
     async (addr: SaveAddressPayload) => {
-      const res = await saveBuyerAddressAction(addr);
+      const payload: SaveAddressPayload = {
+        ...addr,
+        userId: addr.userId || userRef.current?.id,
+        email: addr.email || userRef.current?.email,
+      };
+      const res = await saveBuyerAddressAction(payload);
       if (res?.success) {
-        notifyRef.current?.('Adresse enregistrée', 'success');
+        notifyRef.current?.('Adresse enregistrée avec succès', 'success');
         await reloadTab('addresses');
         return true;
       }
-      notifyRef.current?.(res?.error || 'Erreur lors de l\'enregistrement de l\'adresse.', 'error');
+      if (res?.error === 'Unauthorized') {
+        notifyRef.current?.('Session expirée, veuillez vous reconnecter.', 'info', 'Connexion');
+      } else {
+        notifyRef.current?.(res?.error || 'Erreur lors de l\'enregistrement de l\'adresse.', 'error');
+      }
       return false;
     },
     [reloadTab],
@@ -200,10 +220,12 @@ export function useBuyerData(notify?: NotifyFn) {
 
   const deleteAddress = useCallback(
     async (id: string) => {
-      const res = await deleteBuyerAddressAction(id);
+      const res = await deleteBuyerAddressAction(id, getFallback());
       if (res?.success) {
         notifyRef.current?.('Adresse supprimée', 'info');
         await reloadTab('addresses');
+      } else if (res?.error === 'Unauthorized') {
+        notifyRef.current?.('Session expirée, veuillez vous reconnecter.', 'info', 'Connexion');
       } else {
         notifyRef.current?.(res?.error || 'Erreur lors de la suppression de l\'adresse.', 'error');
       }

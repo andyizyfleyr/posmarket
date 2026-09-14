@@ -91,7 +91,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   const [dismissedError, setDismissedError] = useState<string | null>(null);
   const [prevAccountTab, setPrevAccountTab] = useState<string | undefined>(accountTab);
 
-  const data = useBuyerData(notify);
+  const data = useBuyerData(user, notify);
 
   // Synchronise l'onglet actif avec l'URL (/mon-compte/...) sans effet :
   // ajustement pendant le rendu quand la prop change (pattern React officiel).

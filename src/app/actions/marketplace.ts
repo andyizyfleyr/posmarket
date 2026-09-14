@@ -4,6 +4,7 @@ import { db } from '@/db'
 import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
+import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
@@ -33,6 +34,8 @@ type CheckoutCustomer = {
 
 type SaveAddressPayload = {
   id?: string;
+  userId?: string;
+  email?: string;
   name: string;
   fullName: string;
   phone: string;
@@ -291,10 +294,27 @@ const normalizeImageUrl = (uri: string | null | undefined): string => {
   return uri;
 };
 
-const resolveCurrentBuyer = async () => {
-  const { user } = await getCurrentSession();
-  if (!user?.id) return { user: null };
-  const [profile] = await db
+const resolveCurrentBuyer = async (fallbackIdOrEmail?: string) => {
+  const { user: sessionUser } = await getCurrentSession();
+  let targetId = sessionUser?.id;
+  let targetEmail = sessionUser?.email;
+
+  if (!targetId && fallbackIdOrEmail && typeof fallbackIdOrEmail === 'string') {
+    const trimmed = fallbackIdOrEmail.trim();
+    if (trimmed.includes('@')) {
+      targetEmail = trimmed.toLowerCase();
+    } else if (trimmed.length > 0) {
+      targetId = trimmed;
+    }
+  }
+
+  if (!targetId && !targetEmail) return { user: null };
+
+  const conditions = [];
+  if (targetId) conditions.push(eq(profiles.id, targetId));
+  if (targetEmail) conditions.push(eq(profiles.email, targetEmail));
+
+  let [profile] = await db
     .select({
       id: profiles.id,
       email: profiles.email,
@@ -305,8 +325,45 @@ const resolveCurrentBuyer = async () => {
       createdAt: profiles.createdAt
     })
     .from(profiles)
-    .where(eq(profiles.id, user.id))
+    .where(or(...conditions))
     .limit(1);
+
+  if (!profile && targetEmail) {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    try {
+      const [newProfile] = await db.insert(profiles).values({
+        email: targetEmail,
+        fullName: targetEmail.split('@')[0],
+        subscriptionTier: 'PRO',
+        subscriptionStatus: 'ACTIVE',
+        subscriptionStartDate: now,
+        subscriptionEndDate: endOfMonth,
+      }).returning({
+        id: profiles.id,
+        email: profiles.email,
+        fullName: profiles.fullName,
+        phone: profiles.phone,
+        companyName: profiles.companyName,
+        ninea: profiles.ninea,
+        createdAt: profiles.createdAt
+      });
+      profile = newProfile;
+    } catch {
+      const [existing] = await db.select().from(profiles).where(eq(profiles.email, targetEmail)).limit(1);
+      profile = existing || null;
+    }
+  }
+
+  if (profile?.id) {
+    try {
+      const cookieStore = await cookies();
+      if (!cookieStore.get('userId')?.value) {
+        cookieStore.set('userId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
+      }
+    } catch {}
+  }
+
   return { user: profile || null };
 };
 
@@ -381,8 +438,8 @@ export async function notifyPostCheckoutAction(data: unknown) {
   return { success: true, error: undefined };
 }
 
-export async function fetchBuyerOrdersAction(page: number = 1, pageSize: number = 10) {
-  const { user } = await resolveCurrentBuyer();
+export async function fetchBuyerOrdersAction(page: number = 1, pageSize: number = 10, fallbackIdOrEmail?: string) {
+  const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized', orders: [], totalCount: 0 };
 
   const safePage = Math.max(1, Number(page) || 1);
@@ -487,8 +544,8 @@ type OrderItemRow = {
   productBusinessType: string | null;
 }
 
-export async function fetchBuyerAddressesAction() {
-  const { user } = await resolveCurrentBuyer();
+export async function fetchBuyerAddressesAction(fallbackIdOrEmail?: string) {
+  const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized', addresses: [] };
 
   try {
@@ -519,7 +576,8 @@ export async function fetchBuyerAddressesAction() {
 }
 
 export async function saveBuyerAddressAction(address: SaveAddressPayload) {
-  const { user } = await resolveCurrentBuyer();
+  const fallback = address?.userId || address?.email;
+  const { user } = await resolveCurrentBuyer(fallback);
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const data = address || {};
@@ -568,8 +626,8 @@ export async function saveBuyerAddressAction(address: SaveAddressPayload) {
   }
 }
 
-export async function deleteBuyerAddressAction(id: string) {
-  const { user } = await resolveCurrentBuyer();
+export async function deleteBuyerAddressAction(id: string, fallbackIdOrEmail?: string) {
+  const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized' };
 
   try {
@@ -584,8 +642,8 @@ export async function deleteBuyerAddressAction(id: string) {
   }
 }
 
-export async function fetchBuyerReviewsAction() {
-  const { user } = await resolveCurrentBuyer();
+export async function fetchBuyerReviewsAction(fallbackIdOrEmail?: string) {
+  const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized', reviews: [] };
 
   try {
@@ -636,8 +694,8 @@ export async function updateBuyerProfileAction(updates: {
   phone?: string;
   companyName?: string;
   ninea?: string;
-}) {
-  const { user } = await resolveCurrentBuyer();
+}, fallbackIdOrEmail?: string) {
+  const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized' };
 
   const fullName = String(updates?.fullName || '').trim();
@@ -691,8 +749,8 @@ export async function updateBuyerProfileAction(updates: {
   }
 }
 
-export async function fetchBuyerProfileAction() {
-  const { user } = await resolveCurrentBuyer();
+export async function fetchBuyerProfileAction(fallbackIdOrEmail?: string) {
+  const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized' };
   return {
     success: true,

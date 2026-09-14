@@ -5,6 +5,7 @@ import { MapPin, Plus, Home, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import { BuyerAddress } from './accountTypes';
 import { EmptyState, PanelSkeleton } from './accountUtils';
+import { formatPhoneSN } from '@/utils';
 
 interface AddressesTabProps {
   addresses: BuyerAddress[];
@@ -112,7 +113,12 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
               </div>
             </div>
             <div className="pl-[52px]">
-              <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
+                {addr.phone && (
+                  <p className="text-[10px] font-bold text-gray-500">{formatPhoneSN(addr.phone)}</p>
+                )}
+              </div>
               <p className="text-[11px] text-gray-500 font-bold mt-1">{addr.address}</p>
               <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">
                 {addr.city}

@@ -63,6 +63,8 @@ export type BuyerOrdersResponse = {
 
 export type SaveAddressPayload = {
   id?: string;
+  userId?: string;
+  email?: string;
   name: string;
   fullName: string;
   phone: string;

@@ -2553,7 +2553,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               if (isAccountViewUrl) safeNavigate("/");
               else setIsAccountView(false);
             }}
-            notify={notify}
+            notify={localNotify}
             onLogout={handleLogout}
             onUserUpdate={handleUserUpdate}
           />

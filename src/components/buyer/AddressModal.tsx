@@ -43,7 +43,9 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
     const fullName = form.fullName.trim();
     const city = form.city.trim();
     const addr = form.address.trim();
-    const phoneDigits = form.phone.replace(/\D/g, '');
+    let phoneDigits = form.phone.replace(/\D/g, '');
+    if (phoneDigits.startsWith('00221')) phoneDigits = phoneDigits.slice(5);
+    else if (phoneDigits.startsWith('221')) phoneDigits = phoneDigits.slice(3);
 
     if (!name) errs.name = 'Ajoutez un label (ex : Maison).';
     if (!fullName) errs.fullName = 'Nom complet requis.';
@@ -57,7 +59,15 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
 
     setSaving(true);
     try {
-      const ok = await onSave({ id: address?.id, name, fullName, phone: phoneDigits, city, address: addr, isDefault: form.isDefault });
+      const ok = await onSave({ 
+        id: address?.id, 
+        name, 
+        fullName, 
+        phone: phoneDigits, 
+        city, 
+        address: addr, 
+        isDefault: form.isDefault 
+      });
       if (ok) onClose();
     } finally {
       setSaving(false);
