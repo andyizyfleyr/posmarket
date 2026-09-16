@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncFedaPaySubscriptions } from '@/lib/subscriptionSync';
+import { syncPayDunyaSubscriptions } from '@/lib/subscriptionSync';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -19,7 +19,7 @@ async function handleCron(request: NextRequest) {
   }
 
   try {
-    const result = await syncFedaPaySubscriptions();
+    const result = await syncPayDunyaSubscriptions();
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     return NextResponse.json(

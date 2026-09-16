@@ -2,17 +2,17 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/db';
 import { subscriptionPayments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { getFedaPayTransaction } from '@/lib/fedapay';
+import { getPayDunyaInvoiceStatus } from '@/lib/paydunya';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 
 const STATUS_MAP: Record<string, string> = {
-  approved: 'APPROVED',
-  declined: 'DECLINED',
-  canceled: 'CANCELED',
+  completed: 'APPROVED',
+  cancelled: 'CANCELED',
+  failed: 'DECLINED',
 };
 
-export interface FedaPaySyncResult {
+export interface PayDunyaSyncResult {
   scanned: number;
   activated: number;
   updated: number;
@@ -20,8 +20,8 @@ export interface FedaPaySyncResult {
   errors: number;
 }
 
-export async function syncFedaPaySubscriptions(userId?: string): Promise<FedaPaySyncResult> {
-  const summary: FedaPaySyncResult = { scanned: 0, activated: 0, updated: 0, skipped: 0, errors: 0 };
+export async function syncPayDunyaSubscriptions(userId?: string): Promise<PayDunyaSyncResult> {
+  const summary: PayDunyaSyncResult = { scanned: 0, activated: 0, updated: 0, skipped: 0, errors: 0 };
 
   const pending = await db
     .select()
@@ -40,7 +40,7 @@ export async function syncFedaPaySubscriptions(userId?: string): Promise<FedaPay
     }
 
     try {
-      const tx = await getFedaPayTransaction(row.transactionId);
+      const tx = await getPayDunyaInvoiceStatus(row.transactionId);
       const status = STATUS_MAP[String(tx.status || '').toLowerCase()];
       if (!status) {
         summary.skipped++;
@@ -55,14 +55,14 @@ export async function syncFedaPaySubscriptions(userId?: string): Promise<FedaPay
         await activateSubscription(row.userId, row.tier as SubscriptionTier, row.duration as SubscriptionDuration);
         revalidatePath('/subscription');
         summary.activated++;
-        console.log(`[FedaPay] Sync activé: user=${row.userId} tier=${row.tier} duration=${row.duration} tx=${row.transactionId}`);
+        console.log(`[PayDunya] Sync activé: user=${row.userId} tier=${row.tier} duration=${row.duration} invoice=${row.transactionId}`);
       } else {
         summary.updated++;
-        console.log(`[FedaPay] Sync statut ${status}: user=${row.userId} tx=${row.transactionId}`);
+        console.log(`[PayDunya] Sync statut ${status}: user=${row.userId} invoice=${row.transactionId}`);
       }
     } catch (error) {
       summary.errors++;
-      console.error(`[FedaPay] Sync erreur tx=${row.transactionId}:`, error);
+      console.error(`[PayDunya] Sync erreur invoice=${row.transactionId}:`, error);
     }
   }
 

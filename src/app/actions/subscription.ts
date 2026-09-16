@@ -8,7 +8,7 @@ import { SubscriptionTier, SubscriptionDuration } from '@/types'
 import { SUBSCRIPTION_PLANS } from '@/constants'
 import { createClient } from '@/utils/supabase/server'
 import { notify, getProfilePhone } from '@/lib/notifications'
-import { createFedaPayTransaction, fedapayConfigured } from '@/lib/fedapay'
+import { createPayDunyaInvoice, paydunyaConfigured } from '@/lib/paydunya'
 import { activateSubscription, subscriptionAmount, isPayableTier } from '@/lib/subscription'
 
 function durationLabel(d: string): string {
@@ -55,7 +55,7 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
             return { success: false, error: 'Utilisateur non authentifié' };
         }
 
-        if (!fedapayConfigured()) {
+        if (!paydunyaConfigured()) {
             return { success: false, code: 'NOT_CONFIGURED', error: 'Le paiement en ligne n\'est pas encore configuré.' };
         }
 
@@ -70,17 +70,34 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
         const proto = headerList.get('x-forwarded-proto') || 'http';
         const origin = `${proto}://${host}`;
 
-        const result = await createFedaPayTransaction({
+        const customer: { name?: string; email?: string; phone?: string } = { email: user.email || undefined };
+        try {
+            const { data: profile } = await supabase.from('profiles').select('full_name, phone').eq('id', user.id).single();
+            if (profile?.full_name) customer.name = String(profile.full_name);
+            if (profile?.phone) customer.phone = String(profile.phone);
+        } catch {
+            // non bloquant : le paiement fonctionne sans pré-remplissage client
+        }
+
+        const result = await createPayDunyaInvoice({
             description: `Abonnement PosMarket ${plan.name} (${durationLabel(duration)})`,
-            amount,
-            currency: 'XOF',
-            callbackUrl: `${origin}/subscription?fedapay=return`,
-            metadata: { userId: user.id, tier, duration },
-            customer: { email: user.email || undefined },
+            totalAmount: amount,
+            customer,
+            items: [{
+                name: `Abonnement ${plan.name}`,
+                quantity: 1,
+                unit_price: amount,
+                total_price: amount,
+                description: durationLabel(duration),
+            }],
+            customData: { userId: user.id, tier, duration },
+            returnUrl: `${origin}/subscription?paydunya=return`,
+            cancelUrl: `${origin}/subscription`,
+            callbackUrl: `${origin}/api/paydunya/webhook`,
         });
 
         if (!result.paymentUrl) {
-            return { success: false, error: 'Le lien de paiement FedaPay n\'a pas pu être généré. Réessayez et vérifiez la configuration de l\'API.' };
+            return { success: false, error: 'Le lien de paiement PayDunya n\'a pas pu être généré. Réessayez et vérifiez la configuration de l\'API.' };
         }
 
         await db.insert(subscriptionPayments).values({
@@ -89,12 +106,12 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
             duration,
             amount,
             currency: 'XOF',
-            transactionId: result.transactionId,
-            reference: result.reference || null,
+            transactionId: result.token,
+            reference: result.token,
             status: 'PENDING',
         }).onConflictDoNothing({ target: subscriptionPayments.transactionId });
 
-        return { success: true, paymentUrl: result.paymentUrl, transactionId: result.transactionId };
+        return { success: true, paymentUrl: result.paymentUrl, transactionId: result.token };
     } catch (error: unknown) {
         console.error('Error creating subscription payment:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };

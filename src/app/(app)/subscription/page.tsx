@@ -1,14 +1,14 @@
 import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
 import { updateSubscriptionAction, createSubscriptionPaymentAction } from '@/app/actions/subscription';
-import { syncFedaPaySubscriptions } from '@/lib/subscriptionSync';
+import { syncPayDunyaSubscriptions } from '@/lib/subscriptionSync';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
 type SubscriptionSearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function SubscriptionPage({ searchParams }: { searchParams: SubscriptionSearchParams }) {
   const sp = await searchParams;
-  const returnedFromPayment = sp.fedapay === 'return';
+  const returnedFromPayment = sp.paydunya === 'return';
 
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -17,7 +17,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
 
   if (returnedFromPayment) {
     try {
-      await syncFedaPaySubscriptions(session.user.id);
+      await syncPayDunyaSubscriptions(session.user.id);
     } catch (error) {
       console.error('Subscription reconciliation error:', error);
     }
