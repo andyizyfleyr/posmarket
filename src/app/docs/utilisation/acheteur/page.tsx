@@ -251,8 +251,7 @@ export default function AcheteurPage() {
             <div>
               <p className="text-xs font-black text-gray-900">Paiement</p>
               <p className="text-[11px] font-medium text-gray-500 mt-0.5">
-                Choisissez <strong>Espèces à la livraison</strong> ou{" "}
-                <strong>Carte bancaire</strong> (FusionPay, sécurisé).
+                Choisissez <strong>Espèces à la livraison</strong>.
               </p>
             </div>
           </div>

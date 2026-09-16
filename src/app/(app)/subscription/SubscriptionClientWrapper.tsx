@@ -8,10 +8,11 @@ import { UserSubscription, SubscriptionDuration, SubscriptionTier, NotificationT
 interface SubscriptionClientWrapperProps {
   currentSubscription: UserSubscription;
   onUpdateSubscription: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined }>;
+  onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined; code?: string; paymentUrl?: string }>;
   userRole?: string;
 }
 
-export default function SubscriptionClientWrapper({ currentSubscription, onUpdateSubscription, userRole }: SubscriptionClientWrapperProps) {
+export default function SubscriptionClientWrapper({ currentSubscription, onUpdateSubscription, onCreatePayment, userRole }: SubscriptionClientWrapperProps) {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const notify = useCallback((message: string, type: NotificationType, _title?: string) => {
@@ -25,6 +26,7 @@ export default function SubscriptionClientWrapper({ currentSubscription, onUpdat
         currentSubscription={currentSubscription}
         userRole={userRole as StaffRole}
         onUpdateSubscription={onUpdateSubscription}
+        onCreatePayment={onCreatePayment}
         notify={notify}
       />
 

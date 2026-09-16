@@ -44,7 +44,7 @@ const features = [
   {
     icon: ShieldCheck,
     title: "Paiement protégé",
-    desc: "Deux options : paiement à la livraison (espèces) ou carte bancaire via FusionPay, une passerelle sécurisée. Vous ne payez jamais avant d'avoir confirmé votre commande.",
+    desc: "Paiement à la livraison (espèces), simple et sécurisé. Vous ne payez jamais avant d'avoir reçu votre commande.",
     color: "bg-indigo-50 text-indigo-600",
   },
   {

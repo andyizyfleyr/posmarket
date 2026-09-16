@@ -25,7 +25,6 @@ export interface CartCheckoutViewBundle {
   buyerAddresses: any[];
   selectedAddressId: string | null;
   paymentMethod: string;
-  isProcessingPayment: boolean;
   isCheckoutTransitioning: boolean;
   keyboardOffset: number;
   isWhatsAppLoading: boolean;
@@ -73,7 +72,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   const {
     checkoutStage, cart, cartItemsCount, isNavigating, expandedCartStores,
     swipeState, swipeStartRef, customerInfo, user, buyerAddresses,
-    selectedAddressId, paymentMethod, isProcessingPayment, isCheckoutTransitioning,
+    selectedAddressId, paymentMethod, isCheckoutTransitioning,
     keyboardOffset, isWhatsAppLoading, stores,
     setCheckoutStage, setCompletedOrderStores, setCompletedOrderItems,
     setCompletedOrderTotal, setExpandedCartStores, setSwipeState, setCustomerInfo,
@@ -683,7 +682,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 )}
               {checkoutStage === "payment" && (
                 <div className="space-y-4   ">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-4">
                     <div
                       onClick={() => setPaymentMethod("cod")}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === "cod" ? "border-[#f56b2a] bg-orange-50" : "border-gray-100 bg-white"}`}
@@ -700,40 +699,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         Paiement à la livraison
                       </div>
                     </div>
-                    <div
-                      onClick={() => setPaymentMethod("card")}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === "card" ? "border-[#f56b2a] bg-orange-50" : "border-gray-100 bg-white"}`}
-                    >
-                      <CreditCard
-                        size={24}
-                        className={
-                          paymentMethod === "card"
-                            ? "text-[#f56b2a]"
-                            : "text-gray-600"
-                        }
-                      />
-                      <div className="mt-2 font-black text-sm text-gray-900">
-                        Carte Bancaire
-                      </div>
-                    </div>
                   </div>
-                  {paymentMethod === "card" && (
-                    <div className="space-y-3 p-4 bg-gray-100 rounded-2xl">
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200">
-                        <ShieldCheck
-                          size={20}
-                          className="text-green-500 flex-shrink-0"
-                        />
-                        <div className="text-xs font-bold text-gray-600">
-                          Paiement sécurisé par FusionPay
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-gray-500 text-center">
-                        Vous serez redirigé vers le formulaire de paiement
-                        sécurisé
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
             </form>
@@ -959,7 +925,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <Button
                     form="checkout-form"
                     type="submit"
-                    loading={isProcessingPayment}
                     loadingText={
                       checkoutStage === "payment"
                         ? "Traitement en cours..."
@@ -1024,7 +989,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <Button
                     form="checkout-form"
                     type="submit"
-                    loading={isProcessingPayment}
                     loadingText="Chargement..."
                     fullWidth
                     size="lg"

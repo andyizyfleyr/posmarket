@@ -176,6 +176,20 @@ export const systemSettings = pgTable('system_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const subscriptionPayments = pgTable('subscription_payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  tier: text('tier').notNull(),
+  duration: text('duration').notNull(),
+  amount: integer('amount').notNull(),
+  currency: text('currency').default('XOF').notNull(),
+  transactionId: text('transaction_id').unique(),
+  reference: text('reference'),
+  status: text('status').default('PENDING').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const notificationPreferences = pgTable('notification_preferences', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }),

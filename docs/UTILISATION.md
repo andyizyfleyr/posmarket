@@ -39,7 +39,7 @@ Tous les prix sont en **FCFA (XOF)**.
 
 1. **Panier** — Vérifiez vos articles, appliquez un code promo, cliquez "Commander"
 2. **Livraison** — Renseignez nom, téléphone et adresse de livraison
-3. **Paiement** — Choisissez Espèces (à la livraison) ou Carte bancaire (via FusionPay)
+3. **Paiement** — Choisissez Espèces (à la livraison)
 
 > Une boutique peut imposer un minimum de commande. Les commandes multi-boutiques sont groupées.
 

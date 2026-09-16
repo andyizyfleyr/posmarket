@@ -9,11 +9,12 @@ import { useRouter } from '@/components/RouterPolyfill';
 interface SubscriptionViewProps {
     currentSubscription: UserSubscription;
     onUpdateSubscription?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string }>;
+    onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string; code?: string; paymentUrl?: string }>;
     notify?: (message: string, type: NotificationType, title?: string) => void;
     userRole?: StaffRole;
 }
 
-export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, notify, userRole }) => {
+export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onCreatePayment, notify, userRole }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
     const isExpired = new Date(currentSubscription.endDate) < new Date();
@@ -51,7 +52,25 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
         setLoading(plan.tier);
         try {
-            if (onUpdateSubscription) {
+            if (onCreatePayment) {
+                const result = await onCreatePayment(plan.tier, duration);
+                if (result.success && result.paymentUrl) {
+                    if (notify) notify('Redirection vers le paiement sécurisé...', 'success', 'Paiement');
+                    window.location.assign(result.paymentUrl);
+                    return;
+                }
+                if (result.code === 'NOT_CONFIGURED' && onUpdateSubscription) {
+                    const direct = await onUpdateSubscription(plan.tier, duration);
+                    if (direct.success) {
+                        router.refresh();
+                        if (notify) notify(`Abonnement ${plan.name} activé avec succès !`, 'success', 'Succès');
+                    } else {
+                        if (notify) notify(direct.error || 'Erreur lors de l\'activation', 'error', 'Erreur');
+                    }
+                    return;
+                }
+                if (notify) notify(result.error || 'Erreur lors de l\'initialisation du paiement', 'error', 'Paiement');
+            } else if (onUpdateSubscription) {
                 const result = await onUpdateSubscription(plan.tier, duration);
                 if (result.success) {
                     router.refresh();

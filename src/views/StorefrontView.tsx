@@ -1045,70 +1045,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
 
-  const fusionPayApiUrl = process.env.NEXT_PUBLIC_FUSIONPAY_API_URL || "";
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
-  const [pendingOrderData, setPendingOrderData] = useState<Record<
-    string,
-    CheckoutStoreOrderDraft
-  > | null>(null);
-  const [pendingCustomerInfo, setPendingCustomerInfo] =
-    useState<CheckoutCustomerDraft | null>(null);
-
-  const initiateFusionPayPayment = useCallback(
-    async (
-      amount: number,
-      description: string,
-      customer: { phone: string; name: string },
-    ) => {
-      if (!fusionPayApiUrl) {
-        notify(
-          "Paiement par carte indisponible (configuration manquante). Choisissez le paiement à la livraison.",
-          "error",
-        );
-        setIsProcessingPayment(false);
-        return;
-      }
-      try {
-        const paymentData = {
-          totalPrice: amount,
-          article: [{ description: description }],
-          numeroSend: customer.phone,
-          nomclient: customer.name,
-          return_url: window.location.href,
-          webhook_url: "",
-        };
-
-        const response = await fetch(fusionPayApiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(paymentData),
-        });
-
-        const data = await response.json();
-
-        if (data.statut && data.url) {
-          window.location.href = data.url;
-        } else {
-          notify(
-            "Erreur lors de la création du paiement: " +
-              (data.message || "Erreur inconnue"),
-            "error",
-          );
-          setIsProcessingPayment(false);
-        }
-      } catch (error) {
-        console.error("Erreur de paiement:", error);
-        notify("Erreur lors du traitement du paiement. Veuillez réessayer.", "error");
-        setIsProcessingPayment(false);
-      }
-    },
-    [fusionPayApiUrl, notify],
-  );
 
   // Reset checkout stage based on navigation (but NOT when success is set)
   const successStageRef = useRef(false);
@@ -1133,125 +1072,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       successStageRef.current = false;
     }
   }, [isCartView, checkoutStage]);
-
-  // Handle FusionPay return
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-    if (!token) return;
-
-    // Après la redirection full-page, l'état React est perdu : on restaure
-    // la commande persistée en sessionStorage avant de vérifier le paiement.
-    let orderData = pendingOrderData;
-    let customer = pendingCustomerInfo;
-    if (!orderData || !customer) {
-      try {
-        const saved = sessionStorage.getItem("fusionpay_pending_order");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          orderData = parsed.ordersData;
-          customer = parsed.customer;
-          if (orderData) setPendingOrderData(orderData);
-          if (customer) setPendingCustomerInfo(customer);
-        }
-      } catch {}
-    }
-    if (orderData && customer) {
-      checkFusionPayPaymentStatus(token, orderData, customer);
-    } else {
-      // Token orphelin : nettoyer l'URL pour éviter une boucle au refresh
-      window.history.replaceState(window.history.state, "", window.location.pathname);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const clearFusionPayPending = () => {
-    try {
-      sessionStorage.removeItem("fusionpay_pending_order");
-    } catch {}
-    setPendingOrderData(null);
-    setPendingCustomerInfo(null);
-  };
-
-  const checkFusionPayPaymentStatus = async (
-    token: string,
-    orderDataOverride?: NonNullable<typeof pendingOrderData>,
-    customerOverride?: typeof pendingCustomerInfo,
-  ) => {
-    const activeOrderData = orderDataOverride || pendingOrderData;
-    const activeCustomer = customerOverride || pendingCustomerInfo;
-    try {
-      const response = await fetch(
-        `https://www.pay.moneyfusion.net/paiementNotif/${token}`,
-      );
-      const data = await response.json();
-
-      if (data.statut && data.data?.statut === "paid") {
-        if (activeOrderData && activeCustomer) {
-          onMarketplaceCheckout(activeOrderData, activeCustomer);
-        }
-        playSuccessSound();
-        const storeMap: Record<
-          string,
-          {
-            storeId: string;
-            storeName: string;
-            products: Array<{ id: string; name: string; image: string }>;
-          }
-        > = {};
-        cart.forEach((item) => {
-          const sid = item.product.storeId;
-          if (!storeMap[sid]) {
-            storeMap[sid] = {
-              storeId: sid,
-              storeName: item.product.storeName,
-              products: [],
-            };
-          }
-          if (!storeMap[sid].products.find((p) => p.id === item.product.id)) {
-            storeMap[sid].products.push({
-              id: item.product.id,
-              name: item.product.name,
-              image: item.product.image,
-            });
-          }
-        });
-        setCompletedOrderStores(Object.values(storeMap));
-        setCompletedOrderItems(
-          cart.map((item) => ({
-            name: item.product.name,
-            quantity: item.quantity,
-            price: item.product.price,
-          })),
-        );
-        setCompletedOrderTotal(cartTotal);
-        setReviewedProducts([]);
-        setCart([]);
-        setPromoApplied(null);
-        setPromoCodeInput("");
-        setCheckoutStage("success");
-        // Send notifications after success screen is triggered
-        if (activeOrderData) {
-          onNotifyPostCheckout(activeOrderData);
-        }
-        clearFusionPayPending();
-        // Preserve Next.js history state (raw {} breaks the router and can
-        // trigger spontaneous back-navigations later)
-        window.history.replaceState(window.history.state, "", window.location.pathname);
-      } else if (data.data?.statut === "pending") {
-        notify("Paiement en cours de traitement...", "info");
-      } else {
-        notify("Paiement échoué ou annulé", "error");
-        setIsProcessingPayment(false);
-        clearFusionPayPending();
-        window.history.replaceState(window.history.state, "", window.location.pathname);
-      }
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-      notify("Erreur lors de la vérification du paiement", "error");
-      setIsProcessingPayment(false);
-    }
-  };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2049,8 +1869,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     e.preventDefault();
     if (checkoutStage === "shipping") handleStageChange("payment");
     else if (checkoutStage === "payment") {
-      if (isProcessingPayment) return;
-
       const ordersData: Record<string, CheckoutStoreOrderDraft> = {};
       cart.forEach((item) => {
         if (!ordersData[item.product.storeId]) {
@@ -2089,44 +1907,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             : 0;
         storeOrder.shippingCost = proportionalShipping;
         storeOrder.total = discountedSubtotal + proportionalShipping;
-        storeOrder.paymentMethod =
-          paymentMethod === "card" ? "CARTE" : "ESPECES";
+        storeOrder.paymentMethod = "ESPECES";
       });
 
-      if (paymentMethod === "card") {
-        setIsProcessingPayment(true);
-        setPendingOrderData(ordersData);
-        const pendingCustomer = {
-          ...customerInfo,
-          address: [customerInfo.address, customerInfo.city]
-            .filter(Boolean)
-            .join(", "),
-        };
-        setPendingCustomerInfo(pendingCustomer);
-        // La redirection vers FusionPay recharge la page : l'état React est
-        // perdu. On persiste la commande pour pouvoir la confirmer au retour.
-        try {
-          sessionStorage.setItem(
-            "fusionpay_pending_order",
-            JSON.stringify({ ordersData, customer: pendingCustomer }),
-          );
-        } catch {}
-        const totalAmount = Object.values(ordersData).reduce(
-          (sum: number, order) => sum + order.total,
-          0,
-        );
-
-        initiateFusionPayPayment(
-          Math.round(totalAmount),
-          "Commande sur " + (stores[0]?.name || ""),
-          {
-            phone: (customerInfo.phone || "").replace(/\s/g, ""),
-            name: customerInfo.name || "",
-          },
-        );
-      } else {
-        setIsProcessingPayment(true);
-        (async () => {
+      (async () => {
           try {
             const response = await onMarketplaceCheckout(ordersData, {
               ...customerInfo,
@@ -2193,11 +1977,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               "Une erreur est survenue lors de la validation.",
               "error",
             );
-          } finally {
-            setIsProcessingPayment(false);
           }
         })();
-      }
     }
   };
 
@@ -2532,7 +2313,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       buyerAddresses={buyerAddresses}
       selectedAddressId={selectedAddressId}
       paymentMethod={paymentMethod}
-      isProcessingPayment={isProcessingPayment}
       isCheckoutTransitioning={isCheckoutTransitioning}
       keyboardOffset={keyboardOffset}
       isWhatsAppLoading={isWhatsAppLoading}
