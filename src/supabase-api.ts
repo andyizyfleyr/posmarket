@@ -321,8 +321,8 @@ export const getUserProfile = async (userId: string) => {
         fullName: data.full_name,
         avatarUrl: data.avatar_url,
         isSuperAdmin: data.is_super_admin,
-        subscriptionTier: data.subscription_tier || 'PRO',
-        subscriptionStatus: data.subscription_status || 'ACTIVE',
+        subscriptionTier: data.subscription_tier,
+        subscriptionStatus: data.subscription_status,
         subscriptionEndDate: data.subscription_end_date
     };
 };

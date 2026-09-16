@@ -57,7 +57,7 @@ Tous les prix sont en **FCFA (XOF)**.
 ### Créer son compte et démarrer
 
 1. **Créez votre compte** — Allez sur "Se connecter", onglet "Créer un compte"
-2. **Choisissez votre plan** — Un abonnement Pro est créé automatiquement
+2. **Choisissez votre plan** — Choisissez parmi Starter, Pro ou Entreprise (aucun abonnement actif est créé à l'inscription)
 3. **Créez votre boutique** — "Nouvelle boutique" dans la barre de navigation
 4. **Ajoutez vos produits** — Nom, prix, stock et photo
 

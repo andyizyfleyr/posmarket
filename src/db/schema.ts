@@ -11,10 +11,10 @@ export const profiles = pgTable('profiles', {
   avatarUrl: text('avatar_url'),
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
   accountType: text('account_type').default('buyer'),
-  subscriptionTier: text('subscription_tier').default('PRO'),
-  subscriptionDuration: text('subscription_duration').default('monthly'),
-  subscriptionStatus: text('subscription_status').default('ACTIVE'),
-  subscriptionStartDate: timestamp('subscription_start_date').defaultNow(),
+  subscriptionTier: text('subscription_tier'),
+  subscriptionDuration: text('subscription_duration'),
+  subscriptionStatus: text('subscription_status'),
+  subscriptionStartDate: timestamp('subscription_start_date'),
   subscriptionEndDate: timestamp('subscription_end_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -176,6 +176,35 @@ export const systemSettings = pgTable('system_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const notificationPreferences = pgTable('notification_preferences', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }),
+  phone: text('phone').notNull(),
+  eventType: text('event_type').notNull(),
+  enabled: boolean('enabled').default(true).notNull(),
+  channel: text('channel').default('whatsapp').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const notificationOutbox = pgTable('notification_outbox', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  recipientUserId: uuid('recipient_user_id').references(() => profiles.id, { onDelete: 'set null' }),
+  recipientPhone: text('recipient_phone').notNull(),
+  eventType: text('event_type').notNull(),
+  title: text('title'),
+  body: text('body').notNull(),
+  provider: text('provider').default('whatsapp').notNull(),
+  status: text('status').default('PENDING').notNull(), // PENDING | SENT | FAILED | SKIPPED | SCHEDULED
+  messageId: text('message_id'),
+  templateName: text('template_name'),
+  params: jsonb('params').default({}),
+  attempts: integer('attempts').default(0).notNull(),
+  error: text('error'),
+  scheduledAt: timestamp('scheduled_at'),
+  sentAt: timestamp('sent_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const adminUsers = pgTable('admin_users', {
   id: uuid('id').primaryKey().defaultRandom(),
   username: text('username').notNull().unique(),
@@ -283,4 +312,12 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
 
 export const buyerAddressesRelations = relations(buyerAddresses, ({ one }) => ({
   user: one(profiles, { fields: [buyerAddresses.userId], references: [profiles.id] }),
+}));
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(profiles, { fields: [notificationPreferences.userId], references: [profiles.id] }),
+}));
+
+export const notificationOutboxRelations = relations(notificationOutbox, ({ one }) => ({
+  recipient: one(profiles, { fields: [notificationOutbox.recipientUserId], references: [profiles.id] }),
 }));

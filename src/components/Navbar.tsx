@@ -314,11 +314,14 @@ const Navbar: React.FC<NavbarProps> = ({
             const daysLeft = getDaysRemaining(userSubscription.endDate);
             const isExpired = new Date(userSubscription.endDate) < new Date();
             const isUrgent = daysLeft <= 7 && !isExpired;
-            const badgeClass = isExpired
-              ? 'text-red-600 bg-red-50 border-red-100 hover:bg-red-100'
-              : isUrgent
-                  ? 'text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100'
-                  : 'text-green-700 bg-green-50 border-green-100 hover:bg-green-100';
+            const hasNoPlan = userSubscription.status === 'NONE' || !userSubscription.tier || userSubscription.tier === 'NONE' || userSubscription.tier === 'UNKNOWN';
+            const badgeClass = hasNoPlan
+              ? 'text-orange-600 bg-orange-50 border-orange-100 hover:bg-orange-100'
+              : isExpired
+                  ? 'text-red-600 bg-red-50 border-red-100 hover:bg-red-100'
+                  : isUrgent
+                      ? 'text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100'
+                      : 'text-green-700 bg-green-50 border-green-100 hover:bg-green-100';
             return (
               <button
                 onClick={() => onViewChange('subscription')}
@@ -327,7 +330,9 @@ const Navbar: React.FC<NavbarProps> = ({
               >
                 <Clock size={16} />
                 <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
-                  {isExpired ? (
+                  {hasNoPlan ? (
+                    <>S&apos;abonner</>
+                  ) : isExpired ? (
                     <><span className="md:hidden">-</span>Expiré</>
                   ) : (
                     <><span className="md:hidden">-</span>{daysLeft}J<span className="hidden md:inline"> restants</span></>
@@ -372,10 +377,12 @@ const Navbar: React.FC<NavbarProps> = ({
                         </span>
                       </div>
                     </div>
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Abonnement Actif</div>
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">
+                      {userSubscription?.status === 'NONE' || !userSubscription || userSubscription.tier === 'NONE' ? 'Pas d\'abonnement' : 'Abonnement Actif'}
+                    </div>
                     <div className="text-xs font-black text-[#f56b2a] flex items-center gap-1.5">
                       <Maximize2 size={12} />
-                      {`${currentPlan?.name}`}
+                      {userSubscription?.status === 'NONE' || !userSubscription || userSubscription.tier === 'NONE' ? 'Souscrire' : `${currentPlan?.name}`}
                     </div>
                   </div>
                   <div className="p-2">

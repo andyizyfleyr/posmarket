@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings } from '@/db/schema';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
+import { notify, getStorePhone } from '@/lib/notifications';
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -192,6 +193,33 @@ export async function updateStoreApproval(storeId: string, status: string) {
     await db.update(stores).set({ status }).where(eq(stores.id, storeId));
     revalidatePath('/pam/stores');
     updateTag('marketplace');
+
+    const upper = String(status || '').toUpperCase();
+    if (upper === 'APPROVED' || upper === 'APPROUVE') {
+      const storeInfo = await getStorePhone(storeId);
+      if (storeInfo?.phone) {
+        await notify({
+          userId: storeInfo.ownerId,
+          phone: storeInfo.phone,
+          eventType: 'BOUTIQUE_APPROUVEE',
+          title: 'Boutique approuvée',
+          body: `Félicitations ! Votre boutique « ${storeInfo.name} » a été approuvée et est maintenant en ligne sur la marketplace.`,
+          templateParams: [storeInfo.name],
+        });
+      }
+    } else if (upper === 'REJECTED' || upper === 'REJETE') {
+      const storeInfo = await getStorePhone(storeId);
+      if (storeInfo?.phone) {
+        await notify({
+          userId: storeInfo.ownerId,
+          phone: storeInfo.phone,
+          eventType: 'BOUTIQUE_REJETEE',
+          title: 'Boutique rejetée',
+          body: `Votre boutique « ${storeInfo.name} » n'a pas été approuvée. Bonifiez votre présentation et soumettez-la à nouveau.`,
+          templateParams: [storeInfo.name],
+        });
+      }
+    }
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -214,6 +242,18 @@ export async function updateUserAdminStatus(userId: string, isAdmin: boolean) {
 
 export async function updateUserSubscription(userId: string, tier: string, duration: string) {
   try {
+    if (tier === 'NONE') {
+      await db.update(profiles).set({
+        subscriptionTier: null,
+        subscriptionDuration: null,
+        subscriptionStartDate: null,
+        subscriptionEndDate: null,
+        subscriptionStatus: null
+      }).where(eq(profiles.id, userId));
+      revalidatePath('/pam/users');
+      return { success: true };
+    }
+
     const startDate = new Date();
     const endDate = new Date();
 

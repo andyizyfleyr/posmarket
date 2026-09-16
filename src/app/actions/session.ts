@@ -41,17 +41,10 @@ export async function signInWithPasswordSession(email: string) {
       };
     }
   } else {
-    const now = new Date();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     [profile] = await db.insert(profiles).values({
       email: cleanEmail,
       fullName: cleanEmail.split('@')[0],
       accountType: 'buyer',
-      subscriptionTier: 'PRO',
-      subscriptionDuration: 'monthly',
-      subscriptionStatus: 'ACTIVE',
-      subscriptionStartDate: now,
-      subscriptionEndDate: endOfMonth,
     }).returning();
   }
 
@@ -73,19 +66,12 @@ export async function signUpSession(name: string, email: string) {
     return { user: serializeUser(existing), error: null };
   }
 
-  const now = new Date();
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
   const [profile] = await db
     .insert(profiles)
     .values({
       email: cleanEmail,
       fullName: name?.trim(),
       accountType: 'buyer',
-      subscriptionTier: 'PRO',
-      subscriptionStatus: 'ACTIVE',
-      subscriptionStartDate: now,
-      subscriptionEndDate: endOfMonth,
     })
     .returning();
 

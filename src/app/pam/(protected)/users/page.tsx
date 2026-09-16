@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
                       <select
-                        value={u.subscription_tier || 'PRO'}
+                        value={u.subscription_tier || 'NONE'}
                         onChange={async (e) => {
                           setProcessingId(`sub-${u.id}`, true);
                           await updateUserSubscription(u.id, e.target.value as SubscriptionTier, 'monthly');
@@ -223,6 +223,7 @@ export default function AdminUsersPage() {
                           'bg-gray-50 border-gray-200 text-gray-500'
                         }`}
                       >
+                        <option value="NONE">NONE</option>
                         <option value="STARTER">STARTER</option>
                         <option value="PRO">PRO</option>
                         <option value="ENTERPRISE">ENTERPRISE</option>

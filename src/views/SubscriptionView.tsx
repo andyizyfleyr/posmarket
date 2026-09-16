@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useMemo } from 'react';
-import { SUBSCRIPTION_PLANS } from '@/constants';
+import { SUBSCRIPTION_PLANS, getSubscriptionPlan } from '@/constants';
 import { UserSubscription, SubscriptionDuration, SubscriptionTier, SubscriptionPlan, NotificationType, StaffRole } from '@/types';
 import { Check, X as XIcon, Info, Award, Star, Zap, Users, Clock, Shield } from 'lucide-react';
 import { formatCurrency, getDaysRemaining } from '@/utils';
@@ -17,6 +17,9 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
     const isExpired = new Date(currentSubscription.endDate) < new Date();
+    const currentTierIsActive = currentSubscription.status === 'ACTIVE' && !isExpired;
+    const currentTierPlan = getSubscriptionPlan(currentSubscription.tier);
+    const hasActivePlan = !!currentTierPlan && currentTierIsActive;
     const daysLeft = getDaysRemaining(currentSubscription.endDate);
     const [duration, setDuration] = useState<SubscriptionDuration>(currentSubscription.duration || 'monthly');
     const [loading, setLoading] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     }, []);
 
     const handleSubscribe = async (plan: SubscriptionPlan) => {
-        if (plan.tier === currentSubscription.tier && currentSubscription.status === 'ACTIVE' && !isExpired) {
+        if (hasActivePlan && plan.tier === currentTierPlan?.tier) {
             return;
         }
 
@@ -73,9 +76,9 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     const getButtonText = (plan: SubscriptionPlan) => {
         if (loading === plan.tier) return 'Traitement...';
         if (isSeller) return 'Accès Restreint';
-        if (plan.tier === currentSubscription.tier && currentSubscription.status === 'ACTIVE' && !isExpired) return 'Plan Actuel';
-        if (plan.tier === currentSubscription.tier && isExpired) return 'Réactiver';
-        return `Passer à ${plan.name}`;
+        if (hasActivePlan && plan.tier === currentTierPlan?.tier) return 'Plan Actuel';
+        if (currentTierPlan?.tier === plan.tier && isExpired) return 'Réactiver';
+        return hasActivePlan ? `Passer à ${plan.name}` : `Choisir ${plan.name}`;
     };
 
     return (
@@ -85,28 +88,30 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                 <div className={`rounded-2xl md:rounded-3xl p-4 md:p-6 border ${
                     isExpired
                         ? 'bg-red-50 border-red-100'
-                        : daysLeft <= 7
-                            ? 'bg-amber-50 border-amber-100'
-                            : 'bg-white border-slate-200'
+                        : !hasActivePlan
+                            ? 'bg-orange-50 border-orange-100'
+                            : daysLeft <= 7
+                                ? 'bg-amber-50 border-amber-100'
+                                : 'bg-white border-slate-200'
                 }`}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center ${
-                                isExpired ? 'bg-red-100 text-red-500' : daysLeft <= 7 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
+                                isExpired ? 'bg-red-100 text-red-500' : !hasActivePlan ? 'bg-orange-100 text-orange-500' : daysLeft <= 7 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
                             }`}>
-                                {isExpired ? <XIcon size={20} /> : <Shield size={20} />}
+                                {!hasActivePlan ? <Info size={20} /> : isExpired ? <XIcon size={20} /> : <Shield size={20} />}
                             </div>
                             <div>
                                 <p className="text-xs md:text-sm font-bold text-slate-500">Abonnement actuel</p>
                                 <p className={`text-sm md:text-lg font-black ${
                                     isExpired ? 'text-red-600' : 'text-slate-900'
                                 }`}>
-                                    {SUBSCRIPTION_PLANS[currentSubscription.tier]?.name || 'Aucun'}
+                                    {currentTierPlan?.name || 'Aucun'}
                                     {isExpired && ' (Expiré)'}
                                 </p>
                             </div>
                         </div>
-                        {!isExpired && (
+                        {hasActivePlan ? (
                             <div className="text-right">
                                 <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase">Expire dans</p>
                                 <p className={`text-lg md:text-2xl font-black ${
@@ -115,6 +120,12 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                     {daysLeft}j
                                 </p>
                             </div>
+                        ) : (
+                            !isExpired && (
+                                <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 rounded-lg px-3 py-1.5">
+                                    Aucun abonnement actif
+                                </span>
+                            )
                         )}
                     </div>
                 </div>
@@ -170,13 +181,13 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
             {/* Plans Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full max-w-5xl mb-8">
                 {plans.map((plan) => {
-                    const isCurrent = currentSubscription.tier === plan.tier && currentSubscription.status === 'ACTIVE' && !isExpired;
+                    const isCurrent = hasActivePlan && currentTierPlan?.tier === plan.tier;
                     const price = duration === 'monthly' ? plan.priceMonthly : duration === 'quarterly' ? plan.priceQuarterly : plan.priceAnnual;
+                    const isDowngrade = hasActivePlan && plans.findIndex(p => p.tier === plan.tier) < plans.findIndex(p => p.tier === currentTierPlan?.tier);
                     const displayPrice = price > 0 ? formatCurrency(price) : 'Gratuit';
                     const iconData = planIcons[plan.tier];
                     const planSaving = savings[plan.tier];
                     const isBestValue = plan.tier === 'PRO';
-                    const isDowngrade = plans.findIndex(p => p.tier === plan.tier) < plans.findIndex(p => p.tier === currentSubscription.tier);
 
                     return (
                         <div

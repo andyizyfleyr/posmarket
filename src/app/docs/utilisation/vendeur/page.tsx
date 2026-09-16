@@ -93,8 +93,9 @@ export default function VendeurPage() {
           </li>
         </ol>
         <Info>
-          Un abonnement Pro mensuel est créé automatiquement à l&apos;inscription. Vous
-          pouvez le changer à tout moment.
+          Aucun abonnement actif n&apos;est créé à l&apos;inscription : choisissez votre
+          plan (Starter, Pro ou Entreprise) pour activer votre compte. Vous pouvez le
+          changer à tout moment.
         </Info>
       </Section>
 

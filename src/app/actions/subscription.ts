@@ -6,6 +6,14 @@ import { profiles } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { SubscriptionTier, SubscriptionDuration } from '@/types'
 import { createClient } from '@/utils/supabase/server'
+import { notify, getProfilePhone } from '@/lib/notifications'
+
+function durationLabel(d: string): string {
+    if (d === 'monthly') return 'mensuel';
+    if (d === 'quarterly') return 'trimestriel';
+    if (d === 'annual') return 'annuel';
+    return d;
+}
 
 export async function updateSubscriptionAction(tier: SubscriptionTier, duration: SubscriptionDuration) {
     try {
@@ -34,6 +42,15 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
             subscriptionEndDate: endDate,
             subscriptionStatus: 'ACTIVE'
         }).where(eq(profiles.id, user.id));
+
+        await notify({
+            userId: user.id,
+            phone: await getProfilePhone(user.id),
+            eventType: 'ABONNEMENT_ACTIVE',
+            title: 'Abonnement activé',
+            body: `Votre abonnement ${tier} (${duration}) est actif. Bienvenue parmi les commerçants PosMarket !`,
+            templateParams: [String(tier), durationLabel(duration)],
+        });
 
         revalidatePath('/subscription');
         return { success: true };

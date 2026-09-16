@@ -168,7 +168,8 @@ export interface StoreData {
 }
 
 export type SubscriptionDuration = 'monthly' | 'quarterly' | 'annual';
-export type SubscriptionTier = 'STARTER' | 'PRO' | 'ENTERPRISE';
+export type SubscriptionTier = 'NONE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | 'UNKNOWN';
+export type SubscriptionTierStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'NONE';
 
 export interface SubscriptionFeatures {
   maxStores: number;
@@ -193,7 +194,7 @@ export interface UserSubscription {
   duration: SubscriptionDuration;
   startDate: string;
   endDate: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  status: SubscriptionTierStatus;
 }
 
 export type StaffRole = 'SUPER_ADMIN' | 'OWNER' | 'SELLER';
@@ -225,10 +226,62 @@ export interface UserProfile {
   subscriptionDuration?: SubscriptionDuration;
   subscriptionStartDate?: string;
   subscriptionEndDate?: string;
-  subscriptionStatus?: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  subscriptionStatus?: SubscriptionTierStatus;
 }
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
+
+export type NotificationEvent =
+  | 'CONFIRMATION_COMMANDE'
+  | 'COMMANDE_PRET'
+  | 'COMMANDE_EXPEDIEE'
+  | 'COMMANDE_LIVREE'
+  | 'COMMANDE_ANNULEE'
+  | 'RECU_PAIEMENT'
+  | 'RELANCE_PANIER_ABANDONNE'
+  | 'NOUVELLE_COMMANDE'
+  | 'NOUVEAU_CLIENT'
+  | 'ALERTE_STOCK_BAS'
+  | 'RUPTURE_STOCK'
+  | 'VENTE_POS'
+  | 'FACTURE_PAYEE'
+  | 'JALON_MILESTONE'
+  | 'BIENVENUE'
+  | 'ABONNEMENT_ACTIVE'
+  | 'ABONNEMENT_EXPIRANT'
+  | 'ABONNEMENT_EXPIRE'
+  | 'BOUTIQUE_APPROUVEE'
+  | 'BOUTIQUE_REJETEE'
+  | 'VERIFICATION_COMPTE_OK'
+  | 'NOUVELLE_INSCRIPTION';
+
+export interface NotificationPreference {
+  id: string;
+  userId?: string;
+  phone: string;
+  eventType: NotificationEvent;
+  enabled: boolean;
+  channel: string;
+  createdAt: string;
+}
+
+export interface NotificationOutboxItem {
+  id: string;
+  recipientUserId?: string;
+  recipientPhone: string;
+  eventType: NotificationEvent;
+  title?: string;
+  body: string;
+  provider: string;
+  status: 'PENDING' | 'SCHEDULED' | 'SENT' | 'FAILED' | 'SKIPPED';
+  messageId?: string;
+  templateName?: string;
+  attempts: number;
+  error?: string;
+  scheduledAt?: string;
+  sentAt?: string;
+  createdAt: string;
+}
 
 export interface ToastNotification {
   id: string;

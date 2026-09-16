@@ -1,5 +1,5 @@
 
-import { SubscriptionPlan } from '@/types';
+import { SubscriptionPlan, SubscriptionTier } from '@/types';
  
 export const MAIN_CATEGORIES = [
   'Cosmétique & Emballage',
@@ -111,3 +111,9 @@ export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', Subscr
     }
   }
 };
+
+export function getSubscriptionPlan(tier: SubscriptionTier | null | undefined): SubscriptionPlan | undefined {
+  if (!tier) return undefined;
+  if (tier === 'NONE' || tier === 'UNKNOWN') return undefined;
+  return SUBSCRIPTION_PLANS[tier];
+}

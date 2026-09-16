@@ -12,11 +12,11 @@ export default async function SubscriptionPage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
   
   const userSubscription: UserSubscription = {
-    tier: (profile?.subscription_tier as SubscriptionTier) || 'PRO',
+    tier: (profile?.subscription_tier as SubscriptionTier) || 'NONE',
     duration: (profile?.subscription_duration as SubscriptionDuration) || 'monthly',
     startDate: String(profile?.subscription_start_date || new Date().toISOString()),
     endDate: String(profile?.subscription_end_date || new Date().toISOString()),
-    status: (profile?.subscription_status as UserSubscription['status']) || 'ACTIVE'
+    status: (profile?.subscription_status as UserSubscription['status']) || 'NONE'
   };
 
   return (

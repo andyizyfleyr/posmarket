@@ -72,12 +72,12 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         </div>
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
           <div className="p-3 mb-3 bg-orange-50 text-orange-600 rounded-xl w-fit"><Package size={20} /></div>
-          <p className="text-2xl font-black text-gray-900 uppercase">{user.subscriptionTier || 'PRO'}</p>
+          <p className="text-2xl font-black text-gray-900 uppercase">{user.subscriptionTier || 'NONE'}</p>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Offre active</p>
         </div>
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
           <div className="p-3 mb-3 bg-green-50 text-green-600 rounded-xl w-fit"><TrendingUp size={20} /></div>
-          <p className="text-2xl font-black text-gray-900 uppercase">{user.subscriptionStatus || 'ACTIVE'}</p>
+          <p className="text-2xl font-black text-gray-900 uppercase">{user.subscriptionStatus || 'NONE'}</p>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Statut offre</p>
         </div>
       </div>

@@ -5,8 +5,8 @@ import { dbFetchStores, dbFetchStoreData, dbCreateStore, StoreDataFields } from 
 import { db } from '@/db'
 import { stores, profiles } from '@/db/schema'
 import { eq, count } from 'drizzle-orm'
-import { SubscriptionTier, SubscriptionDuration } from '@/types'
-import { SUBSCRIPTION_PLANS } from '@/constants'
+import { SubscriptionTier, SubscriptionDuration, SubscriptionTierStatus } from '@/types'
+import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants'
 import { createClient } from '@/utils/supabase/server'
 
 export async function fetchStores() {
@@ -30,9 +30,9 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
       invoices: data.invoices,
       store: data.store,
       subscription: data.profile ? {
-        tier: (data.profile.subscriptionTier || 'PRO') as SubscriptionTier,
+        tier: (data.profile.subscriptionTier || 'NONE') as SubscriptionTier,
         duration: (data.profile.subscriptionDuration || 'monthly') as SubscriptionDuration,
-        status: (data.profile.subscriptionStatus || 'ACTIVE') as 'ACTIVE' | 'EXPIRED' | 'CANCELLED',
+        status: (data.profile.subscriptionStatus || 'NONE') as SubscriptionTierStatus,
         startDate: (data.profile.subscriptionStartDate || new Date()).toISOString(),
         endDate: (data.profile.subscriptionEndDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)).toISOString()
       } : null,
@@ -69,8 +69,8 @@ export async function quickCreateStoreAction(name: string, businessType: string)
 
     // Check store limit based on subscription tier
     const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1);
-    const tier = (profile?.subscriptionTier || 'PRO') as SubscriptionTier;
-    const plan = SUBSCRIPTION_PLANS[tier] || SUBSCRIPTION_PLANS.PRO;
+    const tier = (profile?.subscriptionTier || 'NONE') as SubscriptionTier;
+    const plan = getSubscriptionPlan(tier) || SUBSCRIPTION_PLANS.STARTER;
     const maxStores = plan.features.maxStores;
 
     const [{ value: currentStoreCount }] = await db

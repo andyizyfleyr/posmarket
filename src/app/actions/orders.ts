@@ -5,6 +5,79 @@ import { db } from '@/db'
 import { orders, orderItems, customers, products } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
+import { notify, getStorePhone, getProfilePhone } from '@/lib/notifications'
+import { isWhatsAppConfigured } from '@/lib/whatsapp'
+
+// ---------------------------------------------------------------------------
+// WhatsApp notification helpers (best-effort, never blocks the action)
+// ---------------------------------------------------------------------------
+
+async function sendOrderNotifications(orderData: { id: string; storeId: string; total?: string | number; paymentMethod?: string }) {
+    if (!isWhatsAppConfigured()) return;
+    try {
+        const storeInfo = await getStorePhone(orderData.storeId);
+        const shortId = orderData.id.slice(0, 8).toUpperCase();
+        const totalStr = new Intl.NumberFormat('fr-FR').format(Number(orderData.total) || 0);
+        if (storeInfo?.phone) {
+            await notify({
+                userId: storeInfo.ownerId,
+                phone: storeInfo.phone,
+                eventType: 'VENTE_POS',
+                title: 'Vente en boutique',
+                body: `Vente POS #${shortId} — ${totalStr} FCFA — ${orderData.paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
+                templateParams: [shortId, totalStr],
+            });
+        }
+    } catch {}
+}
+
+async function sendStatusNotifications(orderId: string, status: string) {
+    if (!isWhatsAppConfigured()) return;
+    try {
+        const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+        if (!order) return;
+
+        const shortId = orderId.slice(0, 8).toUpperCase();
+        let storeInfo: { name: string; phone: string; ownerId: string | null } | null = null;
+        if (order.storeId) storeInfo = await getStorePhone(order.storeId);
+
+        let buyerPhone = '';
+        if (order.buyerUserId) {
+            buyerPhone = await getProfilePhone(order.buyerUserId);
+        }
+        if (!buyerPhone && order.customerId) {
+            const [cust] = await db.select({ phone: customers.phone }).from(customers).where(eq(customers.id, order.customerId)).limit(1);
+            buyerPhone = cust?.phone || '';
+        }
+        if (!buyerPhone) return;
+
+        const eventName =
+            status === 'READY'
+                ? 'COMMANDE_PRET'
+                : status === 'COMPLETED'
+                    ? 'COMMANDE_LIVREE'
+                    : status === 'CANCELLED' || status === 'ANNULEE'
+                        ? 'COMMANDE_ANNULEE'
+                        : null;
+        if (!eventName) return;
+
+        const labels = { COMMANDE_PRET: 'Commande prête', COMMANDE_LIVREE: 'Commande livrée', COMMANDE_ANNULEE: 'Commande annulée' };
+        const bodies = {
+            COMMANDE_PRET: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) est prête pour la récupération.`,
+            COMMANDE_LIVREE: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) a bien été livrée. Merci pour votre achat !`,
+            COMMANDE_ANNULEE: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) a été annulée. Contactez la boutique pour plus d'informations.`,
+        };
+
+        await notify({
+            userId: order.buyerUserId || null,
+            phone: buyerPhone,
+            eventType: eventName,
+            title: labels[eventName as keyof typeof labels],
+            body: bodies[eventName as keyof typeof bodies],
+            templateParams: [shortId, storeInfo?.name || 'boutique'],
+        });
+    } catch {}
+}
 
 type OrderItemInput = {
   product?: { id?: string; price?: number | string } | null;
@@ -59,6 +132,8 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
                     .where(eq(customers.id, order.customer.id));
             }
         }
+
+        sendOrderNotifications(orderData).catch(() => {});
         
         invalidateOrdersCache(storeId);
         if (storeId) revalidateTag(`orders:${storeId}`, 'max');
@@ -78,6 +153,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
     try {
         const storeId = await getStoreIdForOrder(orderId);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
+        sendStatusNotifications(orderId, status).catch(() => {});
         invalidateOrdersCache(storeId);
         if (storeId) revalidateTag(`orders:${storeId}`, 'max');
         revalidatePath('/orders');

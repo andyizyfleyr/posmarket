@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getStoreCookie } from '@/utils/store-cookie';
 import LayoutClientWrapper from '@/components/LayoutClientWrapper';
 import { StoreData, SubscriptionTier, SubscriptionDuration, StaffRole, UserSubscription } from '@/types';
-import { SUBSCRIPTION_PLANS } from '@/constants';
+import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
 import { safeSupabaseFetch } from '@/utils/supabase/retry';
 
 interface ProfileData {
@@ -88,14 +88,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const userSubscription: UserSubscription = {
-    tier: (profile?.subscription_tier as SubscriptionTier) || 'PRO',
+    tier: (profile?.subscription_tier as SubscriptionTier) || 'NONE',
     duration: (profile?.subscription_duration as SubscriptionDuration) || 'monthly',
     startDate: profile?.subscription_start_date || new Date().toISOString(),
     endDate: profile?.subscription_end_date || new Date().toISOString(),
-    status: (profile?.subscription_status as UserSubscription['status']) || 'ACTIVE'
+    status: (profile?.subscription_status as UserSubscription['status']) || 'NONE'
   };
 
-  const currentPlan = SUBSCRIPTION_PLANS[userSubscription.tier as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.PRO;
+  const currentPlan = getSubscriptionPlan(userSubscription.tier) || SUBSCRIPTION_PLANS.PRO;
 
   let staffStores: StoreRowData[] = [];
   if (staffStoreIds.length > 0) {

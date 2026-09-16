@@ -125,7 +125,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             <Lock size={36} />
           </div>
           <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Abonnement Requis</h2>
-          <p className="text-slate-500 mb-8 font-medium">Un abonnement Pro ou Entreprise est désormais <span className="text-red-500 font-bold">obligatoire</span> pour utiliser le Point de Vente et gérer votre commerce. Veuillez choisir une formule pour activer votre compte.</p>
+          <p className="text-slate-500 mb-8 font-medium">Un abonnement est désormais <span className="text-red-500 font-bold">obligatoire</span> pour utiliser le Point de Vente et gérer votre commerce. Veuillez choisir une formule pour activer votre compte.</p>
           <button
             onClick={() => { window.location.href = '/subscription'; }}
             className="w-full bg-[#f56b2a] hover:bg-[#d55a20] text-white font-black py-4 px-6 rounded-xl transition-all shadow-lg shadow-orange-200 active:scale-[0.98] flex items-center justify-center gap-2"

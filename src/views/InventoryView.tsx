@@ -27,9 +27,8 @@ import {
   Clock
 } from 'lucide-react';
 import { supabase } from '@/supabase';
-import { SUBSCRIPTION_PLANS } from '@/constants';
+import { getSubscriptionPlan, MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertical } from '@/types';
-import { MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { formatCurrency, formatNumber } from '@/utils';
 import { Skeleton, ProductSkeleton } from '../components/Skeleton';
 import ProductImage from '../components/ProductImage';
@@ -172,7 +171,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const handleOpenModal = (product?: Product, type?: 'pos' | 'store') => {
     // Check product limits for non-edit mode
     if (!product && subscription) {
-      const plan = SUBSCRIPTION_PLANS[subscription.tier];
+      const plan = getSubscriptionPlan(subscription.tier);
       const maxProducts = plan?.features.maxProducts || 6;
       if (localProducts.length >= maxProducts) {
         setShowLimitModal(true);
@@ -1554,7 +1553,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               </h3>
 
               <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-8">
-                Vous avez atteint la limite de <span className="text-[#f56b2a] font-bold">{(subscription && SUBSCRIPTION_PLANS[subscription.tier]?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel.
+                Vous avez atteint la limite de <span className="text-[#f56b2a] font-bold">{(subscription && getSubscriptionPlan(subscription.tier)?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel.
                 <br className="hidden md:block" />
                 Passez à la formule <span className="font-bold text-slate-900 underline underline-offset-4 decoration-[#f56b2a]/30">Pro</span> pour continuer à développer votre inventaire.
               </p>

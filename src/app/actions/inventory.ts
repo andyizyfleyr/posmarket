@@ -46,8 +46,8 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
         .from(products)
         .where(eq(products.storeId, storeId));
 
-      const tier = profile?.subscriptionTier || 'PRO';
-      const limit = tier === 'STARTER' ? 50 : tier === 'PRO' ? 500 : 999999;
+      const tier = profile?.subscriptionTier;
+      const limit = tier === 'STARTER' ? 50 : tier === 'PRO' ? 500 : tier === 'ENTERPRISE' ? 999999 : 50;
 
       if (Number(productsCount) >= limit) {
         return { success: false, error: `Limite de ${limit} produits atteinte pour votre abonnement ${tier}.` };

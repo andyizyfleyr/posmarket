@@ -6,6 +6,7 @@ import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
+import { notify, getStorePhone } from '@/lib/notifications'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
@@ -214,6 +215,7 @@ export async function submitCheckoutAction(
 
       // Upsert du client côté boutique (par téléphone) pour alimenter le CRM vendeur.
       let customerId: string | null = null;
+      let customerCreated = false;
       const phone = String(customer.phone || '').replace(/\D/g, '');
       if (phone) {
         const [existing] = await db
@@ -235,6 +237,7 @@ export async function submitCheckoutAction(
             })
             .returning({ id: customers.id });
           customerId = created.id;
+          customerCreated = true;
         }
       }
 
@@ -271,6 +274,90 @@ export async function submitCheckoutAction(
           ),
         }))
       );
+
+      // --- Notifications WhatsApp (best-effort, ne bloque jamais la commande) ---
+      try {
+        const storeInfo = await getStorePhone(storeId);
+        const shortId = newOrder.id.slice(0, 8).toUpperCase();
+        const totalStr = new Intl.NumberFormat('fr-FR').format(Number(total) || 0);
+        const buyerName = customer.name || String(customer.email || '').split('@')[0] || 'Client';
+        const paymentMethod = storeOrder?.paymentMethod || 'ESPECES';
+        const storeDisplayName = storeInfo?.name || 'boutique';
+
+        if (storeInfo?.phone) {
+          await notify({
+            userId: storeInfo.ownerId,
+            phone: storeInfo.phone,
+            eventType: 'NOUVELLE_COMMANDE',
+            title: 'Nouvelle commande',
+            body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
+            templateParams: [shortId, buyerName, totalStr],
+          });
+          if (customerCreated) {
+            await notify({
+              userId: storeInfo.ownerId,
+              phone: storeInfo.phone,
+              eventType: 'NOUVEAU_CLIENT',
+              title: 'Nouveau client',
+              body: `Nouveau client enregistré : ${buyerName} (${phone})`,
+              templateParams: [buyerName, phone],
+            });
+          }
+        }
+
+        if (customer.phone) {
+          await notify({
+            userId: user?.id || null,
+            phone: customer.phone,
+            eventType: 'CONFIRMATION_COMMANDE',
+            title: 'Commande confirmée',
+            body: `Votre commande #${shortId} chez ${storeDisplayName} est confirmée. Total : ${totalStr} FCFA.`,
+            templateParams: [shortId, storeDisplayName, totalStr],
+          });
+          if (paymentMethod === 'CARTE') {
+            await notify({
+              userId: user?.id || null,
+              phone: customer.phone,
+              eventType: 'RECU_PAIEMENT',
+              title: 'Reçu de paiement',
+              body: `Paiement de ${totalStr} FCFA reçu pour la commande #${shortId}.`,
+              templateParams: [totalStr, shortId],
+            });
+          }
+        }
+
+        const productIds = items.map((i) => i.product?.id).filter((x): x is string => Boolean(x));
+        if (productIds.length > 0) {
+          const lowProducts = await db
+            .select({ id: products.id, name: products.name, stock: products.stock })
+            .from(products)
+            .where(inArray(products.id, productIds));
+          for (const p of lowProducts) {
+            const stock = Number(p.stock) || 0;
+            if (stock === 0 && storeInfo?.phone) {
+              await notify({
+                userId: storeInfo.ownerId,
+                phone: storeInfo.phone,
+                eventType: 'RUPTURE_STOCK',
+                title: 'Rupture de stock',
+                body: `Rupture de stock : « ${p.name} » n'est plus disponible.`,
+                templateParams: [p.name],
+              });
+            } else if (stock > 0 && stock <= 10 && storeInfo?.phone) {
+              await notify({
+                userId: storeInfo.ownerId,
+                phone: storeInfo.phone,
+                eventType: 'ALERTE_STOCK_BAS',
+                title: 'Stock bas',
+                body: `Stock bas : « ${p.name} » — plus que ${stock} en stock.`,
+                templateParams: [p.name, String(stock)],
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[marketplace] notification error:', err);
+      }
 
       createdOrderIds.push(newOrder.id);
     }
@@ -329,16 +416,10 @@ const resolveCurrentBuyer = async (fallbackIdOrEmail?: string) => {
     .limit(1);
 
   if (!profile && targetEmail) {
-    const now = new Date();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     try {
       const [newProfile] = await db.insert(profiles).values({
         email: targetEmail,
         fullName: targetEmail.split('@')[0],
-        subscriptionTier: 'PRO',
-        subscriptionStatus: 'ACTIVE',
-        subscriptionStartDate: now,
-        subscriptionEndDate: endOfMonth,
       }).returning({
         id: profiles.id,
         email: profiles.email,
@@ -431,10 +512,34 @@ export async function saveProductReviewAction(
 }
 
 export async function notifyCartInterestAction(data: unknown) {
-  return { success: true, error: undefined };
+  const payload = (data || {}) as {
+    phone?: string;
+    userId?: string;
+    name?: string;
+    itemsCount?: number;
+    total?: number | string;
+  };
+  const phone = String(payload.phone || '').trim();
+  if (!phone) return { success: true, error: undefined };
+
+  try {
+    const retryAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await notify({
+      userId: payload.userId || null,
+      phone,
+      eventType: 'RELANCE_PANIER_ABANDONNE',
+      title: 'Votre panier vous attend',
+      body: `Bonjour ${payload.name || 'vous'}, vous avez laissé ${payload.itemsCount || 'des articles'} dans votre panier (${Number(payload.total) || 0} FCFA). Revenez finaliser votre commande !`,
+      templateParams: [payload.name || 'vous', String(payload.itemsCount || ''), String(Number(payload.total) || 0)],
+      scheduledAt: retryAt,
+    });
+    return { success: true, error: undefined };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Erreur relance panier' };
+  }
 }
 
-export async function notifyPostCheckoutAction(data: unknown) {
+export async function notifyPostCheckoutAction() {
   return { success: true, error: undefined };
 }
 
