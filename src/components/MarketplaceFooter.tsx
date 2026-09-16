@@ -5,6 +5,7 @@ import { ShoppingBasketIcon, ShieldCheck, MapPin } from 'lucide-react';
 import { Link } from '@/components/RouterPolyfill';
 
 const footerNav = [
+  { label: 'Guide d\'utilisation', href: '/docs/utilisation' },
   { label: 'Conditions Générales de Vente', href: '/cgv' },
   { label: 'Politique de confidentialité', href: '/confidentialite' },
 ];
