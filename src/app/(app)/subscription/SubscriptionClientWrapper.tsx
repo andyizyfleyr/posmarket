@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { SubscriptionView } from '@/views/SubscriptionView';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { UserSubscription, SubscriptionDuration, SubscriptionTier, NotificationType, StaffRole } from '@/types';
@@ -9,16 +9,43 @@ interface SubscriptionClientWrapperProps {
   currentSubscription: UserSubscription;
   onUpdateSubscription: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined }>;
   onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined; code?: string; paymentUrl?: string }>;
+  onReconcilePayments?: () => Promise<{ success: boolean; error?: string | undefined; activated?: number; updated?: number }>;
   userRole?: string;
 }
 
-export default function SubscriptionClientWrapper({ currentSubscription, onUpdateSubscription, onCreatePayment, userRole }: SubscriptionClientWrapperProps) {
+export default function SubscriptionClientWrapper({ currentSubscription, onUpdateSubscription, onCreatePayment, onReconcilePayments, userRole }: SubscriptionClientWrapperProps) {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const reconciled = useRef(false);
 
   const notify = useCallback((message: string, type: NotificationType, _title?: string) => {
     setToast({ message, type: type === 'error' ? 'error' : 'success' });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  useEffect(() => {
+    if (reconciled.current || !onReconcilePayments) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('fedapay') !== 'return') return;
+    reconciled.current = true;
+
+    onReconcilePayments()
+      .then((result) => {
+        if (result.success) {
+          if (result.activated && result.activated > 0) {
+            notify('Paiement confirmé ! Votre abonnement a été activé.', 'success', 'Succès');
+          } else {
+            notify('Retour du paiement reçu. L\'activation sera confirmée sous peu.', 'success', 'Paiement');
+          }
+        } else {
+          notify(result.error || 'Impossible de confirmer votre paiement', 'error', 'Paiement');
+        }
+        window.location.replace('/subscription');
+      })
+      .catch(() => {
+        notify('Impossible de confirmer votre paiement', 'error', 'Paiement');
+        window.location.replace('/subscription');
+      });
+  }, [onReconcilePayments, notify]);
 
   return (
     <>

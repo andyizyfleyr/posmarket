@@ -1,6 +1,6 @@
 import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
-import { updateSubscriptionAction, createSubscriptionPaymentAction } from '@/app/actions/subscription';
+import { updateSubscriptionAction, createSubscriptionPaymentAction, reconcileMySubscriptionsAction } from '@/app/actions/subscription';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
 export default async function SubscriptionPage() {
@@ -25,6 +25,7 @@ export default async function SubscriptionPage() {
       userRole={profile?.is_super_admin ? 'SUPER_ADMIN' : 'OWNER'}
       onUpdateSubscription={updateSubscriptionAction}
       onCreatePayment={createSubscriptionPaymentAction}
+      onReconcilePayments={reconcileMySubscriptionsAction}
     />
   );
 }

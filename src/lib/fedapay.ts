@@ -100,6 +100,13 @@ export async function createFedaPayTransaction(
   return { transactionId, reference, paymentUrl };
 }
 
+export async function getFedaPayTransaction(id: string): Promise<FedaPayTransaction> {
+  const res = await fedapayFetch<
+    { 'v1/transaction'?: FedaPayTransaction } & { transaction?: FedaPayTransaction } & FedaPayTransaction
+  >(`/transactions/${id}`, { method: 'GET' });
+  return (res['v1/transaction'] || res.transaction || res) as FedaPayTransaction;
+}
+
 function sigMatches(expected: string, provided: string): boolean {
   return expected.length === provided.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
 }
