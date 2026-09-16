@@ -9,7 +9,7 @@ import { useRouter } from '@/components/RouterPolyfill';
 interface SubscriptionViewProps {
     currentSubscription: UserSubscription;
     onUpdateSubscription?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string }>;
-    onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string; code?: string; paymentUrl?: string }>;
+    onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string; code?: string; paymentUrl?: string; transactionId?: string }>;
     notify?: (message: string, type: NotificationType, title?: string) => void;
     userRole?: StaffRole;
 }
@@ -54,6 +54,11 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
         try {
             if (onCreatePayment) {
                 const result = await onCreatePayment(plan.tier, duration);
+                if (result.success && result.transactionId) {
+                    if (notify) notify('Paiement sécurisé FedaPay...', 'success', 'Paiement');
+                    router.push(`/payment/${result.transactionId}`);
+                    return;
+                }
                 if (result.success && result.paymentUrl) {
                     if (notify) notify('Redirection vers le paiement sécurisé...', 'success', 'Paiement');
                     window.location.assign(result.paymentUrl);

@@ -1,13 +1,27 @@
 import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
-import { updateSubscriptionAction, createSubscriptionPaymentAction, reconcileMySubscriptionsAction } from '@/app/actions/subscription';
+import { updateSubscriptionAction, createSubscriptionPaymentAction } from '@/app/actions/subscription';
+import { syncFedaPaySubscriptions } from '@/lib/subscriptionSync';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
-export default async function SubscriptionPage() {
+type SubscriptionSearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function SubscriptionPage({ searchParams }: { searchParams: SubscriptionSearchParams }) {
+  const sp = await searchParams;
+  const returnedFromPayment = sp.fedapay === 'return';
+
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
-  
+
   if (!session) return null;
+
+  if (returnedFromPayment) {
+    try {
+      await syncFedaPaySubscriptions(session.user.id);
+    } catch (error) {
+      console.error('Subscription reconciliation error:', error);
+    }
+  }
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
   
@@ -25,7 +39,7 @@ export default async function SubscriptionPage() {
       userRole={profile?.is_super_admin ? 'SUPER_ADMIN' : 'OWNER'}
       onUpdateSubscription={updateSubscriptionAction}
       onCreatePayment={createSubscriptionPaymentAction}
-      onReconcilePayments={reconcileMySubscriptionsAction}
+      paymentReturned={returnedFromPayment}
     />
   );
 }

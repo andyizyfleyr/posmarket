@@ -7,9 +7,14 @@ export const FEDAPAY_BASE_URL =
     : 'https://sandbox-api.fedapay.com/v1';
 const FEDAPAY_SECRET_KEY = process.env.FEDAPAY_SECRET_KEY || '';
 const FEDAPAY_WEBHOOK_SECRET = process.env.FEDAPAY_WEBHOOK_SECRET || '';
+export const FEDAPAY_PUBLIC_KEY = process.env.FEDAPAY_PUBLIC_KEY?.trim() || '';
 
 export function fedapayConfigured() {
   return Boolean(FEDAPAY_SECRET_KEY) && FEDAPAY_ENV;
+}
+
+export function checkoutConfigured() {
+  return Boolean(FEDAPAY_PUBLIC_KEY) && FEDAPAY_ENV;
 }
 
 export function webhookConfigured() {

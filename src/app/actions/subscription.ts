@@ -10,7 +10,6 @@ import { createClient } from '@/utils/supabase/server'
 import { notify, getProfilePhone } from '@/lib/notifications'
 import { createFedaPayTransaction, fedapayConfigured } from '@/lib/fedapay'
 import { activateSubscription, subscriptionAmount, isPayableTier } from '@/lib/subscription'
-import { syncFedaPaySubscriptions } from '@/lib/subscriptionSync'
 
 function durationLabel(d: string): string {
     if (d === 'monthly') return 'mensuel';
@@ -43,24 +42,6 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating subscription:', error);
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
-    }
-}
-
-export async function reconcileMySubscriptionsAction() {
-    try {
-        const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-            return { success: false, error: 'Utilisateur non authentifié' };
-        }
-
-        const result = await syncFedaPaySubscriptions(user.id);
-        revalidatePath('/subscription');
-        return { success: true, activated: result.activated, updated: result.updated };
-    } catch (error: unknown) {
-        console.error('Error reconciling subscription payments:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
