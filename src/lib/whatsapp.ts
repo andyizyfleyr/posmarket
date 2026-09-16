@@ -2,7 +2,7 @@ import { parsePhoneNumber, Country, DEFAULT_COUNTRY } from '@/constants/countrie
 
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_API_VERSION = process.env.WHATSAPP_API_VERSION || 'v21.0';
+const WHATSAPP_API_VERSION = process.env.WHATSAPP_API_VERSION || 'v25.0';
 
 export function isWhatsAppConfigured(): boolean {
   return !!(WHATSAPP_ACCESS_TOKEN && WHATSAPP_PHONE_NUMBER_ID);
