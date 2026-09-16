@@ -18,7 +18,8 @@ export const dynamic = 'force-dynamic';
 
 function verifyWebhookToken(token: string | null): boolean {
   if (!token) return false;
-  const expected = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '';
+  // Fallback : valeur partagée avec le client (à remplacer par l'env Vercel dès que possible)
+  const expected = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '778e6c6bbf0854fd56ad2edc90920e10313f4b652f3127ca';
   return expected.length > 0 && token === expected;
 }
 
