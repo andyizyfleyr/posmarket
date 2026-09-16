@@ -34,8 +34,8 @@ export const PaymentClient: React.FC<PaymentClientProps> = ({
 
     const initCheckout = useCallback(() => {
         interface FedaPayWidget {
-            CHECKOUT_COMPLETED: number;
-            DIALOG_DISMISSED: number;
+            CHECKOUT_COMPLETED: string;
+            DIALOG_DISMISSED: string;
             init: (config: Record<string, unknown>) => void;
         }
         const FedaPay = (window as unknown as { FedaPay?: FedaPayWidget }).FedaPay;
@@ -53,9 +53,9 @@ export const PaymentClient: React.FC<PaymentClientProps> = ({
                 customer: { email: userEmail },
                 button: { text: 'Payer maintenant' },
                 container: '#fedapay-checkout',
-                onComplete: (resp: { reason: number }) => {
-                    const completed = Number(FedaPay.CHECKOUT_COMPLETED);
-                    if (resp && resp.reason === completed) {
+                onComplete: (resp: { reason?: string }) => {
+                    const reason = String(resp?.reason || '').toUpperCase();
+                    if (reason.includes('COMPLETE')) {
                         setState('completed');
                         router.replace('/subscription?fedapay=return');
                     } else {
