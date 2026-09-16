@@ -64,10 +64,17 @@ export const PaymentClient: React.FC<PaymentClientProps> = ({
                 },
             });
             setState('ready');
-        } catch {
+        } catch (error) {
+            console.error('[Checkout.js] init failed:', error);
             setState('error');
         }
     }, [environment, publicKey, router, transactionId, userEmail]);
+
+    const retryCheckout = useCallback(() => {
+        initedRef.current = false;
+        setState('loading');
+        window.setTimeout(() => initCheckout(), 0);
+    }, [initCheckout]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -146,55 +153,59 @@ export const PaymentClient: React.FC<PaymentClientProps> = ({
                     </div>
 
                     <div className="p-6 md:p-8">
-                        {state === 'loading' && (
-                            <div className="flex flex-col items-center justify-center py-14 text-center">
-                                <span className="w-9 h-9 border-[3px] border-[#f56b2a]/25 border-t-[#f56b2a] rounded-full animate-spin mb-4" />
-                                <p className="text-sm font-bold text-slate-600">Préparation du paiement sécurisé...</p>
-                            </div>
-                        )}
+                        <div className="relative">
+                            <div
+                                id="fedapay-checkout"
+                                className={`w-full min-h-[380px] ${state === 'ready' ? 'visible' : 'invisible h-[380px]'}`}
+                            />
+
+                            {state === 'loading' && (
+                                <div className="absolute inset-0 bg-white rounded-xl flex flex-col items-center justify-center text-center">
+                                    <span className="w-9 h-9 border-[3px] border-[#f56b2a]/25 border-t-[#f56b2a] rounded-full animate-spin mb-4" />
+                                    <p className="text-sm font-bold text-slate-600">Préparation du paiement sécurisé...</p>
+                                </div>
+                            )}
+
+                            {state === 'completed' && (
+                                <div className="absolute inset-0 bg-white rounded-xl flex flex-col items-center justify-center text-center">
+                                    <span className="w-9 h-9 border-[3px] border-green-500/25 border-t-green-500 rounded-full animate-spin mb-4" />
+                                    <p className="text-sm font-bold text-slate-600">Paiement confirmé ! Activation de votre abonnement...</p>
+                                </div>
+                            )}
+
+                            {state === 'cancelled' && (
+                                <div className="absolute inset-0 bg-white rounded-xl flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-bold text-slate-600 mb-5">Paiement annulé. Aucun débit n&apos;a été effectué.</p>
+                                    <a
+                                        href="/subscription"
+                                        className="bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-black py-2.5 px-5 rounded-xl transition-colors"
+                                    >
+                                        Retour à l&apos;abonnement
+                                    </a>
+                                </div>
+                            )}
+
+                            {state === 'error' && (
+                                <div className="absolute inset-0 bg-white rounded-xl flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-bold text-slate-600 mb-5">
+                                        Le chargement du module de paiement a échoué.
+                                    </p>
+                                    <button
+                                        onClick={retryCheckout}
+                                        className="bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-black py-2.5 px-5 rounded-xl transition-colors"
+                                    >
+                                        Réessayer
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         {state === 'ready' && (
-                            <div>
-                                <div id="fedapay-checkout" className="min-h-[380px] w-full" />
-                                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400">
-                                    <ShieldCheck size={15} className="text-green-500" />
-                                    <span className="text-[11px] md:text-xs font-semibold">
-                                        Paiement 100% sécurisé par FedaPay
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-
-                        {state === 'completed' && (
-                            <div className="flex flex-col items-center justify-center py-14 text-center">
-                                <span className="w-9 h-9 border-[3px] border-green-500/25 border-t-green-500 rounded-full animate-spin mb-4" />
-                                <p className="text-sm font-bold text-slate-600">Paiement confirmé ! Activation de votre abonnement...</p>
-                            </div>
-                        )}
-
-                        {state === 'cancelled' && (
-                            <div className="flex flex-col items-center justify-center py-14 text-center">
-                                <p className="text-sm font-bold text-slate-600 mb-5">Paiement annulé. Aucun débit n&apos;a été effectué.</p>
-                                <a
-                                    href="/subscription"
-                                    className="bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-black py-2.5 px-5 rounded-xl transition-colors"
-                                >
-                                    Retour à l&apos;abonnement
-                                </a>
-                            </div>
-                        )}
-
-                        {state === 'error' && (
-                            <div className="flex flex-col items-center justify-center py-14 text-center">
-                                <p className="text-sm font-bold text-slate-600 mb-5">
-                                    Le chargement du module de paiement a échoué.
-                                </p>
-                                <button
-                                    onClick={initCheckout}
-                                    className="bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-black py-2.5 px-5 rounded-xl transition-colors"
-                                >
-                                    Réessayer
-                                </button>
+                            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400">
+                                <ShieldCheck size={15} className="text-green-500" />
+                                <span className="text-[11px] md:text-xs font-semibold">
+                                    Paiement 100% sécurisé par FedaPay
+                                </span>
                             </div>
                         )}
                     </div>
