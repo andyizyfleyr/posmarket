@@ -5,7 +5,7 @@ import { subscriptionPayments } from '@/db/schema';
 import { eq, and, ne } from 'drizzle-orm';
 import { SUBSCRIPTION_PLANS } from '@/constants';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
-import { activateSubscription } from '@/app/actions/subscription';
+import { activateSubscription } from '@/lib/subscription';
 import { verifyWebhookSignature, webhookConfigured } from '@/lib/fedapay';
 
 const EVENT_NAMES = ['transaction.approved', 'transaction.declined', 'transaction.canceled', 'transaction.created', 'transaction.transferred'] as const;
