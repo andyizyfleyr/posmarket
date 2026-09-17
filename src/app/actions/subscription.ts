@@ -73,7 +73,7 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
             updatedAt: new Date(),
         }).onConflictDoNothing({ target: subscriptionPayments.transactionId });
 
-        return { success: true, transactionId };
+        return { success: true, transactionId, amount };
     } catch (error: unknown) {
         console.error('Error creating subscription payment:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };

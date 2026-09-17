@@ -1,21 +1,48 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SubscriptionView } from '@/views/SubscriptionView';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
-import { UserSubscription, SubscriptionDuration, SubscriptionTier, NotificationType, StaffRole } from '@/types';
+import { useKkiapay } from '@/hooks/useKkiapay';
+import {
+  UserSubscription,
+  SubscriptionDuration,
+  SubscriptionTier,
+  NotificationType,
+  StaffRole,
+} from '@/types';
+import { confirmKkiapayPaymentAction } from '@/app/actions/subscription';
 
 interface SubscriptionClientWrapperProps {
   currentSubscription: UserSubscription;
   onUpdateSubscription: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined }>;
-  onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined; code?: string; paymentUrl?: string; transactionId?: string }>;
+  onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string | undefined; code?: string; paymentUrl?: string; transactionId?: string; amount?: number }>;
+  onConfirmPayment?: (transactionId: string, kkiapayTransactionId: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  kkiapayPublicKey?: string;
+  kkiapayEnv?: 'sandbox' | 'live';
+  userName?: string;
+  userEmail?: string;
+  userPhone?: string;
   paymentReturned?: boolean;
   userRole?: string;
 }
 
-export default function SubscriptionClientWrapper({ currentSubscription, onUpdateSubscription, onCreatePayment, paymentReturned, userRole }: SubscriptionClientWrapperProps) {
+export default function SubscriptionClientWrapper({
+  currentSubscription,
+  onUpdateSubscription,
+  onCreatePayment,
+  onConfirmPayment = confirmKkiapayPaymentAction,
+  kkiapayPublicKey,
+  kkiapayEnv = 'sandbox',
+  userName = '',
+  userEmail = '',
+  userPhone = '',
+  paymentReturned,
+  userRole,
+}: SubscriptionClientWrapperProps) {
   const router = useRouter();
+  const { ready: kkiapayReady, openWidget } = useKkiapay();
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const notify = (message: string, type: NotificationType, _title?: string) => {
@@ -30,13 +57,86 @@ export default function SubscriptionClientWrapper({ currentSubscription, onUpdat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentReturned]);
 
+  const handlePay = useCallback(async (tier: SubscriptionTier, duration: SubscriptionDuration): Promise<{ success: boolean; error?: string }> => {
+    if (!onCreatePayment) {
+      const direct = await onUpdateSubscription(tier, duration);
+      if (direct.success) {
+        notify(`Abonnement activé avec succès !`, 'success', 'Succès');
+        router.refresh();
+      } else {
+        notify(direct.error || 'Erreur lors de l\'activation', 'error', 'Erreur');
+      }
+      return direct;
+    }
+
+    const res = await onCreatePayment(tier, duration);
+
+    if (!res.success) {
+      if (res.code === 'NOT_CONFIGURED') {
+        const direct = await onUpdateSubscription(tier, duration);
+        if (direct.success) {
+          notify(`Abonnement activé avec succès !`, 'success', 'Succès');
+          router.refresh();
+          return { success: true };
+        }
+        notify(direct.error || 'Erreur lors de l\'activation', 'error', 'Erreur');
+        return direct;
+      }
+      notify(res.error || 'Erreur lors de l\'initialisation du paiement', 'error', 'Paiement');
+      return { success: false };
+    }
+
+    if (!res.transactionId || !res.amount) {
+      notify('Facture de paiement invalide.', 'error', 'Paiement');
+      return { success: false };
+    }
+    if (!kkiapayPublicKey) {
+      notify('Le paiement en ligne n\'est pas configuré.', 'error', 'Paiement');
+      return { success: false };
+    }
+    if (!kkiapayReady) {
+      notify('Module de paiement encore en chargement, réessayez.', 'error', 'Paiement');
+      return { success: false };
+    }
+
+    openWidget({
+      amount: res.amount,
+      key: kkiapayPublicKey,
+      sandbox: kkiapayEnv === 'sandbox',
+      partnerId: res.transactionId,
+      data: JSON.stringify({ tier, duration }),
+      name: userName,
+      email: userEmail,
+      phone: userPhone,
+      onSuccess: async (kTxId: string) => {
+        try {
+          const confirm = await onConfirmPayment(res.transactionId!, kTxId);
+          if (confirm.success) {
+            notify('Paiement confirmé. Abonnement activé.', 'success', 'Abonnement');
+            router.refresh();
+          } else {
+            notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
+            router.refresh();
+          }
+        } catch {
+          notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
+        }
+      },
+      onFailed: () => {
+        notify('Le paiement a été annulé ou a échoué.', 'error', 'Paiement');
+      },
+    });
+
+    return { success: true };
+  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openWidget, userName, userEmail, userPhone, onConfirmPayment, router, notify]);
+
   return (
     <>
       <SubscriptionView
         currentSubscription={currentSubscription}
         userRole={userRole as StaffRole}
         onUpdateSubscription={onUpdateSubscription}
-        onCreatePayment={onCreatePayment}
+        onPay={handlePay}
         notify={notify}
       />
 

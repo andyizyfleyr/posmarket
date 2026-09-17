@@ -9,12 +9,12 @@ import { useRouter } from '@/components/RouterPolyfill';
 interface SubscriptionViewProps {
     currentSubscription: UserSubscription;
     onUpdateSubscription?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string }>;
-    onCreatePayment?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string; code?: string; paymentUrl?: string; transactionId?: string }>;
+    onPay?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string }>;
     notify?: (message: string, type: NotificationType, title?: string) => void;
     userRole?: StaffRole;
 }
 
-export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onCreatePayment, notify, userRole }) => {
+export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onPay, notify, userRole }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
     const isExpired = new Date(currentSubscription.endDate) < new Date();
@@ -52,24 +52,11 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
         setLoading(plan.tier);
         try {
-            if (onCreatePayment) {
-                const result = await onCreatePayment(plan.tier, duration);
-                if (result.success && result.transactionId) {
-                    if (notify) notify('Préparation du paiement sécurisé...', 'success', 'Paiement');
-                    router.push(`/payment/${result.transactionId}`);
-                    return;
+            if (onPay) {
+                const result = await onPay(plan.tier, duration);
+                if (!result.success && (notify)) {
+                    notify(result.error || 'Une erreur est survenue.', 'error', 'Erreur');
                 }
-                if (result.code === 'NOT_CONFIGURED' && onUpdateSubscription) {
-                    const direct = await onUpdateSubscription(plan.tier, duration);
-                    if (direct.success) {
-                        router.refresh();
-                        if (notify) notify(`Abonnement ${plan.name} activé avec succès !`, 'success', 'Succès');
-                    } else {
-                        if (notify) notify(direct.error || 'Erreur lors de l\'activation', 'error', 'Erreur');
-                    }
-                    return;
-                }
-                if (notify) notify(result.error || 'Erreur lors de l\'initialisation du paiement', 'error', 'Paiement');
             } else if (onUpdateSubscription) {
                 const result = await onUpdateSubscription(plan.tier, duration);
                 if (result.success) {
