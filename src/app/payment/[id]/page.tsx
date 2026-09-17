@@ -4,7 +4,7 @@ import { subscriptionPayments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { createClient } from '@/utils/supabase/server';
 import { getSubscriptionPlan } from '@/constants';
-import { PAYDUNYA_ENV, paydunyaConfigured } from '@/lib/paydunya';
+import { KKIAPAY_ENV, kkiapayConfigured, KKIAPAY_PUBLIC_KEY } from '@/lib/kkiapay';
 import { PaymentClient } from './PaymentClient';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 
@@ -50,7 +50,7 @@ export default async function PaymentPage({ params }: { params: PaymentPageParam
 
   const plan = getSubscriptionPlan(payment.tier as SubscriptionTier);
 
-  if (!paydunyaConfigured()) {
+  if (!kkiapayConfigured()) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 text-center">
@@ -80,7 +80,8 @@ export default async function PaymentPage({ params }: { params: PaymentPageParam
       transactionId={id}
       planName={plan?.name || payment.tier}
       amount={payment.amount}
-      environment={PAYDUNYA_ENV}
+      environment={KKIAPAY_ENV}
+      publicKey={KKIAPAY_PUBLIC_KEY}
       durationLabel={durationLabel(String(payment.duration))}
       userName={profile?.full_name ? String(profile.full_name) : ''}
       userEmail={(profile?.email ? String(profile.email) : '') || user.email || ''}

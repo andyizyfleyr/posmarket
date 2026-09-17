@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/paydunya",
+      "path": "/api/cron/subscriptions",
       "schedule": "0 9 * * *"
     }
   ]

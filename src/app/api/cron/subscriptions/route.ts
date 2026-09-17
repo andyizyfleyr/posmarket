@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncPayDunyaSubscriptions } from '@/lib/subscriptionSync';
+import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -8,7 +8,6 @@ async function handleCron(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization') || '';
   const querySecret = request.nextUrl.searchParams.get('secret') || '';
-
   const authorized =
     !secret ||
     authHeader === `Bearer ${secret}` ||
@@ -19,7 +18,7 @@ async function handleCron(request: NextRequest) {
   }
 
   try {
-    const result = await syncPayDunyaSubscriptions();
+    const result = await syncKkiapaySubscriptions();
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     return NextResponse.json(

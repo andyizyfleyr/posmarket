@@ -1,15 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { paySubscriptionStepAction } from '@/app/actions/subscription';
-import { SOFT_PAY_OPERATORS, SoftPayOperator } from '@/lib/paydunya';
+import { useState, useCallback, useEffect } from 'react';
+import { confirmKkiapayPaymentAction } from '@/app/actions/subscription';
 import { formatCurrency } from '@/utils';
 import { useRouter } from '@/components/RouterPolyfill';
 import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Smartphone,
   Lock,
   ArrowLeft,
 } from 'lucide-react';
@@ -19,79 +17,118 @@ interface PaymentClientProps {
   planName: string;
   amount: number;
   environment: 'sandbox' | 'live';
+  publicKey: string;
   durationLabel?: string;
   userName?: string;
   userEmail?: string;
   userPhone?: string;
 }
 
-type StepResult = { success: boolean; pending?: boolean; message?: string; error?: string };
-
 export function PaymentClient({
   transactionId,
   planName,
   amount,
   environment,
+  publicKey,
+  userName,
   userEmail,
   userPhone,
 }: PaymentClientProps) {
   const router = useRouter();
   const isSandbox = environment === 'sandbox';
+  const amountLabel = formatCurrency(amount);
 
-  const checkoutUrl = isSandbox
-    ? `https://app.paydunya.com/sandbox-checkout/invoice/${transactionId}`
-    : `https://app.paydunya.com/checkout/invoice/${transactionId}`;
+  const [status, setStatus] = useState<'idle' | 'loading' | 'paying' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+  const [scriptLoaded, setScriptLoaded] = useState(false);
 
-  const [operator, setOperator] = useState<SoftPayOperator>('mtn-benin');
-  const [phone, setPhone] = useState(userPhone || '');
-  const [email, setEmail] = useState(isSandbox ? '' : userEmail || '');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<StepResult | null>(null);
-
-  const handlePay = async () => {
-    if (!phone.trim()) {
-      setResult({ success: false, error: 'Numéro requis.' });
+  // Load Kkiapay script once
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const w = window as any;
+    if (w.openKkiapayWidget) {
+      setScriptLoaded(true);
       return;
     }
-    if (isSandbox && !email.trim()) {
-      setResult({ success: false, error: 'Email requis.' });
-      return;
-    }
-    if (isSandbox && !password.trim()) {
-      setResult({ success: false, error: 'Mot de passe requis.' });
-      return;
-    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.kkiapay.me/k.js';
+    script.async = true;
+    script.onload = () => setScriptLoaded(true);
+    script.onerror = () => {
+      setStatus('error');
+      setMessage('Impossible de charger le module de paiement.');
+    };
+    document.head.appendChild(script);
+  }, []);
 
-    setLoading(true);
-    setResult(null);
-    try {
-      const res = await paySubscriptionStepAction(
-        transactionId,
-        isSandbox ? 'mtn-benin' : operator,
-        { phone, email, password: isSandbox ? password : undefined },
-      );
-      if (!res.success) {
-        setResult({ success: false, error: res.error });
-      } else {
-        setResult({ success: true, pending: res.pending, message: res.message });
+  const handlePay = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    const w = window as any;
+    if (!w.openKkiapayWidget) {
+      setStatus('error');
+      setMessage('Module de paiement non chargé.');
+      return;
+    }
+    setStatus('paying');
+    setMessage('');
+
+    // Clean up old listeners to avoid duplicates
+    w.addSuccessListener = w.addSuccessListener || function () {};
+    w.addFailedListener = w.addFailedListener || function () {};
+
+    w.addSuccessListener(async (res: any) => {
+      const kTxId = res?.transactionId || res?.id || (typeof res === 'string' ? res : '');
+      if (!kTxId) {
+        setStatus('error');
+        setMessage('Réponse du paiement incomplète.');
+        return;
       }
-    } catch {
-      setResult({ success: false, error: 'Une erreur est survenue.' });
-    } finally {
-      setLoading(false);
+      setStatus('loading');
+      try {
+        const confirm = await confirmKkiapayPaymentAction(transactionId, kTxId);
+        if (confirm.success) {
+          setStatus('success');
+        } else {
+          setStatus('error');
+          setMessage(confirm.error || 'Le paiement n\'a pas été confirmé.');
+        }
+      } catch (e) {
+        setStatus('error');
+        setMessage('Erreur lors de la confirmation du paiement.');
+      }
+    });
+
+    w.addFailedListener((err: any) => {
+      setStatus('error');
+      setMessage('Le paiement a été annulé ou a échoué.');
+    });
+
+    try {
+      w.openKkiapayWidget({
+        amount: String(amount),
+        key: publicKey,
+        sandbox: isSandbox,
+        position: 'center',
+        theme: '#f56b2a',
+        paymentmethod: ['momo'],
+        countries: ['BJ'],
+        partnerId: transactionId,
+        data: JSON.stringify({ plan: planName, tier: planName, duration: planName }),
+        name: userName || '',
+        email: userEmail || '',
+        phone: userPhone || '',
+        callback: '',
+      });
+    } catch (e: any) {
+      console.error('Kkiapay widget error:', e);
+      setStatus('error');
+      setMessage('Erreur lors de l\'ouverture du module de paiement.');
     }
-  };
+  }, [amount, environment, publicKey, transactionId, userName, userEmail, userPhone, planName, isSandbox]);
 
   const goBack = () => {
     router.push('/subscription');
-    router.refresh();
   };
-
-  const amountLabel = formatCurrency(amount);
-
-  const inputClass =
-    'w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/40 focus:border-[#f56b2a] transition-all bg-white';
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] relative overflow-hidden flex items-center justify-center p-4 md:p-8">
@@ -124,7 +161,7 @@ export function PaymentClient({
             <p className="text-lg font-black text-slate-900 whitespace-nowrap">{amountLabel}</p>
           </div>
 
-          {result?.success ? (
+          {status === 'success' ? (
             <div className="flex flex-col items-center text-center py-6">
               <div className="relative mb-5">
                 <span className="absolute inset-0 rounded-full bg-emerald-100 animate-ping opacity-60" />
@@ -132,9 +169,7 @@ export function PaymentClient({
                   <CheckCircle2 size={34} className="text-white" />
                 </span>
               </div>
-              <h2 className="text-lg font-black text-slate-900">
-                {result.pending ? 'Paiement en cours' : 'Paiement réussi'}
-              </h2>
+              <h2 className="text-lg font-black text-slate-900">Paiement réussi</h2>
               <p className="text-sm text-emerald-600 font-black mt-1">{amountLabel}</p>
               <button
                 onClick={goBack}
@@ -143,110 +178,64 @@ export function PaymentClient({
                 Retour à l&apos;abonnement
               </button>
             </div>
+          ) : status === 'error' ? (
+            <div className="flex flex-col items-center text-center py-6">
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-5">
+                <AlertCircle size={30} className="text-red-500" />
+              </div>
+              <h2 className="text-lg font-black text-slate-900">Erreur</h2>
+              <p className="text-sm text-red-600 mt-2">{message}</p>
+              <button
+                onClick={() => setStatus('idle')}
+                className="w-full bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-black py-3 rounded-xl transition-colors mt-6 active:scale-[0.99]"
+              >
+                Réessayer
+              </button>
+            </div>
           ) : (
             <div className="space-y-5">
-              {!isSandbox && (
-                <div className="space-y-2">
-                  {SOFT_PAY_OPERATORS.map(op => {
-                    const active = operator === op.key;
-                    return (
-                      <button
-                        key={op.key}
-                        onClick={() => setOperator(op.key)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
-                          active
-                            ? 'border-[#f56b2a] bg-orange-50/60 ring-2 ring-[#f56b2a]/15'
-                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            active ? 'border-[#f56b2a]' : 'border-slate-300'
-                          }`}
-                        >
-                          {active && <span className="w-2 h-2 rounded-full bg-[#f56b2a]" />}
-                        </span>
-                        <Smartphone size={17} className={active ? 'text-[#f56b2a]' : 'text-slate-400'} />
-                        <span className="text-sm font-black text-slate-700">{op.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
               {isSandbox && (
-                <a
-                  href={checkoutUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors"
-                >
-                  API Sandbox indisponible — régler via le guichet PayDunya →
-                </a>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700">
+                  Mode test — utilisez un numéro Kkiapay sandbox (ex. 61000000 MTN, 68000000 Moov) et validez avec le PIN de test.
+                </div>
               )}
 
-              <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">
-                  {isSandbox ? 'Numéro de test' : 'Numéro mobile money'}
-                </label>
-                <div className="relative">
-                  <Smartphone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="+229 96 00 00 00"
-                    className={`${inputClass} pl-10`}
-                  />
-                </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-400">Montant à payer</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tight">{amountLabel}</p>
               </div>
 
-              {isSandbox && (
-                <>
-                  <div>
-                    <label className="block text-xs font-black text-slate-600 mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="test@paydunya.com"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-slate-600 mb-2">Mot de passe</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className={inputClass}
-                    />
-                  </div>
-                </>
-              )}
-
-              {result && !result.success && (
+              {message && !message.includes('confirm') && (
                 <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 flex items-start gap-2">
                   <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-600 font-medium">{result.error}</p>
+                  <p className="text-xs text-red-600 font-medium">{message}</p>
                 </div>
               )}
 
               <button
                 onClick={handlePay}
-                disabled={loading}
-                className="w-full bg-slate-900 hover:bg-slate-700 disabled:opacity-60 text-white text-sm font-black py-3.5 rounded-xl transition-colors active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10"
+                disabled={status === 'paying' || !scriptLoaded}
+                className="w-full bg-[#f56b2a] hover:bg-[#d55a20] disabled:opacity-60 text-white text-base font-black py-4 rounded-2xl transition-colors active:scale-[0.99] flex items-center justify-center gap-2 shadow-xl shadow-[#f56b2a]/20"
               >
-                {loading ? (
+                {status === 'paying' ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Traitement…
+                    <Loader2 size={20} className="animate-spin" />
+                    Ouverture du paiement…
                   </>
                 ) : (
                   <>Payer {amountLabel}</>
                 )}
               </button>
+
+              {!publicKey && (
+                <p className="text-[10px] text-center text-red-500 font-medium">
+                  Aucune clé publique Kkiapay configurée — vérifiez .env
+                </p>
+              )}
+
+              <p className="text-[10px] text-center text-slate-400">
+                Paiement sécurisé par Mobile Money via Kkiapay
+              </p>
             </div>
           )}
         </div>

@@ -1,14 +1,14 @@
 import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
 import { updateSubscriptionAction, createSubscriptionPaymentAction } from '@/app/actions/subscription';
-import { syncPayDunyaSubscriptions } from '@/lib/subscriptionSync';
+import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
 type SubscriptionSearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function SubscriptionPage({ searchParams }: { searchParams: SubscriptionSearchParams }) {
   const sp = await searchParams;
-  const returnedFromPayment = sp.paydunya === 'return';
+  const returnedFromPayment = sp.returned === '1' || sp.kkiapay === 'return';
 
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -17,7 +17,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
 
   if (returnedFromPayment) {
     try {
-      await syncPayDunyaSubscriptions(session.user.id);
+      await syncKkiapaySubscriptions(session.user.id);
     } catch (error) {
       console.error('Subscription reconciliation error:', error);
     }
