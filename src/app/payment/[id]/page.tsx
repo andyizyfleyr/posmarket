@@ -81,6 +81,7 @@ export default async function PaymentPage({ params }: { params: PaymentPageParam
       planName={plan?.name || payment.tier}
       amount={payment.amount}
       environment={PAYDUNYA_ENV}
+      durationLabel={durationLabel(String(payment.duration))}
       userName={profile?.full_name ? String(profile.full_name) : ''}
       userEmail={(profile?.email ? String(profile.email) : '') || user.email || ''}
       userPhone={profile?.phone ? String(profile.phone) : ''}
