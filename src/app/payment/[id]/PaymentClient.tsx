@@ -30,6 +30,10 @@ export function PaymentClient({
   const router = useRouter();
   const isSandbox = environment === 'sandbox';
 
+  const checkoutUrl = isSandbox
+    ? `https://app.paydunya.com/sandbox-checkout/invoice/${transactionId}`
+    : `https://app.paydunya.com/checkout/invoice/${transactionId}`;
+
   const [operator, setOperator] = useState<SoftPayOperator>('mtn-benin');
   const [phone, setPhone] = useState(userPhone || '');
   const [email, setEmail] = useState(isSandbox ? '' : userEmail || '');
@@ -143,13 +147,26 @@ export function PaymentClient({
                   </div>
                 )}
 
-                {/* Sandbox notice */}
+                {/* Sandbox notice + direct checkout link */}
                 {isSandbox && (
-                  <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-                    <p className="text-[11px] text-blue-700 font-bold mb-0.5">Mode test active</p>
-                    <p className="text-[11px] text-blue-600">
-                      Saisissez les identifiants du compte de test PayDunya (client fictif) cree dans votre dashboard.
-                    </p>
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-amber-900">Mode Test Sandbox</p>
+                        <p className="text-[11px] text-amber-700 mt-0.5">
+                          L&apos;API SoftPay Sandbox de PayDunya renvoie actuellement une erreur 404 sur leurs serveurs. Pour valider votre paiement de test, cliquez ci-dessous pour ouvrir le guichet Sandbox officiel.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center bg-[#f56b2a] hover:bg-[#d55a20] text-white text-xs font-black py-2.5 rounded-xl transition-colors"
+                    >
+                      Payer sur le guichet Sandbox PayDunya &rarr;
+                    </a>
                   </div>
                 )}
 

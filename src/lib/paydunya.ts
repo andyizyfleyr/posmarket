@@ -27,7 +27,17 @@ async function paydunyaRawFetch<T = { [k: string]: unknown }>(path: string, init
   };
   const res = await fetch(`${PAYDUNYA_BASE_URL}${path}`, { ...init, headers });
   const text = await res.text();
-  const body = text ? JSON.parse(text) : {};
+  let body: unknown = {};
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      if (!res.ok) {
+        throw new Error(`PayDunya API HTTP ${res.status} ${path}: Service indisponible ou endpoint non trouvé.`);
+      }
+      throw new Error(`Réponse PayDunya non-JSON (HTTP ${res.status}).`);
+    }
+  }
   if (!res.ok) {
     const detail = (body as { response_text?: unknown }).response_text || text;
     throw new Error(`PayDunya API ${res.status} ${path}: ${detail}`);
@@ -222,16 +232,28 @@ export async function chargePayDunyaSoftPay(params: {
     body = buildOperatorPayload(params.operator, params.token, params.customer);
   }
 
-  const res = await paydunyaRawFetch<{
-    success?: unknown;
-    message?: unknown;
-    url?: unknown;
-    data?: unknown;
-  }>(path, { method: 'POST', body: JSON.stringify(body) });
+  try {
+    const res = await paydunyaRawFetch<{
+      success?: unknown;
+      message?: unknown;
+      url?: unknown;
+      data?: unknown;
+    }>(path, { method: 'POST', body: JSON.stringify(body) });
 
-  const success = Boolean(res.success);
-  const message = String(res.message || 'Paiement traité par PayDunya.');
-  const pending = isSandbox ? false : isPendingMessage(message);
+    const success = Boolean(res.success);
+    const message = String(res.message || 'Paiement traité par PayDunya.');
+    const pending = isSandbox ? false : isPendingMessage(message);
 
-  return { success, message, pending };
+    return { success, message, pending };
+  } catch (err) {
+    if (isSandbox) {
+      return {
+        success: false,
+        message:
+          'L\'API SoftPay Sandbox de PayDunya est indisponible (HTTP 404 sur les serveurs PayDunya). Utilisez le guichet Sandbox ci-dessous pour régler la facture de test.',
+        pending: false,
+      };
+    }
+    throw err;
+  }
 }
