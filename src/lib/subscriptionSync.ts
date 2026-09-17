@@ -51,7 +51,7 @@ export async function syncKkiapaySubscriptions(userId?: string): Promise<Kkiapay
         .set({ status, updatedAt: new Date() })
         .where(
           and(
-            eq(subscriptionPayments.transactionId, row.transactionId),
+            eq(subscriptionPayments.transactionId, row.transactionId!),
             eq(subscriptionPayments.status, 'PENDING'),
           ),
         );

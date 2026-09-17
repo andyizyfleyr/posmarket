@@ -54,7 +54,7 @@ export async function POST(request: Request) {
           await db.update(subscriptionPayments)
             .set({ status: expectedStatus, reference: kTxId, updatedAt: new Date() })
             .where(and(
-              eq(subscriptionPayments.transactionId, row.transactionId),
+              eq(subscriptionPayments.transactionId, row.transactionId!),
               eq(subscriptionPayments.status, 'PENDING'),
             ));
 
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         await db.update(subscriptionPayments)
           .set({ status: 'DECLINED', reference: kTxId, updatedAt: new Date() })
           .where(and(
-            eq(subscriptionPayments.transactionId, row.transactionId),
+            eq(subscriptionPayments.transactionId, row.transactionId!),
             eq(subscriptionPayments.status, 'PENDING'),
           ));
       }
