@@ -103,5 +103,5 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  return NextResponse.json({ error: 'method_not_allowed' }, { status: 405 });
+  return new Response('ok', { status: 200, headers: { 'Content-Type': 'text/plain' } });
 }
