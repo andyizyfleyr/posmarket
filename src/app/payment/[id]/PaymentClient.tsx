@@ -211,9 +211,21 @@ export function PaymentClient({
                 )}
 
                 {result && !result.success && (
-                  <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-                    <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-600 font-medium">{result.error}</p>
+                  <div className="space-y-3 rounded-xl bg-red-50 border border-red-100 px-4 py-3">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-600 font-medium">{result.error}</p>
+                    </div>
+                    {isSandbox && (
+                      <a
+                        href={checkoutUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full text-center bg-[#f56b2a] hover:bg-[#d55a20] text-white text-xs font-black py-2.5 rounded-xl transition-colors"
+                      >
+                        Ouvrir le guichet Sandbox PayDunya &rarr;
+                      </a>
+                    )}
                   </div>
                 )}
 

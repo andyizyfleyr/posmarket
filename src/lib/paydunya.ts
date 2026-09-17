@@ -250,7 +250,7 @@ export async function chargePayDunyaSoftPay(params: {
       return {
         success: false,
         message:
-          'L\'API SoftPay Sandbox de PayDunya est indisponible (HTTP 404 sur les serveurs PayDunya). Utilisez le guichet Sandbox ci-dessous pour régler la facture de test.',
+          'L\'API SoftPay Sandbox de PayDunya est actuellement indisponible (erreur 404 côté PayDunya). Réglez la facture de test via le guichet Sandbox officiel.',
         pending: false,
       };
     }
