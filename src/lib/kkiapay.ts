@@ -5,7 +5,7 @@ export const KKIAPAY_API_BASE = KKIAPAY_ENV === 'live'
   ? 'https://api.kkiapay.me'
   : 'https://api-sandbox.kkiapay.me';
 
-const KKIAPAY_PUBLIC_KEY = process.env.KKIAPAY_PUBLIC_KEY?.trim() || '';
+export const KKIAPAY_PUBLIC_KEY = process.env.KKIAPAY_PUBLIC_KEY?.trim() || '';
 const KKIAPAY_PRIVATE_KEY = process.env.KKIAPAY_PRIVATE_KEY?.trim() || '';
 const KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY?.trim() || '';
 const KKIAPAY_WEBHOOK_SECRET = process.env.KKIAPAY_WEBHOOK_SECRET?.trim() || '';
