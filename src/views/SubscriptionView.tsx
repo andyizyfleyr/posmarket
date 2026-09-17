@@ -54,9 +54,9 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
         try {
             if (onCreatePayment) {
                 const result = await onCreatePayment(plan.tier, duration);
-                if (result.success && result.paymentUrl) {
-                    if (notify) notify('Redirection vers le paiement sécurisé PayDunya...', 'success', 'Paiement');
-                    window.location.assign(result.paymentUrl);
+                if (result.success && result.transactionId) {
+                    if (notify) notify('Préparation du paiement sécurisé...', 'success', 'Paiement');
+                    router.push(`/payment/${result.transactionId}`);
                     return;
                 }
                 if (result.code === 'NOT_CONFIGURED' && onUpdateSubscription) {

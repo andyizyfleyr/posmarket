@@ -14,7 +14,7 @@ export function paydunyaConfigured() {
   return Boolean(PAYDUNYA_MASTER_KEY && PAYDUNYA_PRIVATE_KEY && PAYDUNYA_TOKEN);
 }
 
-async function paydunyaFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+async function paydunyaRawFetch<T = { [k: string]: unknown }>(path: string, init: RequestInit = {}): Promise<T> {
   if (!paydunyaConfigured()) {
     throw new Error('Clés API PayDunya non configurées');
   }
@@ -28,11 +28,21 @@ async function paydunyaFetch<T = unknown>(path: string, init: RequestInit = {}):
   const res = await fetch(`${PAYDUNYA_BASE_URL}${path}`, { ...init, headers });
   const text = await res.text();
   const body = text ? JSON.parse(text) : {};
-  if (!res.ok || body?.response_code !== '00') {
-    const detail = body?.response_text || body?.description || text;
+  if (!res.ok) {
+    const detail = (body as { response_text?: unknown }).response_text || text;
     throw new Error(`PayDunya API ${res.status} ${path}: ${detail}`);
   }
   return body as T;
+}
+
+async function paydunyaFetch<T = { [k: string]: unknown }>(path: string, init: RequestInit = {}): Promise<T> {
+  const body = await paydunyaRawFetch<T>(path, init);
+  if ((body as { response_code?: unknown }).response_code !== '00') {
+    throw new Error(
+      `PayDunya API ${path}: ${(body as { response_text?: unknown }).response_text || 'code non 00'}`,
+    );
+  }
+  return body;
 }
 
 export interface PayDunyaCustomer {
@@ -55,14 +65,11 @@ export interface PayDunyaCreateParams {
   customer?: PayDunyaCustomer;
   items?: PayDunyaInvoiceItem[];
   customData?: Record<string, unknown>;
-  returnUrl?: string;
-  cancelUrl?: string;
   callbackUrl?: string;
 }
 
 export interface PayDunyaCreateResult {
   token: string;
-  paymentUrl: string;
 }
 
 export async function createPayDunyaInvoice(params: PayDunyaCreateParams): Promise<PayDunyaCreateResult> {
@@ -83,23 +90,20 @@ export async function createPayDunyaInvoice(params: PayDunyaCreateParams): Promi
     store: { name: 'PosMarket' },
     custom_data: params.customData || {},
     actions: {
-      cancel_url: params.cancelUrl || '',
-      return_url: params.returnUrl || '',
       callback_url: params.callbackUrl || '',
     },
   };
 
-  const res = await paydunyaFetch<{ token?: unknown; response_text?: unknown }>(
-    '/checkout-invoice/create',
-    { method: 'POST', body: JSON.stringify(body) }
-  );
+  const res = await paydunyaFetch<{ token?: unknown }>('/checkout-invoice/create', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 
   const token = String(res.token || '');
-  const paymentUrl = String(res.response_text || '');
-  if (!token || !paymentUrl.startsWith('http')) {
+  if (!token) {
     throw new Error(`Réponse PayDunya invalide: token=${token}`);
   }
-  return { token, paymentUrl };
+  return { token };
 }
 
 export interface PayDunyaInvoiceStatus {
@@ -128,4 +132,106 @@ export function verifyPayDunyaHash(hash: string): boolean {
     expected.length === hash.length &&
     crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(hash))
   );
+}
+
+// --- SoftPay (Paiement Sans Redirection) ---
+
+export type SoftPayOperator = 'mtn-benin' | 'moov-benin' | 'celtiis-cash';
+
+export const SOFT_PAY_OPERATORS: Array<{
+  key: SoftPayOperator;
+  label: string;
+  hint: string;
+}> = [
+  { key: 'mtn-benin', label: 'MTN MoMo', hint: 'Bénin' },
+  { key: 'moov-benin', label: 'Moov Money', hint: 'Bénin' },
+  { key: 'celtiis-cash', label: 'Celtiis Cash', hint: 'Bénin' },
+];
+
+export interface SoftPayCustomer {
+  fullName?: string;
+  email?: string;
+  phone: string;
+}
+
+export interface SoftPayResult {
+  success: boolean;
+  message: string;
+  pending: boolean;
+}
+
+function buildOperatorPayload(
+  operator: SoftPayOperator,
+  token: string,
+  customer: SoftPayCustomer,
+): Record<string, unknown> {
+  switch (operator) {
+    case 'mtn-benin':
+      return {
+        mtn_benin_customer_fullname: customer.fullName || '',
+        mtn_benin_email: customer.email || '',
+        mtn_benin_phone_number: customer.phone,
+        mtn_benin_wallet_provider: 'MTNBENIN',
+        payment_token: token,
+      };
+    case 'moov-benin':
+      return {
+        moov_benin_customer_fullname: customer.fullName || '',
+        moov_benin_email: customer.email || '',
+        moov_benin_phone_number: customer.phone,
+        payment_token: token,
+      };
+    case 'celtiis-cash':
+      return {
+        celtiis_cash_customer_fullname: customer.fullName || '',
+        celtiis_cash_customer_email: customer.email || '',
+        celtiis_cash_phone_number: customer.phone,
+        payment_token: token,
+      };
+  }
+}
+
+const PENDING_HINTS = ['en cours', 'sms', 'réception', 'attente'];
+
+function isPendingMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return PENDING_HINTS.some((h) => lower.includes(h));
+}
+
+export async function chargePayDunyaSoftPay(params: {
+  token: string;
+  operator: SoftPayOperator;
+  customer: SoftPayCustomer;
+  sandboxPassword?: string;
+}): Promise<SoftPayResult> {
+  const isSandbox = PAYDUNYA_ENV === 'sandbox';
+
+  let path: string;
+  let body: Record<string, unknown>;
+
+  if (isSandbox) {
+    path = '/softpay/checkout/make-payment';
+    body = {
+      phone_phone: params.customer.phone,
+      customer_email: params.customer.email || '',
+      password: params.sandboxPassword || '',
+      invoice_token: params.token,
+    };
+  } else {
+    path = `/softpay/${params.operator}`;
+    body = buildOperatorPayload(params.operator, params.token, params.customer);
+  }
+
+  const res = await paydunyaRawFetch<{
+    success?: unknown;
+    message?: unknown;
+    url?: unknown;
+    data?: unknown;
+  }>(path, { method: 'POST', body: JSON.stringify(body) });
+
+  const success = Boolean(res.success);
+  const message = String(res.message || 'Paiement traité par PayDunya.');
+  const pending = isSandbox ? false : isPendingMessage(message);
+
+  return { success, message, pending };
 }

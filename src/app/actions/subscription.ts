@@ -8,7 +8,8 @@ import { SubscriptionTier, SubscriptionDuration } from '@/types'
 import { SUBSCRIPTION_PLANS } from '@/constants'
 import { createClient } from '@/utils/supabase/server'
 import { notify, getProfilePhone } from '@/lib/notifications'
-import { createPayDunyaInvoice, paydunyaConfigured } from '@/lib/paydunya'
+import { createPayDunyaInvoice, chargePayDunyaSoftPay, paydunyaConfigured, SoftPayOperator } from '@/lib/paydunya'
+import { eq, and } from 'drizzle-orm'
 import { activateSubscription, subscriptionAmount, isPayableTier } from '@/lib/subscription'
 
 function durationLabel(d: string): string {
@@ -91,14 +92,8 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
                 description: durationLabel(duration),
             }],
             customData: { userId: user.id, tier, duration },
-            returnUrl: `${origin}/subscription?paydunya=return`,
-            cancelUrl: `${origin}/subscription`,
             callbackUrl: `${origin}/api/paydunya/webhook`,
         });
-
-        if (!result.paymentUrl) {
-            return { success: false, error: 'Le lien de paiement PayDunya n\'a pas pu être généré. Réessayez et vérifiez la configuration de l\'API.' };
-        }
 
         await db.insert(subscriptionPayments).values({
             userId: user.id,
@@ -111,9 +106,88 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
             status: 'PENDING',
         }).onConflictDoNothing({ target: subscriptionPayments.transactionId });
 
-        return { success: true, paymentUrl: result.paymentUrl, transactionId: result.token };
+        return { success: true, transactionId: result.token };
     } catch (error: unknown) {
         console.error('Error creating subscription payment:', error);
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+}
+
+export async function paySubscriptionStepAction(
+    transactionId: string,
+    operator: SoftPayOperator,
+    inputs: { phone: string; email?: string; password?: string },
+) {
+    try {
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return { success: false, code: 'Unauthorized', error: 'Utilisateur non authentifié' };
+        }
+        if (!paydunyaConfigured()) {
+            return { success: false, error: 'Le paiement en ligne n\'est pas encore configuré.' };
+        }
+
+        const phone = String(inputs.phone || '').trim();
+        if (!/^\+?\d{6,15}$/.test(phone)) {
+            return { success: false, error: 'Numéro de téléphone invalide.' };
+        }
+
+        const rows = await db
+            .select()
+            .from(subscriptionPayments)
+            .where(
+                and(
+                    eq(subscriptionPayments.transactionId, transactionId),
+                    eq(subscriptionPayments.userId, user.id),
+                ),
+            )
+            .limit(1);
+
+        const payment = rows[0];
+        if (!payment || payment.status !== 'PENDING') {
+            return { success: false, error: 'Facture introuvable ou déjà traitée.' };
+        }
+
+        let fullName = '';
+        let email = inputs.email?.trim() || '';
+        try {
+            const { data: profile } = await supabase.from('profiles').select('full_name, email').eq('id', user.id).single();
+            if (profile?.full_name) fullName = String(profile.full_name);
+            if (!email && profile?.email) email = String(profile.email);
+        } catch {
+            // non bloquant
+        }
+
+        const result = await chargePayDunyaSoftPay({
+            token: transactionId,
+            operator,
+            customer: { fullName, email, phone },
+            sandboxPassword: inputs.password,
+        });
+
+        if (!result.success) {
+            return { success: false, error: result.message };
+        }
+
+        if (!result.pending) {
+            await db.update(subscriptionPayments)
+                .set({ status: 'APPROVED', updatedAt: new Date() })
+                .where(and(eq(subscriptionPayments.transactionId, transactionId), eq(subscriptionPayments.status, 'PENDING')));
+
+            await activateSubscription(
+                payment.userId,
+                payment.tier as SubscriptionTier,
+                payment.duration as SubscriptionDuration,
+            );
+            revalidatePath('/subscription');
+            console.log(`[PayDunya SoftPay] Abonnement activé: user=${payment.userId} tier=${payment.tier} invoice=${transactionId}`);
+        }
+
+        return { success: true, pending: result.pending, message: result.message };
+    } catch (error: unknown) {
+        console.error('Error paying subscription (SoftPay):', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
