@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ShieldCheck,
   Zap,
@@ -28,9 +29,12 @@ import {
   Truck,
   Sun,
   Moon,
-  Coffee,
   PackageCheck,
-  UserCheck
+  UserCheck,
+  BookOpen,
+  FileText,
+  Users,
+  BellRing
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '@/constants';
 import { formatCurrency } from '@/utils';
@@ -97,8 +101,8 @@ export default function BeOpenClient() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm font-semibold text-slate-600">
-            <a href="#features" className="hover:text-[#f56b2a] transition-colors">Fonctionnalités</a>
-            <a href="#timeline" className="hover:text-[#f56b2a] transition-colors">Cas réel</a>
+            <a href="#features" className="hover:text-[#f56b2a] transition-colors">Ce que vous gagnez</a>
+            <a href="#timeline" className="hover:text-[#f56b2a] transition-colors">Une journée type</a>
             <a href="#comparatif" className="hover:text-[#f56b2a] transition-colors">Comparatif</a>
             <a href="#tarifs" className="hover:text-[#f56b2a] transition-colors">Tarifs</a>
             <a href="#faq" className="hover:text-[#f56b2a] transition-colors">FAQ</a>
@@ -122,7 +126,7 @@ export default function BeOpenClient() {
         </div>
       </header>
 
-      {/* 3. Hero Section (Images réelles, texte normal, pas de soulignement) */}
+      {/* 3. Hero Section (Langage simple, concret et humain) */}
       <section className="pt-8 pb-14 sm:pt-14 sm:pb-20 bg-gradient-to-b from-orange-50/70 via-white to-slate-50 border-b border-slate-200/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -131,18 +135,18 @@ export default function BeOpenClient() {
             <div className="lg:col-span-7 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-800 text-xs font-bold mb-4">
                 <Flame size={15} className="text-[#f56b2a]" />
-                <span>La solution préférée des commerçants</span>
+                <span>Pour les commerçants qui veulent avoir l&apos;esprit tranquille</span>
               </div>
 
               <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight mb-4">
                 Fini le cahier et les erreurs de caisse. <br />
                 <span className="text-[#f56b2a]">
-                  Pilotez votre boutique et vendez 24h sur 24.
+                  Vendez en boutique et en ligne sans prise de tête.
                 </span>
               </h1>
 
               <p className="text-sm sm:text-base md:text-lg text-slate-600 mb-6 font-normal leading-relaxed max-w-xl mx-auto lg:mx-0">
-                Transformez votre smartphone en caisse enregistreuse tactile et en vitrine en ligne avec Mobile Money et paiement à la livraison. Suivez vos ventes, vos stocks et vos bénéfices en temps réel, où que vous soyez.
+                Transformez votre simple téléphone en caisse enregistreuse et en boutique en ligne ouverte jour et nuit. Encaissez par Mobile Money ou à la livraison, évitez les vols et sachez exactement ce que vous gagnez chaque jour.
               </p>
 
               {/* CTAs */}
@@ -151,7 +155,7 @@ export default function BeOpenClient() {
                   href="/subscription"
                   className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                 >
-                  <span>Activer ma caisse et boutique</span>
+                  <span>Démarrer avec ma boutique</span>
                   <ArrowRight size={16} />
                 </Link>
                 <a
@@ -172,17 +176,17 @@ export default function BeOpenClient() {
                   <span>Et livraison</span>
                 </div>
                 <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-center shadow-xs">
-                  <span className="text-[#f56b2a] block font-bold text-xs sm:text-sm">Zéro matériel</span>
-                  <span>Smartphone ou PC</span>
+                  <span className="text-[#f56b2a] block font-bold text-xs sm:text-sm">Zéro machine chère</span>
+                  <span>Votre téléphone suffit</span>
                 </div>
                 <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-center shadow-xs">
-                  <span className="text-purple-600 block font-bold text-xs sm:text-sm">5 minutes</span>
-                  <span>Prise en main</span>
+                  <span className="text-purple-600 block font-bold text-xs sm:text-sm">Prêt en 5 min</span>
+                  <span>Simple comme bonjour</span>
                 </div>
               </div>
             </div>
 
-            {/* Right: Real Photography */}
+            {/* Right: Real Photography Card */}
             <div className="lg:col-span-5">
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 group">
                 <div className="relative h-80 sm:h-96 w-full">
@@ -218,52 +222,52 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 4. Section Fonctionnalités Majeures (Avec Grandes Photos Réelles) */}
+      {/* 4. Section 3 Piliers Visuels avec Vraies Photos */}
       <section id="features" className="py-14 sm:py-20 bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
-              Fonctionnalités clés
+              Ce que PosMarket fait pour votre quotidien
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 mt-4 mb-2">
-              Comment PosMarket propulse votre commerce
+              Votre commerce géré simplement, sans fatigue ni stress
             </h2>
             <p className="text-slate-500 text-xs sm:text-sm font-normal">
-              Conçu pour résoudre vos besoins quotidiens sans aucune complication technique.
+              Des outils concrets et faciles à utiliser pour vous soulager du matin au soir.
             </p>
           </div>
 
           <div className="space-y-16">
             
-            {/* Feature 1 : Caisse POS Tactile */}
+            {/* Feature 1 : Caisse Tactile & Reçus WhatsApp */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-6 order-2 lg:order-1">
                 <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#f56b2a] flex items-center justify-center mb-4 font-bold">
                   <Zap size={20} />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-3">
-                  1. Caisse tactile express et reçus WhatsApp
+                  1. Une caisse facile sur votre téléphone et reçus sur WhatsApp
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5 font-normal">
-                  Encaissez chaque client en 3 clics sur votre smartphone, tablette ou ordinateur. Recherche rapide d&apos;articles, gestion des remises, impression de tickets de caisse ou envoi instantané sur le WhatsApp du client.
+                  Quand un client arrive, trouvez son article en 3 secondes. L&apos;application calcule la monnaie exacte sans que vous ayez à sortir une calculatrice. Envoyez un joli reçu par WhatsApp ou imprimez un ticket de caisse en un clin d&apos;œil.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold text-slate-700">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Recherche rapide d&apos;articles</span>
+                    <span>Recherche d&apos;article en 1 clic</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Reçus WhatsApp et tickets</span>
+                    <span>Reçus WhatsApp instantanés</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Clôture de caisse en 1 clic</span>
+                    <span>Calcul de monnaie sans erreur</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Compatible lecteur code-barres</span>
+                    <span>Scanner code-barres avec caméra</span>
                   </div>
                 </div>
               </div>
@@ -279,7 +283,7 @@ export default function BeOpenClient() {
               </div>
             </div>
 
-            {/* Feature 2 : Vitrine E-Commerce 24/7 */}
+            {/* Feature 2 : Boutique en Ligne 24/7 */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-6">
                 <div className="rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-slate-100">
@@ -296,19 +300,19 @@ export default function BeOpenClient() {
                   <ShoppingBag size={20} />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-3">
-                  2. Votre boutique en ligne ouverte 24h sur 24
+                  2. Votre boutique en ligne ouverte même pendant votre sommeil
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5 font-normal">
-                  Vos clients continuent d&apos;acheter pendant que vous vous reposez. Partagez votre lien de boutique sur WhatsApp, TikTok et Instagram : les commandes arrivent automatiquement et votre stock en magasin se déduit en direct.
+                  Partagez votre lien de boutique dans votre statut WhatsApp, sur Facebook ou TikTok. Vos clients découvrent vos nouveautés à toute heure, passent commande et paient. Le stock en magasin se met à jour tout seul.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold text-slate-700">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Lien boutique personnalisé</span>
+                    <span>Lien boutique à votre nom</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Commandes WhatsApp en direct</span>
+                    <span>Commandes directes WhatsApp</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
@@ -316,40 +320,40 @@ export default function BeOpenClient() {
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Stock synchronisé en temps réel</span>
+                    <span>Stock synchronisé en direct</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Feature 3 : Bénéfices, Mobile Money & Paiement à la livraison */}
+            {/* Feature 3 : Bénéfices & Paiements Sécurisés */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-6 order-2 lg:order-1">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4 font-bold">
                   <BarChart3 size={20} />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-3">
-                  3. Bénéfices nets, Mobile Money et paiement à la livraison
+                  3. Vos vrais bénéfices en poche et zéro faux SMS
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5 font-normal">
-                  Fini les doutes sur votre rentabilité ou les arnaques de faux SMS. Les paiements par Mobile Money sont validés par les passerelles sécurisées, vos livreurs gèrent les paiements à la livraison, et votre marge nette est calculée automatiquement.
+                  Chaque paiement Mobile Money est vérifié automatiquement, fini les fausses captures d&apos;écran ou les arnaques. Le soir, découvrez votre vrai bénéfice net après déduction de vos prix d&apos;achat et de vos dépenses du magasin.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold text-slate-700">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Validation Mobile Money automatique</span>
+                    <span>Zéro faux SMS Mobile Money</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Gestion du paiement à la livraison</span>
+                    <span>Paiement à la livraison suivi</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Calcul automatique des marges</span>
+                    <span>Calcul automatique de votre bénéfice</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Alertes de stock faible</span>
+                    <span>Alerte avant d&apos;être en rupture</span>
                   </div>
                 </div>
               </div>
@@ -369,18 +373,157 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 5. Section Timeline : Cas d'Étude & Usage en Condition Réelle */}
-      <section id="timeline" className="py-14 sm:py-20 bg-slate-50 border-b border-slate-200">
+      {/* 5. Section Grand Guide des Fonctionnalités : Langage Simple et Concret */}
+      <section className="py-14 sm:py-20 bg-slate-50 border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-xs font-bold text-[#f56b2a] bg-orange-100 border border-orange-200 px-3.5 py-1.5 rounded-full">
+              Toutes les fonctionnalités expliquées simplement
+            </span>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 mt-4 mb-2">
+              Tout ce dont votre commerce a besoin, sans jargon technique
+            </h2>
+            <p className="text-slate-500 text-xs sm:text-sm font-normal">
+              Fini les cahiers brouillons, les calculatrices perdues et les doutes sur vos chiffres. Voici tout ce que vous pouvez faire avec votre téléphone.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {/* 1. Carnet de dettes & crédits */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#f56b2a] flex items-center justify-center mb-4">
+                <BookOpen size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Carnet de dettes et crédits clients
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Notez les ardoises de vos clients en 2 secondes. Vous savez exactement qui vous doit de l&apos;argent, depuis quelle date, et pouvez leur envoyer un rappel poli sur WhatsApp en un clic.
+              </p>
+            </div>
+
+            {/* 2. Surveillance des vendeurs à distance */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-4">
+                <Users size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Surveillance de vos vendeurs à distance
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Créez un accès avec code pour chaque employé. Même depuis chez vous ou en voyage, vous voyez en direct qui encaisse chaque vente et évitez les vols et les erreurs de caisse.
+              </p>
+            </div>
+
+            {/* 3. Reçus WhatsApp & Impression ticket */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
+                <Receipt size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Reçus par WhatsApp et tickets imprimés
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Donnez une image professionnelle à votre boutique. Envoyez le ticket propre directement sur le téléphone de votre client ou imprimez-le sur petite imprimante thermique.
+              </p>
+            </div>
+
+            {/* 4. Alertes de stock faible */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
+                <BellRing size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Alertes automatiques avant rupture de stock
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Ne perdez plus de clients parce qu&apos;un article manque. L&apos;application vous avertit dès qu&apos;un produit approche de la fin pour que vous puissiez vous réapprovisionner à temps.
+              </p>
+            </div>
+
+            {/* 5. Suivi des dépenses du magasin */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4">
+                <TrendingUp size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Enregistrement des dépenses de la boutique
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Notez facilement le loyer, l&apos;électricité, le transport ou les petits achats quotidiens. À la fin du mois, vous connaissez votre vrai bénéfice restant dans votre poche.
+              </p>
+            </div>
+
+            {/* 6. Suivi des livraisons et colis */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4">
+                <Truck size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Suivi des livraisons et colis à domicile
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Calculez les frais de livraison automatiquement, donnez les coordonnées du client au livreur et suivez les commandes en cours jusqu&apos;au paiement en main propre.
+              </p>
+            </div>
+
+            {/* 7. Factures et devis avec logo */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4">
+                <FileText size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Factures et devis avec votre logo
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Pour vos gros clients, entreprises ou commandes spéciales, générez en 1 clic de superbes factures PDF avec votre logo, adresse et conditions de règlement.
+              </p>
+            </div>
+
+            {/* 8. Clôture de caisse du soir */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center mb-4">
+                <Clock size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Clôture de caisse du soir en 1 clic
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                À la fermeture du magasin, appuyez sur « Clôturer ». Le total en espèces, en Mobile Money et en livraisons est dressé instantanément. Vous rentrez chez vous l&apos;esprit léger.
+              </p>
+            </div>
+
+            {/* 9. Mode Boutique ou Mode Restaurant */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center mb-4">
+                <Store size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Adapté aux boutiques et aux restaurants
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Que vous vendiez des vêtements, cosmétiques, quincaillerie ou que vous gériez un fast-food, maquis ou salon de thé (avec gestion de tables et cuisine), l&apos;application s&apos;adapte parfaitement.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Section Timeline : Cas d'Étude en Conditions Réelles */}
+      <section id="timeline" className="py-14 sm:py-20 bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-bold text-[#f56b2a] bg-orange-100 border border-orange-200 px-3.5 py-1.5 rounded-full">
+            <span className="text-xs font-bold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
               Cas d&apos;étude en conditions réelles
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-4 mb-2">
               Une journée type avec PosMarket
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm font-normal">
+            <p className="text-slate-500 text-xs sm:text-sm font-normal">
               Découvrez pas à pas comment se passe le quotidien d&apos;un commerce équipé, du matin au coucher.
             </p>
           </div>
@@ -392,10 +535,10 @@ export default function BeOpenClient() {
               <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-[#f56b2a] text-white flex items-center justify-center font-bold text-xs shadow-md">
                 <Sun size={15} />
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-[#f56b2a]">07h30 • Ouverture de la boutique</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Matin</span>
+                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Matin</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
                   Ouverture de caisse en 10 secondes
@@ -411,10 +554,10 @@ export default function BeOpenClient() {
               <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
                 <Zap size={15} />
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-emerald-600">11h15 • Pic d&apos;affluence en magasin</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Encaissment</span>
+                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Encaissement</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
                   12 clients servis en 15 minutes
@@ -430,10 +573,10 @@ export default function BeOpenClient() {
               <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
                 <Truck size={15} />
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-blue-600">14h40 • Commande web et livraison</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Livraison</span>
+                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Livraison</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
                   Commande en ligne expédiée avec paiement à la livraison
@@ -449,10 +592,10 @@ export default function BeOpenClient() {
               <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
                 <CheckCircle2 size={15} />
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-purple-600">19h00 • Clôture de fin de journée</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Bilan</span>
+                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Bilan</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
                   Rapport de caisse sans aucun calcul manuel
@@ -468,10 +611,10 @@ export default function BeOpenClient() {
               <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shadow-md">
                 <Moon size={15} />
               </div>
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-slate-700">23h30 • La boutique vend pendant la nuit</span>
-                  <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold">Actif</span>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Actif</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
                   Nouvelles ventes enregistrées pendant le sommeil
@@ -487,8 +630,8 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 6. Comparatif Synthétique (Sans vs Avec) */}
-      <section id="comparatif" className="py-12 sm:py-16 bg-white border-b border-slate-200">
+      {/* 7. Comparatif Synthétique (Sans vs Avec) */}
+      <section id="comparatif" className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8">
             <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 mb-2">
@@ -499,13 +642,13 @@ export default function BeOpenClient() {
             </p>
           </div>
 
-          <div className="bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden shadow-xs text-xs sm:text-sm">
+          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs text-xs sm:text-sm">
             <div className="grid grid-cols-2 bg-slate-900 text-white font-bold py-3.5 px-4 sm:px-6 text-xs">
               <div className="text-red-400 flex items-center gap-1.5"><XCircle size={15} /> Sans PosMarket</div>
               <div className="text-emerald-400 flex items-center gap-1.5"><CheckCircle2 size={15} /> Avec PosMarket</div>
             </div>
 
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y divide-slate-100">
               {[
                 {
                   label: 'Comptes du soir',
@@ -538,12 +681,12 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 7. Tarifs Clairs et Directs */}
-      <section id="tarifs" className="py-12 sm:py-18 bg-slate-50 border-b border-slate-200">
+      {/* 8. Tarifs Clairs et Directs */}
+      <section id="tarifs" className="py-12 sm:py-18 bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold text-[#f56b2a] bg-orange-100 border border-orange-200 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
               Tarification simple
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 mb-2">
@@ -554,7 +697,7 @@ export default function BeOpenClient() {
             </p>
 
             {/* Toggle Duration */}
-            <div className="mt-6 inline-flex p-1 rounded-2xl bg-white border border-slate-200 shadow-xs">
+            <div className="mt-6 inline-flex p-1 rounded-2xl bg-slate-100 border border-slate-200">
               {(['monthly', 'quarterly', 'annual'] as const).map((d) => (
                 <button
                   key={d}
@@ -574,10 +717,10 @@ export default function BeOpenClient() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             
             {/* STARTER */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-all shadow-xs">
+            <div className="bg-slate-50 rounded-3xl p-6 sm:p-8 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700 bg-white px-3 py-1 rounded-full border border-slate-200">
                     Starter
                   </span>
                   <span className="text-[11px] font-semibold text-slate-500">1 boutique</span>
@@ -597,11 +740,12 @@ export default function BeOpenClient() {
                   )}
                 </div>
 
-                <ul className="space-y-2.5 text-xs text-slate-700 mb-6 border-t border-slate-100 pt-4 font-normal">
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Caisse tactile express</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> 1 boutique connectée</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 50 produits</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Reçus imprimables et WhatsApp</li>
+                <ul className="space-y-2.5 text-xs text-slate-700 mb-6 border-t border-slate-200 pt-4 font-normal">
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Caisse facile sur téléphone et tablette</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> 1 boutique ou point de vente</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 50 articles</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Reçus WhatsApp et tickets imprimables</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Carnet de dettes et crédits clients</li>
                 </ul>
               </div>
 
@@ -624,7 +768,7 @@ export default function BeOpenClient() {
                   <span className="text-xs font-bold text-orange-700 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
                     Pro
                   </span>
-                  <span className="text-[11px] font-semibold text-emerald-600">Caisse et vitrine web</span>
+                  <span className="text-[11px] font-semibold text-emerald-600">Caisse et boutique en ligne</span>
                 </div>
 
                 <div className="mb-5">
@@ -642,11 +786,12 @@ export default function BeOpenClient() {
                 </div>
 
                 <ul className="space-y-2.5 text-xs text-slate-800 mb-6 border-t border-slate-100 pt-4 font-semibold">
-                  <li className="flex items-center gap-2 text-orange-600"><Check size={15} className="text-[#f56b2a]" /> Vitrine web ouverte 24h sur 24</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 3 boutiques</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 500 produits</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Paiements Mobile Money et livraison</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Rapports de marges et best-sellers</li>
+                  <li className="flex items-center gap-2 text-orange-600"><Check size={15} className="text-[#f56b2a]" /> Boutique en ligne ouverte 24h sur 24</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 3 boutiques connectées</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 500 articles</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Paiements Mobile Money et à la livraison</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Calcul du bénéfice net et clôture du soir</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Alertes automatiques de stock faible</li>
                 </ul>
               </div>
 
@@ -660,7 +805,7 @@ export default function BeOpenClient() {
             </div>
 
             {/* ENTERPRISE */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-all shadow-xs">
+            <div className="bg-slate-50 rounded-3xl p-6 sm:p-8 border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
@@ -683,11 +828,12 @@ export default function BeOpenClient() {
                   )}
                 </div>
 
-                <ul className="space-y-2.5 text-xs text-slate-700 mb-6 border-t border-slate-100 pt-4 font-normal">
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Boutiques illimitées</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Produits illimités</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Factures avec votre logo</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Support dédié WhatsApp 7j sur 7</li>
+                <ul className="space-y-2.5 text-xs text-slate-700 mb-6 border-t border-slate-200 pt-4 font-normal">
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Boutiques et magasins illimités</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Nombre d&apos;articles illimité</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Factures et devis avec votre logo</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Surveillance et comptes vendeurs illimités</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Accompagnement direct WhatsApp 7j sur 7</li>
                 </ul>
               </div>
 
@@ -703,7 +849,7 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 8. FAQ Complète et Détaillée */}
+      {/* 9. FAQ Complète et Détaillée */}
       <section id="faq" className="py-14 sm:py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
@@ -777,7 +923,7 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 9. Mobile Sticky Bottom Action Bar */}
+      {/* 10. Mobile Sticky Bottom Action Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-2xl flex items-center justify-between gap-3">
         <div className="text-left pl-1">
           <span className="text-[10px] font-semibold text-slate-500 block">Formule Starter</span>
@@ -792,7 +938,7 @@ export default function BeOpenClient() {
         </Link>
       </div>
 
-      {/* 10. Simple Clean Footer */}
+      {/* 11. Simple Clean Footer */}
       <footer className="bg-slate-900 text-slate-400 py-10 text-xs text-center">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
