@@ -80,7 +80,11 @@ export async function signUpSession(name: string, email: string) {
 }
 
 export async function signOutSession() {
-  (await cookies()).delete('buyerUserId');
+  const cookieStore = await cookies();
+  cookieStore.delete('buyerUserId');
+  cookieStore.delete('userId');
+  cookieStore.delete('pos_current_store_id');
+  cookieStore.delete('storeId');
   return { error: null };
 }
 

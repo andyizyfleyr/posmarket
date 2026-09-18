@@ -17,8 +17,14 @@ export async function updateSession(request: NextRequest) {
   if (!userId && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const res = NextResponse.redirect(url)
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    return res
   }
 
-  return NextResponse.next({ request })
+  const res = NextResponse.next({ request })
+  if (isProtectedRoute) {
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  }
+  return res
 }

@@ -38,6 +38,11 @@ export default function LayoutClientWrapper({
   const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const isOnline = true;
+
+  const notify = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setToastNotifications(prev => [...prev, { id, message, type, title }]);
+  }, []);
   
   // Notify Flutter App if we are running inside the WebView
   React.useEffect(() => {
@@ -79,23 +84,44 @@ export default function LayoutClientWrapper({
     syncSession();
   }, [currentStore?.id, router]);
 
-  const notify = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToastNotifications(prev => [...prev, { id, message, type, title }]);
+  // Prevent bfcache restoration on back button after logout
+  React.useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    const flutterWindow = window as unknown as FlutterWindow;
-    if (typeof window !== 'undefined' && flutterWindow.FlutterNotifications) {
-      if (currentStore?.id) {
-        flutterWindow.FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
+    try {
+      const flutterWindow = window as unknown as FlutterWindow;
+      if (typeof window !== 'undefined' && flutterWindow.FlutterNotifications) {
+        if (currentStore?.id) {
+          flutterWindow.FlutterNotifications.postMessage(`unsubscribe:${currentStore.id}`);
+        }
+        flutterWindow.FlutterNotifications.postMessage(`clearSession`);
       }
-      flutterWindow.FlutterNotifications.postMessage(`clearSession`);
+
+      // Clear client storage
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+
+      const { logoutAction } = await import('@/app/actions/auth');
+      await logoutAction();
+      await clearStoreCookieAction();
+
+      // Replace current history entry with /login to avoid back navigation loop
+      window.location.replace('/login');
+    } catch (e) {
+      console.error('Logout error:', e);
+      window.location.replace('/login');
     }
-    await supabase.auth.signOut();
-    await clearStoreCookieAction();
-    router.push('/login');
   };
 
   const handleStoreChange = async (id: string) => {

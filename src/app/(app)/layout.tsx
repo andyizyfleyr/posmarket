@@ -6,6 +6,9 @@ import { StoreData, SubscriptionTier, SubscriptionDuration, StaffRole, UserSubsc
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
 import { safeSupabaseFetch } from '@/utils/supabase/retry';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface ProfileData {
   id: string;
   email?: string | null;

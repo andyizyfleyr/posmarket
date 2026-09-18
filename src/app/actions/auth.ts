@@ -77,6 +77,10 @@ export async function signupAction(formData: FormData) {
 }
 
 export async function logoutAction() {
-  (await cookies()).delete('userId');
-  redirect('/login');
+  const cookieStore = await cookies();
+  cookieStore.delete('userId');
+  cookieStore.delete('buyerUserId');
+  cookieStore.delete('pos_current_store_id');
+  cookieStore.delete('storeId');
+  return { success: true };
 }
