@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Check, X, AlertTriangle, Loader2, Copy, CheckCircle2, MessageCircle, ArrowRight, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { Check, X, AlertTriangle, Loader2, MessageCircle, ArrowRight, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/utils';
 import { SubscriptionTier, SubscriptionDuration } from '@/types';
 
@@ -34,14 +34,6 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
   onClose,
   onRetry,
 }) => {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setCopied(false);
-    }
-  }, [isOpen]);
-
   if (!isOpen || !data) return null;
 
   const {
@@ -52,48 +44,13 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
     currency = 'FCFA',
     tier,
     duration,
-    transactionId,
-    reference,
-    provider = 'fedapay',
-    date = new Date(),
   } = data;
-
-  const displayRef = reference || transactionId || '';
-
-  const handleCopy = () => {
-    if (!displayRef) return;
-    navigator.clipboard.writeText(displayRef);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const formattedDate = (() => {
-    try {
-      const d = typeof date === 'string' ? new Date(date) : date;
-      return new Intl.DateTimeFormat('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(d);
-    } catch {
-      return '';
-    }
-  })();
-
-  const durationLabel = (d?: SubscriptionDuration) => {
-    if (d === 'monthly') return 'Mensuel (1 mois)';
-    if (d === 'quarterly') return 'Trimestriel (3 mois)';
-    if (d === 'annual') return 'Annuel (1 an)';
-    return d || 'Mensuel';
-  };
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 overflow-y-auto bg-black/65 backdrop-blur-md animate-fadeIn">
       {/* Container */}
       <div 
-        className="relative w-full max-w-[440px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-pop"
+        className="relative w-full max-w-[400px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-pop"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top subtle decorative gradient bar */}
@@ -191,7 +148,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
           </h3>
 
           {/* Subtitle / Explanation */}
-          <p className="text-xs md:text-sm font-medium text-slate-500 mb-5 max-w-xs leading-relaxed">
+          <p className="text-xs md:text-sm font-medium text-slate-500 mb-6 max-w-xs leading-relaxed">
             {message || (
               status === 'success' ? 'Votre abonnement a été activé avec succès. Toutes vos fonctionnalités sont prêtes.' :
               status === 'error' ? 'La transaction n\'a pas pu être validée par l\'opérateur.' :
@@ -202,7 +159,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
 
           {/* Prominent Amount Box */}
           {typeof amount === 'number' && amount > 0 && (
-            <div className="w-full bg-slate-50 rounded-2xl p-4 mb-5 border border-slate-100 flex flex-col items-center justify-center">
+            <div className="w-full bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100 flex flex-col items-center justify-center">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Montant Total</span>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
@@ -219,71 +176,6 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
               )}
             </div>
           )}
-
-          {/* Details Card (Binance Receipt Style) */}
-          <div className="w-full bg-slate-50/70 rounded-2xl p-4 mb-6 border border-slate-100 text-left space-y-2.5 text-xs">
-            {tier && (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Abonnement</span>
-                <span className="text-slate-800 font-bold">{tier}</span>
-              </div>
-            )}
-
-            {duration && (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Période</span>
-                <span className="text-slate-800 font-bold">{durationLabel(duration)}</span>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400 font-medium">Passerelle</span>
-              <span className="inline-flex items-center gap-1 font-bold text-slate-700">
-                <span className={`w-2 h-2 rounded-full ${provider === 'fedapay' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
-                {provider === 'fedapay' ? 'FedaPay (Moov/MTN)' : 'Kkiapay'}
-              </span>
-            </div>
-
-            {displayRef && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-400 font-medium shrink-0">Réf. Transaction</span>
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                  <span className="text-slate-700 font-mono font-bold text-[11px] truncate max-w-[140px]" title={displayRef}>
-                    {displayRef}
-                  </span>
-                  <button
-                    onClick={handleCopy}
-                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition-colors relative"
-                    title="Copier la référence"
-                  >
-                    {copied ? <CheckCircle2 size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {formattedDate && (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Date & Heure</span>
-                <span className="text-slate-700 font-medium">{formattedDate}</span>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
-              <span className="text-slate-400 font-medium">Statut</span>
-              <span className={`font-black text-[11px] px-2 py-0.5 rounded-md ${
-                status === 'success' ? 'bg-emerald-100 text-emerald-700' :
-                status === 'error' ? 'bg-red-100 text-red-700' :
-                status === 'cancelled' ? 'bg-amber-100 text-amber-700' :
-                'bg-blue-100 text-blue-700'
-              }`}>
-                {status === 'success' ? '✓ Confirmé' :
-                 status === 'error' ? '✕ Échoué' :
-                 status === 'cancelled' ? '○ Annulé' :
-                 '◌ En attente'}
-              </span>
-            </div>
-          </div>
 
           {/* Action Buttons */}
           <div className="w-full space-y-2.5">
