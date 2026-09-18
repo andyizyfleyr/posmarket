@@ -250,12 +250,12 @@ export default function BeOpenClient() {
                   1. Une caisse facile sur votre téléphone et reçus sur WhatsApp
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5 font-normal">
-                  Quand un client arrive, trouvez son article en 3 secondes. L&apos;application calcule la monnaie exacte sans que vous ayez à sortir une calculatrice. Envoyez un joli reçu par WhatsApp ou imprimez un ticket de caisse en un clin d&apos;œil.
+                  Quand un client arrive, choisissez son article en 3 secondes. L&apos;application calcule la monnaie exacte sans que vous ayez à sortir une calculatrice. Envoyez un joli reçu par WhatsApp ou imprimez un ticket de caisse en un clin d&apos;œil.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold text-slate-700">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Recherche d&apos;article en 1 clic</span>
+                    <span>Ajout au panier en 1 toucher</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
@@ -267,7 +267,7 @@ export default function BeOpenClient() {
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Scanner code-barres avec caméra</span>
+                    <span>Tickets de caisse imprimables</span>
                   </div>
                 </div>
               </div>
@@ -312,11 +312,11 @@ export default function BeOpenClient() {
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Commandes directes WhatsApp</span>
+                    <span>Bouton commander sur WhatsApp</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Zéro commission sur vos ventes</span>
+                    <span>Paiements Mobile Money et livraison</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
@@ -326,30 +326,30 @@ export default function BeOpenClient() {
               </div>
             </div>
 
-            {/* Feature 3 : Bénéfices & Paiements Sécurisés */}
+            {/* Feature 3 : Tableau de bord & Ventes en direct */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-6 order-2 lg:order-1">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4 font-bold">
                   <BarChart3 size={20} />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-3">
-                  3. Vos vrais bénéfices en poche et zéro faux SMS
+                  3. Suivi de vos ventes en direct et articles les plus vendus
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed mb-5 font-normal">
-                  Chaque paiement Mobile Money est vérifié automatiquement, fini les fausses captures d&apos;écran ou les arnaques. Le soir, découvrez votre vrai bénéfice net après déduction de vos prix d&apos;achat et de vos dépenses du magasin.
+                  Suivez votre chiffre d&apos;affaires en direct depuis votre téléphone. Visualisez vos commandes du jour, le montant total encaissé et découvrez quels sont vos produits qui se vendent le mieux.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 text-xs font-semibold text-slate-700">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Zéro faux SMS Mobile Money</span>
+                    <span>Chiffre d&apos;affaires en direct</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Paiement à la livraison suivi</span>
+                    <span>Top des produits les plus vendus</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                    <span>Calcul automatique de votre bénéfice</span>
+                    <span>Nombre de commandes et panier moyen</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
@@ -362,7 +362,7 @@ export default function BeOpenClient() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/images/beopen/merchant_dashboard_growth.jpg"
-                    alt="Commerçant confiant avec tableau de bord et marges nettes"
+                    alt="Commerçant confiant avec tableau de bord et ventes"
                     className="w-full h-72 sm:h-80 object-cover object-center"
                   />
                 </div>
@@ -385,48 +385,48 @@ export default function BeOpenClient() {
               Tout ce dont votre commerce a besoin, sans jargon technique
             </h2>
             <p className="text-slate-500 text-xs sm:text-sm font-normal">
-              Fini les cahiers brouillons, les calculatrices perdues et les doutes sur vos chiffres. Voici tout ce que vous pouvez faire avec votre téléphone.
+              Fini les cahiers brouillons, les calculatrices égarées et les doutes sur vos chiffres. Voici tout ce que vous faites avec l&apos;application.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             
-            {/* 1. Carnet de dettes & crédits */}
+            {/* 1. Caisse tactile express */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
               <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#f56b2a] flex items-center justify-center mb-4">
-                <BookOpen size={20} />
+                <Zap size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Carnet de dettes et crédits clients
+                Caisse tactile et calcul de monnaie
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Notez les ardoises de vos clients en 2 secondes. Vous savez exactement qui vous doit de l&apos;argent, depuis quelle date, et pouvez leur envoyer un rappel poli sur WhatsApp en un clic.
+                Touchez un produit pour l&apos;ajouter au panier. L&apos;application calcule immédiatement le montant total et la monnaie exacte à rendre à votre client.
               </p>
             </div>
 
-            {/* 2. Surveillance des vendeurs à distance */}
+            {/* 2. Boutique en ligne 24/7 */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-4">
-                <Users size={20} />
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
+                <ShoppingBag size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Surveillance de vos vendeurs à distance
+                Boutique en ligne à votre nom
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Créez un accès avec code pour chaque employé. Même depuis chez vous ou en voyage, vous voyez en direct qui encaisse chaque vente et évitez les vols et les erreurs de caisse.
+                Présentez tout votre catalogue avec photos et prix. Vos clients commandent en ligne avec paiement sécurisé ou via le bouton direct WhatsApp.
               </p>
             </div>
 
             {/* 3. Reçus WhatsApp & Impression ticket */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-4">
                 <Receipt size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Reçus par WhatsApp et tickets imprimés
+                Reçus par WhatsApp et tickets imprimables
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Donnez une image professionnelle à votre boutique. Envoyez le ticket propre directement sur le téléphone de votre client ou imprimez-le sur petite imprimante thermique.
+                Envoyez un reçu clair et élégant directement sur le WhatsApp du client ou imprimez un ticket sur petite imprimante de caisse thermique.
               </p>
             </div>
 
@@ -436,75 +436,75 @@ export default function BeOpenClient() {
                 <BellRing size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Alertes automatiques avant rupture de stock
+                Alertes de stock faible et inventaire
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Ne perdez plus de clients parce qu&apos;un article manque. L&apos;application vous avertit dès qu&apos;un produit approche de la fin pour que vous puissiez vous réapprovisionner à temps.
+                Repérez d&apos;un coup d&apos;œil les articles bientôt épuisés pour vous réapprovisionner à temps et ne jamais décevoir un client venu acheter.
               </p>
             </div>
 
-            {/* 5. Suivi des dépenses du magasin */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4">
-                <TrendingUp size={20} />
-              </div>
-              <h4 className="font-bold text-base text-slate-900 mb-2">
-                Enregistrement des dépenses de la boutique
-              </h4>
-              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Notez facilement le loyer, l&apos;électricité, le transport ou les petits achats quotidiens. À la fin du mois, vous connaissez votre vrai bénéfice restant dans votre poche.
-              </p>
-            </div>
-
-            {/* 6. Suivi des livraisons et colis */}
+            {/* 5. Tarifs de gros et prix dégressifs */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
               <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4">
-                <Truck size={20} />
+                <PackageCheck size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Suivi des livraisons et colis à domicile
+                Tarifs de gros et prix par quantité
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Calculez les frais de livraison automatiquement, donnez les coordonnées du client au livreur et suivez les commandes en cours jusqu&apos;au paiement en main propre.
+                Définissez des réductions automatiques selon le nombre d&apos;articles achetés (par exemple à partir de 3, 5 ou 10 pièces) pour vos clients grossistes.
               </p>
             </div>
 
-            {/* 7. Factures et devis avec logo */}
+            {/* 6. Fichier et suivi des clients */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center mb-4">
+                <Users size={20} />
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mb-2">
+                Fichier clients et historique d&apos;achats
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                Conservez les coordonnées de vos clients (téléphone, adresse), visualisez l&apos;historique de leurs commandes et identifiez vos meilleurs acheteurs.
+              </p>
+            </div>
+
+            {/* 7. Factures et devis PDF */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
               <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4">
                 <FileText size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Factures et devis avec votre logo
+                Factures et devis professionnels
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Pour vos gros clients, entreprises ou commandes spéciales, générez en 1 clic de superbes factures PDF avec votre logo, adresse et conditions de règlement.
+                Créez des factures numérotées au format PDF avec le détail des produits, les montants et le statut (payé, en attente ou impayé).
               </p>
             </div>
 
-            {/* 8. Clôture de caisse du soir */}
+            {/* 8. Tableau de bord des ventes */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center mb-4">
-                <Clock size={20} />
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4">
+                <BarChart3 size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Clôture de caisse du soir en 1 clic
+                Tableau de bord et meilleures ventes
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                À la fermeture du magasin, appuyez sur « Clôturer ». Le total en espèces, en Mobile Money et en livraisons est dressé instantanément. Vous rentrez chez vous l&apos;esprit léger.
+                Consultez les statistiques de votre boutique : total encaissé par jour, semaine ou mois, nombre de commandes et classement de vos best-sellers.
               </p>
             </div>
 
-            {/* 9. Mode Boutique ou Mode Restaurant */}
+            {/* 9. Gestion des vendeurs et employés */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all">
               <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center mb-4">
-                <Store size={20} />
+                <UserCheck size={20} />
               </div>
               <h4 className="font-bold text-base text-slate-900 mb-2">
-                Adapté aux boutiques et aux restaurants
+                Comptes vendeurs et autorisations
               </h4>
               <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                Que vous vendiez des vêtements, cosmétiques, quincaillerie ou que vous gériez un fast-food, maquis ou salon de thé (avec gestion de tables et cuisine), l&apos;application s&apos;adapte parfaitement.
+                Ajoutez vos collaborateurs avec des droits personnalisés pour enregistrer les ventes tout en protégeant les paramètres de votre boutique.
               </p>
             </div>
 
@@ -541,10 +541,10 @@ export default function BeOpenClient() {
                   <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Matin</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Ouverture de caisse en 10 secondes
+                  Ouverture de l&apos;application et vérification du stock
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Le gérant ou le premier vendeur ouvre l&apos;application sur son téléphone ou sa tablette. Il saisit le fond de caisse initial et commence la journée sans aucun papier à préparer.
+                  Le commerçant ouvre PosMarket sur son téléphone ou sa tablette. Il vérifie en un coup d&apos;œil les articles en stock et commence la journée sans aucun papier.
                 </p>
               </div>
             </div>
@@ -560,10 +560,10 @@ export default function BeOpenClient() {
                   <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Encaissement</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  12 clients servis en 15 minutes
+                  12 clients servis rapidement
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Les clients s&apos;enchaînent. Chaque vente est enregistrée en 3 clics avec encaissement en espèces ou Mobile Money. Le reçu de caisse est transmis directement sur le WhatsApp du client.
+                  Les clients se présentent au comptoir. Chaque vente est enregistrée en 3 clics avec encaissement en espèces ou Mobile Money. Le reçu est partagé directement sur le WhatsApp du client.
                 </p>
               </div>
             </div>
@@ -575,14 +575,14 @@ export default function BeOpenClient() {
               </div>
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-blue-600">14h40 • Commande web et livraison</span>
+                  <span className="text-xs font-bold text-blue-600">14h40 • Commande en ligne</span>
                   <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Livraison</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Commande en ligne expédiée avec paiement à la livraison
+                  Commande web reçue avec adresse de livraison
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Une commande passée sur la vitrine en ligne est préparée. Le livreur part livrer avec l&apos;option paiement à la livraison. Le stock en magasin a déjà été déduit automatiquement.
+                  Une commande passée sur la vitrine en ligne est préparée. Le client a choisi le paiement à la livraison. Le stock en magasin s&apos;est mis à jour automatiquement.
                 </p>
               </div>
             </div>
@@ -594,14 +594,14 @@ export default function BeOpenClient() {
               </div>
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-purple-600">19h00 • Clôture de fin de journée</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Bilan</span>
+                  <span className="text-xs font-bold text-purple-600">19h00 • Bilan de fin de journée</span>
+                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Statistiques</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Rapport de caisse sans aucun calcul manuel
+                  Chiffre d&apos;affaires et commandes visibles en 1 clic
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  À la fermeture, le caissier appuie sur « Clôturer ». Le rapport complet détaille les espèces, les encaissements Mobile Money et les paiements à la livraison. Zéro erreur, zéro dispute.
+                  À la fermeture, le commerçant ouvre son tableau de bord. Il voit immédiatement le chiffre d&apos;affaires total de la journée et les produits les plus vendus.
                 </p>
               </div>
             </div>
@@ -613,14 +613,14 @@ export default function BeOpenClient() {
               </div>
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-slate-700">23h30 • La boutique vend pendant la nuit</span>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Actif</span>
+                  <span className="text-xs font-bold text-slate-700">23h30 • Ventes pendant la nuit</span>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">En ligne</span>
                 </div>
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Nouvelles ventes enregistrées pendant le sommeil
+                  Commandes enregistrées sur la vitrine web
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Pendant que le propriétaire dort, deux clients commandent sur la vitrine en ligne et paient par Mobile Money. Au réveil, les commandes sont prêtes pour l&apos;expédition du matin.
+                  Pendant que le magasin est fermé, des clients commandent sur la boutique en ligne. Au réveil, les commandes sont prêtes à être traitées.
                 </p>
               </div>
             </div>
@@ -741,11 +741,11 @@ export default function BeOpenClient() {
                 </div>
 
                 <ul className="space-y-2.5 text-xs text-slate-700 mb-6 border-t border-slate-200 pt-4 font-normal">
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Caisse facile sur téléphone et tablette</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Caisse tactile sur téléphone et tablette</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> 1 boutique ou point de vente</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 50 articles</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Reçus WhatsApp et tickets imprimables</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Carnet de dettes et crédits clients</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Fichier clients et historique d&apos;achats</li>
                 </ul>
               </div>
 
@@ -790,7 +790,7 @@ export default function BeOpenClient() {
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 3 boutiques connectées</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Jusqu&apos;à 500 articles</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Paiements Mobile Money et à la livraison</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Calcul du bénéfice net et clôture du soir</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Tarifs de gros et réductions automatiques</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Alertes automatiques de stock faible</li>
                 </ul>
               </div>
@@ -832,7 +832,7 @@ export default function BeOpenClient() {
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Boutiques et magasins illimités</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Nombre d&apos;articles illimité</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Factures et devis avec votre logo</li>
-                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Surveillance et comptes vendeurs illimités</li>
+                  <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Gestion des employés et vendeurs</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600" /> Accompagnement direct WhatsApp 7j sur 7</li>
                 </ul>
               </div>
