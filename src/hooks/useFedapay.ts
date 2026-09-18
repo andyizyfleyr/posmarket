@@ -44,13 +44,11 @@ export const useFedapay = () => {
   const openWidget = useCallback((opts: FedapayWidgetOptions) => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as Record<string, unknown>;
-    const FedaPayObj = w.FedaPay as {
+    const FedaPay = (w.FedaPay || (typeof window !== 'undefined' ? (window as unknown as Record<string, unknown>).FedaPay : undefined)) as {
       init?: (options: unknown) => { open: () => void };
-      CHECKOUT_COMPLETED?: unknown;
-      DIALOG_DISMISSED?: unknown;
-    } | ((options: unknown) => { open: () => void }) | undefined;
+    } | undefined;
 
-    if (!FedaPayObj) {
+    if (!FedaPay) {
       opts.onFailed?.(new Error('Module FedaPay non chargé'));
       return;
     }
@@ -102,10 +100,11 @@ export const useFedapay = () => {
 
       let widget: { open: () => void } | undefined;
 
-      if (typeof FedaPayObj === 'object' && typeof FedaPayObj.init === 'function') {
-        widget = FedaPayObj.init(widgetConfig) as { open: () => void };
-      } else if (typeof FedaPayObj === 'function') {
-        widget = FedaPayObj(widgetConfig);
+      if (typeof FedaPay.init === 'function') {
+        const res = FedaPay.init(widgetConfig);
+        widget = (Array.isArray(res) ? res[0] : res) as { open: () => void };
+      } else if (typeof FedaPay === 'function') {
+        widget = (FedaPay as unknown as (cfg: unknown) => { open: () => void })(widgetConfig);
       }
 
       if (widget && typeof widget.open === 'function') {
