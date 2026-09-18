@@ -383,7 +383,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
       } else if (r.key === 'fedapay_env') {
         settings.fedapay_env = r.value === 'live' ? 'live' : 'sandbox';
       } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key') {
-        settings[r.key as keyof SystemSettingsData] = r.value;
+        settings[r.key] = r.value;
       }
     });
     return { success: true, settings };

@@ -1,5 +1,5 @@
-export const FEDAPAY_ENV = 'sandbox'; // temporaire, sera remplacé par la config admin
-export const FEDAPAY_API_BASE = FEDAPAY_ENV === 'live'
+export const FEDAPAY_ENV: 'sandbox' | 'live' = 'sandbox'; // temporaire, sera remplacé par la config admin
+export const FEDAPAY_API_BASE = (FEDAPAY_ENV as string) === 'live'
   ? 'https://api.fedapay.com/v1'
   : 'https://sandbox-api.fedapay.com/v1';
 
