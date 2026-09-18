@@ -203,14 +203,17 @@ export async function confirmFedapayPaymentAction(
 
         const tx = await verifyFedapayTransaction(fTxId);
         const status = String((tx.status || '').toLowerCase());
-        if (status !== 'approved' && status !== 'success') {
-            return { success: false, error: 'Le paiement n\'a pas abouti.' };
+        const isApproved = ['approved', 'success', 'transferred', 'completed'].includes(status);
+        if (!isApproved) {
+            console.warn('[FedaPay Verification] Transaction not approved:', { status, fTxId, tx });
+            return { success: false, error: `Le paiement n'a pas abouti (statut FedaPay : ${status || 'inconnu'}).` };
         }
 
         const paidAmount = Number(tx.amount);
         const expectedAmount = Number(payment.amount);
-        if (paidAmount !== expectedAmount) {
-            return { success: false, error: 'Le montant payé ne correspond pas à la facture.' };
+        if (paidAmount && expectedAmount && Math.abs(paidAmount - expectedAmount) > 1) {
+            console.error('[FedaPay Verification] Amount mismatch:', { paidAmount, expectedAmount, tx });
+            return { success: false, error: `Le montant payé (${paidAmount}) ne correspond pas à la facture (${expectedAmount}).` };
         }
 
         await db
@@ -228,6 +231,16 @@ export async function confirmFedapayPaymentAction(
             payment.tier as SubscriptionTier,
             payment.duration as SubscriptionDuration,
         );
+
+        await notify({
+            userId: user.id,
+            phone: await getProfilePhone(user.id),
+            eventType: 'ABONNEMENT_ACTIVE',
+            title: 'Abonnement activé',
+            body: `Votre abonnement ${payment.tier} (${payment.duration}) a été validé avec succès via FedaPay.`,
+            templateParams: [String(payment.tier), durationLabel(payment.duration)],
+        });
+
         revalidatePath('/subscription');
 
         return { success: true, message: 'Paiement FedaPay vérifié. Abonnement activé.' };

@@ -66,7 +66,10 @@ export async function verifyFedapayTransaction(transactionId: string | number): 
     throw new Error('Identifiant de transaction FedaPay manquant');
   }
 
-  const res = await fetch(`${FEDAPAY_ENV_VALUE === 'live' ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1'}/transactions/${id}`, {
+  const isLive = FEDAPAY_SECRET_KEY.startsWith('sk_live') || FEDAPAY_ENV_VALUE === 'live';
+  const apiBase = isLive ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1';
+
+  const res = await fetch(`${apiBase}/transactions/${id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -87,5 +90,17 @@ export async function verifyFedapayTransaction(transactionId: string | number): 
     throw new Error(`FedaPay API ${res.status} : ${reason}`);
   }
 
-  return (body || {}) as FedapayTransactionStatus;
+  const raw = (body as Record<string, unknown>) || {};
+  const txObj = (raw['v1/transaction'] || raw['transaction'] || raw['v1/transactions'] || raw) as Record<string, unknown>;
+
+  return {
+    id: Number(txObj.id || raw.id || id),
+    reference: String(txObj.reference || raw.reference || ''),
+    amount: Number(txObj.amount ?? raw.amount ?? 0),
+    status: String(txObj.status || raw.status || '').toLowerCase(),
+    description: String(txObj.description || raw.description || ''),
+    currency_id: Number(txObj.currency_id || raw.currency_id || 0),
+    customer_id: Number(txObj.customer_id || raw.customer_id || 0),
+    ...txObj,
+  } as FedapayTransactionStatus;
 }

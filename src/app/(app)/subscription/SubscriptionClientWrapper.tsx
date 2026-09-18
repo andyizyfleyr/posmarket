@@ -109,17 +109,23 @@ export default function SubscriptionClientWrapper({
         },
         onSuccess: async (tx: unknown) => {
           try {
-            const txObj = tx as { id?: number; reference?: string; status?: string };
-            const fTxId = txObj.id || txObj.reference || '';
-            const confirm = await onConfirmPayment(res.transactionId!, String(fTxId));
+            const raw = (tx as Record<string, unknown>) || {};
+            const txObj = ((raw.transaction || raw) as { id?: number | string; reference?: string; status?: string }) || {};
+            const fTxId = String(txObj.id || txObj.reference || raw.id || raw.reference || '').trim();
+            if (!fTxId) {
+              notify('Identifiant de paiement FedaPay introuvable.', 'error', 'Paiement');
+              return;
+            }
+            const confirm = await onConfirmPayment(res.transactionId!, fTxId);
             if (confirm.success) {
-              notify('Paiement FedaPay confirmé. Abonnement activé.', 'success', 'Abonnement');
+              notify('Paiement FedaPay confirmé. Abonnement activé !', 'success', 'Abonnement');
               router.refresh();
             } else {
               notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
               router.refresh();
             }
-          } catch {
+          } catch (err) {
+            console.error('[FedaPay onConfirmPayment] Error:', err);
             notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
           }
         },

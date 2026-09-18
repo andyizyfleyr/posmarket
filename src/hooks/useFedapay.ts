@@ -74,24 +74,32 @@ export const useFedapay = () => {
         onComplete: (res: { reason?: unknown; transaction?: Record<string, unknown> } | unknown) => {
           const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
           const reasonStr = String(r?.reason || '').trim().toUpperCase();
-          const txStatus = String(r?.transaction?.status || '').trim().toLowerCase();
+          const txObj = r?.transaction || (r as Record<string, unknown>) || {};
+          const txStatus = String(txObj?.status || '').trim().toLowerCase();
 
-          if (
+          const isApproved =
             reasonStr === 'CHECKOUT COMPLETE' ||
-            reasonStr === 'CHECKOUT_COMPLETED' ||
             reasonStr === 'CHECKOUT_COMPLETE' ||
+            reasonStr === 'CHECKOUT_COMPLETED' ||
+            reasonStr === 'COMPLETE' ||
             r?.reason === 1 ||
             txStatus === 'approved' ||
             txStatus === 'success' ||
-            txStatus === 'transferred'
-          ) {
-            opts.onSuccess?.(r?.transaction || {});
+            txStatus === 'transferred' ||
+            txStatus === 'completed';
+
+          if (isApproved || (txObj?.id && txStatus === 'approved')) {
+            opts.onSuccess?.(txObj);
           } else if (
             reasonStr === 'DIALOG DISMISSED' ||
             reasonStr === 'DIALOG_DISMISSED' ||
             reasonStr === 'DISMISSED'
           ) {
-            opts.onFailed?.({ reason: 'dismissed', message: 'Paiement annulé' });
+            if (txStatus === 'approved' || txStatus === 'success') {
+              opts.onSuccess?.(txObj);
+            } else {
+              opts.onFailed?.({ reason: 'dismissed', message: 'Paiement annulé' });
+            }
           } else {
             opts.onFailed?.(r || { message: reasonStr || 'Paiement non abouti' });
           }
