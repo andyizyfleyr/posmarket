@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { SubscriptionView } from '@/views/SubscriptionView';
-import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
+import { TransactionResultModal, TransactionModalData } from '@/components/TransactionResultModal';
 import {
   UserSubscription,
   SubscriptionDuration,
@@ -51,28 +51,49 @@ export default function SubscriptionClientWrapper({
   const router = useRouter();
   const { ready: kkiapayReady, openWidget: openKkiapay } = useKkiapay();
   const { ready: fedapayReady, openWidget: openFedapay } = useFedapay();
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const notify = (message: string, type: NotificationType, _title?: string) => {
-    setToast({ message, type: type === 'error' ? 'error' : 'success' });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const [modalData, setModalData] = useState<TransactionModalData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<{ tier: SubscriptionTier; duration: SubscriptionDuration } | null>(null);
 
   useEffect(() => {
     if (!paymentReturned) return;
-    notify('Paiement reçu, votre abonnement est à jour.', 'success', 'Paiement');
+    setModalData({
+      status: 'success',
+      title: 'Paiement Confirmé !',
+      message: 'Votre paiement a été reçu et votre abonnement est maintenant actif.',
+      date: new Date(),
+    });
+    setIsModalOpen(true);
     router.replace('/subscription', { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentReturned]);
+  }, [paymentReturned, router]);
 
   const handlePay = useCallback(async (tier: SubscriptionTier, duration: SubscriptionDuration): Promise<{ success: boolean; error?: string }> => {
+    setLastAttempt({ tier, duration });
+
     if (!onCreatePayment) {
       const direct = await onUpdateSubscription(tier, duration);
       if (direct.success) {
-        notify(`Abonnement activé avec succès !`, 'success', 'Succès');
+        setModalData({
+          status: 'success',
+          title: 'Abonnement Activé !',
+          message: `Votre formule ${tier} a été activée avec succès.`,
+          tier,
+          duration,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
         router.refresh();
       } else {
-        notify(direct.error || 'Erreur lors de l\'activation', 'error', 'Erreur');
+        setModalData({
+          status: 'error',
+          title: 'Erreur d\'activation',
+          message: direct.error || 'Impossible d\'activer l\'abonnement.',
+          tier,
+          duration,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
       }
       return direct;
     }
@@ -80,23 +101,59 @@ export default function SubscriptionClientWrapper({
     const res = await onCreatePayment(tier, duration);
 
     if (!res.success) {
-      notify(res.error || 'Erreur lors de l\'initialisation du paiement', 'error', 'Paiement');
+      setModalData({
+        status: 'error',
+        title: 'Initialisation Échouée',
+        message: res.error || 'Impossible de créer la facture de paiement.',
+        tier,
+        duration,
+        date: new Date(),
+      });
+      setIsModalOpen(true);
       return { success: false, error: res.error };
     }
 
     if (!res.transactionId || !res.amount) {
-      notify('Facture de paiement invalide.', 'error', 'Paiement');
+      setModalData({
+        status: 'error',
+        title: 'Facture Invalide',
+        message: 'Les données de transaction sont incomplètes.',
+        tier,
+        duration,
+        date: new Date(),
+      });
+      setIsModalOpen(true);
       return { success: false };
     }
+
     if (paymentProvider === 'fedapay') {
       if (!fedapayPublicKey) {
-        notify('Le paiement FedaPay n\'est pas configuré.', 'error', 'Paiement');
+        setModalData({
+          status: 'error',
+          title: 'Configuration Manquante',
+          message: 'Le paiement FedaPay n\'est pas configuré par l\'administrateur.',
+          tier,
+          duration,
+          amount: res.amount,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
         return { success: false };
       }
       if (!fedapayReady) {
-        notify('Module FedaPay encore en chargement, réessayez.', 'error', 'Paiement');
+        setModalData({
+          status: 'error',
+          title: 'Module en Chargement',
+          message: 'Le module de paiement FedaPay est encore en cours de chargement. Veuillez patienter un instant et réessayer.',
+          tier,
+          duration,
+          amount: res.amount,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
         return { success: false };
       }
+
       openFedapay({
         publicKey: fedapayPublicKey,
         amount: res.amount,
@@ -112,44 +169,132 @@ export default function SubscriptionClientWrapper({
             const raw = (tx as Record<string, unknown>) || {};
             const txObj = ((raw.transaction || raw) as { id?: number | string; reference?: string; status?: string }) || {};
             const fTxId = String(txObj.id || txObj.reference || raw.id || raw.reference || '').trim();
+
             if (!fTxId) {
-              notify('Identifiant de paiement FedaPay introuvable.', 'error', 'Paiement');
+              setModalData({
+                status: 'error',
+                title: 'Référence Introuvable',
+                message: 'Impossible de récupérer l\'identifiant de transaction FedaPay.',
+                amount: res.amount,
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                provider: 'fedapay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
               return;
             }
+
             const confirm = await onConfirmPayment(res.transactionId!, fTxId);
             if (confirm.success) {
-              notify('Paiement FedaPay confirmé. Abonnement activé !', 'success', 'Abonnement');
+              setModalData({
+                status: 'success',
+                title: 'Paiement Réussi !',
+                message: `Votre abonnement ${tier} (${duration === 'annual' ? 'Annuel' : duration === 'quarterly' ? 'Trimestriel' : 'Mensuel'}) est désormais actif.`,
+                amount: res.amount,
+                currency: 'FCFA',
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                reference: fTxId,
+                provider: 'fedapay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
               router.refresh();
             } else {
-              notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
+              setModalData({
+                status: 'error',
+                title: 'Paiement Non Confirmé',
+                message: confirm.error || 'Le paiement n\'a pas pu être validé par FedaPay.',
+                amount: res.amount,
+                currency: 'FCFA',
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                reference: fTxId,
+                provider: 'fedapay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
               router.refresh();
             }
           } catch (err) {
             console.error('[FedaPay onConfirmPayment] Error:', err);
-            notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
+            setModalData({
+              status: 'error',
+              title: 'Erreur de Confirmation',
+              message: 'Une erreur est survenue lors de la validation de votre paiement.',
+              amount: res.amount,
+              tier,
+              duration,
+              transactionId: res.transactionId,
+              provider: 'fedapay',
+              date: new Date(),
+            });
+            setIsModalOpen(true);
           }
         },
         onFailed: (err?: unknown) => {
           console.warn('[FedaPay] onFailed error:', err);
           const e = err as { reason?: string; message?: string } | undefined;
           if (e?.reason === 'dismissed' || e?.message === 'Paiement annulé') {
-            notify('Paiement FedaPay annulé.', 'error', 'Paiement');
-          } else if (e?.message && typeof e.message === 'string') {
-            notify(`FedaPay : ${e.message}`, 'error', 'Paiement');
+            setModalData({
+              status: 'cancelled',
+              title: 'Paiement Annulé',
+              message: 'Vous avez fermé le guichet de paiement sans finaliser la transaction.',
+              amount: res.amount,
+              tier,
+              duration,
+              transactionId: res.transactionId,
+              provider: 'fedapay',
+              date: new Date(),
+            });
           } else {
-            notify('Le paiement FedaPay a été refusé ou a échoué.', 'error', 'Paiement');
+            setModalData({
+              status: 'error',
+              title: 'Paiement Non Abouti',
+              message: e?.message || 'La transaction a été refusée ou interrompue.',
+              amount: res.amount,
+              tier,
+              duration,
+              transactionId: res.transactionId,
+              provider: 'fedapay',
+              date: new Date(),
+            });
           }
+          setIsModalOpen(true);
         },
       });
     } else {
       if (!kkiapayPublicKey) {
-        notify('Le paiement Kkiapay n\'est pas configuré.', 'error', 'Paiement');
+        setModalData({
+          status: 'error',
+          title: 'Configuration Manquante',
+          message: 'Le paiement Kkiapay n\'est pas configuré par l\'administrateur.',
+          tier,
+          duration,
+          amount: res.amount,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
         return { success: false };
       }
       if (!kkiapayReady) {
-        notify('Module de paiement encore en chargement, réessayez.', 'error', 'Paiement');
+        setModalData({
+          status: 'error',
+          title: 'Module en Chargement',
+          message: 'Le module de paiement Kkiapay est encore en cours de chargement.',
+          tier,
+          duration,
+          amount: res.amount,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
         return { success: false };
       }
+
       openKkiapay({
         amount: res.amount,
         key: kkiapayPublicKey,
@@ -163,24 +308,72 @@ export default function SubscriptionClientWrapper({
           try {
             const confirm = await onConfirmPayment(res.transactionId!, kTxId);
             if (confirm.success) {
-              notify('Paiement confirmé. Abonnement activé.', 'success', 'Abonnement');
+              setModalData({
+                status: 'success',
+                title: 'Paiement Réussi !',
+                message: `Votre abonnement ${tier} (${duration === 'annual' ? 'Annuel' : duration === 'quarterly' ? 'Trimestriel' : 'Mensuel'}) est activé.`,
+                amount: res.amount,
+                currency: 'FCFA',
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                reference: kTxId,
+                provider: 'kkiapay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
               router.refresh();
             } else {
-              notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
+              setModalData({
+                status: 'error',
+                title: 'Paiement Non Confirmé',
+                message: confirm.error || 'Le paiement n\'a pas pu être validé par Kkiapay.',
+                amount: res.amount,
+                currency: 'FCFA',
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                reference: kTxId,
+                provider: 'kkiapay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
               router.refresh();
             }
           } catch {
-            notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
+            setModalData({
+              status: 'error',
+              title: 'Erreur de Confirmation',
+              message: 'Une erreur est survenue lors de la confirmation du paiement Kkiapay.',
+              amount: res.amount,
+              tier,
+              duration,
+              transactionId: res.transactionId,
+              provider: 'kkiapay',
+              date: new Date(),
+            });
+            setIsModalOpen(true);
           }
         },
         onFailed: () => {
-          notify('Le paiement a été annulé ou a échoué.', 'error', 'Paiement');
+          setModalData({
+            status: 'cancelled',
+            title: 'Paiement Interrompu',
+            message: 'La session de paiement Kkiapay a été annulée ou n\'a pas abouti.',
+            amount: res.amount,
+            tier,
+            duration,
+            transactionId: res.transactionId,
+            provider: 'kkiapay',
+            date: new Date(),
+          });
+          setIsModalOpen(true);
         },
       });
     }
 
     return { success: true };
-  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router, notify]);
+  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router]);
 
   return (
     <>
@@ -189,24 +382,20 @@ export default function SubscriptionClientWrapper({
         userRole={userRole as StaffRole}
         onUpdateSubscription={onUpdateSubscription}
         onPay={handlePay}
-        notify={notify}
       />
 
-      {toast && (
-        <div className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-[200] animate-slide-up">
-          <div className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-2xl border ${
-            toast.type === 'success'
-              ? 'bg-green-600 text-white border-green-500'
-              : 'bg-red-600 text-white border-red-500'
-          }`}>
-            {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-            <span className="text-xs font-black tracking-tight whitespace-nowrap">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="ml-1 opacity-70 hover:opacity-100">
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+      <TransactionResultModal
+        isOpen={isModalOpen}
+        data={modalData}
+        onClose={() => {
+          setIsModalOpen(false);
+          router.refresh();
+        }}
+        onRetry={lastAttempt ? () => {
+          setIsModalOpen(false);
+          handlePay(lastAttempt.tier, lastAttempt.duration);
+        } : undefined}
+      />
     </>
   );
 }
