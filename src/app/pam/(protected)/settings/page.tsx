@@ -24,6 +24,7 @@ interface SystemSettings {
   kkiapay_env?: 'sandbox' | 'live';
   fedapay_public_key?: string;
   fedapay_secret_key?: string;
+  fedapay_webhook_secret?: string;
   fedapay_env?: 'sandbox' | 'live';
 }
 
@@ -75,6 +76,7 @@ export default function AdminSettingsPage() {
     settings.kkiapay_env !== initial.kkiapay_env ||
     settings.fedapay_public_key !== initial.fedapay_public_key ||
     settings.fedapay_secret_key !== initial.fedapay_secret_key ||
+    settings.fedapay_webhook_secret !== initial.fedapay_webhook_secret ||
     settings.fedapay_env !== initial.fedapay_env
   );
 
@@ -238,6 +240,16 @@ export default function AdminSettingsPage() {
                   onChange={e => updateField('fedapay_secret_key', e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   placeholder="YOUR_SECRET_KEY"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Webhook Secret Key (wh_...)</label>
+                <input
+                  type="text"
+                  value={settings.fedapay_webhook_secret || ''}
+                  onChange={e => updateField('fedapay_webhook_secret', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                  placeholder="wh_live_... ou wh_sandbox_..."
                 />
               </div>
               <div className="md:col-span-2 flex gap-3">

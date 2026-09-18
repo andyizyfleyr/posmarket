@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
-import { fedapayConfigured, verifyFedapayTransaction } from '@/lib/fedapay';
+import { fedapayConfigured, verifyFedapayTransaction, verifyFedapayWebhookSignature } from '@/lib/fedapay';
 
 export async function POST(request: Request) {
   try {
@@ -14,11 +14,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'FedaPay non configuré' }, { status: 503 });
     }
 
+    const signature = request.headers.get('x-fedapay-signature') || request.headers.get('X-FEDAPAY-SIGNATURE');
+    const rawBody = await request.text();
+
+    if (!verifyFedapayWebhookSignature(rawBody, signature)) {
+      return NextResponse.json({ error: 'Signature webhook FedaPay invalide' }, { status: 401 });
+    }
+
     let payload: unknown;
     try {
-      payload = await request.json();
+      payload = rawBody ? JSON.parse(rawBody) : {};
     } catch {
-      return NextResponse.json({ error: 'Payload invalide' }, { status: 400 });
+      return NextResponse.json({ error: 'Payload JSON invalide' }, { status: 400 });
     }
 
     const p = payload as {

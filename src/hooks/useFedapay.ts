@@ -68,17 +68,29 @@ export const useFedapay = () => {
         customer: opts.customer || {},
         onComplete: (res: { reason?: unknown; transaction?: Record<string, unknown> } | unknown) => {
           const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
-          const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT_COMPLETED';
-          const DIALOG_DISMISSED = (FedaPayObj as { DIALOG_DISMISSED?: unknown })?.DIALOG_DISMISSED ?? 'DIALOG_DISMISSED';
+          const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT COMPLETE';
+          const DIALOG_DISMISSED = (FedaPayObj as { DIALOG_DISMISSED?: unknown })?.DIALOG_DISMISSED ?? 'DIALOG DISMISSED';
+
+          const reasonStr = String(r?.reason || '').trim().toUpperCase();
+          const txStatus = String(r?.transaction?.status || '').trim().toLowerCase();
 
           if (
             r?.reason === CHECKOUT_COMPLETED ||
-            r?.reason === 'CHECKOUT_COMPLETED' ||
+            reasonStr === 'CHECKOUT COMPLETE' ||
+            reasonStr === 'CHECKOUT_COMPLETED' ||
+            reasonStr === 'CHECKOUT_COMPLETE' ||
             r?.reason === 1 ||
-            (r?.transaction && (r.transaction.status === 'approved' || r.transaction.status === 'success'))
+            txStatus === 'approved' ||
+            txStatus === 'success' ||
+            txStatus === 'transferred'
           ) {
             opts.onSuccess?.(r?.transaction || {});
-          } else if (r?.reason === DIALOG_DISMISSED || r?.reason === 'DIALOG_DISMISSED') {
+          } else if (
+            r?.reason === DIALOG_DISMISSED ||
+            reasonStr === 'DIALOG DISMISSED' ||
+            reasonStr === 'DIALOG_DISMISSED' ||
+            reasonStr === 'DISMISSED'
+          ) {
             opts.onFailed?.({ reason: 'dismissed', message: 'Paiement annulé' });
           } else {
             opts.onFailed?.(r);

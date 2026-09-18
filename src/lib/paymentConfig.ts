@@ -12,6 +12,7 @@ export interface PaymentConfig {
   kkiapayEnv?: 'sandbox' | 'live';
   fedapayPublicKey?: string;
   fedapaySecretKey?: string;
+  fedapayWebhookSecret?: string;
   fedapayEnv?: 'sandbox' | 'live';
 }
 
@@ -31,6 +32,7 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
     kkiapayEnv: (map.get('kkiapay_env') as 'sandbox' | 'live') || 'sandbox',
     fedapayPublicKey: map.get('fedapay_public_key') || '',
     fedapaySecretKey: map.get('fedapay_secret_key') || '',
+    fedapayWebhookSecret: map.get('fedapay_webhook_secret') || '',
     fedapayEnv: (map.get('fedapay_env') as 'sandbox' | 'live') || 'sandbox',
   };
 
@@ -38,6 +40,7 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
   initFedapayConfig({
     publicKey: config.fedapayPublicKey,
     secretKey: config.fedapaySecretKey,
+    webhookSecret: config.fedapayWebhookSecret,
     env: config.fedapayEnv,
   });
   initKkiapayConfig({

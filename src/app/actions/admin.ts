@@ -366,6 +366,7 @@ export interface SystemSettingsData {
   kkiapay_env?: 'sandbox' | 'live';
   fedapay_public_key?: string;
   fedapay_secret_key?: string;
+  fedapay_webhook_secret?: string;
   fedapay_env?: 'sandbox' | 'live';
 }
 
@@ -382,7 +383,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
         settings.kkiapay_env = r.value === 'live' ? 'live' : 'sandbox';
       } else if (r.key === 'fedapay_env') {
         settings.fedapay_env = r.value === 'live' ? 'live' : 'sandbox';
-      } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key') {
+      } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key' || r.key === 'fedapay_webhook_secret') {
         settings[r.key] = r.value;
       }
     });
@@ -394,7 +395,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
 
 export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
   try {
-    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key'];
+    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret'];
     const allowedEnvKeys = ['kkiapay_env', 'fedapay_env'];
     const booleanKeys = ['maintenance', 'auto_indexing', 'weekly_reports'];
 
