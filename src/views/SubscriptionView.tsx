@@ -50,6 +50,17 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
             return;
         }
 
+        if (duration !== 'monthly') {
+            const price = duration === 'quarterly' ? plan.priceQuarterly : plan.priceAnnual;
+            const durationLabel = duration === 'quarterly' ? 'Trimestriel' : 'Annuel';
+            const msg = encodeURIComponent(`Bonjour l'équipe PosMarket, je souhaite souscrire à la formule ${plan.name} (${durationLabel}) au tarif de ${formatCurrency(price)}.`);
+            if (typeof window !== 'undefined') {
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+            }
+            if (notify) notify(`Formule ${plan.name} (${durationLabel}) : redirection vers le support commercial...`, 'success', 'Contact');
+            return;
+        }
+
         setLoading(plan.tier);
         try {
             if (onPay) {
@@ -84,6 +95,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
         if (isSeller) return 'Accès Restreint';
         if (hasActivePlan && plan.tier === currentTierPlan?.tier) return 'Plan Actuel';
         if (currentTierPlan?.tier === plan.tier && isExpired) return 'Réactiver';
+        if (duration !== 'monthly') return 'Contactez-nous';
         return hasActivePlan ? `Passer à ${plan.name}` : `Choisir ${plan.name}`;
     };
 
