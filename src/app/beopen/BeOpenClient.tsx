@@ -70,22 +70,8 @@ export default function BeOpenClient() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-[#f56b2a] selection:text-white pb-24 md:pb-0">
       
-      {/* 1. Header Banner */}
-      <div className="bg-gradient-to-r from-orange-600 via-[#f56b2a] to-amber-500 text-white text-xs py-2.5 px-3 text-center font-bold flex items-center justify-center gap-2 shadow-xs sticky top-0 z-50">
-        <Sparkles size={15} className="text-amber-200 shrink-0" />
-        <span className="truncate">Accompagnement offert : Boutique et caisse configurées en 10 minutes avec notre équipe</span>
-        <a
-          href={whatsappLink()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-orange-100 shrink-0 font-extrabold ml-1"
-        >
-          En profiter &rarr;
-        </a>
-      </div>
-
-      {/* 2. Navigation */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-[37px] z-40">
+      {/* Navigation */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-[#f56b2a] flex items-center justify-center shadow-md shadow-orange-500/20 text-white font-extrabold">
@@ -110,12 +96,6 @@ export default function BeOpenClient() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/login"
-              className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-[#f56b2a]"
-            >
-              Connexion
-            </Link>
             <Link
               href="/subscription"
               className="px-4 py-2.5 rounded-xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white text-xs sm:text-sm font-bold shadow-md shadow-orange-500/25 flex items-center gap-1.5 transition-all"
