@@ -5,6 +5,9 @@ import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type SubscriptionSearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function SubscriptionPage({ searchParams }: { searchParams: SubscriptionSearchParams }) {

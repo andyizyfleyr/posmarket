@@ -80,18 +80,8 @@ export default function SubscriptionClientWrapper({
     const res = await onCreatePayment(tier, duration);
 
     if (!res.success) {
-      if (res.code === 'NOT_CONFIGURED') {
-        const direct = await onUpdateSubscription(tier, duration);
-        if (direct.success) {
-          notify(`Abonnement activé avec succès !`, 'success', 'Succès');
-          router.refresh();
-          return { success: true };
-        }
-        notify(direct.error || 'Erreur lors de l\'activation', 'error', 'Erreur');
-        return direct;
-      }
       notify(res.error || 'Erreur lors de l\'initialisation du paiement', 'error', 'Paiement');
-      return { success: false };
+      return { success: false, error: res.error };
     }
 
     if (!res.transactionId || !res.amount) {

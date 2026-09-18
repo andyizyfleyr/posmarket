@@ -24,8 +24,13 @@ export const useFedapay = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as Record<string, unknown>;
-    if (typeof (w as { FedaPay?: unknown }).FedaPay === 'object' || typeof (w as { FedaPay?: unknown }).FedaPay === 'function') {
+    if (w.FedaPay && (typeof w.FedaPay === 'object' || typeof w.FedaPay === 'function')) {
       setReady(true);
+      return;
+    }
+    const existing = document.querySelector('script[src*="fedapay.com/checkout.js"]');
+    if (existing) {
+      existing.addEventListener('load', () => setReady(true));
       return;
     }
     const script = document.createElement('script');
@@ -39,14 +44,19 @@ export const useFedapay = () => {
   const openWidget = useCallback((opts: FedapayWidgetOptions) => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as Record<string, unknown>;
-    const FedaPay = (w as { FedaPay?: unknown }).FedaPay;
-    if (!FedaPay || typeof FedaPay !== 'function') {
+    const FedaPayObj = w.FedaPay as {
+      init?: (options: unknown) => { open: () => void };
+      CHECKOUT_COMPLETED?: unknown;
+      DIALOG_DISMISSED?: unknown;
+    } | ((options: unknown) => { open: () => void }) | undefined;
+
+    if (!FedaPayObj) {
       opts.onFailed?.(new Error('Module FedaPay non chargé'));
       return;
     }
 
     try {
-      const widget = (FedaPay as (opts: unknown) => { open: () => void; onComplete?: (handler: (res: unknown) => void) => void })({
+      const widgetConfig = {
         public_key: opts.publicKey,
         environment: opts.environment || 'sandbox',
         transaction: {
@@ -55,14 +65,41 @@ export const useFedapay = () => {
           custom_metadata: opts.description ? { partnerId: opts.description.split(':').pop() || '' } : {},
         },
         customer: opts.customer || {},
-        container: undefined,
-      });
+        onComplete: (res: { reason?: unknown; transaction?: Record<string, unknown> } | unknown) => {
+          const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
+          const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT_COMPLETED';
+          if (
+            r?.reason === CHECKOUT_COMPLETED ||
+            r?.reason === 'CHECKOUT_COMPLETED' ||
+            r?.reason === 1 ||
+            (r?.transaction && (r.transaction.status === 'approved' || r.transaction.status === 'success'))
+          ) {
+            opts.onSuccess?.(r?.transaction || {});
+          } else {
+            opts.onFailed?.(r);
+          }
+        },
+      };
+
+      let widget: { open: () => void; onComplete?: (handler: (res: unknown) => void) => void } | undefined;
+
+      if (typeof FedaPayObj === 'object' && typeof FedaPayObj.init === 'function') {
+        widget = FedaPayObj.init(widgetConfig) as { open: () => void };
+      } else if (typeof FedaPayObj === 'function') {
+        widget = FedaPayObj(widgetConfig);
+      }
 
       if (widget && typeof (widget as { onComplete?: unknown }).onComplete === 'function') {
         (widget as { onComplete: (handler: (res: unknown) => void) => void }).onComplete((res: unknown) => {
-          const r = res as { reason?: number; transaction?: Record<string, unknown> };
-          if (r.reason === 1 || (r.transaction && r.transaction.status === 'approved')) {
-            opts.onSuccess?.(r.transaction || {});
+          const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
+          const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT_COMPLETED';
+          if (
+            r?.reason === CHECKOUT_COMPLETED ||
+            r?.reason === 'CHECKOUT_COMPLETED' ||
+            r?.reason === 1 ||
+            (r?.transaction && (r.transaction.status === 'approved' || r.transaction.status === 'success'))
+          ) {
+            opts.onSuccess?.(r?.transaction || {});
           } else {
             opts.onFailed?.(r);
           }
@@ -71,6 +108,8 @@ export const useFedapay = () => {
 
       if (widget && typeof widget.open === 'function') {
         widget.open();
+      } else {
+        opts.onFailed?.(new Error('Impossible d\'ouvrir le widget FedaPay'));
       }
     } catch (e) {
       opts.onFailed?.(e);

@@ -415,6 +415,7 @@ export async function updateSystemSettings(settings: Partial<SystemSettingsData>
       }
     }
     revalidatePath('/pam/settings');
+    revalidatePath('/subscription');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
