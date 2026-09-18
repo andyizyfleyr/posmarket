@@ -5,6 +5,7 @@ import { SubscriptionView } from '@/views/SubscriptionView';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useKkiapay } from '@/hooks/useKkiapay';
+import { useFedapay } from '@/hooks/useFedapay';
 import {
   UserSubscription,
   SubscriptionDuration,
@@ -21,6 +22,9 @@ interface SubscriptionClientWrapperProps {
   onConfirmPayment?: (transactionId: string, kkiapayTransactionId: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   kkiapayPublicKey?: string;
   kkiapayEnv?: 'sandbox' | 'live';
+  fedapayPublicKey?: string;
+  fedapayEnv?: 'sandbox' | 'live';
+  paymentProvider?: 'kkiapay' | 'fedapay';
   userName?: string;
   userEmail?: string;
   userPhone?: string;
@@ -35,6 +39,9 @@ export default function SubscriptionClientWrapper({
   onConfirmPayment = confirmKkiapayPaymentAction,
   kkiapayPublicKey,
   kkiapayEnv = 'sandbox',
+  fedapayPublicKey,
+  fedapayEnv = 'sandbox',
+  paymentProvider = 'kkiapay',
   userName = '',
   userEmail = '',
   userPhone = '',
@@ -42,7 +49,8 @@ export default function SubscriptionClientWrapper({
   userRole,
 }: SubscriptionClientWrapperProps) {
   const router = useRouter();
-  const { ready: kkiapayReady, openWidget } = useKkiapay();
+  const { ready: kkiapayReady, openWidget: openKkiapay } = useKkiapay();
+  const { ready: fedapayReady, openWidget: openFedapay } = useFedapay();
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const notify = (message: string, type: NotificationType, _title?: string) => {
@@ -90,45 +98,85 @@ export default function SubscriptionClientWrapper({
       notify('Facture de paiement invalide.', 'error', 'Paiement');
       return { success: false };
     }
-    if (!kkiapayPublicKey) {
-      notify('Le paiement en ligne n\'est pas configuré.', 'error', 'Paiement');
-      return { success: false };
-    }
-    if (!kkiapayReady) {
-      notify('Module de paiement encore en chargement, réessayez.', 'error', 'Paiement');
-      return { success: false };
-    }
-
-    openWidget({
-      amount: res.amount,
-      key: kkiapayPublicKey,
-      sandbox: kkiapayEnv === 'sandbox',
-      partnerId: res.transactionId,
-      data: JSON.stringify({ tier, duration }),
-      name: userName,
-      email: userEmail,
-      phone: userPhone,
-      onSuccess: async (kTxId: string) => {
-        try {
-          const confirm = await onConfirmPayment(res.transactionId!, kTxId);
-          if (confirm.success) {
-            notify('Paiement confirmé. Abonnement activé.', 'success', 'Abonnement');
-            router.refresh();
-          } else {
-            notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
-            router.refresh();
+    if (paymentProvider === 'fedapay') {
+      if (!fedapayPublicKey) {
+        notify('Le paiement FedaPay n\'est pas configuré.', 'error', 'Paiement');
+        return { success: false };
+      }
+      if (!fedapayReady) {
+        notify('Module FedaPay encore en chargement, réessayez.', 'error', 'Paiement');
+        return { success: false };
+      }
+      openFedapay({
+        publicKey: fedapayPublicKey,
+        amount: res.amount,
+        description: `Abonnement ${tier} - ${duration} (ref: ${res.transactionId})`,
+        environment: fedapayEnv === 'live' ? 'live' : 'sandbox',
+        customer: {
+          email: userEmail,
+          firstname: userName ? userName.split(' ')[0] : '',
+          lastname: userName ? userName.split(' ').slice(1).join(' ') : '',
+        },
+        onSuccess: async (tx: unknown) => {
+          try {
+            const txObj = tx as { id?: number; reference?: string; status?: string };
+            const fTxId = txObj.id || txObj.reference || '';
+            const confirm = await onConfirmPayment(res.transactionId!, String(fTxId));
+            if (confirm.success) {
+              notify('Paiement FedaPay confirmé. Abonnement activé.', 'success', 'Abonnement');
+              router.refresh();
+            } else {
+              notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
+              router.refresh();
+            }
+          } catch {
+            notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
           }
-        } catch {
-          notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
-        }
-      },
-      onFailed: () => {
-        notify('Le paiement a été annulé ou a échoué.', 'error', 'Paiement');
-      },
-    });
+        },
+        onFailed: () => {
+          notify('Le paiement FedaPay a été annulé ou a échoué.', 'error', 'Paiement');
+        },
+      });
+    } else {
+      if (!kkiapayPublicKey) {
+        notify('Le paiement Kkiapay n\'est pas configuré.', 'error', 'Paiement');
+        return { success: false };
+      }
+      if (!kkiapayReady) {
+        notify('Module de paiement encore en chargement, réessayez.', 'error', 'Paiement');
+        return { success: false };
+      }
+      openKkiapay({
+        amount: res.amount,
+        key: kkiapayPublicKey,
+        sandbox: kkiapayEnv === 'sandbox',
+        partnerId: res.transactionId,
+        data: JSON.stringify({ tier, duration }),
+        name: userName,
+        email: userEmail,
+        phone: userPhone,
+        onSuccess: async (kTxId: string) => {
+          try {
+            const confirm = await onConfirmPayment(res.transactionId!, kTxId);
+            if (confirm.success) {
+              notify('Paiement confirmé. Abonnement activé.', 'success', 'Abonnement');
+              router.refresh();
+            } else {
+              notify(confirm.error || 'Le paiement n\'a pas été confirmé.', 'error', 'Paiement');
+              router.refresh();
+            }
+          } catch {
+            notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
+          }
+        },
+        onFailed: () => {
+          notify('Le paiement a été annulé ou a échoué.', 'error', 'Paiement');
+        },
+      });
+    }
 
     return { success: true };
-  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openWidget, userName, userEmail, userPhone, onConfirmPayment, router, notify]);
+  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router, notify]);
 
   return (
     <>

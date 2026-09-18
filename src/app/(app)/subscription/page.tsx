@@ -1,15 +1,17 @@
 import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
-import { updateSubscriptionAction, createSubscriptionPaymentAction, confirmKkiapayPaymentAction } from '@/app/actions/subscription';
+import { updateSubscriptionAction, createSubscriptionPaymentAction, confirmKkiapayPaymentAction, confirmFedapayPaymentAction } from '@/app/actions/subscription';
 import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
-import { KKIAPAY_ENV, KKIAPAY_PUBLIC_KEY } from '@/lib/kkiapay';
+import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
 type SubscriptionSearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function SubscriptionPage({ searchParams }: { searchParams: SubscriptionSearchParams }) {
   const sp = await searchParams;
-  const returnedFromPayment = sp.returned === '1' || sp.kkiapay === 'return';
+  const returnedFromPayment = sp.returned === '1' || sp.kkiapay === 'return' || sp.fedapay === 'return';
+
+  const config = await loadPaymentConfig();
 
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -40,9 +42,12 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       userRole={profile?.is_super_admin ? 'SUPER_ADMIN' : 'OWNER'}
       onUpdateSubscription={updateSubscriptionAction}
       onCreatePayment={createSubscriptionPaymentAction}
-      onConfirmPayment={confirmKkiapayPaymentAction}
-      kkiapayPublicKey={KKIAPAY_PUBLIC_KEY}
-      kkiapayEnv={KKIAPAY_ENV}
+      onConfirmPayment={config.provider === 'fedapay' ? confirmFedapayPaymentAction : confirmKkiapayPaymentAction}
+      kkiapayPublicKey={config.kkiapayPublicKey || ''}
+      kkiapayEnv={config.kkiapayEnv || 'sandbox'}
+      fedapayPublicKey={config.fedapayPublicKey || ''}
+      fedapayEnv={config.fedapayEnv || 'sandbox'}
+      paymentProvider={config.provider}
       userName={profile?.full_name ? String(profile.full_name) : ''}
       userEmail={String(profile?.email ?? session.user.email ?? '')}
       userPhone={profile?.phone ? String(profile.phone) : ''}

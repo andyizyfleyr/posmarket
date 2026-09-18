@@ -359,29 +359,60 @@ export interface SystemSettingsData {
   maintenance: boolean;
   auto_indexing: boolean;
   weekly_reports: boolean;
+  payment_provider?: 'kkiapay' | 'fedapay';
+  kkiapay_public_key?: string;
+  kkiapay_private_key?: string;
+  kkiapay_secret_key?: string;
+  kkiapay_env?: 'sandbox' | 'live';
+  fedapay_public_key?: string;
+  fedapay_secret_key?: string;
+  fedapay_env?: 'sandbox' | 'live';
 }
 
 export async function getSystemSettings(): Promise<{ success: boolean; error?: string; settings: SystemSettingsData }> {
   try {
     const rows = await db.select().from(systemSettings);
-    const settings: SystemSettingsData = { maintenance: false, auto_indexing: true, weekly_reports: true };
+    const settings: SystemSettingsData = { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay' };
     rows.forEach(r => {
       if (r.key === 'maintenance' || r.key === 'auto_indexing' || r.key === 'weekly_reports') {
         settings[r.key] = r.value === 'true';
+      } else if (r.key === 'payment_provider') {
+        settings.payment_provider = r.value === 'fedapay' ? 'fedapay' : 'kkiapay';
+      } else if (r.key === 'kkiapay_env') {
+        settings.kkiapay_env = r.value === 'live' ? 'live' : 'sandbox';
+      } else if (r.key === 'fedapay_env') {
+        settings.fedapay_env = r.value === 'live' ? 'live' : 'sandbox';
+      } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key') {
+        settings[r.key as keyof SystemSettingsData] = r.value;
       }
     });
     return { success: true, settings };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error), settings: { maintenance: false, auto_indexing: true, weekly_reports: true } };
+    return { success: false, error: errorMessage(error), settings: { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay' } };
   }
 }
 
-export async function updateSystemSettings(settings: { maintenance: boolean; auto_indexing: boolean; weekly_reports: boolean }) {
+export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
   try {
+    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key'];
+    const allowedEnvKeys = ['kkiapay_env', 'fedapay_env'];
+    const booleanKeys = ['maintenance', 'auto_indexing', 'weekly_reports'];
+
     for (const [key, value] of Object.entries(settings)) {
-      await db.insert(systemSettings)
-        .values({ key, value: String(value) })
-        .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value), updatedAt: new Date() } });
+      if (value === undefined || value === null) continue;
+      if (booleanKeys.includes(key)) {
+        await db.insert(systemSettings)
+          .values({ key, value: String(value) })
+          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value), updatedAt: new Date() } });
+      } else if (allowedStringKeys.includes(key)) {
+        await db.insert(systemSettings)
+          .values({ key, value: String(value || '') })
+          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value || ''), updatedAt: new Date() } });
+      } else if (allowedEnvKeys.includes(key)) {
+        await db.insert(systemSettings)
+          .values({ key, value: String(value || 'sandbox') })
+          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value || 'sandbox'), updatedAt: new Date() } });
+      }
     }
     revalidatePath('/pam/settings');
     return { success: true };

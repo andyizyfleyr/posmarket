@@ -1,25 +1,44 @@
 import crypto from 'node:crypto';
 
-export const KKIAPAY_ENV = process.env.KKIAPAY_ENV === 'live' ? 'live' : 'sandbox';
-export const KKIAPAY_API_BASE = KKIAPAY_ENV === 'live'
+export let KKIAPAY_ENV = process.env.KKIAPAY_ENV === 'live' ? 'live' : 'sandbox';
+export let KKIAPAY_API_BASE = KKIAPAY_ENV === 'live'
   ? 'https://api.kkiapay.me'
   : 'https://api-sandbox.kkiapay.me';
 
-export const KKIAPAY_PUBLIC_KEY = process.env.KKIAPAY_PUBLIC_KEY?.trim() || '';
-const KKIAPAY_PRIVATE_KEY = process.env.KKIAPAY_PRIVATE_KEY?.trim() || '';
-const KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY?.trim() || '';
-const KKIAPAY_WEBHOOK_SECRET = process.env.KKIAPAY_WEBHOOK_SECRET?.trim() || '';
+export let KKIAPAY_PUBLIC_KEY = process.env.KKIAPAY_PUBLIC_KEY?.trim() || '';
+export let KKIAPAY_PRIVATE_KEY = process.env.KKIAPAY_PRIVATE_KEY?.trim() || '';
+export let KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY?.trim() || '';
+export let KKIAPAY_WEBHOOK_SECRET = process.env.KKIAPAY_WEBHOOK_SECRET?.trim() || '';
+
+export function initKkiapayConfig(config: {
+  publicKey?: string;
+  privateKey?: string;
+  secretKey?: string;
+  webhookSecret?: string;
+  env?: 'sandbox' | 'live';
+}) {
+  KKIAPAY_PUBLIC_KEY = config.publicKey?.trim() || '';
+  KKIAPAY_PRIVATE_KEY = config.privateKey?.trim() || '';
+  KKIAPAY_SECRET_KEY = config.secretKey?.trim() || '';
+  KKIAPAY_WEBHOOK_SECRET = config.webhookSecret?.trim() || '';
+  KKIAPAY_ENV = config.env || 'sandbox';
+  KKIAPAY_API_BASE = KKIAPAY_ENV === 'live'
+    ? 'https://api.kkiapay.me'
+    : 'https://api-sandbox.kkiapay.me';
+}
 
 export function kkiapayConfigured(): boolean {
   return Boolean(KKIAPAY_PUBLIC_KEY && KKIAPAY_PRIVATE_KEY && KKIAPAY_SECRET_KEY);
 }
 
-const apiHeaders = {
-  'Content-Type': 'application/json',
-  'x-api-key': KKIAPAY_PUBLIC_KEY,
-  'x-secret-key': KKIAPAY_SECRET_KEY,
-  'x-private-key': KKIAPAY_PRIVATE_KEY,
-};
+function getApiHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'x-api-key': KKIAPAY_PUBLIC_KEY,
+    'x-secret-key': KKIAPAY_SECRET_KEY,
+    'x-private-key': KKIAPAY_PRIVATE_KEY,
+  };
+}
 
 export interface KkiapayTransactionStatus {
   transactionId: string;
@@ -47,7 +66,7 @@ export async function verifyKkiapayTransaction(transactionId: string): Promise<K
 
   const res = await fetch(`${KKIAPAY_API_BASE}/api/v1/transactions/status`, {
     method: 'POST',
-    headers: apiHeaders,
+    headers: getApiHeaders(),
     body: JSON.stringify({ transactionId: id }),
   });
 
