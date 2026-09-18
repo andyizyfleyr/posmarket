@@ -56,26 +56,29 @@ export const useFedapay = () => {
     }
 
     try {
+      const pubKey = (opts.publicKey || '').trim();
+      const detectedEnv = pubKey.startsWith('pk_live') ? 'live' : (opts.environment || 'sandbox');
+
       const widgetConfig = {
-        public_key: opts.publicKey,
-        environment: opts.environment || 'sandbox',
+        public_key: pubKey,
+        environment: detectedEnv,
         transaction: {
-          amount: opts.amount,
+          amount: Math.round(Number(opts.amount) || 0),
           description: opts.description || '',
-          custom_metadata: opts.description ? { partnerId: opts.description.split(':').pop() || '' } : {},
+          custom_metadata: opts.description ? { partnerId: opts.description.split(':').pop()?.replace(/[^a-f0-9-]/gi, '') || '' } : {},
         },
         currency: { iso: 'XOF' },
-        customer: opts.customer || {},
+        customer: {
+          email: opts.customer?.email?.trim() || 'client@posmarket.com',
+          firstname: opts.customer?.firstname?.trim() || 'Client',
+          lastname: opts.customer?.lastname?.trim() || 'PosMarket',
+        },
         onComplete: (res: { reason?: unknown; transaction?: Record<string, unknown> } | unknown) => {
           const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
-          const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT COMPLETE';
-          const DIALOG_DISMISSED = (FedaPayObj as { DIALOG_DISMISSED?: unknown })?.DIALOG_DISMISSED ?? 'DIALOG DISMISSED';
-
           const reasonStr = String(r?.reason || '').trim().toUpperCase();
           const txStatus = String(r?.transaction?.status || '').trim().toLowerCase();
 
           if (
-            r?.reason === CHECKOUT_COMPLETED ||
             reasonStr === 'CHECKOUT COMPLETE' ||
             reasonStr === 'CHECKOUT_COMPLETED' ||
             reasonStr === 'CHECKOUT_COMPLETE' ||
@@ -86,41 +89,23 @@ export const useFedapay = () => {
           ) {
             opts.onSuccess?.(r?.transaction || {});
           } else if (
-            r?.reason === DIALOG_DISMISSED ||
             reasonStr === 'DIALOG DISMISSED' ||
             reasonStr === 'DIALOG_DISMISSED' ||
             reasonStr === 'DISMISSED'
           ) {
             opts.onFailed?.({ reason: 'dismissed', message: 'Paiement annulé' });
           } else {
-            opts.onFailed?.(r);
+            opts.onFailed?.(r || { message: reasonStr || 'Paiement non abouti' });
           }
         },
       };
 
-      let widget: { open: () => void; onComplete?: (handler: (res: unknown) => void) => void } | undefined;
+      let widget: { open: () => void } | undefined;
 
       if (typeof FedaPayObj === 'object' && typeof FedaPayObj.init === 'function') {
         widget = FedaPayObj.init(widgetConfig) as { open: () => void };
       } else if (typeof FedaPayObj === 'function') {
         widget = FedaPayObj(widgetConfig);
-      }
-
-      if (widget && typeof (widget as { onComplete?: unknown }).onComplete === 'function') {
-        (widget as { onComplete: (handler: (res: unknown) => void) => void }).onComplete((res: unknown) => {
-          const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
-          const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT_COMPLETED';
-          if (
-            r?.reason === CHECKOUT_COMPLETED ||
-            r?.reason === 'CHECKOUT_COMPLETED' ||
-            r?.reason === 1 ||
-            (r?.transaction && (r.transaction.status === 'approved' || r.transaction.status === 'success'))
-          ) {
-            opts.onSuccess?.(r?.transaction || {});
-          } else {
-            opts.onFailed?.(r);
-          }
-        });
       }
 
       if (widget && typeof widget.open === 'function') {

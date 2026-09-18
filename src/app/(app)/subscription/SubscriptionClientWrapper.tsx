@@ -124,9 +124,12 @@ export default function SubscriptionClientWrapper({
           }
         },
         onFailed: (err?: unknown) => {
+          console.warn('[FedaPay] onFailed error:', err);
           const e = err as { reason?: string; message?: string } | undefined;
-          if (e?.reason === 'dismissed' || e?.message?.includes('annulé')) {
+          if (e?.reason === 'dismissed' || e?.message === 'Paiement annulé') {
             notify('Paiement FedaPay annulé.', 'error', 'Paiement');
+          } else if (e?.message && typeof e.message === 'string') {
+            notify(`FedaPay : ${e.message}`, 'error', 'Paiement');
           } else {
             notify('Le paiement FedaPay a été refusé ou a échoué.', 'error', 'Paiement');
           }
