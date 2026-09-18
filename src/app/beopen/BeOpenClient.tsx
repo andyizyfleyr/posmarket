@@ -42,6 +42,7 @@ import { formatCurrency } from '@/utils';
 export default function BeOpenClient() {
   const [duration, setDuration] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [timelineTab, setTimelineTab] = useState<'seller' | 'customer'>('seller');
 
   const toggleFaq = (idx: number) => {
     setOpenFaq(openFaq === idx ? null : idx);
@@ -512,120 +513,253 @@ export default function BeOpenClient() {
         </div>
       </section>
 
-      {/* 6. Section Timeline : Cas d'Étude en Conditions Réelles */}
+      {/* 6. Section Timeline : Cas d'Étude en Conditions Réelles avec 2 Tabs */}
       <section id="timeline" className="py-14 sm:py-20 bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="text-center max-w-2xl mx-auto mb-10">
             <span className="text-xs font-bold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
               Cas d&apos;étude en conditions réelles
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-4 mb-2">
-              Une journée type avec PosMarket
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 mt-4 mb-2">
+              Comment ça se passe concrètement ?
             </h2>
             <p className="text-slate-500 text-xs sm:text-sm font-normal">
-              Découvrez pas à pas comment se passe le quotidien d&apos;un commerce équipé, du matin au coucher.
+              Découvrez le déroulement d&apos;une journée, du point de vue du commerçant et du client.
             </p>
+
+            {/* 2 Tabs Toggle : Vendeur vs Client */}
+            <div className="mt-8 inline-flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200 gap-1">
+              <button
+                type="button"
+                onClick={() => setTimelineTab('seller')}
+                className={`px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                  timelineTab === 'seller'
+                    ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-500/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <Store size={16} />
+                <span>En tant que vendeur</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimelineTab('customer')}
+                className={`px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                  timelineTab === 'customer'
+                    ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-500/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <ShoppingBag size={16} />
+                <span>En tant que client</span>
+              </button>
+            </div>
           </div>
 
-          <div className="relative border-l-2 border-orange-200 pl-6 sm:pl-8 ml-4 sm:ml-6 space-y-10">
-            
-            {/* Étape 1 : 07h30 */}
-            <div className="relative">
-              <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-[#f56b2a] text-white flex items-center justify-center font-bold text-xs shadow-md">
-                <Sun size={15} />
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-[#f56b2a]">07h30 • Ouverture de la boutique</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Matin</span>
+          {/* Tab 1 : En tant que Vendeur */}
+          {timelineTab === 'seller' && (
+            <div className="relative border-l-2 border-orange-200 pl-6 sm:pl-8 ml-4 sm:ml-6 space-y-8 animate-fadeIn">
+              
+              {/* Étape 1 : 07h30 */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-[#f56b2a] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <Sun size={15} />
                 </div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Ouverture de l&apos;application et vérification du stock
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Le commerçant ouvre PosMarket sur son téléphone ou sa tablette. Il vérifie en un coup d&apos;œil les articles en stock et commence la journée sans aucun papier.
-                </p>
-              </div>
-            </div>
-
-            {/* Étape 2 : 11h15 */}
-            <div className="relative">
-              <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                <Zap size={15} />
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-emerald-600">11h15 • Pic d&apos;affluence en magasin</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Encaissement</span>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-[#f56b2a]">07h30 • Ouverture de la boutique</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Magasin</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Ouverture de l&apos;application et vérification du stock
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Le commerçant ouvre PosMarket sur son téléphone ou sa tablette. D&apos;un seul coup d&apos;œil, il consulte les commandes reçues pendant la nuit et l&apos;état de ses stocks sans aucun papier à préparer.
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  12 clients servis rapidement
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Les clients se présentent au comptoir. Chaque vente est enregistrée en 3 clics avec encaissement en espèces ou Mobile Money. Le reçu est partagé directement sur le WhatsApp du client.
-                </p>
               </div>
-            </div>
 
-            {/* Étape 3 : 14h40 */}
-            <div className="relative">
-              <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                <Truck size={15} />
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-blue-600">14h40 • Commande en ligne</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Livraison</span>
+              {/* Étape 2 : 11h15 */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <Zap size={15} />
                 </div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Commande web reçue avec adresse de livraison
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Une commande passée sur la vitrine en ligne est préparée. Le client a choisi le paiement à la livraison. Le stock en magasin s&apos;est mis à jour automatiquement.
-                </p>
-              </div>
-            </div>
-
-            {/* Étape 4 : 19h00 */}
-            <div className="relative">
-              <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                <CheckCircle2 size={15} />
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-purple-600">19h00 • Bilan de fin de journée</span>
-                  <span className="text-[10px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Statistiques</span>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-emerald-600">11h15 • Pic d&apos;affluence au comptoir</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Caisse tactile</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    12 clients servis rapidement en 3 clics
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Les clients s&apos;enchaînent. Le vendeur sélectionne les articles en un toucher, l&apos;application calcule immédiatement la monnaie exacte à rendre. Il encaisse en espèces ou Mobile Money et envoie le reçu directement sur le WhatsApp du client.
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Chiffre d&apos;affaires et commandes visibles en 1 clic
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  À la fermeture, le commerçant ouvre son tableau de bord. Il voit immédiatement le chiffre d&apos;affaires total de la journée et les produits les plus vendus.
-                </p>
               </div>
-            </div>
 
-            {/* Étape 5 : 23h30 */}
-            <div className="relative">
-              <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                <Moon size={15} />
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-slate-700">23h30 • Ventes pendant la nuit</span>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">En ligne</span>
+              {/* Étape 3 : 14h40 */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <Truck size={15} />
                 </div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
-                  Commandes enregistrées sur la vitrine web
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-                  Pendant que le magasin est fermé, des clients commandent sur la boutique en ligne. Au réveil, les commandes sont prêtes à être traitées.
-                </p>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-blue-600">14h40 • Préparation d&apos;une commande web</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">En ligne</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Commande en ligne reçue avec adresse de livraison
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Une commande passée sur la vitrine web est préparée pour l&apos;expédition. Le stock du magasin s&apos;est mis à jour tout seul pour éviter de vendre le même article deux fois.
+                  </p>
+                </div>
               </div>
-            </div>
 
-          </div>
+              {/* Étape 4 : 19h00 */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <BarChart3 size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-purple-600">19h00 • Bilan de fin de journée</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Statistiques</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Chiffre d&apos;affaires et commandes visibles en 1 clic
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    À la fermeture, le commerçant ouvre son tableau de bord : total encaissé de la journée, nombre de commandes et articles les plus vendus. Aucun calcul au stylo nécessaire.
+                  </p>
+                </div>
+              </div>
+
+              {/* Étape 5 : 23h30 */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <Moon size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-700">23h30 • Ventes automatiques la nuit</span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">24h/24</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    La boutique vend pendant votre sommeil
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Pendant que le magasin est fermé, des clients continuent de commander et payer sur la boutique en ligne. Au réveil, les commandes sont prêtes pour la journée.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* Tab 2 : En tant que Client */}
+          {timelineTab === 'customer' && (
+            <div className="relative border-l-2 border-emerald-200 pl-6 sm:pl-8 ml-4 sm:ml-6 space-y-8 animate-fadeIn">
+              
+              {/* Étape 1 : Découverte */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <Smartphone size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-emerald-600">Étape 1 • Découverte de la boutique</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Accès direct</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Le client clique sur votre lien dans votre statut ou réseaux
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    En voyant votre lien sur WhatsApp, Facebook ou TikTok, le client l&apos;ouvre directement sur son téléphone. Il accède à votre catalogue complet avec photos nettes, prix clairs et descriptions.
+                  </p>
+                </div>
+              </div>
+
+              {/* Étape 2 : Sélection */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-[#f56b2a] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <ShoppingBag size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-[#f56b2a]">Étape 2 • Choix des articles et remises</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Panier</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Sélection des variantes et réduction par quantité
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Le client choisit ses tailles ou modèles préférés. S&apos;il prend plusieurs articles, la remise de gros s&apos;applique automatiquement sur son panier sans qu&apos;il ait besoin de négocier.
+                  </p>
+                </div>
+              </div>
+
+              {/* Étape 3 : Commande */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <MessageCircle size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-blue-600">Étape 3 • Validation de commande</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Facile</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Paiement en ligne ou bouton direct WhatsApp
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Le client peut payer directement par Mobile Money ou choisir le paiement à la livraison. S&apos;il préfère finaliser par message, il clique sur « Commander sur WhatsApp » pour vous envoyer son panier pré-rempli.
+                  </p>
+                </div>
+              </div>
+
+              {/* Étape 4 : Reçu */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <Receipt size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-purple-600">Étape 4 • Preuve d&apos;achat instantanée</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Reçu</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Reçu reçu directement sur WhatsApp
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Que l&apos;achat ait eu lieu en boutique physique ou sur la vitrine en ligne, le client reçoit immédiatement son reçu propre avec la liste de ses achats et le montant réglé.
+                  </p>
+                </div>
+              </div>
+
+              {/* Étape 5 : Réception */}
+              <div className="relative">
+                <div className="absolute -left-[35px] sm:-left-[43px] top-0 w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  <CheckCircle2 size={15} />
+                </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-teal-600">Étape 5 • Réception et suivi de commande</span>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Livraison</span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">
+                    Livraison à domicile et historique dans son compte
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                    Le colis est livré à son adresse. Le client peut à tout moment se reconnecter à son espace pour revoir ses commandes passées et recommander ses produits préférés en un clic.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          )}
 
         </div>
       </section>
