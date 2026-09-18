@@ -123,8 +123,13 @@ export default function SubscriptionClientWrapper({
             notify('Erreur lors de la confirmation du paiement.', 'error', 'Paiement');
           }
         },
-        onFailed: () => {
-          notify('Le paiement FedaPay a été annulé ou a échoué.', 'error', 'Paiement');
+        onFailed: (err?: unknown) => {
+          const e = err as { reason?: string; message?: string } | undefined;
+          if (e?.reason === 'dismissed' || e?.message?.includes('annulé')) {
+            notify('Paiement FedaPay annulé.', 'error', 'Paiement');
+          } else {
+            notify('Le paiement FedaPay a été refusé ou a échoué.', 'error', 'Paiement');
+          }
         },
       });
     } else {

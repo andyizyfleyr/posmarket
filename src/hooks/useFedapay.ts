@@ -64,10 +64,13 @@ export const useFedapay = () => {
           description: opts.description || '',
           custom_metadata: opts.description ? { partnerId: opts.description.split(':').pop() || '' } : {},
         },
+        currency: { iso: 'XOF' },
         customer: opts.customer || {},
         onComplete: (res: { reason?: unknown; transaction?: Record<string, unknown> } | unknown) => {
           const r = res as { reason?: unknown; transaction?: Record<string, unknown> };
           const CHECKOUT_COMPLETED = (FedaPayObj as { CHECKOUT_COMPLETED?: unknown })?.CHECKOUT_COMPLETED ?? 'CHECKOUT_COMPLETED';
+          const DIALOG_DISMISSED = (FedaPayObj as { DIALOG_DISMISSED?: unknown })?.DIALOG_DISMISSED ?? 'DIALOG_DISMISSED';
+
           if (
             r?.reason === CHECKOUT_COMPLETED ||
             r?.reason === 'CHECKOUT_COMPLETED' ||
@@ -75,6 +78,8 @@ export const useFedapay = () => {
             (r?.transaction && (r.transaction.status === 'approved' || r.transaction.status === 'success'))
           ) {
             opts.onSuccess?.(r?.transaction || {});
+          } else if (r?.reason === DIALOG_DISMISSED || r?.reason === 'DIALOG_DISMISSED') {
+            opts.onFailed?.({ reason: 'dismissed', message: 'Paiement annulé' });
           } else {
             opts.onFailed?.(r);
           }
