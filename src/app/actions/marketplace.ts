@@ -6,6 +6,7 @@ import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
+import { incrementProductSales } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
@@ -54,7 +55,7 @@ type ReviewPayload = {
 
 async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
   try {
-    const [storesData, productsData, productStatsData] = await Promise.all([
+    const [storesData, productsData, productStatsData, salesCountsData] = await Promise.all([
       db
         .select({
           id: stores.id,
@@ -102,7 +103,16 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
         })
         .from(products)
         .where(eq(products.isOnline, true)),
-      db.select().from(productStats).catch(() => [])
+      db.select().from(productStats).catch(() => []),
+      db
+        .select({
+          productId: orderItems.productId,
+          totalSales: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
+        })
+        .from(orderItems)
+        .where(sql`${orderItems.productId} IS NOT NULL`)
+        .groupBy(orderItems.productId)
+        .catch(() => []),
     ]);
 
     const toImageRef = (
@@ -113,6 +123,11 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
       uri || (hasImage ? `/api/image/${apiId}` : '');
 
     const productStatsMap = Object.fromEntries((productStatsData || []).map((s) => [s.productId, s]));
+    const orderSalesMap = Object.fromEntries(
+      (salesCountsData || [])
+        .filter((s) => s.productId)
+        .map((s) => [s.productId!, Number(s.totalSales) || 0])
+    );
 
     const productsByStoreMap: Record<string, Array<(typeof productsData)[number]>> = {};
     (productsData || []).forEach((p) => {
@@ -147,6 +162,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
         products: (productsByStoreMap[s.id] || [])
           .map((p) => {
             const stats = productStatsMap[p.id];
+            const realSales = Math.max(Number(orderSalesMap[p.id] || 0), Number(stats?.totalSales || 0));
             return {
               id: p.id,
               name: p.name,
@@ -167,7 +183,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               views: p.views || 0,
               rating: stats?.averageRating ? parseFloat(stats.averageRating) : 0,
               reviewCount: stats?.reviewCount ? Number(stats.reviewCount) : 0,
-              salesCount: stats?.totalSales ? Number(stats.totalSales) : 0,
+              salesCount: realSales,
               wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
               wholesaleMinQty: p.wholesaleMinQty ?? undefined,
               wholesaleTiers: Array.isArray(p.wholesaleTiers) ? (p.wholesaleTiers as Array<{ minQty: number; price: number }>) : [],
@@ -272,6 +288,14 @@ export async function submitCheckoutAction(
           total: String(
             Number(item.price ?? item.product?.price ?? 0) * Number(item.quantity || 1)
           ),
+        }))
+      );
+
+      await incrementProductSales(
+        storeId,
+        items.map((item) => ({
+          productId: item.product?.id || null,
+          quantity: Number(item.quantity || 1),
         }))
       );
 

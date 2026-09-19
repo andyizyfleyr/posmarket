@@ -1,6 +1,6 @@
 import { db } from './index';
 import { products, customers, orders, orderItems, stores, profiles, productStats, invoices } from './schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, desc, inArray, sql } from 'drizzle-orm';
 import { Product, Customer } from '@/types';
 
 type StoreRow = typeof stores.$inferSelect;
@@ -94,6 +94,29 @@ export function invalidateOrdersCache(storeId: string | null) {
 export async function getStoreIdForOrder(orderId: string): Promise<string | null> {
   const [row] = await db.select({ storeId: orders.storeId }).from(orders).where(eq(orders.id, orderId)).limit(1);
   return row?.storeId || null;
+}
+
+export async function incrementProductSales(
+  storeId: string,
+  items: Array<{ productId?: string | null; quantity?: number | null }>
+) {
+  const totals = new Map<string, number>();
+  for (const item of items || []) {
+    const pid = item?.productId;
+    if (!pid) continue;
+    const qty = Math.floor(Number(item.quantity) || 0);
+    if (qty <= 0) continue;
+    totals.set(pid, (totals.get(pid) || 0) + qty);
+  }
+  for (const [productId, qty] of totals) {
+    await db
+      .insert(productStats)
+      .values({ storeId, productId, totalSales: qty })
+      .onConflictDoUpdate({
+        target: productStats.productId,
+        set: { totalSales: sql`${productStats.totalSales} + ${qty}` },
+      });
+  }
 }
 
 async function getOrdersForStore(storeId: string) {
@@ -237,6 +260,18 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     needs.customers ? db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100) : Promise.resolve([]),
     needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
     needs.products ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => []) : Promise.resolve([]),
+    needs.products
+      ? db
+          .select({
+            productId: orderItems.productId,
+            qty: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
+          })
+          .from(orderItems)
+          .innerJoin(products, eq(orderItems.productId, products.id))
+          .where(eq(products.storeId, storeId))
+          .groupBy(orderItems.productId)
+          .catch(() => [])
+      : Promise.resolve([]),
     ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
   ];
 
@@ -247,6 +282,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     customersRes,
     invoicesRes,
     statsRes,
+    orderSalesRes,
     profileRes
   ] = (await Promise.all(tasks)) as [
     StoreRow[],
@@ -255,6 +291,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     CustomerRow[],
     InvoiceRow[],
     ProductStatsRow[],
+    Array<{ productId: string | null; qty: number | string }>,
     ProfileRow[]
   ];
 
@@ -268,6 +305,11 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
   }
 
   const statsMap = Object.fromEntries((statsRes || []).map((s) => [s.productId, s]));
+  const orderSalesMap = Object.fromEntries(
+    (orderSalesRes || [])
+      .filter((s) => s.productId)
+      .map((s) => [s.productId as string, Number(s.qty) || 0])
+  );
 
   const formattedProducts = (productsRes || []).map((p) => {
     const stats: ProductStatsRow | null | undefined = statsMap[p.id] || null;
@@ -276,7 +318,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
       price: parseFloat(p.price ?? '') || 0,
       originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
       isOnline: p.isOnline !== false,
-      salesCount: Number(stats?.totalSales) || 0,
+      salesCount: Math.max(Number(stats?.totalSales) || 0, Number(orderSalesMap[p.id]) || 0),
       reviewCount: Number(stats?.reviewCount) || 0,
       rating: Number(stats?.averageRating) || 0,
       views: Number(p.views) || 0,

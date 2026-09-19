@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { db } from '@/db'
 import { orders, orderItems, customers, products } from '@/db/schema'
-import { invalidateOrdersCache, getStoreIdForOrder } from '@/db/api'
+import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone } from '@/lib/notifications'
 import { isWhatsAppConfigured } from '@/lib/whatsapp'
@@ -120,6 +120,13 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
             }));
             
             await db.insert(orderItems).values(itemsToInsert);
+            await incrementProductSales(
+              storeId,
+              order.items.map((item) => ({
+                productId: item.product?.id ?? null,
+                quantity: item.quantity ?? 1,
+              }))
+            );
         }
 
         if (order.customer?.id) {

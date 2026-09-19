@@ -191,6 +191,24 @@ async function runRpc(name: string, argsRaw: unknown): Promise<QueryResult> {
             total: String((Number(item.price) || 0) * (Number(item.quantity) || 0)),
           })) as never
         );
+
+        const salesTotals = new Map<string, number>();
+        for (const item of items) {
+          const pid = item.product_id ? String(item.product_id) : null;
+          if (!pid) continue;
+          const qty = Math.floor(Number(item.quantity) || 0);
+          if (qty <= 0) continue;
+          salesTotals.set(pid, (salesTotals.get(pid) || 0) + qty);
+        }
+        for (const [productId, qty] of salesTotals) {
+          await db
+            .insert(schema.productStats)
+            .values({ storeId: String(orderData.store_id || ''), productId, totalSales: qty })
+            .onConflictDoUpdate({
+              target: schema.productStats.productId,
+              set: { totalSales: sql`${schema.productStats.totalSales} + ${qty}` },
+            });
+        }
       }
       return { data: newOrder.id, error: null };
     }
