@@ -202,14 +202,14 @@ export const OnboardingTour: React.FC = () => {
             <div className="p-1.5 bg-orange-50 rounded-lg text-[#f56b2a]">
               <Sparkles size={16} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#f56b2a]">{currentStepIndex + 1} / {steps.length}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#f56b2a]">{currentStepIndex + 1} / {steps.length}</span>
           </div>
           <button onClick={stopTour} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
             <X size={18} />
           </button>
         </div>
 
-        <h3 className="text-lg font-black text-gray-900 mb-2">{currentStep.title}</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">{currentStep.title}</h3>
         <p className="text-gray-500 text-sm leading-relaxed mb-6">
           {currentStep.content}
         </p>
@@ -218,7 +218,7 @@ export const OnboardingTour: React.FC = () => {
           <button 
             onClick={handlePrev}
             disabled={currentStepIndex === 0}
-            className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-700 disabled:opacity-0 transition-all"
+            className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-700 disabled:opacity-0 transition-all"
           >
             <ChevronLeft size={16} /> <span className="hidden sm:inline">Retour</span>
           </button>
@@ -231,7 +231,7 @@ export const OnboardingTour: React.FC = () => {
 
           <button 
             onClick={handleNext}
-            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-[#f56b2a] text-white rounded-xl text-xs font-black hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100"
+            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-[#f56b2a] text-white rounded-xl text-xs font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100"
           >
             {currentStepIndex === steps.length - 1 ? 'Terminer' : 'Suivant'} <ChevronRight size={16} />
           </button>

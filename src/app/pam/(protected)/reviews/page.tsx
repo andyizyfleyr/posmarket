@@ -93,8 +93,8 @@ export default function AdminReviewsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Modération des Avis</h1>
-        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Contrôle qualité du contenu client ({filtered.length})</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">Modération des Avis</h1>
+        <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">Contrôle qualité du contenu client ({filtered.length})</p>
       </div>
 
       <div className="relative">
@@ -104,13 +104,13 @@ export default function AdminReviewsPage() {
           placeholder="Chercher par auteur, commentaire, boutique, produit..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full md:w-[480px] pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
+          className="w-full md:w-[480px] pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
         />
       </div>
 
       <div className="space-y-4">
         {filtered.length === 0 && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-bold">Aucun avis trouvé</div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-semibold">Aucun avis trouvé</div>
         )}
         {paginated.map((r) => {
           const store = r.store_id ? storeMap.get(r.store_id) : undefined;
@@ -120,21 +120,21 @@ export default function AdminReviewsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 font-black">
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 font-bold">
                       {r.author_name?.[0]?.toUpperCase() || 'A'}
                     </div>
                     <div>
-                      <p className="text-xs font-black text-gray-900">{r.author_name || 'Anonyme'}</p>
+                      <p className="text-xs font-bold text-gray-900">{r.author_name || 'Anonyme'}</p>
                       <div className="flex items-center gap-2">
                         {renderStars(r.rating)}
-                        <span className="text-[10px] font-bold text-gray-400">{r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : ''}</span>
+                        <span className="text-[10px] font-semibold text-gray-400">{r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : ''}</span>
                       </div>
                     </div>
                   </div>
                   {r.comment && (
-                    <p className="text-sm text-gray-600 font-medium leading-relaxed bg-gray-50/50 rounded-2xl border border-gray-100 p-4">{r.comment}</p>
+                    <p className="text-sm text-gray-600 font-normal leading-relaxed bg-gray-50/50 rounded-2xl border border-gray-100 p-4">{r.comment}</p>
                   )}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-[10px] font-bold text-gray-400">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-[10px] font-semibold text-gray-400">
                     {product && (
                       <span className="flex items-center gap-1"><Package size={11} className="text-[#f56b2a]" /> {product.name}</span>
                     )}
@@ -167,20 +167,20 @@ export default function AdminReviewsPage() {
             <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
               <Trash2 size={24} />
             </div>
-            <h3 className="text-lg font-black text-gray-900 text-center mb-2">Supprimer cet avis ?</h3>
-            <p className="text-sm text-gray-500 font-medium text-center mb-6">
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Supprimer cet avis ?</h3>
+            <p className="text-sm text-gray-500 font-normal text-center mb-6">
               L&apos;avis de « {confirm.author_name || 'Anonyme'} » sera définitivement supprimé.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirm(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 Annuler
               </button>
               <button
                 onClick={() => handleDelete(confirm)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-white bg-red-500 hover:bg-red-600 transition-all"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-all"
               >
                 Supprimer
               </button>

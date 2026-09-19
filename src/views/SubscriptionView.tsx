@@ -120,8 +120,8 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                 {!hasActivePlan ? <Info size={20} /> : isExpired ? <XIcon size={20} /> : <Shield size={20} />}
                             </div>
                             <div>
-                                <p className="text-xs md:text-sm font-bold text-slate-500">Abonnement actuel</p>
-                                <p className={`text-sm md:text-lg font-black ${
+                                <p className="text-xs md:text-sm font-semibold text-slate-500">Abonnement actuel</p>
+                                <p className={`text-sm md:text-lg font-bold ${
                                     isExpired ? 'text-red-600' : 'text-slate-900'
                                 }`}>
                                     {currentTierPlan?.name || 'Aucun'}
@@ -131,8 +131,8 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                         </div>
                         {hasActivePlan ? (
                             <div className="text-right">
-                                <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase">Expire dans</p>
-                                <p className={`text-lg md:text-2xl font-black ${
+                                <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase">Expire dans</p>
+                                <p className={`text-lg md:text-2xl font-bold ${
                                     daysLeft <= 7 ? 'text-amber-600' : 'text-slate-900'
                                 }`}>
                                     {daysLeft}j
@@ -140,7 +140,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                             </div>
                         ) : (
                             !isExpired && (
-                                <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 rounded-lg px-3 py-1.5">
+                                <span className="text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-100 rounded-lg px-3 py-1.5">
                                     Aucun abonnement actif
                                 </span>
                             )
@@ -151,7 +151,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
             {/* Header */}
             <div className="text-center max-w-2xl mb-6 md:mb-10">
-                <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-2 md:mb-3">
+                <h1 className="text-2xl md:text-4xl font-bold text-slate-900 mb-2 md:mb-3">
                     Choisissez votre formule
                 </h1>
                 <p className="text-slate-500 text-sm md:text-base">
@@ -179,7 +179,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                         <button
                             key={d.value}
                             onClick={() => setDuration(d.value)}
-                            className={`px-3 py-1.5 md:px-5 md:py-2 rounded-lg font-bold text-[11px] md:text-sm transition-all whitespace-nowrap relative ${
+                            className={`px-3 py-1.5 md:px-5 md:py-2 rounded-lg font-semibold text-[11px] md:text-sm transition-all whitespace-nowrap relative ${
                                 duration === d.value
                                     ? 'bg-[#f56b2a] text-white shadow-md'
                                     : 'text-slate-500 hover:bg-slate-50'
@@ -187,7 +187,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                         >
                             {d.label}
                             {d.value === 'annual' && duration !== 'annual' && savings.PRO && (
-                                <span className="absolute -top-2.5 -right-2 bg-red-500 text-white text-[7px] md:text-[9px] px-1.5 py-0.5 rounded-full font-black">
+                                <span className="absolute -top-2.5 -right-2 bg-red-500 text-white text-[7px] md:text-[9px] px-1.5 py-0.5 rounded-full font-bold">
                                     -{savings.PRO.annualPct}%
                                 </span>
                             )}
@@ -218,12 +218,12 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                         >
                             {/* Badges */}
                             {isCurrent && !isExpired && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#f56b2a] text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black tracking-widest uppercase whitespace-nowrap">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#f56b2a] text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
                                     Actuel
                                 </div>
                             )}
                             {isBestValue && !isCurrent && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black tracking-widest uppercase whitespace-nowrap">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
                                     Populaire
                                 </div>
                             )}
@@ -234,7 +234,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                     <div className={`p-2 rounded-lg ${iconData.bgClass}`}>
                                         <iconData.Icon size={18} className={iconData.colorClass} />
                                     </div>
-                                    <h3 className="text-base md:text-lg font-black text-slate-900">{plan.name}</h3>
+                                    <h3 className="text-base md:text-lg font-bold text-slate-900">{plan.name}</h3>
                                 </div>
                                 <p className="text-slate-400 text-xs md:text-sm">{plan.description}</p>
                             </div>
@@ -242,15 +242,15 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                             {/* Price */}
                             <div className="mb-4 md:mb-5">
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl md:text-3xl font-extrabold text-slate-900">{displayPrice}</span>
+                                    <span className="text-2xl md:text-3xl font-bold text-slate-900">{displayPrice}</span>
                                     {price > 0 && (
-                                        <span className="text-slate-400 text-xs md:text-sm font-medium">
+                                        <span className="text-slate-400 text-xs md:text-sm font-normal">
                                             /{duration === 'monthly' ? 'mois' : duration === 'quarterly' ? '3 mois' : 'an'}
                                         </span>
                                     )}
                                 </div>
                                 {duration !== 'monthly' && price > 0 && planSaving && (
-                                    <p className="text-[10px] md:text-xs text-green-600 font-bold mt-1">
+                                    <p className="text-[10px] md:text-xs text-green-600 font-semibold mt-1">
                                         Vous économisez {formatCurrency(duration === 'quarterly' ? planSaving.quarterly : planSaving.annual)} vs mensuel
                                     </p>
                                 )}
@@ -261,13 +261,13 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                 <div className="flex items-center gap-2">
                                     <Check size={14} className="text-green-500 shrink-0" />
                                     <span className="text-xs md:text-sm text-slate-600">
-                                        <span className="font-bold text-slate-900">{plan.features.maxStores === 999 ? 'Illimité' : plan.features.maxStores}</span> boutique{plan.features.maxStores > 1 ? 's' : ''}
+                                        <span className="font-semibold text-slate-900">{plan.features.maxStores === 999 ? 'Illimité' : plan.features.maxStores}</span> boutique{plan.features.maxStores > 1 ? 's' : ''}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Check size={14} className="text-green-500 shrink-0" />
                                     <span className="text-xs md:text-sm text-slate-600">
-                                        <span className="font-bold text-slate-900">{plan.features.maxProducts === 999999 ? 'Illimité' : plan.features.maxProducts}</span> produit{plan.features.maxProducts > 1 ? 's' : ''}
+                                        <span className="font-semibold text-slate-900">{plan.features.maxProducts === 999999 ? 'Illimité' : plan.features.maxProducts}</span> produit{plan.features.maxProducts > 1 ? 's' : ''}
                                     </span>
                                 </div>
                             </div>
@@ -287,7 +287,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                         ) : (
                                             <XIcon size={12} className="text-slate-300 shrink-0" />
                                         )}
-                                        <span className={`text-[11px] md:text-xs ${feature.included ? 'text-slate-600 font-medium' : 'text-slate-300'}`}>
+                                        <span className={`text-[11px] md:text-xs ${feature.included ? 'text-slate-600 font-normal' : 'text-slate-300'}`}>
                                             {feature.label}
                                         </span>
                                     </div>
@@ -298,7 +298,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                             <button
                                 onClick={() => handleSubscribe(plan)}
                                 disabled={(isCurrent && !isExpired) || loading !== null || isSeller}
-                                className={`w-full py-3 rounded-xl font-black text-xs md:text-sm transition-all ${
+                                className={`w-full py-3 rounded-xl font-bold text-xs md:text-sm transition-all ${
                                     isCurrent && !isExpired
                                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                         : isSeller

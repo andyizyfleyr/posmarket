@@ -56,7 +56,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, trendVal
         {React.cloneElement(icon, { className: compact ? "w-3.5 h-3.5 md:w-6 md:h-6" : "w-4 h-4 md:w-6 md:h-6" })}
       </div>
       {trend && (
-        <div className={`flex items-center gap-0.5 md:gap-1 font-black px-1.5 md:px-2 py-0.5 md:py-1 rounded-full 
+        <div className={`flex items-center gap-0.5 md:gap-1 font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full 
           ${compact ? 'text-[8px] md:text-[10px]' : 'text-[9px] md:text-[10px]'}
           ${trend === 'up' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
           {(!compact || (typeof window !== 'undefined' && window.innerWidth > 768)) && (trend === 'up' ? <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5" /> : <ArrowDownRight size={10} className="md:w-3.5 md:h-3.5" />)}
@@ -65,11 +65,11 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, trendVal
       )}
     </div>
     <div className="flex flex-col min-w-0">
-      <span className={`text-gray-400 font-black uppercase tracking-widest truncate 
+      <span className={`text-gray-400 font-bold uppercase tracking-widest truncate 
         ${compact ? 'text-[9px] md:text-[11px] mb-0.5' : 'text-[10px] md:text-[11px] mb-1'}`}>
         {title}
       </span>
-      <span className={`font-black text-gray-900 tracking-tight truncate 
+      <span className={`font-bold text-gray-900 tracking-tight truncate 
         ${compact ? 'text-sm md:text-2xl' : 'text-lg md:text-2xl'}`}>
         {value}
       </span>
@@ -338,11 +338,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-base md:text-3xl font-black text-gray-900 tracking-tight leading-none truncate">
+              <h1 className="text-base md:text-3xl font-bold text-gray-900 tracking-tight leading-none truncate">
                 Salut, {userName || 'Utilisateur'} <Hand size={20} className="inline -mt-1" />
               </h1>
               {store?.business_type && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-orange-100 text-orange-700">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-orange-100 text-orange-700">
                   {store.business_type === 'food' ? 'Resto' : 'Shop'}
                 </span>
               )}
@@ -358,7 +358,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                            <button
                                key={v.id}
                                onClick={() => setSelectedVertical(v.id as 'all' | 'shopping' | 'food')}
-                              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? v.activeClass : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] md:text-xs font-bold transition-all border-2 whitespace-nowrap ${selectedVertical === v.id ? v.activeClass : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                           >
                               <v.icon size={14} /> {v.label}
                           </button>
@@ -371,14 +371,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
         <div className="md:flex items-center gap-3">
           <div className="hidden md:flex flex-grow md:flex-none items-center justify-between md:justify-start gap-4 bg-white p-1.5 pl-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex flex-col">
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">État système</span>
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">État système</span>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[11px] font-black text-gray-700 uppercase">Opérationnel</span>
+                <span className="text-[11px] font-bold text-gray-700 uppercase">Opérationnel</span>
               </div>
             </div>
             <div className="w-px h-8 bg-gray-100 hidden md:block" />
-            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl text-[#f56b2a] font-black text-xs">
+            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl text-[#f56b2a] font-bold text-xs">
               <Clock size={14} />
               {mounted ? new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
             </div>
@@ -435,8 +435,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                   <BarChart2 size={18} className="md:w-6 md:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight whitespace-nowrap">Comparaison des Performances</h3>
-                  <p className="text-[10px] md:text-xs font-bold text-gray-400 mt-0.5 whitespace-nowrap">Analyse des revenus par période</p>
+                  <h3 className="text-sm md:text-lg font-bold text-gray-900 tracking-tight whitespace-nowrap">Comparaison des Performances</h3>
+                  <p className="text-[10px] md:text-xs font-semibold text-gray-400 mt-0.5 whitespace-nowrap">Analyse des revenus par période</p>
                 </div>
               </div>
  
@@ -451,8 +451,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       <Calendar size={14} className="group-hover:rotate-3 transition-transform" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Période d&apos;analyse</span>
-                      <span className="text-[10px] md:text-xs font-black text-gray-700 whitespace-nowrap">
+                      <span className="text-[8px] font-bold uppercase tracking-widest text-gray-400 leading-none mb-1">Période d&apos;analyse</span>
+                      <span className="text-[10px] md:text-xs font-bold text-gray-700 whitespace-nowrap">
                         {mounted ? `${new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Chargement...'}
                       </span>
                     </div>
@@ -489,7 +489,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                                 setEndDate(getLocalYMD(end));
                                 setShowPicker(null);
                               }}
-                              className={`px-3 py-1.5 text-[9px] font-black rounded-full transition-all border ${isSelected ? 'bg-[#f56b2a] border-[#f56b2a] text-white' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+                              className={`px-3 py-1.5 text-[9px] font-bold rounded-full transition-all border ${isSelected ? 'bg-[#f56b2a] border-[#f56b2a] text-white' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
                             >
                               {preset.label}
                             </button>
@@ -504,7 +504,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                         >
                           <ChevronLeft size={16} />
                         </button>
-                        <span className="font-black text-[11px] uppercase tracking-wider text-gray-800">
+                        <span className="font-bold text-[11px] uppercase tracking-wider text-gray-800">
                           {viewDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                         </span>
                         <button 
@@ -517,7 +517,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
 
                       <div className="grid grid-cols-7 gap-y-0.5 gap-x-0 mb-4">
                         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => (
-                          <span key={d} className="text-[9px] font-black text-gray-300 text-center mb-2">{d}</span>
+                          <span key={d} className="text-[9px] font-bold text-gray-300 text-center mb-2">{d}</span>
                         ))}
                         {Array.from({ length: (firstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth()) + 6) % 7 }).map((_, i) => (
                           <div key={`empty-${i}`} />
@@ -538,7 +538,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                               key={d}
                               disabled={isFuture}
                               onClick={(e) => { e.stopPropagation(); handleDateSelect(d); }}
-                              className={`text-[10px] font-black h-9 transition-all relative z-10 flex items-center justify-center
+                              className={`text-[10px] font-bold h-9 transition-all relative z-10 flex items-center justify-center
                                 ${isStart ? 'bg-[#f56b2a] text-white rounded-l-2xl shadow-md z-20' : ''}
                                 ${isEnd ? 'bg-[#f56b2a] text-white rounded-r-2xl shadow-md z-20' : ''}
                                 ${inRange ? 'bg-orange-50 text-[#f56b2a]' : ''}
@@ -556,18 +556,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                         <div className="flex items-center justify-between gap-4 px-1">
                           <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-gray-400 uppercase">Depuis</span>
-                            <span className="text-[10px] font-black text-gray-800">{new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                            <span className="text-[8px] font-bold text-gray-400 uppercase">Depuis</span>
+                            <span className="text-[10px] font-bold text-gray-800">{new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                           </div>
                           <div className="h-4 w-px bg-gray-100" />
                            <div className="flex flex-col text-right">
-                             <span className="text-[8px] font-black text-gray-400 uppercase">Jusqu&apos;au</span>
-                            <span className="text-[10px] font-black text-gray-800">{new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                             <span className="text-[8px] font-bold text-gray-400 uppercase">Jusqu&apos;au</span>
+                            <span className="text-[10px] font-bold text-gray-800">{new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                           </div>
                         </div>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowPicker(null); }}
-                          className="w-full py-3 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-[0.97]"
+                          className="w-full py-3 bg-gray-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-[0.97]"
                         >
                            Appliquer les dates
                         </button>
@@ -654,7 +654,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       <div className="relative w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full bg-white border-[3px] border-[#10b981] shadow-sm group-hover:scale-[1.4] group-hover:bg-[#10b981] group-hover:border-white transition-all duration-300 pointer-events-none" />
 
                       {/* Tooltip - Minimal and centered */}
-                      <div className="opacity-0 group-hover:opacity-100 absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-bold py-1.5 px-3 rounded-lg shadow-xl pointer-events-none transition-all duration-300 whitespace-nowrap translate-y-1 group-hover:translate-y-0">
+                      <div className="opacity-0 group-hover:opacity-100 absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-semibold py-1.5 px-3 rounded-lg shadow-xl pointer-events-none transition-all duration-300 whitespace-nowrap translate-y-1 group-hover:translate-y-0">
                         {formatCurrency(item.displayValue)}
                       </div>
                     </div>
@@ -675,7 +675,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                   return (
                     <span
                       key={`label-${startDate}-${endDate}-${item.label}-${index}`}
-                      className={`absolute text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter md:tracking-widest whitespace-nowrap animate-fade-in
+                      className={`absolute text-[8px] md:text-[10px] font-semibold text-gray-400 uppercase tracking-tighter md:tracking-widest whitespace-nowrap animate-fade-in
                         ${isHiddenOnMobile ? 'hidden md:block' : ''}
                         ${item.isMajor ? 'text-gray-600' : ''}
                       `}
@@ -696,10 +696,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
 
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
-            <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 whitespace-nowrap">
+            <h3 className="text-sm md:text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2 whitespace-nowrap">
               <Eye size={16} className="text-blue-500 md:w-5 md:h-5" /> Plus Visités
             </h3>
-            <span className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Storefront</span>
+            <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Storefront</span>
           </div>
           <div className="space-y-3 md:space-y-4">
             {mostVisited.length > 0 ? mostVisited.map(product => (
@@ -719,27 +719,27 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate max-w-[100px] md:max-w-[120px]">{product.name}</div>
-                    <div className="text-[9px] md:text-[10px] text-gray-400 font-bold whitespace-nowrap">{formatCurrency(product.price)}</div>
+                    <div className="text-[10px] md:text-xs font-semibold text-gray-900 truncate max-w-[100px] md:max-w-[120px]">{product.name}</div>
+                    <div className="text-[9px] md:text-[10px] text-gray-400 font-semibold whitespace-nowrap">{formatCurrency(product.price)}</div>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-[10px] md:text-xs font-black text-blue-600 leading-none">{formatNumber(product.views || 0)}</div>
-                  <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">Vues</div>
+                  <div className="text-[10px] md:text-xs font-bold text-blue-600 leading-none">{formatNumber(product.views || 0)}</div>
+                  <div className="text-[8px] text-gray-300 font-bold uppercase leading-tight">Vues</div>
                 </div>
               </div>
             )) : (
-              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-bold whitespace-nowrap">Aucune visite enregistrée</div>
+              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-semibold whitespace-nowrap">Aucune visite enregistrée</div>
             )}
           </div>
         </div>
 
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
           <div className="flex items-center justify-between mb-4 md:mb-6">
-            <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 whitespace-nowrap">
+            <h3 className="text-sm md:text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2 whitespace-nowrap">
               <Flame size={16} className="text-orange-500 md:w-5 md:h-5" /> Meilleures Ventes
             </h3>
-            <span className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Volume</span>
+            <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Volume</span>
           </div>
           <div className="space-y-3 md:space-y-4">
             {topSelling.length > 0 ? topSelling.map(product => (
@@ -759,22 +759,22 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate max-w-[100px] md:max-w-[120px]">{product.name}</div>
-                    <div className="text-[9px] md:text-[10px] font-bold text-gray-400 whitespace-nowrap">{product.category}</div>
+                    <div className="text-[10px] md:text-xs font-semibold text-gray-900 truncate max-w-[100px] md:max-w-[120px]">{product.name}</div>
+                    <div className="text-[9px] md:text-[10px] font-semibold text-gray-400 whitespace-nowrap">{product.category}</div>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-[10px] md:text-xs font-black text-orange-600 leading-none">x{formatNumber(product.salesCount)}</div>
-                  <div className="text-[8px] text-gray-300 font-black uppercase leading-tight">Vendus</div>
+                  <div className="text-[10px] md:text-xs font-bold text-orange-600 leading-none">x{formatNumber(product.salesCount)}</div>
+                  <div className="text-[8px] text-gray-300 font-bold uppercase leading-tight">Vendus</div>
                 </div>
               </div>
             )) : (
-              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-bold whitespace-nowrap">Aucune vente enregistrée</div>
+              <div className="py-6 text-center text-gray-300 text-[10px] md:text-xs font-semibold whitespace-nowrap">Aucune vente enregistrée</div>
             )}
           </div>
         </div>
         <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-3 md:p-6">
-          <h3 className="text-sm md:text-lg font-black text-gray-900 tracking-tight mb-4 md:mb-6 whitespace-nowrap">
+          <h3 className="text-sm md:text-lg font-bold text-gray-900 tracking-tight mb-4 md:mb-6 whitespace-nowrap">
             {store?.business_type === 'food' ? 'Plats en Pause' : 'Alertes Stock'}
           </h3>
           <div className="space-y-3 md:space-y-5">
@@ -786,16 +786,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 32px, 48px" className="object-cover" />
                     </div>
                     <div className="flex-grow min-w-0">
-                      <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
+                      <div className="text-[10px] md:text-xs font-semibold text-gray-900 truncate">{product.name}</div>
                       <div className="flex items-center gap-2 mt-1 md:mt-1.5">
                         <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-[9px] md:text-[10px] font-black text-red-500 whitespace-nowrap">En pause</span>
+                        <span className="text-[9px] md:text-[10px] font-bold text-red-500 whitespace-nowrap">En pause</span>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
+                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-normal whitespace-nowrap">
                   Tous les plats sont disponibles
                 </div>
               )
@@ -807,7 +807,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 32px, 48px" className="object-cover" />
                     </div>
                     <div className="flex-grow min-w-0">
-                      <div className="text-[10px] md:text-xs font-bold text-gray-900 truncate">{product.name}</div>
+                      <div className="text-[10px] md:text-xs font-semibold text-gray-900 truncate">{product.name}</div>
                       <div className="flex items-center gap-2 mt-1 md:mt-1.5">
                         <div className="flex-grow bg-gray-100 h-1 md:h-1.5 rounded-full overflow-hidden">
                           <div
@@ -815,13 +815,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                             style={{ width: `${Math.min(100, (product.stock / 20) * 100)}%` }}
                           />
                         </div>
-                        <span className={`text-[9px] md:text-[10px] font-black whitespace-nowrap ${product.stock < 5 ? 'text-red-500' : 'text-orange-500'}`}>{product.stock}</span>
+                        <span className={`text-[9px] md:text-[10px] font-bold whitespace-nowrap ${product.stock < 5 ? 'text-red-500' : 'text-orange-500'}`}>{product.stock}</span>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-medium whitespace-nowrap">
+                <div className="py-6 md:py-10 text-center text-gray-400 text-[10px] md:text-sm font-normal whitespace-nowrap">
                   Tous les stocks sont corrects
                 </div>
               )

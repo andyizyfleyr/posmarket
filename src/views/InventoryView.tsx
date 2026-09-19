@@ -337,7 +337,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="bg-white/20 p-1 rounded-full">
             <Check size={20} />
           </div>
-          <span className="font-black text-sm">{showSuccessToast}</span>
+          <span className="font-bold text-sm">{showSuccessToast}</span>
         </div>
       )}
 
@@ -345,10 +345,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="flex items-center gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight truncate">
                 Inventaire
               </h1>
-              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider ${
                 businessType === 'food' ? 'bg-yellow-100 text-yellow-700' : 
                 'bg-orange-100 text-orange-700'
               }`}>
@@ -364,7 +364,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="h-8 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
               <button
                 onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-black border border-red-100 hover:bg-red-100 transition-all shadow-sm"
+                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-all shadow-sm"
               >
                 <Trash2 size={14} /> Supprimer ({selectedIds.size})
               </button>
@@ -372,7 +372,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-          <button className="hidden md:flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all bg-white">
+          <button className="hidden md:flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all bg-white">
             <Download size={18} /> Exporter
           </button>
 
@@ -380,13 +380,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={() => handleOpenModal(undefined, 'pos')}
-                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#3b82f6] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 whitespace-nowrap"
+                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#3b82f6] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 whitespace-nowrap"
               >
                 <Monitor size={14} className="md:size-[18px]" /> + Point de Vente
               </button>
               <button
                 onClick={() => handleOpenModal(undefined, 'store')}
-                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
+                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
               >
                 <ShoppingBag size={14} className="md:size-[18px]" /> + Store + POS
               </button>
@@ -408,7 +408,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 key={v.id}
                 onClick={() => setSelectedVertical(v.id as 'all' | 'shopping' | 'food')}
                 className={`
-                  flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-black transition-all whitespace-nowrap border-2
+                  flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-bold transition-all whitespace-nowrap border-2
                   ${selectedVertical === v.id
                     ? `bg-white ${v.border} ${v.text} shadow-lg ${v.shadow}`
                     : 'bg-white border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'}
@@ -423,19 +423,19 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="flex items-center gap-1.5 md:gap-2 bg-gray-100 p-0.5 md:p-1 rounded-lg md:rounded-xl w-fit">
             <button
               onClick={() => setProductType('all')}
-              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${productType === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-semibold transition-all whitespace-nowrap ${productType === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Mode Mixte
             </button>
             <button
               onClick={() => setProductType('pos')}
-              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${productType === 'pos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-semibold transition-all whitespace-nowrap ${productType === 'pos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               POS Uniquement
             </button>
             <button
               onClick={() => setProductType('marketplace')}
-              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${productType === 'marketplace' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-6 md:py-2 rounded-md md:rounded-lg text-[10px] md:text-xs font-semibold transition-all whitespace-nowrap ${productType === 'marketplace' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               En ligne (Store)
             </button>
@@ -472,7 +472,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="overflow-y-auto flex-grow custom-scrollbar">
           {viewType === 'table' ? (
             <div className="block md:table w-full">
-              <div className="hidden md:table-header-group bg-gray-50/80 backdrop-blur text-gray-400 uppercase text-[10px] font-bold tracking-widest sticky top-0 z-10">
+              <div className="hidden md:table-header-group bg-gray-50/80 backdrop-blur text-gray-400 uppercase text-[10px] font-semibold tracking-widest sticky top-0 z-10">
                 <div className="table-row">
                   <div className="table-cell px-4 py-3 w-10">
                     <input
@@ -536,18 +536,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           </div>
                           <div className="flex flex-col min-w-0">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                              <span className="font-bold text-[10px] md:text-sm text-gray-900 truncate whitespace-nowrap max-w-[120px] md:max-w-[250px] inline-block">{product.name}</span>
-                              <span className={`text-[7px] md:text-[8px] font-black px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                              <span className="font-semibold text-[10px] md:text-sm text-gray-900 truncate whitespace-nowrap max-w-[120px] md:max-w-[250px] inline-block">{product.name}</span>
+                              <span className={`text-[7px] md:text-[8px] font-bold px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
                                 {product.isOnline !== false ? 'MAR.' : 'POS'}
                               </span>
                             </div>
                             <div className="flex md:hidden items-center gap-2 mt-0.5 whitespace-nowrap">
-                              <span className="text-[9px] font-black text-[#f56b2a]">
+                              <span className="text-[9px] font-bold text-[#f56b2a]">
                                 {formatCurrency(product.price)}
                               </span>
                               <span className="text-[9px] text-gray-300">|</span>
                               <div className="flex items-center gap-1">
-                                <span className={`text-[9px] font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-500'}`}>
+                                <span className={`text-[9px] font-bold ${product.stock < 10 ? 'text-red-500' : 'text-gray-500'}`}>
                                   {product.stock} {product.unit}
                                 </span>
                                 {product.stock < 10 && <AlertCircle size={9} className="text-red-500" />}
@@ -572,7 +572,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
-                      <span className={`text-[8px] font-black px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'food' ? 'bg-yellow-100 text-yellow-700' :
+                      <span className={`text-[8px] font-bold px-1.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 w-fit ${product.businessType === 'food' ? 'bg-yellow-100 text-yellow-700' :
                           product.isOnline !== false ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
                         }`}>
                         {product.businessType === 'food' ? <Clock size={8} /> : product.isOnline !== false ? <ShoppingBag size={8} /> : <Monitor size={8} />}
@@ -581,19 +581,19 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
-                      <span className="text-[9px] font-black px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-lg uppercase tracking-wider">{product.category}</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-lg uppercase tracking-wider">{product.category}</span>
                     </div>
 
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex flex-col">
-                        <div className="text-xs font-black text-[#f56b2a]">
+                        <div className="text-xs font-bold text-[#f56b2a]">
                           {formatCurrency(product.price)}
-                          {product.unit && product.unit !== 'pièce' && <span className="text-[10px] font-bold text-gray-500 ml-1">/{product.unit}</span>}
+                          {product.unit && product.unit !== 'pièce' && <span className="text-[10px] font-semibold text-gray-500 ml-1">/{product.unit}</span>}
                         </div>
                         {product.wholesalePrice && (
                           <div className="flex items-center gap-1 mt-0.5 whitespace-nowrap">
                             <Zap size={8} className="text-[#f56b2a]" fill="currentColor" />
-                            <span className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">
+                            <span className="text-[8px] text-gray-500 font-bold uppercase tracking-tighter">
                               Gros: {formatCurrency(product.wholesalePrice)}
                             </span>
                           </div>
@@ -604,7 +604,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex items-center gap-2">
                           <>
-                            <span className={`text-xs font-black ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
+                            <span className={`text-xs font-bold ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
                             {product.stock < 10 && <AlertCircle size={12} className="text-red-500" />}
                           </>
                       </div>
@@ -613,7 +613,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex items-center gap-1">
                         <Star size={10} className={product.rating && product.rating > 0 ? "text-yellow-400 fill-current" : "text-gray-200"} />
-                        <span className="text-xs font-black text-gray-700">{product.rating ? product.rating.toFixed(1) : '—'}</span>
+                        <span className="text-xs font-bold text-gray-700">{product.rating ? product.rating.toFixed(1) : '—'}</span>
                         <span className="text-[9px] text-gray-400">({formatNumber(product.reviewCount || 0)})</span>
                       </div>
                     </div>
@@ -670,17 +670,17 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       alt={product.name}
                       containerClassName="rounded-md md:rounded-lg border border-gray-50 bg-white"
                     />
-                    <span className={`absolute bottom-1 right-1 text-[7px] md:text-[8px] font-black px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100/90 text-green-600' : 'bg-blue-100/90 text-blue-600'}`}>
+                    <span className={`absolute bottom-1 right-1 text-[7px] md:text-[8px] font-bold px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100/90 text-green-600' : 'bg-blue-100/90 text-blue-600'}`}>
                       {product.isOnline !== false ? 'MAR.' : 'POS'}
                     </span>
                   </div>
-                  <h4 className="font-bold text-gray-900 text-[11px] md:text-sm truncate whitespace-nowrap w-full">{product.name}</h4>
-                  <p className="text-[9px] text-gray-400 font-bold mt-0.5 uppercase tracking-wider whitespace-nowrap">{product.category}</p>
+                  <h4 className="font-semibold text-gray-900 text-[11px] md:text-sm truncate whitespace-nowrap w-full">{product.name}</h4>
+                  <p className="text-[9px] text-gray-400 font-semibold mt-0.5 uppercase tracking-wider whitespace-nowrap">{product.category}</p>
                   <div className="flex justify-between items-center mt-auto pt-1.5 md:pt-2">
-                    <span className="text-xs md:text-sm font-black text-[#f56b2a] whitespace-nowrap">
+                    <span className="text-xs md:text-sm font-bold text-[#f56b2a] whitespace-nowrap">
                       {formatCurrency(product.price)}
                     </span>
-                    <span className={`text-[8px] md:text-[9px] font-black px-1 py-0.5 rounded-full whitespace-nowrap ${product.stock < 10 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{product.stock}</span>
+                    <span className={`text-[8px] md:text-[9px] font-bold px-1 py-0.5 rounded-full whitespace-nowrap ${product.stock < 10 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{product.stock}</span>
                   </div>
                 </div>
               ))}
@@ -693,7 +693,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <button
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className="flex items-center gap-2 px-8 py-3 bg-white border-2 border-gray-100 rounded-2xl shadow-sm text-sm font-black text-gray-600 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-2 px-8 py-3 bg-white border-2 border-gray-100 rounded-2xl shadow-sm text-sm font-bold text-gray-600 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoadingMore ? (
                   <Loader2 size={16} className="animate-spin text-[#f56b2a]" />
@@ -706,7 +706,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           )}
 
           {!hasMore && localProducts.length > 5 && (
-            <div className="p-8 text-center text-gray-400 text-[10px] font-black uppercase tracking-widest opacity-50 border-t border-gray-50 bg-gray-50/5">
+            <div className="p-8 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest opacity-50 border-t border-gray-50 bg-gray-50/5">
               Fin de l'inventaire
             </div>
           )}
@@ -721,10 +721,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="px-3 md:px-8 pt-3 md:pt-8 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between mb-4 md:mb-8">
                 <div>
-                  <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">
+                  <h2 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap">
                     {editingProduct ? 'Modifier' : (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)')}
                   </h2>
-                  <p className="text-gray-400 text-[10px] md:text-xs font-bold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
+                  <p className="text-gray-400 text-[10px] md:text-xs font-semibold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
                   <X size={18} className="md:size-6" />
@@ -747,7 +747,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     `}>
                       {currentStep > step.s ? <Check size={12} className="md:size-[18px]" /> : <step.icon size={12} className="md:size-[18px]" />}
                     </div>
-                    <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
+                    <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
                       {step.label}
                     </span>
                   </div>
@@ -759,7 +759,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex flex-col gap-4">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Images du Produit</label>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Images du Produit</label>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {(formData.images || []).map((img, idx) => (
                         <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
@@ -775,13 +775,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             <Trash2 size={10} />
                           </button>
                           {idx === 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-black text-center py-0.5 uppercase">Principale</div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-bold text-center py-0.5 uppercase">Principale</div>
                           )}
                         </div>
                       ))}
                       <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl hover:bg-orange-50 hover:border-orange-200 transition-all cursor-pointer group">
                         <Plus size={18} className="md:size-5 text-gray-300 group-hover:text-[#f56b2a]" />
-                        <span className="text-[7px] md:text-[8px] font-black text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
+                        <span className="text-[7px] md:text-[8px] font-bold text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
                         <input
                           type="file"
                           multiple
@@ -813,7 +813,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         />
                       </label>
                     </div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
                   </div>
                 </div>
               )}
@@ -821,17 +821,17 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               {currentStep === 2 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
                     <input
                       required
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Catégorie du Produit</label>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Catégorie du Produit</label>
                     <select
                       value={formData.category}
                       onChange={e => {
@@ -842,7 +842,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           mainCategory: CATEGORY_MAPPING[newSub] || 'Divers'
                         });
                       }}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                     >
                       {filteredMainCategories.map(mainCat => {
                         const subCats = Object.keys(filteredCategoryMapping).filter(sub => filteredCategoryMapping[sub] === mainCat);
@@ -858,13 +858,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </select>
                   </div>
                   <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
                       </label>
                       <select
                         value={formData.deliveryTime}
                         onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
-                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                       >
                         <option value="">Sélectionnez une durée...</option>
                         <optgroup label="Restauration / Immédiat">
@@ -885,12 +885,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           <option value="Sur commande">Sur commande/Mesure</option>
                         </optgroup>
                       </select>
-                      <p className="text-[9px] text-gray-500 mt-2 font-medium">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
+                      <p className="text-[9px] text-gray-500 mt-2 font-normal">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
                     </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente
                       </label>
                       <div className="relative">
@@ -900,26 +900,26 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           value={formData.price ?? ''}
                           onChange={e => setFormData({ ...formData, price: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
                           placeholder="0"
-                          className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-bold text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
-                        <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
+                        <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-xs md:text-sm">XOF</span>
                       </div>
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
                         <input
                           type="number"
                           value={formData.stock ?? ''}
                           onChange={e => setFormData({ ...formData, stock: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
                           placeholder="0"
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-black text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-bold text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         />
                     </div>
                   </div>
                   {formData.businessType === 'shopping' && (
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
                         <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
                       </label>
                       <div className="space-y-3">
@@ -932,7 +932,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               setFormData({ ...formData, unit: e.target.value });
                             }
                           }}
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-bold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
                         >
                           <optgroup label="Standard">
                             <option value="pièce">Pièce</option>
@@ -966,9 +966,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               placeholder="Ex: Pack de 100, Fagot, Douzaine..."
                               value={formData.unit}
                               onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-bold focus:border-[#f56b2a] outline-none shadow-sm"
+                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:border-[#f56b2a] outline-none shadow-sm"
                             />
-                            <p className="text-[9px] text-[#f56b2a] mt-1 font-black uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
+                            <p className="text-[9px] text-[#f56b2a] mt-1 font-bold uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
                           </div>
                         )}
                       </div>
@@ -984,8 +984,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
                       <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
-                          <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Options & Variantes</h4>
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Combinez Tailles, Couleurs, etc. (Matrix Mode)</p>
+                          <h4 className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Options & Variantes</h4>
+                          <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Combinez Tailles, Couleurs, etc. (Matrix Mode)</p>
                         </div>
                         <button
                           type="button"
@@ -994,7 +994,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             newOptions.push({ id: Math.random().toString(36).substr(2, 9), name: '', values: [] });
                             setFormData({ ...formData, options: newOptions });
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-black hover:bg-[#f56b2a] transition-all active:scale-95"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-bold hover:bg-[#f56b2a] transition-all active:scale-95"
                         >
                           <Plus size={12} strokeWidth={3} /> AJOUTER UNE OPTION
                         </button>
@@ -1018,7 +1018,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             </button>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div className="col-span-1">
-                                 <label className="block text-[8px] font-black text-gray-400 uppercase mb-1">Type d&apos;Option</label>
+                                 <label className="block text-[8px] font-bold text-gray-400 uppercase mb-1">Type d&apos;Option</label>
                                  <select
                                    value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as unknown as { isCustom?: boolean }).isCustom ? '' : 'custom')}
                                    onChange={e => {
@@ -1033,7 +1033,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                      }
                                      setFormData({ ...formData, options: newOptions });
                                    }}
-                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
+                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
                                 >
                                   <option value="">Sélectionner...</option>
                                   <option value="Taille">Taille</option>
@@ -1057,15 +1057,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                       newOptions[optIdx].name = e.target.value;
                                       setFormData({ ...formData, options: newOptions });
                                     }}
-                                    className="w-full px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm animate-in slide-in-from-top-1"
+                                    className="w-full px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg text-xs font-semibold focus:border-[#f56b2a] outline-none shadow-sm animate-in slide-in-from-top-1"
                                     placeholder="Nom de l'option..."
                                   />
                                 ) : null}
                               </div>
                               <div className="col-span-1 md:col-span-3">
                                 <div className="flex items-center justify-between mb-1">
-                                  <label className="block text-[8px] font-black text-gray-400 uppercase">Valeurs (Séparez par des virgules)</label>
-                                  <span className="text-[7px] font-bold text-orange-400 uppercase tracking-tighter">Astuce: cliquez sur les suggestions</span>
+                                  <label className="block text-[8px] font-bold text-gray-400 uppercase">Valeurs (Séparez par des virgules)</label>
+                                  <span className="text-[7px] font-semibold text-orange-400 uppercase tracking-tighter">Astuce: cliquez sur les suggestions</span>
                                 </div>
                                 <input
                                   type="text"
@@ -1075,7 +1075,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                     newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');
                                     setFormData({ ...formData, options: newOptions });
                                   }}
-                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
+                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
                                   placeholder="Rouge, Bleu, Vert..."
                                 />
 
@@ -1112,7 +1112,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                               }
                                               setFormData({ ...formData, options: newOptions });
                                             }}
-                                            className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all border ${isAlreadyAdded
+                                            className={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tighter transition-all border ${isAlreadyAdded
                                                 ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm'
                                                 : 'bg-white text-gray-400 border-gray-100 hover:border-orange-200 hover:text-orange-500'
                                               }`}
@@ -1171,7 +1171,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                               setFormData({ ...formData, variants: newVariants });
                             }}
-                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl text-[10px] font-black shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl text-[10px] font-bold shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
                           >
                             <Zap size={14} fill="currentColor" /> GÉNÉRER LES COMBINAISONS
                           </button>
@@ -1182,9 +1182,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       {(formData.variants || []).length > 0 && (
                         <div className="space-y-2.5 animate-in slide-in-from-top-4 duration-500">
                           <div className="hidden md:grid grid-cols-12 gap-4 px-2 mb-2">
-                            <div className="col-span-5 text-[8px] font-black text-gray-400 uppercase">Combinaison</div>
-                            <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Prix (XOF)</div>
-                            <div className="col-span-3 text-[8px] font-black text-gray-400 uppercase">Stock</div>
+                            <div className="col-span-5 text-[8px] font-bold text-gray-400 uppercase">Combinaison</div>
+                            <div className="col-span-3 text-[8px] font-bold text-gray-400 uppercase">Prix (XOF)</div>
+                            <div className="col-span-3 text-[8px] font-bold text-gray-400 uppercase">Stock</div>
                             <div className="col-span-1"></div>
                           </div>
                           {formData.variants?.map((variant, idx) => (
@@ -1192,7 +1192,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               <div className="col-span-1 md:col-span-5 flex items-center">
                                 <div className="flex flex-wrap gap-1">
                                   {variant.name.split(' / ').map((val, i) => (
-                                    <span key={i} className="text-[10px] font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{val}</span>
+                                    <span key={i} className="text-[10px] font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{val}</span>
                                   ))}
                                 </div>
                               </div>
@@ -1205,7 +1205,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                     newVariants[idx].price = parseInt(e.target.value) || 0;
                                     setFormData({ ...formData, variants: newVariants });
                                   }}
-                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
+                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-semibold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
                                 />
                               </div>
                               <div className="col-span-1 md:col-span-3">
@@ -1217,7 +1217,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                     newVariants[idx].stock = parseInt(e.target.value) || 0;
                                     setFormData({ ...formData, variants: newVariants });
                                   }}
-                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-bold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
+                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-semibold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
                                 />
                               </div>
                               <div className="col-span-1 flex items-center justify-end">
@@ -1245,10 +1245,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <div className="flex items-center justify-between mb-4 md:mb-6">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Vente en Gros & B2B</h4>
-                            <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#f56b2a] text-[9px] font-black uppercase">Grossiste</span>
+                            <h4 className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Vente en Gros & B2B</h4>
+                            <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#f56b2a] text-[9px] font-bold uppercase">Grossiste</span>
                           </div>
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-bold mt-0.5">
+                          <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold mt-0.5">
                             Définissez vos prix de gros par quantité (ex : 400 000 FCFA dès 100 unités)
                           </p>
                         </div>
@@ -1278,7 +1278,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               });
                             }
                           }}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200/50' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200/50' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
                         >
                           {((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'ACTIVÉ' : 'DÉSACTIVER'}
                         </button>
@@ -1287,7 +1287,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       {(((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined)) && (
                         <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider">
                               Prix de gros configurés ({(formData.wholesaleTiers || []).length})
                             </span>
                             <button
@@ -1309,7 +1309,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   wholesalePrice: sorted[0]?.price
                                 });
                               }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[10px] font-black hover:bg-orange-100 transition-all active:scale-95"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[10px] font-bold hover:bg-orange-100 transition-all active:scale-95"
                             >
                               <Plus size={13} strokeWidth={3} /> Ajouter un prix de gros
                             </button>
@@ -1317,7 +1317,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                           {(formData.wholesaleTiers || []).length === 0 ? (
                             <div className="p-4 bg-orange-50/40 border border-orange-100 rounded-2xl text-center">
-                              <p className="text-xs font-bold text-gray-600 mb-2">Aucun palier de gros défini pour l&apos;instant</p>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">Aucun palier de gros défini pour l&apos;instant</p>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1325,7 +1325,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   const t = { minQty: 100, price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0, unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0 };
                                   setFormData({ ...formData, wholesaleTiers: [t], wholesaleMinQty: t.minQty, wholesalePrice: t.price });
                                 }}
-                                className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-xl text-xs font-black"
+                                className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-xl text-xs font-bold"
                               >
                                 + Ajouter le 1er prix de gros
                               </button>
@@ -1349,11 +1349,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                 return (
                                   <div key={idx} className="bg-orange-50/40 border border-orange-100/80 rounded-2xl p-3 md:p-4 space-y-2">
                                     <div className="flex items-center gap-2 md:gap-3">
-                                      <div className="w-6 h-6 rounded-lg bg-orange-500 text-white font-black text-xs flex items-center justify-center shrink-0">
+                                      <div className="w-6 h-6 rounded-lg bg-orange-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
                                         {idx + 1}
                                       </div>
                                       <div className="w-32 md:w-36 shrink-0">
-                                        <label className="block text-[8px] font-black text-gray-500 uppercase mb-1">Dès (quantité)</label>
+                                        <label className="block text-[8px] font-bold text-gray-500 uppercase mb-1">Dès (quantité)</label>
                                         <div className="relative">
                                           <input
                                             type="number"
@@ -1374,14 +1374,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 wholesalePrice: tiers[0]?.price
                                               });
                                             }}
-                                            className="w-full px-3 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-black text-gray-800 focus:ring-2 focus:ring-orange-200 outline-none"
+                                            className="w-full px-3 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-bold text-gray-800 focus:ring-2 focus:ring-orange-200 outline-none"
                                             placeholder="100"
                                           />
                                         </div>
                                       </div>
 
                                       <div className="flex-1 min-w-0">
-                                        <label className="block text-[8px] font-black text-gray-500 uppercase mb-1">Prix de Gros total (XOF)</label>
+                                        <label className="block text-[8px] font-bold text-gray-500 uppercase mb-1">Prix de Gros total (XOF)</label>
                                         <div className="relative">
                                           <input
                                             type="number"
@@ -1403,10 +1403,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                                 wholesalePrice: tiers[0]?.price
                                               });
                                             }}
-                                            className="w-full pl-3 pr-10 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-black text-[#f56b2a] focus:ring-2 focus:ring-orange-200 outline-none"
+                                            className="w-full pl-3 pr-10 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-bold text-[#f56b2a] focus:ring-2 focus:ring-orange-200 outline-none"
                                             placeholder="400000"
                                           />
-                                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400">XOF</span>
+                                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">XOF</span>
                                         </div>
                                       </div>
 
@@ -1429,16 +1429,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                     </div>
 
                                     {/* Calculated feedback bar */}
-                                    <div className="flex flex-wrap items-center justify-between text-[9px] md:text-[10px] font-bold px-1 pt-1 border-t border-orange-100/60 text-gray-500">
+                                    <div className="flex flex-wrap items-center justify-between text-[9px] md:text-[10px] font-semibold px-1 pt-1 border-t border-orange-100/60 text-gray-500">
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-gray-400">Soit:</span>
-                                        <span className="text-gray-900 font-black">{formatCurrency(effectiveUnit)} / unité</span>
+                                        <span className="text-gray-900 font-bold">{formatCurrency(effectiveUnit)} / unité</span>
                                         {baseUnitPrice > 0 && (
                                           <span className="text-gray-400 line-through">({formatCurrency(baseUnitPrice)})</span>
                                         )}
                                       </div>
                                       {savings > 0 && (
-                                        <div className="flex items-center gap-1 text-emerald-600 font-black">
+                                        <div className="flex items-center gap-1 text-emerald-600 font-bold">
                                           <span>Économie : −{formatCurrency(savings)}</span>
                                           <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[8px]">−{savingsPct}%</span>
                                         </div>
@@ -1448,7 +1448,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                 );
                               })}
 
-                              <p className="text-[9px] text-gray-400 font-bold px-1">
+                              <p className="text-[9px] text-gray-400 font-semibold px-1">
                                 💡 Le client bénéficie automatiquement du prix de gros dès qu&apos;il atteint la quantité minimale dans son panier.
                               </p>
                             </div>
@@ -1463,11 +1463,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>
                     <textarea
                       value={formData.description || ''}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none min-h-[80px] md:min-h-[120px] resize-none"
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-normal focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none min-h-[80px] md:min-h-[120px] resize-none"
                     />
                   </div>
 
@@ -1478,8 +1478,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         <Globe size={16} className="md:size-[18px]" />
                       </div>
                       <div>
-                        <div className="text-[11px] md:text-sm font-black text-gray-900 leading-tight">Publier sur le Store</div>
-                        <p className="text-[8px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">Visibilité publique</p>
+                        <div className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Publier sur le Store</div>
+                        <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Visibilité publique</p>
                       </div>
                     </div>
                     <button
@@ -1502,7 +1502,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 onClick={() => setCurrentStep(prev => prev - 1)}
                 variant="ghost"
                 size="md"
-                className="text-gray-400 hover:text-gray-700 font-black text-[10px] md:text-sm"
+                className="text-gray-400 hover:text-gray-700 font-bold text-[10px] md:text-sm"
                 icon={<ChevronLeft size={16} className="md:size-5" />}
               >
                 Retour
@@ -1515,7 +1515,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     onClick={() => setCurrentStep(prev => prev + 1)}
                     variant="secondary"
                     size="md"
-                    className="font-black text-[10px] md:text-sm"
+                    className="font-bold text-[10px] md:text-sm"
                     icon={<ChevronRight size={14} className="md:size-[18px]" />}
                     iconPosition="right"
                   >
@@ -1529,7 +1529,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     loadingText="Envoi..."
                     variant="primary"
                     size="md"
-                    className="font-black text-[10px] md:text-sm"
+                    className="font-bold text-[10px] md:text-sm"
                   >
                     Enregistrer
                   </Button>
@@ -1548,14 +1548,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 <Award size={40} className="-rotate-3" />
               </div>
 
-              <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-2 leading-tight">
+              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-2 leading-tight">
                 Limite de produits atteinte !
               </h3>
 
-              <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed mb-8">
-                Vous avez atteint la limite de <span className="text-[#f56b2a] font-bold">{(subscription && getSubscriptionPlan(subscription.tier)?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel.
+              <p className="text-sm md:text-base text-slate-500 font-normal leading-relaxed mb-8">
+                Vous avez atteint la limite de <span className="text-[#f56b2a] font-semibold">{(subscription && getSubscriptionPlan(subscription.tier)?.features.maxProducts) || 6} produits</span> pour votre abonnement actuel.
                 <br className="hidden md:block" />
-                Passez à la formule <span className="font-bold text-slate-900 underline underline-offset-4 decoration-[#f56b2a]/30">Pro</span> pour continuer à développer votre inventaire.
+                Passez à la formule <span className="font-semibold text-slate-900 underline underline-offset-4 decoration-[#f56b2a]/30">Pro</span> pour continuer à développer votre inventaire.
               </p>
 
               <div className="flex flex-col w-full gap-3">
@@ -1567,13 +1567,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     else window.location.href = '/dashboard?view=subscription';
                     setShowLimitModal(false);
                   }}
-                  className="w-full py-4 bg-[#f56b2a] text-white rounded-2xl font-black text-sm md:text-base hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-[#f56b2a] text-white rounded-2xl font-bold text-sm md:text-base hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center gap-2"
                 >
                   Découvrir les Tarifs <ChevronRight size={18} />
                 </button>
                 <button
                   onClick={() => setShowLimitModal(false)}
-                  className="w-full py-3 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
+                  className="w-full py-3 text-slate-400 font-semibold text-sm hover:text-slate-600 transition-colors"
                 >
                   Plus tard
                 </button>

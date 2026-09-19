@@ -71,7 +71,7 @@ const STATUS_META: Record<string, { label: string; classes: string; dot: string 
 function StatusBadge({ status }: { status?: string | null }) {
   const meta = STATUS_META[status || ''] ?? STATUS_META.DISABLED;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${meta.classes}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${meta.classes}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
       {meta.label}
     </span>
@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status?: string | null }) {
 function Avatar({ name, email }: { name?: string | null; email?: string | null }) {
   const letter = (name?.[0] || email?.[0] || 'U').toUpperCase();
   return (
-    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-600 flex items-center justify-center text-white font-black text-lg shrink-0 shadow-sm">
+    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
       {letter}
     </div>
   );
@@ -215,7 +215,7 @@ export default function AdminStoresPage() {
       {/* En-tête */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Boutiques</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Boutiques</h1>
           <p className="text-sm text-gray-500 mt-1">Gestion globale des boutiques de la plateforme, regroupées par propriétaire.</p>
         </div>
       </div>
@@ -234,8 +234,8 @@ export default function AdminStoresPage() {
             className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === (s.label === 'Total' ? 'ALL' : s.label === 'En attente' ? 'PENDING' : s.label === 'Actives' ? 'APPROVED' : 'DISABLED') ? 'ring-2 ring-[#f56b2a]/30' : ''}`}
           >
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.color} mb-3`}>{s.icon}</div>
-            <p className="text-2xl font-black text-gray-900">{s.value}</p>
-            <p className="text-xs font-bold text-gray-400 mt-0.5">{s.label}</p>
+            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+            <p className="text-xs font-semibold text-gray-400 mt-0.5">{s.label}</p>
           </button>
         ))}
       </div>
@@ -249,13 +249,13 @@ export default function AdminStoresPage() {
             placeholder="Rechercher une boutique, un slug, un email ou un propriétaire…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] placeholder:text-gray-400 text-sm font-medium text-gray-900 shadow-sm transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] placeholder:text-gray-400 text-sm font-normal text-gray-900 shadow-sm transition-all"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-bold text-gray-700 cursor-pointer shadow-sm md:w-52"
+          className="px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-semibold text-gray-700 cursor-pointer shadow-sm md:w-52"
         >
           <option value="ALL">Tous les statuts</option>
           <option value="PENDING">En attente</option>
@@ -267,20 +267,20 @@ export default function AdminStoresPage() {
 
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 bg-orange-50/60 border border-orange-100 rounded-2xl px-4 py-3">
-          <p className="text-sm font-black text-gray-700">
+          <p className="text-sm font-bold text-gray-700">
             {selected.size} boutique{selected.size > 1 ? 's' : ''} sélectionnée{selected.size > 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSelected(new Set())}
-              className="px-4 py-2 rounded-xl text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
             >
               Désélectionner
             </button>
             <button
               onClick={() => setConfirmOpen({ type: 'deleteBulk', id: '' })}
               disabled={bulkBusy}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
             >
               {bulkBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
               Supprimer
@@ -293,7 +293,7 @@ export default function AdminStoresPage() {
       {groups.length === 0 ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
           <div className="w-16 h-16 mx-auto bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4"><Store size={28} /></div>
-          <p className="text-gray-900 font-black text-lg">Aucune boutique trouvée</p>
+          <p className="text-gray-900 font-bold text-lg">Aucune boutique trouvée</p>
           <p className="text-sm text-gray-500 mt-1">Essayez de modifier votre recherche ou vos filtres.</p>
         </div>
       ) : (
@@ -309,23 +309,23 @@ export default function AdminStoresPage() {
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <Avatar name={group.owner.full_name} email={group.owner.email} />
                     <div className="min-w-0">
-                      <h3 className="text-base font-black text-gray-900 truncate">
+                      <h3 className="text-base font-bold text-gray-900 truncate">
                         {group.owner.full_name || 'Compte propriétaire'}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-500 font-medium truncate flex items-center gap-1.5">
+                        <span className="text-sm text-gray-500 font-normal truncate flex items-center gap-1.5">
                           <Mail size={14} className="text-gray-400" /> {group.owner.email}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-bold text-gray-700 ring-1 ring-gray-200">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-semibold text-gray-700 ring-1 ring-gray-200">
                       <Store size={14} className="text-[#f56b2a]" />
                       {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''}
                     </span>
                     {pendingCount > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-sm font-bold ring-1 ring-amber-200">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-sm font-semibold ring-1 ring-amber-200">
                         <AlertTriangle size={14} /> {pendingCount} en attente
                       </span>
                     )}
@@ -363,12 +363,12 @@ export default function AdminStoresPage() {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Link href={`/pam/stores/${s.id}`} className="text-base font-black text-gray-900 hover:text-[#f56b2a] transition-colors truncate">
+                                    <Link href={`/pam/stores/${s.id}`} className="text-base font-bold text-gray-900 hover:text-[#f56b2a] transition-colors truncate">
                                       {s.name || 'Boutique sans nom'}
                                     </Link>
                                     <StatusBadge status={s.status} />
                                     {s.business_type && (
-                                      <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
+                                      <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
                                         {s.business_type === 'food' ? 'Alimentation' : 'Shopping'}
                                       </span>
                                     )}
@@ -380,10 +380,10 @@ export default function AdminStoresPage() {
                                     {s.created_at && <span className="flex items-center gap-1.5"><Calendar size={14} className="text-gray-400 shrink-0" /> {new Date(s.created_at).toLocaleDateString('fr-FR')}</span>}
                                   </div>
                                   <div className="flex items-center gap-2 mt-3">
-                                    <span className="text-sm font-bold text-orange-600 flex items-center gap-1.5">
+                                    <span className="text-sm font-semibold text-orange-600 flex items-center gap-1.5">
                                       <Eye size={14} /> {formatNumber(Number(s.views) || 0)} visites
                                     </span>
-                                    <span className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                    <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                                       <Package size={14} className="text-[#f56b2a]" /> {formatNumber(productCounts[s.id] || 0)} produit{(productCounts[s.id] || 0) > 1 ? 's' : ''}
                                     </span>
                                   </div>
@@ -398,14 +398,14 @@ export default function AdminStoresPage() {
                                   <button
                                     onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'APPROVED' })}
                                     disabled={statusBusy}
-                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all shadow-sm disabled:opacity-50"
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-all shadow-sm disabled:opacity-50"
                                   >
                                     {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} Approuver
                                   </button>
                                   <button
                                     onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'REJECTED' })}
                                     disabled={statusBusy}
-                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-bold ring-1 ring-rose-200 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm font-semibold ring-1 ring-rose-200 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
                                   >
                                     <XCircle size={15} /> Refuser
                                   </button>
@@ -415,7 +415,7 @@ export default function AdminStoresPage() {
                                 <button
                                   onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'APPROVED' })}
                                   disabled={statusBusy}
-                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold ring-1 ring-emerald-200 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-semibold ring-1 ring-emerald-200 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
                                 >
                                   {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <RotateCcw size={15} />} Réactiver
                                 </button>
@@ -424,7 +424,7 @@ export default function AdminStoresPage() {
                                 <button
                                   onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'DISABLED' })}
                                   disabled={statusBusy}
-                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-slate-500 rounded-xl text-sm font-bold ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-700 transition-all disabled:opacity-50"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-slate-500 rounded-xl text-sm font-semibold ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-700 transition-all disabled:opacity-50"
                                 >
                                   {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Ban size={15} />} Désactiver
                                 </button>
@@ -432,7 +432,7 @@ export default function AdminStoresPage() {
                               <div className="flex gap-2 lg:w-full">
                                 <Link
                                   href={`/pam/stores/${s.id}`}
-                                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#f56b2a] rounded-xl text-sm font-bold ring-1 ring-orange-200 hover:bg-[#f56b2a] hover:text-white transition-all"
+                                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#f56b2a] rounded-xl text-sm font-semibold ring-1 ring-orange-200 hover:bg-[#f56b2a] hover:text-white transition-all"
                                 >
                                   <Eye size={15} /> Détails
                                 </Link>
@@ -454,7 +454,7 @@ export default function AdminStoresPage() {
                 )}
 
                 {!expanded && (
-                  <div className="px-5 md:px-6 py-3 border-t border-gray-100 bg-gray-50/40 text-[13px] text-gray-400 font-medium">
+                  <div className="px-5 md:px-6 py-3 border-t border-gray-100 bg-gray-50/40 text-[13px] text-gray-400 font-normal">
                     {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''} — cliquer pour afficher le détail
                   </div>
                 )}
@@ -468,10 +468,10 @@ export default function AdminStoresPage() {
       {confirmOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-black text-gray-900 mb-2">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
               {confirmOpen.type === 'delete' ? 'Supprimer cette boutique ?' : confirmOpen.type === 'deleteBulk' ? `Supprimer ${selected.size} boutique${selected.size > 1 ? 's' : ''} ?` : 'Confirmer le changement de statut'}
             </h3>
-            <p className="text-sm text-gray-500 font-medium mb-6">
+            <p className="text-sm text-gray-500 font-normal mb-6">
               {confirmOpen.type === 'delete'
                 ? 'Toutes les données associées (produits, commandes, clients) seront définitivement supprimées. Cette action est irréversible.'
                 : confirmOpen.type === 'deleteBulk'
@@ -481,7 +481,7 @@ export default function AdminStoresPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmOpen(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 Annuler
               </button>
@@ -492,7 +492,7 @@ export default function AdminStoresPage() {
                     ? handleBulkDeleteStores()
                     : handleStatus(confirmOpen.id, confirmOpen.status!)
                 }
-                className={`flex-1 py-3 rounded-xl text-sm font-black text-white transition-all ${
+                className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all ${
                   confirmOpen.type === 'delete' || confirmOpen.type === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
                 }`}
               >

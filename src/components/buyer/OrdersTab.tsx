@@ -66,7 +66,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             size="sm"
             icon={<ShoppingBag size={14} />}
             onClick={onBrowse}
-            className="rounded-full px-6 text-[10px] font-black uppercase tracking-widest"
+            className="rounded-full px-6 text-[10px] font-bold uppercase tracking-widest"
           >
             Découvrir les boutiques
           </Button>
@@ -92,11 +92,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   <Package size={18} className="text-[#f56b2a]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-wider truncate">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider truncate">
                     {order.id ? `#${order.id.slice(-6)}` : 'Commande'}
                     {dateLabel ? ` • ${dateLabel}` : ''}
                   </p>
-                  <p className="text-sm font-black text-[#002f34] truncate">{storeName}</p>
+                  <p className="text-sm font-bold text-[#002f34] truncate">{storeName}</p>
                 </div>
               </div>
               <StatusBadge status={order.status} businessType={businessType} />
@@ -112,10 +112,10 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   >
                     <ProductThumb src={product?.image} alt={product?.name} className="w-12 h-12" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-[#002f34] truncate">
+                      <p className="text-sm font-bold text-[#002f34] truncate">
                         {product?.name || 'Produit'}
                       </p>
-                      <p className="text-[10px] text-gray-400 font-bold">
+                      <p className="text-[10px] text-gray-400 font-semibold">
                         {item.quantity} × {formatCurrency(item.price)}
                       </p>
                     </div>
@@ -135,8 +135,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             </div>
 
             <div className="px-4 py-3 bg-gray-50/60 border-t border-gray-50 flex items-center justify-between">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
-              <span className="text-sm font-black text-[#002f34]">{formatCurrency(order.total)}</span>
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total</span>
+              <span className="text-sm font-bold text-[#002f34]">{formatCurrency(order.total)}</span>
             </div>
           </div>
         );
@@ -149,7 +149,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             loading={loadingMore}
             variant="outline"
             size="sm"
-            className="rounded-full px-8 text-[10px] font-black uppercase tracking-widest border-gray-200"
+            className="rounded-full px-8 text-[10px] font-bold uppercase tracking-widest border-gray-200"
           >
             Afficher plus
           </Button>

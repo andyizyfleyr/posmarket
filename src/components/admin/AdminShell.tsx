@@ -65,8 +65,8 @@ export default function AdminShell({
           <Shield size={22} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-black text-white uppercase tracking-tight leading-none">Pôle Suprême</p>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
+          <p className="text-sm font-bold text-white uppercase tracking-tight leading-none">Pôle Suprême</p>
+          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest mt-1 flex items-center gap-1">
             <Activity size={11} className="text-emerald-500" /> Système Synchronisé
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function AdminShell({
               }`}
             >
               <span className={active ? 'text-[#f56b2a]' : 'text-slate-500 group-hover:text-slate-300'}>{item.icon}</span>
-              <span className="text-[11px] font-black uppercase tracking-tighter">{item.label}</span>
+              <span className="text-[11px] font-bold uppercase tracking-tighter">{item.label}</span>
               {active && <span className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-[#f56b2a] rounded-r-md" />}
             </Link>
           );
@@ -94,12 +94,12 @@ export default function AdminShell({
 
       <div className="border-t border-white/5 p-4 space-y-1">
         <div className="px-2 py-2">
-          <p className="text-xs font-black text-gray-400 uppercase tracking-wider">{userName}</p>
-          <p className="text-[10px] text-gray-600 lowercase font-bold">{userEmail}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{userName}</p>
+          <p className="text-[10px] text-gray-600 lowercase font-semibold">{userEmail}</p>
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-[11px] font-black uppercase tracking-tighter"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-[11px] font-bold uppercase tracking-tighter"
         >
           <LogOut size={18} className="text-red-400" /> Se déconnecter
         </button>
@@ -124,7 +124,7 @@ export default function AdminShell({
             >
               <Shield size={20} />
             </button>
-            <span className="text-sm font-black text-white uppercase tracking-tight">Admin</span>
+            <span className="text-sm font-bold text-white uppercase tracking-tight">Admin</span>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-8 overflow-x-hidden">

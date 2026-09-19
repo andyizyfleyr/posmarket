@@ -165,11 +165,11 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-1.5 pl-3.5 pr-2 py-3 md:py-3.5 text-xs font-bold text-gray-700 hover:text-gray-900 border-r border-gray-200/70 transition-colors focus:outline-none disabled:opacity-50 select-none cursor-pointer rounded-l-2xl shrink-0"
+            className="flex items-center gap-1.5 pl-3.5 pr-2 py-3 md:py-3.5 text-xs font-semibold text-gray-700 hover:text-gray-900 border-r border-gray-200/70 transition-colors focus:outline-none disabled:opacity-50 select-none cursor-pointer rounded-l-2xl shrink-0"
             title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
           >
             <span className="text-base leading-none">{selectedCountry.flag}</span>
-            <span className="text-[11px] font-black text-gray-800 tracking-tight">
+            <span className="text-[11px] font-bold text-gray-800 tracking-tight">
               {selectedCountry.dialCode}
             </span>
             <ChevronDown
@@ -196,7 +196,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Rechercher pays ou indicatif..."
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
                   />
                 </div>
               </div>
@@ -213,8 +213,8 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                         onClick={() => handleCountrySelect(c)}
                         className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left text-xs transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-orange-50/80 font-black text-[#f56b2a]'
-                            : 'hover:bg-gray-50 text-gray-700 font-semibold'
+                            ? 'bg-orange-50/80 font-bold text-[#f56b2a]'
+                            : 'hover:bg-gray-50 text-gray-700 font-medium'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 truncate mr-2">
@@ -222,7 +222,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                           <span className="truncate">{c.name}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] font-mono text-gray-500 font-bold">
+                          <span className="text-[11px] font-mono text-gray-500 font-semibold">
                             {c.dialCode}
                           </span>
                           {isSelected && <Check size={14} className="text-[#f56b2a]" />}
@@ -231,7 +231,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                     );
                   })
                 ) : (
-                  <div className="py-6 text-center text-xs text-gray-400 font-medium">
+                  <div className="py-6 text-center text-xs text-gray-400 font-normal">
                     Aucun pays trouvé
                   </div>
                 )}
@@ -252,12 +252,12 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           value={nationalDigits}
           onChange={handleInputChange}
           placeholder={placeholder || selectedCountry.placeholder || 'Numéro de téléphone'}
-          className={`w-full px-3.5 py-3 md:py-3.5 bg-transparent text-sm font-bold text-gray-800 placeholder-gray-400 outline-none rounded-r-2xl transition-all ${inputClassName}`}
+          className={`w-full px-3.5 py-3 md:py-3.5 bg-transparent text-sm font-semibold text-gray-800 placeholder-gray-400 outline-none rounded-r-2xl transition-all ${inputClassName}`}
         />
       </div>
 
       {showErrorText && errorMessage && (
-        <p className="text-[10px] font-bold text-red-500 mt-1 px-1">{errorMessage}</p>
+        <p className="text-[10px] font-semibold text-red-500 mt-1 px-1">{errorMessage}</p>
       )}
     </div>
   );

@@ -35,15 +35,15 @@ const CartItem: React.FC<CartItemProps> = memo(({ item, onUpdateQuantity, onRemo
       <div className="flex-grow min-w-0">
         <div className="flex justify-between items-start gap-1.5 px-0.5">
           <div className="min-w-0 flex-grow">
-            <h4 className="text-[11px] md:text-xs font-bold text-gray-800 truncate leading-none mb-1">
+            <h4 className="text-[11px] md:text-xs font-semibold text-gray-800 truncate leading-none mb-1">
               {item.product.name}
             </h4>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[9px] text-[#f56b2a] font-black bg-orange-50 px-1 rounded leading-none py-0.5 whitespace-nowrap">
+              <span className="text-[9px] text-[#f56b2a] font-bold bg-orange-50 px-1 rounded leading-none py-0.5 whitespace-nowrap">
                 {formatCurrency(item.product.price)}
-                {item.product.unit && item.product.unit !== 'pièce' && <span className="text-gray-400 font-medium ml-0.5">/{item.product.unit}</span>}
+                {item.product.unit && item.product.unit !== 'pièce' && <span className="text-gray-400 font-normal ml-0.5">/{item.product.unit}</span>}
               </span>
-              <span className="text-[10px] font-black text-gray-900 border-l border-gray-100 pl-1.5">
+              <span className="text-[10px] font-bold text-gray-900 border-l border-gray-100 pl-1.5">
                 {formatCurrency(item.product.price * item.quantity)}
               </span>
             </div>
@@ -64,7 +64,7 @@ const CartItem: React.FC<CartItemProps> = memo(({ item, onUpdateQuantity, onRemo
             >
               <Minus size={10} />
             </button>
-            <span className="px-2 min-w-[1.5rem] text-center text-[10px] md:text-xs font-black text-gray-800 leading-none">
+            <span className="px-2 min-w-[1.5rem] text-center text-[10px] md:text-xs font-bold text-gray-800 leading-none">
               {item.quantity}
             </span>
             <button

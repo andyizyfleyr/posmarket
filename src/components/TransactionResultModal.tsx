@@ -133,7 +133,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
           </div>
 
           {/* Status Title */}
-          <h3 className={`text-xl md:text-2xl font-black tracking-tight mb-1.5 ${
+          <h3 className={`text-xl md:text-2xl font-bold tracking-tight mb-1.5 ${
             status === 'success' ? 'text-emerald-700' :
             status === 'error' ? 'text-red-600' :
             status === 'cancelled' ? 'text-amber-700' :
@@ -148,7 +148,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
           </h3>
 
           {/* Subtitle / Explanation */}
-          <p className="text-xs md:text-sm font-medium text-slate-500 mb-6 max-w-xs leading-relaxed">
+          <p className="text-xs md:text-sm font-normal text-slate-500 mb-6 max-w-xs leading-relaxed">
             {message || (
               status === 'success' ? 'Votre abonnement a été activé avec succès. Toutes vos fonctionnalités sont prêtes.' :
               status === 'error' ? 'La transaction n\'a pas pu être validée par l\'opérateur.' :
@@ -160,15 +160,15 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
           {/* Prominent Amount Box */}
           {typeof amount === 'number' && amount > 0 && (
             <div className="w-full bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100 flex flex-col items-center justify-center">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Montant Total</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Montant Total</span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                <span className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
                   {formatCurrency(amount).replace(/\s*FCFA/i, '').trim()}
                 </span>
-                <span className="text-xs font-black text-slate-500">{currency}</span>
+                <span className="text-xs font-bold text-slate-500">{currency}</span>
               </div>
               {tier && (
-                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100/70 border border-orange-200/60 text-orange-700 text-[11px] font-extrabold">
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100/70 border border-orange-200/60 text-orange-700 text-[11px] font-bold">
                   <span>Formule {tier}</span>
                   <span className="text-orange-400">•</span>
                   <span>{duration === 'annual' ? 'Annuel' : duration === 'quarterly' ? 'Trimestriel' : 'Mensuel'}</span>
@@ -182,7 +182,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
             {status === 'success' && (
               <button
                 onClick={onClose}
-                className="w-full py-3.5 px-6 rounded-2xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-3.5 px-6 rounded-2xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <span>Accéder à mon espace</span>
                 <ArrowRight size={16} />
@@ -194,7 +194,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
                 {onRetry && (
                   <button
                     onClick={onRetry}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <RefreshCw size={16} />
                     <span>Réessayer le paiement</span>
@@ -205,14 +205,14 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
                     href="https://wa.me/?text=Bonjour%20PosMarket%2C%20j%27ai%20besoin%20d%27assistance%20pour%20mon%20paiement%20d%27abonnement."
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                    className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <MessageCircle size={14} className="text-emerald-600" />
                     <span>Aide WhatsApp</span>
                   </a>
                   <button
                     onClick={onClose}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
                   >
                     Fermer
                   </button>

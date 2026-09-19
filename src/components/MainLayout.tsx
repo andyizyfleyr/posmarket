@@ -124,11 +124,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
             <Lock size={36} />
           </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Abonnement Requis</h2>
-          <p className="text-slate-500 mb-8 font-medium">Un abonnement est désormais <span className="text-red-500 font-bold">obligatoire</span> pour utiliser le Point de Vente et gérer votre commerce. Veuillez choisir une formule pour activer votre compte.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Abonnement Requis</h2>
+          <p className="text-slate-500 mb-8 font-normal">Un abonnement est désormais <span className="text-red-500 font-semibold">obligatoire</span> pour utiliser le Point de Vente et gérer votre commerce. Veuillez choisir une formule pour activer votre compte.</p>
           <button
             onClick={() => { window.location.href = '/subscription'; }}
-            className="w-full bg-[#f56b2a] hover:bg-[#d55a20] text-white font-black py-4 px-6 rounded-xl transition-all shadow-lg shadow-orange-200 active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full bg-[#f56b2a] hover:bg-[#d55a20] text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg shadow-orange-200 active:scale-[0.98] flex items-center justify-center gap-2"
           >
             Voir les offres <ArrowRight size={20} />
           </button>
@@ -163,12 +163,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                         {isRejected ? <Ban size={20} strokeWidth={2.5} /> : <Clock size={20} strokeWidth={2.5} />}
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none mb-2">
+                        <h1 className="text-xl font-semibold text-slate-900 tracking-tight leading-none mb-2">
                             {isRejected ? 'Boutique Refusée' : 'Vérification de compte'}
                         </h1>
                         <div className="flex items-center gap-2">
                             <div className={`w-1.5 h-1.5 rounded-full ${isRejected ? 'bg-red-500' : 'bg-[#f56b2a] animate-pulse'}`} />
-                            <span className="text-[10px] font-bold text-[#f56b2a] uppercase tracking-widest">
+                            <span className="text-[10px] font-semibold text-[#f56b2a] uppercase tracking-widest">
                                 Statut : {isRejected ? 'Refusée' : 'En examen'}
                             </span>
                         </div>
@@ -177,11 +177,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
                  {/* Message */}
                  <div className="mb-12">
-                    <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                    <p className="text-[13px] text-slate-500 font-normal leading-relaxed">
                         {isRejected ? (
-                            <>Votre boutique <span className="text-slate-900 font-bold">&quot;{currentStore.name || 'Sans nom'}&quot;</span> n&apos;a pas pu être activée après examen de nos services de sécurité.</>
+                            <>Votre boutique <span className="text-slate-900 font-semibold">&quot;{currentStore.name || 'Sans nom'}&quot;</span> n&apos;a pas pu être activée après examen de nos services de sécurité.</>
                         ) : (
-                            <>Bienvenue, <span className="text-slate-900 font-bold">&quot;{currentStore.name || 'Sans nom'}&quot;</span>. Votre boutique est en cours de validation. Pour accélérer le processus, veuillez compléter les informations ci-dessous.</>
+                            <>Bienvenue, <span className="text-slate-900 font-semibold">&quot;{currentStore.name || 'Sans nom'}&quot;</span>. Votre boutique est en cours de validation. Pour accélérer le processus, veuillez compléter les informations ci-dessous.</>
                         )}
                     </p>
                  </div>
@@ -200,12 +200,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
                         {activeStep === 1 && (
                             <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                <label className="text-[11px] font-bold text-slate-900 flex items-center gap-2">Email professionnel</label>
+                                <label className="text-[11px] font-semibold text-slate-900 flex items-center gap-2">Email professionnel</label>
                                 <div className="relative group">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#f56b2a] transition-colors"><Mail size={14} /></div>
                                     <input 
                                         type="email"
-                                        className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#f56b2a]/10 focus:border-[#f56b2a] outline-none transition-all"
+                                        className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-normal focus:ring-2 focus:ring-[#f56b2a]/10 focus:border-[#f56b2a] outline-none transition-all"
                                         placeholder="contact@boutique.com"
                                         value={formData.email}
                                         onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -216,7 +216,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
                         {activeStep === 2 && (
                             <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                <label className="text-[11px] font-bold text-slate-900 flex items-center gap-2">Numéro WhatsApp</label>
+                                <label className="text-[11px] font-semibold text-slate-900 flex items-center gap-2">Numéro WhatsApp</label>
                                 <PhoneInput
                                     value={formData.phone}
                                     onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
@@ -226,7 +226,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
                         {activeStep === 3 && (
                             <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                <label className="text-[11px] font-bold text-slate-900 flex items-center gap-2">Pays de résidence</label>
+                                <label className="text-[11px] font-semibold text-slate-900 flex items-center gap-2">Pays de résidence</label>
                                 <CountrySelect
                                     value={formData.address}
                                     onChange={(name) => setFormData(prev => ({ ...prev, address: name }))}
@@ -236,12 +236,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
                         {activeStep === 4 && (
                             <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                <label className="text-[11px] font-bold text-slate-900 flex items-center gap-2">Description courte</label>
+                                <label className="text-[11px] font-semibold text-slate-900 flex items-center gap-2">Description courte</label>
                                 <div className="relative group">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#f56b2a] transition-colors"><FileText size={14} /></div>
                                     <input 
                                         type="text"
-                                        className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#f56b2a]/10 focus:border-[#f56b2a] outline-none transition-all"
+                                        className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-normal focus:ring-2 focus:ring-[#f56b2a]/10 focus:border-[#f56b2a] outline-none transition-all"
                                         placeholder="Votre activité..."
                                         value={formData.description}
                                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -254,7 +254,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                             {activeStep > 1 && (
                                 <button 
                                     onClick={() => setActiveStep(prev => prev - 1)}
-                                    className="px-6 h-12 rounded-xl font-bold text-[13px] border border-slate-200 text-slate-400 hover:bg-slate-50 transition-all"
+                                    className="px-6 h-12 rounded-xl font-semibold text-[13px] border border-slate-200 text-slate-400 hover:bg-slate-50 transition-all"
                                 >
                                     Retour
                                 </button>
@@ -262,7 +262,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                             {activeStep < 4 ? (
                                 <button 
                                     onClick={() => setActiveStep(prev => prev + 1)}
-                                    className="flex-1 h-12 rounded-xl font-bold text-[13px] bg-slate-900 text-white hover:bg-slate-800 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                    className="flex-1 h-12 rounded-xl font-semibold text-[13px] bg-slate-900 text-white hover:bg-slate-800 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
                                     Suivant <ArrowRight size={16} />
                                 </button>
@@ -273,7 +273,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                                         setTimeout(() => { window.location.reload(); }, 1500);
                                     }}
                                     disabled={isSavingForm}
-                                    className={`flex-1 h-12 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 ${isSavingForm ? 'bg-[#f56b2a]/50' : 'bg-[#f56b2a] text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100'}`}
+                                    className={`flex-1 h-12 rounded-xl font-semibold text-[13px] transition-all flex items-center justify-center gap-2 ${isSavingForm ? 'bg-[#f56b2a]/50' : 'bg-[#f56b2a] text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100'}`}
                                 >
                                     {isSavingForm ? <Loader size="sm" /> : <Save size={16} />}
                                     Finaliser
@@ -287,16 +287,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                      <div className="bg-orange-50/30 rounded-xl p-8 border border-orange-100 text-left space-y-4 animate-in zoom-in-95 duration-500">
                          <div className="flex items-center gap-3">
                              <CheckCircle2 size={18} className="text-[#f56b2a]" strokeWidth={2.5} />
-                             <h3 className="text-sm font-bold text-[#f56b2a]">Dossier finalisé</h3>
+                             <h3 className="text-sm font-semibold text-[#f56b2a]">Dossier finalisé</h3>
                          </div>
-                         <p className="text-[#f56b2a]/80 text-[13px] font-medium leading-relaxed italic">
+                         <p className="text-[#f56b2a]/80 text-[13px] font-normal leading-relaxed italic">
                             Informations bien reçues. Votre boutique apparaîtra sur la marketplace dès sa validation par un modérateur.
                          </p>
                          
                          <div className="pt-4 border-t border-orange-100 mt-4">
                             <button 
                                 onClick={() => { onViewChange('settings'); }} 
-                                className="w-full h-11 rounded-lg font-bold text-[11px] uppercase tracking-widest bg-[#f56b2a] text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100 transition-all flex items-center justify-center gap-2 group"
+                                className="w-full h-11 rounded-lg font-semibold text-[11px] uppercase tracking-widest bg-[#f56b2a] text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100 transition-all flex items-center justify-center gap-2 group"
                             >
                                 Paramètres complets <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </button>
@@ -309,7 +309,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     <div className="pt-8 mt-12 border-t border-slate-100 flex flex-col gap-4">
                         <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-ping" />
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none">
                                 Validation estimée sous : <span className="text-slate-900 border-b border-[#f56b2a] pb-0.5">12 Heures</span>
                             </p>
                         </div>
@@ -366,7 +366,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         <div className="fixed inset-0 z-[9999] bg-slate-900/20 backdrop-blur-[1px] flex items-center justify-center animate-in fade-in duration-200">
           <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4">
             <Loader size="lg" />
-            <p className="text-sm font-black text-slate-800 uppercase tracking-widest">Enregistrement...</p>
+            <p className="text-sm font-bold text-slate-800 uppercase tracking-widest">Enregistrement...</p>
           </div>
         </div>
       )}

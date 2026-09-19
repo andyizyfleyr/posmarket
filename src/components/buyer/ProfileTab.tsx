@@ -108,7 +108,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   };
 
   const inputClass = (hasError?: string) =>
-    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-bold outline-none transition-all focus:ring-2 ${
+    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-semibold outline-none transition-all focus:ring-2 ${
       hasError
         ? 'border-red-200 focus:ring-red-200/30'
         : 'border-transparent focus:ring-[#f56b2a]/20'
@@ -118,18 +118,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     <div className="space-y-4">
       <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-5 space-y-5">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-orange-200/50">
+          <div className="w-14 h-14 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-200/50">
             {(user.name || 'U')[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-[#002f34] truncate">{user.name}</p>
-            <p className="text-[10px] text-gray-400 font-bold">Membre Marketplace</p>
+            <p className="text-sm font-bold text-[#002f34] truncate">{user.name}</p>
+            <p className="text-[10px] text-gray-400 font-semibold">Membre Marketplace</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 px-1">
+            <label className="text-[10px] font-semibold text-gray-400 px-1">
               Nom d&apos;affichage
             </label>
             <div className="relative">
@@ -145,20 +145,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               />
             </div>
             {validation.name && (
-              <p className="text-[10px] font-bold text-red-400 px-1">{validation.name}</p>
+              <p className="text-[10px] font-semibold text-red-400 px-1">{validation.name}</p>
             )}
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 px-1">E-mail</label>
-            <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs font-semibold text-gray-500 flex items-center gap-2">
+            <label className="text-[10px] font-semibold text-gray-400 px-1">E-mail</label>
+            <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs font-medium text-gray-500 flex items-center gap-2">
               <Mail size={14} />
               <span className="truncate">{user.email}</span>
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 px-1">
+            <label className="text-[10px] font-semibold text-gray-400 px-1">
               Numéro de téléphone
             </label>
             <PhoneInput
@@ -172,7 +172,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           <button
             type="submit"
             disabled={saving || loadingProfile}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#f56b2a] text-white rounded-2xl font-black text-xs shadow-md shadow-orange-100 hover:bg-[#e55a1b] active:scale-[0.98] transition-all disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#f56b2a] text-white rounded-2xl font-bold text-xs shadow-md shadow-orange-100 hover:bg-[#e55a1b] active:scale-[0.98] transition-all disabled:opacity-60"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Enregistrer mes informations
@@ -183,7 +183,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-4">
         <button
           onClick={onLogout}
-          className="flex items-center gap-2 w-full py-3 px-3 bg-red-50 text-red-500 font-bold text-xs rounded-xl border border-red-100 active:bg-red-100 active:scale-[0.98] transition-all"
+          className="flex items-center gap-2 w-full py-3 px-3 bg-red-50 text-red-500 font-semibold text-xs rounded-xl border border-red-100 active:bg-red-100 active:scale-[0.98] transition-all"
         >
           <LogOut size={18} />
           Me déconnecter

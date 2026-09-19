@@ -600,6 +600,40 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     [navigate, location.pathname],
   );
 
+  // ⬅️ Retour fiable : mémorise la page précédente (survit au reload via
+  // sessionStorage) pour y revenir immédiatement, sans overlay, au lieu
+  // d'aller n'importe où ou de quitter l'app.
+  const PREV_PAGE_KEY = "posmarket_prev_page";
+  const CURRENT_PAGE_KEY = "posmarket_current_page";
+
+  useEffect(() => {
+    const key = `${location.pathname}${location.search}`;
+    try {
+      const currentKey = sessionStorage.getItem(CURRENT_PAGE_KEY);
+      if (currentKey !== key) {
+        sessionStorage.setItem(PREV_PAGE_KEY, currentKey || "");
+        sessionStorage.setItem(CURRENT_PAGE_KEY, key);
+      }
+    } catch {}
+  }, [location.pathname, location.search]);
+
+  const handleGoBack = useCallback(
+    (fallback: string, fallbackAction?: () => void) => {
+      const key = `${location.pathname}${location.search}`;
+      let prevKey: string | null = null;
+      try {
+        prevKey = sessionStorage.getItem(PREV_PAGE_KEY);
+      } catch {}
+      if (prevKey && prevKey !== key) {
+        navigate(prevKey);
+      } else {
+        fallbackAction?.();
+        navigate(fallback);
+      }
+    },
+    [navigate, location.pathname, location.search],
+  );
+
   // 🔄 Dynamique: Couper le loader quand pathname change ET contenu visible
   useEffect(() => {
     if (!isNavigating || navCompletedRef.current) return;
@@ -2053,10 +2087,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
               <Store size={30} />
             </div>
-            <p className="text-base font-black text-gray-900">
+            <p className="text-base font-bold text-gray-900">
               Boutique introuvable
             </p>
-            <p className="text-xs text-gray-500 font-bold mt-1 max-w-[280px]">
+            <p className="text-xs text-gray-500 font-semibold mt-1 max-w-[280px]">
               Cette boutique n&apos;existe pas ou n&apos;est plus disponible.
             </p>
             <Button
@@ -2126,14 +2160,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div className="absolute -right-14 -top-20 w-56 h-56 rounded-full border-[24px] border-white/10" />
             <div className="absolute -left-10 -bottom-24 w-48 h-48 rounded-full border-[18px] border-white/10" />
             <button
-              onClick={() => {
-                safeNavigate("/", {
-                  action: () => {
-                    setSearchTerm("");
-                    setSelectedCategory("all");
-                  },
-                });
-              }}
+              onClick={() =>
+                handleGoBack("/", () => {
+                  setSearchTerm("");
+                  setSelectedCategory("all");
+                })
+              }
               aria-label="Retour au marché"
               className="absolute top-2.5 left-3 z-30 w-11 h-11 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
             >
@@ -2167,7 +2199,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
               <div className="flex-grow min-w-0 pb-1">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <h1 className="text-lg md:text-2xl font-black text-gray-900 truncate">
+                  <h1 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
                     {selectedStore.settings.name}
                   </h1>
                   <ShieldCheck
@@ -2178,10 +2210,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star size={12} fill="currentColor" className="text-yellow-400" />
-                  <span className="text-xs font-black text-gray-900">
+                  <span className="text-xs font-bold text-gray-900">
                     {(selectedStore.rating || 0).toFixed(1)}
                   </span>
-                  <span className="text-[11px] font-bold text-gray-400">
+                  <span className="text-[11px] font-semibold text-gray-400">
                     ({formatNumber(reviewCountTotal)} avis)
                   </span>
                 </div>
@@ -2189,7 +2221,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </div>
 
             {/* Meta line */}
-            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap text-[11px] font-bold text-gray-400">
+            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap text-[11px] font-semibold text-gray-400">
               {(() => {
                 const countryValue =
                   selectedStore.address || selectedStore.settings?.address;
@@ -2217,7 +2249,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             {descriptionText.length > 90 && (
               <button
                 onClick={() => setStoreDescExpanded((v) => !v)}
-                className="mt-0.5 text-[11px] font-black text-[#f56b2a]"
+                className="mt-0.5 text-[11px] font-bold text-[#f56b2a]"
               >
                 {storeDescExpanded ? "Réduire" : "Voir plus"}
               </button>
@@ -2229,7 +2261,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 href={`https://wa.me/${waDigits}?text=${encodeURIComponent(`Bonjour ${selectedStore.settings.name}, je vous contacte depuis PosMarket.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full h-11 mt-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-all active:scale-[0.97]"
+                className="w-full h-11 mt-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-all active:scale-[0.97]"
               >
                 <MessageCircle size={16} />
                 Contacter
@@ -2240,26 +2272,26 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           {/* Stats strip */}
           <div className="grid grid-cols-3 divide-x divide-gray-200/60 border-t border-gray-100 bg-gray-50/60">
             <div className="py-2.5 px-2 flex flex-col items-center">
-              <span className="text-sm md:text-xl font-black text-gray-900 leading-none">
+              <span className="text-sm md:text-xl font-bold text-gray-900 leading-none">
                 {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
               </span>
-              <span className="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+              <span className="text-[8px] md:text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
                 Produits
               </span>
             </div>
             <div className="py-2.5 px-2 flex flex-col items-center">
-              <span className="text-sm md:text-xl font-black text-gray-900 leading-none">
+              <span className="text-sm md:text-xl font-bold text-gray-900 leading-none">
                 {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
               </span>
-              <span className="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+              <span className="text-[8px] md:text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
                 Visiteurs
               </span>
             </div>
             <div className="py-2.5 px-2 flex flex-col items-center">
-              <span className="text-sm md:text-xl font-black text-gray-900 leading-none">
+              <span className="text-sm md:text-xl font-bold text-gray-900 leading-none">
                 {(selectedStore.rating || 0).toFixed(1)}/5
               </span>
-              <span className="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+              <span className="text-[8px] md:text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
                 Note
               </span>
             </div>
@@ -2331,7 +2363,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     <div className="flex flex-col bg-gray-50/50 font-sans md:min-h-screen md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
       {!isOnline && (
-        <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
+        <div className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
           Vous êtes hors ligne • Reconnexion en cours...
         </div>
       )}
@@ -2353,7 +2385,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             user={{ id: user.id, name: user.name, email: user.email }}
             accountTab={location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0] || 'commandes'}
             onBack={() => {
-              if (isAccountViewUrl) safeNavigate("/");
+              if (isAccountViewUrl) handleGoBack("/");
               else setIsAccountView(false);
             }}
             notify={localNotify}
@@ -2388,7 +2420,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <span className="text-[11px] font-black text-gray-900 uppercase tracking-[0.3em] animate-pulse">
+              <span className="text-[11px] font-bold text-gray-900 uppercase tracking-[0.3em] animate-pulse">
                 Chargement
               </span>
               <div className="flex gap-1.5">
@@ -2432,10 +2464,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base md:text-2xl font-black tracking-tight leading-none text-gray-900">
+                  <span className="text-base md:text-2xl font-bold tracking-tight leading-none text-gray-900">
                     Pos<span className="text-[#f56b2a]">Market</span>
                   </span>
-                  <span className="hidden md:block text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] leading-none mt-1">
+                  <span className="hidden md:block text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] leading-none mt-1">
                     Local & Express
                   </span>
                 </div>
@@ -2464,12 +2496,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     placeholder="Chercher un produit, une boutique..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-transparent py-3 px-3 text-sm font-bold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none"
+                    className="w-full bg-transparent py-3 px-3 text-sm font-semibold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none"
                   />
                   <button
                     type="submit"
                     aria-label="Lancer la recherche"
-                    className="bg-[#f56b2a] hover:bg-[#d55a20] active:bg-[#c04e15] text-white px-6 py-3 font-black text-sm transition-all cursor-pointer select-none"
+                    className="bg-[#f56b2a] hover:bg-[#d55a20] active:bg-[#c04e15] text-white px-6 py-3 font-bold text-sm transition-all cursor-pointer select-none"
                   >
                     Rechercher
                   </button>
@@ -2503,7 +2535,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       strokeWidth={2.5}
                     />
                     {cartItemsCount > 0 && (
-                      <div key={cartItemsCount} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black text-white animate-pop">
+                      <div key={cartItemsCount} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white animate-pop">
                         {cartItemsCount}
                       </div>
                     )}
@@ -2529,10 +2561,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <User size={18} strokeWidth={3} />
                     </div>
                     <div className="hidden md:flex flex-col items-start leading-none pr-1">
-                      <span className="text-[9px] font-black uppercase tracking-wider opacity-60 mb-0.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider opacity-60 mb-0.5">
                         {user ? "Mon Compte" : "Bienvenue"}
                       </span>
-                      <span className="text-xs font-black truncate max-w-[100px]">
+                      <span className="text-xs font-bold truncate max-w-[100px]">
                         {user ? user.name : "Se connecter"}
                       </span>
                     </div>
@@ -2557,7 +2589,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onFocus={() => setIsSearchOpen(true)}
-                  className="w-full bg-transparent py-2 px-3 text-[11px] font-bold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none cursor-pointer"
+                  className="w-full bg-transparent py-2 px-3 text-[11px] font-semibold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none cursor-pointer"
                 />
               </div>
             </div>
@@ -2581,7 +2613,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       safeNavigate("/");
                     }
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
                     selectedCategory === cat
                       ? cat === WHOLESALE_FILTER
                         ? "bg-gradient-to-r from-[#f56b2a] to-orange-500 border-[#f56b2a] text-white shadow-md shadow-orange-500/20"
@@ -2603,7 +2635,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               ))}
                 <button
                   onClick={() => setIsBulkOrderOpen(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-sm active:scale-95 whitespace-nowrap ml-1 flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-[10px] uppercase tracking-wider transition-all shadow-sm active:scale-95 whitespace-nowrap ml-1 flex-shrink-0"
                 >
                   <Zap size={12} fill="currentColor" className="flex-shrink-0" />
                   Commande rapide
@@ -2638,14 +2670,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       className="text-green-500"
                       strokeWidth={3}
                     />
-                    <span className="text-[9px] font-black text-green-600 uppercase tracking-widest leading-none">
+                    <span className="text-[9px] font-bold text-green-600 uppercase tracking-widest leading-none">
                       Ajouté au panier
                     </span>
                   </div>
-                  <p className="text-[11px] font-bold text-gray-900 truncate leading-snug">
+                  <p className="text-[11px] font-semibold text-gray-900 truncate leading-snug">
                     {lastAddedProduct.name}
                   </p>
-                  <p className="text-[11px] font-black text-[#f56b2a] mt-0.5">
+                  <p className="text-[11px] font-bold text-[#f56b2a] mt-0.5">
                     {formatCurrency(Number(lastAddedProduct.price) || 0)}
                   </p>
                 </div>
@@ -2696,7 +2728,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 placeholder="Chercher un produit, une boutique..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-50 pl-10 pr-4 py-3 rounded-2xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-100 no-global-border border-none"
+                className="w-full bg-gray-50 pl-10 pr-4 py-3 rounded-2xl font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-100 no-global-border border-none"
               />
               {searchTerm && (
                 <button
@@ -2732,7 +2764,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   </svg>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-gray-800 truncate leading-tight">
+                    <p className="text-[12px] font-medium text-gray-800 truncate leading-tight">
                       {highlightSegments(s.name, searchTerm).map((seg, j) =>
                         seg.highlight
                           ? <mark key={j} style={{ background: '#fff3ed', color: '#f56b2a', borderRadius: 3, padding: '0 2px', fontWeight: 800, fontStyle: 'normal' }}>{seg.text}</mark>
@@ -2759,7 +2791,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Stores Results */}
                 {globalSearchStores.length > 0 && (
                   <div className="  duration-500">
-                    <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                       <Store size={12} /> Boutiques ({globalSearchStores.length}
                       )
                     </h3>
@@ -2790,11 +2822,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               <Store className="text-[#f56b2a]" size={28} />
                             )}
                           </div>
-                          <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
+                          <h3 className="font-semibold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
                             {store.settings?.name || "Boutique"}
                           </h3>
                           <div className="flex flex-col gap-0.5">
-                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">
+                            <p className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter">
                               {
                                 (store.products || []).filter(
                                   (p) => p.isOnline !== false && p.image,
@@ -2802,7 +2834,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               }{" "}
                               PROD.
                             </p>
-                            <p className="text-[9px] text-[#f56b2a] font-black tracking-wider">
+                            <p className="text-[9px] text-[#f56b2a] font-bold tracking-wider">
                               @{(store.slug || "boutique").toLowerCase()}
                             </p>
                           </div>
@@ -2815,7 +2847,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Products Results (FTS Powered) */}
                 {(isSearching || ftsResults.length > 0) ? (
                   <div className="  duration-500 ">
-                    <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                       <ShoppingCart size={12} />
                       {isSearching ? (
                         <span className="flex items-center gap-1.5">
@@ -2881,10 +2913,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         style={{ background: 'linear-gradient(135deg, #fff3ed, #ffe8d6)' }}>
                         <Search size={26} className="text-orange-400" />
                       </div>
-                      <p className="text-gray-800 font-black text-[15px] mb-2">
+                      <p className="text-gray-800 font-bold text-[15px] mb-2">
                         Aucun résultat pour « {searchTerm} »
                       </p>
-                      <p className="text-gray-500 text-[12px] font-medium leading-relaxed">
+                      <p className="text-gray-500 text-[12px] font-normal leading-relaxed">
                         Essayez un autre mot, vérifiez l&apos;orthographe ou cherchez par catégorie.
                       </p>
                     </div>
@@ -2897,7 +2929,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {recentSearches.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-1.5">
+                      <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5">
                         <RotateCcw size={12} /> Recherches récentes
                       </h3>
                       <button
@@ -2905,7 +2937,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           localStorage.removeItem(RECENT_SEARCHES_KEY);
                           setRecentSearches([]);
                         }}
-                        className="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+                        className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
                       >
                         Effacer
                       </button>
@@ -2918,7 +2950,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             setSearchTerm(term);
                             setRecentSearches(saveRecentSearch(term));
                           }}
-                          className="px-3.5 py-2 bg-white hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-bold text-gray-600 border border-gray-100 transition-all active:scale-95"
+                          className="px-3.5 py-2 bg-white hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-semibold text-gray-600 border border-gray-100 transition-all active:scale-95"
                         >
                           {term}
                         </button>
@@ -2926,7 +2958,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     </div>
                   </div>
                 )}
-                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
                   <Zap
                     size={12}
                     className="text-orange-500"
@@ -2949,7 +2981,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setSearchTerm(tag);
                         setRecentSearches(saveRecentSearch(tag));
                       }}
-                      className="px-4 py-2 bg-gray-50 hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-bold text-gray-600 border border-gray-100 transition-all active:scale-95"
+                      className="px-4 py-2 bg-gray-50 hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-semibold text-gray-600 border border-gray-100 transition-all active:scale-95"
                     >
                       {tag}
                     </button>
@@ -2992,14 +3024,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <div className="absolute -left-10 bottom-0 w-40 h-40 bg-blue-100/40 rounded-full blur-3xl" />
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-3 py-1 rounded-full mb-4 font-black text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-[#f56b2a] uppercase tracking-widest">
                               <Zap size={12} fill="currentColor" /> Offre Commerçant
                             </div>
-                            <h2 className="text-[26px] md:text-[38px] font-black text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               C&apos;est le moment <br className="hidden md:block" />
                               <span className="text-[#f56b2a]">de vendre</span>
                             </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-semibold mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Boostez votre visibilité et attirez plus de clients
                               dès aujourd&apos;hui.
                             </p>
@@ -3026,14 +3058,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-blue-400/8 rounded-full blur-3xl" />
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-blue-500/10 px-3 py-1 rounded-full mb-4 font-black text-[10px] text-blue-600 uppercase tracking-widest">
+                            <div className="inline-flex items-center gap-1.5 bg-blue-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-blue-600 uppercase tracking-widest">
                               <ShieldCheck size={12} /> Gestion Pro
                             </div>
-                            <h2 className="text-[26px] md:text-[38px] font-black text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               Gérez votre <br className="hidden md:block" />
                               <span className="text-blue-500">stock facilement</span>
                             </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-semibold mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Un inventaire synchronisé et des alertes
                               automatiques pour ne jamais manquer une vente.
                             </p>
@@ -3060,14 +3092,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-red-400/8 rounded-full blur-3xl" />
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full mb-4 font-black text-[10px] text-red-500 uppercase tracking-widest">
+                            <div className="inline-flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-red-500 uppercase tracking-widest">
                               <Heart size={12} fill="currentColor" /> Communauté
                             </div>
-                            <h2 className="text-[26px] md:text-[38px] font-black text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               Rejoignez <br className="hidden md:block" />
                               <span className="text-red-500">le succès</span>
                             </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-semibold mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Faites partie des 500+ commerçants qui ont déjà
                               transformé leur manière de vendre.
                             </p>
@@ -3112,7 +3144,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   selectedCategory === "all" &&
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
-                      <h2 className="text-xl font-black text-gray-900 mb-4 md:mb-6 tracking-tight">
+                      <h2 className="text-xl font-bold text-gray-900 mb-4 md:mb-6 tracking-tight">
                         Boutiques partenaires
                       </h2>
                       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
@@ -3140,19 +3172,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <h3 className="font-bold text-gray-900 text-[12px] leading-tight line-clamp-1">
+                                  <h3 className="font-semibold text-gray-900 text-[12px] leading-tight line-clamp-1">
                                     {store.settings?.name || "Boutique"}
                                   </h3>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
-                                <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-semibold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
                                   {(store.products || []).filter(
                                     (p) => p.isOnline !== false && p.image,
                                   ).length}{" "}
                                   prod.
                                 </span>
-                                <span className="text-[10px] font-bold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-md">
+                                <span className="text-[10px] font-semibold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-md">
                                   {formatNumber((store.views || 0) +
                                     (store.products?.reduce(
                                       (sum, p) => sum + (p.views || 0),
@@ -3171,7 +3203,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Résultats boutiques (Mode recherche) */}
                 {searchTerm && globalSearchStores.length > 0 && (
                   <div className="mb-12    duration-500">
-                    <h2 className="text-lg font-black text-gray-900 mb-6 tracking-tight flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-gray-900 mb-6 tracking-tight flex items-center gap-2">
                       <Store className="text-[#f56b2a]" size={20} /> Boutiques
                       trouvées ({globalSearchStores.length})
                     </h2>
@@ -3197,11 +3229,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               <Store className="text-[#f56b2a]" size={28} />
                             )}
                           </div>
-                          <h3 className="font-bold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
+                          <h3 className="font-semibold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
                             {store.settings?.name || "Boutique"}
                           </h3>
                           <div className="flex flex-col gap-0.5">
-                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">
+                            <p className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter">
                               {
                                 (store.products || []).filter(
                                   (p) => p.isOnline !== false && p.image,
@@ -3209,7 +3241,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               }{" "}
                               PROD.
                             </p>
-                            <p className="text-[9px] text-[#f56b2a] font-black tracking-wider">
+                            <p className="text-[9px] text-[#f56b2a] font-bold tracking-wider">
                               @{(store.slug || "boutique").toLowerCase()}
                             </p>
                           </div>
@@ -3223,7 +3255,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     car le header « ← Catégorie · N produits » fait déjà foi */}
                 {!activeHomeCategory && (searchTerm || selectedCategory !== "all") && (
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
                       {searchTerm ? (
                         <>
                           <ShoppingCart className="text-[#f56b2a]" size={20} />{" "}
@@ -3281,11 +3313,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
                             <ChevronLeft size={18} strokeWidth={3} />
                           </span>
-                          <span className="text-base md:text-xl font-black text-gray-900 truncate max-w-[55vw]">
+                          <span className="text-base md:text-xl font-bold text-gray-900 truncate max-w-[55vw]">
                             {activeHomeCategory}
                           </span>
                         </Link>
-                        <span className="text-[11px] font-bold text-gray-400 flex-shrink-0">
+                        <span className="text-[11px] font-semibold text-gray-400 flex-shrink-0">
                           {filteredProducts.length} produits
                         </span>
                       </div>
@@ -3299,13 +3331,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               <Zap size={24} className="text-white fill-white" />
                             </div>
                             <div>
-                              <h3 className="text-base md:text-lg font-black tracking-tight">Espace Vente en Gros & Dégressif</h3>
-                              <p className="text-xs text-orange-100 font-medium">Tarifs dégressifs automatiques dès les quantités minimales atteintes</p>
+                              <h3 className="text-base md:text-lg font-bold tracking-tight">Espace Vente en Gros & Dégressif</h3>
+                              <p className="text-xs text-orange-100 font-normal">Tarifs dégressifs automatiques dès les quantités minimales atteintes</p>
                             </div>
                           </div>
                           <button
                             onClick={() => setIsBulkOrderOpen(true)}
-                            className="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 rounded-xl text-xs font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0"
+                            className="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0"
                           >
                             <Zap size={14} fill="currentColor" />
                             Tableau Commande Rapide
@@ -3400,7 +3432,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             >
                               {showGroupHeader && (
                                 <div className={`flex items-center justify-between gap-3 mb-4`}>
-                                  <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
+                                  <h3 className="text-sm md:text-base font-bold text-gray-900 truncate">
                                     {cat}
                                   </h3>
                                   <button
@@ -3414,7 +3446,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       link.href = catUrl;
                                       document.head.appendChild(link);
                                     }}
-                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
+                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-[#f56b2a] active:opacity-60 transition-opacity"
                                   >
                                     Voir tout
                                     <ChevronRight size={13} strokeWidth={3} />
@@ -3447,7 +3479,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.15s]" />
                             <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce" />
                           </div>
-                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                             Expansion du catalogue...
                           </p>
                         </div>
@@ -3455,7 +3487,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       {!hasMore && pagedProducts.length > 0 && (
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-12 h-1 bg-gray-100 rounded-full" />
-                          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                          <p className="text-[10px] font-semibold text-gray-300 uppercase tracking-widest">
                             Vous avez atteint la fin
                           </p>
                         </div>
@@ -3467,10 +3499,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 ) : activeStores.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-600">
                     <AlertCircle size={64} className="opacity-20 mb-4" />
-                    <p className="text-xl font-black text-gray-600 text-center">
+                    <p className="text-xl font-bold text-gray-600 text-center">
                       Impossible de charger le catalogue.
                     </p>
-                    <p className="text-xs font-bold text-gray-400 mt-2 mb-6">
+                    <p className="text-xs font-semibold text-gray-400 mt-2 mb-6">
                       Vérifiez votre connexion internet puis réessayez.
                     </p>
                     <Button
@@ -3487,10 +3519,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     <Search size={64} className="opacity-20 mb-4" />
                     {searchTerm || selectedCategory !== "all" ? (
                       <>
-                        <p className="text-xl font-black text-gray-600">
+                        <p className="text-xl font-bold text-gray-600">
                           Aucun produit trouvé.
                         </p>
-                        <p className="text-xs font-bold text-gray-400 mt-2 mb-6">
+                        <p className="text-xs font-semibold text-gray-400 mt-2 mb-6">
                           Essayez un autre terme ou élargissez vos filtres.
                         </p>
                         <Button
@@ -3505,7 +3537,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         </Button>
                       </>
                     ) : (
-                      <p className="text-xl font-black text-gray-600">
+                      <p className="text-xl font-bold text-gray-600">
                         Aucun produit trouvé.
                       </p>
                     )}
@@ -3531,13 +3563,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <div className={`grid grid-cols-2 gap-1 p-1 bg-white rounded-[20px] mb-5 max-w-full md:max-w-fit md:flex md:items-center md:mx-0 border border-gray-100/60 sticky top-0 md:static z-30 shadow-sm md:shadow-none ${tabsHidden ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"} transition-all duration-300`}>
                   <button
                     onClick={() => setStoreTab("products")}
-                    className={`px-6 py-3 rounded-[16px] font-black text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
+                    className={`px-6 py-3 rounded-[16px] font-bold text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "products" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
                   >
                     <ShoppingBasketIcon size={14} /> Produits
                   </button>
                   <button
                     onClick={() => setStoreTab("reviews")}
-                    className={`px-6 py-3 rounded-[16px] font-black text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "reviews" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
+                    className={`px-6 py-3 rounded-[16px] font-bold text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 ${storeTab === "reviews" ? "bg-white text-gray-900 shadow-md shadow-gray-200/50" : "text-gray-500 active:bg-gray-200/50"}`}
                   >
                     <Star
                       size={14}
@@ -3562,7 +3594,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         placeholder="Chercher dans cette boutique..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-full font-bold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/40 transition-all no-global-border placeholder:text-gray-400"
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-full font-semibold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/40 transition-all no-global-border placeholder:text-gray-400"
                       />
                     </div>
 
@@ -3573,18 +3605,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           href={location.pathname}
                           onClick={(e) => {
                             e.preventDefault();
-                            safeNavigate(location.pathname);
+                            handleGoBack(location.pathname);
                           }}
                           className="flex items-center gap-2.5 min-w-0 active:opacity-60 transition-opacity"
                         >
                           <span className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
                             <ChevronLeft size={18} strokeWidth={3} />
                           </span>
-                          <span className="text-base md:text-xl font-black text-gray-900 truncate max-w-[55vw]">
+                          <span className="text-base md:text-xl font-bold text-gray-900 truncate max-w-[55vw]">
                             {activeStoreCategory}
                           </span>
                         </a>
-                        <span className="text-[11px] font-bold text-gray-400 flex-shrink-0">
+                        <span className="text-[11px] font-semibold text-gray-400 flex-shrink-0">
                           {filteredProducts.length} produits
                         </span>
                       </div>
@@ -3680,7 +3712,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               >
                                 {showGroupHeader && (
                                   <div className={`flex items-center justify-between gap-3 mb-4`}>
-                                    <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
+                                    <h3 className="text-sm md:text-base font-bold text-gray-900 truncate">
                                       {cat}
                                     </h3>
                                     <button
@@ -3694,7 +3726,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                         link.href = catUrl;
                                         document.head.appendChild(link);
                                       }}
-                                      className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-black text-[#f56b2a] active:opacity-60 transition-opacity"
+                                      className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-[#f56b2a] active:opacity-60 transition-opacity"
                                     >
                                       Voir tout
                                       <ChevronRight size={13} strokeWidth={3} />
@@ -3716,7 +3748,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       ) : !isLoadingMore ? (
                         <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                           <Search size={48} className="text-gray-200 mb-4" />
-                          <p className="text-sm font-bold text-gray-600 uppercase tracking-widest text-center">
+                          <p className="text-sm font-semibold text-gray-600 uppercase tracking-widest text-center">
                             Aucun produit trouvé
                           </p>
                         </div>
@@ -3734,7 +3766,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             size={32}
                             className="text-[#f56b2a] animate-spin"
                           />
-                          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                             Chargement des produits...
                           </p>
                         </div>
@@ -3749,7 +3781,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           size={32}
                           className="text-[#f56b2a] animate-spin mb-4"
                         />
-                        <p className="text-xs font-black text-gray-600 uppercase tracking-widest">
+                        <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">
                           Chargement des avis...
                         </p>
                       </div>
@@ -3771,7 +3803,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           return (
                             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 flex items-center gap-5">
                               <div className="text-center flex-shrink-0">
-                                <p className="text-3xl md:text-4xl font-black text-gray-900 leading-none">
+                                <p className="text-3xl md:text-4xl font-bold text-gray-900 leading-none">
                                   {avg.toFixed(1)}
                                 </p>
                                 <div className="flex gap-0.5 justify-center mt-1.5">
@@ -3792,7 +3824,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     />
                                   ))}
                                 </div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mt-1">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
                                   {storeReviews.length} avis
                                 </p>
                               </div>
@@ -3802,7 +3834,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     key={n}
                                     className="flex items-center gap-2"
                                   >
-                                    <span className="text-[9px] font-black text-gray-400 w-6 text-right flex items-center justify-end gap-0.5">
+                                    <span className="text-[9px] font-bold text-gray-400 w-6 text-right flex items-center justify-end gap-0.5">
                                       {n}<Star size={8} fill="currentColor" />
                                     </span>
                                     <div className="flex-grow h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -3813,7 +3845,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                         }}
                                       />
                                     </div>
-                                    <span className="text-[9px] font-bold text-gray-400 w-4">
+                                    <span className="text-[9px] font-semibold text-gray-400 w-4">
                                       {count}
                                     </span>
                                   </div>
@@ -3834,11 +3866,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             >
                               <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-orange-50 text-[#f56b2a] flex items-center justify-center font-black text-xs border border-orange-100 flex-shrink-0">
+                                  <div className="w-8 h-8 rounded-full bg-orange-50 text-[#f56b2a] flex items-center justify-center font-bold text-xs border border-orange-100 flex-shrink-0">
                                     {review.author?.[0]?.toUpperCase() || "A"}
                                   </div>
                                   <div className="min-w-0 overflow-hidden">
-                                    <p className="font-black text-gray-900 text-xs leading-none mb-1 truncate max-w-[120px]">
+                                    <p className="font-bold text-gray-900 text-xs leading-none mb-1 truncate max-w-[120px]">
                                       {review.author}
                                     </p>
                                     <div className="flex gap-0.5">
@@ -3861,7 +3893,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     </div>
                                   </div>
                                 </div>
-                                <span className="text-[9px] font-bold text-gray-500">
+                                <span className="text-[9px] font-semibold text-gray-500">
                                   {new Date(review.date).toLocaleDateString()}
                                 </span>
                               </div>
@@ -3889,12 +3921,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     />
                                   </div>
                                   <div className="flex-grow min-w-0">
-                                    <p className="text-[10px] font-black text-gray-900 truncate">
+                                    <p className="text-[10px] font-bold text-gray-900 truncate">
                                       {allProducts.find(
                                         (p) => p.id === review.productId,
                                       )?.name || "Produit"}
                                     </p>
-                                    <p className="text-[9px] font-bold text-gray-600 uppercase tracking-wider">
+                                    <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-wider">
                                       Voir le produit
                                     </p>
                                   </div>
@@ -3911,7 +3943,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         {storeReviews.length > 5 && !showAllStoreReviews && (
                           <button
                             onClick={() => setShowAllStoreReviews(true)}
-                            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl transition-all hover:bg-[#f56b2a] flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm shadow-xl transition-all hover:bg-[#f56b2a] flex items-center justify-center gap-2"
                           >
                             Voir plus d&apos;avis ({storeReviews.length - 5})
                             <ChevronRight size={16} className="rotate-90" />
@@ -3923,7 +3955,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-6">
                           <Star size={32} className="text-gray-200" />
                         </div>
-                        <p className="text-sm font-black text-gray-600 uppercase tracking-widest text-center">
+                        <p className="text-sm font-bold text-gray-600 uppercase tracking-widest text-center">
                           Aucun avis pour le moment
                         </p>
                         <p className="text-[11px] text-gray-500 mt-2 text-center max-w-[200px]">
@@ -3954,6 +3986,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               setZoomGallery={setZoomGallery}
               setIsImageModalOpen={setIsImageModalOpen}
               lastVisitedStoreRef={lastVisitedStoreRef}
+              handleGoBack={handleGoBack}
               addToCart={addToCart}
               buyNow={buyNow}
               localNotify={localNotify}
@@ -4009,12 +4042,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               safeNavigate("/cart");
             }}
             disabled={isCartButtonLoading}
-            className="pointer-events-auto w-full bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_-10px_40px_rgba(245,107,42,0.45)] flex items-center justify-center gap-3 font-black transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
+            className="pointer-events-auto w-full bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_-10px_40px_rgba(245,107,42,0.45)] flex items-center justify-center gap-3 font-bold transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
           >
             {isCartButtonLoading ? (
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span className="text-sm uppercase tracking-wider font-black">
+                <span className="text-sm uppercase tracking-wider font-bold">
                   Chargement...
                 </span>
               </div>
@@ -4028,12 +4061,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   />
                   <span
                     key={cartItemsCount}
-                    className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black shadow-lg shadow-orange-100"
+                    className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold shadow-lg shadow-orange-100"
                   >
                     {cartItemsCount}
                   </span>
                 </div>
-                <span className="text-sm uppercase font-black whitespace-nowrap">
+                <span className="text-sm uppercase font-bold whitespace-nowrap">
                   Voir mon panier <span className="opacity-40 mx-1">•</span>{" "}
                   {formatCurrency(Number(cartTotal) || 0)}
                 </span>
@@ -4063,12 +4096,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#ffe8e0] text-[#f56b2a] mb-4 shadow-sm">
                   <User size={24} strokeWidth={2.5} />
                 </div>
-                <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-1 leading-tight">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
                   {authMode === "login"
                     ? "Ravi de vous revoir !"
                     : "Bienvenue parmi nous"}
                 </h2>
-                <p className="text-gray-500 font-medium text-xs md:text-sm">
+                <p className="text-gray-500 font-normal text-xs md:text-sm">
                   {authMode === "login"
                     ? "Connectez-vous pour continuer vos achats."
                     : "Créez votre compte en quelques secondes."}
@@ -4078,7 +4111,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               <form onSubmit={handleAuthSubmit} className="space-y-3">
                 {authMode === "register" && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-600 uppercase ml-2">
+                    <label className="text-[10px] font-bold text-gray-600 uppercase ml-2">
                       Nom Complet
                     </label>
                     <input
@@ -4088,12 +4121,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       onChange={(e) =>
                         setAuthForm({ ...authForm, name: e.target.value })
                       }
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                     />
                   </div>
                 )}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-600 uppercase ml-2">
+                  <label className="text-[10px] font-bold text-gray-600 uppercase ml-2">
                     Adresse Email
                   </label>
                   <input
@@ -4103,11 +4136,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     onChange={(e) =>
                       setAuthForm({ ...authForm, email: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-600 uppercase ml-2">
+                  <label className="text-[10px] font-bold text-gray-600 uppercase ml-2">
                     Mot de passe
                   </label>
                   <input
@@ -4117,7 +4150,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     onChange={(e) =>
                       setAuthForm({ ...authForm, password: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                   />
                 </div>
 
@@ -4136,7 +4169,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </form>
 
               <div className="mt-6 pt-6 border-t border-gray-50 text-center">
-                <p className="text-gray-500 font-medium text-xs md:text-sm">
+                <p className="text-gray-500 font-normal text-xs md:text-sm">
                   {authMode === "login"
                     ? "Pas encore de compte ?"
                     : "Vous avez déjà un compte ?"}
@@ -4145,7 +4178,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     onClick={() =>
                       setAuthMode(authMode === "login" ? "register" : "login")
                     }
-                    className="text-[#f56b2a] font-black hover:underline underline-offset-4 ml-1"
+                    className="text-[#f56b2a] font-bold hover:underline underline-offset-4 ml-1"
                   >
                     {authMode === "login" ? "Inscrivez-vous" : "Connectez-vous"}
                   </button>
@@ -4176,14 +4209,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   className="text-white mx-auto mb-2 drop-shadow-lg"
                   fill="currentColor"
                 />
-                <h3 className="text-xl md:text-2xl font-black text-white leading-tight">
+                <h3 className="text-xl md:text-2xl font-bold text-white leading-tight">
                   Propulsez votre Boutique
                 </h3>
               </div>
             </div>
 
             <div className="p-6 md:p-8">
-              <p className="text-gray-600 font-medium text-sm md:text-base leading-relaxed mb-6 text-center">
+              <p className="text-gray-600 font-normal text-sm md:text-base leading-relaxed mb-6 text-center">
                 Rejoignez nos commerçants d&apos;élite et bénéficiez d&apos;une visibilité
                 exceptionnelle sur leboncoin marketplace.
               </p>
@@ -4198,10 +4231,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
+                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
                       Top Ranking
                     </h4>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                    <p className="text-[10px] text-gray-500 font-normal">
                       Vos produits apparaissent en tête des recherches et
                       recommandations.
                     </p>
@@ -4212,10 +4245,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     <ShieldCheck size={16} className="text-[#f56b2a]" />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
+                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
                       Badge de Confiance
                     </h4>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                    <p className="text-[10px] text-gray-500 font-normal">
                       Bénéficiez d&apos;un badge exclusif qui rassure vos acheteurs.
                     </p>
                   </div>
@@ -4225,10 +4258,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     <Bell size={16} className="text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
+                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
                       Alertes Mobiles
                     </h4>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                    <p className="text-[10px] text-gray-500 font-normal">
                       Vos fidèles clients sont notifiés à chaque nouvel
                       arrivage.
                     </p>
@@ -4239,10 +4272,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     <Store size={16} className="text-purple-600" />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
+                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
                       Page Premium
                     </h4>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                    <p className="text-[10px] text-gray-500 font-normal">
                       Personnalisez votre boutique aux couleurs de votre marque.
                     </p>
                   </div>
@@ -4254,12 +4287,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   setShowPropulseModal(false);
                   onBackToApp();
                 }}
-                className="w-full py-4 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-[20px] font-black text-lg shadow-xl shadow-orange-200 transition-all flex items-center justify-center gap-3"
+                className="w-full py-4 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-[20px] font-bold text-lg shadow-xl shadow-orange-200 transition-all flex items-center justify-center gap-3"
               >
                 <Zap size={20} fill="currentColor" />
                 Devenir une Boutique Premium
               </button>
-              <p className="text-center mt-4 text-gray-600 text-[10px] font-bold uppercase tracking-widest">
+              <p className="text-center mt-4 text-gray-600 text-[10px] font-semibold uppercase tracking-widest">
                 Essai gratuit de 14 jours • Sans engagement
               </p>
             </div>
@@ -4306,7 +4339,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     </div>
                   ))}
                 </div>
-                <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest text-right">
+                <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-widest text-right">
                   Étape {reviewStep}/3
                 </p>
               </div>
@@ -4320,10 +4353,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-500 flex items-center justify-center mx-auto mb-4">
                     <Star size={24} fill="currentColor" />
                   </div>
-                  <h3 className="text-base font-black text-gray-900 mb-1">
+                  <h3 className="text-base font-bold text-gray-900 mb-1">
                     Quelle note donnez-vous ?
                   </h3>
-                  <p className="text-[11px] text-gray-600 font-medium mb-6">
+                  <p className="text-[11px] text-gray-600 font-normal mb-6">
                     Touchez une étoile pour noter ce produit
                   </p>
 
@@ -4345,7 +4378,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs font-black text-gray-900 mb-6">
+                  <p className="text-xs font-bold text-gray-900 mb-6">
                     {newReview.rating === 1
                       ? "Très insatisfait"
                       : newReview.rating === 2
@@ -4359,7 +4392,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   </p>
                   <button
                     onClick={() => setReviewStep(2)}
-                    className="w-full py-3.5 bg-gray-900 text-white rounded-2xl font-bold text-xs hover:bg-[#f56b2a] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gray-900 text-white rounded-2xl font-semibold text-xs hover:bg-[#f56b2a] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     Continuer <ArrowRight size={14} />
                   </button>
@@ -4372,10 +4405,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-4">
                     <User size={24} />
                   </div>
-                  <h3 className="text-base font-black text-gray-900 mb-1">
+                  <h3 className="text-base font-bold text-gray-900 mb-1">
                     Comment vous appelez-vous ?
                   </h3>
-                  <p className="text-[11px] text-gray-600 font-medium mb-6">
+                  <p className="text-[11px] text-gray-600 font-normal mb-6">
                     Votre prénom sera affiché avec votre avis
                   </p>
 
@@ -4386,20 +4419,20 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       setNewReview({ ...newReview, author: e.target.value })
                     }
                     placeholder="Votre prénom..."
-                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm text-gray-700 text-center focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-6"
+                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-semibold text-sm text-gray-700 text-center focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-6"
                     autoFocus
                   />
 
                   <div className="flex gap-3">
                     <button
                       onClick={() => setReviewStep(1)}
-                      className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-2xl font-bold text-xs hover:bg-gray-200 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                      className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-2xl font-semibold text-xs hover:bg-gray-200 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
                     >
                       <ChevronLeft size={14} /> Retour
                     </button>
                     <button
                       onClick={() => setReviewStep(3)}
-                      className="flex-[2] py-3.5 bg-gray-900 text-white rounded-2xl font-bold text-xs hover:bg-[#f56b2a] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="flex-[2] py-3.5 bg-gray-900 text-white rounded-2xl font-semibold text-xs hover:bg-[#f56b2a] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       Continuer <ArrowRight size={14} />
                     </button>
@@ -4413,10 +4446,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center mx-auto mb-4">
                     <MessageCircle size={24} />
                   </div>
-                  <h3 className="text-base font-black text-gray-900 mb-1">
+                  <h3 className="text-base font-bold text-gray-900 mb-1">
                     Partagez votre expérience
                   </h3>
-                  <p className="text-[11px] text-gray-600 font-medium mb-6">
+                  <p className="text-[11px] text-gray-600 font-normal mb-6">
                     Décrivez ce que vous avez aimé ou non
                   </p>
 
@@ -4427,10 +4460,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       setNewReview({ ...newReview, comment: e.target.value })
                     }
                     placeholder="Écrivez votre avis ici..."
-                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-medium text-xs text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-2 resize-none"
+                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-normal text-xs text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-2 resize-none"
                     autoFocus
                   />
-                  <p className="text-[9px] text-gray-500 font-medium mb-5">
+                  <p className="text-[9px] text-gray-500 font-normal mb-5">
                     {newReview.comment.length}/500 caractères
                   </p>
 
@@ -4469,10 +4502,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <CheckCircle2 size={32} strokeWidth={3} />
                     </div>
                   </div>
-                  <h3 className="text-lg font-black text-gray-900 mb-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
                     <PartyPopper size={20} className="inline text-[#f56b2a] -mt-1" /> Merci !
                   </h3>
-                  <p className="text-[11px] text-gray-600 font-medium">
+                  <p className="text-[11px] text-gray-600 font-normal">
                     Votre avis a été publié avec succès
                   </p>
                 </div>
@@ -4540,7 +4573,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     >
                       <ChevronRight size={22} strokeWidth={2.5} />
                     </button>
-                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-[10px] font-black px-2.5 py-1 rounded-full tabular-nums">
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full tabular-nums">
                       {zoomIdx + 1}/{zoomGallery.length}
                     </span>
                   </>
@@ -4564,14 +4597,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               <ShoppingBasketIcon size={18} />
             </div>
             <div className="flex-grow min-w-0">
-              <p className="text-xs font-black">Installer PosMarket</p>
-              <p className="text-[10px] text-white/60 font-bold">
+              <p className="text-xs font-bold">Installer PosMarket</p>
+              <p className="text-[10px] text-white/60 font-semibold">
                 Accès rapide depuis ton écran d&apos;accueil
               </p>
             </div>
             <button
               onClick={installPwa}
-              className="px-3 py-2 bg-white text-gray-900 rounded-xl text-[10px] font-black uppercase shrink-0 active:scale-95 transition-transform"
+              className="px-3 py-2 bg-white text-gray-900 rounded-xl text-[10px] font-bold uppercase shrink-0 active:scale-95 transition-transform"
             >
               Installer
             </button>

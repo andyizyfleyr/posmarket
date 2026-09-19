@@ -95,8 +95,8 @@ export default function AdminSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Paramètres Système</h1>
-        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Niveau d&apos;Administration : Suprême</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">Paramètres Système</h1>
+        <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">Niveau d&apos;Administration : Suprême</p>
       </div>
 
       {/* Protocoles */}
@@ -106,8 +106,8 @@ export default function AdminSettingsPage() {
             <Shield size={28} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-gray-900">Protocoles Système</h3>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Configurations persistées en base de données</p>
+            <h3 className="text-lg font-bold text-gray-900">Protocoles Système</h3>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">Configurations persistées en base de données</p>
           </div>
         </div>
 
@@ -115,8 +115,8 @@ export default function AdminSettingsPage() {
           {SETTINGS_DEFS.map((item) => (
             <div key={item.key} className="flex items-center justify-between p-5 rounded-2xl bg-gray-50 border border-gray-100 group cursor-pointer hover:bg-orange-50/20 transition-all">
               <div className="flex-1 mr-4">
-                <p className="text-xs font-black text-gray-900 uppercase tracking-tight group-hover:text-[#f56b2a] transition-colors">{item.title}</p>
-                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{item.description}</p>
+                <p className="text-xs font-bold text-gray-900 uppercase tracking-tight group-hover:text-[#f56b2a] transition-colors">{item.title}</p>
+                <p className="text-[10px] text-gray-400 font-normal mt-0.5">{item.description}</p>
               </div>
               <button
                 role="switch"
@@ -138,8 +138,8 @@ export default function AdminSettingsPage() {
             <CreditCard size={28} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-gray-900">Passerelle de Paiement</h3>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Configuration manuelle des clés et du fournisseur actif</p>
+            <h3 className="text-lg font-bold text-gray-900">Passerelle de Paiement</h3>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">Configuration manuelle des clés et du fournisseur actif</p>
           </div>
         </div>
 
@@ -149,33 +149,33 @@ export default function AdminSettingsPage() {
             <button
               type="button"
               onClick={() => updateField('payment_provider', 'kkiapay')}
-              className={`p-5 rounded-2xl border text-xs font-black uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'kkiapay' ? 'bg-[#f56b2a]/10 border-[#f56b2a] text-[#f56b2a]' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+              className={`p-5 rounded-2xl border text-xs font-bold uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'kkiapay' ? 'bg-[#f56b2a]/10 border-[#f56b2a] text-[#f56b2a]' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard size={16} />
                 Kkiapay
               </div>
-              <span className="text-[10px] font-medium normal-case">Active</span>
+              <span className="text-[10px] font-normal normal-case">Active</span>
             </button>
             <button
               type="button"
               onClick={() => updateField('payment_provider', 'fedapay')}
-              className={`p-5 rounded-2xl border text-xs font-black uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'fedapay' ? 'bg-blue-600/10 border-blue-600 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+              className={`p-5 rounded-2xl border text-xs font-bold uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'fedapay' ? 'bg-blue-600/10 border-blue-600 text-blue-600' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard size={16} />
                 FedaPay
               </div>
-              <span className="text-[10px] font-medium normal-case">Active</span>
+              <span className="text-[10px] font-normal normal-case">Active</span>
             </button>
           </div>
 
           {/* Kkiapay config */}
           <div className={`rounded-2xl border p-5 transition-colors ${settings.payment_provider === 'kkiapay' ? 'bg-orange-50/30 border-orange-200' : 'bg-gray-50/50 border-gray-100'}`}>
-            <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">Kkiapay</h4>
+            <h4 className="text-xs font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">Kkiapay</h4>
             <div className="grid md:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Public Key</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Public Key</label>
                 <input
                   type="text"
                   value={settings.kkiapay_public_key || ''}
@@ -185,7 +185,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Private Key</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Private Key</label>
                 <input
                   type="text"
                   value={settings.kkiapay_private_key || ''}
@@ -195,7 +195,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Secret Key</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Secret Key</label>
                 <input
                   type="text"
                   value={settings.kkiapay_secret_key || ''}
@@ -205,7 +205,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Environnement</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Environnement</label>
                 <select
                   value={settings.kkiapay_env || 'sandbox'}
                   onChange={e => updateField('kkiapay_env', e.target.value as 'sandbox' | 'live')}
@@ -220,10 +220,10 @@ export default function AdminSettingsPage() {
 
           {/* Fedapay config */}
           <div className={`rounded-2xl border p-5 transition-colors ${settings.payment_provider === 'fedapay' ? 'bg-blue-50/30 border-blue-200' : 'bg-gray-50/50 border-gray-100'}`}>
-            <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">FedaPay</h4>
+            <h4 className="text-xs font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">FedaPay</h4>
             <div className="grid md:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Public Key</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Public Key</label>
                 <input
                   type="text"
                   value={settings.fedapay_public_key || ''}
@@ -233,7 +233,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Secret Key</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Secret Key</label>
                 <input
                   type="text"
                   value={settings.fedapay_secret_key || ''}
@@ -243,7 +243,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Webhook Secret Key (wh_...)</label>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Webhook Secret Key (wh_...)</label>
                 <input
                   type="text"
                   value={settings.fedapay_webhook_secret || ''}
@@ -254,7 +254,7 @@ export default function AdminSettingsPage() {
               </div>
               <div className="md:col-span-2 flex gap-3">
                 <div className="flex-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Environnement</label>
+                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Environnement</label>
                   <select
                     value={settings.fedapay_env || 'sandbox'}
                     onChange={e => updateField('fedapay_env', e.target.value as 'sandbox' | 'live')}
@@ -265,7 +265,7 @@ export default function AdminSettingsPage() {
                   </select>
                 </div>
                 <div className="flex-1 bg-blue-50/40 rounded-xl p-3 border border-blue-100">
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tight mb-1">Endpoint API</p>
+                  <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-tight mb-1">Endpoint API</p>
                   <p className="text-xs text-gray-600 font-mono">{settings.fedapay_env === 'live' ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1'}</p>
                 </div>
               </div>
@@ -277,7 +277,7 @@ export default function AdminSettingsPage() {
       <button
         onClick={handleSave}
         disabled={saving || !dirty}
-        className={`w-full max-w-md mx-auto block py-4 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
+        className={`w-full max-w-md mx-auto block py-4 text-white font-bold text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
           saved ? 'bg-emerald-500 shadow-lg shadow-emerald-100' : 'bg-[#f56b2a] hover:bg-[#d55a20] shadow-xl shadow-orange-100'
         }`}
       >

@@ -78,7 +78,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           }`}>
             <Home size={20} strokeWidth={isHome ? 2.5 : 1.8} className={loading && isHome ? 'animate-pulse' : ''} />
           </div>
-          <span className={`text-[9px] mt-0.5 font-bold transition-all ${isHome ? 'font-black' : 'opacity-60'}`}>Accueil</span>
+          <span className={`text-[9px] mt-0.5 font-semibold transition-all ${isHome ? 'font-bold' : 'opacity-60'}`}>Accueil</span>
           {isHome && (
             <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />
           )}
@@ -94,7 +94,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           <div className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-95 transition-all">
             <Search size={20} strokeWidth={1.8} className={loading ? 'animate-pulse' : ''} />
           </div>
-          <span className="text-[9px] mt-0.5 font-bold opacity-60">Recherche</span>
+          <span className="text-[9px] mt-0.5 font-semibold opacity-60">Recherche</span>
         </button>
 
         {/* Refresh - au centre */}
@@ -107,7 +107,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           <div className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-95 transition-all">
             <RotateCcw size={20} strokeWidth={1.8} className={loading ? 'animate-spin' : ''} />
           </div>
-          <span className="text-[9px] mt-0.5 font-bold opacity-60">Actualiser</span>
+          <span className="text-[9px] mt-0.5 font-semibold opacity-60">Actualiser</span>
         </button>
 
         {/* Panier */}
@@ -127,14 +127,14 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           }`}>
             <ShoppingBag size={20} strokeWidth={isCart ? 2.5 : 1.8} className={loading && isCart ? 'animate-pulse' : ''} />
             {cartItemsCount > 0 && (
-              <span className={`absolute -top-1 -right-1 bg-[#f56b2a] text-white text-[8px] font-black min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center ring-2 ring-white ${
+              <span className={`absolute -top-1 -right-1 bg-[#f56b2a] text-white text-[8px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center ring-2 ring-white ${
                 badgeAnimating ? 'badge-pop' : ''
               }`}>
                 {cartItemsCount > 99 ? '99+' : cartItemsCount}
               </span>
             )}
           </div>
-          <span className={`text-[9px] mt-0.5 font-bold transition-all ${isCart ? 'font-black' : 'opacity-60'}`}>Panier</span>
+          <span className={`text-[9px] mt-0.5 font-semibold transition-all ${isCart ? 'font-bold' : 'opacity-60'}`}>Panier</span>
           {isCart && (
             <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />
           )}
@@ -150,7 +150,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           <div className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-95 transition-all">
             <User size={20} strokeWidth={1.8} className={loading ? 'animate-pulse' : ''} />
           </div>
-          <span className="text-[9px] mt-0.5 font-bold opacity-60">Compte</span>
+          <span className="text-[9px] mt-0.5 font-semibold opacity-60">Compte</span>
         </button>
 
       </div>

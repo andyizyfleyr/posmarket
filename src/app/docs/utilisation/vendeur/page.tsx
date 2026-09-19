@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 const step =
-  "w-7 h-7 shrink-0 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center shadow-md shadow-blue-100";
+  "w-7 h-7 shrink-0 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shadow-md shadow-blue-100";
 
 function Section({
   number,
@@ -34,10 +34,10 @@ function Section({
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 space-y-3">
       <div className="flex items-center gap-3">
-        <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 text-xs font-black flex items-center justify-center">
+        <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">
           {number}
         </span>
-        <h2 className="text-sm font-black text-gray-900">{title}</h2>
+        <h2 className="text-sm font-bold text-gray-900">{title}</h2>
       </div>
       {children}
     </div>
@@ -46,7 +46,7 @@ function Section({
 
 function Info({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] font-medium text-gray-500 bg-blue-50/60 rounded-xl p-3">
+    <div className="text-[11px] font-normal text-gray-500 bg-blue-50/60 rounded-xl p-3">
       {children}
     </div>
   );
@@ -61,10 +61,10 @@ export default function VendeurPage() {
           <Store size={20} />
         </div>
         <div>
-          <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
             Espace Vendeur
           </h1>
-          <p className="text-xs font-medium text-gray-500">
+          <p className="text-xs font-normal text-gray-500">
             Créer votre boutique, vendre et gérer vos commandes.
           </p>
         </div>
@@ -75,19 +75,19 @@ export default function VendeurPage() {
         <ol className="space-y-2">
           <li className="flex gap-3">
             <span className={step}>1</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Allez sur <strong>/login</strong> et cliquez « Créer un compte »
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>2</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Remplissez votre nom, e-mail et mot de passe
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>3</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Vous êtes redirigé vers la page d&apos;abonnement
             </p>
           </li>
@@ -134,16 +134,16 @@ export default function VendeurPage() {
               }`}
             >
               {plan.highlight && (
-                <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest">
+                <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold uppercase tracking-widest">
                   Populaire
                 </span>
               )}
-              <p className="text-xs font-black text-gray-900">{plan.name}</p>
-              <p className="mt-1 text-xl font-black text-gray-900">
+              <p className="text-xs font-bold text-gray-900">{plan.name}</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">
                 {plan.price}{" "}
-                <span className="text-[10px] font-bold text-gray-400">{plan.per}</span>
+                <span className="text-[10px] font-semibold text-gray-400">{plan.per}</span>
               </p>
-              <ul className="mt-2 space-y-1 text-[10px] font-medium text-gray-600">
+              <ul className="mt-2 space-y-1 text-[10px] font-normal text-gray-600">
                 {plan.features.map((f) => (
                   <li key={f}>• {f}</li>
                 ))}
@@ -151,7 +151,7 @@ export default function VendeurPage() {
             </div>
           ))}
         </div>
-        <p className="text-[11px] font-medium text-gray-400">
+        <p className="text-[11px] font-normal text-gray-400">
           Prix en FCFA. Tarifs trimestriels et annuels disponibles. Seuls Pro et Entreprise
           ont une boutique en ligne visible par les acheteurs.
         </p>
@@ -162,26 +162,26 @@ export default function VendeurPage() {
         <ol className="space-y-2">
           <li className="flex gap-3">
             <span className={step}>1</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Dans la barre de navigation, cliquez « Nouvelle boutique »
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>2</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Entrez le nom de votre boutique
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>3</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Choisissez le type : <strong>Boutique</strong> (produits physiques) ou{" "}
               <strong>Restaurant</strong> (restauration)
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>4</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               La boutique est créée. Un lien /slug est généré automatiquement
             </p>
           </li>
@@ -194,39 +194,39 @@ export default function VendeurPage() {
 
       {/* 4. Produits */}
       <Section number={4} title="Ajouter et gérer vos produits">
-        <p className="text-xs font-medium text-gray-700 mb-2">
+        <p className="text-xs font-normal text-gray-700 mb-2">
           <strong>Pour ajouter un produit :</strong>
         </p>
         <ol className="space-y-2 mb-4">
           <li className="flex gap-3">
             <span className={step}>1</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Allez dans « Produits » et cliquez « Ajouter un produit »
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>2</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Remplissez : nom, description, prix (FCFA), stock, catégorie, photo
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>3</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Optionnel : variantes (taille, couleur), prix de gros, temps de livraison
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>4</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Activez ou désactivez la visibilité en ligne
             </p>
           </li>
         </ol>
-        <p className="text-xs font-medium text-gray-700">
+        <p className="text-xs font-normal text-gray-700">
           <strong>Modifier :</strong> cliquez sur un produit, modifiez, enregistrez.
         </p>
-        <p className="text-xs font-medium text-gray-700">
+        <p className="text-xs font-normal text-gray-700">
           <strong>Supprimer :</strong> icône poubelle, ou suppression en bloc avec la case à
           cocher.
         </p>
@@ -237,7 +237,7 @@ export default function VendeurPage() {
 
       {/* 5. Commandes */}
       <Section number={5} title="Gérer vos commandes">
-        <p className="text-xs font-medium text-gray-700 mb-3">3 statuts possibles :</p>
+        <p className="text-xs font-normal text-gray-700 mb-3">3 statuts possibles :</p>
         <div className="space-y-2">
           {[
             {
@@ -261,15 +261,15 @@ export default function VendeurPage() {
           ].map((s) => (
             <div key={s.code} className="flex items-center gap-3">
               <span
-                className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${s.color}`}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${s.color}`}
               >
                 {s.status}
               </span>
-              <p className="text-[11px] font-medium text-gray-500">{s.desc}</p>
+              <p className="text-[11px] font-normal text-gray-500">{s.desc}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs font-medium text-gray-700 mt-2">
+        <p className="text-xs font-normal text-gray-700 mt-2">
           Changez le statut en sélectionnant une commande. Vous pouvez aussi supprimer des
           commandes (seul ou en bloc).
         </p>
@@ -277,43 +277,43 @@ export default function VendeurPage() {
 
       {/* 6. POS */}
       <Section number={6} title="Point de Vente (caisse)">
-        <p className="text-xs font-medium text-gray-700 mb-3">
+        <p className="text-xs font-normal text-gray-700 mb-3">
           Le POS est une caisse pour vendre en magasin :
         </p>
         <ol className="space-y-2">
           <li className="flex gap-3">
             <span className={step}>1</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Recherchez un produit ou parcourez les catégories
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>2</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Ajoutez au panier, ajustez la quantité
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>3</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Sélectionnez un client (optionnel)
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>4</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Choisissez <strong>En magasin</strong> ou <strong>Click & Collect</strong>
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>5</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Cliquez « Payer » (espèces par défaut)
             </p>
           </li>
           <li className="flex gap-3">
             <span className={step}>6</span>
-            <p className="text-xs font-medium text-gray-700">
+            <p className="text-xs font-normal text-gray-700">
               Un reçu s&apos;affiche (impression ticket 80mm ou PDF)
             </p>
           </li>
@@ -371,11 +371,11 @@ export default function VendeurPage() {
                   <Icon size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-gray-900">{fn.title}</p>
-                  <p className="text-[10px] font-medium text-gray-500 leading-snug mt-0.5">
+                  <p className="text-xs font-bold text-gray-900">{fn.title}</p>
+                  <p className="text-[10px] font-normal text-gray-500 leading-snug mt-0.5">
                     {fn.desc}
                   </p>
-                  <span className="text-[9px] font-black text-blue-500 uppercase tracking-wider mt-1 inline-block">
+                  <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider mt-1 inline-block">
                     {fn.route}
                   </span>
                 </div>
@@ -389,13 +389,13 @@ export default function VendeurPage() {
       <div className="flex justify-between pt-4 pb-4">
         <Link
           to="/docs/utilisation/acheteur"
-          className="inline-flex items-center gap-2 text-xs font-black text-gray-400 hover:text-[#f56b2a] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
         >
           Espace Acheteur
         </Link>
         <Link
           to="/docs/utilisation/fonctionnalites"
-          className="inline-flex items-center gap-2 text-xs font-black text-[#f56b2a] hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#f56b2a] hover:underline"
         >
           Fonctionnalités <ArrowRight size={12} />
         </Link>

@@ -34,7 +34,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         <div className="container mx-auto px-4 py-3">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#f56b2a] hover:underline"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#f56b2a] hover:underline"
           >
             <ArrowLeft size={14} /> Retour à l&apos;accueil
           </Link>
@@ -45,7 +45,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         {/* Sidebar navigation - desktop */}
         <aside className="hidden md:block w-56 shrink-0">
           <nav className="sticky top-6 space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 px-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3 px-3">
               Guide
             </p>
             {navItems.map((item) => {
@@ -55,7 +55,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     active
                       ? "bg-white shadow-sm border border-gray-100 text-gray-900"
                       : "text-gray-500 hover:text-gray-900 hover:bg-white/60"
@@ -78,7 +78,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
               <Link
                 key={item.href}
                 to={item.href}
-                className={`flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-black shrink-0 transition-colors ${
+                className={`flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-bold shrink-0 transition-colors ${
                   active ? "text-[#f56b2a]" : "text-gray-400"
                 }`}
               >

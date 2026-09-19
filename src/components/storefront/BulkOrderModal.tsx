@@ -154,8 +154,8 @@ export function BulkOrderModal({
                 <Package size={18} />
               </div>
               <div>
-                <h2 className="text-sm font-black text-gray-900">Commande Rapide Grossiste</h2>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                <h2 className="text-sm font-bold text-gray-900">Commande Rapide Grossiste</h2>
+                <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">
                   {wholesaleProducts.length} produit{wholesaleProducts.length > 1 ? 's' : ''} éligibles
                 </p>
               </div>
@@ -177,7 +177,7 @@ export function BulkOrderModal({
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Rechercher un produit..."
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 transition-all"
             />
           </div>
         </div>
@@ -189,8 +189,8 @@ export function BulkOrderModal({
               <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3">
                 <Package size={24} className="text-gray-300" />
               </div>
-              <p className="text-xs font-black text-gray-500">Aucun produit trouvé</p>
-              <p className="text-[9px] font-bold text-gray-400 mt-1">
+              <p className="text-xs font-bold text-gray-500">Aucun produit trouvé</p>
+              <p className="text-[9px] font-semibold text-gray-400 mt-1">
                 {searchFilter ? 'Essayez un autre terme' : 'Aucun produit en vente en gros disponible'}
               </p>
             </div>
@@ -227,19 +227,19 @@ export function BulkOrderModal({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h4 className="text-[10px] font-black text-gray-900 leading-tight truncate">
+                          <h4 className="text-[10px] font-bold text-gray-900 leading-tight truncate">
                             {product.name}
                           </h4>
-                          <p className="text-[8px] font-bold text-gray-400 truncate mt-0.5">
+                          <p className="text-[8px] font-semibold text-gray-400 truncate mt-0.5">
                             {product.storeName} · Stock: {product.stock}
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="text-[10px] font-black text-gray-900">
+                          <div className="text-[10px] font-bold text-gray-900">
                             {formatCurrency(product.price)}
                           </div>
                           {activeTier && (
-                            <div className="text-[9px] font-black text-green-600">
+                            <div className="text-[9px] font-bold text-green-600">
                               → {formatCurrency(effectivePrice)} / u
                             </div>
                           )}
@@ -252,7 +252,7 @@ export function BulkOrderModal({
                           <button
                             key={i}
                             onClick={() => setQty(product.id, tier.minQty)}
-                            className={`text-[8px] font-black px-2 py-0.5 rounded-full border transition-all active:scale-95 ${
+                            className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-all active:scale-95 ${
                               activeTier && activeTier.minQty === tier.minQty
                                 ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-[#f56b2a]'
@@ -281,7 +281,7 @@ export function BulkOrderModal({
                               setQty(product.id, Math.min(val, product.stock));
                             }}
                             placeholder="0"
-                            className="w-14 h-7 text-center text-xs font-black text-gray-900 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-14 h-7 text-center text-xs font-bold text-gray-900 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             onClick={() => updateQty(product.id, 1)}
@@ -294,11 +294,11 @@ export function BulkOrderModal({
 
                         {qty > 0 && (
                           <div className="text-right">
-                            <span className="text-[10px] font-black text-gray-900">
+                            <span className="text-[10px] font-bold text-gray-900">
                               {formatCurrency(effectivePrice * qty)}
                             </span>
                             {savings > 0 && (
-                              <span className="text-[8px] font-black text-green-600 ml-1">
+                              <span className="text-[8px] font-bold text-green-600 ml-1">
                                 -{formatCurrency(savings)}
                               </span>
                             )}
@@ -306,7 +306,7 @@ export function BulkOrderModal({
                         )}
 
                         {qty > 0 && nextTier && (
-                          <div className="hidden md:block text-[8px] font-bold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                          <div className="hidden md:block text-[8px] font-semibold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
                             +{nextTier.minQty - qty} pour {formatCurrency(nextTier.unitPrice)}/u
                           </div>
                         )}
@@ -327,16 +327,16 @@ export function BulkOrderModal({
           {selectedItems.length > 0 && (
             <div className="flex items-center justify-between mb-2.5">
               <div>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">
                   {totalItems} article{totalItems > 1 ? 's' : ''} sélectionné{totalItems > 1 ? 's' : ''}
                 </span>
                 {totalSavings > 0 && (
-                  <span className="ml-2 text-[9px] font-black text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100">
+                  <span className="ml-2 text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100">
                     Économie: {formatCurrency(totalSavings)}
                   </span>
                 )}
               </div>
-              <span className="text-sm font-black text-gray-900">{formatCurrency(totalAmount)}</span>
+              <span className="text-sm font-bold text-gray-900">{formatCurrency(totalAmount)}</span>
             </div>
           )}
           <Button

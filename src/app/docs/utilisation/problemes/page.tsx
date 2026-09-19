@@ -55,10 +55,10 @@ export default function ProblemesPage() {
           <Wrench size={20} />
         </div>
         <div>
-          <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
             Problèmes fréquents
           </h1>
-          <p className="text-xs font-medium text-gray-500">
+          <p className="text-xs font-normal text-gray-500">
             Les messages d&apos;erreur les plus courants et comment les résoudre.
           </p>
         </div>
@@ -78,13 +78,13 @@ export default function ProblemesPage() {
                   <Icon size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-gray-900">{item.problem}</p>
-                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-gray-100 text-[9px] font-black uppercase tracking-wider text-gray-500">
+                  <p className="text-sm font-bold text-gray-900">{item.problem}</p>
+                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-gray-100 text-[9px] font-bold uppercase tracking-wider text-gray-500">
                     {item.who}
                   </span>
                 </div>
               </div>
-              <p className="text-xs font-medium text-gray-600 leading-relaxed pl-12">
+              <p className="text-xs font-normal text-gray-600 leading-relaxed pl-12">
                 {item.solution}
               </p>
             </div>
@@ -96,13 +96,13 @@ export default function ProblemesPage() {
       <div className="flex justify-between pt-4 pb-4">
         <Link
           to="/docs/utilisation/fonctionnalites"
-          className="inline-flex items-center gap-2 text-xs font-black text-gray-400 hover:text-[#f56b2a] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
         >
           Fonctionnalités
         </Link>
         <Link
           to="/docs/utilisation"
-          className="inline-flex items-center gap-2 text-xs font-black text-[#f56b2a] hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#f56b2a] hover:underline"
         >
           Retour à l&apos;accueil du guide
         </Link>

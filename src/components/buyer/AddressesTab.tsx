@@ -44,7 +44,7 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
             size="sm"
             icon={<Plus size={14} />}
             onClick={onAdd}
-            className="rounded-full px-6 text-[10px] font-black uppercase tracking-widest"
+            className="rounded-full px-6 text-[10px] font-bold uppercase tracking-widest"
           >
             Ajouter une adresse
           </Button>
@@ -56,7 +56,7 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-gray-400 px-1">
+        <p className="text-xs font-semibold text-gray-400 px-1">
           {addresses.length} adresse{addresses.length > 1 ? 's' : ''} enregistrée{addresses.length > 1 ? 's' : ''}
         </p>
         <Button
@@ -86,9 +86,9 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
                   <AddressIcon name={addr.name} />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-black text-[#002f34] text-sm truncate">{addr.name}</p>
+                  <p className="font-bold text-[#002f34] text-sm truncate">{addr.name}</p>
                   {addr.is_default && (
-                    <span className="text-[9px] font-black text-[#f56b2a] uppercase tracking-widest">
+                    <span className="text-[9px] font-bold text-[#f56b2a] uppercase tracking-widest">
                       Par défaut
                     </span>
                   )}
@@ -114,13 +114,13 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
             </div>
             <div className="pl-[52px]">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-black text-gray-900">{addr.full_name}</p>
+                <p className="text-xs font-bold text-gray-900">{addr.full_name}</p>
                 {addr.phone && (
-                  <p className="text-[10px] font-bold text-gray-500">{formatPhoneNumber(addr.phone)}</p>
+                  <p className="text-[10px] font-semibold text-gray-500">{formatPhoneNumber(addr.phone)}</p>
                 )}
               </div>
-              <p className="text-[11px] text-gray-500 font-bold mt-1">{addr.address}</p>
-              <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">
+              <p className="text-[11px] text-gray-500 font-semibold mt-1">{addr.address}</p>
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight mt-0.5">
                 {addr.city}
               </p>
             </div>

@@ -37,11 +37,11 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-black text-[#002f34] tracking-tight truncate">
+          <h3 className="text-base font-bold text-[#002f34] tracking-tight truncate">
             {title}
           </h3>
           {subtitle && (
-            <p className="text-[10px] text-gray-400 font-bold truncate">{subtitle}</p>
+            <p className="text-[10px] text-gray-400 font-semibold truncate">{subtitle}</p>
           )}
         </div>
         <button

@@ -34,7 +34,7 @@ export default function Pagination({ total, page, pageSize, onPageChange }: Pagi
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6">
-      <p className="text-[13px] font-bold text-gray-500">
+      <p className="text-[13px] font-semibold text-gray-500">
         {from}–{to} sur {total}
       </p>
       <div className="flex items-center gap-1.5">
@@ -48,12 +48,12 @@ export default function Pagination({ total, page, pageSize, onPageChange }: Pagi
         </button>
         {numbers.map((n, i) =>
           n === '…' ? (
-            <span key={`e-${i}`} className="px-1 text-gray-400 font-bold select-none">…</span>
+            <span key={`e-${i}`} className="px-1 text-gray-400 font-semibold select-none">…</span>
           ) : (
             <button
               key={n}
               onClick={() => onPageChange(n)}
-              className={`min-w-[36px] h-9 px-2 rounded-xl text-sm font-black transition-all ${
+              className={`min-w-[36px] h-9 px-2 rounded-xl text-sm font-bold transition-all ${
                 n === page
                   ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-200 hover:text-[#f56b2a]'

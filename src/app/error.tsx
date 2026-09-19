@@ -47,10 +47,10 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
             <ShoppingBag className="w-5 h-5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-xl tracking-tight text-gray-950 flex items-center gap-1">
+            <span className="font-bold text-xl tracking-tight text-gray-950 flex items-center gap-1">
               Pos<span className="text-[#f56b2a]">Market</span>
             </span>
-            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest -mt-1">
+            <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest -mt-1">
               Express Marketplace
             </span>
           </div>
@@ -58,7 +58,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
 
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 bg-white/80 hover:bg-white border border-gray-200/80 rounded-full shadow-sm backdrop-blur-sm transition-all"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white/80 hover:bg-white border border-gray-200/80 rounded-full shadow-sm backdrop-blur-sm transition-all"
         >
           <Home className="w-3.5 h-3.5" />
           <span>Accueil</span>
@@ -86,12 +86,12 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
             </div>
 
             {/* Heading */}
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
               Une petite interruption technique
             </h1>
 
             {/* Subtext */}
-            <p className="text-sm sm:text-base text-gray-600 font-medium leading-relaxed max-w-md mx-auto mb-8">
+            <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed max-w-md mx-auto mb-8">
               La page n&apos;a pas pu se charger correctement. Vos données et votre panier sont conservés en toute sécurité.
             </p>
 
@@ -101,7 +101,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 type="button"
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-[#f56b2a] to-[#ff7d3b] hover:from-[#e45a19] hover:to-[#f56b2a] text-white text-sm font-black rounded-2xl shadow-lg shadow-[#f56b2a]/30 hover:shadow-xl hover:shadow-[#f56b2a]/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all disabled:opacity-70 cursor-pointer"
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-[#f56b2a] to-[#ff7d3b] hover:from-[#e45a19] hover:to-[#f56b2a] text-white text-sm font-bold rounded-2xl shadow-lg shadow-[#f56b2a]/30 hover:shadow-xl hover:shadow-[#f56b2a]/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all disabled:opacity-70 cursor-pointer"
               >
                 <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
                 <span>{isRetrying ? 'Rechargement...' : 'Recharger la page'}</span>
@@ -109,7 +109,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
 
               <Link
                 href="/"
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-800 text-sm font-black rounded-2xl border border-gray-200/80 hover:border-gray-300 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-800 text-sm font-bold rounded-2xl border border-gray-200/80 hover:border-gray-300 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
               >
                 <Home className="w-4 h-4 text-gray-500" />
                 <span>Retour à l&apos;accueil</span>
@@ -127,7 +127,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                     window.location.href = '/';
                   }
                 }}
-                className="inline-flex items-center gap-1 font-bold text-gray-500 hover:text-gray-900 transition-colors"
+                className="inline-flex items-center gap-1 font-semibold text-gray-500 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Page précédente</span>
@@ -137,7 +137,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 href="https://wa.me/221781234567?text=Bonjour,%20j'ai%20rencontré%20un%20souci%20sur%20PosMarket"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-bold text-[#f56b2a] hover:text-[#d55a20] transition-colors"
+                className="inline-flex items-center gap-1.5 font-semibold text-[#f56b2a] hover:text-[#d55a20] transition-colors"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>Assistance WhatsApp</span>
@@ -150,7 +150,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 <button
                   type="button"
                   onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <HelpCircle className="w-3 h-3" />
                   <span>Détails techniques (Code: {error.digest})</span>
@@ -158,7 +158,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 </button>
                 {showTechnicalDetails && (
                   <div className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-xl text-[10px] font-mono overflow-x-auto">
-                    <p className="text-orange-400 font-bold mb-1">Erreur Référence : {error.digest}</p>
+                    <p className="text-orange-400 font-semibold mb-1">Erreur Référence : {error.digest}</p>
                     <p className="text-gray-300">{error.message || 'Erreur non spécifiée'}</p>
                   </div>
                 )}
@@ -169,7 +169,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 py-6 text-center text-xs font-semibold text-gray-400">
+      <footer className="w-full max-w-7xl mx-auto px-4 py-6 text-center text-xs font-medium text-gray-400">
         © {new Date().getFullYear()} PosMarket. Tous droits réservés.
       </footer>
     </div>

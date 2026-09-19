@@ -73,7 +73,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
   };
 
   const inputClass = (hasError?: string) =>
-    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-bold outline-none transition-all focus:ring-2 ${
+    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-semibold outline-none transition-all focus:ring-2 ${
       hasError
         ? 'border-red-200 focus:ring-red-200/30'
         : 'border-transparent focus:ring-[#f56b2a]/20'
@@ -89,18 +89,18 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto" noValidate>
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400">Label de l&apos;adresse</label>
+          <label className="text-[10px] font-semibold text-gray-400">Label de l&apos;adresse</label>
           <input
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
             placeholder="Maison, Bureau, etc."
             className={inputClass(errors.name)}
           />
-          {errors.name && <p className="text-[10px] font-bold text-red-400">{errors.name}</p>}
+          {errors.name && <p className="text-[10px] font-semibold text-red-400">{errors.name}</p>}
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400">Téléphone du destinataire</label>
+          <label className="text-[10px] font-semibold text-gray-400">Téléphone du destinataire</label>
           <PhoneInput
             value={form.phone}
             onChange={handlePhoneChange}
@@ -109,36 +109,36 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400">Nom complet</label>
+          <label className="text-[10px] font-semibold text-gray-400">Nom complet</label>
           <input
             value={form.fullName}
             onChange={(e) => setField('fullName', e.target.value)}
             placeholder="Nom et prénom du destinataire"
             className={inputClass(errors.fullName)}
           />
-          {errors.fullName && <p className="text-[10px] font-bold text-red-400">{errors.fullName}</p>}
+          {errors.fullName && <p className="text-[10px] font-semibold text-red-400">{errors.fullName}</p>}
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400">Adresse exacte</label>
+          <label className="text-[10px] font-semibold text-gray-400">Adresse exacte</label>
           <input
             value={form.address}
             onChange={(e) => setField('address', e.target.value)}
             placeholder="Quartier, rue, repère..."
             className={inputClass(errors.address)}
           />
-          {errors.address && <p className="text-[10px] font-bold text-red-400">{errors.address}</p>}
+          {errors.address && <p className="text-[10px] font-semibold text-red-400">{errors.address}</p>}
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400">Ville</label>
+          <label className="text-[10px] font-semibold text-gray-400">Ville</label>
           <input
             value={form.city}
             onChange={(e) => setField('city', e.target.value)}
             placeholder="Dakar, Thiès..."
             className={inputClass(errors.city)}
           />
-          {errors.city && <p className="text-[10px] font-bold text-red-400">{errors.city}</p>}
+          {errors.city && <p className="text-[10px] font-semibold text-red-400">{errors.city}</p>}
         </div>
 
         <label
@@ -152,7 +152,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
             onChange={(e) => setField('isDefault', e.target.checked)}
             className="w-5 h-5 rounded accent-[#f56b2a]"
           />
-          <span className="text-xs font-bold text-gray-600">Définir par défaut</span>
+          <span className="text-xs font-semibold text-gray-600">Définir par défaut</span>
         </label>
 
         <div className="flex gap-3 pt-2 pb-2">
@@ -160,14 +160,14 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 py-3 px-4 border-2 border-gray-100 text-gray-700 font-bold text-xs rounded-2xl hover:bg-gray-50 transition-all disabled:opacity-50"
+            className="flex-1 py-3 px-4 border-2 border-gray-100 text-gray-700 font-semibold text-xs rounded-2xl hover:bg-gray-50 transition-all disabled:opacity-50"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-[2] py-3 px-4 bg-[#f56b2a] text-white font-bold text-xs rounded-2xl shadow-md shadow-orange-100 hover:bg-[#e55a1b] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-[2] py-3 px-4 bg-[#f56b2a] text-white font-semibold text-xs rounded-2xl shadow-md shadow-orange-100 hover:bg-[#e55a1b] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
             Enregistrer

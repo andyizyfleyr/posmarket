@@ -33,6 +33,7 @@ export function ProductDetailsView(props: any) {
     setZoomGallery,
     setIsImageModalOpen,
     lastVisitedStoreRef,
+    handleGoBack,
     addToCart,
     buyNow,
     localNotify,
@@ -65,15 +66,15 @@ export function ProductDetailsView(props: any) {
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
               <Package size={30} />
             </div>
-            <p className="text-base font-black text-gray-900">
+            <p className="text-base font-bold text-gray-900">
               Produit introuvable
             </p>
-            <p className="text-xs text-gray-500 font-bold mt-1 max-w-[280px]">
+            <p className="text-xs text-gray-500 font-semibold mt-1 max-w-[280px]">
               Ce produit n&apos;existe plus ou n&apos;est pas disponible
               actuellement.
             </p>
             <Button
-              onClick={() => safeNavigate("/")}
+              onClick={() => handleGoBack("/")}
               loading={isNavigating}
               loadingText="Chargement..."
               variant="primary"
@@ -302,7 +303,7 @@ export function ProductDetailsView(props: any) {
         {/* Breadcrumb (desktop only) */}
         <nav
           aria-label="Fil d'Ariane"
-          className="hidden md:flex items-center gap-2 mb-6 text-[11px] font-medium text-gray-400 px-4 lg:px-0 pt-5"
+          className="hidden md:flex items-center gap-2 mb-6 text-[11px] font-normal text-gray-400 px-4 lg:px-0 pt-5"
         >
           <button
             onClick={() => safeNavigate("/")}
@@ -323,7 +324,7 @@ export function ProductDetailsView(props: any) {
           </button>
           <ChevronRight size={10} className="text-gray-300" />
           <span
-            className="text-gray-700 font-semibold truncate max-w-[320px]"
+            className="text-gray-700 font-medium truncate max-w-[320px]"
             aria-current="page"
           >
             {product.name}
@@ -334,9 +335,9 @@ export function ProductDetailsView(props: any) {
         <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center justify-between -mx-4" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <button
             onClick={() =>
-              // Retour intelligent : vers la boutique d'où l'utilisateur vient,
-              // sinon l'accueil.
-              safeNavigate(
+              // Retour vers la page précédente (boutique, accueil, catégorie...),
+              // sinon la boutique d'où l'utilisateur vient, sinon l'accueil.
+              handleGoBack(
                 lastVisitedStoreRef.current
                   ? `/store/${lastVisitedStoreRef.current}`
                   : "/",
@@ -347,7 +348,7 @@ export function ProductDetailsView(props: any) {
           >
             <ArrowLeft size={20} strokeWidth={2.5} />
           </button>
-          <span className="text-xs font-black tracking-[0.1em] uppercase text-gray-500 max-w-[60%] truncate">
+          <span className="text-xs font-bold tracking-[0.1em] uppercase text-gray-500 max-w-[60%] truncate">
             {product.storeName}
           </span>
           <div className="flex items-center gap-1">
@@ -452,14 +453,14 @@ export function ProductDetailsView(props: any) {
 
                 {/* Discount badge */}
                 {discountPct > 0 && (
-                  <div className="absolute top-3 left-3 bg-red-500 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-0.5 z-10">
+                  <div className="absolute top-3 left-3 bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-0.5 z-10">
                     <Zap size={10} fill="currentColor" /> -{discountPct}%
                   </div>
                 )}
 
                 {/* Freshness strip (food) */}
                 {isFood && (
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-50 text-green-700 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-sm z-10">
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-50 text-green-700 text-[8px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-sm z-10">
                     <Clock size={10} className="flex-shrink-0" />
                     Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
                   </div>
@@ -467,7 +468,7 @@ export function ProductDetailsView(props: any) {
 
                 {/* Counter badge */}
                 {galleryImages.length > 1 && (
-                  <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[9px] font-black px-2.5 py-1 rounded-full z-10">
+                  <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2.5 py-1 rounded-full z-10">
                     {productSwipeIdx + 1}/{galleryImages.length}
                   </div>
                 )}
@@ -521,7 +522,7 @@ export function ProductDetailsView(props: any) {
                   <div className="absolute inset-0 bg-black/0 group-hover/main:bg-black/5 transition-colors duration-300 pointer-events-none" />
 
                   {discountPct > 0 && (
-                    <div className="absolute top-3.5 left-3.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg shadow-md shadow-red-500/20 flex items-center gap-1 z-10">
+                    <div className="absolute top-3.5 left-3.5 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg shadow-md shadow-red-500/20 flex items-center gap-1 z-10">
                       <Zap size={11} fill="currentColor" /> -{discountPct}%
                     </div>
                   )}
@@ -545,7 +546,7 @@ export function ProductDetailsView(props: any) {
                   </div>
 
                   {isFood && (
-                    <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-100 text-green-700 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xs z-10">
+                    <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-100 text-green-700 text-[10px] font-semibold px-2.5 py-1 rounded-lg shadow-xs z-10">
                       <Clock size={11} />
                       Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
                     </div>
@@ -553,7 +554,7 @@ export function ProductDetailsView(props: any) {
 
                   {/* Image counter */}
                   {galleryImages.length > 1 && (
-                    <div className="absolute bottom-3.5 right-3.5 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md z-10">
+                    <div className="absolute bottom-3.5 right-3.5 bg-black/60 backdrop-blur-sm text-white text-[9px] font-semibold px-2 py-0.5 rounded-md z-10">
                       {(galleryImages.indexOf(currentImage) !== -1 ? galleryImages.indexOf(currentImage) : 0) + 1} / {galleryImages.length}
                     </div>
                   )}
@@ -600,7 +601,7 @@ export function ProductDetailsView(props: any) {
               <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 xl:p-5">
                 <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-gray-100">
                   <div className="w-1 h-4 bg-[#f56b2a] rounded-full" />
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     {isFood ? "Détails & Préparation" : "Description du produit"}
                   </h3>
                 </div>
@@ -614,43 +615,43 @@ export function ProductDetailsView(props: any) {
                 {/* Caractéristiques / Détails clés */}
                 <div className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs">
                   <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                    <span className="block text-[9px] text-gray-400 uppercase font-semibold">Catégorie</span>
-                    <span className="font-semibold text-gray-800 truncate block text-xs">{mainCat}</span>
+                    <span className="block text-[9px] text-gray-400 uppercase font-medium">Catégorie</span>
+                    <span className="font-medium text-gray-800 truncate block text-xs">{mainCat}</span>
                   </div>
                   <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                    <span className="block text-[9px] text-gray-400 uppercase font-semibold">Boutique</span>
-                    <span className="font-semibold text-gray-800 truncate block text-xs">{product.storeName}</span>
+                    <span className="block text-[9px] text-gray-400 uppercase font-medium">Boutique</span>
+                    <span className="font-medium text-gray-800 truncate block text-xs">{product.storeName}</span>
                   </div>
                   <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                    <span className="block text-[9px] text-gray-400 uppercase font-semibold">Disponibilité</span>
-                    <span className={`font-semibold truncate block text-xs ${isOutOfStock ? "text-red-600" : "text-emerald-700"}`}>
+                    <span className="block text-[9px] text-gray-400 uppercase font-medium">Disponibilité</span>
+                    <span className={`font-medium truncate block text-xs ${isOutOfStock ? "text-red-600" : "text-emerald-700"}`}>
                       {isOutOfStock ? "Rupture de stock" : "En stock"}
                     </span>
                   </div>
                   {product.sku && (
                     <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Référence</span>
-                      <span className="font-semibold text-gray-800 truncate block text-xs">{product.sku}</span>
+                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Référence</span>
+                      <span className="font-medium text-gray-800 truncate block text-xs">{product.sku}</span>
                     </div>
                   )}
                   {product.unit && (
                     <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Format</span>
-                      <span className="font-semibold text-gray-800 truncate block text-xs">{product.unit}</span>
+                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Format</span>
+                      <span className="font-medium text-gray-800 truncate block text-xs">{product.unit}</span>
                     </div>
                   )}
                   {!isFood && product.deliveryTime && (
                     <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Délai de livraison</span>
-                      <span className="font-semibold text-gray-800 truncate block text-xs">
+                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Délai de livraison</span>
+                      <span className="font-medium text-gray-800 truncate block text-xs">
                         {product.deliveryTime}
                       </span>
                     </div>
                   )}
                   {isFood && (product.preparationTime || product.deliveryTime) && (
                     <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-semibold">Délai estimé</span>
-                      <span className="font-semibold text-gray-800 truncate block text-xs">
+                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Délai estimé</span>
+                      <span className="font-medium text-gray-800 truncate block text-xs">
                         {product.preparationTime || product.deliveryTime}
                       </span>
                     </div>
@@ -667,14 +668,14 @@ export function ProductDetailsView(props: any) {
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     to={`/store/${product.storeSlug || product.storeId}`}
-                    className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/60 text-xs font-semibold text-gray-700 transition-colors group/store"
+                    className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200/60 text-xs font-medium text-gray-700 transition-colors group/store"
                   >
                     <Store size={12} className="text-gray-400 group-hover/store:text-[#f56b2a] transition-colors" />
                     <span className="truncate max-w-[190px]">{product.storeName}</span>
                     <CheckCircle2 size={12} className="text-blue-500 flex-shrink-0" />
                   </Link>
                   {mainCat && (
-                    <span className="text-[11px] font-medium text-gray-400 truncate max-w-[140px]">
+                    <span className="text-[11px] font-normal text-gray-400 truncate max-w-[140px]">
                       {mainCat}
                     </span>
                   )}
@@ -682,10 +683,10 @@ export function ProductDetailsView(props: any) {
 
                 {/* Title */}
                 <div>
-                  <h1 className="text-lg xl:text-xl font-bold text-gray-900 leading-snug tracking-tight">
+                  <h1 className="text-lg xl:text-xl font-semibold text-gray-900 leading-snug tracking-tight">
                     {product.name}
                     {product.unit && !hasOptions && (
-                      <span className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] font-black text-[#f56b2a] bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                      <span className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] font-bold text-[#f56b2a] bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
                         <Package size={10} strokeWidth={2.5} />
                         {product.unit}
                       </span>
@@ -709,13 +710,13 @@ export function ProductDetailsView(props: any) {
                         />
                       ))}
                     </div>
-                    <span className="font-bold ml-0.5">{(product.rating || 0).toFixed(1)}</span>
+                    <span className="font-semibold ml-0.5">{(product.rating || 0).toFixed(1)}</span>
                     <span className="text-gray-400 text-[11px]">({formatNumber(reviewTotal)})</span>
                   </button>
 
                   <span className="text-gray-300">·</span>
 
-                  <span className="text-gray-500 text-[11px] font-medium flex items-center gap-1">
+                  <span className="text-gray-500 text-[11px] font-normal flex items-center gap-1">
                     <ShoppingBag size={11} className={accentText} />
                     {formatNumber(product.salesCount || 0)} {isFood ? "commandes" : "vendus"}
                   </span>
@@ -723,15 +724,15 @@ export function ProductDetailsView(props: any) {
                   <span className="text-gray-300">·</span>
 
                   {isOutOfStock ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200/60 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 bg-red-50 border border-red-200/60 px-2 py-0.5 rounded-full">
                       <AlertCircle size={10} /> Rupture
                     </span>
                   ) : isLowStock ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
                       <AlertCircle size={10} /> {stockValue} restants
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> En stock
                     </span>
                   )}
@@ -740,20 +741,20 @@ export function ProductDetailsView(props: any) {
                 {/* Price block: compact & refined */}
                 <div className="bg-gray-50/90 rounded-xl p-3 border border-gray-200/70 flex items-center justify-between">
                   <div>
-                    <span className="block text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-0.5">
+                    <span className="block text-[10px] uppercase font-semibold tracking-wider text-gray-400 mb-0.5">
                       {hasOptions && !allSelected ? "À partir de" : (isFood ? "Prix unitaire" : "Prix")}
                     </span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-gray-950 tracking-tight leading-none">
+                      <span className="text-2xl font-bold text-gray-950 tracking-tight leading-none">
                         {formatCurrency(basePrice)}
                       </span>
                       {product.unit && !hasOptions && (
-                        <span className="text-sm font-semibold text-gray-500">
+                        <span className="text-sm font-medium text-gray-500">
                           / {product.unit}
                         </span>
                       )}
                       {product.originalPrice && product.originalPrice > basePrice && (
-                        <span className="text-xs text-gray-400 line-through font-medium">
+                        <span className="text-xs text-gray-400 line-through font-normal">
                           {formatCurrency(product.originalPrice)}
                         </span>
                       )}
@@ -761,10 +762,10 @@ export function ProductDetailsView(props: any) {
                   </div>
                   {product.originalPrice && product.originalPrice > basePrice && (
                     <div className="flex flex-col items-end gap-0.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
                         <Zap size={9} fill="currentColor" /> -{discountPct}%
                       </span>
-                      <span className="text-[10px] font-medium text-gray-500">
+                      <span className="text-[10px] font-normal text-gray-500">
                         Éco. {formatCurrency(product.originalPrice - basePrice)}
                       </span>
                     </div>
@@ -784,13 +785,13 @@ export function ProductDetailsView(props: any) {
                         <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
                           <Package size={12} strokeWidth={2.5} />
                         </span>
-                        <span className="text-sm font-black text-gray-900 group-hover:text-[#f56b2a] transition-colors">Options & Variantes</span>
+                        <span className="text-sm font-bold text-gray-900 group-hover:text-[#f56b2a] transition-colors">Options & Variantes</span>
                         {allSelected ? (
-                          <span className="flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
                             <CheckCircle2 size={11} strokeWidth={2.5} /> Tout sélectionné
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-gray-400">
+                          <span className="text-[10px] font-semibold text-gray-400">
                             {selectedOptionCount}/{options.length} choisi{options.length > 1 ? "s" : ""}
                           </span>
                         )}
@@ -803,14 +804,14 @@ export function ProductDetailsView(props: any) {
 
                     {selectedOptionCount > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Sélection :</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
                         {options.map((o: any) => {
                           const v = selectedOptions[o.id];
                           if (!v) return null;
                           return (
                             <span
                               key={o.id}
-                              className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-[10px] font-bold text-gray-800"
+                              className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-[10px] font-semibold text-gray-800"
                             >
                               {o.name}: {v}
                               <button
@@ -839,11 +840,11 @@ export function ProductDetailsView(props: any) {
                         return (
                           <div key={option.id}>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-bold text-gray-900">{option.name}</span>
+                              <span className="text-sm font-semibold text-gray-900">{option.name}</span>
                               {selectedVal ? (
-                                <span className="text-xs font-bold text-[#f56b2a]">{selectedVal}</span>
+                                <span className="text-xs font-semibold text-[#f56b2a]">{selectedVal}</span>
                               ) : (
-                                <span className="text-[10px] font-semibold text-gray-300">Choisissez...</span>
+                                <span className="text-[10px] font-medium text-gray-300">Choisissez...</span>
                               )}
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -864,7 +865,7 @@ export function ProductDetailsView(props: any) {
                                       })
                                     }
                                     aria-pressed={isSelected}
-                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer active:scale-95 ${
                                       isSelected
                                         ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
                                         : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-gray-900"
@@ -886,7 +887,7 @@ export function ProductDetailsView(props: any) {
                     </div>
 
                     {!allSelected && (
-                      <p className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
+                      <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
                         <AlertCircle size={11} className="flex-shrink-0" />
                         Sélectionnez les options pour commander
                       </p>
@@ -905,12 +906,12 @@ export function ProductDetailsView(props: any) {
                       aria-expanded={isWholesaleExpanded}
                       className="w-full flex items-center justify-between px-3 py-3 cursor-pointer select-none group"
                     >
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 group-hover:text-amber-950 transition-colors">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-900 group-hover:text-amber-950 transition-colors">
                         <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
                         Tarifs Grossiste (B2B)
                       </div>
                       <span className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                        <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
                           B2B
                         </span>
                         <ChevronDown size={14} className={`transition-transform duration-300 text-amber-700 ${isWholesaleExpanded ? "rotate-180" : ""}`} />
@@ -927,13 +928,13 @@ export function ProductDetailsView(props: any) {
                             className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
                           >
                             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-                              <span className="font-semibold text-gray-800">Qté Min : {tier.minQty} pièces</span>
+                              <span className="font-medium text-gray-800">Qté Min : {tier.minQty} pièces</span>
                               <span className="text-gray-300">•</span>
-                              <span className="font-bold text-gray-900">
+                              <span className="font-semibold text-gray-900">
                                 Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                               </span>
                               {tier.discountPct > 0 && (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
+                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded">
                                   -{tier.discountPct}%
                                 </span>
                               )}
@@ -941,7 +942,7 @@ export function ProductDetailsView(props: any) {
                             <button
                               type="button"
                               onClick={() => handleWholesaleAdd(idx, tier.minQty)}
-                              className={`min-w-[86px] justify-center px-2 py-1 rounded-md text-white text-[10px] font-bold flex items-center gap-1 transition-colors ${
+                              className={`min-w-[86px] justify-center px-2 py-1 rounded-md text-white text-[10px] font-semibold flex items-center gap-1 transition-colors ${
                                 isAdded ? "bg-emerald-600" : "bg-[#f56b2a] hover:bg-[#e04e0f]"
                               }`}
                             >
@@ -966,7 +967,7 @@ export function ProductDetailsView(props: any) {
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline pt-0.5"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 hover:underline pt-0.5"
                           >
                             <MessageCircle size={12} />
                             Demander un devis sur WhatsApp
@@ -983,7 +984,7 @@ export function ProductDetailsView(props: any) {
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isOutOfStock}
-                    className="h-11 px-3 rounded-xl bg-white hover:bg-gray-50 text-gray-900 font-bold text-xs flex items-center justify-center gap-2 border border-gray-300 hover:border-gray-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                    className="h-11 px-3 rounded-xl bg-white hover:bg-gray-50 text-gray-900 font-semibold text-xs flex items-center justify-center gap-2 border border-gray-300 hover:border-gray-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                   >
                     <ShoppingCart size={15} strokeWidth={2.2} className="text-[#f56b2a] flex-shrink-0" />
                     <span className="truncate">{isFood ? "Commander" : "Ajouter au panier"}</span>
@@ -992,7 +993,7 @@ export function ProductDetailsView(props: any) {
                     type="button"
                     onClick={handleBuyNow}
                     disabled={isOutOfStock}
-                    className="h-11 px-3 rounded-xl bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="h-11 px-3 rounded-xl bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Zap size={14} fill="currentColor" className="flex-shrink-0" />
                     <span className="truncate">{isFood ? "Commander direct" : "Acheter direct"}</span>
@@ -1000,7 +1001,7 @@ export function ProductDetailsView(props: any) {
                 </div>
 
                 {/* Reassurance Bar: fine, compact single row */}
-                <div className="grid grid-cols-3 gap-2 py-2 px-2.5 bg-gray-50/70 rounded-xl border border-gray-100 text-[10px] text-gray-500 font-medium text-center">
+                <div className="grid grid-cols-3 gap-2 py-2 px-2.5 bg-gray-50/70 rounded-xl border border-gray-100 text-[10px] text-gray-500 font-normal text-center">
                   {isFood ? (
                     <>
                       <span className="flex items-center justify-center gap-1 truncate">
@@ -1041,20 +1042,20 @@ export function ProductDetailsView(props: any) {
                 <div className="mb-3">
                   <Link
                     to={`/store/${product.storeSlug || product.storeId}`}
-                    className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 hover:text-[#f56b2a] transition-colors"
+                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-gray-500 hover:text-[#f56b2a] transition-colors"
                   >
                     Vendu par
-                    <span className="font-black text-gray-900 max-w-[180px] truncate inline-block align-bottom">
+                    <span className="font-bold text-gray-900 max-w-[180px] truncate inline-block align-bottom">
                       {product.storeName}
                     </span>
                   </Link>
                 </div>
 
                 {/* Title (Fine & compact) */}
-                <h2 className="text-sm font-bold text-gray-900 leading-snug tracking-tight mb-1.5">
+                <h2 className="text-sm font-semibold text-gray-900 leading-snug tracking-tight mb-1.5">
                   {product.name}
                   {product.unit && !hasOptions && (
-                    <span className="inline-flex items-center gap-1 ml-1.5 align-middle text-[9px] font-black text-[#f56b2a] bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                    <span className="inline-flex items-center gap-1 ml-1.5 align-middle text-[9px] font-bold text-[#f56b2a] bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
                       <Package size={9} strokeWidth={2.5} />
                       {product.unit}
                     </span>
@@ -1063,7 +1064,7 @@ export function ProductDetailsView(props: any) {
 
                 {/* Rating & Sales & Stock: Fine single line */}
                 <div className="flex items-center gap-1.5 text-[11px] mb-2.5 pb-2 border-b border-gray-100 flex-wrap">
-                  <div className="flex items-center gap-1 text-gray-800 font-bold">
+                  <div className="flex items-center gap-1 text-gray-800 font-semibold">
                     <div className="flex text-amber-400 gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
@@ -1092,15 +1093,15 @@ export function ProductDetailsView(props: any) {
                   <span className="text-gray-300">·</span>
 
                   {isOutOfStock ? (
-                    <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.2 rounded">
+                    <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.2 rounded">
                       Rupture
                     </span>
                   ) : isLowStock ? (
-                    <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">
+                    <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">
                       Plus que {stockValue}
                     </span>
                   ) : (
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
+                    <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
                       En stock
                     </span>
                   )}
@@ -1109,25 +1110,25 @@ export function ProductDetailsView(props: any) {
                 {/* Mobile price block: Fine, sleek & compact */}
                 <div className="p-2.5 rounded-xl bg-gray-50/80 border border-gray-100 mb-2.5 flex items-center justify-between">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase">
                       {hasOptions && !allSelected ? "Dès" : "Prix"}
                     </span>
-                    <span className="text-lg font-black tracking-tight text-gray-950 leading-none">
+                    <span className="text-lg font-bold tracking-tight text-gray-950 leading-none">
                       {formatCurrency(basePrice)}
                     </span>
                     {product.unit && !hasOptions && (
-                      <span className="text-[10px] font-semibold text-gray-500">
+                      <span className="text-[10px] font-medium text-gray-500">
                         /{product.unit}
                       </span>
                     )}
                     {product.originalPrice && product.originalPrice > basePrice && (
-                      <span className="text-[11px] text-gray-400 line-through font-medium">
+                      <span className="text-[11px] text-gray-400 line-through font-normal">
                         {formatCurrency(product.originalPrice)}
                       </span>
                     )}
                   </div>
                   {product.originalPrice && product.originalPrice > basePrice && (
-                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
                       -{discountPct}% Éco
                     </span>
                   )}
@@ -1155,17 +1156,17 @@ export function ProductDetailsView(props: any) {
                           <Package size={13} strokeWidth={2.5} />
                         </span>
                         <div className="text-left">
-                          <p className="text-[11px] font-black text-gray-900 leading-tight">Options & Variantes</p>
-                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Touchez pour déplier</p>
+                          <p className="text-[11px] font-bold text-gray-900 leading-tight">Options & Variantes</p>
+                          <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Touchez pour déplier</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {allSelected ? (
-                          <span className="flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">
                             <CheckCircle2 size={10} strokeWidth={3} /> Prêt à commander
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full">
+                          <span className="text-[10px] font-semibold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full">
                             {selectedOptionCount}/{options.length}
                           </span>
                         )}
@@ -1177,14 +1178,14 @@ export function ProductDetailsView(props: any) {
                     <div className="p-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
                       {selectedOptionCount > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5">
-                          <span className="text-[8px] font-black uppercase tracking-wider text-gray-400">Sélection :</span>
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
                           {options.map((o: any) => {
                             const v = selectedOptions[o.id];
                             if (!v) return null;
                             return (
                               <span
                                 key={o.id}
-                                className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-0.5 py-0.5 text-[10px] font-bold text-gray-800"
+                                className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-0.5 py-0.5 text-[10px] font-semibold text-gray-800"
                               >
                                 {o.name}: {v}
                                 <button
@@ -1213,11 +1214,11 @@ export function ProductDetailsView(props: any) {
                           return (
                             <div key={option.id}>
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-gray-900">{option.name}</span>
+                                <span className="text-xs font-semibold text-gray-900">{option.name}</span>
                                 {selectedVal ? (
-                                  <span className="text-[11px] font-bold text-[#f56b2a]">{selectedVal}</span>
+                                  <span className="text-[11px] font-semibold text-[#f56b2a]">{selectedVal}</span>
                                 ) : (
-                                  <span className="text-[9px] font-semibold text-gray-300">Choisissez...</span>
+                                  <span className="text-[9px] font-medium text-gray-300">Choisissez...</span>
                                 )}
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -1238,7 +1239,7 @@ export function ProductDetailsView(props: any) {
                                         })
                                       }
                                       aria-pressed={isSelected}
-                                      className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-bold transition-all border active:scale-95 ${
+                                      className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-semibold transition-all border active:scale-95 ${
                                         isSelected
                                           ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
                                           : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
@@ -1260,7 +1261,7 @@ export function ProductDetailsView(props: any) {
                       </div>
 
                       {!allSelected && (
-                        <p className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
+                        <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
                           <AlertCircle size={11} className="flex-shrink-0" />
                           Choisissez vos options pour commander
                         </p>
@@ -1279,12 +1280,12 @@ export function ProductDetailsView(props: any) {
                       aria-expanded={isWholesaleExpanded}
                       className="w-full px-3 py-2.5 bg-amber-50/50 flex items-center justify-between active:bg-amber-100/60 transition-colors cursor-pointer select-none"
                     >
-                        <span className="text-[10px] font-black text-amber-950 flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-amber-950 flex items-center gap-1.5">
                             <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
                             PRIX DE GROS
                         </span>
                         <span className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-bold text-[#e04e0f] uppercase">Dégressif</span>
+                            <span className="text-[9px] font-semibold text-[#e04e0f] uppercase">Dégressif</span>
                             <ChevronDown size={14} className={`transition-transform duration-300 text-amber-700 ${isWholesaleExpanded ? "rotate-180" : ""}`} />
                         </span>
                     </button>
@@ -1302,23 +1303,23 @@ export function ProductDetailsView(props: any) {
                           className="flex items-center justify-between px-3 py-2 bg-white hover:bg-amber-50 active:bg-amber-100 transition-colors cursor-pointer group"
                         >
                           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-                            <span className="text-[10px] font-black text-gray-700">
+                            <span className="text-[10px] font-bold text-gray-700">
                                 Qté Min : {tier.minQty} pièces
                             </span>
-                            <span className="text-gray-300 font-black">•</span>
-                            <span className="text-xs font-black text-[#f56b2a]">
+                            <span className="text-gray-300 font-bold">•</span>
+                            <span className="text-xs font-bold text-[#f56b2a]">
                               Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
                           </div>
 
                           <div className="flex items-center gap-2">
                              {tier.discountPct > 0 && (
-                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
                                 -{tier.discountPct}%
                               </span>
                              )}
                             <div
-                              className={`min-w-[52px] justify-center px-2 py-1 rounded-lg text-white text-[9px] font-black uppercase flex items-center gap-1 transition-colors ${
+                              className={`min-w-[52px] justify-center px-2 py-1 rounded-lg text-white text-[9px] font-bold uppercase flex items-center gap-1 transition-colors ${
                                 isAdded ? "bg-emerald-600" : "bg-gray-900"
                               }`}
                             >
@@ -1338,14 +1339,14 @@ export function ProductDetailsView(props: any) {
 
                     {waDigits && (
                       <div className="px-3 py-2 bg-white border-t border-amber-100 flex items-center justify-between text-[10px]">
-                        <span className="text-gray-500 font-medium italic">Besoin d'un devis volume ?</span>
+                        <span className="text-gray-500 font-normal italic">Besoin d'un devis volume ?</span>
                         <a
                           href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
                             `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un gros volume. Pouvez-vous me faire votre meilleur prix de gros ? Merci !`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
+                          className="font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
                         >
                           <MessageCircle size={11} className="text-emerald-600" />
                           Négocier sur WhatsApp 🤝
@@ -1362,7 +1363,7 @@ export function ProductDetailsView(props: any) {
               <div className="lg:hidden bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-1 h-3.5 bg-[#f56b2a] rounded-full" />
-                  <h3 className="text-[11px] font-bold text-gray-900 uppercase tracking-wider">
+                  <h3 className="text-[11px] font-semibold text-gray-900 uppercase tracking-wider">
                     {isFood ? 'Détails du plat' : 'Description produit'}
                   </h3>
                 </div>
@@ -1377,7 +1378,7 @@ export function ProductDetailsView(props: any) {
                 {descriptionText.length > 180 && (
                   <button
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    className={`mt-2 font-bold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-all ${accentText}`}
+                    className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-all ${accentText}`}
                   >
                     {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
                     <ChevronRight
@@ -1401,7 +1402,7 @@ export function ProductDetailsView(props: any) {
           <div className="flex items-center justify-between mb-4 lg:mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-2.5">
               <div className="hidden md:block w-1 h-5 bg-amber-400 rounded-full" />
-              <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.12em]">
+              <h3 className="text-[9px] md:text-sm font-bold text-gray-900 uppercase tracking-[0.12em]">
                 Avis {isFood ? 'sur le repas' : 'sur le produit'}
               </h3>
             </div>
@@ -1428,10 +1429,10 @@ export function ProductDetailsView(props: any) {
             <div className="flex md:flex-col items-center md:items-center gap-3 md:min-w-[180px] md:border-r md:border-gray-100 md:pr-12">
               <div className="text-center">
                 <div className="flex items-baseline gap-1 justify-center">
-                  <span className="text-xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none">
+                  <span className="text-xl md:text-6xl font-bold text-gray-900 tracking-tighter leading-none">
                     {(product.rating || 0).toFixed(1)}
                   </span>
-                  <span className="text-xs md:text-lg font-black text-gray-300">/5</span>
+                  <span className="text-xs md:text-lg font-bold text-gray-300">/5</span>
                 </div>
                 <div className="flex text-amber-400 mt-2 justify-center gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -1446,7 +1447,7 @@ export function ProductDetailsView(props: any) {
                     />
                   ))}
                 </div>
-                <p className="text-[8px] md:text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-wider">
+                <p className="text-[8px] md:text-[10px] font-semibold text-gray-400 mt-2 uppercase tracking-wider">
                   {formatNumber(reviewTotal)} {isFood ? 'avis clients' : 'notes et avis'}
                 </p>
               </div>
@@ -1463,7 +1464,7 @@ export function ProductDetailsView(props: any) {
                     const pct = Math.round((count / total) * 100);
                     return (
                       <div key={star} className="flex items-center gap-3">
-                        <span className="text-[9px] font-black text-gray-500 w-8 flex items-center gap-0.5">
+                        <span className="text-[9px] font-bold text-gray-500 w-8 flex items-center gap-0.5">
                           {star}{" "}
                           <Star size={8} className="text-yellow-400" fill="currentColor" />
                         </span>
@@ -1473,7 +1474,7 @@ export function ProductDetailsView(props: any) {
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="text-[9px] font-black text-gray-400 w-9 text-right">
+                        <span className="text-[9px] font-bold text-gray-400 w-9 text-right">
                           {pct}%
                         </span>
                       </div>
@@ -1495,7 +1496,7 @@ export function ProductDetailsView(props: any) {
                     ).map((review: Review, idx: number) => (
                       <div key={idx} className="flex gap-3 py-3 first:pt-0 last:pb-0">
                         <div
-                          className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] md:text-xs font-black ${
+                          className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] md:text-xs font-bold ${
                             [
                               "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
                               "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
@@ -1508,7 +1509,7 @@ export function ProductDetailsView(props: any) {
                         <div className="flex-grow min-w-0">
                           <div className="flex items-center justify-between gap-3 mb-0.5">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <h4 className="text-[9px] md:text-xs font-black text-gray-900 truncate">
+                              <h4 className="text-[9px] md:text-xs font-bold text-gray-900 truncate">
                                 {review.author}
                               </h4>
                               <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -1522,7 +1523,7 @@ export function ProductDetailsView(props: any) {
                                 ))}
                               </div>
                             </div>
-                            <span className="text-[9px] font-medium text-gray-400 flex-shrink-0">
+                            <span className="text-[9px] font-normal text-gray-400 flex-shrink-0">
                               {new Date(review.date).toLocaleDateString("fr-FR", {
                                 day: "numeric",
                                 month: "long",
@@ -1530,7 +1531,7 @@ export function ProductDetailsView(props: any) {
                               })}
                             </span>
                           </div>
-                          <p className="text-[9px] md:text-xs text-gray-600 leading-relaxed font-medium">
+                          <p className="text-[9px] md:text-xs text-gray-600 leading-relaxed font-normal">
                             {review.comment}
                           </p>
                         </div>
@@ -1540,7 +1541,7 @@ export function ProductDetailsView(props: any) {
                     {reviews.length > 3 && !showAllProductReviews && (
                       <button
                         onClick={() => setShowAllProductReviews(true)}
-                        className="w-full py-2.5 mt-2 bg-gray-50 text-gray-900 text-[8px] md:text-[10px] font-black uppercase tracking-wider rounded-xl border border-gray-100 hover:bg-gray-100 transition-all flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 mt-2 bg-gray-50 text-gray-900 text-[8px] md:text-[10px] font-bold uppercase tracking-wider rounded-xl border border-gray-100 hover:bg-gray-100 transition-all flex items-center justify-center gap-1.5"
                       >
                         Voir les {reviews.length - 3} autres avis
                         <ChevronRight size={12} className="rotate-90" />
@@ -1550,10 +1551,10 @@ export function ProductDetailsView(props: any) {
                 ) : (
                   <div className="text-center py-6 bg-gray-50/60 rounded-xl border border-dashed border-gray-200">
                     <MessageCircle size={18} className="mx-auto mb-2 text-gray-300" />
-                    <p className="text-xs font-black text-gray-600">
+                    <p className="text-xs font-bold text-gray-600">
                       Aucun avis rédigé
                     </p>
-                    <p className="text-[9px] text-gray-400 mt-0.5 font-medium">
+                    <p className="text-[9px] text-gray-400 mt-0.5 font-normal">
                       {isFood ? 'Soyez le premier à donner votre avis !' : 'Partagez votre avis pour aider la communauté !'}
                     </p>
                   </div>
@@ -1568,7 +1569,7 @@ export function ProductDetailsView(props: any) {
           <section id="pd-similaires" className="mt-3.5 lg:mt-14 scroll-mt-14">
             <div className="flex items-center gap-2.5 mb-4 lg:mb-6 px-1">
               <div className="hidden md:block w-1 h-5 bg-[#f56b2a] rounded-full" />
-              <h3 className="text-[9px] md:text-sm font-black text-gray-900 uppercase tracking-[0.12em]">
+              <h3 className="text-[9px] md:text-sm font-bold text-gray-900 uppercase tracking-[0.12em]">
                 {isFood ? 'Vous aimerez aussi' : 'Recommandations similaires'}
               </h3>
             </div>
@@ -1602,13 +1603,13 @@ export function ProductDetailsView(props: any) {
             }}
           >
             {isFood ? (
-              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-bold text-gray-400">
+              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-semibold text-gray-400">
                 <span className="flex items-center gap-1"><Clock size={8} /> Fraîcheur garantie</span>
                 <span className="w-0.5 h-0.5 bg-gray-200 rounded-full" />
                 <span className="flex items-center gap-1"><Truck size={8} /> Livraison rapide</span>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-bold text-gray-400">
+              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-semibold text-gray-400">
                 <span className="flex items-center gap-1"><ShieldCheck size={8} /> Paiement à la livraison</span>
                 <span className="w-0.5 h-0.5 bg-gray-200 rounded-full" />
                 <span className="flex items-center gap-1"><RotateCcw size={8} /> Retour 7j</span>
@@ -1618,11 +1619,11 @@ export function ProductDetailsView(props: any) {
               {cartItemsCount > 0 ? (
                 <button
                   onClick={goToCart}
-                  className="w-full bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-orange-500/10 transition-all"
+                  className="w-full bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-orange-500/10 transition-all"
                 >
                   <div className="relative flex-shrink-0">
                     <ShoppingCart size={16} strokeWidth={2.5} />
-                    <span className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-black">
+                    <span className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold">
                       {cartItemsCount}
                     </span>
                   </div>
@@ -1636,7 +1637,7 @@ export function ProductDetailsView(props: any) {
                 <button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className="w-full border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-black text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart size={14} strokeWidth={2.5} />
                   {isOutOfStock ? "Rupture" : (isFood ? 'Commander' : 'Ajouter au panier')}

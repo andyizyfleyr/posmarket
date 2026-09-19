@@ -60,7 +60,7 @@ export const StatusBadge: React.FC<{
   const info = getStatusInfo(status, businessType);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black whitespace-nowrap ${info.color}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap ${info.color}`}
     >
       {info.icon}
       {info.label}
@@ -127,9 +127,9 @@ export const EmptyState: React.FC<{
     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5 text-gray-300">
       {icon}
     </div>
-    <p className="text-sm font-black text-gray-600 tracking-tight">{title}</p>
+    <p className="text-sm font-bold text-gray-600 tracking-tight">{title}</p>
     {subtitle && (
-      <p className="text-[11px] font-medium text-gray-400 mt-1.5 max-w-[260px] leading-relaxed">
+      <p className="text-[11px] font-normal text-gray-400 mt-1.5 max-w-[260px] leading-relaxed">
         {subtitle}
       </p>
     )}

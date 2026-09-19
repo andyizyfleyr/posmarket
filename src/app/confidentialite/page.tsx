@@ -13,19 +13,19 @@ export default function ConfidentialitePage() {
       <main className="container mx-auto max-w-3xl px-4 py-10 md:py-16">
         <Link
           to="/"
-          className="text-xs font-black uppercase tracking-wider text-[#f56b2a] hover:underline"
+          className="text-xs font-bold uppercase tracking-wider text-[#f56b2a] hover:underline"
         >
           ← Retour à l&apos;accueil
         </Link>
 
-        <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight mt-6 mb-2">
+        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 tracking-tight mt-6 mb-2">
           Politique de confidentialité
         </h1>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-10">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-10">
           Dernière mise à jour : août 2026
         </p>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-10 space-y-8 text-sm font-medium text-gray-700 leading-relaxed [&_h2]:text-base [&_h2]:font-black [&_h2]:text-gray-900 [&_h2]:pt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-10 space-y-8 text-sm font-normal text-gray-700 leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:pt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
           <section className="space-y-3">
             <h2>1. Données collectées</h2>
             <p>

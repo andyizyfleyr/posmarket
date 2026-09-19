@@ -39,8 +39,8 @@ const Toast: React.FC<ToastProps> = memo(({ notification, onRemove }) => {
                 {icons[notification.type]}
             </div>
             <div className="flex-grow">
-                {notification.title && <h4 className="text-sm font-black text-slate-800 mb-1">{notification.title}</h4>}
-                <p className="text-sm font-bold text-slate-600 leading-tight">{notification.message}</p>
+                {notification.title && <h4 className="text-sm font-bold text-slate-800 mb-1">{notification.title}</h4>}
+                <p className="text-sm font-semibold text-slate-600 leading-tight">{notification.message}</p>
             </div>
             <button
                 onClick={() => onRemove(notification.id)}

@@ -457,3 +457,10 @@ button:disabled {
         touch-action: manipulation;
     }
 }
+
+/* Thinner font weights on mobile (one step below desktop) */
+@media (max-width: 767.98px) {
+    .font-bold { font-weight: 600 !important; }
+    .font-semibold { font-weight: 500 !important; }
+    .font-medium { font-weight: 400 !important; }
+}

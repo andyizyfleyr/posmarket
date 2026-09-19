@@ -116,8 +116,8 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Utilisateurs</h1>
-        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Gestion des comptes de la plateforme</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">Utilisateurs</h1>
+        <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">Gestion des comptes de la plateforme</p>
       </div>
 
       <div className="relative">
@@ -127,26 +127,26 @@ export default function AdminUsersPage() {
           placeholder="Chercher un utilisateur..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full md:w-96 pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
+          className="w-full md:w-96 pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
         />
       </div>
 
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 bg-orange-50/60 border border-orange-100 rounded-2xl px-4 py-3">
-          <p className="text-sm font-black text-gray-700">
+          <p className="text-sm font-bold text-gray-700">
             {selected.size} élément{selected.size > 1 ? 's' : ''} sélectionné{selected.size > 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSelected(new Set())}
-              className="px-4 py-2 rounded-xl text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
             >
               Désélectionner
             </button>
             <button
               onClick={() => setConfirm({ id: '', name: `${selected.size} utilisateur${selected.size > 1 ? 's' : ''}`, action: 'deleteBulk' })}
               disabled={bulkBusy}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
             >
               {bulkBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
               Supprimer
@@ -169,10 +169,10 @@ export default function AdminUsersPage() {
                     aria-label="Tout sélectionner"
                   />
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Utilisateur</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Rôle</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Abonnement</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-right">Actions</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Utilisateur</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest">Rôle</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest">Abonnement</th>
+                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -189,20 +189,20 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${u.is_super_admin ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-gray-100 text-gray-400'}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${u.is_super_admin ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-gray-100 text-gray-400'}`}>
                         {u.email?.[0]?.toUpperCase() || 'U'}
                       </div>
                       <div>
-                        <p className="text-xs font-black text-gray-900">{u.full_name || 'Utilisateur'}</p>
-                        <p className="text-[10px] font-bold text-gray-400 lowercase">{u.email}</p>
+                        <p className="text-xs font-bold text-gray-900">{u.full_name || 'Utilisateur'}</p>
+                        <p className="text-[10px] font-semibold text-gray-400 lowercase">{u.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     {u.is_super_admin ? (
-                      <span className="px-2 py-1 bg-orange-50 text-[#f56b2a] text-[9px] font-black rounded-lg uppercase tracking-tighter border border-orange-100">Super Admin</span>
+                      <span className="px-2 py-1 bg-orange-50 text-[#f56b2a] text-[9px] font-bold rounded-lg uppercase tracking-tighter border border-orange-100">Super Admin</span>
                     ) : (
-                      <span className="px-2 py-1 bg-gray-50 text-gray-400 text-[9px] font-black rounded-lg uppercase tracking-tighter border border-gray-100">Utilisateur</span>
+                      <span className="px-2 py-1 bg-gray-50 text-gray-400 text-[9px] font-bold rounded-lg uppercase tracking-tighter border border-gray-100">Utilisateur</span>
                     )}
                   </td>
                   <td className="px-8 py-6">
@@ -216,7 +216,7 @@ export default function AdminUsersPage() {
                           await fetchData();
                         }}
                         disabled={processing.has(`sub-${u.id}`)}
-                        className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl border outline-none appearance-none cursor-pointer transition-all disabled:opacity-50 ${
+                        className={`text-[10px] font-bold uppercase px-3 py-1.5 rounded-xl border outline-none appearance-none cursor-pointer transition-all disabled:opacity-50 ${
                           u.subscription_tier === 'STARTER' ? 'bg-green-50 border-green-200 text-green-600' :
                           u.subscription_tier === 'PRO' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' :
                           u.subscription_tier === 'ENTERPRISE' ? 'bg-purple-50 border-purple-200 text-purple-600' :
@@ -275,10 +275,10 @@ export default function AdminUsersPage() {
               ${confirm.action === 'admin' ? 'bg-orange-50 text-[#f56b2a]' : confirm.action === 'revoke' ? 'bg-gray-50 text-gray-500' : 'bg-red-50 text-red-500'}">
               {confirm.action === 'delete' || confirm.action === 'deleteBulk' ? <Trash2 size={24} /> : confirm.action === 'revoke' ? <Shield size={24} /> : <Shield size={24} />}
             </div>
-            <h3 className="text-lg font-black text-gray-900 text-center mb-2">
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
               {confirm.action === 'admin' ? 'Promouvoir super admin ?' : confirm.action === 'revoke' ? 'Révoquer les droits admin ?' : confirm.action === 'deleteBulk' ? `Supprimer ${confirm.name} ?` : 'Supprimer ce compte ?'}
             </h3>
-            <p className="text-sm text-gray-500 font-medium text-center mb-6">
+            <p className="text-sm text-gray-500 font-normal text-center mb-6">
               {confirm.action === 'deleteBulk'
                 ? `Les comptes sélectionnés et toutes leurs boutiques et données seront définitivement supprimés. Action irréversible.`
                 : confirm.action === 'delete'
@@ -290,7 +290,7 @@ export default function AdminUsersPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirm(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 Annuler
               </button>
@@ -309,7 +309,7 @@ export default function AdminUsersPage() {
                     await fetchData();
                   }
                 }}
-                className={`flex-1 py-3 rounded-xl text-sm font-black text-white transition-all ${
+                className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all ${
                   confirm.action === 'delete' || confirm.action === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
                 }`}
               >

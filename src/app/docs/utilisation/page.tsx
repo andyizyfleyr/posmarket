@@ -53,8 +53,8 @@ export default function DocsHubPage() {
             <Rocket size={26} className="text-orange-300" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Guide d&apos;utilisation</h1>
-            <p className="mt-1 text-sm font-medium text-white/70">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Guide d&apos;utilisation</h1>
+            <p className="mt-1 text-sm font-normal text-white/70">
               Tout savoir sur PosMarket : acheter et vendre en toute confiance.
             </p>
           </div>
@@ -75,8 +75,8 @@ export default function DocsHubPage() {
                 <Icon size={22} />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-black text-gray-900">{card.title}</h2>
-                <p className="text-[11px] font-medium text-gray-500 leading-relaxed mt-1">{card.desc}</p>
+                <h2 className="text-sm font-bold text-gray-900">{card.title}</h2>
+                <p className="text-[11px] font-normal text-gray-500 leading-relaxed mt-1">{card.desc}</p>
               </div>
               <ChevronRight size={16} className="text-gray-300 shrink-0 mt-1 group-hover:text-gray-500 transition-colors" />
             </Link>

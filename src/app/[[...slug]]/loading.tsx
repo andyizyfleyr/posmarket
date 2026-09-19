@@ -9,7 +9,7 @@ export default function Loading() {
           <Store size={48} className="text-[#f56b2a] animate-bounce" />
         </div>
       </div>
-      <p className="mt-8 text-slate-500 font-bold animate-pulse">Patientez...</p>
+      <p className="mt-8 text-slate-500 font-semibold animate-pulse">Patientez...</p>
     </div>
   );
 }

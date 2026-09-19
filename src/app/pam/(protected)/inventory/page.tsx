@@ -78,8 +78,8 @@ export default function AdminInventoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Inventaire Global</h1>
-        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Surveillance et modération des produits ({filtered.length})</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">Inventaire Global</h1>
+        <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">Surveillance et modération des produits ({filtered.length})</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -90,7 +90,7 @@ export default function AdminInventoryPage() {
             placeholder="Chercher un produit ou une boutique..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
+            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
           />
         </div>
       </div>
@@ -100,11 +100,11 @@ export default function AdminInventoryPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-400 border-b border-gray-100">
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Produit</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Boutique</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Prix</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Stock</th>
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-right">Actions</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Produit</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Boutique</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Prix</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Stock</th>
+                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -119,21 +119,21 @@ export default function AdminInventoryPage() {
                           <Package size={18} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-black text-gray-900 truncate max-w-[220px]">{p.name || 'Sans nom'}</p>
-                          <p className="text-[9px] font-bold text-gray-400">#{p.id.split('-')[0]?.toUpperCase()}</p>
+                          <p className="text-xs font-bold text-gray-900 truncate max-w-[220px]">{p.name || 'Sans nom'}</p>
+                          <p className="text-[9px] font-semibold text-gray-400">#{p.id.split('-')[0]?.toUpperCase()}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       {store ? (
-                        <Link href={`/pam/stores/${store.id}`} className="text-xs font-black text-[#f56b2a] hover:underline">{store.name}</Link>
-                      ) : <span className="text-xs text-gray-400 font-bold">—</span>}
+                        <Link href={`/pam/stores/${store.id}`} className="text-xs font-bold text-[#f56b2a] hover:underline">{store.name}</Link>
+                      ) : <span className="text-xs text-gray-400 font-semibold">—</span>}
                     </td>
                     <td className="px-6 py-5">
-                      <p className="text-xs font-black text-gray-900">{formatCurrency(parseFloat(p.price ?? '') || 0)}</p>
+                      <p className="text-xs font-bold text-gray-900">{formatCurrency(parseFloat(p.price ?? '') || 0)}</p>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase border ${
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border ${
                         lowStock ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-100'
                       }`}>
                         {lowStock && <AlertTriangle size={10} />}
@@ -166,20 +166,20 @@ export default function AdminInventoryPage() {
             <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
               <Trash2 size={24} />
             </div>
-            <h3 className="text-lg font-black text-gray-900 text-center mb-2">Supprimer ce produit ?</h3>
-            <p className="text-sm text-gray-500 font-medium text-center mb-6">
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Supprimer ce produit ?</h3>
+            <p className="text-sm text-gray-500 font-normal text-center mb-6">
               « {confirm.name} » sera définitivement supprimé du catalogue. Cette action est irréversible.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirm(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 Annuler
               </button>
               <button
                 onClick={() => handleDelete(confirm)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-white bg-red-500 hover:bg-red-600 transition-all"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-all"
               >
                 Supprimer
               </button>

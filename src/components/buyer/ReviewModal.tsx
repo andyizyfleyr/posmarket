@@ -63,11 +63,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
       <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto" noValidate>
         <div className="flex items-center gap-3 px-1">
           <ProductThumb src={product.image} alt={product.name} className="w-12 h-12" iconSize={18} />
-          <p className="text-xs font-black text-[#002f34] truncate">{product.name}</p>
+          <p className="text-xs font-bold text-[#002f34] truncate">{product.name}</p>
         </div>
 
         <div className="flex flex-col items-center gap-3 py-5 bg-gray-50/60 rounded-3xl border border-dashed border-gray-200">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Votre note</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Votre note</p>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
@@ -86,13 +86,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
               </button>
             ))}
           </div>
-          <p className="text-xs font-black text-[#f56b2a] uppercase tracking-widest">
+          <p className="text-xs font-bold text-[#f56b2a] uppercase tracking-widest">
             {rating >= 5 ? 'Excellent !' : LABELS[rating - 2] || ''}
           </p>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
             Commentaire
           </label>
           <textarea
@@ -103,21 +103,21 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
               setCommentError(null);
             }}
             placeholder={placeholder}
-            className={`w-full px-5 py-4 bg-gray-50 border rounded-2xl text-sm font-bold min-h-[110px] resize-none outline-none transition-all focus:ring-2 ${
+            className={`w-full px-5 py-4 bg-gray-50 border rounded-2xl text-sm font-semibold min-h-[110px] resize-none outline-none transition-all focus:ring-2 ${
               commentError
                 ? 'border-red-200 focus:ring-red-200/30'
                 : 'border-transparent focus:ring-[#f56b2a]/20'
             }`}
           />
           {commentError && (
-            <p className="text-[10px] font-bold text-red-400 px-1">{commentError}</p>
+            <p className="text-[10px] font-semibold text-red-400 px-1">{commentError}</p>
           )}
         </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-[#002f34] text-white rounded-2xl font-black text-xs shadow-md shadow-gray-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-[#002f34] text-white rounded-2xl font-bold text-xs shadow-md shadow-gray-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-60"
         >
           {submitting ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
           Publier mon avis

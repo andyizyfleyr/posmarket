@@ -80,12 +80,12 @@ const SettingItem = React.memo<SettingItemProps>(({ icon, title, description, ba
                 {React.cloneElement(icon, { size: 16, className: 'md:size-5' })}
             </div>
             <div className="min-w-0">
-                <h4 className="text-[11px] md:text-sm font-black text-gray-900 leading-tight truncate">{title}</h4>
-                <p className="text-[9px] md:text-[10px] text-gray-400 md:text-gray-500 font-medium truncate">{description}</p>
+                <h4 className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight truncate">{title}</h4>
+                <p className="text-[9px] md:text-[10px] text-gray-400 md:text-gray-500 font-normal truncate">{description}</p>
             </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            {badge && <span className="bg-orange-100 text-[#f56b2a] text-[8px] md:text-[10px] font-black px-1.5 md:px-2 py-0.5 rounded-full">{badge}</span>}
+            {badge && <span className="bg-orange-100 text-[#f56b2a] text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded-full">{badge}</span>}
             <ChevronRight size={14} className="text-gray-300 md:size-4 group-hover:text-[#f56b2a]" />
         </div>
     </div>
@@ -102,7 +102,7 @@ const SectionHeader = React.memo<SectionHeaderProps>(({ title, icon }) => (
         <div className="p-1.5 md:p-2 bg-[#f56b2a] rounded-lg md:rounded-xl text-white">
             {React.cloneElement(icon, { size: 14, className: 'md:size-[18px]' })}
         </div>
-        <h3 className="text-[10px] md:text-sm font-black text-gray-900 uppercase tracking-widest leading-none">{title}</h3>
+        <h3 className="text-[10px] md:text-sm font-bold text-gray-900 uppercase tracking-widest leading-none">{title}</h3>
     </div>
 ));
 SectionHeader.displayName = 'SectionHeader';
@@ -369,13 +369,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex-grow overflow-hidden flex flex-col p-3 md:p-8 bg-gray-50/30">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
                 <div>
-                    <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">Réglages</h1>
+                    <h1 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap">Réglages</h1>
                     <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">Gérez vos préférences.</p>
                 </div>
                 <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className={`flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 text-white rounded-lg md:rounded-xl text-[10px] md:text-sm font-black transition-all shadow-lg active:scale-95 whitespace-nowrap ${isSaving ? 'opacity-70 cursor-not-allowed' : ''} ${saveFeedback ? 'bg-green-500 shadow-green-100' : 'bg-[#f56b2a] shadow-orange-100 hover:bg-[#d55a20]'}`}
+                    className={`flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 text-white rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold transition-all shadow-lg active:scale-95 whitespace-nowrap ${isSaving ? 'opacity-70 cursor-not-allowed' : ''} ${saveFeedback ? 'bg-green-500 shadow-green-100' : 'bg-[#f56b2a] shadow-orange-100 hover:bg-[#d55a20]'}`}
                 >
                     {isSaving ? <Loader2 size={16} className="md:size-[18px] animate-spin" /> : saveFeedback ? <ShieldCheck size={16} className="md:size-[18px]" /> : <Save size={16} className="md:size-[18px]" />}
                     {isSaving ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
@@ -394,7 +394,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-black text-[10px] md:text-sm transition-all whitespace-nowrap min-w-fit flex-shrink-0 ${activeTab === tab.id ? 'bg-white text-[#f56b2a] shadow-md border border-gray-100' : 'text-gray-500 hover:bg-white/50'}`}
+                            className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm transition-all whitespace-nowrap min-w-fit flex-shrink-0 ${activeTab === tab.id ? 'bg-white text-[#f56b2a] shadow-md border border-gray-100' : 'text-gray-500 hover:bg-white/50'}`}
                         >
                             {tab.icon}
                             {tab.label}
@@ -433,51 +433,51 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             onChange={handleLogoUpload}
                                         />
                                     </label>
-                                    <p className="text-[9px] md:text-[10px] text-gray-400 font-bold mt-2">Logo de la boutique</p>
+                                    <p className="text-[9px] md:text-[10px] text-gray-400 font-semibold mt-2">Logo de la boutique</p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     <div>
-                                        <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Nom de la Boutique</label>
+                                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Nom de la Boutique</label>
                                         <div className="relative">
                                             <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
                                             <input
-                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
                                                 value={localSettings.name}
                                                 onChange={(e) => setLocalSettings(prev => ({ ...prev, name: e.target.value }))}
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Email de Contact</label>
+                                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Email de Contact</label>
                                         <div className="relative">
                                             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
                                             <input
-                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
                                                 value={localSettings.email}
                                                 onChange={(e) => setLocalSettings(prev => ({ ...prev, email: e.target.value }))}
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Numéro WhatsApp (Commande)</label>
+                                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Numéro WhatsApp (Commande)</label>
                                         <PhoneInput
                                             value={localSettings.phone}
                                             onChange={(val) => setLocalSettings(prev => ({ ...prev, phone: val }))}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Pays</label>
+                                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Pays</label>
                                         <CountrySelect
                                             value={localSettings.country || ''}
                                             onChange={(name) => setLocalSettings(prev => ({ ...prev, country: name }))}
                                         />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Description de la boutique</label>
+                                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-2 text-ellipsis overflow-hidden">Description de la boutique</label>
                                         <div className="relative">
                                             <FileText className="absolute left-3.5 top-3 text-gray-300 md:size-4" size={14} />
                                             <textarea
-                                                className="w-full pl-10 md:pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all resize-none min-h-[100px] no-global-border"
+                                                className="w-full pl-10 md:pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all resize-none min-h-[100px] no-global-border"
                                                 placeholder="Décrivez votre univers (lettres, espaces et points uniquement, max 250 car.)..."
                                                 maxLength={250}
                                                 value={localSettings.description || ''}
@@ -487,11 +487,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     setLocalSettings(prev => ({ ...prev, description: filteredValue }));
                                                 }}
                                             />
-                                            <div className="absolute bottom-3 right-4 text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                                            <div className="absolute bottom-3 right-4 text-[8px] font-bold text-gray-300 uppercase tracking-widest">
                                                 {(localSettings.description || '').length} / 250
                                             </div>
                                         </div>
-                                        <p className="text-[8px] md:text-[9px] text-gray-400 mt-1 font-bold italic px-1 flex items-center gap-1">
+                                        <p className="text-[8px] md:text-[9px] text-gray-400 mt-1 font-semibold italic px-1 flex items-center gap-1">
                                             <Info size={10} /> Chiffres, liens et codes interdits (Lettres uniquement)
                                         </p>
                                     </div>
@@ -508,8 +508,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                 <Zap size={20} className="fill-[#f56b2a]" />
                                             </div>
                                             <div>
-                                                <h4 className="text-xs md:text-sm font-black text-gray-900">Activer les commandes de gros (B2B)</h4>
-                                                <p className="text-[10px] md:text-xs text-gray-500 font-medium">Permet d&apos;afficher vos offres dégressives et le bouton de commande rapide</p>
+                                                <h4 className="text-xs md:text-sm font-bold text-gray-900">Activer les commandes de gros (B2B)</h4>
+                                                <p className="text-[10px] md:text-xs text-gray-500 font-normal">Permet d&apos;afficher vos offres dégressives et le bouton de commande rapide</p>
                                             </div>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -525,7 +525,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                                     {localSettings.wholesaleEnabled && (
                                         <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-                                            <label className="block text-[10px] md:text-xs font-black text-gray-700 uppercase tracking-wider">
+                                            <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase tracking-wider">
                                                 Montant Minimum de Commande Grossiste (F CFA)
                                             </label>
                                             <div className="relative">
@@ -534,18 +534,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     min="0"
                                                     step="1000"
                                                     placeholder="Ex: 50000 (Laissez vide ou 0 pour aucun minimum)"
-                                                    className="w-full pl-4 pr-16 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                    className="w-full pl-4 pr-16 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
                                                     value={localSettings.wholesaleMinOrderAmount || ''}
                                                     onChange={(e) => setLocalSettings(prev => ({
                                                         ...prev,
                                                         wholesaleMinOrderAmount: e.target.value ? Number(e.target.value) : undefined,
                                                     }))}
                                                 />
-                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
                                                     F CFA
                                                 </span>
                                             </div>
-                                            <p className="text-[9px] md:text-[10px] text-gray-500 font-medium">
+                                            <p className="text-[9px] md:text-[10px] text-gray-500 font-normal">
                                                 Les acheteurs devront atteindre ce montant d&apos;achat dans votre boutique pour passer une commande avec tarifs grossistes.
                                             </p>
                                         </div>
@@ -578,8 +578,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 </div>
 
                                 <div className="relative z-10 flex-grow text-center md:text-left space-y-1 md:space-y-2">
-                                    <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight">{profileName || 'Gérant'}</h2>
-                                    <p className="text-white/80 text-xs md:text-base font-medium flex items-center justify-center md:justify-start gap-2">
+                                    <h2 className="text-2xl md:text-4xl font-bold text-white tracking-tight">{profileName || 'Gérant'}</h2>
+                                    <p className="text-white/80 text-xs md:text-base font-normal flex items-center justify-center md:justify-start gap-2">
                                         <Mail size={14} className="md:size-4" /> {userEmail}
                                     </p>
                                 </div>
@@ -592,19 +592,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <div className="p-2 bg-orange-50 rounded-xl text-[#f56b2a]">
                                             <User size={20} />
                                         </div>
-                                        <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest leading-none">Identité Personnelle</h3>
+                                        <h3 className="text-xs md:text-sm font-bold text-gray-900 uppercase tracking-widest leading-none">Identité Personnelle</h3>
                                     </div>
                                     
                                     <div className="bg-gray-50/50 p-6 md:p-10 rounded-[32px] border border-gray-100 space-y-8">
                                         <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
                                             <div className="relative group">
                                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={20} />
                                                 <input
                                                     type="text"
                                                     value={profileName}
                                                     onChange={(e) => setProfileName(e.target.value)}
-                                                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 outline-none shadow-sm transition-all"
+                                                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 outline-none shadow-sm transition-all"
                                                     placeholder="Votre nom"
                                                 />
                                             </div>
@@ -613,7 +613,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <button
                                             onClick={handleUpdateProfileLocal}
                                             disabled={isUpdatingProfile}
-                                            className="w-full py-4.5 bg-[#f56b2a] text-white rounded-2xl text-sm font-black shadow-xl shadow-orange-100/50 hover:bg-[#d55a20] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                                            className="w-full py-4.5 bg-[#f56b2a] text-white rounded-2xl text-sm font-bold shadow-xl shadow-orange-100/50 hover:bg-[#d55a20] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
                                             {isUpdatingProfile ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                             {isUpdatingProfile ? 'Mise à jour...' : 'Sauvegarder les modifications'}
@@ -630,7 +630,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <SectionHeader title="Gestion de l'Équipe" icon={<Users />} />
                                 <button
                                     onClick={() => setIsStaffModalOpen(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-[#f56b2a] text-white rounded-lg md:rounded-xl text-[10px] md:text-xs font-black shadow-lg shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 whitespace-nowrap"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-[#f56b2a] text-white rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold shadow-lg shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 whitespace-nowrap"
                                 >
                                     <Plus size={14} /> Ajouter un membre
                                 </button>
@@ -638,7 +638,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {staff.length === 0 ? (
-                                    <div className="col-span-full py-12 text-center text-gray-400 font-bold border-2 border-dashed border-gray-100 rounded-3xl">
+                                    <div className="col-span-full py-12 text-center text-gray-400 font-semibold border-2 border-dashed border-gray-100 rounded-3xl">
                                         Aucun membre d&apos;équipe enregistré.
                                     </div>
                                 ) : (
@@ -655,12 +655,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     <User size={20} />
                                                 </div>
                                                 <div className="min-w-0">
-                                                     <h4 className="font-black text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{(member as unknown as { fullName?: string; email?: string }).fullName || (member as unknown as { fullName?: string; email?: string }).email || member.userId?.slice(0, 8)}</h4>
+                                                     <h4 className="font-bold text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{(member as unknown as { fullName?: string; email?: string }).fullName || (member as unknown as { fullName?: string; email?: string }).email || member.userId?.slice(0, 8)}</h4>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className={`text-[8px] md:text-[9px] font-black px-1.5 md:px-2 py-0.5 rounded-full ${member.role === 'OWNER' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-[#f56b2a]'}`}>
+                                                        <span className={`text-[8px] md:text-[9px] font-bold px-1.5 md:px-2 py-0.5 rounded-full ${member.role === 'OWNER' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-[#f56b2a]'}`}>
                                                             {member.role}
                                                         </span>
-                                                        <span className="text-[9px] md:text-[10px] text-gray-400 font-bold flex items-center gap-1 truncate">
+                                                        <span className="text-[9px] md:text-[10px] text-gray-400 font-semibold flex items-center gap-1 truncate">
                                                             <Store size={8} className="md:size-[10px]" />
                                                             {stores.find(s => s.id === member.storeId)?.name || 'Boutique'}
                                                         </span>
@@ -683,7 +683,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 </p>
                                 
                                 <div className="bg-gray-50 rounded-2xl md:rounded-3xl p-4 md:p-6 border border-gray-100 mb-8 shadow-sm">
-                                    <h4 className="font-black text-xs md:text-sm mb-4 flex items-center gap-2 uppercase tracking-tight">
+                                    <h4 className="font-bold text-xs md:text-sm mb-4 flex items-center gap-2 uppercase tracking-tight">
                                         <Plus size={16} className="text-[#f56b2a]" /> Nouveau Code
                                     </h4>
                                     <div className="flex flex-col md:flex-row gap-3">
@@ -692,21 +692,21 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             value={newCouponCode}
                                             onChange={e => setNewCouponCode(e.target.value)}
                                             placeholder="Code (ex: BIENVENUE20)"
-                                            className="flex-grow px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-black text-xs md:text-sm uppercase focus:ring-2 focus:ring-[#f56b2a]/10 outline-none"
+                                            className="flex-grow px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm uppercase focus:ring-2 focus:ring-[#f56b2a]/10 outline-none"
                                         />
                                         <div className="w-full md:w-32 relative">
                                             <input
                                                 type="number" min="1" max="100"
                                                 value={newCouponDiscount}
                                                 onChange={e => setNewCouponDiscount(Number(e.target.value))}
-                                                className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-black text-xs md:text-sm focus:ring-2 focus:ring-[#f56b2a]/10 outline-none"
+                                                className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm focus:ring-2 focus:ring-[#f56b2a]/10 outline-none"
                                             />
-                                            <span className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">%</span>
+                                            <span className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">%</span>
                                         </div>
                                         <button
                                             onClick={handleAddCoupon}
                                             disabled={!newCouponCode.trim() || loadingCoupons}
-                                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2 active:scale-95 transition-all"
                                         >
                                             {loadingCoupons ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                             {loadingCoupons ? 'Action...' : 'Ajouter'}
@@ -718,7 +718,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     {localCoupons.length === 0 ? (
                                         <div className="text-center py-12 md:py-16 text-gray-400 border-2 border-dashed border-gray-50 rounded-3xl">
                                             <Tag size={48} className="mx-auto mb-4 opacity-10" />
-                                            <p className="font-bold text-sm tracking-tight italic">Aucune promotion active actuellement.</p>
+                                            <p className="font-semibold text-sm tracking-tight italic">Aucune promotion active actuellement.</p>
                                         </div>
                                     ) : (
                                         localCoupons.map(coupon => (
@@ -735,9 +735,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                         )}
                                                     </button>
                                                     <div>
-                                                        <span className="font-black text-xs md:text-sm uppercase tracking-tighter text-gray-900">{coupon.code}</span>
+                                                        <span className="font-bold text-xs md:text-sm uppercase tracking-tighter text-gray-900">{coupon.code}</span>
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="bg-orange-50 text-[#f56b2a] text-[9px] md:text-[10px] font-black px-1.5 py-0.5 rounded-lg">-{coupon.discount_pct}%</span>
+                                                            <span className="bg-orange-50 text-[#f56b2a] text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-lg">-{coupon.discount_pct}%</span>
                                                             <span className="text-gray-400 text-[10px] md:text-xs">Valide en ligne</span>
                                                         </div>
                                                     </div>
@@ -755,7 +755,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 
                                 <div className="p-4 bg-orange-50/50 rounded-2xl md:rounded-3xl border border-orange-100/50 flex gap-3 mt-8">
                                     <ShieldCheck size={18} className="text-[#f56b2a] flex-shrink-0" />
-                                     <p className="text-[#f56b2a] text-[10px] md:text-xs font-medium leading-relaxed">
+                                     <p className="text-[#f56b2a] text-[10px] md:text-xs font-normal leading-relaxed">
                                          <strong>Conseil :</strong> Les codes promo sont sensibles à la casse. Vos clients verront ces remises s&apos;appliquer automatiquement s&apos;ils saisissent le code correspondant dans leur panier.
                                      </p>
                                 </div>
@@ -770,35 +770,35 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh] border border-white/20 animate-in zoom-in-95 duration-300">
                         <div className="p-6 md:p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div>
-                                <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Nouvel Employé</h2>
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Nouvel Employé</h2>
                                 <p className="text-xs text-gray-500 mt-1">Créez un accès sécurisé pour votre équipe.</p>
                             </div>
                             <button onClick={() => setIsStaffModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-white rounded-xl transition-all"><X size={24} /></button>
                         </div>
                         <form onSubmit={handleSubmitStaff} className="p-6 md:p-8 space-y-5 md:space-y-6 overflow-y-auto custom-scrollbar">
                             <div className="space-y-1.5">
-                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Email de l&apos;employé</label>
+                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Email de l&apos;employé</label>
                                 <div className="relative group">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
                                     <input
                                         required type="email"
                                         value={newStaffEmail}
                                         onChange={e => setNewStaffEmail(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
                                         placeholder="exemple@boutique.com"
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mot de passe provisoire</label>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Mot de passe provisoire</label>
                                 <div className="relative group">
                                     <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
                                     <input
                                         required type="password"
                                         value={newStaffPassword}
                                         onChange={e => setNewStaffPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
                                         placeholder="Min 6 caractères"
                                     />
                                 </div>
@@ -806,13 +806,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                             {stores.length > 1 && (
                                 <div className="space-y-1.5">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Attribuer à la boutique</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Attribuer à la boutique</label>
                                     <div className="relative group">
                                         <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
                                         <select
                                             value={selectedStoreId}
                                             onChange={e => setSelectedStoreId(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-black focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
+                                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
                                         >
                                             {stores.map(s => <option key={s.id} value={s.id}>{s.settings.name}</option>)}
                                         </select>
@@ -822,11 +822,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             )}
 
                             <div>
-                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Niveau d&apos;accès (Rôle)</label>
+                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Niveau d&apos;accès (Rôle)</label>
                                 <div className="p-4 bg-orange-50 border-2 border-[#f56b2a] rounded-2xl flex items-center justify-between shadow-lg shadow-orange-100/50">
                                     <div>
-                                        <span className="font-black text-sm text-[#f56b2a]">VENDEUR (SELLER)</span>
-                                        <p className="text-[10px] text-[#f56b2a]/70 font-bold mt-0.5">Accès au POS, commandes et inventaire.</p>
+                                        <span className="font-bold text-sm text-[#f56b2a]">VENDEUR (SELLER)</span>
+                                        <p className="text-[10px] text-[#f56b2a]/70 font-semibold mt-0.5">Accès au POS, commandes et inventaire.</p>
                                     </div>
                                     <ShieldCheck size={24} className="text-[#f56b2a]" />
                                 </div>
@@ -835,13 +835,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             <div className="flex gap-3 pt-6">
                                 <button
                                     type="button" onClick={() => setIsStaffModalOpen(false)}
-                                    className="flex-grow py-4 border-2 border-gray-100 rounded-2xl font-black text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all active:scale-95"
+                                    className="flex-grow py-4 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all active:scale-95"
                                 >
                                     Annuler
                                 </button>
                                 <button
                                     type="submit" disabled={isSubmittingStaff}
-                                    className="flex-grow py-4 bg-[#f56b2a] text-white font-black rounded-2xl shadow-2xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                    className="flex-grow py-4 bg-[#f56b2a] text-white font-bold rounded-2xl shadow-2xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     {isSubmittingStaff ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                                     {isSubmittingStaff ? 'Création...' : 'Valider'}

@@ -25,11 +25,11 @@ export const MarketplaceFooter: React.FC = () => {
               <div className="w-9 h-9 bg-[#f56b2a] rounded-xl flex items-center justify-center shadow-md shadow-orange-100 group-hover:scale-110 transition-transform">
                 <ShoppingBasketIcon size={20} className="text-white" />
               </div>
-              <span className="text-lg font-black tracking-tight text-gray-900">
+              <span className="text-lg font-bold tracking-tight text-gray-900">
                 Pos<span className="text-[#f56b2a]">Market</span>
               </span>
             </Link>
-            <p className="mt-3 text-[11px] font-medium text-gray-500 leading-relaxed">
+            <p className="mt-3 text-[11px] font-normal text-gray-500 leading-relaxed">
               La marketplace express qui connecte les commerçants locaux et les
               acheteurs. Achetez et vendez en toute confiance.
             </p>
@@ -37,7 +37,7 @@ export const MarketplaceFooter: React.FC = () => {
 
           {/* Navigation légale */}
           <nav aria-label="Liens légaux">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
               Légal
             </h3>
             <ul className="space-y-2">
@@ -45,7 +45,7 @@ export const MarketplaceFooter: React.FC = () => {
                 <li key={item.href}>
                   <Link
                     to={item.href}
-                    className="text-xs font-bold text-gray-600 hover:text-[#f56b2a] transition-colors"
+                    className="text-xs font-semibold text-gray-600 hover:text-[#f56b2a] transition-colors"
                   >
                     {item.label}
                   </Link>
@@ -56,10 +56,10 @@ export const MarketplaceFooter: React.FC = () => {
 
           {/* Confiance */}
           <div>
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
               Nos engagements
             </h3>
-            <ul className="space-y-2 text-xs font-bold text-gray-600">
+            <ul className="space-y-2 text-xs font-semibold text-gray-600">
               <li className="flex items-center gap-2">
                 <ShieldCheck size={14} className="text-green-500 flex-shrink-0" />
                 Paiement sécurisé
@@ -73,10 +73,10 @@ export const MarketplaceFooter: React.FC = () => {
         </div>
 
         <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-center justify-between gap-2">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
             © {new Date().getFullYear()} PosMarket — Tous droits réservés
           </p>
-          <p className="text-[10px] font-medium text-gray-400">
+          <p className="text-[10px] font-normal text-gray-400">
             Prix affichés en FCFA (XOF)
           </p>
         </div>

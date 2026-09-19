@@ -121,8 +121,8 @@ const Navbar: React.FC<NavbarProps> = ({
             <Globe size={20} strokeWidth={3} />
           </div>
           <div className="flex-col text-left hidden md:flex">
-            <span className="text-xs font-black text-slate-900 tracking-tighter leading-none">MARKETPLACE</span>
-            <span className="text-[9px] font-bold text-[#f56b2a] uppercase tracking-widest leading-none mt-0.5">Voir le site</span>
+            <span className="text-xs font-bold text-slate-900 tracking-tighter leading-none">MARKETPLACE</span>
+            <span className="text-[9px] font-semibold text-[#f56b2a] uppercase tracking-widest leading-none mt-0.5">Voir le site</span>
           </div>
         </button>
       </div>
@@ -143,8 +143,8 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-2 bg-gray-50 px-2 py-1.5 md:px-4 md:py-2 rounded-2xl border border-gray-200 shadow-sm" id="tour-navbar-store">
               <Store size={18} className="text-[#f56b2a]" />
               <div className="flex flex-col">
-                <span className="hidden md:block text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">Boutique Active</span>
-                <span className="text-xs md:text-sm font-black text-gray-800 tracking-tight truncate max-w-[120px] md:max-w-[200px]">{currentStore?.settings?.name || 'Boutique'}</span>
+                <span className="hidden md:block text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Boutique Active</span>
+                <span className="text-xs md:text-sm font-bold text-gray-800 tracking-tight truncate max-w-[120px] md:max-w-[200px]">{currentStore?.settings?.name || 'Boutique'}</span>
               </div>
             </div>
           ) : (
@@ -157,8 +157,8 @@ const Navbar: React.FC<NavbarProps> = ({
                   <Store size={18} />
                 </div>
                 <div className="text-left block">
-                  <p className="text-[10px] font-black text-[#f56b2a] uppercase tracking-widest leading-none mb-1 hidden sm:block">Boutique Active</p>
-                  <h2 className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px] md:max-w-[200px]">{currentStore?.settings?.name || 'Ma Boutique'}</h2>
+                  <p className="text-[10px] font-bold text-[#f56b2a] uppercase tracking-widest leading-none mb-1 hidden sm:block">Boutique Active</p>
+                  <h2 className="text-sm font-bold text-gray-900 leading-none truncate max-w-[120px] md:max-w-[200px]">{currentStore?.settings?.name || 'Ma Boutique'}</h2>
                 </div>
                 {isSwitching ? <Loader size="sm" /> : <ChevronDown size={14} className={`text-gray-400 transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />}
               </button>
@@ -169,7 +169,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   <div className="fixed md:absolute left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 top-20 md:top-full w-[calc(100%-2rem)] md:w-72 bg-white rounded-[28px] shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-4 px-2 pt-2">
-                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Boutiques ({stores.length}/{currentPlan?.features?.maxStores || 3})</div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Boutiques ({stores.length}/{currentPlan?.features?.maxStores || 3})</div>
                         <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
                           <Store size={14} className="text-[#f56b2a]" />
                         </div>
@@ -190,7 +190,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${currentStore.id === store.id ? 'bg-white shadow-sm' : 'bg-gray-100 group-hover:bg-white'}`}>
                                   <Store size={14} />
                                 </div>
-                                <span className="text-sm font-black tracking-tight truncate">{store.settings?.name || 'Boutique'}</span>
+                                <span className="text-sm font-bold tracking-tight truncate">{store.settings?.name || 'Boutique'}</span>
                               </div>
                               {currentStore.id === store.id && <div className="w-2 h-2 rounded-full bg-[#f56b2a] shadow-lg shadow-orange-300" />}
                             </button>
@@ -216,10 +216,10 @@ const Navbar: React.FC<NavbarProps> = ({
                         <div className="px-1 space-y-4">
                           {creationStep === 1 ? (
                             <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
-                              <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 1: Nom</div>
+                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 1: Nom</div>
                               <input
                                 type="text"
-                                className="w-full text-sm font-black px-5 py-4 rounded-[20px] bg-gray-50 border border-transparent outline-none focus:border-[#f56b2a] focus:bg-white transition-all text-gray-900 shadow-inner"
+                                className="w-full text-sm font-bold px-5 py-4 rounded-[20px] bg-gray-50 border border-transparent outline-none focus:border-[#f56b2a] focus:bg-white transition-all text-gray-900 shadow-inner"
                                 placeholder="Ex: Ma Boutique..."
                                 value={newStoreName}
                                 onChange={(e) => setNewStoreName(e.target.value)}
@@ -236,7 +236,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                     if (newStoreName.trim()) setCreationStep(2);
                                   }}
                                   disabled={!newStoreName.trim()}
-                                  className="flex-1 bg-[#f56b2a] text-white text-xs font-black py-3.5 rounded-[18px] hover:bg-[#d55a20] disabled:opacity-50 shadow-lg shadow-orange-100 transition-all active:scale-95"
+                                  className="flex-1 bg-[#f56b2a] text-white text-xs font-bold py-3.5 rounded-[18px] hover:bg-[#d55a20] disabled:opacity-50 shadow-lg shadow-orange-100 transition-all active:scale-95"
                                 >
                                   Continuer
                                 </button>
@@ -246,7 +246,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                     setNewStoreName('');
                                     setCreationStep(1);
                                   }}
-                                  className="flex-1 bg-gray-100 text-gray-600 text-xs font-black py-3.5 rounded-[18px] hover:bg-gray-200 transition-all"
+                                  className="flex-1 bg-gray-100 text-gray-600 text-xs font-bold py-3.5 rounded-[18px] hover:bg-gray-200 transition-all"
                                 >
                                   Annuler
                                 </button>
@@ -254,7 +254,7 @@ const Navbar: React.FC<NavbarProps> = ({
                             </div>
                           ) : (
                             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                              <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 2: Modèle</div>
+                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 2: Modèle</div>
                               <div className="grid grid-cols-1 gap-2">
                                 {[
                                   { id: 'shopping', label: 'SHOP', desc: 'Produits & E-commerce', icon: <ShoppingBag size={14} />, color: 'orange' },
@@ -275,15 +275,15 @@ const Navbar: React.FC<NavbarProps> = ({
                                       {type.icon}
                                     </div>
                                     <div>
-                                      <p className="text-[10px] font-black text-gray-900 tracking-tight leading-none mb-1">{type.label}</p>
-                                      <p className="text-[9px] font-bold text-gray-400 leading-none">{type.desc}</p>
+                                      <p className="text-[10px] font-bold text-gray-900 tracking-tight leading-none mb-1">{type.label}</p>
+                                      <p className="text-[9px] font-semibold text-gray-400 leading-none">{type.desc}</p>
                                     </div>
                                   </button>
                                 ))}
                               </div>
                               <button
                                 onClick={() => setCreationStep(1)}
-                                className="w-full py-2.5 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-all"
+                                className="w-full py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-all"
                               >
                                 Retour au nom
                               </button>
@@ -293,7 +293,7 @@ const Navbar: React.FC<NavbarProps> = ({
                           ) : (
                             <button
                               onClick={() => setIsCreatingStore(true)}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-[20px] text-white bg-[#f56b2a] font-black text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-[0.98]"
+                              className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-[20px] text-white bg-[#f56b2a] font-bold text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-[0.98]"
                             >
                               <Plus size={18} />
                               Nouveau Magasin
@@ -329,7 +329,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 title="Gérer l'abonnement"
               >
                 <Clock size={16} />
-                <span className="text-[9px] md:text-[11px] font-black uppercase tracking-wider">
+                <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-wider">
                   {hasNoPlan ? (
                     <>S&apos;abonner</>
                   ) : isExpired ? (
@@ -370,17 +370,17 @@ const Navbar: React.FC<NavbarProps> = ({
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-black text-gray-900 leading-none truncate max-w-[120px]">{userEmail?.split('@')[0]}</span>
-                        <span className={`text-[10px] font-bold mt-1 uppercase tracking-tight flex items-center gap-1.5 ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
+                        <span className="text-sm font-bold text-gray-900 leading-none truncate max-w-[120px]">{userEmail?.split('@')[0]}</span>
+                        <span className={`text-[10px] font-semibold mt-1 uppercase tracking-tight flex items-center gap-1.5 ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
                           <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
                           {isOnline ? 'En ligne' : 'Hors-ligne'}
                         </span>
                       </div>
                     </div>
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 opacity-60">
                       {userSubscription?.status === 'NONE' || !userSubscription || userSubscription.tier === 'NONE' ? 'Pas d\'abonnement' : 'Abonnement Actif'}
                     </div>
-                    <div className="text-xs font-black text-[#f56b2a] flex items-center gap-1.5">
+                    <div className="text-xs font-bold text-[#f56b2a] flex items-center gap-1.5">
                       <Maximize2 size={12} />
                       {userSubscription?.status === 'NONE' || !userSubscription || userSubscription.tier === 'NONE' ? 'Souscrire' : `${currentPlan?.name}`}
                     </div>
@@ -391,7 +391,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         onViewChange('dashboard');
                         setShowProfileDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-bold"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-semibold"
                     >
                       <Monitor size={18} className="text-gray-400" />
                       Tableau de bord
@@ -402,7 +402,7 @@ const Navbar: React.FC<NavbarProps> = ({
                           onViewChange('settings');
                           setShowProfileDropdown(false);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-bold"
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all text-sm font-semibold"
                       >
                         <UserIcon size={18} className="text-gray-400" />
                         Modifier le Profil
@@ -414,7 +414,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         if (onLogout) onLogout();
                         setShowProfileDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all text-sm font-black"
+                      className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all text-sm font-bold"
                     >
                       <LogOut size={18} />
                       Déconnexion

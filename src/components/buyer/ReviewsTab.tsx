@@ -41,14 +41,14 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
             <div className="flex gap-4 mb-3">
               <ProductThumb src={product?.image} alt={product?.name} className="w-14 h-14" sizes="56px" iconSize={22} />
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] text-[#f56b2a] font-black uppercase tracking-wider truncate">
+                <p className="text-[9px] text-[#f56b2a] font-bold uppercase tracking-wider truncate">
                   {storeName}
                 </p>
-                <p className="text-sm font-black text-[#002f34] truncate">{product?.name}</p>
+                <p className="text-sm font-bold text-[#002f34] truncate">{product?.name}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <StarRating value={rev.rating} size={13} />
                   {rev.date && (
-                    <span className="text-[9px] text-gray-400 font-bold">
+                    <span className="text-[9px] text-gray-400 font-semibold">
                       {new Date(rev.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                   )}
@@ -56,7 +56,7 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
               </div>
             </div>
             <div className="bg-gray-50/60 p-4 rounded-[20px]">
-              <p className="text-xs font-bold text-gray-600 leading-relaxed italic">
+              <p className="text-xs font-semibold text-gray-600 leading-relaxed italic">
                 «{rev.comment}»
               </p>
             </div>

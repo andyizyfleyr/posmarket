@@ -74,8 +74,8 @@ export const StartupChecklist: React.FC = () => {
               <ListTodo size={14} />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#f56b2a]">Checklist</p>
-              <p className="text-[11px] font-bold leading-none mt-0.5">{completedCount}/{items.length} Terminés</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#f56b2a]">Checklist</p>
+              <p className="text-[11px] font-semibold leading-none mt-0.5">{completedCount}/{items.length} Terminés</p>
             </div>
             <div className="ml-auto">
               {isOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -111,7 +111,7 @@ export const StartupChecklist: React.FC = () => {
                     {item.done ? <CheckCircle2 size={20} /> : <Circle size={20} />}
                   </div>
                   <div>
-                    <h4 className={`text-xs font-bold ${item.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                    <h4 className={`text-xs font-semibold ${item.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
                       {item.label}
                     </h4>
                     {!item.done && (
@@ -125,7 +125,7 @@ export const StartupChecklist: React.FC = () => {
             <div className="pt-4 border-t border-gray-50">
               <button 
                 onClick={() => { startTour(); setIsOpen(false); }}
-                className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-500 text-[10px] font-black uppercase tracking-widest hover:border-[#f56b2a] hover:text-[#f56b2a] hover:bg-orange-50 transition-all"
+                className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-widest hover:border-[#f56b2a] hover:text-[#f56b2a] hover:bg-orange-50 transition-all"
               >
                 Relancer la visite guidée
               </button>

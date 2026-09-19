@@ -65,18 +65,18 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                 <div className="max-w-[400px] w-full mx-auto lg:mx-0">
                     {/* Header Logo for Mobile */}
                     <div className="mb-10 lg:hidden text-center">
-                        <h1 className="text-3xl font-black tracking-tight text-[#002f34]">
+                        <h1 className="text-3xl font-bold tracking-tight text-[#002f34]">
                             lebon<span className="text-[#f56b2a]">coin</span>
                         </h1>
                     </div>
 
-                    <h1 className="text-[28px] md:text-[34px] font-extrabold text-[#002f34] leading-tight mb-12">
+                    <h1 className="text-[28px] md:text-[34px] font-bold text-[#002f34] leading-tight mb-12">
                         Connectez-vous ou créez votre compte
                     </h1>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {errorMsg && (
-                            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold border border-red-100 animate-in shake duration-500">
+                            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-semibold border border-red-100 animate-in shake duration-500">
                                 {errorMsg}
                             </div>
                         )}
@@ -84,7 +84,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
 
                         {!isLogin && (
                                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                    <label className="text-sm font-medium text-[#002f34]">
+                                    <label className="text-sm font-normal text-[#002f34]">
                                         Nom complet *
                                     </label>
                                     <input
@@ -92,14 +92,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-medium text-sm"
+                                        className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-normal text-sm"
                                     />
                                 </div>
                             )}
 
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#002f34]">
+                                <label className="text-sm font-normal text-[#002f34]">
                                     E-mail *
                                 </label>
                                 <input
@@ -107,7 +107,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-medium text-sm"
+                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-normal text-sm"
                                 />
                             </div>
 
@@ -115,11 +115,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
 
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-[#002f34]">
+                                    <label className="text-sm font-normal text-[#002f34]">
                                         Mot de passe *
                                     </label>
                                     {isLogin && (
-                                        <button type="button" className="text-sm font-bold text-[#4183d7] hover:underline">
+                                        <button type="button" className="text-sm font-semibold text-[#4183d7] hover:underline">
                                            
                                         </button>
                                     )}
@@ -129,7 +129,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-medium text-sm"
+                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-normal text-sm"
                                 />
                             </div>
                         </div>
@@ -147,11 +147,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                     </form>
 
                     <div className="mt-8 text-center text-[#002f34]">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-normal">
                             {isLogin ? "Vous n'avez pas encore de compte ?" : "Vous avez déjà un compte ?"}
                             <button 
                                 onClick={() => setIsLogin(!isLogin)}
-                                className="ml-2 font-bold text-[#4183d7] hover:underline"
+                                className="ml-2 font-semibold text-[#4183d7] hover:underline"
                             >
                                 {isLogin ? "Inscrivez-vous" : "Connectez-vous"}
                             </button>

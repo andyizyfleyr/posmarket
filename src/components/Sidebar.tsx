@@ -38,7 +38,7 @@ const SidebarItem: React.FC<SidebarItemProps & { id?: string }> = ({ icon, label
   >
     {active && <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-[#f56b2a] rounded-r-md" />}
     <div className="mb-1">{icon}</div>
-    <span className="text-[10px] font-bold uppercase tracking-tighter text-center">{label}</span>
+    <span className="text-[10px] font-semibold uppercase tracking-tighter text-center">{label}</span>
 
     <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-xl border border-slate-700">
       {label}

@@ -44,10 +44,10 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
             <ShoppingBag className="w-5 h-5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-xl tracking-tight text-gray-950 flex items-center gap-1">
+            <span className="font-bold text-xl tracking-tight text-gray-950 flex items-center gap-1">
               Pos<span className="text-[#f56b2a]">Market</span>
             </span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest -mt-1">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest -mt-1">
               Express Marketplace
             </span>
           </div>
@@ -55,7 +55,7 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
 
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 bg-white border border-gray-200/80 rounded-full shadow-sm transition-all"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white border border-gray-200/80 rounded-full shadow-sm transition-all"
         >
           <Home className="w-3.5 h-3.5" />
           <span>Accueil</span>
@@ -74,10 +74,10 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
               <PackageX className="w-9 h-9" />
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight mb-2">
               Impossible d&apos;afficher cet article
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500 font-medium leading-relaxed max-w-sm mx-auto mb-6">
+            <p className="text-xs sm:text-sm text-gray-500 font-normal leading-relaxed max-w-sm mx-auto mb-6">
               Une anomalie passagère est survenue lors du chargement des détails du produit. Vous pouvez recharger la fiche ou explorer les autres boutiques.
             </p>
 
@@ -87,7 +87,7 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
                 type="button"
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-[#f56b2a] to-[#ff7d3b] hover:from-[#e45a19] hover:to-[#f56b2a] text-white text-xs sm:text-sm font-black rounded-2xl shadow-md shadow-[#f56b2a]/25 hover:shadow-lg transition-all cursor-pointer disabled:opacity-70"
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-[#f56b2a] to-[#ff7d3b] hover:from-[#e45a19] hover:to-[#f56b2a] text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md shadow-[#f56b2a]/25 hover:shadow-lg transition-all cursor-pointer disabled:opacity-70"
               >
                 <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
                 <span>{isRetrying ? 'Rechargement...' : 'Réessayer'}</span>
@@ -95,7 +95,7 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
 
               <Link
                 href="/"
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-bold rounded-2xl border border-gray-200/80 transition-all cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-semibold rounded-2xl border border-gray-200/80 transition-all cursor-pointer"
               >
                 <Search className="w-4 h-4 text-gray-400" />
                 <span>Explorer le marketplace</span>
@@ -105,8 +105,14 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
             <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
               <button
                 type="button"
-                onClick={() => window.history.back()}
-                className="inline-flex items-center gap-1 font-bold hover:text-gray-900 transition-colors"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    window.location.href = '/';
+                  }
+                }}
+                className="inline-flex items-center gap-1 font-semibold hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Retour</span>
@@ -123,7 +129,7 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 py-6 text-center text-xs font-semibold text-gray-400">
+      <footer className="w-full max-w-7xl mx-auto px-4 py-6 text-center text-xs font-medium text-gray-400">
         © {new Date().getFullYear()} PosMarket
       </footer>
     </div>

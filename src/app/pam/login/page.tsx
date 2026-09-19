@@ -44,13 +44,13 @@ export default function AdminLoginPage() {
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f56b2a] to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-[#f56b2a]/30">
               <ShieldCheck size={28} className="text-white" />
             </div>
-            <h1 className="text-xl font-black text-white tracking-tight">Portail Administrateur</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight">Portail Administrateur</h1>
             <p className="text-sm text-gray-400 mt-1">Espace réservé — accès restreint</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-300 uppercase tracking-widest mb-2">
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-widest mb-2">
                 Identifiant
               </label>
               <div className="relative">
@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-300 uppercase tracking-widest mb-2">
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-widest mb-2">
                 Mot de passe
               </label>
               <div className="relative">
@@ -94,7 +94,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-gradient-to-r from-[#f56b2a] to-orange-600 py-3 text-white font-black text-sm tracking-wide shadow-lg shadow-[#f56b2a]/25 hover:shadow-[#f56b2a]/40 hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full rounded-xl bg-gradient-to-r from-[#f56b2a] to-orange-600 py-3 text-white font-bold text-sm tracking-wide shadow-lg shadow-[#f56b2a]/25 hover:shadow-[#f56b2a]/40 hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? 'Connexion en cours…' : 'Se connecter'}
             </button>

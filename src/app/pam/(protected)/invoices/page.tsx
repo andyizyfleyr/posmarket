@@ -75,8 +75,8 @@ export default function AdminInvoicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">Facturation Global</h1>
-        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Toutes les factures de la plateforme ({filtered.length})</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">Facturation Global</h1>
+        <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">Toutes les factures de la plateforme ({filtered.length})</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-3">
@@ -87,13 +87,13 @@ export default function AdminInvoicesPage() {
             placeholder="Chercher par numéro, client, boutique..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-bold text-gray-900 shadow-sm"
+            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-black uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
+          className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
         >
           <option value="ALL">Tous les statuts</option>
           <option value="DRAFT">Brouillon</option>
@@ -105,7 +105,7 @@ export default function AdminInvoicesPage() {
 
       <div className="space-y-4">
         {filtered.length === 0 && (
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-bold">Aucune facture trouvée</div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center text-gray-400 text-sm font-semibold">Aucune facture trouvée</div>
         )}
         {paginated.map((inv) => {
           const store = inv.store_id ? storeMap.get(inv.store_id) : undefined;
@@ -117,16 +117,16 @@ export default function AdminInvoicesPage() {
                   <FileText size={20} />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-gray-900">#{inv.invoice_number || inv.id.split('-')[0]?.toUpperCase()}</p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase mt-0.5">
+                  <p className="text-xs font-bold text-gray-900">#{inv.invoice_number || inv.id.split('-')[0]?.toUpperCase()}</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mt-0.5">
                     {store?.name || 'Boutique inconnue'} • {inv.customer_name || inv.customer_email || 'Client inconnu'}
                   </p>
-                  {date && <p className="text-[9px] font-bold text-gray-300 mt-0.5">{new Date(date).toLocaleDateString('fr-FR')}</p>}
+                  {date && <p className="text-[9px] font-semibold text-gray-300 mt-0.5">{new Date(date).toLocaleDateString('fr-FR')}</p>}
                 </div>
               </div>
               <div className="text-right space-y-1">
-                <p className="text-sm font-black text-gray-900">{formatCurrency(parseFloat(inv.total ?? '') || 0)}</p>
-                <span className={`inline-block px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${
+                <p className="text-sm font-bold text-gray-900">{formatCurrency(parseFloat(inv.total ?? '') || 0)}</p>
+                <span className={`inline-block px-2 py-0.5 rounded-md text-[8px] font-bold uppercase border ${
                   (inv.status && statusStyles[inv.status]) || 'bg-gray-50 text-gray-500 border-gray-100'
                 }`}>
                   {inv.status || '—'}

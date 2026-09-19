@@ -27,7 +27,7 @@ const Button: React.FC<ButtonProps> = memo(({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-black transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed rounded-2xl relative overflow-hidden';
+  const baseStyles = 'inline-flex items-center justify-center font-bold transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed rounded-2xl relative overflow-hidden';
 
   const variants = {
     primary: 'bg-[#f56b2a] text-white hover:bg-[#e55a1b] shadow-md shadow-orange-100',

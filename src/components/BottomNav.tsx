@@ -41,8 +41,8 @@ const BottomNavItem: React.FC<BottomNavItemProps> = ({ id, icon, label, active =
         strokeWidth: active ? 2.5 : 1.8
       }) : icon}
     </div>
-    <span className={`text-[9px] mt-0.5 font-bold transition-all duration-200 ${
-      active ? 'opacity-100 font-black' : 'opacity-60'
+    <span className={`text-[9px] mt-0.5 font-semibold transition-all duration-200 ${
+      active ? 'opacity-100 font-bold' : 'opacity-60'
     }`}>{label}</span>
     {/* Active indicator pill */}
     {active && (
@@ -73,7 +73,7 @@ const OverflowMenu: React.FC<OverflowMenuProps> = ({ items, currentView, onViewC
           }`}
         >
           {item.icon}
-          <span className="text-sm font-bold">{item.label}</span>
+          <span className="text-sm font-semibold">{item.label}</span>
         </button>
       ))}
     </div>
@@ -144,8 +144,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRo
             }`}>
               <MoreHorizontal size={20} strokeWidth={isOverflowActive ? 2.5 : 1.8} />
             </div>
-            <span className={`text-[9px] mt-0.5 font-bold transition-all ${
-              isOverflowActive ? 'opacity-100 font-black' : 'opacity-60'
+            <span className={`text-[9px] mt-0.5 font-semibold transition-all ${
+              isOverflowActive ? 'opacity-100 font-bold' : 'opacity-60'
             }`}>Plus</span>
             {isOverflowActive && (
               <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />

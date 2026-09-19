@@ -264,7 +264,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap">Clients</h1>
+            <h1 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap">Clients</h1>
             <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">{localCustomers.length} clients enregistrés.</p>
           </div>
           {selectedIds.size > 0 && permissions.canManageCustomers && !isSeller && (
@@ -272,7 +272,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               <div className="h-8 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
               <button 
                 onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-black border border-red-100 hover:bg-red-100 transition-all shadow-sm"
+                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-all shadow-sm"
               >
                 <Trash2 size={14} /> Supprimer ({selectedIds.size})
               </button>
@@ -282,7 +282,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
         {permissions.canManageCustomers && (
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-black hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
           >
             <Plus size={16} className="md:w-[18px] md:h-[18px]" /> Nouveau Client
           </button>
@@ -301,7 +301,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 setActiveSegment(segment.id);
                 setSelectedIds(new Set());
             }}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap border ${activeSegment === segment.id ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}`}
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap border ${activeSegment === segment.id ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}`}
           >
             {segment.label} ({segment.count})
           </button>
@@ -310,22 +310,22 @@ const CustomersView: React.FC<CustomersViewProps> = ({
 
       {/* Mobile Sorting Selector */}
       <div className="flex md:hidden items-center gap-2 mb-4 px-1 overflow-x-auto no-scrollbar">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Trier par:</span>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Trier par:</span>
         <button 
           onClick={() => handleSort('totalSpent')} 
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap border ${sortConfig.key === 'totalSpent' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'totalSpent' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
         >
           Dépensé {sortConfig.key === 'totalSpent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
         </button>
         <button 
           onClick={() => handleSort('ordersCount')} 
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap border ${sortConfig.key === 'ordersCount' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'ordersCount' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
         >
           Commandes {sortConfig.key === 'ordersCount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
         </button>
         <button 
           onClick={() => handleSort('name')} 
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap border ${sortConfig.key === 'name' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'name' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
         >
           Nom {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
         </button>
@@ -350,13 +350,13 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 checked={filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length}
                 onChange={toggleSelectAll}
             />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Tout</span>
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest leading-none">Tout</span>
           </div>
         </div>
 
         <div className="overflow-y-auto flex-grow custom-scrollbar">
           <div className="block md:table w-full">
-            <div className="hidden md:table-header-group bg-gray-50/80 backdrop-blur text-gray-400 uppercase text-[10px] font-bold tracking-widest sticky top-0 z-10">
+            <div className="hidden md:table-header-group bg-gray-50/80 backdrop-blur text-gray-400 uppercase text-[10px] font-semibold tracking-widest sticky top-0 z-10">
               <div className="table-row">
                 <div className="table-cell px-6 py-4 w-10">
                     <input 
@@ -407,32 +407,32 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                                 onChange={() => toggleSelect(customer.id)}
                             />
                         </div>
-                        <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-[#f56b2a] text-white flex items-center justify-center font-black text-[10px] md:text-sm shadow-sm md:shadow-lg md:shadow-orange-100 flex-shrink-0">
+                        <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-[#f56b2a] text-white flex items-center justify-center font-bold text-[10px] md:text-sm shadow-sm md:shadow-lg md:shadow-orange-100 flex-shrink-0">
                           {customer.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div className="min-w-0 flex flex-col">
-                          <div className="font-bold text-[10px] md:text-sm text-gray-900 flex items-center gap-1.5 truncate whitespace-nowrap">
+                          <div className="font-semibold text-[10px] md:text-sm text-gray-900 flex items-center gap-1.5 truncate whitespace-nowrap">
                             <span className="truncate">{customer.name}</span>
                             <div className="flex gap-1 flex-shrink-0">
                               {getSegment(customer).isVIP && (
                                 <Star size={10} className="fill-yellow-500 text-yellow-500 md:hidden" />
                               )}
                               {getSegment(customer).isVIP && (
-                                <span className="hidden md:flex bg-yellow-50 text-yellow-600 text-[8px] font-black px-1.5 py-0.5 rounded uppercase items-center gap-1">
+                                <span className="hidden md:flex bg-yellow-50 text-yellow-600 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase items-center gap-1">
                                   <Star size={10} className="fill-yellow-600" /> VIP
                                 </span>
                               )}
                               {getSegment(customer).isInactive && (
-                                <span className="bg-red-50 text-red-600 text-[6px] md:text-[8px] font-black px-1 md:px-1.5 py-0.5 rounded uppercase flex-shrink-0">
+                                <span className="bg-red-50 text-red-600 text-[6px] md:text-[8px] font-bold px-1 md:px-1.5 py-0.5 rounded uppercase flex-shrink-0">
                                   Inactif
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex md:hidden items-center gap-1.5 mt-0.5 text-[9px] text-gray-400 font-bold truncate whitespace-nowrap">
+                          <div className="flex md:hidden items-center gap-1.5 mt-0.5 text-[9px] text-gray-400 font-semibold truncate whitespace-nowrap">
                             <span className="truncate">{formatPhoneNumber(customer.phone)}</span>
                             <span className="text-gray-200">|</span>
-                            <span className="text-green-600 font-black">{formatCurrency(customer.totalSpent || 0)}</span>
+                            <span className="text-green-600 font-bold">{formatCurrency(customer.totalSpent || 0)}</span>
                           </div>
                           <div className="hidden md:block text-[10px] text-gray-400 font-mono uppercase">ID: {customer.id}</div>
                         </div>
@@ -467,12 +467,12 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                   <div className="hidden md:table-cell px-6 py-4">
                     <div className="flex items-center gap-2">
                       <History size={14} className="text-gray-300" />
-                      <span className="text-sm font-black text-gray-700">{customer.ordersCount || 0}</span>
+                      <span className="text-sm font-bold text-gray-700">{customer.ordersCount || 0}</span>
                     </div>
                   </div>
 
                   <div className="hidden md:table-cell px-6 py-4">
-                    <span className="text-sm font-black text-green-600">{formatCurrency(customer.totalSpent || 0)}</span>
+                    <span className="text-sm font-bold text-green-600">{formatCurrency(customer.totalSpent || 0)}</span>
                   </div>
 
                   <div className="hidden md:table-cell px-6 py-4 text-right">
@@ -509,7 +509,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               <button
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-black text-gray-400 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-400 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoadingMore ? (
                   <Loader2 size={14} className="animate-spin text-[#f56b2a]" />
@@ -522,14 +522,14 @@ const CustomersView: React.FC<CustomersViewProps> = ({
           )}
 
           {!hasMore && localCustomers.length > 5 && (
-            <div className="p-6 text-center text-gray-400 text-[10px] font-black uppercase tracking-widest opacity-50 border-t border-gray-50 bg-gray-50/5">
+            <div className="p-6 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest opacity-50 border-t border-gray-50 bg-gray-50/5">
               Fin de liste
             </div>
           )}
           {filteredCustomers.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
               <Users size={64} className="opacity-10" />
-              <p className="font-medium">Aucun client trouvé</p>
+              <p className="font-normal">Aucun client trouvé</p>
             </div>
           )}
         </div>
@@ -540,7 +540,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
             <div className="px-3 md:px-6 py-3 md:py-6 border-b border-gray-100 flex items-center justify-between bg-white">
-              <h2 className="text-base md:text-xl font-black text-gray-900 tracking-tight whitespace-nowrap">{editingCustomer ? 'Modifier Client' : 'Nouveau Client'}</h2>
+              <h2 className="text-base md:text-xl font-bold text-gray-900 tracking-tight whitespace-nowrap">{editingCustomer ? 'Modifier Client' : 'Nouveau Client'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
                 <X size={18} className="md:size-6" />
               </button>
@@ -548,7 +548,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
 
             <form onSubmit={handleSubmit} className="p-3 md:p-6 space-y-4 md:space-y-5">
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nom Complet</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Nom Complet</label>
                 <input
                   required
                   type="text"
@@ -559,7 +559,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Téléphone</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Téléphone</label>
                   <PhoneInput
                     required
                     value={formData.phone || ''}
@@ -572,13 +572,13 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-grow py-2.5 md:py-4 border border-gray-100 rounded-xl md:rounded-2xl font-black text-[10px] md:text-sm text-gray-500 hover:bg-gray-50 transition-all active:scale-95 whitespace-nowrap"
+                  className="flex-grow py-2.5 md:py-4 border border-gray-100 rounded-xl md:rounded-2xl font-bold text-[10px] md:text-sm text-gray-500 hover:bg-gray-50 transition-all active:scale-95 whitespace-nowrap"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow py-2.5 md:py-4 bg-[#f56b2a] text-white font-black rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap"
+                  className="flex-grow py-2.5 md:py-4 bg-[#f56b2a] text-white font-bold rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap"
                 >
                   {editingCustomer ? 'Actualiser' : 'Enregistrer'}
                 </button>

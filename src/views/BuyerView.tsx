@@ -146,21 +146,21 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
         <div className="bg-red-50 border border-red-100 rounded-[24px] p-4 flex items-start gap-3">
           <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-red-600">Une erreur est survenue</p>
-            <p className="text-[11px] font-bold text-red-400 mt-0.5">{data.error}</p>
+            <p className="text-xs font-bold text-red-600">Une erreur est survenue</p>
+            <p className="text-[11px] font-semibold text-red-400 mt-0.5">{data.error}</p>
             <div className="flex gap-2 mt-3">
               <button
                 onClick={() => {
                   setDismissedError(data.error ?? null);
                   data.refreshAll();
                 }}
-                className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider"
+                className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider"
               >
                 Réessayer
               </button>
               <button
                 onClick={() => setDismissedError(data.error ?? null)}
-                className="px-4 py-2 bg-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-wider border border-red-100"
+                className="px-4 py-2 bg-white text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-red-100"
               >
                 Fermer
               </button>
@@ -233,7 +233,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
           >
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-base font-black text-[#002f34] tracking-tight">
+          <h1 className="text-base font-bold text-[#002f34] tracking-tight">
             Mon compte
           </h1>
           <button
@@ -255,19 +255,19 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
               <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none hidden md:block" />
               <div className="relative z-10 flex items-center gap-4 lg:flex-col lg:gap-4 lg:text-center">
                 <div
-                  className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_COLORS[0]} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-black shadow-lg shadow-orange-200/50 ring-2 ring-white`}
+                  className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_COLORS[0]} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-bold shadow-lg shadow-orange-200/50 ring-2 ring-white`}
                 >
                   {avatarInitial(user.name)}
                 </div>
                 <div className="flex-1 min-w-0 lg:w-full">
-                  <p className="text-base lg:text-xl font-black text-[#002f34] truncate tracking-tight">
+                  <p className="text-base lg:text-xl font-bold text-[#002f34] truncate tracking-tight">
                     {user.name}
                   </p>
-                  <p className="text-[10px] lg:text-[11px] text-gray-400 font-bold mt-0.5 truncate">
+                  <p className="text-[10px] lg:text-[11px] text-gray-400 font-semibold mt-0.5 truncate">
                     {user.email}
                   </p>
                   {data.refreshing && (
-                    <p className="text-[9px] text-[#f56b2a] font-bold mt-1 inline-flex items-center gap-1">
+                    <p className="text-[9px] text-[#f56b2a] font-semibold mt-1 inline-flex items-center gap-1">
                       <RefreshCcw size={10} className="animate-spin" /> Synchronisation...
                     </p>
                   )}
@@ -284,10 +284,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                   <React.Fragment key={s.label}>
                     {i > 0 && <div className="w-px h-5 bg-gray-100" />}
                     <div className="text-center">
-                      <p className="text-xs lg:text-sm font-black text-[#002f34]">
+                      <p className="text-xs lg:text-sm font-bold text-[#002f34]">
                         {data.loading ? '–' : s.value}
                       </p>
-                      <p className="text-[8px] lg:text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                      <p className="text-[8px] lg:text-[9px] text-gray-400 font-semibold uppercase tracking-tighter">
                         {s.label}
                       </p>
                     </div>
@@ -319,11 +319,11 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                       <Icon size={18} />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-black text-[#002f34]">{tab.label}</p>
-                      <p className="text-[10px] text-gray-400 font-bold truncate">{tab.desc}</p>
+                      <p className="text-sm font-bold text-[#002f34]">{tab.label}</p>
+                      <p className="text-[10px] text-gray-400 font-semibold truncate">{tab.desc}</p>
                     </div>
                     <span
-                      className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${
+                      className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
                       }`}
                     >
@@ -354,7 +354,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                       }`}
                     >
                       <Icon size={20} />
-                      <span className="text-[9px] font-black uppercase tracking-wide">
+                      <span className="text-[9px] font-bold uppercase tracking-wide">
                         {tab.label}
                       </span>
                     </button>
@@ -364,10 +364,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
             </div>
 
             <div className="mb-4 lg:hidden">
-              <h2 className="text-lg font-black text-[#002f34] tracking-tight">
+              <h2 className="text-lg font-bold text-[#002f34] tracking-tight">
                 {activeTabDef.label}
               </h2>
-              <p className="text-[11px] text-gray-400 font-bold">{activeTabDef.desc}</p>
+              <p className="text-[11px] text-gray-400 font-semibold">{activeTabDef.desc}</p>
             </div>
 
             {data.loading ? <PanelSkeleton rows={3} /> : panel}
@@ -400,19 +400,19 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
           onClose={() => setShowLogoutModal(false)}
         >
           <div className="p-6">
-            <p className="text-sm font-bold text-gray-500 leading-relaxed">
+            <p className="text-sm font-semibold text-gray-500 leading-relaxed">
               Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
             </p>
             <div className="space-y-3 mt-6">
               <button
                 onClick={onLogout}
-                className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
+                className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
               >
                 Oui, me déconnecter
               </button>
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-sm active:scale-95 transition-all"
+                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold text-sm active:scale-95 transition-all"
               >
                 Annuler
               </button>

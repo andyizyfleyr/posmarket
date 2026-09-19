@@ -64,10 +64,10 @@ export default function FonctionnalitesPage() {
           <Sparkles size={20} />
         </div>
         <div>
-          <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
             Fonctionnalités
           </h1>
-          <p className="text-xs font-medium text-gray-500">
+          <p className="text-xs font-normal text-gray-500">
             Les bonnes choses à savoir pour bien utiliser PosMarket.
           </p>
         </div>
@@ -88,8 +88,8 @@ export default function FonctionnalitesPage() {
                 <Icon size={20} />
               </div>
               <div>
-                <h2 className="text-sm font-black text-gray-900">{item.title}</h2>
-                <p className="text-[11px] font-medium text-gray-500 leading-relaxed mt-1">
+                <h2 className="text-sm font-bold text-gray-900">{item.title}</h2>
+                <p className="text-[11px] font-normal text-gray-500 leading-relaxed mt-1">
                   {item.desc}
                 </p>
               </div>
@@ -102,13 +102,13 @@ export default function FonctionnalitesPage() {
       <div className="flex justify-between pt-4 pb-4">
         <Link
           to="/docs/utilisation/vendeur"
-          className="inline-flex items-center gap-2 text-xs font-black text-gray-400 hover:text-[#f56b2a] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
         >
           Espace Vendeur
         </Link>
         <Link
           to="/docs/utilisation/problemes"
-          className="inline-flex items-center gap-2 text-xs font-black text-[#f56b2a] hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#f56b2a] hover:underline"
         >
           Problèmes fréquents <ArrowRight size={12} />
         </Link>

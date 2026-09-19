@@ -25,16 +25,16 @@ export default function OfflinePage() {
           <circle cx="12" cy="12" r="1" fill="#f56b2a" />
         </svg>
       </div>
-      <h1 className="text-xl font-black text-gray-900 mb-2">
+      <h1 className="text-xl font-bold text-gray-900 mb-2">
         Vous êtes hors ligne
       </h1>
-      <p className="text-sm text-gray-500 font-bold max-w-[280px] leading-relaxed mb-8">
+      <p className="text-sm text-gray-500 font-semibold max-w-[280px] leading-relaxed mb-8">
         Vérifiez votre connexion internet puis réessayez. Votre panier est
         conservé sur votre téléphone.
       </p>
       <Link
         href="/"
-        className="px-6 py-3 bg-[#f56b2a] hover:bg-[#e55a1b] text-white rounded-2xl font-black text-sm transition-all active:scale-95"
+        className="px-6 py-3 bg-[#f56b2a] hover:bg-[#e55a1b] text-white rounded-2xl font-bold text-sm transition-all active:scale-95"
       >
         Réessayer
       </Link>
