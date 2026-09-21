@@ -1412,7 +1412,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     // 📦 BROWSE MODE: no search active → filter by category/store/vertical from cache
     return allProducts
       .filter((p) => {
-        const isFromStore = !selectedStoreId || p.storeId === selectedStoreId;
+        const isFromStore = !selectedStoreParam || p.storeId === selectedStoreId;
         const category = p.category || "";
         const mCategory = p.mainCategory || "";
         const hasWholesale = !!(p.wholesalePrice || (p.wholesaleTiers && p.wholesaleTiers.length > 0));
@@ -1472,11 +1472,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   // Active store category from ?cat= query param (category page mode)
   const activeStoreCategory = useMemo(() => {
-    if (!selectedStoreId) return null;
+    if (!selectedStoreParam) return null;
     const c = location.search ? new URLSearchParams(location.search).get("cat") : null;
     const cat = c && c !== "all" ? c : null;
-    return cat || (initialCategory && selectedStoreId ? initialCategory : null);
-  }, [selectedStoreId, location.search, initialCategory]);
+    return cat || (initialCategory && selectedStoreParam ? initialCategory : null);
+  }, [selectedStoreParam, location.search, initialCategory]);
 
   // Active category page on home (?cat= or /category/[slug])
   const activeHomeCategory = useMemo(() => {
