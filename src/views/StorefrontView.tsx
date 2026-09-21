@@ -3405,10 +3405,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </h3>
                                   <button
                                     onClick={() => {
-                                      window.location.href = `/category/${categoryToSlug(cat)}`;
+                                      if (selectedStoreParam) {
+                                        window.location.href = `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`;
+                                      } else {
+                                        window.location.href = `/category/${categoryToSlug(cat)}`;
+                                      }
                                     }}
                                     onMouseEnter={() => {
-                                      const catUrl = `/category/${categoryToSlug(cat)}`;
+                                      const catUrl = selectedStoreParam
+                                        ? `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`
+                                        : `/category/${categoryToSlug(cat)}`;
                                       const link = document.createElement("link");
                                       link.rel = "prefetch";
                                       link.href = catUrl;
