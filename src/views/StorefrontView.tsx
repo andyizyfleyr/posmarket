@@ -998,7 +998,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   );
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
   const [storeDescExpanded, setStoreDescExpanded] = useState(false);
-  const [followedStores, setFollowedStores] = useState<Set<string>>(new Set());
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
@@ -2114,7 +2113,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       selectedStore.settings?.phone ||
       ""
     ).replace(/[^0-9]/g, "");
-    const isFollowed = followedStores.has(selectedStore.id);
     const reviewCountTotal =
       selectedStore.products?.reduce(
         (sum, p) => sum + (p.reviewCount || 0),
@@ -2226,45 +2224,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             )}
 
             {/* CTAs */}
-            <div className={`grid gap-2 mt-3 ${waDigits ? "grid-cols-2" : "grid-cols-1"}`}>
-              <button
-                onClick={() => {
-                  setFollowedStores((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(selectedStore.id)) {
-                      next.delete(selectedStore.id);
-                      localNotify("Vous ne suivez plus cette boutique", "info");
-                    } else {
-                      next.add(selectedStore.id);
-                      localNotify("Boutique suivie !", "success");
-                    }
-                    return next;
-                  });
-                }}
-                className={`h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
-                  isFollowed
-                    ? "bg-green-50 text-green-700 border-2 border-green-200"
-                    : "bg-[#f56b2a] text-white shadow-lg shadow-orange-200/60 hover:bg-[#e05f22]"
-                }`}
+            {waDigits && (
+              <a
+                href={`https://wa.me/${waDigits}?text=${encodeURIComponent(`Bonjour ${selectedStore.settings.name}, je vous contacte depuis PosMarket.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full h-11 mt-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-all active:scale-[0.97]"
               >
-                <Heart
-                  size={16}
-                  fill={isFollowed ? "currentColor" : "none"}
-                />
-                {isFollowed ? "Suivi" : "Suivre"}
-              </button>
-              {waDigits && (
-                <a
-                  href={`https://wa.me/${waDigits}?text=${encodeURIComponent(`Bonjour ${selectedStore.settings.name}, je vous contacte depuis PosMarket.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-all active:scale-[0.97]"
-                >
-                  <MessageCircle size={16} />
-                  Contacter
-                </a>
-              )}
-            </div>
+                <MessageCircle size={16} />
+                Contacter
+              </a>
+            )}
           </div>
 
           {/* Stats strip */}
@@ -3418,7 +3388,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           };
 
                           return sortedCats.map((cat) => {
-                            const isSingle = groups[cat].length <= 1;
                             // Le titre de section fait doublon avec la chip
                             // active quand cette catégorie est filtrée.
                             const showGroupHeader =
@@ -3430,7 +3399,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               className="   duration-500"
                             >
                               {showGroupHeader && (
-                                <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
+                                <div className={`flex items-center justify-between gap-3 mb-4`}>
                                   <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
                                     {cat}
                                   </h3>
@@ -3452,7 +3421,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </button>
                                 </div>
                               )}
-                              <div className={`${isSingle ? "hidden md:grid" : "grid"} grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
+                              <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                 {mobileSlice(groups[cat]).map(renderCard)}
                                 {/* Desktop only: full category */}
                                 <div className="hidden md:contents">
@@ -3699,7 +3668,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             };
 
                             return sortedCats.map((cat) => {
-                              const isSingle = groups[cat].length <= 1;
                               // Pas de titre de groupe redondant avec la
                               // catégorie déjà filtrée via les chips.
                               const showGroupHeader =
@@ -3711,16 +3679,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 className="   duration-500"
                               >
                                 {showGroupHeader && (
-                                  <div className={`${isSingle ? "hidden md:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
+                                  <div className={`flex items-center justify-between gap-3 mb-4`}>
                                     <h3 className="text-sm md:text-base font-black text-gray-900 truncate">
                                       {cat}
                                     </h3>
                                     <button
                                       onClick={() => {
-                                        window.location.href = `/category/${categoryToSlug(cat)}`;
+                                        window.location.href = `${location.pathname}?cat=${encodeURIComponent(cat)}`;
                                       }}
                                       onMouseEnter={() => {
-                                        const catUrl = `/category/${categoryToSlug(cat)}`;
+                                        const catUrl = `${location.pathname}?cat=${encodeURIComponent(cat)}`;
                                         const link = document.createElement("link");
                                         link.rel = "prefetch";
                                         link.href = catUrl;
@@ -3733,7 +3701,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     </button>
                                   </div>
                                 )}
-                                <div className={`${isSingle ? "hidden md:grid" : "grid"} grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
+                                <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                   {mobileSlice(groups[cat]).map(renderCard)}
                                   {/* Desktop only: full category */}
                                   <div className="hidden md:contents">
