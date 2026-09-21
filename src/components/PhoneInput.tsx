@@ -143,55 +143,49 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      <div className="space-y-2.5">
-        {/* Country selector row */}
+      <div
+        className={`flex items-center h-[52px] w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
+          hasError
+            ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
+            : 'border-gray-200/80 focus-within:border-[#f56b2a] focus-within:ring-2 focus-within:ring-[#f56b2a]/15'
+        }`}
+      >
+        {/* Country selector glued to the number field */}
         <button
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen(true)}
-          className="w-full flex items-center gap-3 px-4 h-[52px] bg-gray-50/70 hover:bg-gray-100/80 border border-gray-200/80 rounded-xl transition-colors cursor-pointer disabled:opacity-50 select-none text-left"
+          className="flex items-center gap-1 pl-3.5 pr-1 h-full shrink-0 cursor-pointer select-none transition-colors disabled:opacity-50"
+          aria-label="Choisir le pays"
           title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
         >
-          <span className="text-lg leading-none shrink-0">{selectedCountry.flag}</span>
-          <span className="flex-1 min-w-0 text-sm font-semibold text-gray-800 truncate">
-            {selectedCountry.name}
-          </span>
-          <span className="text-sm font-bold text-gray-500 tabular-nums shrink-0">
-            {selectedCountry.dialCode}
-          </span>
+          <span className="text-lg leading-none">{selectedCountry.flag}</span>
           <ChevronDown
-            size={16}
-            className={`text-gray-400 transition-transform duration-200 shrink-0 ${
+            size={14}
+            className={`text-gray-400 transition-transform duration-200 ${
               isOpen ? 'rotate-180 text-[#f56b2a]' : ''
             }`}
           />
         </button>
 
-        {/* Number field with dial code prefix */}
-        <div
-          className={`flex items-stretch h-[52px] w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
-            hasError
-              ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
-              : 'border-gray-200/80 focus-within:border-[#f56b2a] focus-within:ring-2 focus-within:ring-[#f56b2a]/15'
-          }`}
-        >
-          <span className="flex items-center pl-4 pr-1.5 text-[15px] font-bold text-gray-900 select-none shrink-0 tabular-nums">
-            {selectedCountry.dialCode}
-          </span>
-          <input
-            id={id}
-            name={name}
-            type="tel"
-            inputMode="tel"
-            disabled={disabled}
-            required={required}
-            autoFocus={autoFocus}
-            value={nationalDigits}
-            onChange={handleInputChange}
-            placeholder={placeholder || selectedCountry.placeholder || 'Numéro de téléphone'}
-            className={`flex-1 min-w-0 pl-2 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-400 outline-none no-global-border ${inputClassName}`}
-          />
-        </div>
+        <span className="pl-1.5 text-[15px] font-bold text-gray-900 select-none shrink-0 tabular-nums">
+          {selectedCountry.dialCode}
+        </span>
+
+        {/* Number field */}
+        <input
+          id={id}
+          name={name}
+          type="tel"
+          inputMode="tel"
+          disabled={disabled}
+          required={required}
+          autoFocus={autoFocus}
+          value={nationalDigits}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className={`flex-1 min-w-0 pl-2 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-400 outline-none no-global-border ${inputClassName}`}
+        />
       </div>
 
       {isOpen && (
