@@ -290,7 +290,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   // 0. URL Change Listener - Only re-render on navigation popstate
   useEffect(() => {
-    const handlePopstate = () => setUrlKey(prev => prev + 1);
+    const handlePopstate = () => {
+      setUrlKey(prev => prev + 1);
+      // Sync selectedCategory with URL on back/forward (pushState pages)
+      const c = new URLSearchParams(window.location.search).get("cat");
+      setSelectedCategory(c && c !== "all" ? c : "all");
+    };
     window.addEventListener('popstate', handlePopstate);
     return () => window.removeEventListener('popstate', handlePopstate);
   }, []);
@@ -1478,13 +1483,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const loadingRef = useRef(false);
   const currentPageRef = useRef(0);
 
-  // Active store category from ?cat= query param (category page mode)
+  // Active store category from ?cat= query param OR selectedCategory state
+  // (category page mode). We also check selectedCategory so that clicking
+  // "Voir tout" (which uses pushState + setSelectedCategory) switches to
+  // full-grid mode instantly without waiting for useSearchParams to sync.
   const activeStoreCategory = useMemo(() => {
     if (!selectedStoreParam) return null;
     const c = location.search ? new URLSearchParams(location.search).get("cat") : null;
-    const cat = c && c !== "all" ? c : null;
-    return cat || (initialCategory && selectedStoreParam ? initialCategory : null);
-  }, [selectedStoreParam, location.search, initialCategory]);
+    const fromUrl = c && c !== "all" ? c : null;
+    const fromState = selectedCategory !== "all" ? selectedCategory : null;
+    return fromUrl || fromState || (initialCategory && selectedStoreParam ? initialCategory : null);
+  }, [selectedStoreParam, location.search, initialCategory, selectedCategory]);
 
   // Active category page on home (?cat= or /category/[slug])
   const activeHomeCategory = useMemo(() => {
@@ -3415,7 +3424,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     onClick={() => {
                                       if (selectedStoreParam) {
                                         setSelectedCategory(cat);
-                                        navigate(`/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`);
+                                        window.history.pushState(null, "", `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`);
                                         window.scrollTo({ top: 0 });
                                       } else {
                                         navigate(`/category/${categoryToSlug(cat)}`);
@@ -3702,7 +3711,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     <button
                                       onClick={() => {
                                         setSelectedCategory(cat);
-                                        navigate(`${location.pathname}?cat=${encodeURIComponent(cat)}`);
+                                        window.history.pushState(null, "", `${location.pathname}?cat=${encodeURIComponent(cat)}`);
                                         window.scrollTo({ top: 0 });
                                       }}
                                       onMouseEnter={() => {
