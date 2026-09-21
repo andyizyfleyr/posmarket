@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Search, Check } from 'lucide-react';
+import { ChevronDown, Search, Check, Globe } from 'lucide-react';
+import { Modal } from '@/components/buyer/Modal';
 import {
   Country,
   COUNTRIES,
@@ -47,7 +48,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Determine initial country & national number from value or default
@@ -65,21 +65,10 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     }
   }, [value]);
 
-  // Click outside to close dropdown
+  // Focus the search input when modal opens
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 50);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
+    if (isOpen && showSearch) setTimeout(() => searchInputRef.current?.focus(), 120);
+  }, [isOpen, showSearch]);
 
   // Filter countries by search query
   const filteredCountries = COUNTRIES.filter((c) => {
@@ -162,86 +151,21 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         }`}
       >
         {/* Country Selector Trigger */}
-        <div ref={dropdownRef} className="relative">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-1.5 pl-3.5 pr-2 py-3 md:py-3.5 text-xs font-semibold text-gray-700 hover:text-gray-900 transition-colors focus:outline-none disabled:opacity-50 select-none cursor-pointer rounded-l-2xl shrink-0"
-            title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
-          >
-            <span className="text-base leading-none">{selectedCountry.flag}</span>
-            <ChevronDown
-              size={13}
-              className={`text-gray-400 transition-transform duration-200 ${
-                isOpen ? 'rotate-180 text-[#f56b2a]' : ''
-              }`}
-            />
-          </button>
-
-          {/* Country Dropdown Popover */}
-          {isOpen && (
-            <div className="absolute left-0 top-full mt-2 w-72 max-w-[90vw] bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-200/50 z-50 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-              {showSearch && (
-                <>
-                  {/* Search Bar */}
-                  <div className="p-2 border-b border-gray-100 bg-gray-50/50">
-                    <div className="relative">
-                      <Search
-                        size={14}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                      />
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Rechercher pays ou indicatif..."
-                        className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Country List */}
-              <div className="max-h-60 overflow-y-auto divide-y divide-gray-50/50 overscroll-contain">
-                {(showSearch ? filteredCountries : COUNTRIES).length > 0 ? (
-                  (showSearch ? filteredCountries : COUNTRIES).map((c) => {
-                    const isSelected = c.code === selectedCountry.code;
-                    return (
-                      <button
-                        key={c.code}
-                        type="button"
-                        onClick={() => handleCountrySelect(c)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left text-xs transition-colors cursor-pointer ${
-                          isSelected
-                            ? 'bg-orange-50/80 font-bold text-[#f56b2a]'
-                            : 'hover:bg-gray-50 text-gray-700 font-medium'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 truncate mr-2">
-                          <span className="text-base shrink-0">{c.flag}</span>
-                          <span className="truncate">{c.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] font-mono text-gray-500 font-semibold">
-                            {c.dialCode}
-                          </span>
-                          {isSelected && <Check size={14} className="text-[#f56b2a]" />}
-                        </div>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="py-6 text-center text-xs text-gray-400 font-normal">
-                    Aucun pays trouvé
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-1.5 pl-3.5 pr-2 py-3 md:py-3.5 text-xs font-semibold text-gray-700 hover:text-gray-900 transition-colors focus:outline-none disabled:opacity-50 select-none cursor-pointer rounded-l-2xl shrink-0"
+          title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
+        >
+          <span className="text-base leading-none">{selectedCountry.flag}</span>
+          <ChevronDown
+            size={13}
+            className={`text-gray-400 transition-transform duration-200 ${
+              isOpen ? 'rotate-180 text-[#f56b2a]' : ''
+            }`}
+          />
+        </button>
 
         {/* Unified dial code + national number */}
         <div className="flex items-center min-w-0 flex-1">
@@ -263,6 +187,70 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           />
         </div>
       </div>
+
+      {isOpen && (
+        <Modal
+          title="Pays et indicatif"
+          subtitle="Sélectionnez le pays du numéro"
+          icon={<Globe size={18} />}
+          onClose={() => setIsOpen(false)}
+        >
+          {showSearch && (
+            <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Rechercher pays ou indicatif..."
+                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Country List */}
+          <div className="max-h-[55vh] overflow-y-auto divide-y divide-gray-50/50 overscroll-contain">
+            {(showSearch ? filteredCountries : COUNTRIES).length > 0 ? (
+              (showSearch ? filteredCountries : COUNTRIES).map((c) => {
+                const isSelected = c.code === selectedCountry.code;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleCountrySelect(c)}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 text-left text-xs transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-orange-50/80 font-bold text-[#f56b2a]'
+                        : 'hover:bg-gray-50 text-gray-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 truncate mr-2">
+                      <span className="text-base shrink-0">{c.flag}</span>
+                      <span className="truncate">{c.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[11px] font-mono text-gray-500 font-semibold">
+                        {c.dialCode}
+                      </span>
+                      {isSelected && <Check size={14} className="text-[#f56b2a]" />}
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="py-6 text-center text-xs text-gray-400 font-normal">
+                Aucun pays trouvé
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {showErrorText && errorMessage && (
         <p className="text-[10px] font-semibold text-red-500 mt-1 px-1">{errorMessage}</p>
