@@ -2185,7 +2185,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
               <div className="mt-2 md:mt-3 text-center min-w-0">
                 <h1 className="text-lg md:text-2xl font-bold text-gray-900 max-w-full flex items-center justify-center gap-1.5 min-w-0 leading-tight">
-                  <span className="truncate inline-block">{selectedStore.settings.name}</span>
+                  <span className="inline-block min-w-0 line-clamp-2 md:truncate">{selectedStore.settings.name}</span>
                   <ShieldCheck
                     size={15}
                     strokeWidth={3}

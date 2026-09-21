@@ -527,7 +527,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         1
                       </div>
                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
-                        Vos Informations
+                        Contact à livrer
                       </h3>
                     </div>
 
@@ -560,6 +560,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         </label>
                         <PhoneInput
                           required
+                          showSearch={false}
                           value={customerInfo.phone}
                           onChange={(phone) =>
                             setCustomerInfo({

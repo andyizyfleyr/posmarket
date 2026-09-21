@@ -26,6 +26,7 @@ export interface PhoneInputProps {
   name?: string;
   autoFocus?: boolean;
   showErrorText?: boolean;
+  showSearch?: boolean;
 }
 
 export const PhoneInput: React.FC<PhoneInputProps> = ({
@@ -42,6 +43,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   name,
   autoFocus = false,
   showErrorText = true,
+  showSearch = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -72,7 +74,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      setTimeout(() => searchInputRef.current?.focus(), 50);
+      if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 50);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -177,31 +179,35 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
             />
           </button>
 
-          {/* Searchable Country Dropdown Popover */}
+          {/* Country Dropdown Popover */}
           {isOpen && (
             <div className="absolute left-0 top-full mt-2 w-72 max-w-[90vw] bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-200/50 z-50 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-              {/* Search Bar */}
-              <div className="p-2 border-b border-gray-100 bg-gray-50/50">
-                <div className="relative">
-                  <Search
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Rechercher pays ou indicatif..."
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
-                  />
-                </div>
-              </div>
+              {showSearch && (
+                <>
+                  {/* Search Bar */}
+                  <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                    <div className="relative">
+                      <Search
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Rechercher pays ou indicatif..."
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Country List */}
               <div className="max-h-60 overflow-y-auto divide-y divide-gray-50/50 overscroll-contain">
-                {filteredCountries.length > 0 ? (
-                  filteredCountries.map((c) => {
+                {(showSearch ? filteredCountries : COUNTRIES).length > 0 ? (
+                  (showSearch ? filteredCountries : COUNTRIES).map((c) => {
                     const isSelected = c.code === selectedCountry.code;
                     return (
                       <button
