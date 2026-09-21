@@ -71,7 +71,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
           settings: sql<
             Record<string, unknown> | null
           >`${stores.settings} - 'logo'`,
-          hasLogo: sql<boolean>`(${stores.settings} -> 'logo') IS NOT NULL`,
+          hasLogo: sql<boolean>`TRIM(COALESCE(${stores.settings}->>'logo','')) <> ''`,
         })
         .from(stores),
       db

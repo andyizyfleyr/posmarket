@@ -137,7 +137,7 @@ async function getStoreSeoUncached(slugOrId: string) {
                 address: stores.address,
                 description: stores.description,
                 settings: stores.settings,
-                hasLogo: sql<boolean>`(${stores.settings} -> 'logo') IS NOT NULL`,
+                hasLogo: sql<boolean>`TRIM(COALESCE(${stores.settings}->>'logo','')) <> ''`,
             })
             .from(stores)
             .where(or(eq(stores.slug, s), sql`${stores.id}::text = ${s}`))

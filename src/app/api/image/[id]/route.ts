@@ -16,7 +16,9 @@ async function getImageSource(id: string): Promise<string | null | undefined> {
       .where(eq(stores.id, storeId))
       .limit(1);
     const settings = (row?.settings ?? {}) as Record<string, unknown>;
-    return typeof settings.logo === 'string' ? settings.logo : null;
+    return typeof settings.logo === 'string' && settings.logo.trim()
+      ? settings.logo
+      : null;
   }
   if (!UUID_RE.test(id)) return null;
   const [row] = await db
