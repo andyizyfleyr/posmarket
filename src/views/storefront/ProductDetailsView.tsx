@@ -823,7 +823,7 @@ export function ProductDetailsView(props: any) {
                                     aria-pressed={isSelected}
                                     className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer active:scale-95 ${
                                       isSelected
-                                        ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
+                                        ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
                                         : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-gray-900"
                                     }`}
                                   >
@@ -1197,7 +1197,7 @@ export function ProductDetailsView(props: any) {
                                       aria-pressed={isSelected}
                                       className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-semibold transition-all border active:scale-95 ${
                                         isSelected
-                                          ? "bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/10"
+                                          ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
                                           : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
                                       }`}
                                     >
@@ -1593,7 +1593,7 @@ export function ProductDetailsView(props: any) {
                 <button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className="w-full border-2 border-gray-900 bg-white hover:bg-gray-50 text-gray-900 rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full border-2 border-[#f56b2a] bg-white hover:bg-orange-50 text-[#f56b2a] rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart size={14} strokeWidth={2.5} />
                   {isOutOfStock ? "Rupture" : (isFood ? 'Commander' : 'Ajouter au panier')}
