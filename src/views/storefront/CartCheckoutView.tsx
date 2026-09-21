@@ -544,13 +544,14 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                             required
                             type="text"
                             value={customerInfo.name}
+                            placeholder="Nom et prénom"
                             onChange={(e) =>
                               setCustomerInfo({
                                 ...customerInfo,
                                 name: e.target.value,
                               })
                             }
-                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border"
+                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border placeholder-gray-400"
                           />
                         </div>
                       </div>
