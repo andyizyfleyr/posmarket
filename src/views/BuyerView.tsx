@@ -45,7 +45,7 @@ const TABS: Array<{
   icon: React.ElementType;
 }> = [
   { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
-  { id: 'addresses', path: 'adresses', label: 'Contacts de livraison', desc: 'Vos contacts de livraison', icon: MapPin },
+  { id: 'addresses', path: 'adresses', label: 'Livraison', desc: 'Vos contacts de livraison', icon: MapPin },
   { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
   { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
 ];
