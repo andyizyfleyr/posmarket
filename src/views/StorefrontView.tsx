@@ -48,7 +48,6 @@ import {
   RotateCcw,
   Maximize2,
   Eye,
-  Share2,
   Check,
 } from "lucide-react";
 import {
@@ -2130,18 +2129,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       selectedStore.description ||
       selectedStore.settings?.description ||
       "Votre destination shopping préférée pour des produits locaux et de qualité.";
-    const handleStoreShare = () => {
-      const url = window.location.href;
-      if (navigator.share) {
-        navigator.share({
-          title: selectedStore.settings.name,
-          url,
-        }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(url);
-        localNotify("Lien de la boutique copié !", "success");
-      }
-    };
     const waDigits = (
       selectedStore.phone ||
       selectedStore.settings?.phone ||
@@ -2159,25 +2146,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           <div className="h-[72px] md:h-32 bg-gradient-to-r from-[#f56b2a] via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
             <div className="absolute -right-14 -top-20 w-56 h-56 rounded-full border-[24px] border-white/10" />
             <div className="absolute -left-10 -bottom-24 w-48 h-48 rounded-full border-[18px] border-white/10" />
-            <button
-              onClick={() =>
-                handleGoBack("/", () => {
-                  setSearchTerm("");
-                  setSelectedCategory("all");
-                })
-              }
-              aria-label="Retour au marché"
-              className="absolute top-2.5 left-3 z-30 w-11 h-11 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
-            >
-              <ChevronLeft size={20} strokeWidth={3} className="text-white" />
-            </button>
-            <button
-              onClick={handleStoreShare}
-              aria-label="Partager la boutique"
-              className="absolute top-2.5 right-3 z-30 w-11 h-11 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all"
-            >
-              <Share2 size={15} className="text-white" />
-            </button>
           </div>
 
           {/* Body */}

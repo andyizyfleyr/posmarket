@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import {
-  Package, ArrowRight, ChevronRight, Share2, Maximize2, Zap, Clock, Star,
+  Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star,
   ShoppingBag, Eye, ShoppingCart, AlertCircle, Check, MessageCircle,
   ShieldCheck, RotateCcw, Truck, ChevronLeft, ArrowLeft, Loader2,
   Store, CheckCircle2, PackageCheck, Heart, X, ChevronDown
@@ -234,21 +234,6 @@ export function ProductDetailsView(props: any) {
       buyNow(product, resolveVariantId(), selectedOptions);
     };
 
-    const handleShare = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const url = window.location.href;
-      if (navigator.share) {
-        navigator.share({
-          title: product.name,
-          text: descriptionText,
-          url: url,
-        }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(url);
-        localNotify("Lien produit copié dans le presse-papiers !", "success");
-      }
-    };
-
     const reviewTotal =
       product.reviewCount || reviews.length || 0;
     const accentText = isFood ? "text-green-600" : "text-[#f56b2a]";
@@ -333,33 +318,11 @@ export function ProductDetailsView(props: any) {
 
         {/* ================= MOBILE APP-BAR (M3 style) ================= */}
         <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center justify-between -mx-4" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <button
-            onClick={() =>
-              // Retour vers la page précédente (boutique, accueil, catégorie...),
-              // sinon la boutique d'où l'utilisateur vient, sinon l'accueil.
-              handleGoBack(
-                lastVisitedStoreRef.current
-                  ? `/store/${lastVisitedStoreRef.current}`
-                  : "/",
-              )
-            }
-            aria-label="Retour"
-            className="w-11 h-11 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
-          >
-            <ArrowLeft size={20} strokeWidth={2.5} />
-          </button>
+          <div className="w-11" />
           <span className="text-xs font-bold tracking-[0.1em] uppercase text-gray-500 max-w-[60%] truncate">
             {product.storeName}
           </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleShare}
-              aria-label="Partager"
-              className="w-11 h-11 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100/80 active:scale-95 transition-all"
-            >
-              <Share2 size={19} />
-            </button>
-          </div>
+          <div className="w-11" />
         </div>
 
         {/* ================= PRODUIT ================= */}
@@ -529,13 +492,6 @@ export function ProductDetailsView(props: any) {
 
                   {/* Action buttons top-right */}
                   <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 z-10">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleShare(e); }}
-                      aria-label="Partager"
-                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
-                    >
-                      <Share2 size={13} />
-                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); openZoom(currentImage); }}
                       aria-label="Agrandir l'image"
