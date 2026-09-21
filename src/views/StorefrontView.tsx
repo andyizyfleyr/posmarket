@@ -3251,7 +3251,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                 {/* Titre de section — masqué en page catégorie dédiée (?cat=)
                     car le header « ← Catégorie · N produits » fait déjà foi */}
-                {!activeHomeCategory && (
+                {!activeHomeCategory && (searchTerm || selectedCategory !== "all") && (
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                       {searchTerm ? (
@@ -3259,13 +3259,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <ShoppingCart className="text-[#f56b2a]" size={20} />{" "}
                           Résultats produits
                         </>
-                      ) : selectedCategory !== "all" ? (
-                        <>
-                          <Zap className="text-yellow-500" /> {selectedCategory}
-                        </>
                       ) : (
                         <>
-                          <Zap className="text-yellow-500" /> Recommandations
+                          <Zap className="text-yellow-500" /> {selectedCategory}
                         </>
                       )}
                     </h2>
