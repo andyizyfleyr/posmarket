@@ -62,7 +62,7 @@ import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
-import { COUNTRIES } from "@/constants/countries";
+import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
@@ -1943,12 +1943,27 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (checkoutStage === "shipping" && !countryGate.allowed) {
-      setCheckoutStage("blocked");
-      return;
-    }
-    if (checkoutStage === "shipping") handleStageChange("payment");
-    else if (checkoutStage === "payment") {
+    if (checkoutStage === "shipping") {
+      if (!countryGate.allowed) {
+        setCheckoutStage("blocked");
+        return;
+      }
+      const nameValid = Boolean(customerInfo.name?.trim());
+      const phoneFilled = Boolean(customerInfo.phone);
+      const phoneValid = phoneFilled && isValidPhoneNumber(customerInfo.phone);
+      if (!nameValid) {
+        localNotify("Veuillez renseigner votre nom complet avant de continuer.", "error");
+        return;
+      }
+      if (!phoneValid) {
+        const example = phoneFilled
+          ? `Numéro invalide. Ex : ${parsePhoneNumber(customerInfo.phone).country.placeholder}.`
+          : "Veuillez saisir votre numéro de téléphone.";
+        localNotify(example, "error");
+        return;
+      }
+      handleStageChange("payment");
+    } else if (checkoutStage === "payment") {
       if (!countryGate.allowed) {
         setCheckoutStage("blocked");
         return;

@@ -9,7 +9,7 @@ import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
 import { formatCurrency, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN } from "@/utils";
-import { COUNTRIES } from "@/constants/countries";
+import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { StoreData } from "@/types";
 
@@ -622,7 +622,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           }
                           error={
                             customerInfo.phone && !isValidPhoneNumber(customerInfo.phone)
-                              ? "Numéro de téléphone invalide"
+                              ? `Numéro de téléphone invalide. Ex : ${parsePhoneNumber(customerInfo.phone).country.placeholder}.`
                               : undefined
                           }
                         />
