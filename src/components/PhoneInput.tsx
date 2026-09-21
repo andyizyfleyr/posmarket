@@ -189,7 +189,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
             value={nationalDigits}
             onChange={handleInputChange}
             placeholder={placeholder || selectedCountry.placeholder || 'Numéro de téléphone'}
-            className={`flex-1 min-w-0 pl-2 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-400 outline-none ${inputClassName}`}
+            className={`flex-1 min-w-0 pl-2 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-400 outline-none no-global-border ${inputClassName}`}
           />
         </div>
       </div>
