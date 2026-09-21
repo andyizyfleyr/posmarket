@@ -6,7 +6,7 @@ import { getStoreSeo, absoluteImage } from "@/utils/catalog-seo";
 export const revalidate = 60;
 export const dynamicParams = true;
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ cat?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
@@ -32,8 +32,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
 }
 
-export default async function StorePage({ params }: Props) {
+export default async function StorePage({ params, searchParams }: Props) {
     const { slug } = await params;
+    const { cat } = await searchParams;
+    const initialCategory = cat && cat !== "all" ? cat : undefined;
     const [stores, store] = await Promise.all([
         fetchMarketplaceData(),
         getStoreSeo(slug),
@@ -95,6 +97,7 @@ export default async function StorePage({ params }: Props) {
             <StorefrontWrapper
                 stores={stores}
                 initialStoreId={storeId}
+                initialCategory={initialCategory}
                 onBackToApp={async () => {
                     "use server";
                 }}

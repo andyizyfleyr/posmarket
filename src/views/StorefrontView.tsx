@@ -3414,9 +3414,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <button
                                     onClick={() => {
                                       if (selectedStoreParam) {
-                                        window.location.href = `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`;
+                                        setSelectedCategory(cat);
+                                        navigate(`/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`);
+                                        window.scrollTo({ top: 0 });
                                       } else {
-                                        window.location.href = `/category/${categoryToSlug(cat)}`;
+                                        navigate(`/category/${categoryToSlug(cat)}`);
                                       }
                                     }}
                                     onMouseEnter={() => {
@@ -3699,7 +3701,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     </h3>
                                     <button
                                       onClick={() => {
-                                        window.location.href = `${location.pathname}?cat=${encodeURIComponent(cat)}`;
+                                        setSelectedCategory(cat);
+                                        navigate(`${location.pathname}?cat=${encodeURIComponent(cat)}`);
+                                        window.scrollTo({ top: 0 });
                                       }}
                                       onMouseEnter={() => {
                                         const catUrl = `${location.pathname}?cat=${encodeURIComponent(cat)}`;
