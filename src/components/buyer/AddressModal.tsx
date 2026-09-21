@@ -41,14 +41,10 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
     const errs: FieldErrors = {};
     const name = form.name.trim();
     const fullName = form.fullName.trim();
-    const city = form.city.trim();
-    const addr = form.address.trim();
     const phone = form.phone.trim();
 
     if (!name) errs.name = 'Ajoutez un label (ex : Maison).';
     if (!fullName) errs.fullName = 'Nom complet requis.';
-    if (!city) errs.city = 'Ville requise.';
-    if (!addr) errs.address = 'Adresse requise.';
     if (!phone) errs.phone = 'Téléphone requis.';
     else if (!isValidPhoneNumber(phone)) errs.phone = 'Numéro de téléphone invalide.';
 
@@ -62,8 +58,8 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
         name, 
         fullName, 
         phone, 
-        city, 
-        address: addr, 
+        city: form.city, 
+        address: form.address, 
         isDefault: form.isDefault 
       });
       if (ok) onClose();
@@ -81,8 +77,8 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
 
   return (
     <Modal
-      title={address ? 'Modifier l\'adresse' : 'Ajouter une adresse'}
-      subtitle="Livraison de vos commandes"
+      title={address ? 'Modifier le contact' : 'Ajouter un contact'}
+      subtitle="Contacts de livraison"
       icon={<MapPin size={20} />}
       busy={saving}
       onClose={onClose}
@@ -117,28 +113,6 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
             className={inputClass(errors.fullName)}
           />
           {errors.fullName && <p className="text-[10px] font-semibold text-red-400">{errors.fullName}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-gray-400">Adresse exacte</label>
-          <input
-            value={form.address}
-            onChange={(e) => setField('address', e.target.value)}
-            placeholder="Quartier, rue, repère..."
-            className={inputClass(errors.address)}
-          />
-          {errors.address && <p className="text-[10px] font-semibold text-red-400">{errors.address}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-gray-400">Ville</label>
-          <input
-            value={form.city}
-            onChange={(e) => setField('city', e.target.value)}
-            placeholder="Dakar, Thiès..."
-            className={inputClass(errors.city)}
-          />
-          {errors.city && <p className="text-[10px] font-semibold text-red-400">{errors.city}</p>}
         </div>
 
         <label

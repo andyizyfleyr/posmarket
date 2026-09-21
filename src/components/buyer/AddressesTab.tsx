@@ -36,8 +36,8 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
     return (
       <EmptyState
         icon={<MapPin size={34} />}
-        title="Aucune adresse enregistrée"
-        subtitle="Ajoutez une adresse de livraison pour pré-remplir vos commandes en un clic."
+        title="Aucun contact de livraison enregistré"
+        subtitle="Ajoutez un contact de livraison pour pré-remplir vos commandes en un clic."
         action={
           <Button
             variant="primary"
@@ -119,10 +119,6 @@ export const AddressesTab: React.FC<AddressesTabProps> = ({
                   <p className="text-[10px] font-semibold text-gray-500">{formatPhoneNumber(addr.phone)}</p>
                 )}
               </div>
-              <p className="text-[11px] text-gray-500 font-semibold mt-1">{addr.address}</p>
-              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight mt-0.5">
-                {addr.city}
-              </p>
             </div>
           </div>
         ))}

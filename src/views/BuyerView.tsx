@@ -45,7 +45,7 @@ const TABS: Array<{
   icon: React.ElementType;
 }> = [
   { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
-  { id: 'addresses', path: 'adresses', label: 'Adresses', desc: 'Vos adresses de livraison', icon: MapPin },
+  { id: 'addresses', path: 'adresses', label: 'Contacts de livraison', desc: 'Vos contacts de livraison', icon: MapPin },
   { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
   { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
 ];
@@ -279,7 +279,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                 {[
                   { value: counts.orders, label: 'Commandes' },
                   { value: counts.reviews, label: 'Avis' },
-                  { value: counts.addresses, label: 'Adresses' },
+                  { value: counts.addresses, label: 'Contacts de livraison' },
                 ].map((s, i) => (
                   <React.Fragment key={s.label}>
                     {i > 0 && <div className="w-px h-5 bg-gray-100" />}
