@@ -202,6 +202,7 @@ const saveRecentSearch = (term: string): string[] => {
 interface StorefrontViewProps {
   stores: StoreData[];
   initialCategory?: string;
+  initialStoreId?: string;
   onBackToApp: () => void | Promise<void>;
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
@@ -231,6 +232,7 @@ function categoryToSlug(cat: string): string {
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
   initialCategory,
+  initialStoreId,
   onBackToApp,
   onMarketplaceCheckout,
   onAddReview,
@@ -318,13 +320,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return stores && stores.length > 0 ? stores : cachedStores;
   }, [stores, cachedStores]);
 
+  // Resolve store ID from param using ALL available stores (props + cache) for instant filtering
+  // Also use initialStoreId passed from server for instant SSR filtering
   const selectedStoreId = useMemo(() => {
+    // First priority: initialStoreId from server (available immediately in SSR)
+    if (initialStoreId) return initialStoreId;
+    // Second priority: resolve from URL param using available store data
     if (!selectedStoreParam) return null;
     const store = activeStores.find(
       (s) => s.id === selectedStoreParam || s.slug === selectedStoreParam,
     );
-    return store?.id || null;
-  }, [selectedStoreParam, activeStores]);
+    if (store) return store.id;
+    return null;
+  }, [initialStoreId, selectedStoreParam, activeStores]);
 
   const selectedStore = useMemo(() => {
     return activeStores.find((s) => s.id === selectedStoreId) || null;

@@ -20,6 +20,7 @@ const StorefrontView = dynamic(
 interface StorefrontWrapperProps {
   stores: StoreData[];
   initialCategory?: string;
+  initialStoreId?: string;
   onBackToApp?: () => Promise<void>;
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
@@ -39,13 +40,14 @@ interface StorefrontWrapperProps {
   ) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
-export function StorefrontWrapper({ stores, initialCategory, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
+export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const router = useRouter();
 
   return (
     <StorefrontView
       stores={stores}
       initialCategory={initialCategory}
+      initialStoreId={initialStoreId}
       onBackToApp={async () => {
         if (onBackToApp) {
           await onBackToApp();

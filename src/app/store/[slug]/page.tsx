@@ -38,6 +38,7 @@ export default async function StorePage({ params }: Props) {
         fetchMarketplaceData(),
         getStoreSeo(slug),
     ]);
+    const storeId = store?.id || "";
 
     let jsonLd: Record<string, unknown>[] | null = null;
     if (store) {
@@ -93,6 +94,7 @@ export default async function StorePage({ params }: Props) {
             )}
             <StorefrontWrapper
                 stores={stores}
+                initialStoreId={storeId}
                 onBackToApp={async () => {
                     "use server";
                 }}
