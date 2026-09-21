@@ -168,10 +168,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           />
         </button>
 
-        <span className="pl-1.5 text-[15px] font-bold text-gray-900 select-none shrink-0 tabular-nums">
-          {selectedCountry.dialCode}
-        </span>
-
         {/* Number field */}
         <input
           id={id}
@@ -183,8 +179,8 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           autoFocus={autoFocus}
           value={nationalDigits}
           onChange={handleInputChange}
-          placeholder={placeholder}
-          className={`flex-1 min-w-0 pl-2 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-400 outline-none no-global-border ${inputClassName}`}
+          placeholder={placeholder || 'Numéro de téléphone'}
+          className={`flex-1 min-w-0 px-3 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-300 placeholder:font-normal placeholder:text-gray-300 outline-none no-global-border ${inputClassName}`}
         />
       </div>
 
