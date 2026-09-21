@@ -55,7 +55,7 @@ type ReviewPayload = {
 
 async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
   try {
-    const [storesData, productsData, productStatsData, salesCountsData] = await Promise.all([
+    const [storesData, productsData, productStatsData, salesCountsData, reviewsAggData] = await Promise.all([
       db
         .select({
           id: stores.id,
@@ -113,6 +113,15 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
         .where(sql`${orderItems.productId} IS NOT NULL`)
         .groupBy(orderItems.productId)
         .catch(() => []),
+      db
+        .select({
+          storeId: productReviews.storeId,
+          averageRating: sql<string>`COALESCE(ROUND(AVG(${productReviews.rating})::numeric, 2), 0)::text`,
+          reviewCount: sql<number>`COUNT(${productReviews.id})::int`,
+        })
+        .from(productReviews)
+        .groupBy(productReviews.storeId)
+        .catch(() => []),
     ]);
 
     const toImageRef = (
@@ -127,6 +136,15 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
       (salesCountsData || [])
         .filter((s) => s.productId)
         .map((s) => [s.productId!, Number(s.totalSales) || 0])
+    );
+    const storeReviewsMap = Object.fromEntries(
+      (reviewsAggData || []).map((r) => [
+        r.storeId,
+        {
+          rating: Number(r.averageRating) || 0,
+          reviewCount: Number(r.reviewCount) || 0,
+        },
+      ])
     );
 
     const productsByStoreMap: Record<string, Array<(typeof productsData)[number]>> = {};
@@ -148,8 +166,8 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
         ownerId: s.userId,
         description: description,
         views: s.views || 0,
-        rating: 0,
-        reviewCount: 0,
+        rating: storeReviewsMap[s.id]?.rating || 0,
+        reviewCount: storeReviewsMap[s.id]?.reviewCount || 0,
         settings: {
           name: s.name,
           email: s.email || '',
@@ -208,7 +226,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
 
 const getCachedMarketplaceData = unstable_cache(fetchMarketplaceDataUncached, ['marketplace-catalog'], {
   tags: [CATALOG_TAG],
-  revalidate: 300,
+  revalidate: 60,
 });
 
 export async function fetchMarketplaceData(): Promise<StoreData[]> {

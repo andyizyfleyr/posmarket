@@ -1,7 +1,7 @@
 import React from "react";
 import {
   ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard,
-  User, Phone, Home, Briefcase, Truck, RotateCcw, Zap, CheckCircle2,
+  User, Truck, RotateCcw, Zap, CheckCircle2,
   ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell,
   AlertTriangle
 } from "lucide-react";
@@ -71,12 +71,12 @@ export interface CartCheckoutViewBundle {
 export function CartCheckoutView(props: CartCheckoutViewBundle) {
   const {
     checkoutStage, cart, cartItemsCount, isNavigating, expandedCartStores,
-    swipeState, swipeStartRef, customerInfo, user, buyerAddresses,
-    selectedAddressId, paymentMethod, isCheckoutTransitioning,
+    swipeState, swipeStartRef, customerInfo,
+    paymentMethod, isCheckoutTransitioning,
     keyboardOffset, isWhatsAppLoading, stores,
     setCheckoutStage, setCompletedOrderStores, setCompletedOrderItems,
     setCompletedOrderTotal, setExpandedCartStores, setSwipeState, setCustomerInfo,
-    setSelectedAddressId, setPaymentMethod, setIsCheckoutTransitioning,
+    setPaymentMethod, setIsCheckoutTransitioning,
     setIsWhatsAppLoading,
     safeNavigate, localNotify, formatCurrency, formatPhoneSN, isValidPhoneSN,
     getEffectiveItemPrice, handleCheckoutSubmit, handleStageChange, removeFromCart,
@@ -576,108 +576,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                       </div>
                     </div>
                   </div>
-
-                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-bold text-sm">
-                        2
-                      </div>
-                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
-                        Adresse de Livraison
-                      </h3>
-                    </div>
-
-                      {user && buyerAddresses.length > 0 && !customerInfo.address ? (
-                        <div className="space-y-4">
-                          <p className="text-xs font-semibold text-gray-500 mb-3">Sélectionnez une adresse enregistrée</p>
-                          <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                            {buyerAddresses.map((addr) => (
-                              <button
-                                key={addr.id}
-                                onClick={() => { setSelectedAddressId(addr.id); setCustomerInfo({ ...customerInfo, name: addr.full_name, phone: addr.phone, address: addr.address, city: addr.city }); }}
-                                className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${selectedAddressId === addr.id ? 'border-[#f56b2a] bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                    {addr.name === 'Maison' ? <Home size={16} /> : addr.name === 'Bureau' ? <Briefcase size={16} /> : <MapPin size={16} />}
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-bold text-gray-900">{addr.name}</p>
-                                    <p className="text-xs text-gray-500">{addr.address}, {addr.city}</p>
-                                  </div>
-                                  {addr.is_default && <span className="text-[9px] font-bold text-[#f56b2a] uppercase">Par défaut</span>}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : user && buyerAddresses.length > 0 && customerInfo.address ? (
-                        <div className="space-y-4">
-                          <div className="p-4 rounded-2xl border-2 border-[#f56b2a] bg-orange-50/30">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                                  <MapPin size={16} />
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-sm font-bold text-gray-900">{customerInfo.name}</p>
-                                  <p className="text-xs text-gray-500">{customerInfo.address}, {customerInfo.city}</p>
-                                </div>
-                              </div>
-                              <button 
-                                onClick={() => { setSelectedAddressId(null); setCustomerInfo({ ...customerInfo, address: "", city: "" }); }}
-                                className="text-[9px] font-semibold text-[#f56b2a] underline"
-                              >
-                                Changer
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase ml-1">
-                              Adresse (Rue, Quartier...)
-                            </label>
-                            <div className="relative group">
-                              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
-                                <MapPin size={18} />
-                              </div>
-                              <input
-                                required
-                                type="text"
-                                value={customerInfo.address}
-                                onChange={(e) =>
-                                  setCustomerInfo({
-                                    ...customerInfo,
-                                    address: e.target.value,
-                                  })
-                                }
-                                className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-600 uppercase ml-1">
-                              Ville
-                            </label>
-                            <input
-                              required
-                              type="text"
-                              value={customerInfo.city}
-                              onChange={(e) =>
-                                setCustomerInfo({
-                                  ...customerInfo,
-                                  city: e.target.value,
-                                })
-                              }
-                              className="w-full px-5 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
               {checkoutStage === "payment" && (

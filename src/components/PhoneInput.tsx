@@ -165,13 +165,10 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-1.5 pl-3.5 pr-2 py-3 md:py-3.5 text-xs font-semibold text-gray-700 hover:text-gray-900 border-r border-gray-200/70 transition-colors focus:outline-none disabled:opacity-50 select-none cursor-pointer rounded-l-2xl shrink-0"
+            className="flex items-center gap-1.5 pl-3.5 pr-2 py-3 md:py-3.5 text-xs font-semibold text-gray-700 hover:text-gray-900 transition-colors focus:outline-none disabled:opacity-50 select-none cursor-pointer rounded-l-2xl shrink-0"
             title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
           >
             <span className="text-base leading-none">{selectedCountry.flag}</span>
-            <span className="text-[11px] font-bold text-gray-800 tracking-tight">
-              {selectedCountry.dialCode}
-            </span>
             <ChevronDown
               size={13}
               className={`text-gray-400 transition-transform duration-200 ${
@@ -240,20 +237,25 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           )}
         </div>
 
-        {/* National Number Input */}
-        <input
-          id={id}
-          name={name}
-          type="tel"
-          inputMode="tel"
-          disabled={disabled}
-          required={required}
-          autoFocus={autoFocus}
-          value={nationalDigits}
-          onChange={handleInputChange}
-          placeholder={placeholder || selectedCountry.placeholder || 'Numéro de téléphone'}
-          className={`w-full px-3.5 py-3 md:py-3.5 bg-transparent text-sm font-semibold text-gray-800 placeholder-gray-400 outline-none rounded-r-2xl transition-all ${inputClassName}`}
-        />
+        {/* Unified dial code + national number */}
+        <div className="flex items-center min-w-0 flex-1">
+          <span className="pl-3 pr-1 py-3 md:py-3.5 text-sm font-bold text-gray-700 select-none shrink-0">
+            {selectedCountry.dialCode}
+          </span>
+          <input
+            id={id}
+            name={name}
+            type="tel"
+            inputMode="tel"
+            disabled={disabled}
+            required={required}
+            autoFocus={autoFocus}
+            value={nationalDigits}
+            onChange={handleInputChange}
+            placeholder={placeholder || selectedCountry.placeholder || 'Numéro de téléphone'}
+            className={`w-full min-w-0 px-1 pr-3.5 py-3 md:py-3.5 bg-transparent text-sm font-semibold text-gray-800 placeholder-gray-400 outline-none rounded-r-2xl transition-all ${inputClassName}`}
+          />
+        </div>
       </div>
 
       {showErrorText && errorMessage && (

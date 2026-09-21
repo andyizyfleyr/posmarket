@@ -2151,11 +2151,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       selectedStore.settings?.phone ||
       ""
     ).replace(/[^0-9]/g, "");
-    const reviewCountTotal =
+    const productReviewTotal =
       selectedStore.products?.reduce(
         (sum, p) => sum + (p.reviewCount || 0),
         0,
       ) || 0;
+    const reviewCountTotal = selectedStore.reviewCount ?? productReviewTotal;
     return (
       <div className="mb-5 md:mb-6    duration-700">
         <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
@@ -2168,7 +2169,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           {/* Body */}
           <div className="px-4 md:px-8 pb-4 relative">
             {/* Logo + name */}
-            <div className="flex items-end gap-3 -mt-7 md:-mt-10">
+            <div className="flex flex-col items-center -mt-7 md:-mt-10">
               <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10 relative">
                 {selectedStore.settings?.logo ? (
                   <Image
@@ -2182,18 +2183,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <Store size={28} className="text-[#f56b2a]" />
                 )}
               </div>
-              <div className="flex-grow min-w-0 pb-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <h1 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
-                    {selectedStore.settings.name}
-                  </h1>
+              <div className="mt-2 md:mt-3 text-center min-w-0">
+                <h1 className="text-lg md:text-2xl font-bold text-gray-900 max-w-full flex items-center justify-center gap-1.5 min-w-0 leading-tight">
+                  <span className="truncate inline-block">{selectedStore.settings.name}</span>
                   <ShieldCheck
                     size={15}
                     strokeWidth={3}
                     className="text-green-500 flex-shrink-0"
                   />
-                </div>
-                <div className="flex items-center gap-1 mt-0.5">
+                </h1>
+                <div className="flex items-center justify-center gap-1 mt-1">
                   <Star size={12} fill="currentColor" className="text-yellow-400" />
                   <span className="text-xs font-bold text-gray-900">
                     {(selectedStore.rating || 0).toFixed(1)}
@@ -2206,7 +2205,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </div>
 
             {/* Meta line */}
-            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap text-[11px] font-semibold text-gray-400">
+            <div className="flex items-center justify-center gap-2.5 mt-2.5 flex-wrap text-[11px] font-semibold text-gray-400">
               {(() => {
                 const countryValue =
                   selectedStore.address || selectedStore.settings?.address;
@@ -2227,14 +2226,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
             {/* Description */}
             <p
-              className={`mt-2 text-xs md:text-sm text-gray-500 leading-relaxed ${storeDescExpanded ? "" : "line-clamp-2"}`}
+              className={`mt-2 text-xs md:text-sm text-gray-500 leading-relaxed text-center ${storeDescExpanded ? "" : "line-clamp-2"}`}
             >
               {descriptionText}
             </p>
             {descriptionText.length > 90 && (
               <button
                 onClick={() => setStoreDescExpanded((v) => !v)}
-                className="mt-0.5 text-[11px] font-bold text-[#f56b2a]"
+                className="mt-0.5 text-[11px] font-bold text-[#f56b2a] block mx-auto"
               >
                 {storeDescExpanded ? "Réduire" : "Voir plus"}
               </button>
