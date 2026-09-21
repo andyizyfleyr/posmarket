@@ -3,7 +3,7 @@ import {
   ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard,
   User, Truck, RotateCcw, Zap, CheckCircle2,
   ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell,
-  AlertTriangle
+  AlertTriangle, Loader2
 } from "lucide-react";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
@@ -748,43 +748,41 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               {checkoutStage === "cart" && !promoApplied && (
                 <div className="mb-4">
                   {isPromoOpen ? (
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={promoCodeInput}
-                        onChange={(e) => setPromoCodeInput(e.target.value)}
-                        placeholder="Votre code promo"
-                        autoFocus
-                        className="flex-grow px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-xs sm:text-sm uppercase w-full no-global-border"
-                      />
-                      <div className="flex gap-2">
-                        <Button
+                    <div>
+                      <div className="flex items-center h-[52px] bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-[#f56b2a] focus-within:ring-2 focus-within:ring-[#f56b2a]/15 transition-all">
+                        <Tag size={14} className="ml-4 shrink-0 text-gray-400" />
+                        <input
+                          type="text"
+                          value={promoCodeInput}
+                          onChange={(e) => setPromoCodeInput(e.target.value)}
+                          placeholder="Entrez votre code promo"
+                          autoFocus
+                          className="flex-1 min-w-0 bg-transparent px-3 text-sm font-semibold uppercase text-gray-800 placeholder-gray-400 placeholder:normal-case outline-none no-global-border"
+                        />
+                        <button
                           onClick={handlePromoApply}
-                          disabled={!promoCodeInput.trim()}
-                          loading={isApplyingPromo}
-                          loadingText="Vérification..."
-                          variant="primary"
-                          size="sm"
-                          className="flex-1 sm:flex-initial"
+                          disabled={!promoCodeInput.trim() || isApplyingPromo}
+                          className="m-1.5 flex items-center justify-center w-[40px] h-[40px] shrink-0 rounded-xl bg-[#f56b2a] text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          aria-label="Appliquer le code promo"
                         >
-                          Appliquer
-                        </Button>
-                        {!isApplyingPromo && (
-                          <button
-                            onClick={() => setIsPromoOpen(false)}
-                            className="px-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            Annuler
-                          </button>
-                        )}
+                          {isApplyingPromo ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
+                        </button>
                       </div>
+                      {!isApplyingPromo && (
+                        <button
+                          onClick={() => setIsPromoOpen(false)}
+                          className="mt-1.5 ml-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          Annuler
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <button
                       onClick={() => setIsPromoOpen(true)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-gray-200 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] hover:border-[#f56b2a]/40 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-[#f56b2a] hover:border-[#f56b2a]/40 hover:bg-orange-50/30 transition-colors"
                     >
-                      <Tag size={12} /> Ajouter un code promo
+                      <Tag size={13} /> Ajouter un code promo
                     </button>
                   )}
                 </div>
