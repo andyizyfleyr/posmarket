@@ -3,17 +3,25 @@ import {
   ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard,
   User, Truck, RotateCcw, Zap, CheckCircle2,
   ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell,
-  AlertTriangle, Loader2
+  AlertTriangle, Loader2, Globe
 } from "lucide-react";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
 import { formatCurrency, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN } from "@/utils";
+import { COUNTRIES } from "@/constants/countries";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { StoreData } from "@/types";
 
+const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(", ");
+
 export interface CartCheckoutViewBundle {
   checkoutStage: string;
+  countryGate?: {
+    allowed: boolean;
+    countryCode: string | null;
+    countryName: string | null;
+  } | null;
   cart: any[];
   cartItemsCount: number;
   isNavigating: boolean;
@@ -70,7 +78,7 @@ export interface CartCheckoutViewBundle {
 
 export function CartCheckoutView(props: CartCheckoutViewBundle) {
   const {
-    checkoutStage, cart, cartItemsCount, isNavigating, expandedCartStores,
+    checkoutStage, countryGate, cart, cartItemsCount, isNavigating, expandedCartStores,
     swipeState, swipeStartRef, customerInfo,
     paymentMethod, isCheckoutTransitioning,
     keyboardOffset, isWhatsAppLoading, stores,
@@ -131,7 +139,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   ? "Livraison"
                   : checkoutStage === "payment"
                     ? "Paiement"
-                    : "Commande Validée"}
+                    : checkoutStage === "blocked"
+                      ? "Commande indisponible"
+                      : "Commande Validée"}
             </span>
             {checkoutStage === "cart" && cartItemsCount > 0 && (
               <span className="shrink-0 px-2 py-0.5 rounded-full bg-orange-50 text-[#f56b2a] text-[10px] font-bold tabular-nums">
@@ -509,6 +519,47 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 iconPosition="right"
               >
                 Découvrir la boutique
+              </Button>
+            </div>
+          )}
+          {checkoutStage === "blocked" && (
+            <div className="h-full flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="relative mb-5">
+                <div className="absolute inset-0 bg-amber-100 rounded-full blur-2xl opacity-60 scale-125" />
+                <div className="relative w-20 h-20 bg-white border border-amber-200 rounded-3xl grid place-items-center shadow-sm">
+                  <Globe size={30} className="text-amber-500" />
+                </div>
+              </div>
+              <p className="text-lg font-bold text-gray-900">
+                Commande indisponible
+              </p>
+              <p className="text-xs font-semibold text-gray-500 mt-1 max-w-[280px] leading-relaxed">
+                Les commandes sont réservées aux clients situés dans :{" "}
+                <span className="text-gray-700 font-bold">
+                  {SUPPORTED_COUNTRIES_LABEL}
+                </span>
+                {countryGate?.countryName
+                  ? ` Votre connexion indique ${countryGate.countryName}.`
+                  : ""}
+              </p>
+              <p className="text-[10px] font-semibold text-gray-400 mt-2 leading-relaxed">
+                Vous pouvez continuer à parcourir la boutique, mais la
+                commande restera bloquée depuis votre pays.
+              </p>
+              <Button
+                onClick={() => {
+                  handleStageChange("cart");
+                  safeNavigate("/");
+                }}
+                loading={isNavigating}
+                loadingText="Chargement..."
+                variant="primary"
+                size="md"
+                className="mt-6"
+                icon={<ArrowRight size={14} />}
+                iconPosition="right"
+              >
+                Parcourir la boutique
               </Button>
             </div>
           )}

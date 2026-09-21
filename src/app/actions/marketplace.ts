@@ -8,6 +8,7 @@ import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
+import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
@@ -240,6 +241,16 @@ export async function submitCheckoutAction(
   const ordersData = order;
   const customer = customerData || {};
   const { user } = await getCurrentSession();
+
+  // Pays du client (IP) — blocage autoritaire : on ne crée aucune commande
+  // si le pays détecté n'est pas desservi. Non bypassable côté navigateur.
+  const countryGate = await detectClientCountry();
+  if (countryGate.detected && countryGate.code && !isCountryAllowed(countryGate.code)) {
+    return {
+      success: false,
+      error: `Commande impossible : nous livrons actuellement uniquement au ${getSupportedCountriesLabel()}. Votre connexion indique un autre pays.`,
+    };
+  }
 
   const createdOrderIds: string[] = [];
   try {

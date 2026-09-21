@@ -61,6 +61,8 @@ import {
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES } from "@/constants";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
+import { detectCountryAction } from "@/app/actions/geo";
+import { COUNTRIES } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
@@ -282,11 +284,36 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [selectedVertical] = useState<"all" | "shopping" | "food">("all");
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [countryGate, setCountryGate] = useState<{
+    allowed: boolean;
+    countryCode: string | null;
+    countryName: string | null;
+  }>({ allowed: true, countryCode: null, countryName: null });
   const [ftsResults, setFtsResults] = useState<StorefrontProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
   const [, setUrlKey] = useState(0);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
+
+  // 0. Détection du pays par IP (garde UX) — le pays non desservi ne peut pas commander.
+  useEffect(() => {
+    let mounted = true;
+    detectCountryAction()
+      .then((res) => {
+        if (!mounted) return;
+        setCountryGate({
+          allowed: res.allowed,
+          countryCode: res.countryCode,
+          countryName: res.countryName,
+        });
+      })
+      .catch(() => {
+        if (mounted) setCountryGate({ allowed: true, countryCode: null, countryName: null });
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // 0. URL Change Listener - Only re-render on navigation popstate
   useEffect(() => {
@@ -571,7 +598,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, [cart, isMounted]);
 
   const [checkoutStage, setCheckoutStage] = useState<
-    "cart" | "shipping" | "payment" | "success"
+    "cart" | "shipping" | "payment" | "success" | "blocked"
   >("cart");
 
   const [isNavigating, setIsNavigating] = useState(false);
@@ -1916,8 +1943,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (checkoutStage === "shipping" && !countryGate.allowed) {
+      setCheckoutStage("blocked");
+      return;
+    }
     if (checkoutStage === "shipping") handleStageChange("payment");
     else if (checkoutStage === "payment") {
+      if (!countryGate.allowed) {
+        setCheckoutStage("blocked");
+        return;
+      }
       const ordersData: Record<string, CheckoutStoreOrderDraft> = {};
       cart.forEach((item) => {
         if (!ordersData[item.product.storeId]) {
@@ -2290,6 +2325,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const renderCart = () => (
     <CartCheckoutView
       checkoutStage={checkoutStage}
+      countryGate={countryGate}
       cart={cart}
       cartItemsCount={cartItemsCount}
       isNavigating={isNavigating}
@@ -2351,6 +2387,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       {!isOnline && (
         <div className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
           Vous êtes hors ligne • Reconnexion en cours...
+        </div>
+      )}
+      {/* Country Gate Banner — pays non desservi : navigation libre, achat bloqué */}
+      {!countryGate.allowed && (
+        <div className="bg-amber-500 text-white text-[9px] md:text-[10px] font-bold uppercase tracking-widest py-2 px-3 text-center z-[10001]">
+          Livraison & commande indisponibles depuis votre pays
+          {countryGate.countryName ? ` (${countryGate.countryName})` : ""}. Nous
+          livrons uniquement au {COUNTRIES.map((c) => c.name).join(", ")}.
         </div>
       )}
       {/* Account Loading Skeleton if loading account page without cached session */}
