@@ -16,6 +16,7 @@ import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import Image from "next/image";
 import { PhoneInput } from '@/components/PhoneInput';
 import { CountrySelect } from '@/components/CountrySelect';
+import { NotificationsTab } from '@/components/buyer/NotificationsTab';
 import {
     Settings,
     Store,
@@ -38,6 +39,7 @@ import {
     X,
     Camera,
     Tag,
+    BellRing,
     Loader2,
     FileText,
     Info,
@@ -142,8 +144,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['store', 'user', 'staff', 'promos'];
-        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos';
+        const validTabs = ['store', 'user', 'staff', 'promos', 'notifications'];
+        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos' | 'notifications';
     }, [searchParams]);
 
     const setActiveTab = useCallback((tab: string) => {
@@ -390,6 +392,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         { id: 'user', label: 'Profil', icon: <User size={18} /> },
                         { id: 'staff', label: 'Équipe', icon: <Users size={18} />, hidden: !permissions.canManageStaff },
                         { id: 'promos', label: 'Promos', icon: <Tag size={18} /> },
+                        { id: 'notifications', label: 'Notifications', icon: <BellRing size={18} /> },
                     ].filter(t => !t.hidden).map(tab => (
                         <button
                             key={tab.id}
@@ -621,6 +624,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     </div>
                                 </section>
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'notifications' && (
+                        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                            <NotificationsTab notify={notify} />
                         </div>
                     )}
 

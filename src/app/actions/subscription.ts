@@ -7,7 +7,7 @@ import { subscriptionPayments } from '@/db/schema';
 import { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { SUBSCRIPTION_PLANS } from '@/constants';
 import { createClient } from '@/utils/supabase/server';
-import { notify, getProfilePhone } from '@/lib/notifications';
+import { notify, getProfilePhone, getProfileEmail } from '@/lib/notifications';
 import { eq, and } from 'drizzle-orm';
 import { activateSubscription, subscriptionAmount, isPayableTier } from '@/lib/subscription';
 import { kkiapayConfigured, verifyKkiapayTransaction, initKkiapayConfig, KKIAPAY_PUBLIC_KEY } from '@/lib/kkiapay';
@@ -32,6 +32,7 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
         await notify({
             userId: user.id,
             phone: await getProfilePhone(user.id),
+            email: await getProfileEmail(user.id),
             eventType: 'ABONNEMENT_ACTIVE',
             title: 'Abonnement activé',
             body: `Votre abonnement ${tier} (${duration}) est actif. Bienvenue parmi les commerçants PosMarket !`,
@@ -235,6 +236,7 @@ export async function confirmFedapayPaymentAction(
         await notify({
             userId: user.id,
             phone: await getProfilePhone(user.id),
+            email: await getProfileEmail(user.id),
             eventType: 'ABONNEMENT_ACTIVE',
             title: 'Abonnement activé',
             body: `Votre abonnement ${payment.tier} (${payment.duration}) a été validé avec succès via FedaPay.`,

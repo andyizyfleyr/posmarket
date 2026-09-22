@@ -7,7 +7,7 @@ import { unstable_cache, updateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales } from '@/db/api'
-import { notify, getStorePhone } from '@/lib/notifications'
+import { notify, getStorePhone, notifyStaff } from '@/lib/notifications'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
@@ -341,6 +341,7 @@ export async function submitCheckoutAction(
           await notify({
             userId: storeInfo.ownerId,
             phone: storeInfo.phone,
+            email: storeInfo.email || '',
             eventType: 'NOUVELLE_COMMANDE',
             title: 'Nouvelle commande',
             body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
@@ -350,6 +351,7 @@ export async function submitCheckoutAction(
             await notify({
               userId: storeInfo.ownerId,
               phone: storeInfo.phone,
+              email: storeInfo.email || '',
               eventType: 'NOUVEAU_CLIENT',
               title: 'Nouveau client',
               body: `Nouveau client enregistré : ${buyerName} (${phone})`,
@@ -358,10 +360,18 @@ export async function submitCheckoutAction(
           }
         }
 
-        if (customer.phone) {
+        notifyStaff(storeId, 'COMMANDE_A_PREPARER', {
+          title: 'Commande à préparer',
+          body: `La commande #${shortId} de ${buyerName} (${totalStr} FCFA) est en attente de préparation.`,
+          templateParams: [shortId, buyerName, totalStr],
+        }).catch(() => {});
+
+        const buyerEmail = customer.email || user?.email || '';
+        if (customer.phone || buyerEmail) {
           await notify({
             userId: user?.id || null,
             phone: customer.phone,
+            email: buyerEmail,
             eventType: 'CONFIRMATION_COMMANDE',
             title: 'Commande confirmée',
             body: `Votre commande #${shortId} chez ${storeDisplayName} est confirmée. Total : ${totalStr} FCFA.`,
@@ -371,6 +381,7 @@ export async function submitCheckoutAction(
             await notify({
               userId: user?.id || null,
               phone: customer.phone,
+              email: buyerEmail,
               eventType: 'RECU_PAIEMENT',
               title: 'Reçu de paiement',
               body: `Paiement de ${totalStr} FCFA reçu pour la commande #${shortId}.`,
@@ -391,6 +402,7 @@ export async function submitCheckoutAction(
               await notify({
                 userId: storeInfo.ownerId,
                 phone: storeInfo.phone,
+                email: storeInfo.email || '',
                 eventType: 'RUPTURE_STOCK',
                 title: 'Rupture de stock',
                 body: `Rupture de stock : « ${p.name} » n'est plus disponible.`,
@@ -400,6 +412,7 @@ export async function submitCheckoutAction(
               await notify({
                 userId: storeInfo.ownerId,
                 phone: storeInfo.phone,
+                email: storeInfo.email || '',
                 eventType: 'ALERTE_STOCK_BAS',
                 title: 'Stock bas',
                 body: `Stock bas : « ${p.name} » — plus que ${stock} en stock.`,
@@ -555,6 +568,20 @@ export async function saveProductReviewAction(
       });
 
     updateTag(CATALOG_TAG);
+
+    try {
+      const storeInfo = await getStorePhone(storeId);
+      if (storeInfo?.email) {
+        await notify({
+          userId: storeInfo.ownerId,
+          email: storeInfo.email,
+          eventType: 'NOUVEL_AVIS',
+          title: 'Nouvel avis',
+          body: `Un nouvel avis (${rating}/5) a été publié sur un de vos produits.`,
+          templateParams: [String(rating), String(count)],
+        });
+      }
+    } catch {}
 
     return { success: true, error: undefined, review };
   } catch (error) {

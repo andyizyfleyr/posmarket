@@ -253,12 +253,22 @@ export type NotificationEvent =
   | 'BOUTIQUE_APPROUVEE'
   | 'BOUTIQUE_REJETEE'
   | 'VERIFICATION_COMPTE_OK'
-  | 'NOUVELLE_INSCRIPTION';
+  | 'NOUVELLE_INSCRIPTION'
+  | 'COMMANDE_A_PREPARER'
+  | 'DEMANDE_AVIS'
+  | 'NOUVEL_AVIS'
+  | 'BOUTIQUE_EN_ATTENTE'
+  | 'RAPPORT_VENDEUR_HEBDO'
+  | 'RAPPORT_ADMIN'
+  | 'RECAP_VENTES_JOUR'
+  | 'ALERTE_TECHNIQUE'
+  | 'PAIEMENT_INCIDENT';
 
 export interface NotificationPreference {
   id: string;
   userId?: string;
   phone: string;
+  email?: string;
   eventType: NotificationEvent;
   enabled: boolean;
   channel: string;
@@ -269,6 +279,7 @@ export interface NotificationOutboxItem {
   id: string;
   recipientUserId?: string;
   recipientPhone: string;
+  recipientEmail?: string;
   eventType: NotificationEvent;
   title?: string;
   body: string;

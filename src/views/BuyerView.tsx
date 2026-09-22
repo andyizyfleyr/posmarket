@@ -9,6 +9,7 @@ import {
   Package,
   MapPin,
   Star,
+  BellRing,
   User,
   LogOut,
   AlertTriangle,
@@ -17,6 +18,7 @@ import { useBuyerData } from '@/components/buyer/useBuyerData';
 import { OrdersTab, ReviewTargetProduct } from '@/components/buyer/OrdersTab';
 import { AddressesTab } from '@/components/buyer/AddressesTab';
 import { ReviewsTab } from '@/components/buyer/ReviewsTab';
+import { NotificationsTab } from '@/components/buyer/NotificationsTab';
 import { ProfileTab } from '@/components/buyer/ProfileTab';
 import { AddressModal } from '@/components/buyer/AddressModal';
 import { ReviewModal } from '@/components/buyer/ReviewModal';
@@ -47,6 +49,7 @@ const TABS: Array<{
   { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
   { id: 'addresses', path: 'adresses', label: 'Livraison', desc: 'Vos contacts de livraison', icon: MapPin },
   { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
+  { id: 'notifications', path: 'notifications', label: 'Alertes', desc: 'Vos préférences de notification', icon: BellRing },
   { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
 ];
 
@@ -54,6 +57,7 @@ const TAB_FROM_PATH: Record<string, BuyerTabId> = {
   commandes: 'orders',
   adresses: 'addresses',
   avis: 'reviews',
+  notifications: 'notifications',
   profil: 'profile',
 };
 
@@ -95,10 +99,10 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   // Synchronise l'onglet actif si accountTab change depuis l'extérieur (URL)
   useEffect(() => {
     const t = TAB_FROM_PATH[accountTab || 'commandes'];
-    if (t && t !== activeTab) {
-      setActiveTab(t);
-    }
-  }, [accountTab]);
+    if (!t || t === activeTab) return;
+    const id = window.setTimeout(() => setActiveTab(t), 0);
+    return () => window.clearTimeout(id);
+  }, [accountTab, activeTab]);
 
   // Synchronise l'onglet lors de la navigation navigateur (bouton Précédent / Suivant)
   useEffect(() => {
@@ -198,6 +202,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
         );
       case 'reviews':
         return <ReviewsTab reviews={data.reviews} loading={data.loading} />;
+      case 'notifications':
+        return <NotificationsTab notify={notify} />;
       case 'profile':
         return (
           <ProfileTab
@@ -218,6 +224,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     orders: data.totalOrders,
     addresses: data.addresses.length,
     reviews: data.reviews.length,
+    notifications: 0,
     profile: 0,
   };
 
@@ -327,7 +334,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                         isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
                       }`}
                     >
-                      {tab.id === 'profile' ? '' : counts[tab.id]}
+                      {tab.id === 'profile' || tab.id === 'notifications' ? '' : counts[tab.id]}
                     </span>
                   </button>
                 );
@@ -339,7 +346,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
           <main className="mt-4 lg:mt-0">
             {/* Navigation mobile : tuiles onglets */}
             <div className="lg:hidden -mx-4 px-4 mb-4">
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {TABS.map((tab) => {
                   const isActive = tab.id === activeTab;
                   const Icon = tab.icon;

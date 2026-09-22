@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings } from '@/db/schema';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
-import { notify, getStorePhone } from '@/lib/notifications';
+import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -197,26 +197,36 @@ export async function updateStoreApproval(storeId: string, status: string) {
     const upper = String(status || '').toUpperCase();
     if (upper === 'APPROVED' || upper === 'APPROUVE') {
       const storeInfo = await getStorePhone(storeId);
-      if (storeInfo?.phone) {
-        await notify({
-          userId: storeInfo.ownerId,
-          phone: storeInfo.phone,
-          eventType: 'BOUTIQUE_APPROUVEE',
-          title: 'Boutique approuvée',
-          body: `Félicitations ! Votre boutique « ${storeInfo.name} » a été approuvée et est maintenant en ligne sur la marketplace.`,
-          templateParams: [storeInfo.name],
-        });
-      }
+      await notify({
+        userId: storeInfo?.ownerId || null,
+        phone: storeInfo?.phone || '',
+        email: storeInfo?.email || '',
+        eventType: 'BOUTIQUE_APPROUVEE',
+        title: 'Boutique approuvée',
+        body: `Félicitations ! Votre boutique « ${storeInfo?.name || ''} » a été approuvée et est maintenant en ligne sur la marketplace.`,
+        templateParams: [storeInfo?.name || ''],
+      });
     } else if (upper === 'REJECTED' || upper === 'REJETE') {
       const storeInfo = await getStorePhone(storeId);
-      if (storeInfo?.phone) {
+      await notify({
+        userId: storeInfo?.ownerId || null,
+        phone: storeInfo?.phone || '',
+        email: storeInfo?.email || '',
+        eventType: 'BOUTIQUE_REJETEE',
+        title: 'Boutique rejetée',
+        body: `Votre boutique « ${storeInfo?.name || ''} » n'a pas été approuvée. Bonifiez votre présentation et soumettez-la à nouveau.`,
+        templateParams: [storeInfo?.name || ''],
+      });
+    } else if (upper === 'PENDING') {
+      const storeInfo = await getStorePhone(storeId);
+      const admins = await getAdminEmails();
+      for (const adminEmail of admins) {
         await notify({
-          userId: storeInfo.ownerId,
-          phone: storeInfo.phone,
-          eventType: 'BOUTIQUE_REJETEE',
-          title: 'Boutique rejetée',
-          body: `Votre boutique « ${storeInfo.name} » n'a pas été approuvée. Bonifiez votre présentation et soumettez-la à nouveau.`,
-          templateParams: [storeInfo.name],
+          email: adminEmail,
+          eventType: 'BOUTIQUE_EN_ATTENTE',
+          title: 'Boutique en attente d\'approbation',
+          body: `La boutique « ${storeInfo?.name || '—'} » attend votre validation dans le panneau d'administration.`,
+          templateParams: [storeInfo?.name || '—'],
         });
       }
     }
@@ -368,12 +378,20 @@ export interface SystemSettingsData {
   fedapay_secret_key?: string;
   fedapay_webhook_secret?: string;
   fedapay_env?: 'sandbox' | 'live';
+  smtp_host?: string;
+  smtp_port?: string;
+  smtp_user?: string;
+  smtp_pass?: string;
+  smtp_from?: string;
+  admin_emails?: string;
+  /** vrai si un mot de passe SMTP est déjà persisté (masqué à l'écran) */
+  smtp_pass_set?: boolean;
 }
 
 export async function getSystemSettings(): Promise<{ success: boolean; error?: string; settings: SystemSettingsData }> {
   try {
     const rows = await db.select().from(systemSettings);
-    const settings: SystemSettingsData = { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay' };
+    const settings: SystemSettingsData = { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay', smtp_pass_set: false };
     rows.forEach(r => {
       if (r.key === 'maintenance' || r.key === 'auto_indexing' || r.key === 'weekly_reports') {
         settings[r.key] = r.value === 'true';
@@ -385,22 +403,35 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
         settings.fedapay_env = r.value === 'live' ? 'live' : 'sandbox';
       } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key' || r.key === 'fedapay_webhook_secret') {
         settings[r.key] = r.value;
+      } else if (r.key === 'smtp_host' || r.key === 'smtp_port' || r.key === 'smtp_user' || r.key === 'smtp_from' || r.key === 'admin_emails') {
+        settings[r.key] = r.value;
+      } else if (r.key === 'smtp_pass') {
+        settings.smtp_pass_set = !!r.value;
       }
     });
     return { success: true, settings };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error), settings: { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay' } };
+    return { success: false, error: errorMessage(error), settings: { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay', smtp_pass_set: false } };
   }
 }
 
 export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
   try {
-    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret'];
+    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'admin_emails'];
     const allowedEnvKeys = ['kkiapay_env', 'fedapay_env'];
     const booleanKeys = ['maintenance', 'auto_indexing', 'weekly_reports'];
 
     for (const [key, value] of Object.entries(settings)) {
       if (value === undefined || value === null) continue;
+      // Le mot de passe SMTP n'est persisté que s'il est réellement saisi.
+      if (key === 'smtp_pass') {
+        if (String(value).trim()) {
+          await db.insert(systemSettings)
+            .values({ key, value: String(value).trim() })
+            .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value).trim(), updatedAt: new Date() } });
+        }
+        continue;
+      }
       if (booleanKeys.includes(key)) {
         await db.insert(systemSettings)
           .values({ key, value: String(value) })

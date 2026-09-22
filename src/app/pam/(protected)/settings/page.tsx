@@ -6,9 +6,8 @@ import {
   RefreshCcw,
   CheckCircle2,
   CreditCard,
-  Key,
-  Globe,
-  Lock
+  Lock,
+  Mail
 } from 'lucide-react';
 import { getSystemSettings, updateSystemSettings } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
@@ -26,6 +25,13 @@ interface SystemSettings {
   fedapay_secret_key?: string;
   fedapay_webhook_secret?: string;
   fedapay_env?: 'sandbox' | 'live';
+  smtp_host?: string;
+  smtp_port?: string;
+  smtp_user?: string;
+  smtp_pass?: string;
+  smtp_from?: string;
+  admin_emails?: string;
+  smtp_pass_set?: boolean;
 }
 
 const SETTINGS_DEFS: { key: keyof SystemSettings; title: string; description: string }[] = [
@@ -41,16 +47,20 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [initial, setInitial] = useState<SystemSettings | null>(null);
 
-  const fetchData = async () => {
-    const res = await getSystemSettings();
-    if (res.success) {
-      setSettings(res.settings);
-      setInitial(res.settings);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const res = await getSystemSettings();
+      if (mounted && res.success) {
+        setSettings(res.settings);
+        setInitial(res.settings);
+      }
+      if (mounted) setLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!settings) return;
@@ -77,7 +87,13 @@ export default function AdminSettingsPage() {
     settings.fedapay_public_key !== initial.fedapay_public_key ||
     settings.fedapay_secret_key !== initial.fedapay_secret_key ||
     settings.fedapay_webhook_secret !== initial.fedapay_webhook_secret ||
-    settings.fedapay_env !== initial.fedapay_env
+    settings.fedapay_env !== initial.fedapay_env ||
+    settings.smtp_host !== initial.smtp_host ||
+    settings.smtp_port !== initial.smtp_port ||
+    settings.smtp_user !== initial.smtp_user ||
+    settings.smtp_from !== initial.smtp_from ||
+    settings.admin_emails !== initial.admin_emails ||
+    (settings.smtp_pass || '') !== ''
   );
 
   if (loading || !settings) {
@@ -271,6 +287,90 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Email / SMTP (Gmail) */}
+      <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 shadow-sm">
+        <div className="flex items-center gap-6 mb-8">
+          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner border border-emerald-100">
+            <Mail size={28} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Notifications Email (SMTP)</h3>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">Serveur SMTP — Gmail recommandé (mot de passe d&apos;application)</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Serveur SMTP</label>
+            <input
+              type="text"
+              value={settings.smtp_host || 'smtp.gmail.com'}
+              onChange={e => updateField('smtp_host', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="smtp.gmail.com"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Port</label>
+            <input
+              type="text"
+              value={settings.smtp_port || '465'}
+              onChange={e => updateField('smtp_port', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="465"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Utilisateur (adresse Gmail)</label>
+            <input
+              type="text"
+              value={settings.smtp_user || ''}
+              onChange={e => updateField('smtp_user', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="votre@gmail.com"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Mot de passe d&apos;application</label>
+            <input
+              type="password"
+              value={settings.smtp_pass || ''}
+              onChange={e => updateField('smtp_pass', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+              placeholder={settings.smtp_pass_set ? '•••••••• (déjà configuré — laisser vide pour conserver)' : 'Mot de passe d\'application'}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Expéditeur (from)</label>
+            <input
+              type="text"
+              value={settings.smtp_from || ''}
+              onChange={e => updateField('smtp_from', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="PosMarket <notifications@posmarket.app>"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Emails admins (séparés par des virgules)</label>
+            <input
+              type="text"
+              value={settings.admin_emails || ''}
+              onChange={e => updateField('admin_emails', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="admin@posmarket.app, support@posmarket.app"
+            />
+          </div>
+        </div>
+
+        <div className="bg-emerald-50/40 rounded-xl p-4 border border-emerald-100 flex items-start gap-3">
+          <Lock size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-emerald-700 font-semibold leading-relaxed">
+            Pour Gmail : activez la validation en deux étapes puis créez un « mot de passe d&apos;application »
+            (myaccount.google.com &gt; Sécurité). Il est stocké chiffré en base et jamais réaffiché dans cette page.
+          </p>
         </div>
       </div>
 

@@ -5,40 +5,40 @@ import { db } from '@/db'
 import { orders, orderItems, customers, products } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
-import { notify, getStorePhone, getProfilePhone } from '@/lib/notifications'
+import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
 import { isWhatsAppConfigured } from '@/lib/whatsapp'
+import { isEmailConfigured } from '@/lib/email'
 
 // ---------------------------------------------------------------------------
 // WhatsApp notification helpers (best-effort, never blocks the action)
 // ---------------------------------------------------------------------------
 
 async function sendOrderNotifications(orderData: { id: string; storeId: string; total?: string | number; paymentMethod?: string }) {
-    if (!isWhatsAppConfigured()) return;
+    if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return;
     try {
         const storeInfo = await getStorePhone(orderData.storeId);
         const shortId = orderData.id.slice(0, 8).toUpperCase();
         const totalStr = new Intl.NumberFormat('fr-FR').format(Number(orderData.total) || 0);
-        if (storeInfo?.phone) {
-            await notify({
-                userId: storeInfo.ownerId,
-                phone: storeInfo.phone,
-                eventType: 'VENTE_POS',
-                title: 'Vente en boutique',
-                body: `Vente POS #${shortId} — ${totalStr} FCFA — ${orderData.paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
-                templateParams: [shortId, totalStr],
-            });
-        }
+        await notify({
+            userId: storeInfo?.ownerId || null,
+            phone: storeInfo?.phone || '',
+            email: storeInfo?.email || '',
+            eventType: 'VENTE_POS',
+            title: 'Vente en boutique',
+            body: `Vente POS #${shortId} — ${totalStr} FCFA — ${orderData.paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
+            templateParams: [shortId, totalStr],
+        });
     } catch {}
 }
 
 async function sendStatusNotifications(orderId: string, status: string) {
-    if (!isWhatsAppConfigured()) return;
+    if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return;
     try {
         const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
         if (!order) return;
 
         const shortId = orderId.slice(0, 8).toUpperCase();
-        let storeInfo: { name: string; phone: string; ownerId: string | null } | null = null;
+        let storeInfo: { name: string; phone: string; email: string; ownerId: string | null } | null = null;
         if (order.storeId) storeInfo = await getStorePhone(order.storeId);
 
         let buyerPhone = '';
@@ -49,7 +49,15 @@ async function sendStatusNotifications(orderId: string, status: string) {
             const [cust] = await db.select({ phone: customers.phone }).from(customers).where(eq(customers.id, order.customerId)).limit(1);
             buyerPhone = cust?.phone || '';
         }
-        if (!buyerPhone) return;
+        let buyerEmail = order.buyerEmail || '';
+        if (!buyerEmail && order.buyerUserId) {
+            buyerEmail = await getProfileEmail(order.buyerUserId);
+        }
+        if (!buyerEmail && order.customerId) {
+            const [cust] = await db.select({ email: customers.email }).from(customers).where(eq(customers.id, order.customerId)).limit(1);
+            buyerEmail = cust?.email || '';
+        }
+        if (!buyerPhone && !buyerEmail) return;
 
         const eventName =
             status === 'READY'
@@ -71,11 +79,24 @@ async function sendStatusNotifications(orderId: string, status: string) {
         await notify({
             userId: order.buyerUserId || null,
             phone: buyerPhone,
+            email: buyerEmail,
             eventType: eventName,
             title: labels[eventName as keyof typeof labels],
             body: bodies[eventName as keyof typeof bodies],
             templateParams: [shortId, storeInfo?.name || 'boutique'],
         });
+
+        if (eventName === 'COMMANDE_LIVREE') {
+            await notify({
+                userId: order.buyerUserId || null,
+                email: buyerEmail,
+                eventType: 'DEMANDE_AVIS',
+                title: 'Donnez votre avis',
+                body: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
+                templateParams: [shortId, storeInfo?.name || 'boutique'],
+                scheduledAt: new Date(Date.now() + 15 * 60 * 1000),
+            });
+        }
     } catch {}
 }
 

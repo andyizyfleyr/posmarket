@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { notify, getAdminPhones } from '@/lib/notifications';
+import { notify, getAdminPhones, getAdminEmails } from '@/lib/notifications';
 
 export async function loginAction(formData: FormData) {
   const email = (formData.get('email') as string)?.trim().toLowerCase();
@@ -62,6 +62,17 @@ export async function signupAction(formData: FormData) {
       await notify({
         userId: null,
         phone: adminPhone,
+        eventType: 'NOUVELLE_INSCRIPTION',
+        title: 'Nouvelle inscription',
+        body: `Nouveau commerçant inscrit sur PosMarket : ${name} (${email}).`,
+        templateParams: [name || '', email],
+      });
+    }
+    const adminEmails = await getAdminEmails();
+    for (const adminEmail of adminEmails) {
+      await notify({
+        userId: null,
+        email: adminEmail,
         eventType: 'NOUVELLE_INSCRIPTION',
         title: 'Nouvelle inscription',
         body: `Nouveau commerçant inscrit sur PosMarket : ${name} (${email}).`,

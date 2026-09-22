@@ -16,7 +16,7 @@ async function getCurrentUser() {
   const cookieStore = await cookies();
   const userId = cookieStore.get('userId')?.value || cookieStore.get('buyerUserId')?.value;
   if (!userId) return null;
-  const [profile] = await db.select({ id: profiles.id, phone: profiles.phone }).from(profiles).where(eq(profiles.id, userId)).limit(1);
+  const [profile] = await db.select({ id: profiles.id, phone: profiles.phone, email: profiles.email }).from(profiles).where(eq(profiles.id, userId)).limit(1);
   return profile || null;
 }
 
@@ -27,13 +27,22 @@ export async function getNotificationPreferencesAction() {
   try {
     const prefs = await listNotificationPreferences(user.id);
     const events = Object.entries(NOTIFICATION_EVENTS).map(([key, def]) => {
-      const row = prefs.find((p) => p.eventType === key);
+      const wa = prefs.find((p) => p.eventType === key && p.channel === 'whatsapp');
+      const em = prefs.find((p) => p.eventType === key && p.channel === 'email');
       return {
         eventType: key as NotificationEvent,
         label: def.label,
         optIn: def.optIn,
-        enabled: row ? row.enabled : true,
-        phone: row?.phone || user.phone || '',
+        whatsapp: {
+          enabled: wa ? wa.enabled : true,
+          hasAddress: !!user.phone,
+          phone: wa?.phone || user.phone || '',
+        },
+        email: {
+          enabled: em ? em.enabled : true,
+          hasAddress: !!user.email,
+          email: em?.email || user.email || '',
+        },
       };
     });
     return { success: true, error: undefined, preferences: events };
@@ -48,14 +57,23 @@ export async function getNotificationPreferencesAction() {
 
 export async function setNotificationPreferenceAction(
   eventType: NotificationEvent,
+  channel: 'whatsapp' | 'email',
   enabled: boolean,
   phone: string,
+  email: string,
 ) {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: 'Unauthorized' };
 
   try {
-    await setNotificationPreference(user.id, phone || user.phone || '', eventType, enabled);
+    await setNotificationPreference(
+      user.id,
+      phone || user.phone || '',
+      eventType,
+      enabled,
+      channel,
+      email || user.email || '',
+    );
     return { success: true, error: undefined };
   } catch (error) {
     return {
@@ -84,6 +102,7 @@ export async function fetchNotificationOutboxAction(limit: number = 50) {
         id: r.id,
         recipientUserId: r.recipientUserId,
         recipientPhone: r.recipientPhone,
+        recipientEmail: r.recipientEmail,
         eventType: r.eventType,
         title: r.title,
         body: r.body,

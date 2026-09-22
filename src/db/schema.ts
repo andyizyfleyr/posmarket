@@ -193,7 +193,8 @@ export const subscriptionPayments = pgTable('subscription_payments', {
 export const notificationPreferences = pgTable('notification_preferences', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }),
-  phone: text('phone').notNull(),
+  phone: text('phone').notNull().default(''),
+  email: text('email'),
   eventType: text('event_type').notNull(),
   enabled: boolean('enabled').default(true).notNull(),
   channel: text('channel').default('whatsapp').notNull(),
@@ -204,6 +205,7 @@ export const notificationOutbox = pgTable('notification_outbox', {
   id: uuid('id').primaryKey().defaultRandom(),
   recipientUserId: uuid('recipient_user_id').references(() => profiles.id, { onDelete: 'set null' }),
   recipientPhone: text('recipient_phone').notNull(),
+  recipientEmail: text('recipient_email'),
   eventType: text('event_type').notNull(),
   title: text('title'),
   body: text('body').notNull(),

@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { kkiapayConfigured, verifyKkiapayWebhookSecret, verifyKkiapayTransaction, KkiapayTransactionStatus } from '@/lib/kkiapay';
+import { notify, getAdminEmails } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   if (!kkiapayConfigured()) {
@@ -82,6 +83,19 @@ export async function POST(request: Request) {
             eq(subscriptionPayments.status, 'PENDING'),
           ));
       }
+
+      const admins = await getAdminEmails();
+      for (const adminEmail of admins) {
+        await notify({
+          userId: null,
+          email: adminEmail,
+          eventType: 'PAIEMENT_INCIDENT',
+          title: 'Paiement en erreur',
+          body: `Un paiement d'abonnement Kkiapay a été refusé (transaction ${kTxId}).`,
+          templateParams: [kTxId],
+        }).catch(() => {});
+      }
+
       return NextResponse.json({ ok: true, status: 'declined_processed' });
     }
   } catch (error) {
