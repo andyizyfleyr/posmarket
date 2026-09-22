@@ -160,7 +160,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-interface RenderInput {
+export interface RenderInput {
   title?: string;
   body?: string;
   /** Données structurées (champ `d` persisté sur la ligne email de l'outbox). */
@@ -612,6 +612,52 @@ const renderers: Record<string, EmailRenderer> = {
     },
   },
 };
+
+// ---------------------------------------------------------------------------
+// Catalogue de test — un échantillon réaliste par action (tests d'emails admin).
+// ---------------------------------------------------------------------------
+
+export interface EmailTestEvent {
+  key: string;
+  label: string;
+  audience: string;
+  sample: () => RenderInput;
+}
+
+const EMAIL_TEST_EVENTS: EmailTestEvent[] = [
+  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 3 } }) },
+  { key: 'COMMANDE_PRET', label: 'Commande prête à récupérer', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000' } }) },
+  { key: 'COMMANDE_EXPEDIEE', label: 'Commande expédiée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000' } }) },
+  { key: 'COMMANDE_LIVREE', label: 'Commande livrée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000' } }) },
+  { key: 'COMMANDE_ANNULEE', label: 'Commande annulée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique' } }) },
+  { key: 'RECU_PAIEMENT', label: 'Reçu de paiement', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', total: '12000' } }) },
+  { key: 'DEMANDE_AVIS', label: 'Demande d\'avis', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique' } }) },
+  { key: 'RELANCE_PANIER_ABANDONNE', label: 'Panier abandonné', audience: 'Acheteur', sample: () => ({ emailData: { name: 'Awa', items: 2, total: '7500' } }) },
+  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', total: '12000', items: 3, payment: 'CARTE', paymentLabel: 'Carte' } }) },
+  { key: 'COMMANDE_A_PREPARER', label: 'Commande à préparer', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', total: '12000', items: 3 } }) },
+  { key: 'VENTE_POS', label: 'Vente en boutique (POS)', audience: 'Vendeur', sample: () => ({ emailData: { order: '1043', store: 'Ma Belle Boutique', total: '2500', payment: 'ESPECES', paymentLabel: 'Espèces' } }) },
+  { key: 'NOUVEAU_CLIENT', label: 'Nouveau client', audience: 'Vendeur', sample: () => ({ emailData: { buyer: 'Awa', phone: '+229 01 23 45 67' } }) },
+  { key: 'RUPTURE_STOCK', label: 'Rupture de stock', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L' } }) },
+  { key: 'ALERTE_STOCK_BAS', label: 'Stock bas', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Sucre 1kg', stock: 3 } }) },
+  { key: 'NOUVEL_AVIS', label: 'Nouvel avis reçu', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L', buyer: 'Awa', rating: 5, count: 12 } }) },
+  { key: 'BOUTIQUE_APPROUVEE', label: 'Boutique approuvée', audience: 'Boutique', sample: () => ({ emailData: { store: 'Ma Belle Boutique' } }) },
+  { key: 'BOUTIQUE_REJETEE', label: 'Boutique rejetée', audience: 'Boutique', sample: () => ({ emailData: { store: 'Ma Belle Boutique' } }) },
+  { key: 'BOUTIQUE_EN_ATTENTE', label: 'Boutique en attente d\'approbation', audience: 'Administration', sample: () => ({ emailData: { store: 'Ma Belle Boutique' } }) },
+  { key: 'ABONNEMENT_ACTIVE', label: 'Abonnement activé', audience: 'Abonnement', sample: () => ({ emailData: { tier: 'Premium', duration: '30 jours' } }) },
+  { key: 'ABONNEMENT_EXPIRANT', label: 'Abonnement qui expire', audience: 'Abonnement', sample: () => ({ emailData: { tier: 'Premium', days: 5 } }) },
+  { key: 'ABONNEMENT_EXPIRE', label: 'Abonnement expiré', audience: 'Abonnement', sample: () => ({ emailData: { tier: 'Premium' } }) },
+  { key: 'NOUVELLE_INSCRIPTION', label: 'Nouvelle inscription', audience: 'Administration', sample: () => ({ emailData: { name: 'Jean K.', email: 'jean@exemple.com' } }) },
+  { key: 'PAIEMENT_INCIDENT', label: 'Paiement en erreur', audience: 'Administration', sample: () => ({ emailData: { tx: 'KK-88-2013', provider: 'Kkiapay' } }) },
+  { key: 'RECAP_VENTES_JOUR', label: 'Récap des ventes du jour', audience: 'Vendeur', sample: () => ({ emailData: { store: 'Ma Belle Boutique', count: 14, total: '185000' } }) },
+  { key: 'RAPPORT_VENDEUR_HEBDO', label: 'Rapport hebdomadaire vendeur', audience: 'Vendeur', sample: () => ({ emailData: { store: 'Ma Belle Boutique', count: 92, total: '1230000' } }) },
+  { key: 'RAPPORT_ADMIN', label: 'Rapport hebdomadaire plateforme', audience: 'Administration', sample: () => ({ emailData: { count: 812, total: '9875000', stores: 47, users: 1520 } }) },
+  { key: 'BIENVENUE', label: 'Bienvenue', audience: 'Générique', sample: () => ({ title: 'Bienvenue sur PosMarket', body: 'Votre compte a été créé avec succès.' }) },
+  { key: 'VERIFICATION_COMPTE_OK', label: 'Compte vérifié', audience: 'Générique', sample: () => ({ title: 'Compte vérifié', body: 'Votre compte a été vérifié avec succès.' }) },
+  { key: 'FACTURE_PAYEE', label: 'Facture payée', audience: 'Générique', sample: () => ({ title: 'Facture payée', body: 'Votre facture a été réglée avec succès.' }) },
+  { key: 'JALON_MILESTONE', label: 'Jalon / étape franchie', audience: 'Vendeur', sample: () => ({ title: '100 commandes !', body: 'Votre boutique a atteint les 100 commandes. Continuez sur cette dynamique !' }) },
+];
+
+export { EMAIL_TEST_EVENTS };
 
 export async function renderEmailEvent(eventKey: string, input: RenderInput = {}): Promise<RenderedEmail> {
   const cfg = await getEmailConfig();

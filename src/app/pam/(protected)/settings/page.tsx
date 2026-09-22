@@ -7,9 +7,11 @@ import {
   CheckCircle2,
   CreditCard,
   Lock,
-  Mail
+  Mail,
+  Send,
+  ClipboardList
 } from 'lucide-react';
-import { getSystemSettings, updateSystemSettings } from '@/app/actions/admin';
+import { getSystemSettings, updateSystemSettings, getEmailTestEventsAction, sendTestEmailAction, sendAllTestEmailsAction } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
 
 interface SystemSettings {
@@ -53,6 +55,14 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [initial, setInitial] = useState<SystemSettings | null>(null);
 
+  const [testEvents, setTestEvents] = useState<{ key: string; label: string; audience: string }[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [allResult, setAllResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -60,6 +70,7 @@ export default function AdminSettingsPage() {
       if (mounted && res.success) {
         setSettings(res.settings);
         setInitial(res.settings);
+        setTestEmail(res.settings.admin_emails?.split(',')[0]?.trim() || res.settings.smtp_user || '');
       }
       if (mounted) setLoading(false);
     })();
@@ -67,6 +78,47 @@ export default function AdminSettingsPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const events = await getEmailTestEventsAction();
+      if (mounted && events.length) {
+        setTestEvents(events);
+        setSelectedEvent(events[0].key);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleSendTest = async () => {
+    if (!selectedEvent) return;
+    setSendingTest(true);
+    setTestResult(null);
+    const res = await sendTestEmailAction(selectedEvent, testEmail);
+    setSendingTest(false);
+    if (res.success) {
+      setTestResult({ ok: true, message: `Envoyé avec succès${res.messageId ? ` (${res.messageId.replace(/@.+/, '')})` : ''}` });
+    } else {
+      const msg = res.error === 'Unauthorized' ? 'Session expirée' : res.error || 'Échec de l\'envoi';
+      setTestResult({ ok: false, message: msg });
+    }
+  };
+
+  const handleSendAll = async () => {
+    setSendingAll(true);
+    setAllResult(null);
+    const res = await sendAllTestEmailsAction(testEmail);
+    setSendingAll(false);
+    if (res.error) {
+      const msg = res.error === 'Unauthorized' ? 'Session expirée' : res.error;
+      setAllResult({ ok: false, message: msg });
+    } else {
+      setAllResult({ ok: res.success, message: `${res.sent}/${res.sent + res.failures.length} emails envoyés${res.failures.length ? ` — échecs : ${res.failures.map(f => f.key).join(', ')}` : ''}` });
+    }
+  };
 
   const handleSave = async () => {
     if (!settings) return;
@@ -448,6 +500,92 @@ export default function AdminSettingsPage() {
           <p className="text-[11px] text-emerald-700 font-semibold leading-relaxed">
             Pour Gmail : activez la validation en deux étapes puis créez un « mot de passe d&apos;application »
             (myaccount.google.com &gt; Sécurité). Il est stocké chiffré en base et jamais réaffiché dans cette page.
+          </p>
+        </div>
+      </div>
+
+      {/* Test des emails */}
+      <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 shadow-sm">
+        <div className="flex items-center gap-6 mb-8">
+          <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center text-violet-600 shadow-inner border border-violet-100">
+            <Send size={28} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Test des emails</h3>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">Envoi d&apos;un échantillon de chaque notification</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Adresse de réception</label>
+            <input
+              type="email"
+              value={testEmail}
+              onChange={e => setTestEmail(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+              placeholder="vous@exemple.com"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Cas d&apos;action</label>
+            <select
+              value={selectedEvent}
+              onChange={e => setSelectedEvent(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+            >
+              {testEvents.reduce((groups: Array<{ audience: string; items: typeof testEvents }>, ev) => {
+                const g = groups.find(x => x.audience === ev.audience);
+                if (g) g.items.push(ev);
+                else groups.push({ audience: ev.audience, items: [ev] });
+                return groups;
+              }, []).map(group => (
+                <optgroup key={group.audience} label={group.audience}>
+                  {group.items.map(ev => (
+                    <option key={ev.key} value={ev.key}>{ev.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <button
+            onClick={handleSendTest}
+            disabled={sendingTest || !selectedEvent || !testEmail}
+            className="flex-1 py-3.5 text-white font-bold text-[10px] uppercase tracking-[0.18em] rounded-2xl transition-all bg-[#f56b2a] hover:bg-[#d55a20] shadow-xl shadow-orange-100 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {sendingTest ? <RefreshCcw size={15} className="animate-spin" /> : <Send size={15} />}
+            {sendingTest ? 'Envoi en cours...' : 'Envoyer ce test'}
+          </button>
+          <button
+            onClick={handleSendAll}
+            disabled={sendingAll || !testEmail}
+            className="flex-1 py-3.5 text-white font-bold text-[10px] uppercase tracking-[0.18em] rounded-2xl transition-all bg-violet-600 hover:bg-violet-500 shadow-xl shadow-violet-100 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {sendingAll ? <RefreshCcw size={15} className="animate-spin" /> : <ClipboardList size={15} />}
+            {sendingAll ? 'Envoi en cours...' : `Tout envoyer (${testEvents.length})`}
+          </button>
+        </div>
+
+        {testResult && (
+          <div className={`rounded-xl p-4 border flex items-start gap-3 mb-3 ${testResult.ok ? 'bg-emerald-50/40 border-emerald-100' : 'bg-red-50/40 border-red-100'}`}>
+            <CheckCircle2 size={16} className={`${testResult.ok ? 'text-emerald-500' : 'text-red-500'} shrink-0 mt-0.5`} />
+            <p className={`text-[11px] font-semibold leading-relaxed ${testResult.ok ? 'text-emerald-700' : 'text-red-700'}`}>{testResult.message}</p>
+          </div>
+        )}
+        {allResult && (
+          <div className={`rounded-xl p-4 border flex items-start gap-3 ${allResult.ok ? 'bg-emerald-50/40 border-emerald-100' : 'bg-red-50/40 border-red-100'}`}>
+            <ClipboardList size={16} className={`${allResult.ok ? 'text-emerald-500' : 'text-red-500'} shrink-0 mt-0.5`} />
+            <p className={`text-[11px] font-semibold leading-relaxed ${allResult.ok ? 'text-emerald-700' : 'text-red-700'}`}>{allResult.message}</p>
+          </div>
+        )}
+
+        <div className="bg-violet-50/40 rounded-xl p-4 border border-violet-100 flex items-start gap-3">
+          <Lock size={16} className="text-violet-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-violet-700 font-semibold leading-relaxed">
+            Chaque email de test est préfixé « [TEST] ». L&apos;envoi utilise la configuration SMTP ci-dessus et ne cible que l&apos;adresse saisie.
           </p>
         </div>
       </div>

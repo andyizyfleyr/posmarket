@@ -5,6 +5,8 @@ import { stores, profiles, orders, products, productReviews, orderItems, invoice
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
+import { getAdminSession } from '@/app/actions/admin-auth';
+import { renderEmailEvent, sendEmail, EMAIL_TEST_EVENTS } from '@/lib/email';
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -461,4 +463,61 @@ export async function updateSystemSettings(settings: Partial<SystemSettingsData>
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Tests d'emails — envoi d'un échantillon de chaque notification à une adresse.
+// ---------------------------------------------------------------------------
+
+function isEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+export async function getEmailTestEventsAction() {
+  return EMAIL_TEST_EVENTS.map(({ key, label, audience }) => ({ key, label, audience }));
+}
+
+export async function sendTestEmailAction(eventKey: string, email: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const session = await getAdminSession();
+  if (!session) return { success: false, error: 'Unauthorized' };
+  if (!isEmailAddress(email)) return { success: false, error: 'Adresse email invalide' };
+
+  const event = EMAIL_TEST_EVENTS.find(e => e.key === eventKey);
+  if (!event) return { success: false, error: 'Événement inconnu' };
+
+  try {
+    const rendered = await renderEmailEvent(event.key, event.sample());
+    const result = await sendEmail({ to: email.trim(), subject: `[TEST] ${rendered.subject}`, html: rendered.html });
+    if (result.error) return { success: false, error: result.error };
+    return { success: true, messageId: result.messageId };
+  } catch (error: unknown) {
+    console.error('sendTestEmailAction error:', error);
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
+export async function sendAllTestEmailsAction(email: string): Promise<{ success: boolean; sent: number; failures: Array<{ key: string; error: string }>; error?: string }> {
+  const session = await getAdminSession();
+  if (!session) return { success: false, sent: 0, failures: [], error: 'Unauthorized' };
+  if (!isEmailAddress(email)) return { success: false, sent: 0, failures: [], error: 'Adresse email invalide' };
+
+  const target = email.trim();
+  const failures: Array<{ key: string; error: string }> = [];
+  let sent = 0;
+
+  for (const event of EMAIL_TEST_EVENTS) {
+    try {
+      const rendered = await renderEmailEvent(event.key, event.sample());
+      const result = await sendEmail({ to: target, subject: `[TEST] ${rendered.subject}`, html: rendered.html });
+      if (result.error) {
+        failures.push({ key: event.key, error: result.error });
+      } else {
+        sent += 1;
+      }
+    } catch (error: unknown) {
+      failures.push({ key: event.key, error: errorMessage(error) });
+    }
+  }
+
+  return { success: failures.length === 0, sent, failures };
 }
