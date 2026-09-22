@@ -15,6 +15,11 @@ export interface EmailConfig {
   pass: string;
   from: string;
   fromName?: string;
+  replyTo?: string;
+  brandName?: string;
+  tagline?: string;
+  logoUrl?: string;
+  footer?: string;
 }
 
 let cachedConfig: EmailConfig | null | undefined;
@@ -22,7 +27,7 @@ let cachedConfig: EmailConfig | null | undefined;
 export async function getEmailConfig(): Promise<EmailConfig | null> {
   if (cachedConfig !== undefined) return cachedConfig;
 
-  const keys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from'];
+  const keys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_from_name', 'mail_reply_to', 'mail_brand_name', 'mail_tagline', 'mail_logo_url', 'mail_footer'];
   const rows = await db
     .select({ key: systemSettings.key, value: systemSettings.value })
     .from(systemSettings)
@@ -37,9 +42,29 @@ export async function getEmailConfig(): Promise<EmailConfig | null> {
   const user = map.smtp_user || process.env.SMTP_USER || '';
   const pass = map.smtp_pass || process.env.SMTP_PASS || '';
   const from = map.smtp_from || process.env.MAIL_FROM || 'notifications@posmarket.app';
+  const fromName = map.smtp_from_name || process.env.MAIL_FROM_NAME || '';
+  const replyTo = map.mail_reply_to || process.env.MAIL_REPLY_TO || '';
+  const brandName = map.mail_brand_name || process.env.MAIL_BRAND_NAME || 'PosMarket';
+  const tagline = map.mail_tagline !== undefined ? map.mail_tagline : (process.env.MAIL_TAGLINE || '');
+  const logoUrl = map.mail_logo_url || process.env.MAIL_LOGO_URL || '';
+  const footer = map.mail_footer !== undefined ? map.mail_footer : (process.env.MAIL_FOOTER || '');
 
   const configured = !!(host && user && pass);
-  cachedConfig = configured ? { host, port, user, pass, from } : null;
+  cachedConfig = configured
+    ? {
+        host,
+        port,
+        user,
+        pass,
+        from,
+        fromName: fromName || undefined,
+        replyTo: replyTo || undefined,
+        brandName,
+        tagline: tagline || undefined,
+        logoUrl: logoUrl || undefined,
+        footer: footer || undefined,
+      }
+    : null;
   return cachedConfig;
 }
 
@@ -95,9 +120,14 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ messageId?: s
   }
 
   try {
+    const from =
+      cfg.fromName && !cfg.from.includes('<')
+        ? `"${cfg.fromName.replace(/"/g, '')}" <${cfg.from}>`
+        : cfg.from;
     const info = await tx.sendMail({
-      from: cfg.fromName ? `"${cfg.fromName}" <${cfg.from}>` : cfg.from,
+      from,
       to,
+      replyTo: cfg.replyTo || undefined,
       subject: opts.subject,
       html: opts.html,
       text: opts.text || stripHtml(opts.html),
@@ -144,13 +174,33 @@ export interface RenderedEmail {
   text: string;
 }
 
-const layout = (content: string): string => `
+interface Brand {
+  brandName?: string;
+  tagline?: string;
+  logoUrl?: string;
+  footer?: string;
+}
+
+const layout = (content: string, brand: Brand = {}): string => {
+  const name = escapeHtml(brand.brandName || 'PosMarket');
+  const tagline = brand.tagline ? escapeHtml(brand.tagline) : '';
+  const logoUrl = brand.logoUrl ? escapeHtml(brand.logoUrl) : '';
+  const footer = brand.footer
+    ? escapeHtml(brand.footer).replace(/\n/g, '<br/>')
+    : `© ${new Date().getFullYear()} ${name} — Bénin / Côte d'Ivoire<br/>Cet email vous est envoyé suite à une activité sur votre compte.`;
+
+  const header = logoUrl
+    ? `<img src="${logoUrl}" alt="${name}" width="150" style="max-width:150px;height:auto;display:block;" />`
+    : `<div style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">${name}</div>`;
+  const tag = tagline ? `<div style="color:#ffe6d8;font-size:12px;font-weight:600;margin-top:2px;">${tagline}</div>` : '';
+
+  return `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PosMarket</title>
+<title>${name}</title>
 </head>
 <body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;">
@@ -159,8 +209,8 @@ const layout = (content: string): string => `
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #eef1f5;box-shadow:0 8px 30px rgba(0,0,0,0.05);">
           <tr>
             <td style="background:#f56b2a;padding:22px 28px;">
-              <div style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">Pos<b>Market</b></div>
-              <div style="color:#ffe6d8;font-size:12px;font-weight:600;margin-top:2px;">Votre marketplace de proximité</div>
+              ${header}
+              ${tag}
             </td>
           </tr>
           <tr>
@@ -171,8 +221,7 @@ const layout = (content: string): string => `
           <tr>
             <td style="background:#f8fafc;padding:16px 28px;border-top:1px solid #eef1f5;">
               <div style="color:#94a3b8;font-size:11px;line-height:1.6;text-align:center;">
-                © ${new Date().getFullYear()} PosMarket — Bénin / Côte d'Ivoire<br/>
-                Cet email vous est envoyé suite à une activité sur votre compte.
+                ${footer}
               </div>
             </td>
           </tr>
@@ -182,6 +231,7 @@ const layout = (content: string): string => `
   </table>
 </body>
 </html>`;
+};
 
 const SUBJECTS: Record<string, string> = {
   CONFIRMATION_COMMANDE: 'Confirmation de commande',
@@ -221,11 +271,18 @@ function paragraph(text: string): string {
   return `<p style="margin:0 0 14px;color:#475569;font-size:15px;line-height:1.6;">${escapeHtml(text)}</p>`;
 }
 
-export function renderEmailEvent(eventKey: string, input: RenderInput = {}): RenderedEmail {
+export async function renderEmailEvent(eventKey: string, input: RenderInput = {}): Promise<RenderedEmail> {
+  const cfg = await getEmailConfig();
+  const brand: Brand = {
+    brandName: cfg?.brandName,
+    tagline: cfg?.tagline,
+    logoUrl: cfg?.logoUrl,
+    footer: cfg?.footer,
+  };
   const body = String(input.body || '');
   const params = Array.isArray(input.params) ? input.params : [];
   const storeName = input.storeName ? ` chez ${input.storeName}` : '';
-  const subject = SUBJECTS[eventKey] || input.title || 'Notification PosMarket';
+  const subject = SUBJECTS[eventKey] || input.title || `Notification ${cfg?.brandName || 'PosMarket'}`;
 
   let content = '';
   if (eventKey === 'CONFIRMATION_COMMANDE' && params.length >= 3) {
@@ -248,6 +305,6 @@ export function renderEmailEvent(eventKey: string, input: RenderInput = {}): Ren
     content = paragraph(enriched || (input.title || subject));
   }
 
-  const html = layout(content);
+  const html = layout(content, brand);
   return { subject, html, text: stripHtml(html) };
 }

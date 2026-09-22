@@ -30,6 +30,12 @@ interface SystemSettings {
   smtp_user?: string;
   smtp_pass?: string;
   smtp_from?: string;
+  smtp_from_name?: string;
+  mail_reply_to?: string;
+  mail_brand_name?: string;
+  mail_tagline?: string;
+  mail_logo_url?: string;
+  mail_footer?: string;
   admin_emails?: string;
   smtp_pass_set?: boolean;
 }
@@ -92,6 +98,12 @@ export default function AdminSettingsPage() {
     settings.smtp_port !== initial.smtp_port ||
     settings.smtp_user !== initial.smtp_user ||
     settings.smtp_from !== initial.smtp_from ||
+    settings.smtp_from_name !== initial.smtp_from_name ||
+    settings.mail_reply_to !== initial.mail_reply_to ||
+    settings.mail_brand_name !== initial.mail_brand_name ||
+    settings.mail_tagline !== initial.mail_tagline ||
+    settings.mail_logo_url !== initial.mail_logo_url ||
+    settings.mail_footer !== initial.mail_footer ||
     settings.admin_emails !== initial.admin_emails ||
     (settings.smtp_pass || '') !== ''
   );
@@ -344,16 +356,6 @@ export default function AdminSettingsPage() {
             />
           </div>
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Expéditeur (from)</label>
-            <input
-              type="text"
-              value={settings.smtp_from || ''}
-              onChange={e => updateField('smtp_from', e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-              placeholder="PosMarket <notifications@posmarket.app>"
-            />
-          </div>
-          <div>
             <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Emails admins (séparés par des virgules)</label>
             <input
               type="text"
@@ -362,6 +364,82 @@ export default function AdminSettingsPage() {
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               placeholder="admin@posmarket.app, support@posmarket.app"
             />
+          </div>
+        </div>
+
+        <div className="border-t border-gray-100 pt-6 mb-6">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-4">Identité de l&apos;expéditeur &amp; marque</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Nom de l&apos;expéditeur</label>
+              <input
+                type="text"
+                value={settings.smtp_from_name || ''}
+                onChange={e => updateField('smtp_from_name', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                placeholder="PosMarket"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Adresse d&apos;expéditeur (from)</label>
+              <input
+                type="text"
+                value={settings.smtp_from || ''}
+                onChange={e => updateField('smtp_from', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                placeholder="andyizyfleur@gmail.com"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Adresse de réponse (Reply-To)</label>
+              <input
+                type="text"
+                value={settings.mail_reply_to || ''}
+                onChange={e => updateField('mail_reply_to', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                placeholder="support@posmarket.app"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Nom de la marque (entête des emails)</label>
+              <input
+                type="text"
+                value={settings.mail_brand_name || ''}
+                onChange={e => updateField('mail_brand_name', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                placeholder="PosMarket"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Slogan (sous le logo)</label>
+              <input
+                type="text"
+                value={settings.mail_tagline || ''}
+                onChange={e => updateField('mail_tagline', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                placeholder="Votre marketplace de proximité"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">URL du logo (remplace le texte de la marque)</label>
+              <input
+                type="text"
+                value={settings.mail_logo_url || ''}
+                onChange={e => updateField('mail_logo_url', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                placeholder="https://posmarket-eight.vercel.app/logo.png"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Pied de page (mentions légales / adresse)</label>
+              <textarea
+                value={settings.mail_footer || ''}
+                onChange={e => updateField('mail_footer', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+                placeholder={`© ${new Date().getFullYear()} PosMarket — Bénin / Côte d'Ivoire`}
+              />
+            </div>
           </div>
         </div>
 

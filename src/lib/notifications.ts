@@ -272,7 +272,7 @@ async function deliverOutboxRow(id: string): Promise<{ ok: boolean }> {
   if (!row) return { ok: false };
 
   if (row.provider === 'email') {
-    const rendered = renderEmailEvent(row.eventType, {
+    const rendered = await renderEmailEvent(row.eventType, {
       title: row.title || undefined,
       body: row.body,
       params: Array.isArray(row.params) ? (row.params as string[]) : [],

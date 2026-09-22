@@ -383,6 +383,12 @@ export interface SystemSettingsData {
   smtp_user?: string;
   smtp_pass?: string;
   smtp_from?: string;
+  smtp_from_name?: string;
+  mail_reply_to?: string;
+  mail_brand_name?: string;
+  mail_tagline?: string;
+  mail_logo_url?: string;
+  mail_footer?: string;
   admin_emails?: string;
   /** vrai si un mot de passe SMTP est déjà persisté (masqué à l'écran) */
   smtp_pass_set?: boolean;
@@ -403,7 +409,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
         settings.fedapay_env = r.value === 'live' ? 'live' : 'sandbox';
       } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key' || r.key === 'fedapay_webhook_secret') {
         settings[r.key] = r.value;
-      } else if (r.key === 'smtp_host' || r.key === 'smtp_port' || r.key === 'smtp_user' || r.key === 'smtp_from' || r.key === 'admin_emails') {
+      } else if (r.key === 'smtp_host' || r.key === 'smtp_port' || r.key === 'smtp_user' || r.key === 'smtp_from' || r.key === 'smtp_from_name' || r.key === 'mail_reply_to' || r.key === 'mail_brand_name' || r.key === 'mail_tagline' || r.key === 'mail_logo_url' || r.key === 'mail_footer' || r.key === 'admin_emails') {
         settings[r.key] = r.value;
       } else if (r.key === 'smtp_pass') {
         settings.smtp_pass_set = !!r.value;
@@ -417,7 +423,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
 
 export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
   try {
-    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'admin_emails'];
+    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'smtp_from_name', 'mail_reply_to', 'mail_brand_name', 'mail_tagline', 'mail_logo_url', 'mail_footer', 'admin_emails'];
     const allowedEnvKeys = ['kkiapay_env', 'fedapay_env'];
     const booleanKeys = ['maintenance', 'auto_indexing', 'weekly_reports'];
 
