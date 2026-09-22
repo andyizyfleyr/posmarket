@@ -200,25 +200,34 @@ const layout = (content: string, brand: Brand = {}): string => {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${name}</title>
+<style>
+  .pm-wrap { padding:20px 16px 40px; }
+  .pm-shell { width:100%; max-width:640px; border:1px solid #E8EAED; border-radius:16px; overflow:hidden; }
+  @media only screen and (max-width:640px) {
+    .pm-wrap { padding:0 !important; }
+    .pm-shell { width:100% !important; max-width:100% !important; border:0 !important; border-radius:0 !important; }
+    .pm-sec { padding-left:20px !important; padding-right:20px !important; }
+  }
+</style>
 </head>
 <body style="margin:0;padding:0;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;">
     <tr>
-      <td align="center" style="padding:16px 16px 40px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#FFFFFF;border:1px solid #E8EAED;border-radius:16px;overflow:hidden;">
+      <td align="center" class="pm-wrap" style="padding:20px 16px 40px;">
+        <table role="presentation" class="pm-shell" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#FFFFFF;border:1px solid #E8EAED;border-radius:16px;overflow:hidden;mso-table-lspace:0pt;mso-table-rspace:0pt;">
           <tr>
-            <td style="padding:26px 32px 22px;border-bottom:1px solid #E8EAED;">
+            <td class="pm-sec" style="padding:26px 32px 22px;border-bottom:1px solid #E8EAED;">
               ${header}
               ${tag}
             </td>
           </tr>
           <tr>
-            <td style="padding:28px 32px 12px;">
+            <td class="pm-sec" style="padding:28px 32px 12px;">
               ${content}
             </td>
           </tr>
           <tr>
-            <td style="padding:20px 32px;border-top:1px solid #E8EAED;background:#FAFAFA;">
+            <td class="pm-sec" style="padding:22px 32px;border-top:1px solid #E8EAED;background:#FAFAFA;">
               <div style="color:#9AA0A6;font-size:12px;line-height:1.7;text-align:left;">
                 ${footer}
               </div>
