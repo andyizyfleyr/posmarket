@@ -137,6 +137,7 @@ export async function POST(request: Request) {
           title: 'Paiement en erreur',
           body: `Un paiement d'abonnement FedaPay a été refusé (transaction ${fTxId}).`,
           templateParams: [fTxId],
+          emailData: { tx: fTxId, provider: 'FedaPay' },
         }).catch(() => {});
       }
 

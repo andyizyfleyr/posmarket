@@ -37,6 +37,7 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
             title: 'Abonnement activé',
             body: `Votre abonnement ${tier} (${duration}) est actif. Bienvenue parmi les commerçants PosMarket !`,
             templateParams: [String(tier), durationLabel(duration)],
+            emailData: { tier, duration: durationLabel(duration) },
         });
         revalidatePath('/subscription');
         return { success: true };
@@ -241,6 +242,7 @@ export async function confirmFedapayPaymentAction(
             title: 'Abonnement activé',
             body: `Votre abonnement ${payment.tier} (${payment.duration}) a été validé avec succès via FedaPay.`,
             templateParams: [String(payment.tier), durationLabel(payment.duration)],
+            emailData: { tier: payment.tier, duration: durationLabel(payment.duration) },
         });
 
         revalidatePath('/subscription');

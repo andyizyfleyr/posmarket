@@ -93,6 +93,7 @@ export async function POST(request: Request) {
           title: 'Paiement en erreur',
           body: `Un paiement d'abonnement Kkiapay a été refusé (transaction ${kTxId}).`,
           templateParams: [kTxId],
+          emailData: { tx: kTxId, provider: 'Kkiapay' },
         }).catch(() => {});
       }
 

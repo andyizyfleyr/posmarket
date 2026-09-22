@@ -168,6 +168,8 @@ export interface NotifyInput {
   title?: string;
   /** paramètres du template, ordre = ordre des {{1}}, {{2}}... dans le template */
   templateParams?: string[];
+  /** Données structurées pour le rendu EMAIL uniquement (champs typés par événement, voir src/lib/email.ts). */
+  emailData?: Record<string, string | number | null | undefined>;
   /** pour RELANCE_PANIER_ABANDONNE etc. */
   scheduledAt?: Date;
   /** clé de déduplication pour les jobs planifiés (stockée dans params des lignes email) */
@@ -213,7 +215,6 @@ export async function notify(input: NotifyInput): Promise<{ ok: boolean; skipped
 
   const templateName = def?.templateName || null;
   const params = input.templateParams || [];
-  const emailParams = input.marker ? [...params, input.marker] : params;
 
   let inserted = 0;
   try {
@@ -251,7 +252,7 @@ export async function notify(input: NotifyInput): Promise<{ ok: boolean; skipped
           provider: 'email',
           status: input.scheduledAt && input.scheduledAt > new Date() ? 'SCHEDULED' : 'PENDING',
           templateName,
-          params: emailParams,
+          params: { marker: input.marker || null, d: input.emailData || {} },
           scheduledAt: input.scheduledAt || null,
         })
         .returning();
@@ -272,10 +273,15 @@ async function deliverOutboxRow(id: string): Promise<{ ok: boolean }> {
   if (!row) return { ok: false };
 
   if (row.provider === 'email') {
+    const raw = row.params;
+    let emailData: Record<string, string | number | null | undefined> = {};
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      emailData = ((raw as { d?: Record<string, string | number | null | undefined> }).d || {});
+    }
     const rendered = await renderEmailEvent(row.eventType, {
       title: row.title || undefined,
       body: row.body,
-      params: Array.isArray(row.params) ? (row.params as string[]) : [],
+      emailData,
     });
     const result = await sendEmail({ to: row.recipientEmail || '', subject: rendered.subject, html: rendered.html });
 
@@ -486,6 +492,7 @@ export async function checkSubscriptionExpirations(): Promise<{ sent: number }> 
       title: 'Abonnement expirant',
       body: `Votre abonnement ${p.tier || 'PRO'} expire sous 7 jours. Rendez-vous dans votre compte pour le renouveler.`,
       templateParams: [p.tier || '', '7'],
+      emailData: { tier: p.tier || '', days: '7' },
     });
     if (res.ok) sent++;
   }
@@ -498,6 +505,7 @@ export async function checkSubscriptionExpirations(): Promise<{ sent: number }> 
       title: 'Abonnement expiré',
       body: `Votre abonnement ${p.tier || 'PRO'} a expiré. Votre compte est en pause, choisissez une formule pour le réactiver.`,
       templateParams: [p.tier || ''],
+      emailData: { tier: p.tier || '' },
     });
     if (res.ok) sent++;
   }
@@ -536,12 +544,14 @@ export async function sendPendingReviewRequests(): Promise<{ sent: number }> {
     const marker = `order-${order.id.slice(0, 8).toUpperCase()}`;
     if (await alreadyNotified('DEMANDE_AVIS', marker)) continue;
     const contact = order.storeId ? await getStoreContact(order.storeId) : null;
+    const shortId = order.id.slice(0, 8).toUpperCase();
     const res = await notify({
       email,
       eventType: 'DEMANDE_AVIS',
       title: 'Donnez votre avis',
       body: `Merci pour votre achat${contact ? ` chez ${contact.name}` : ''} ! Partagez votre expérience en laissant un avis sur vos produits.`,
       templateParams: [contact?.name || 'PosMarket'],
+      emailData: { order: shortId, store: contact?.name || '' },
       marker,
     });
     if (res.ok) sent++;
@@ -582,6 +592,7 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
         title: `Récap des ventes — ${store.name}`,
         body: `Ventes du jour chez ${store.name} : ${count} commande(s) pour ${totalStr} FCFA.`,
         templateParams: [store.name, String(count), totalStr],
+        emailData: { store: store.name, count, total: totalStr },
         marker: `${marker}-${store.id.slice(0, 8)}`,
       });
       if (res.ok) sent++;
@@ -627,6 +638,7 @@ export async function sendWeeklyVendorReports(): Promise<{ sent: number }> {
       title: `Votre rapport hebdomadaire — ${store.name}`,
       body: `La semaine dernière, ${store.name} a généré ${totalStr} FCFA sur ${count} commande(s). Bonne lancée !`,
       templateParams: [store.name, String(count), totalStr],
+      emailData: { store: store.name, count, total: totalStr },
       marker: `${marker}-${store.id.slice(0, 8)}`,
     });
     if (res.ok) sent++;
@@ -666,6 +678,7 @@ export async function sendWeeklyAdminReport(): Promise<{ sent: number }> {
       title: 'Rapport hebdomadaire PosMarket',
       body: `Semaine écoulée : ${count} commande(s) sur la marketplace pour ${totalStr} FCFA. ${Number(storesCount?.count || 0)} boutiques et ${Number(usersCount?.count || 0)} utilisateurs.`,
       templateParams: [String(count), totalStr, String(Number(storesCount?.count || 0)), String(Number(usersCount?.count || 0))],
+      emailData: { count, total: totalStr, stores: Number(storesCount?.count || 0), users: Number(usersCount?.count || 0) },
       marker,
     });
     if (res.ok) sent++;

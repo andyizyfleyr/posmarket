@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { db } from '@/db'
-import { orders, orderItems, customers, products } from '@/db/schema'
+import { orders, orderItems, customers } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
@@ -19,14 +19,16 @@ async function sendOrderNotifications(orderData: { id: string; storeId: string; 
         const storeInfo = await getStorePhone(orderData.storeId);
         const shortId = orderData.id.slice(0, 8).toUpperCase();
         const totalStr = new Intl.NumberFormat('fr-FR').format(Number(orderData.total) || 0);
+        const paymentLabel = orderData.paymentMethod === 'CARTE' ? 'Carte' : 'Espèces';
         await notify({
             userId: storeInfo?.ownerId || null,
             phone: storeInfo?.phone || '',
             email: storeInfo?.email || '',
             eventType: 'VENTE_POS',
             title: 'Vente en boutique',
-            body: `Vente POS #${shortId} — ${totalStr} FCFA — ${orderData.paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
+            body: `Vente POS #${shortId} — ${totalStr} FCFA — ${paymentLabel}`,
             templateParams: [shortId, totalStr],
+            emailData: { order: shortId, total: totalStr, store: storeInfo?.name || '', payment: orderData.paymentMethod || '', paymentLabel },
         });
     } catch {}
 }
@@ -70,10 +72,12 @@ async function sendStatusNotifications(orderId: string, status: string) {
         if (!eventName) return;
 
         const labels = { COMMANDE_PRET: 'Commande prête', COMMANDE_LIVREE: 'Commande livrée', COMMANDE_ANNULEE: 'Commande annulée' };
+        const storeLabel = storeInfo?.name || 'boutique';
+        const totalStr = new Intl.NumberFormat('fr-FR').format(Number(order.total) || 0);
         const bodies = {
-            COMMANDE_PRET: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) est prête pour la récupération.`,
-            COMMANDE_LIVREE: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) a bien été livrée. Merci pour votre achat !`,
-            COMMANDE_ANNULEE: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) a été annulée. Contactez la boutique pour plus d'informations.`,
+            COMMANDE_PRET: `Votre commande #${shortId} (${storeLabel}) est prête pour la récupération.`,
+            COMMANDE_LIVREE: `Votre commande #${shortId} (${storeLabel}) a bien été livrée. Merci pour votre achat !`,
+            COMMANDE_ANNULEE: `Votre commande #${shortId} (${storeLabel}) a été annulée. Contactez la boutique pour plus d'informations.`,
         };
 
         await notify({
@@ -84,6 +88,7 @@ async function sendStatusNotifications(orderId: string, status: string) {
             title: labels[eventName as keyof typeof labels],
             body: bodies[eventName as keyof typeof bodies],
             templateParams: [shortId, storeInfo?.name || 'boutique'],
+            emailData: { order: shortId, store: storeLabel, total: totalStr },
         });
 
         if (eventName === 'COMMANDE_LIVREE') {
@@ -92,8 +97,9 @@ async function sendStatusNotifications(orderId: string, status: string) {
                 email: buyerEmail,
                 eventType: 'DEMANDE_AVIS',
                 title: 'Donnez votre avis',
-                body: `Votre commande #${shortId} (${storeInfo?.name || 'boutique'}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
+                body: `Votre commande #${shortId} (${storeLabel}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
                 templateParams: [shortId, storeInfo?.name || 'boutique'],
+                emailData: { order: shortId, store: storeLabel },
                 scheduledAt: new Date(Date.now() + 15 * 60 * 1000),
             });
         }

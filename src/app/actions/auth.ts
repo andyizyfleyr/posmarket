@@ -66,6 +66,7 @@ export async function signupAction(formData: FormData) {
         title: 'Nouvelle inscription',
         body: `Nouveau commerçant inscrit sur PosMarket : ${name} (${email}).`,
         templateParams: [name || '', email],
+        emailData: { name: name || '', email },
       });
     }
     const adminEmails = await getAdminEmails();
@@ -77,6 +78,7 @@ export async function signupAction(formData: FormData) {
         title: 'Nouvelle inscription',
         body: `Nouveau commerçant inscrit sur PosMarket : ${name} (${email}).`,
         templateParams: [name || '', email],
+        emailData: { name: name || '', email },
       });
     }
 

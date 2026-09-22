@@ -346,6 +346,7 @@ export async function submitCheckoutAction(
             title: 'Nouvelle commande',
             body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
             templateParams: [shortId, buyerName, totalStr],
+            emailData: { order: shortId, buyer: buyerName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length },
           });
           if (customerCreated) {
             await notify({
@@ -356,6 +357,7 @@ export async function submitCheckoutAction(
               title: 'Nouveau client',
               body: `Nouveau client enregistré : ${buyerName} (${phone})`,
               templateParams: [buyerName, phone],
+              emailData: { buyer: buyerName, phone },
             });
           }
         }
@@ -364,6 +366,7 @@ export async function submitCheckoutAction(
           title: 'Commande à préparer',
           body: `La commande #${shortId} de ${buyerName} (${totalStr} FCFA) est en attente de préparation.`,
           templateParams: [shortId, buyerName, totalStr],
+          emailData: { order: shortId, buyer: buyerName, total: totalStr, items: items.length },
         }).catch(() => {});
 
         const buyerEmail = customer.email || user?.email || '';
@@ -376,6 +379,7 @@ export async function submitCheckoutAction(
             title: 'Commande confirmée',
             body: `Votre commande #${shortId} chez ${storeDisplayName} est confirmée. Total : ${totalStr} FCFA.`,
             templateParams: [shortId, storeDisplayName, totalStr],
+            emailData: { order: shortId, store: storeDisplayName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length },
           });
           if (paymentMethod === 'CARTE') {
             await notify({
@@ -386,6 +390,7 @@ export async function submitCheckoutAction(
               title: 'Reçu de paiement',
               body: `Paiement de ${totalStr} FCFA reçu pour la commande #${shortId}.`,
               templateParams: [totalStr, shortId],
+              emailData: { order: shortId, total: totalStr },
             });
           }
         }
@@ -407,6 +412,7 @@ export async function submitCheckoutAction(
                 title: 'Rupture de stock',
                 body: `Rupture de stock : « ${p.name} » n'est plus disponible.`,
                 templateParams: [p.name],
+                emailData: { product: p.name },
               });
             } else if (stock > 0 && stock <= 10 && storeInfo?.phone) {
               await notify({
@@ -417,6 +423,7 @@ export async function submitCheckoutAction(
                 title: 'Stock bas',
                 body: `Stock bas : « ${p.name} » — plus que ${stock} en stock.`,
                 templateParams: [p.name, String(stock)],
+                emailData: { product: p.name, stock },
               });
             }
           }
@@ -572,6 +579,7 @@ export async function saveProductReviewAction(
     try {
       const storeInfo = await getStorePhone(storeId);
       if (storeInfo?.email) {
+        const [prod] = await db.select({ name: products.name }).from(products).where(eq(products.id, productId)).limit(1);
         await notify({
           userId: storeInfo.ownerId,
           email: storeInfo.email,
@@ -579,6 +587,7 @@ export async function saveProductReviewAction(
           title: 'Nouvel avis',
           body: `Un nouvel avis (${rating}/5) a été publié sur un de vos produits.`,
           templateParams: [String(rating), String(count)],
+          emailData: { rating, count, product: prod?.name || '', buyer: review.authorName || '' },
         });
       }
     } catch {}
@@ -611,6 +620,7 @@ export async function notifyCartInterestAction(data: unknown) {
       title: 'Votre panier vous attend',
       body: `Bonjour ${payload.name || 'vous'}, vous avez laissé ${payload.itemsCount || 'des articles'} dans votre panier (${Number(payload.total) || 0} FCFA). Revenez finaliser votre commande !`,
       templateParams: [payload.name || 'vous', String(payload.itemsCount || ''), String(Number(payload.total) || 0)],
+      emailData: { name: payload.name || '', items: Number(payload.itemsCount) || 0, total: String(Number(payload.total) || 0) },
       scheduledAt: retryAt,
     });
     return { success: true, error: undefined };
