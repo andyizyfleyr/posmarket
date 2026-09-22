@@ -9,6 +9,7 @@ import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales } from '@/db/api'
 import { notify, getStorePhone, notifyStaff } from '@/lib/notifications'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
+import { generateProductSlug } from '@/utils/slug'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
@@ -346,7 +347,7 @@ export async function submitCheckoutAction(
             title: 'Nouvelle commande',
             body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
             templateParams: [shortId, buyerName, totalStr],
-            emailData: { order: shortId, buyer: buyerName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length },
+            emailData: { order: shortId, buyer: buyerName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
           });
           if (customerCreated) {
             await notify({
@@ -357,7 +358,7 @@ export async function submitCheckoutAction(
               title: 'Nouveau client',
               body: `Nouveau client enregistré : ${buyerName} (${phone})`,
               templateParams: [buyerName, phone],
-              emailData: { buyer: buyerName, phone },
+              emailData: { buyer: buyerName, phone, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
             });
           }
         }
@@ -366,7 +367,7 @@ export async function submitCheckoutAction(
           title: 'Commande à préparer',
           body: `La commande #${shortId} de ${buyerName} (${totalStr} FCFA) est en attente de préparation.`,
           templateParams: [shortId, buyerName, totalStr],
-          emailData: { order: shortId, buyer: buyerName, total: totalStr, items: items.length },
+          emailData: { order: shortId, buyer: buyerName, total: totalStr, items: items.length, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
         }).catch(() => {});
 
         const buyerEmail = customer.email || user?.email || '';
@@ -379,7 +380,7 @@ export async function submitCheckoutAction(
             title: 'Commande confirmée',
             body: `Votre commande #${shortId} chez ${storeDisplayName} est confirmée. Total : ${totalStr} FCFA.`,
             templateParams: [shortId, storeDisplayName, totalStr],
-            emailData: { order: shortId, store: storeDisplayName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length },
+            emailData: { order: shortId, store: storeDisplayName, storeSlug: storeInfo?.slug || '', total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length },
           });
           if (paymentMethod === 'CARTE') {
             await notify({
@@ -398,35 +399,36 @@ export async function submitCheckoutAction(
         const productIds = items.map((i) => i.product?.id).filter((x): x is string => Boolean(x));
         if (productIds.length > 0) {
           const lowProducts = await db
-            .select({ id: products.id, name: products.name, stock: products.stock })
-            .from(products)
-            .where(inArray(products.id, productIds));
-          for (const p of lowProducts) {
-            const stock = Number(p.stock) || 0;
-            if (stock === 0 && storeInfo?.phone) {
-              await notify({
-                userId: storeInfo.ownerId,
-                phone: storeInfo.phone,
-                email: storeInfo.email || '',
-                eventType: 'RUPTURE_STOCK',
-                title: 'Rupture de stock',
-                body: `Rupture de stock : « ${p.name} » n'est plus disponible.`,
-                templateParams: [p.name],
-                emailData: { product: p.name },
-              });
-            } else if (stock > 0 && stock <= 10 && storeInfo?.phone) {
-              await notify({
-                userId: storeInfo.ownerId,
-                phone: storeInfo.phone,
-                email: storeInfo.email || '',
-                eventType: 'ALERTE_STOCK_BAS',
-                title: 'Stock bas',
-                body: `Stock bas : « ${p.name} » — plus que ${stock} en stock.`,
-                templateParams: [p.name, String(stock)],
-                emailData: { product: p.name, stock },
-              });
-            }
+.select({ id: products.id, name: products.name, stock: products.stock })
+          .from(products)
+          .where(inArray(products.id, productIds));
+        for (const p of lowProducts) {
+          const stock = Number(p.stock) || 0;
+          const productSlug = generateProductSlug({ id: p.id, name: p.name });
+          if (stock === 0 && storeInfo?.phone) {
+            await notify({
+              userId: storeInfo.ownerId,
+              phone: storeInfo.phone,
+              email: storeInfo.email || '',
+              eventType: 'RUPTURE_STOCK',
+              title: 'Rupture de stock',
+              body: `Rupture de stock : « ${p.name} » n'est plus disponible.`,
+              templateParams: [p.name],
+              emailData: { product: p.name, productSlug },
+            });
+          } else if (stock > 0 && stock <= 10 && storeInfo?.phone) {
+            await notify({
+              userId: storeInfo.ownerId,
+              phone: storeInfo.phone,
+              email: storeInfo.email || '',
+              eventType: 'ALERTE_STOCK_BAS',
+              title: 'Stock bas',
+              body: `Stock bas : « ${p.name} » — plus que ${stock} en stock.`,
+              templateParams: [p.name, String(stock)],
+              emailData: { product: p.name, productSlug, stock },
+            });
           }
+        }
         }
       } catch (err) {
         console.error('[marketplace] notification error:', err);
@@ -579,7 +581,7 @@ export async function saveProductReviewAction(
     try {
       const storeInfo = await getStorePhone(storeId);
       if (storeInfo?.email) {
-        const [prod] = await db.select({ name: products.name }).from(products).where(eq(products.id, productId)).limit(1);
+        const [prod] = await db.select({ id: products.id, name: products.name }).from(products).where(eq(products.id, productId)).limit(1);
         await notify({
           userId: storeInfo.ownerId,
           email: storeInfo.email,
@@ -587,7 +589,7 @@ export async function saveProductReviewAction(
           title: 'Nouvel avis',
           body: `Un nouvel avis (${rating}/5) a été publié sur un de vos produits.`,
           templateParams: [String(rating), String(count)],
-          emailData: { rating, count, product: prod?.name || '', buyer: review.authorName || '' },
+          emailData: { rating, count, product: prod?.name || '', productSlug: prod ? generateProductSlug({ id: prod.id, name: prod.name }) : '', buyer: review.authorName || '' },
         });
       }
     } catch {}

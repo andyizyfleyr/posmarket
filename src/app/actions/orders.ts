@@ -28,7 +28,7 @@ async function sendOrderNotifications(orderData: { id: string; storeId: string; 
             title: 'Vente en boutique',
             body: `Vente POS #${shortId} — ${totalStr} FCFA — ${paymentLabel}`,
             templateParams: [shortId, totalStr],
-            emailData: { order: shortId, total: totalStr, store: storeInfo?.name || '', payment: orderData.paymentMethod || '', paymentLabel },
+            emailData: { order: shortId, total: totalStr, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', payment: orderData.paymentMethod || '', paymentLabel },
         });
     } catch {}
 }
@@ -40,7 +40,7 @@ async function sendStatusNotifications(orderId: string, status: string) {
         if (!order) return;
 
         const shortId = orderId.slice(0, 8).toUpperCase();
-        let storeInfo: { name: string; phone: string; email: string; ownerId: string | null } | null = null;
+        let storeInfo: { name: string; slug: string; phone: string; email: string; ownerId: string | null } | null = null;
         if (order.storeId) storeInfo = await getStorePhone(order.storeId);
 
         let buyerPhone = '';
@@ -88,7 +88,7 @@ async function sendStatusNotifications(orderId: string, status: string) {
             title: labels[eventName as keyof typeof labels],
             body: bodies[eventName as keyof typeof bodies],
             templateParams: [shortId, storeInfo?.name || 'boutique'],
-            emailData: { order: shortId, store: storeLabel, total: totalStr },
+            emailData: { order: shortId, store: storeLabel, storeSlug: storeInfo?.slug || '', total: totalStr },
         });
 
         if (eventName === 'COMMANDE_LIVREE') {
@@ -99,7 +99,7 @@ async function sendStatusNotifications(orderId: string, status: string) {
                 title: 'Donnez votre avis',
                 body: `Votre commande #${shortId} (${storeLabel}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
                 templateParams: [shortId, storeInfo?.name || 'boutique'],
-                emailData: { order: shortId, store: storeLabel },
+                emailData: { order: shortId, store: storeLabel, storeSlug: storeInfo?.slug || '' },
                 scheduledAt: new Date(Date.now() + 15 * 60 * 1000),
             });
         }

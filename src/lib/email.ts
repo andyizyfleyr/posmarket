@@ -186,12 +186,12 @@ const layout = (content: string, brand: Brand = {}): string => {
   const logoUrl = brand.logoUrl ? escapeHtml(brand.logoUrl) : '';
   const footer = brand.footer
     ? escapeHtml(brand.footer).replace(/\n/g, '<br/>')
-    : `© ${new Date().getFullYear()} ${name} — Bénin / Côte d'Ivoire<br/>Cet email vous est envoyé suite à une activité sur votre compte.`;
+    : `© ${new Date().getFullYear()} ${name} — Bénin / Côte d'Ivoire<br/>Vous recevez cet email suite à une activité sur votre compte.`;
 
   const header = logoUrl
     ? `<img src="${logoUrl}" alt="${name}" width="150" style="max-width:150px;height:auto;display:block;" />`
-    : `<div style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">${name}</div>`;
-  const tag = tagline ? `<div style="color:#ffe6d8;font-size:12px;font-weight:600;margin-top:2px;">${tagline}</div>` : '';
+    : `<div style="color:#202124;font-size:20px;font-weight:700;letter-spacing:-0.01em;">${name}</div>`;
+  const tag = tagline ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:3px;">${tagline}</div>` : '';
 
   return `
 <!DOCTYPE html>
@@ -201,25 +201,25 @@ const layout = (content: string, brand: Brand = {}): string => {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${name}</title>
 </head>
-<body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;">
+<body style="margin:0;padding:0;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;">
     <tr>
-      <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #eef1f5;box-shadow:0 8px 30px rgba(0,0,0,0.05);">
+      <td align="center" style="padding:16px 16px 40px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#FFFFFF;border:1px solid #E8EAED;border-radius:16px;overflow:hidden;">
           <tr>
-            <td style="background:#f56b2a;padding:22px 28px;">
+            <td style="padding:26px 32px 22px;border-bottom:1px solid #E8EAED;">
               ${header}
               ${tag}
             </td>
           </tr>
           <tr>
-            <td style="padding:28px;">
+            <td style="padding:28px 32px 12px;">
               ${content}
             </td>
           </tr>
           <tr>
-            <td style="background:#f8fafc;padding:16px 28px;border-top:1px solid #eef1f5;">
-              <div style="color:#94a3b8;font-size:11px;line-height:1.6;text-align:center;">
+            <td style="padding:20px 32px;border-top:1px solid #E8EAED;background:#FAFAFA;">
+              <div style="color:#9AA0A6;font-size:12px;line-height:1.7;text-align:left;">
                 ${footer}
               </div>
             </td>
@@ -283,8 +283,8 @@ const money = (v: string | number | null | undefined): string => {
 
 const row = (label: string, value: string): string => `
   <tr>
-    <td style="padding:10px 0;border-bottom:1px solid #eef1f5;color:#667085;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">${esc(label)}</td>
-    <td style="padding:10px 0;border-bottom:1px solid #eef1f5;color:#101828;font-size:14px;font-weight:600;text-align:right;white-space:nowrap;">${value}</td>
+    <td style="padding:13px 0;border-bottom:1px solid #E8EAED;color:#5F6368;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">${esc(label)}</td>
+    <td style="padding:13px 0;border-bottom:1px solid #E8EAED;color:#202124;font-size:14px;font-weight:600;text-align:right;white-space:nowrap;padding-left:16px;">${value}</td>
   </tr>`;
 
 const rows = (items: Array<[string, string | number | null | undefined]>): string =>
@@ -293,27 +293,30 @@ const rows = (items: Array<[string, string | number | null | undefined]>): strin
     .map(([l, v]) => row(l, String(v)))
     .join('')}</table>`;
 
-const badge = (text: string, bg: string, fg: string): string => `
+const badge = (text: string, bg = '#F1F3F4', fg = '#5F6368'): string => `
   <span style="display:inline-block;background:${bg};color:${fg};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:5px 12px;border-radius:999px;">${esc(text)}</span>`;
 
 const highlight = (label: string, value: string, note?: string): string => `
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f3f4;border-radius:14px;margin:0 0 22px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8F9FA;border:1px solid #E8EAED;border-radius:12px;margin:0 0 24px;">
     <tr>
-      <td style="padding:18px 22px;">
-        <div style="color:#667085;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">${esc(label)}</div>
-        <div style="color:#101828;font-size:24px;font-weight:800;letter-spacing:-0.02em;">${value}</div>
-        ${note ? `<div style="color:#667085;font-size:13px;margin-top:6px;">${esc(note)}</div>` : ''}
+      <td style="padding:20px 24px;">
+        <div style="color:#5F6368;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">${esc(label)}</div>
+        <div style="color:#202124;font-size:26px;font-weight:800;letter-spacing:-0.02em;">${value}</div>
+        ${note ? `<div style="color:#5F6368;font-size:13px;margin-top:8px;">${esc(note)}</div>` : ''}
       </td>
     </tr>
   </table>`;
 
 const CTA = (href: string, label: string): string => `
-  <p style="margin:0 0 18px;text-align:left;">
-    <a href="${esc(href)}" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:24px;">${esc(label)}</a>
+  <p style="margin:0 0 8px;">
+    <a href="${esc(href)}" style="display:block;background:#1A73E8;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;text-align:center;padding:13px 20px;border-radius:8px;">${esc(label)}</a>
   </p>`;
 
+const textLink = (href: string, label: string): string =>
+  href ? `<p style="margin:0 0 16px;"><a href="${esc(href)}" style="color:#1A73E8;font-size:13px;font-weight:600;text-decoration:underline;">${esc(label)}</a></p>` : '';
+
 const note = (text: string): string =>
-  `<p style="margin:0;color:#667085;font-size:13px;line-height:1.7;">${esc(text)}</p>`;
+  `<p style="margin:0;color:#5F6368;font-size:12px;line-height:1.7;">${esc(text)}</p>`;
 
 const IMG = { wait: '⏳', ok: '✅', box: '📦', truck: '🚚', cart: '🛒', card: '💳', shop: '🏪', bell: '🔔', person: '👤', warn: '⚠️', out: '⛔', star: '⭐', party: '🎊', rocket: '🚀', ban: '⛔', chart: '📊', trend: '📈', alert: '🚨', news: '📰' };
 
@@ -321,15 +324,29 @@ const hero = (icon: string, title: string, chip: { text: string; bg: string; fg:
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
     <tr>
       <td>
-        <div style="width:56px;height:56px;border-radius:50%;background:#e8f0fe;color:#1a73e8;font-size:26px;text-align:center;line-height:56px;margin-bottom:14px;">${icon}</div>
-        <h1 style="margin:0 0 ${chip ? 10 : 6}px;color:#101828;font-size:20px;font-weight:800;letter-spacing:-0.02em;">${esc(title)}</h1>
-        ${chip ? `<div style="margin:0 0 6px;">${badge(chip.text, chip.bg, chip.fg)}</div>` : ''}
-        ${sub ? `<p style="margin:0;color:#475467;font-size:14px;line-height:1.7;">${esc(sub)}</p>` : ''}
+        <div style="width:52px;height:52px;border-radius:50%;background:#F1F3F4;color:#202124;font-size:26px;text-align:center;line-height:52px;margin-bottom:16px;">${icon}</div>
+        <h1 style="margin:0 0 ${chip ? 10 : 6}px;color:#202124;font-size:22px;font-weight:800;letter-spacing:-0.02em;">${esc(title)}</h1>
+        ${chip ? `<div style="margin:0 0 8px;">${badge(chip.text)}</div>` : ''}
+        ${sub ? `<p style="margin:0;color:#3C4043;font-size:14px;line-height:1.65;">${esc(sub)}</p>` : ''}
       </td>
     </tr>
   </table>`;
 
 const siteUrl = (): string => process.env.NEXT_PUBLIC_SITE_URL || 'https://posmarket-eight.vercel.app';
+
+const path = (p: string): string => `${siteUrl()}${p}`;
+
+const account = (): string => path('/mon-compte');
+
+const storePage = (d: EmailData): string => {
+  const slug = String(d.storeSlug || '').trim();
+  return slug ? path(`/store/${encodeURIComponent(slug)}`) : '';
+};
+
+const productPage = (d: EmailData): string => {
+  const slug = String(d.productSlug || '').trim();
+  return slug ? path(`/product/${encodeURIComponent(slug)}`) : '';
+};
 
 const bodyBlock = (_d: EmailData, content: string): string => content;
 
@@ -359,7 +376,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.cart, `Commande #${esc(d.order)} confirmée`, { text: 'Confirmée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande chez ${esc(d.store || 'la boutique')} a été enregistrée.`)}
         ${highlight('Montant total', money(d.total), d.paymentLabel ? `Paiement : ${esc(d.paymentLabel)}` : undefined)}
         ${rows([['Commande', `#${esc(d.order)}`], ['Boutique', esc(d.store)], ['Articles', d.items ? `${esc(d.items)} article(s)` : null], ['Paiement', esc(d.paymentLabel)]])}
-        ${CTA(`${siteUrl()}/mon-compte`, 'Suivre ma commande')}
+        ${CTA(account(), 'Suivre ma commande')}
+        ${textLink(storePage(d), 'Voir la boutique')}
         ${note('Une question sur votre commande ? Contactez directement la boutique.')}`);
     },
   },
@@ -368,7 +386,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.box, `Commande #${esc(d.order)} prête`, { text: 'À récupérer', bg: '#e8f0fe', fg: '#1a73e8' }, `Votre commande peut être récupérée chez ${esc(d.store || 'la boutique')}.`)}
       ${highlight('Montant total', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Boutique', esc(d.store)]])}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Voir ma commande')}
+      ${CTA(account(), 'Voir ma commande')}
+      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Présentez simplement votre numéro de commande lors du retrait.')}`);
     },
   },
@@ -377,7 +396,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.truck, `Commande #${esc(d.order)} expédiée`, { text: 'En route', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande ${esc(d.store ? `de ${esc(d.store)} ` : '')}vient d'être expédiée.`)}
       ${highlight('Montant total', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Boutique', esc(d.store)]])}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Suivre le suivi')}
+      ${CTA(account(), 'Suivre le suivi')}
+      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Vous recevrez une notification dès la livraison.')}`);
     },
   },
@@ -386,7 +406,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.ok, `Commande #${esc(d.order)} livrée`, { text: 'Livrée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande de ${esc(d.store || 'la boutique')} a été livrée. Merci pour votre achat !`)}
       ${highlight('Montant total', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Boutique', esc(d.store)]])}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Laisser un avis')}
+      ${CTA(account(), 'Laisser un avis')}
+      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Une remarque sur votre commande ? Contactez la boutique. Votre avis aide les commerçants locaux.')}`);
     },
   },
@@ -394,7 +415,8 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.ban, `Commande #${esc(d.order)} annulée`, { text: 'Annulée', bg: '#fef3f2', fg: '#b42318' }, `La commande ${esc(d.store ? `de ${esc(d.store)} ` : '')}portant le numéro \u201c#${esc(d.order)}\u201d a été annulée.`)}
       ${rows([['Commande', `#${esc(d.order)}`], ['Boutique', esc(d.store)]])}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Mes commandes')}
+      ${CTA(account(), 'Mes commandes')}
+      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('En cas de paiement déjà effectué, le remboursement sera traité par la boutique. Contactez-la pour plus d\u2019informations.')}`);
     },
   },
@@ -403,7 +425,7 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.card, 'Paiement reçu', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, `Le paiement de votre commande #${esc(d.order)} a bien été reçu.`)}
       ${highlight('Montant payé', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Statut', 'Payé']])}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Voir le reçu')}
+      ${CTA(account(), 'Voir le reçu')}
       ${note('Ceci fait office de reçu de paiement pour votre commande.')}`);
     },
   },
@@ -411,7 +433,8 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.star, 'Partagez votre avis', { text: 'Merci !', bg: '#fff7ed', fg: '#c2410c' }, d.store ? `Votre commande #${esc(d.order || '')} de ${esc(d.store)} est terminée. Aidez la boutique à progresser : notez vos produits.` : 'Aidez la boutique à progresser : notez vos produits.')}
       ${rows([['Commande', d.order ? `#${esc(d.order)}` : null], ['Boutique', esc(d.store)]])}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Laisser un avis')}
+      ${CTA(account(), 'Laisser un avis')}
+      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Votre avis prend moins d\u2019une minute et compte beaucoup pour les commerçants locaux.')}`);
     },
   },
@@ -420,7 +443,7 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.cart, `Bonjour ${esc(d.name || '')}`, { text: 'En attente', bg: '#fff7ed', fg: '#c2410c' }, `Vous avez laissé ${esc(d.items || 'des articles')} dans votre panier pour un total de ${money(d.total)}.`)}
       ${highlight('Montant du panier', money(d.total))}
       ${rows([['Articles', `${esc(d.items || '—')} article(s)`], ['Montant', money(d.total)]])}
-      ${CTA(`${siteUrl()}/`, 'Finaliser ma commande')}
+      ${CTA(storePage(d) || `${siteUrl()}/`, 'Finaliser ma commande')}
       ${note('Votre panier est conservé. Revenez quand vous voulez pour finaliser votre achat.')}`);
     },
   },
@@ -430,7 +453,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.shop, 'Vente enregistrée', paymentBadge(d), d.store ? `Une vente a été enregistrée en boutique (${esc(d.store)}).` : 'Une vente a été enregistrée en boutique.')}
       ${highlight('Montant de la vente', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Boutique', esc(d.store)], ['Paiement', esc(d.paymentLabel)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Ouvrir le panneau')}
+      ${CTA(`${siteUrl()}/dashboard`, 'Voir le tableau de bord')}
+      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Le stock a été mis à jour automatiquement.')}`);
     },
   },
@@ -439,7 +463,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.bell, `Nouvelle commande #${esc(d.order)}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${esc(d.buyer || 'un client')} est arrivée.`)}
       ${highlight('Total à encaisser', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Client', esc(d.buyer)], ['Articles', d.items ? `${esc(d.items)} article(s)` : null], ['Paiement', esc(d.paymentLabel)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Préparer la commande')}
+      ${CTA(`${siteUrl()}/orders`, 'Préparer la commande')}
+      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Pensez à notifier le client dès que la commande est prête.')}`);
     },
   },
@@ -448,7 +473,7 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.bell, `Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande #${esc(d.order)} de ${esc(d.buyer || 'un client')} attend sa préparation.`)}
       ${highlight('Total à encaisser', money(d.total))}
       ${rows([['Commande', `#${esc(d.order)}`], ['Client', esc(d.buyer)], ['Articles', d.items ? `${esc(d.items)} article(s)` : null]])}
-      ${CTA(`${siteUrl()}/pam`, 'Préparer le colis')}
+      ${CTA(`${siteUrl()}/orders`, 'Préparer le colis')}
       ${note('Marquez la commande comme prête dès que le colis est emballé.')}`);
     },
   },
@@ -456,7 +481,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.person, 'Nouveau client', null, `Un nouveau client vient de s\u2019inscrire et de passer commande.`)}
       ${rows([['Nom', esc(d.buyer)], ['Téléphone', esc(d.phone)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Voir le panneau')}
+      ${CTA(`${siteUrl()}/customers`, 'Gérer mes clients')}
       ${note('Vous pourrez gérer ce client dans votre espace commerçant.')}`);
     },
   },
@@ -464,7 +489,8 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.out, 'Rupture de stock', { text: 'Rupture', bg: '#fef3f2', fg: '#b42318' }, `Le produit \u201c${esc(d.product)}\u201d n\u2019est plus disponible.`)}
       ${rows([['Produit', esc(d.product)], ['Stock restant', '0']])}
-      ${CTA(`${siteUrl()}/pam`, 'Gérer le stock')}
+      ${CTA(`${siteUrl()}/inventory`, 'Gérer le stock')}
+      ${textLink(productPage(d), 'Voir le produit')}
       ${note('Les clients ne pourront plus commander ce produit tant que le stock n\u2019est pas renouvelé.')}`);
     },
   },
@@ -472,7 +498,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.warn, 'Stock bas', { text: 'À réapprovisionner', bg: '#fef3c7', fg: '#b45309' }, `Le produit \u201c${esc(d.product)}\u201d arrive à épuisement.`)}
       ${rows([['Produit', esc(d.product)], ['Stock restant', esc(d.stock)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Réapprovisionner')}
+      ${CTA(`${siteUrl()}/inventory`, 'Réapprovisionner')}
       ${note(`Plus que ${esc(d.stock)} exemplaire(s) : pensez à commander de la marchandise.`)}`);
     },
   },
@@ -480,7 +506,8 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.star, 'Nouvel avis reçu', null, d.buyer ? `${esc(d.buyer)} a noté ${esc(d.product || 'un de vos produits')}.` : `Un client a noté ${esc(d.product || 'un de vos produits')}.`)}
       ${rows([['Produit', esc(d.product)], ['Client', d.buyer ? esc(d.buyer) : null], ['Note', `${stars(d.rating)} (${esc(d.rating)}/5)`], ['Total des avis', d.count ? `${esc(d.count)} avis` : null]])}
-      ${CTA(`${siteUrl()}/pam`, 'Voir les avis')}
+      ${CTA(`${siteUrl()}/reports`, 'Voir les avis')}
+      ${textLink(productPage(d), 'Voir le produit')}
       ${note('Répondez à vos clients : leurs avis améliorent la visibilité de votre boutique.')}`);
     },
   },
@@ -489,7 +516,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.party, 'Votre boutique est en ligne !', { text: 'Approuvée', bg: '#ecfdf3', fg: '#027a48' }, `Félicitations, \u201c${esc(d.store)}\u201d est désormais visible sur la marketplace.`)}
       ${rows([['Boutique', esc(d.store)], ['Statut', 'En ligne']])}
-      ${CTA(`${siteUrl()}/`, 'Voir la marketplace')}
+      ${CTA(storePage(d) || `${siteUrl()}/`, 'Voir ma boutique en ligne')}
       ${note('Vous pouvez maintenant gérer vos produits et recevoir des commandes. Bonne vente !')}`);
     },
   },
@@ -497,7 +524,8 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.ban, 'Boutique non approuvée', { text: 'Réexaminée', bg: '#fef3f2', fg: '#b42318' }, `La boutique \u201c${esc(d.store)}\u201d n\u2019a pas pu être approuvée.`)}
       ${rows([['Boutique', esc(d.store)], ['Statut', 'Rejetée']])}
-      ${CTA(`${siteUrl()}/pam`, 'Retoucher ma boutique')}
+      ${CTA(`${siteUrl()}/settings`, 'Retoucher ma boutique')}
+      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Bonifiez votre présentation (photos, descriptions, identité) puis soumettez-la à nouveau.')}`);
     },
   },
@@ -505,8 +533,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.news, 'Boutique en attente d\u2019approbation', { text: 'Action requise', bg: '#fef3c7', fg: '#b45309' }, `La boutique \u201c${esc(d.store)}\u201d attend votre validation dans le panneau d\u2019administration.`)}
       ${rows([['Boutique', esc(d.store)], ['Statut', 'En attente']])}
-      ${CTA(`${siteUrl()}/pam`, 'Valider maintenant')
-      }
+      ${CTA(`${siteUrl()}/pam/stores`, 'Valider maintenant')}
       ${note('Diagnostiquez la présentation avant de valider la mise en ligne.')}`);
     },
   },
@@ -515,8 +542,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.rocket, 'Abonnement activé', { text: 'Actif', bg: '#ecfdf3', fg: '#027a48' }, `Votre formule ${esc(d.tier)} est active. Bienvenue parmi les commerçants PosMarket !`)}
       ${rows([['Formule', esc(d.tier)], ['Durée', esc(d.duration)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Ouvrir mon compte')
-      }
+      ${CTA(`${siteUrl()}/dashboard`, 'Ouvrir mon espace')}
       ${note('Toutes les fonctionnalités de votre formule sont débloquées.')}`);
     },
   },
@@ -541,7 +567,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.person, 'Nouvelle inscription', null, `Un nouveau commerçant vient de créer un compte.`)}
       ${rows([['Nom', esc(d.name)], ['Email', esc(d.email)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Voir le panneau')}
+      ${CTA(`${siteUrl()}/pam/users`, 'Voir les commerçants')}
       ${note('Rappel : la boutique doit être approuvée avant de pouvoir vendre.')}`);
     },
   },
@@ -549,7 +575,7 @@ const renderers: Record<string, EmailRenderer> = {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.alert, 'Paiement en erreur', { text: 'Action requise', bg: '#fef3f2', fg: '#b42318' }, `Un paiement d\u2019abonnement a été refusé.`)}
       ${rows([['Transaction', `#${esc(d.tx)}`], ['Fournisseur', esc(d.provider)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Vérifier le paiement')}
+      ${CTA(`${siteUrl()}/pam/invoices`, 'Vérifier le paiement')}
       ${note('Contactez le client concerné si l\u2019incident se répète.')}`);
     },
   },
@@ -559,7 +585,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.chart, 'Récap des ventes du jour', null, `Voici le bilan de ${esc(d.store)} pour aujourd\u2019hui.`)}
       ${highlight('Chiffre d\u2019affaires du jour', money(d.total), `${esc(d.count || 0)} commande(s)`)}
       ${rows([['Boutique', esc(d.store)], ['Commandes', esc(d.count)], ['Chiffre d\u2019affaires', money(d.total)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Voir le détail')}
+      ${CTA(`${siteUrl()}/dashboard`, 'Voir le détail')}
+      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Ce récap est envoyé automatiquement chaque fin de journée.')}`);
     },
   },
@@ -568,7 +595,8 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.trend, 'Votre rapport hebdomadaire', null, `La semaine dernière, ${esc(d.store)} a enregistré des performances encourageantes.`)}
       ${highlight('Chiffre d\u2019affaires (7 jours)', money(d.total), `${esc(d.count || 0)} commande(s)`)}
       ${rows([['Boutique', esc(d.store)], ['Commandes', esc(d.count)], ['Chiffre d\u2019affaires', money(d.total)]])}
-      ${CTA(`${siteUrl()}/pam`, 'Analyser mes ventes')}
+      ${CTA(`${siteUrl()}/dashboard`, 'Analyser mes ventes')}
+      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Continuez sur votre lancée : pensez aux produits les plus demandés.')}`);
     },
   },
@@ -586,7 +614,7 @@ const renderers: Record<string, EmailRenderer> = {
   BIENVENUE: {
     render: (d, input) => {
       return bodyBlock(d, `${hero(IMG.party, esc(input.title || 'Bienvenue'), null, esc(input.body || 'Merci de rejoindre PosMarket.'))}
-      ${CTA(`${siteUrl()}/mon-compte`, 'Explorer la marketplace')}
+      ${CTA(storePage(d) || `${siteUrl()}/`, 'Explorer la marketplace')}
       ${note('Achetez local, soutenez vos commerçants de proximité.')}`);
     },
   },
@@ -607,7 +635,7 @@ const renderers: Record<string, EmailRenderer> = {
   JALON_MILESTONE: {
     render: (d, input) => {
       return bodyBlock(d, `${hero('🎉', 'Félicitations !', { text: 'Mission accomplie', bg: '#fff7ed', fg: '#c2410c' }, esc(input.body || 'Vous avez franchi une étape importante.'))}
-      ${CTA(`${siteUrl()}/pam`, 'Voir mes statistiques')}
+      ${CTA(`${siteUrl()}/dashboard`, 'Voir mes statistiques')}
       ${note('Continuez sur cette dynamique !')}`);
     },
   },
@@ -625,31 +653,31 @@ export interface EmailTestEvent {
 }
 
 const EMAIL_TEST_EVENTS: EmailTestEvent[] = [
-  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 3 } }) },
-  { key: 'COMMANDE_PRET', label: 'Commande prête à récupérer', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000' } }) },
-  { key: 'COMMANDE_EXPEDIEE', label: 'Commande expédiée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000' } }) },
-  { key: 'COMMANDE_LIVREE', label: 'Commande livrée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', total: '12000' } }) },
-  { key: 'COMMANDE_ANNULEE', label: 'Commande annulée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique' } }) },
+  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 3 } }) },
+  { key: 'COMMANDE_PRET', label: 'Commande prête à récupérer', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000' } }) },
+  { key: 'COMMANDE_EXPEDIEE', label: 'Commande expédiée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000' } }) },
+  { key: 'COMMANDE_LIVREE', label: 'Commande livrée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000' } }) },
+  { key: 'COMMANDE_ANNULEE', label: 'Commande annulée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
   { key: 'RECU_PAIEMENT', label: 'Reçu de paiement', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', total: '12000' } }) },
-  { key: 'DEMANDE_AVIS', label: 'Demande d\'avis', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique' } }) },
-  { key: 'RELANCE_PANIER_ABANDONNE', label: 'Panier abandonné', audience: 'Acheteur', sample: () => ({ emailData: { name: 'Awa', items: 2, total: '7500' } }) },
-  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', total: '12000', items: 3, payment: 'CARTE', paymentLabel: 'Carte' } }) },
-  { key: 'COMMANDE_A_PREPARER', label: 'Commande à préparer', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', total: '12000', items: 3 } }) },
-  { key: 'VENTE_POS', label: 'Vente en boutique (POS)', audience: 'Vendeur', sample: () => ({ emailData: { order: '1043', store: 'Ma Belle Boutique', total: '2500', payment: 'ESPECES', paymentLabel: 'Espèces' } }) },
-  { key: 'NOUVEAU_CLIENT', label: 'Nouveau client', audience: 'Vendeur', sample: () => ({ emailData: { buyer: 'Awa', phone: '+229 01 23 45 67' } }) },
-  { key: 'RUPTURE_STOCK', label: 'Rupture de stock', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L' } }) },
-  { key: 'ALERTE_STOCK_BAS', label: 'Stock bas', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Sucre 1kg', stock: 3 } }) },
-  { key: 'NOUVEL_AVIS', label: 'Nouvel avis reçu', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L', buyer: 'Awa', rating: 5, count: 12 } }) },
-  { key: 'BOUTIQUE_APPROUVEE', label: 'Boutique approuvée', audience: 'Boutique', sample: () => ({ emailData: { store: 'Ma Belle Boutique' } }) },
-  { key: 'BOUTIQUE_REJETEE', label: 'Boutique rejetée', audience: 'Boutique', sample: () => ({ emailData: { store: 'Ma Belle Boutique' } }) },
-  { key: 'BOUTIQUE_EN_ATTENTE', label: 'Boutique en attente d\'approbation', audience: 'Administration', sample: () => ({ emailData: { store: 'Ma Belle Boutique' } }) },
+  { key: 'DEMANDE_AVIS', label: 'Demande d\'avis', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'RELANCE_PANIER_ABANDONNE', label: 'Panier abandonné', audience: 'Acheteur', sample: () => ({ emailData: { name: 'Awa', items: 2, total: '7500', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 3, payment: 'CARTE', paymentLabel: 'Carte' } }) },
+  { key: 'COMMANDE_A_PREPARER', label: 'Commande à préparer', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 3 } }) },
+  { key: 'VENTE_POS', label: 'Vente en boutique (POS)', audience: 'Vendeur', sample: () => ({ emailData: { order: '1043', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '2500', payment: 'ESPECES', paymentLabel: 'Espèces' } }) },
+  { key: 'NOUVEAU_CLIENT', label: 'Nouveau client', audience: 'Vendeur', sample: () => ({ emailData: { buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'RUPTURE_STOCK', label: 'Rupture de stock', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L', productSlug: 'huile-d-arachide-1l-1a2b3c', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'ALERTE_STOCK_BAS', label: 'Stock bas', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Sucre 1kg', productSlug: 'sucre-1kg-4d5e6f', stock: 3, store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'NOUVEL_AVIS', label: 'Nouvel avis reçu', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L', productSlug: 'huile-d-arachide-1l-1a2b3c', buyer: 'Awa', rating: 5, count: 12, store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'BOUTIQUE_APPROUVEE', label: 'Boutique approuvée', audience: 'Boutique', sample: () => ({ emailData: { store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'BOUTIQUE_REJETEE', label: 'Boutique rejetée', audience: 'Boutique', sample: () => ({ emailData: { store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
+  { key: 'BOUTIQUE_EN_ATTENTE', label: 'Boutique en attente d\'approbation', audience: 'Administration', sample: () => ({ emailData: { store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
   { key: 'ABONNEMENT_ACTIVE', label: 'Abonnement activé', audience: 'Abonnement', sample: () => ({ emailData: { tier: 'Premium', duration: '30 jours' } }) },
   { key: 'ABONNEMENT_EXPIRANT', label: 'Abonnement qui expire', audience: 'Abonnement', sample: () => ({ emailData: { tier: 'Premium', days: 5 } }) },
   { key: 'ABONNEMENT_EXPIRE', label: 'Abonnement expiré', audience: 'Abonnement', sample: () => ({ emailData: { tier: 'Premium' } }) },
   { key: 'NOUVELLE_INSCRIPTION', label: 'Nouvelle inscription', audience: 'Administration', sample: () => ({ emailData: { name: 'Jean K.', email: 'jean@exemple.com' } }) },
   { key: 'PAIEMENT_INCIDENT', label: 'Paiement en erreur', audience: 'Administration', sample: () => ({ emailData: { tx: 'KK-88-2013', provider: 'Kkiapay' } }) },
-  { key: 'RECAP_VENTES_JOUR', label: 'Récap des ventes du jour', audience: 'Vendeur', sample: () => ({ emailData: { store: 'Ma Belle Boutique', count: 14, total: '185000' } }) },
-  { key: 'RAPPORT_VENDEUR_HEBDO', label: 'Rapport hebdomadaire vendeur', audience: 'Vendeur', sample: () => ({ emailData: { store: 'Ma Belle Boutique', count: 92, total: '1230000' } }) },
+  { key: 'RECAP_VENTES_JOUR', label: 'Récap des ventes du jour', audience: 'Vendeur', sample: () => ({ emailData: { store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', count: 14, total: '185000' } }) },
+  { key: 'RAPPORT_VENDEUR_HEBDO', label: 'Rapport hebdomadaire vendeur', audience: 'Vendeur', sample: () => ({ emailData: { store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', count: 92, total: '1230000' } }) },
   { key: 'RAPPORT_ADMIN', label: 'Rapport hebdomadaire plateforme', audience: 'Administration', sample: () => ({ emailData: { count: 812, total: '9875000', stores: 47, users: 1520 } }) },
   { key: 'BIENVENUE', label: 'Bienvenue', audience: 'Générique', sample: () => ({ title: 'Bienvenue sur PosMarket', body: 'Votre compte a été créé avec succès.' }) },
   { key: 'VERIFICATION_COMPTE_OK', label: 'Compte vérifié', audience: 'Générique', sample: () => ({ title: 'Compte vérifié', body: 'Votre compte a été vérifié avec succès.' }) },

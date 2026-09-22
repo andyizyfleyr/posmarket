@@ -207,7 +207,7 @@ export async function updateStoreApproval(storeId: string, status: string) {
         title: 'Boutique approuvée',
         body: `Félicitations ! Votre boutique « ${storeInfo?.name || ''} » a été approuvée et est maintenant en ligne sur la marketplace.`,
         templateParams: [storeInfo?.name || ''],
-        emailData: { store: storeInfo?.name || '' },
+        emailData: { store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
       });
     } else if (upper === 'REJECTED' || upper === 'REJETE') {
       const storeInfo = await getStorePhone(storeId);
@@ -219,7 +219,7 @@ export async function updateStoreApproval(storeId: string, status: string) {
         title: 'Boutique rejetée',
         body: `Votre boutique « ${storeInfo?.name || ''} » n'a pas été approuvée. Bonifiez votre présentation et soumettez-la à nouveau.`,
         templateParams: [storeInfo?.name || ''],
-        emailData: { store: storeInfo?.name || '' },
+        emailData: { store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
       });
     } else if (upper === 'PENDING') {
       const storeInfo = await getStorePhone(storeId);
@@ -231,7 +231,7 @@ export async function updateStoreApproval(storeId: string, status: string) {
           title: 'Boutique en attente d\'approbation',
           body: `La boutique « ${storeInfo?.name || '—'} » attend votre validation dans le panneau d'administration.`,
           templateParams: [storeInfo?.name || '—'],
-          emailData: { store: storeInfo?.name || '—' },
+          emailData: { store: storeInfo?.name || '—', storeSlug: storeInfo?.slug || '' },
         });
       }
     }

@@ -366,6 +366,7 @@ export async function processDueNotifications(): Promise<{ processed: number }> 
 
 export async function getStoreContact(storeId: string): Promise<{
   name: string;
+  slug: string;
   phone: string;
   email: string;
   ownerId: string | null;
@@ -373,6 +374,7 @@ export async function getStoreContact(storeId: string): Promise<{
   const [store] = await db
     .select({
       name: stores.name,
+      slug: stores.slug,
       phone: stores.phone,
       email: stores.email,
       settings: stores.settings,
@@ -385,13 +387,13 @@ export async function getStoreContact(storeId: string): Promise<{
   const settings = (store.settings || {}) as Record<string, unknown> | null;
   const phone = store.phone || (settings?.phone as string) || '';
   const email = store.email || (settings?.email as string) || '';
-  return { name: store.name, phone, email, ownerId: store.ownerId };
+  return { name: store.name, slug: store.slug || '', phone, email, ownerId: store.ownerId };
 }
 
-export async function getStorePhone(storeId: string): Promise<{ name: string; phone: string; email: string; ownerId: string | null } | null> {
+export async function getStorePhone(storeId: string): Promise<{ name: string; slug: string; phone: string; email: string; ownerId: string | null } | null> {
   const contact = await getStoreContact(storeId);
   if (!contact) return null;
-  return { name: contact.name, phone: contact.phone, email: contact.email, ownerId: contact.ownerId };
+  return { name: contact.name, slug: contact.slug, phone: contact.phone, email: contact.email, ownerId: contact.ownerId };
 }
 
 export async function getProfilePhone(userId: string): Promise<string> {
@@ -551,7 +553,7 @@ export async function sendPendingReviewRequests(): Promise<{ sent: number }> {
       title: 'Donnez votre avis',
       body: `Merci pour votre achat${contact ? ` chez ${contact.name}` : ''} ! Partagez votre expérience en laissant un avis sur vos produits.`,
       templateParams: [contact?.name || 'PosMarket'],
-      emailData: { order: shortId, store: contact?.name || '' },
+      emailData: { order: shortId, store: contact?.name || '', storeSlug: contact?.slug || '' },
       marker,
     });
     if (res.ok) sent++;
@@ -566,7 +568,7 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
   today.setHours(0, 0, 0, 0);
   const marker = `day-${today.toISOString().slice(0, 10)}`;
 
-  const storeRows = await db.select({ id: stores.id, name: stores.name }).from(stores).where(eq(stores.status, 'APPROVED'));
+  const storeRows = await db.select({ id: stores.id, name: stores.name, slug: stores.slug }).from(stores).where(eq(stores.status, 'APPROVED'));
   let sent = 0;
   for (const store of storeRows) {
     const [agg] = await db
@@ -592,7 +594,7 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
         title: `Récap des ventes — ${store.name}`,
         body: `Ventes du jour chez ${store.name} : ${count} commande(s) pour ${totalStr} FCFA.`,
         templateParams: [store.name, String(count), totalStr],
-        emailData: { store: store.name, count, total: totalStr },
+        emailData: { store: store.name, storeSlug: store.slug, count, total: totalStr },
         marker: `${marker}-${store.id.slice(0, 8)}`,
       });
       if (res.ok) sent++;
@@ -609,7 +611,7 @@ export async function sendWeeklyVendorReports(): Promise<{ sent: number }> {
   const marker = `week-${now.toISOString().slice(0, 10)}`;
 
   const storeRows = await db
-    .select({ id: stores.id, name: stores.name, userId: stores.userId, email: stores.email, settings: stores.settings })
+    .select({ id: stores.id, name: stores.name, slug: stores.slug, userId: stores.userId, email: stores.email, settings: stores.settings })
     .from(stores)
     .where(eq(stores.status, 'APPROVED'));
   let sent = 0;
@@ -638,7 +640,7 @@ export async function sendWeeklyVendorReports(): Promise<{ sent: number }> {
       title: `Votre rapport hebdomadaire — ${store.name}`,
       body: `La semaine dernière, ${store.name} a généré ${totalStr} FCFA sur ${count} commande(s). Bonne lancée !`,
       templateParams: [store.name, String(count), totalStr],
-      emailData: { store: store.name, count, total: totalStr },
+      emailData: { store: store.name, storeSlug: store.slug, count, total: totalStr },
       marker: `${marker}-${store.id.slice(0, 8)}`,
     });
     if (res.ok) sent++;
