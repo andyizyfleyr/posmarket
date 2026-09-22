@@ -11,7 +11,7 @@ import {
   systemSettings,
 } from '@/db/schema';
 import { isWhatsAppConfigured, sendWhatsAppTemplate, sendWhatsAppText, toE164 } from '@/lib/whatsapp';
-import { isEmailConfigured, sendEmail, renderEmailEvent } from '@/lib/email';
+import { isEmailConfigured, sendEmail, renderEmailEvent, type ProductEmailItem } from '@/lib/email';
 import { COUNTRIES } from '@/constants/countries';
 import { NotificationEvent } from '@/types';
 
@@ -169,7 +169,7 @@ export interface NotifyInput {
   /** paramètres du template, ordre = ordre des {{1}}, {{2}}... dans le template */
   templateParams?: string[];
   /** Données structurées pour le rendu EMAIL uniquement (champs typés par événement, voir src/lib/email.ts). */
-  emailData?: Record<string, string | number | null | undefined>;
+  emailData?: Record<string, string | number | null | undefined | ProductEmailItem[]>;
   /** pour RELANCE_PANIER_ABANDONNE etc. */
   scheduledAt?: Date;
   /** clé de déduplication pour les jobs planifiés (stockée dans params des lignes email) */
@@ -274,9 +274,9 @@ async function deliverOutboxRow(id: string): Promise<{ ok: boolean }> {
 
   if (row.provider === 'email') {
     const raw = row.params;
-    let emailData: Record<string, string | number | null | undefined> = {};
+    let emailData: Record<string, string | number | null | undefined | ProductEmailItem[]> = {};
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      emailData = ((raw as { d?: Record<string, string | number | null | undefined> }).d || {});
+      emailData = ((raw as { d?: Record<string, string | number | null | undefined | ProductEmailItem[]> }).d || {});
     }
     const rendered = await renderEmailEvent(row.eventType, {
       title: row.title || undefined,

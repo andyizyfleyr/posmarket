@@ -8,6 +8,7 @@ import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales } from '@/db/api'
 import { notify, getStorePhone, notifyStaff } from '@/lib/notifications'
+import { orderEmailProducts } from '@/lib/email'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { generateProductSlug } from '@/utils/slug'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
@@ -337,6 +338,7 @@ export async function submitCheckoutAction(
         const buyerName = customer.name || String(customer.email || '').split('@')[0] || 'Client';
         const paymentMethod = storeOrder?.paymentMethod || 'ESPECES';
         const storeDisplayName = storeInfo?.name || 'boutique';
+        const emailProducts = await orderEmailProducts(newOrder.id);
 
         if (storeInfo?.phone) {
           await notify({
@@ -347,7 +349,7 @@ export async function submitCheckoutAction(
             title: 'Nouvelle commande',
             body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
             templateParams: [shortId, buyerName, totalStr],
-            emailData: { order: shortId, buyer: buyerName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
+            emailData: { order: shortId, buyer: buyerName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
           });
           if (customerCreated) {
             await notify({
@@ -367,7 +369,7 @@ export async function submitCheckoutAction(
           title: 'Commande à préparer',
           body: `La commande #${shortId} de ${buyerName} (${totalStr} FCFA) est en attente de préparation.`,
           templateParams: [shortId, buyerName, totalStr],
-          emailData: { order: shortId, buyer: buyerName, total: totalStr, items: items.length, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
+          emailData: { order: shortId, buyer: buyerName, total: totalStr, items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
         }).catch(() => {});
 
         const buyerEmail = customer.email || user?.email || '';
@@ -380,7 +382,7 @@ export async function submitCheckoutAction(
             title: 'Commande confirmée',
             body: `Votre commande #${shortId} chez ${storeDisplayName} est confirmée. Total : ${totalStr} FCFA.`,
             templateParams: [shortId, storeDisplayName, totalStr],
-            emailData: { order: shortId, store: storeDisplayName, storeSlug: storeInfo?.slug || '', total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: items.length },
+            emailData: { order: shortId, store: storeDisplayName, storeSlug: storeInfo?.slug || '', total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, products: emailProducts },
           });
           if (paymentMethod === 'CARTE') {
             await notify({
@@ -391,7 +393,7 @@ export async function submitCheckoutAction(
               title: 'Reçu de paiement',
               body: `Paiement de ${totalStr} FCFA reçu pour la commande #${shortId}.`,
               templateParams: [totalStr, shortId],
-              emailData: { order: shortId, total: totalStr },
+              emailData: { order: shortId, total: totalStr, products: emailProducts },
             });
           }
         }
