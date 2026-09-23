@@ -53,25 +53,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account, email }) {
       if (!user?.email) return false;
       try {
-        // Séparation stricte des rôles : si une intention (page vendeur /
-        // acheteur) est en cours et qu'un compte existe déjà avec un autre
-        // type, on refuse la connexion (Google, ou endpoint email sollicité
-        // directement) et on laisse un motif lisible par /auth/error.
+        // Séparation stricte des rôles : l'intention (page vendeur/acheteur)
+        // ne s'applique qu'au moment de la DEMANDE (envoi du lien email, ou
+        // retour Google). Au clic sur un lien email, on ne re-vérifie PAS
+        // l'intention : celle-ci aurait pu être remplacée entre-temps par une
+        // autre tentative (espace client), ce qui bloquerait à tort un lien
+        // vendeur légitimement demandé. La demande est déjà protégée par les
+        // actions (sendMagicLinkForSeller/Buyer) et Google par le contrôle
+        // ci-dessous.
+        const isEmailRequest =
+          account?.provider === 'email' && email?.verificationRequest === true;
         const intent = await readAuthIntent();
-        if (intent?.intent) {
-          const existing = await findProfileForAuth(user.email);
-          const existingType = existing ? existing.accountType || 'buyer' : null;
-          if (existing && existingType !== intent.intent) {
-            const isAdminLike = existing.accountType === 'admin' || existing.isSuperAdmin;
-            const code = isAdminLike
-              ? 'admin'
-              : existingType === 'buyer'
-                ? 'buyer'
-                : existingType === 'seller'
-                  ? 'seller'
-                  : 'other';
-            await setAuthRoleErrorCookie(code);
-            return false;
+        if (account?.provider === 'google' || isEmailRequest) {
+          if (intent?.intent) {
+            const existing = await findProfileForAuth(user.email);
+            const existingType = existing ? existing.accountType || 'buyer' : null;
+            if (existing && existingType !== intent.intent) {
+              const isAdminLike = existing.accountType === 'admin' || existing.isSuperAdmin;
+              const code = isAdminLike
+                ? 'admin'
+                : existingType === 'buyer'
+                  ? 'buyer'
+                  : existingType === 'seller'
+                    ? 'seller'
+                    : 'other';
+              await setAuthRoleErrorCookie(code);
+              return false;
+            }
           }
         }
         // `verificationRequest` n'est présent que lors de la DEMANDE de lien ;

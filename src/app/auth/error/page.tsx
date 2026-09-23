@@ -64,16 +64,10 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
   const roleCfg = roleError ? ROLE_CONFIG[roleError] : null;
   const variant = roleCfg ? 'Role' : getVariant(error || 'Default');
 
-  const config: Record<
+  const base: Record<
     string,
     { icon: typeof ShieldAlert; title: string; message: string; showLogin: boolean }
   > = {
-    Role: {
-      icon: roleCfg!.icon,
-      title: roleCfg!.title,
-      message: roleCfg!.message,
-      showLogin: true,
-    },
     Verification: {
       icon: Link2Off,
       title: 'Lien invalide ou expiré',
@@ -115,6 +109,18 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
       showLogin: true,
     },
   };
+
+  const config = roleCfg
+    ? {
+        ...base,
+        Role: {
+          icon: roleCfg.icon,
+          title: roleCfg.title,
+          message: roleCfg.message,
+          showLogin: true,
+        },
+      }
+    : base;
 
   const { icon: Icon, title, message, showLogin } = config[variant] ?? config.Default;
   const toPam = roleCfg?.toPam === true;
