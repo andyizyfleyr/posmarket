@@ -146,15 +146,21 @@ type StaffInput = {
 
 export async function addStaffAction(staff: StaffInput, storeId: string) {
     try {
-        const email = staff?.email;
+        const email = String(staff?.email || '').trim().toLowerCase();
         if (!email) return { success: false, error: 'Email manquant' };
 
-        let [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+        const [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
         if (!profile) {
-            [profile] = await db.insert(profiles).values({
-                email,
-                fullName: email.split('@')[0] || 'Employé',
-            }).returning();
+            return {
+                success: false,
+                error: "Aucun compte n'est associé à cet email. L'employé doit d'abord créer son compte avant d'être ajouté à votre équipe.",
+            };
+        }
+        if (profile.accountType === 'buyer' && !profile.isSuperAdmin) {
+            return {
+                success: false,
+                error: "Cet email est associé à un compte acheteur. L'employé doit disposer d'un compte vendeur pour accéder au POS.",
+            };
         }
 
         await db.insert(storeStaff).values({

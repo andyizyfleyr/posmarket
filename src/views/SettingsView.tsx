@@ -159,7 +159,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
     const [isSubmittingStaff, setIsSubmittingStaff] = useState(false);
     const [newStaffEmail, setNewStaffEmail] = useState('');
-    const [newStaffPassword, setNewStaffPassword] = useState('');
     const [profileName, setProfileName] = useState(userName || '');
     const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
@@ -273,13 +272,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const handleSubmitStaff = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!newStaffEmail || !newStaffPassword) {
-            if (notify) notify("Email et mot de passe sont requis", 'error');
-            return;
-        }
-        
-        if (newStaffPassword.length < 6) {
-            if (notify) notify("Le mot de passe doit contenir au moins 6 caractères", 'error');
+        if (!newStaffEmail) {
+            if (notify) notify("L'email de l'employé est requis", 'error');
             return;
         }
         
@@ -287,7 +281,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         try {
             const result = await addStaffAction({
                 email: newStaffEmail,
-                password: newStaffPassword,
                 role: newStaffRole
             }, selectedStoreId);
             
@@ -295,7 +288,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 if (notify) notify("Employé ajouté avec succès", 'success');
                 setIsStaffModalOpen(false);
                 setNewStaffEmail('');
-                setNewStaffPassword('');
                 router.refresh();
             } else {
                 if (notify) notify(result.error || "Erreur lors de l'ajout", 'error');
@@ -780,13 +772,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <div className="p-6 md:p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div>
                                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Nouvel Employé</h2>
-                                <p className="text-xs text-gray-500 mt-1">Créez un accès sécurisé pour votre équipe.</p>
+                                <p className="text-xs text-gray-500 mt-1">Ajoutez un membre de votre équipe à cette boutique.</p>
                             </div>
                             <button onClick={() => setIsStaffModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-white rounded-xl transition-all"><X size={24} /></button>
                         </div>
                         <form onSubmit={handleSubmitStaff} className="p-6 md:p-8 space-y-5 md:space-y-6 overflow-y-auto custom-scrollbar">
                             <div className="space-y-1.5">
-                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Email de l&apos;employé</label>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Email de l&apos;employé</label>
                                 <div className="relative group">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
                                     <input
@@ -797,20 +789,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         placeholder="exemple@boutique.com"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Mot de passe provisoire</label>
-                                <div className="relative group">
-                                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
-                                    <input
-                                        required type="password"
-                                        value={newStaffPassword}
-                                        onChange={e => setNewStaffPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
-                                        placeholder="Min 6 caractères"
-                                    />
-                                </div>
+                                <p className="text-[11px] text-gray-400 font-medium px-1">L&apos;employé doit avoir déjà créé son compte (connexion par lien email).</p>
                             </div>
 
                             {stores.length > 1 && (
