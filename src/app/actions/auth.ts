@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { signIn, signOut } from '@/auth';
-import { setAuthIntentCookie } from '@/lib/auth-signin';
+import { setAuthIntentCookie, googleErrorToMessage } from '@/lib/auth-signin';
 
 async function sendMagicLinkForSeller(opts: { email?: string; name?: string; target: string }) {
   const email = String(opts.email || '').trim().toLowerCase();
@@ -42,13 +42,18 @@ export async function signupAction(formData: FormData) {
 }
 
 export async function googleSignInAction(callbackUrl?: string) {
-  const target = typeof callbackUrl === 'string' && callbackUrl.startsWith('/')
-    ? callbackUrl
-    : '/dashboard';
+  const target =
+    typeof callbackUrl === 'string' && callbackUrl.startsWith('/')
+      ? callbackUrl
+      : '/dashboard';
   await setAuthIntentCookie({ intent: 'seller' });
   const result = await signIn('google', { redirect: false, callbackUrl: target });
-  const url = result?.url || '/dashboard';
-  redirect(url);
+  if (!result?.url) {
+    const code = (result as { code?: string } | null | undefined)?.code;
+    return { error: googleErrorToMessage(code) };
+  }
+  // Navigation externe : emmène l'utilisateur vers l'écran Google.
+  redirect(result.url);
 }
 
 export async function logoutAction() {

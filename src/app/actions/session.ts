@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 import { auth, signIn, signOut } from '@/auth';
-import { serializeProfile, setAuthIntentCookie } from '@/lib/auth-signin';
+import { serializeProfile, setAuthIntentCookie, googleErrorToMessage } from '@/lib/auth-signin';
 
 export async function getCurrentSession() {
   let session = null;
@@ -71,12 +71,18 @@ export async function signOutSession() {
 }
 
 export async function googleBuyerSignInAction(callbackUrl?: string) {
-  const target = typeof callbackUrl === 'string' && callbackUrl.startsWith('/')
-    ? callbackUrl
-    : '/';
+  const target =
+    typeof callbackUrl === 'string' && callbackUrl.startsWith('/')
+      ? callbackUrl
+      : '/';
   await setAuthIntentCookie({ intent: 'buyer' });
   const result = await signIn('google', { redirect: false, callbackUrl: target });
-  redirect(result?.url || '/');
+  if (!result?.url) {
+    const code = (result as { code?: string } | null | undefined)?.code;
+    return { error: googleErrorToMessage(code) };
+  }
+  // Navigation externe : emmène l'utilisateur vers l'écran Google.
+  redirect(result.url);
 }
 
 export async function setSessionUser(_userId: string | null) {

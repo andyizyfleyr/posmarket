@@ -131,6 +131,25 @@ export async function ensureAuthProfile(opts: {
   return created;
 }
 
+/** Traduit les codes d'erreur OAuth Google d'Auth.js en messages français. */
+export function googleErrorToMessage(code?: string): string {
+  switch (code) {
+    case 'OAuthAccountNotLinked':
+      return 'Un compte PosMarket existe déjà avec cet email. Connectez-vous d’abord avec le lien envoyé par email, puis reliez votre compte Google depuis votre profil.';
+    case 'OAuthSignin':
+    case 'OAuthCallback':
+    case 'OAuthCreateAccount':
+    case 'CallbackRouteError':
+      return 'Google n’a pas pu valider la connexion. Réessayez ou utilisez le lien email.';
+    case 'AccessDenied':
+      return 'Accès refusé par Google.';
+    case 'Configuration':
+      return 'La connexion Google n’est pas configurée correctement. Contactez le support.';
+    default:
+      return 'Impossible de se connecter avec Google pour le moment.';
+  }
+}
+
 /** Enregistre le lien Google (providerAccountId) sur un profil existant. */
 export async function linkGoogleAccount(opts: {
   userId: string;
