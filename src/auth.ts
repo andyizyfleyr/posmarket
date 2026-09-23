@@ -40,7 +40,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'jwt', maxAge: SESSION_MAX_AGE, updateAge: 24 * 60 * 60 },
   adapter: authAdapter,
   providers,
+  // IMPORTANT : `...authConfig` remplace `callbacks` en bloc au niveau racine.
+  // On fusionne explicitement `session` d'authConfig avec signIn/jwt ci-dessous.
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account, email }) {
       if (!user?.email) return false;
       try {
