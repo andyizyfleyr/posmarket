@@ -67,12 +67,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     async jwt({ token, user }) {
-      if (user?.id) {
+      // Rafraîchit TOUJOURS les claims depuis la base (token.sub/id même en
+      // lecture de session) : un JWT émis avant un changement d'account_type
+      // (ou modifié par l'admin) se corrige sans reconnexion.
+      const userId = String(user?.id ?? token.id ?? token.sub ?? '');
+      if (userId) {
         try {
           const [profile] = await db
             .select()
             .from(profiles)
-            .where(eq(profiles.id, String(user.id)))
+            .where(eq(profiles.id, userId))
             .limit(1);
           if (profile) {
             token.id = profile.id;
