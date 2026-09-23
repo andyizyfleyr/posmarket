@@ -349,7 +349,7 @@ export async function submitCheckoutAction(
             title: 'Nouvelle commande',
             body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
             templateParams: [shortId, buyerName, totalStr],
-            emailData: { order: shortId, buyer: buyerName, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
+            emailData: { order: shortId, buyer: buyerName, phone: customer.phone || phone || undefined, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
           });
           if (customerCreated) {
             await notify({
@@ -369,7 +369,7 @@ export async function submitCheckoutAction(
           title: 'Commande à préparer',
           body: `La commande #${shortId} de ${buyerName} (${totalStr} FCFA) est en attente de préparation.`,
           templateParams: [shortId, buyerName, totalStr],
-          emailData: { order: shortId, buyer: buyerName, total: totalStr, items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
+          emailData: { order: shortId, buyer: buyerName, phone: customer.phone || phone || undefined, total: totalStr, items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
         }).catch(() => {});
 
         const buyerEmail = customer.email || user?.email || '';

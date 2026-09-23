@@ -172,10 +172,6 @@ export interface ProductEmailItem {
   unit?: string;
   /** détail court : variante, options, format... */
   detail?: string;
-  /** prix de gros formaté (nombre, sans "FCFA") */
-  wholesale?: string;
-  /** quantité minimale pour le prix de gros */
-  wholesaleQty?: number;
 }
 
 export interface RenderInput {
@@ -395,7 +391,6 @@ const productRow = (it: ProductEmailItem, last: boolean): string => {
             <td valign="middle" style="overflow:hidden;padding:0 12px 0 0;color:#202124;font-size:14px;font-weight:600;line-height:1.4;">
               ${nameCell}
               ${it.detail ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:3px;word-break:break-word;">${esc(it.detail)}</div>` : ''}
-              ${it.wholesale ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:2px;">Prix de gros : ${esc(it.wholesale)} FCFA${it.wholesaleQty ? ` dès ${esc(String(it.wholesaleQty))}` : ''}</div>` : ''}
               ${href ? `<div style="margin-top:6px;"><a href="${href}" style="color:#1A73E8;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Voir →</a></div>` : ''}
             </td>
             <td valign="top" align="right" style="color:#202124;font-size:14px;font-weight:700;white-space:nowrap;line-height:1.4;padding-left:8px;padding-top:2px;">
@@ -433,19 +428,12 @@ export async function orderEmailProducts(orderId: string): Promise<ProductEmailI
         unit: products.unit,
         options: products.options,
         variants: products.variants,
-        wholesalePrice: products.wholesalePrice,
-        wholesaleMinQty: products.wholesaleMinQty,
-        wholesaleTiers: products.wholesaleTiers,
       })
       .from(orderItems)
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, orderId));
     const fmt = (n: string | number | null | undefined): string => new Intl.NumberFormat('fr-FR').format(Number(n) || 0);
     const out = rows.map((r) => {
-      const tiers = Array.isArray(r.wholesaleTiers) ? (r.wholesaleTiers as Array<{ minQty?: number; price?: number }>) : [];
-      const firstTier = tiers.find((t) => t && typeof t === 'object');
-      const wholesalePrice = Number(r.wholesalePrice || firstTier?.price || 0);
-      const wholesaleMin = Number(r.wholesaleMinQty || firstTier?.minQty || 0);
       const name = r.name || 'Article supprimé';
       const variants = Array.isArray(r.variants) ? (r.variants as Array<{ name?: string }>) : [];
       const detailBits: string[] = [];
@@ -465,8 +453,6 @@ export async function orderEmailProducts(orderId: string): Promise<ProductEmailI
         qty: Number(r.quantity) || 1,
         unit: r.unit || undefined,
         detail: detailBits.filter(Boolean).join(' · ') || undefined,
-        wholesale: wholesalePrice > 0 ? fmt(wholesalePrice) : undefined,
-        wholesaleQty: wholesaleMin > 0 ? wholesaleMin : undefined,
       };
     });
     // Fusionne les lignes pour un même produit (même commande, produit répété) :
@@ -602,7 +588,7 @@ ${productList(d.products)}
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.bell, `Nouvelle commande #${d.order}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${d.buyer || 'un client'} est arrivée.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Paiement', d.paymentLabel]])}
+      ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total à encaisser', money(d.total))}
       ${CTA(`${siteUrl()}/orders`, 'Préparer la commande')}
       ${note('Pensez à notifier le client dès que la commande est prête.')}`);
@@ -612,7 +598,7 @@ ${productList(d.products)}
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.bell, `Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande #${d.order} de ${d.buyer || 'un client'} attend sa préparation.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Client', d.buyer]])}
+      ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone]])}
       ${summaryLine('Total à encaisser', money(d.total))}
       ${CTA(`${siteUrl()}/orders`, 'Préparer le colis')}
       ${note('Marquez la commande comme prête dès que le colis est emballé.')}`);
@@ -789,16 +775,16 @@ export interface EmailTestEvent {
 }
 
 const EMAIL_TEST_EVENTS: EmailTestEvent[] = [
-  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2, unit: 'bouteille', detail: 'Variante : 1L', wholesale: '2 300', wholesaleQty: 10 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1, unit: 'sac', detail: 'Unité : sac' }] } }) },
+  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2, unit: 'bouteille', detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1, unit: 'sac', detail: 'Unité : sac' }] } }) },
   { key: 'COMMANDE_PRET', label: 'Commande prête à récupérer', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'COMMANDE_EXPEDIEE', label: 'Commande expédiée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
-  { key: 'COMMANDE_LIVREE', label: 'Commande livrée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2, wholesale: '2 300', wholesaleQty: 10 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1 }] } }) },
+  { key: 'COMMANDE_LIVREE', label: 'Commande livrée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1 }] } }) },
   { key: 'COMMANDE_ANNULEE', label: 'Commande annulée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'RECU_PAIEMENT', label: 'Reçu de paiement', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', total: '12000' } }) },
   { key: 'DEMANDE_AVIS', label: 'Demande d\'avis', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'RELANCE_PANIER_ABANDONNE', label: 'Panier abandonné', audience: 'Acheteur', sample: () => ({ emailData: { name: 'Awa', items: 2, total: '7500', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
-  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, payment: 'CARTE', paymentLabel: 'Carte', products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L', wholesale: '2 300', wholesaleQty: 10 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
-  { key: 'COMMANDE_A_PREPARER', label: 'Commande à préparer', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
+  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, payment: 'CARTE', paymentLabel: 'Carte', products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
+  { key: 'COMMANDE_A_PREPARER', label: 'Commande à préparer', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'VENTE_POS', label: 'Vente en boutique (POS)', audience: 'Vendeur', sample: () => ({ emailData: { order: '1043', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '2500', payment: 'ESPECES', paymentLabel: 'Espèces', items: 1, products: [{ name: 'Gâteau 100 F', slug: 'gateau-100-f-9f0e1d', price: '100', qty: 25, unit: 'piece', detail: 'Variante : Petite taille' }] } }) },
   { key: 'NOUVEAU_CLIENT', label: 'Nouveau client', audience: 'Vendeur', sample: () => ({ emailData: { buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
   { key: 'RUPTURE_STOCK', label: 'Rupture de stock', audience: 'Vendeur', sample: () => ({ emailData: { product: 'Huile d\'arachide 1L', productSlug: 'huile-d-arachide-1l-1a2b3c', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
