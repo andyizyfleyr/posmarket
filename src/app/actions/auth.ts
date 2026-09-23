@@ -3,12 +3,29 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { signIn, signOut } from '@/auth';
-import { setAuthIntentCookie, googleErrorToMessage } from '@/lib/auth-signin';
+import { setAuthIntentCookie, googleErrorToMessage, findProfileForAuth } from '@/lib/auth-signin';
 
-async function sendMagicLinkForSeller(opts: { email?: string; name?: string; target: string }) {
+async function sendMagicLinkForSeller(opts: {
+  email?: string;
+  name?: string;
+  target: string;
+  register: boolean;
+}) {
   const email = String(opts.email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) {
     return { error: 'Adresse email invalide.' };
+  }
+  const account = await findProfileForAuth(email).catch(() => null);
+  if (!opts.register && !account) {
+    return { error: 'Aucun compte commerçant n’est associé à cet email. Créez votre compte.' };
+  }
+  if (opts.register && account) {
+    return { error: 'Un compte existe déjà avec cet email. Connectez-vous.' };
+  }
+  if (!opts.register && account && account.accountType === 'buyer' && !account.isSuperAdmin) {
+    return {
+      error: 'Cet email est associé à un compte acheteur. Connectez-vous depuis l’espace client.',
+    };
   }
   await setAuthIntentCookie({ intent: 'seller', name: opts.name?.trim() || undefined });
   const result = await signIn('email', { email, redirect: false, callbackUrl: opts.target });
@@ -20,7 +37,7 @@ async function sendMagicLinkForSeller(opts: { email?: string; name?: string; tar
 
 export async function loginAction(formData: FormData) {
   const email = String((formData.get('email') as string) || '').trim().toLowerCase();
-  const result = await sendMagicLinkForSeller({ email, target: '/dashboard' });
+  const result = await sendMagicLinkForSeller({ email, target: '/dashboard', register: false });
   if ('error' in result) {
     return { error: result.error };
   }
@@ -34,7 +51,7 @@ export async function signupAction(formData: FormData) {
   if (!name) {
     return { error: 'Veuillez saisir votre nom complet.' };
   }
-  const result = await sendMagicLinkForSeller({ email, name, target: '/subscription' });
+  const result = await sendMagicLinkForSeller({ email, name, target: '/subscription', register: true });
   if ('error' in result) {
     return { error: result.error };
   }

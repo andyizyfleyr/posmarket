@@ -86,6 +86,28 @@ async function notifyNewSeller(profile: { fullName: string | null; email: string
 }
 
 /**
+ * Retrouve le profil par email (tous types de comptes confondus), réduit aux
+ * champs utiles pour les vérifications d'authentification.
+ */
+export async function findProfileForAuth(
+  email?: string | null,
+): Promise<{ id: string; accountType: string; isSuperAdmin: boolean } | null> {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean || !clean.includes('@')) return null;
+  const [p] = await db
+    .select({ id: profiles.id, accountType: profiles.accountType, isSuperAdmin: profiles.isSuperAdmin })
+    .from(profiles)
+    .where(eq(profiles.email, clean))
+    .limit(1);
+  if (!p) return null;
+  return {
+    id: p.id,
+    accountType: p.accountType || 'buyer',
+    isSuperAdmin: p.isSuperAdmin,
+  };
+}
+
+/**
  * Retrouve le profil par email, le crée si besoin (type selon l'intention
  * buyer/seller capturée à la demande), et horodate emailVerified à la
  * validation du lien (ou au passage OAuth).

@@ -6,7 +6,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 import { auth, signIn, signOut } from '@/auth';
-import { serializeProfile, setAuthIntentCookie, googleErrorToMessage } from '@/lib/auth-signin';
+import {
+  serializeProfile,
+  setAuthIntentCookie,
+  googleErrorToMessage,
+  findProfileForAuth,
+} from '@/lib/auth-signin';
 
 export async function getCurrentSession() {
   let session = null;
@@ -29,10 +34,24 @@ export async function getCurrentSession() {
   return { user: serializeProfile(profile) };
 }
 
-async function sendMagicLinkForBuyer(opts: { email?: string; name?: string }): Promise<{ user: null; error: string | null; sent?: boolean }> {
+async function sendMagicLinkForBuyer(opts: {
+  email?: string;
+  name?: string;
+  register: boolean;
+}): Promise<{ user: null; error: string | null; sent?: boolean }> {
   const email = String(opts.email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) {
     return { user: null, error: 'Adresse email invalide.' };
+  }
+  const account = await findProfileForAuth(email).catch(() => null);
+  if (opts.register && account) {
+    return { user: null, error: 'Un compte existe déjà avec cet email. Connectez-vous.' };
+  }
+  if (!opts.register && !account) {
+    return {
+      user: null,
+      error: 'Aucun compte n’est associé à cet email. Créez votre compte pour continuer.',
+    };
   }
   await setAuthIntentCookie({ intent: 'buyer', name: opts.name?.trim() || undefined });
   try {
@@ -50,11 +69,11 @@ async function sendMagicLinkForBuyer(opts: { email?: string; name?: string }): P
 }
 
 export async function signInWithPasswordSession(email: string) {
-  return sendMagicLinkForBuyer({ email });
+  return sendMagicLinkForBuyer({ email, register: false });
 }
 
 export async function signUpSession(name: string, email: string) {
-  return sendMagicLinkForBuyer({ email, name });
+  return sendMagicLinkForBuyer({ email, name, register: true });
 }
 
 export async function signOutSession() {
