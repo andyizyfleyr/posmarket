@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ShieldAlert, Link2Off, KeyRound, Lock, Globe } from 'lucide-react';
+import { readAuthRoleError, clearAuthRoleError } from '@/lib/auth-signin';
 
 interface AuthErrorPageProps {
   searchParams: Promise<{ error?: string }>;
@@ -13,6 +14,40 @@ const GENERIC_OAUTH_CODES = [
   'OAuthTokenRequestError',
 ];
 
+const ROLE_CONFIG: Record<
+  string,
+  { icon: typeof Lock; title: string; message: string; toPam: boolean }
+> = {
+  admin: {
+    icon: Lock,
+    title: 'Compte administrateur',
+    message:
+      'Cet email est associé à un compte administrateur. Utilisez l’espace d’administration (PAM) pour gérer la plateforme.',
+    toPam: true,
+  },
+  buyer: {
+    icon: Lock,
+    title: 'Compte acheteur',
+    message:
+      'Cet email est associé à un compte acheteur. Pour vos achats, connectez-vous depuis l’espace client de la marketplace.',
+    toPam: false,
+  },
+  seller: {
+    icon: Lock,
+    title: 'Compte commerçant',
+    message:
+      'Cet email est associé à un compte commerçant. Pour gérer vos boutiques, connectez-vous depuis l’espace vendeur.',
+    toPam: false,
+  },
+  other: {
+    icon: Lock,
+    title: 'Accès refusé',
+    message:
+      'Ce compte ne peut pas être utilisé dans cet espace. Utilisez l’espace correspondant à votre rôle.',
+    toPam: false,
+  },
+};
+
 function getVariant(code: string): string {
   if (code === 'Verification') return 'Verification';
   if (code === 'OAuthAccountNotLinked') return 'AccountNotLinked';
@@ -24,12 +59,21 @@ function getVariant(code: string): string {
 
 export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps) {
   const { error } = await searchParams;
-  const variant = getVariant(error || 'Default');
+  const roleError = await readAuthRoleError();
+  if (roleError) await clearAuthRoleError();
+  const roleCfg = roleError ? ROLE_CONFIG[roleError] : null;
+  const variant = roleCfg ? 'Role' : getVariant(error || 'Default');
 
   const config: Record<
     string,
     { icon: typeof ShieldAlert; title: string; message: string; showLogin: boolean }
   > = {
+    Role: {
+      icon: roleCfg!.icon,
+      title: roleCfg!.title,
+      message: roleCfg!.message,
+      showLogin: true,
+    },
     Verification: {
       icon: Link2Off,
       title: 'Lien invalide ou expiré',
@@ -73,6 +117,7 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
   };
 
   const { icon: Icon, title, message, showLogin } = config[variant] ?? config.Default;
+  const toPam = roleCfg?.toPam === true;
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6 font-sans">
@@ -90,6 +135,14 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
+          {toPam && (
+            <Link
+              href="/pam/login"
+              className="flex-1 inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold bg-[#f56b2a] text-white rounded-full hover:bg-[#e55a1b] transition-all shadow-md shadow-orange-100"
+            >
+              Espace admin
+            </Link>
+          )}
           {showLogin && (
             <Link
               href="/login"
@@ -101,7 +154,7 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
           <Link
             href="/"
             className={`${
-              showLogin ? 'flex-1' : 'w-full'
+              showLogin || toPam ? 'flex-1' : 'w-full'
             } inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold bg-white text-gray-900 border border-gray-100 rounded-full hover:bg-gray-50 transition-all shadow-sm`}
           >
             Retour à l’accueil

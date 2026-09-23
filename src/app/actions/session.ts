@@ -53,6 +53,16 @@ async function sendMagicLinkForBuyer(opts: {
       error: 'Aucun compte n’est associé à cet email. Créez votre compte pour continuer.',
     };
   }
+  // Séparation stricte : l'espace client n'accepte que les comptes acheteur.
+  if (!opts.register && account && account.accountType !== 'buyer') {
+    const isAdmin = account.accountType === 'admin' || account.isSuperAdmin;
+    return {
+      user: null,
+      error: isAdmin
+        ? 'Cet email est associé à un compte administrateur. Connectez-vous depuis l’espace admin.'
+        : 'Cet email est associé à un compte commerçant. Connectez-vous depuis l’espace vendeur.',
+    };
+  }
   await setAuthIntentCookie({ intent: 'buyer', name: opts.name?.trim() || undefined });
   try {
     const result = await signIn('email', { email, redirect: false, callbackUrl: '/' });

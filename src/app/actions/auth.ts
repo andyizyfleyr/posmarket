@@ -22,9 +22,12 @@ async function sendMagicLinkForSeller(opts: {
   if (opts.register && account) {
     return { error: 'Un compte existe déjà avec cet email. Connectez-vous.' };
   }
-  if (!opts.register && account && account.accountType === 'buyer' && !account.isSuperAdmin) {
+  if (!opts.register && account && account.accountType !== 'seller') {
+    const isAdmin = account.accountType === 'admin' || account.isSuperAdmin;
     return {
-      error: 'Cet email est associé à un compte acheteur. Connectez-vous depuis l’espace client.',
+      error: isAdmin
+        ? 'Cet email est associé à un compte administrateur. Connectez-vous depuis l’espace admin.'
+        : 'Cet email est associé à un compte acheteur. Connectez-vous depuis l’espace client.',
     };
   }
   await setAuthIntentCookie({ intent: 'seller', name: opts.name?.trim() || undefined });

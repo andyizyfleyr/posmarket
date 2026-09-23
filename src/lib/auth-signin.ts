@@ -53,6 +53,42 @@ export async function readAuthIntent(): Promise<AuthIntent | null> {
   }
 }
 
+/**
+ * Cookie portant le motif d'un refus lié au rôle (compte existant dont le type
+ * ne correspond pas à l'espace demandé). Lu une seule fois par la page
+ * /auth/error pour afficher un message français explicite.
+ */
+export const AUTH_ROLE_ERROR_COOKIE = 'auth_role_error';
+export type AuthRoleErrorCode = 'buyer' | 'seller' | 'admin' | 'other';
+
+export async function setAuthRoleErrorCookie(code: AuthRoleErrorCode): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(AUTH_ROLE_ERROR_COOKIE, code, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 5,
+  });
+}
+
+export async function readAuthRoleError(): Promise<AuthRoleErrorCode | null> {
+  try {
+    const cookieStore = await cookies();
+    const code = cookieStore.get(AUTH_ROLE_ERROR_COOKIE)?.value;
+    return code === 'buyer' || code === 'seller' || code === 'admin' || code === 'other'
+      ? code
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearAuthRoleError(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(AUTH_ROLE_ERROR_COOKIE);
+}
+
 async function notifyNewSeller(profile: { fullName: string | null; email: string }): Promise<void> {
   const name = profile.fullName || profile.email.split('@')[0];
   try {

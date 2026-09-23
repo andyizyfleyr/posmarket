@@ -8,7 +8,13 @@ import { profiles } from '@/db/schema';
 import { authConfig } from '@/lib/auth.config';
 import { authAdapter } from '@/db/auth-adapter';
 import { sendMagicLinkEmail } from '@/lib/email';
-import { ensureAuthProfile, linkGoogleAccount } from '@/lib/auth-signin';
+import {
+  ensureAuthProfile,
+  linkGoogleAccount,
+  readAuthIntent,
+  setAuthRoleErrorCookie,
+  findProfileForAuth,
+} from '@/lib/auth-signin';
 
 // Session "illimitée" : on garde l'utilisateur connecté jusqu'à déconnexion.
 const SESSION_MAX_AGE = 60 * 60 * 24 * 365 * 10;
@@ -47,6 +53,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account, email }) {
       if (!user?.email) return false;
       try {
+        // Séparation stricte des rôles : si une intention (page vendeur /
+        // acheteur) est en cours et qu'un compte existe déjà avec un autre
+        // type, on refuse la connexion (Google, ou endpoint email sollicité
+        // directement) et on laisse un motif lisible par /auth/error.
+        const intent = await readAuthIntent();
+        if (intent?.intent) {
+          const existing = await findProfileForAuth(user.email);
+          const existingType = existing ? existing.accountType || 'buyer' : null;
+          if (existing && existingType !== intent.intent) {
+            const isAdminLike = existing.accountType === 'admin' || existing.isSuperAdmin;
+            const code = isAdminLike
+              ? 'admin'
+              : existingType === 'buyer'
+                ? 'buyer'
+                : existingType === 'seller'
+                  ? 'seller'
+                  : 'other';
+            await setAuthRoleErrorCookie(code);
+            return false;
+          }
+        }
         // `verificationRequest` n'est présent que lors de la DEMANDE de lien ;
         // l'email n'est marqué vérifié qu'au clic sur le lien (ou retour Google).
         const profile = await ensureAuthProfile({

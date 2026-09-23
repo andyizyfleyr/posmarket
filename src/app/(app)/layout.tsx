@@ -81,6 +81,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isBuyerAccount = profile?.account_type === 'buyer';
   const isAuthorizedSeller = isSuperAdmin || (!isBuyerAccount && (hasOwnedStores || hasStaffStores || isSellerAccount));
 
+  // Séparation stricte: un compte administrateur n'a pas d'accès à l'espace
+  // vendeur; il relève de l'espace d'administration (PAM).
+  if (profile?.account_type === 'admin') {
+    redirect('/pam');
+  }
+
   // Un compte acheteur marketplace ne peut JAMAIS accéder à l'espace vendeur
   if (isBuyerAccount && !isSuperAdmin) {
     redirect('/mon-compte');
