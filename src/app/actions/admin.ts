@@ -314,6 +314,7 @@ export async function updateSellerAccountAction(userId: string, updates: SellerA
     if (updates && typeof updates.fullName !== 'undefined') {
       patch.fullName = String(updates.fullName || '').trim() || null;
     }
+    let previousEmail: string | null = null;
     if (typeof updates.email !== 'undefined') {
       const email = String(updates.email || '').trim().toLowerCase();
       if (!email || !email.includes('@')) return { success: false, error: 'Adresse email invalide.' };
@@ -323,6 +324,12 @@ export async function updateSellerAccountAction(userId: string, updates: SellerA
         .where(and(eq(profiles.email, email), ne(profiles.id, userId)))
         .limit(1);
       if (existing) return { success: false, error: 'Cet email est déjà utilisé par un autre compte.' };
+      const [current] = await db
+        .select({ email: profiles.email })
+        .from(profiles)
+        .where(eq(profiles.id, userId))
+        .limit(1);
+      previousEmail = current?.email ?? null;
       patch.email = email;
     }
     if (typeof updates.phone !== 'undefined') {
@@ -348,6 +355,14 @@ export async function updateSellerAccountAction(userId: string, updates: SellerA
     if (Object.keys(patch).length === 0) return { success: true };
 
     await db.update(profiles).set(patch).where(eq(profiles.id, userId));
+    // Garde les commandes client de ce compte à jour lors d'un renommage
+    // d'email, pour éviter un décalage avec l'espace client.
+    if (typeof patch.email === 'string' && previousEmail) {
+      await db
+        .update(orders)
+        .set({ buyerEmail: patch.email })
+        .where(and(eq(orders.buyerUserId, userId), eq(orders.buyerEmail, previousEmail)));
+    }
     revalidatePath('/pam/users');
     revalidatePath(`/pam/users/${userId}`);
     revalidatePath('/pam/stores');
