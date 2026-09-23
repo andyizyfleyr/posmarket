@@ -49,6 +49,8 @@ import {
   Maximize2,
   Eye,
   Check,
+  Mail,
+  MailCheck,
 } from "lucide-react";
 import {
   StoreData,
@@ -92,7 +94,6 @@ import {
 import { useCoupons, useStoreReviews, useProductReviews } from "@/hooks/useMarketplaceData";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/supabase";
-import { googleBuyerSignInAction } from "@/app/actions/session";
 const BuyerView = dynamic(
   () => import("./BuyerView").then((m) => m.BuyerView),
   { ssr: true },
@@ -1183,26 +1184,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           "Erreur d'authentification",
         "error",
       );
-    } finally {
-      setIsProcessingAuth(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    setIsProcessingAuth(true);
-    try {
-      const res = await googleBuyerSignInAction(
-        window.location.pathname + window.location.search,
-      );
-      if (res && "error" in res && res.error) {
-        setIsProcessingAuth(false);
-        notify(res.error, "error");
-        return;
-      }
-    } catch (err) {
-      const e = err as { message?: unknown } | null;
-      if (e && e.message === "NEXT_REDIRECT") throw err;
-      notify("Impossible de se connecter avec Google. Réessayez.", "error");
     } finally {
       setIsProcessingAuth(false);
     }
@@ -4145,78 +4126,88 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center">
           <div
             className="fixed inset-0 bg-[#002f34]/60 backdrop-blur-md"
             onClick={() => setShowAuthModal(false)}
           />
-          <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden   duration-300 my-auto">
-            <div className="p-6 md:p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
-                aria-label="Fermer"
-              >
-                <X size={20} />
-              </button>
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden sm:my-auto animate-in slide-in-from-bottom-4 fade-in duration-200 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            <div className="sm:hidden flex justify-center pt-3 pb-0">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
 
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#ffe8e0] text-[#f56b2a] mb-4 shadow-sm">
-                  <User size={24} strokeWidth={2.5} />
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100/80 hover:bg-gray-200 text-gray-600 transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="px-6 pt-1 sm:pt-2 pb-[max(env(safe-area-inset-bottom),24px)] sm:pb-8 max-h-[92dvh] overflow-y-auto no-scrollbar">
+              {authSent ? (
+                <div className="text-center pt-6 sm:pt-2">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 text-green-600 mb-4">
+                    <MailCheck size={28} />
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
+                    Vérifiez votre email
+                  </h2>
+                  <p className="text-gray-500 font-normal text-sm mb-6 leading-relaxed">
+                    Un lien {authMode === "login" ? "de connexion" : "d’activation"} a été
+                    envoyé à{" "}
+                    <span className="font-bold text-gray-700">{authForm.email}</span>. Cliquez
+                    dessus pour{" "}
+                    {authMode === "login" ? "vous connecter" : "activer votre compte"}.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setAuthSent(false)}
+                    fullWidth
+                    size="lg"
+                    className="mb-3"
+                  >
+                    Envoyer un autre lien
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setShowAuthModal(false);
+                      setAuthSent(false);
+                      setAuthForm({ name: "", email: "" });
+                    }}
+                    fullWidth
+                    size="lg"
+                  >
+                    Fermer
+                  </Button>
                 </div>
-                {authSent ? (
-                  <>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
-                      Vérifiez votre email
-                    </h2>
-                    <p className="text-gray-500 font-normal text-xs md:text-sm">
-                      Un lien de connexion a été envoyé à{" "}
-                      <span className="font-bold text-gray-700">{authForm.email}</span>. Cliquez
-                      dessus pour{" "}
-                      {authMode === "login" ? "vous connecter" : "activer votre compte"}.
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setShowAuthModal(false);
-                        setAuthSent(false);
-                        setAuthForm({ name: "", email: "" });
-                      }}
-                      fullWidth
-                      size="lg"
-                      className="mt-5"
-                    >
-                      Fermer
-                    </Button>
-
-                    <div className="my-6 flex items-center gap-3">
-                      <div className="flex-1 h-px bg-gray-100" />
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">
-                        ou connectez-vous instantanément
-                      </span>
-                      <div className="flex-1 h-px bg-gray-100" />
+              ) : (
+                <>
+                  <div className="mt-3 sm:mt-1 mb-6">
+                    <div className="bg-gray-100 rounded-2xl p-1 flex">
+                      {(["login", "register"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => {
+                            setAuthMode(mode);
+                            setAuthSent(false);
+                          }}
+                          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                            authMode === mode
+                              ? "bg-white text-[#002f34] shadow-sm"
+                              : "text-gray-500 hover:text-gray-700"
+                          }`}
+                        >
+                          {mode === "login" ? "Connexion" : "Inscription"}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
-                    <Button
-                      onClick={handleGoogleAuth}
-                      loading={isProcessingAuth}
-                      loadingText="Redirection vers Google..."
-                      fullWidth
-                      size="lg"
-                      variant="white"
-                      className="border border-gray-100"
-                    >
-                      <svg className="w-5 h-5 mr-2" viewBox="0 0 48 48" aria-hidden="true">
-                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                      </svg>
-                      Continuer avec Google
-                    </Button>
-                  </>
-                ) : (
-                  <>
+                  <div className="text-center mb-6">
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
                       {authMode === "login"
                         ? "Ravi de vous revoir !"
@@ -4227,102 +4218,77 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         ? "Connectez-vous pour continuer vos achats."
                         : "Créez votre compte en quelques secondes."}
                     </p>
-                  </>
-                )}
-              </div>
-
-              {!authSent && (
-              <>
-              <form onSubmit={handleAuthSubmit} className="space-y-3">
-                {authMode === "register" && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-600 uppercase ml-2">
-                      Nom Complet
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      value={authForm.name}
-                      onChange={(e) =>
-                        setAuthForm({ ...authForm, name: e.target.value })
-                      }
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
-                    />
                   </div>
-                )}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-600 uppercase ml-2">
-                    Adresse Email
-                  </label>
-                  <input
-                    required
-                    type="email"
-                    value={authForm.email}
-                    onChange={(e) =>
-                      setAuthForm({ ...authForm, email: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
-                  />
-                </div>
 
-                <Button
-                  type="submit"
-                  loading={isProcessingAuth}
-                  loadingText={
-                    authMode === "login" ? "Envoi du lien..." : "Envoi du lien..."
-                  }
-                  fullWidth
-                  size="lg"
-                  className="mt-2"
-                >
-                  {authMode === "login"
-                    ? "Envoyer le lien de connexion"
-                    : "Créer mon compte"}
-                </Button>
-              </form>
+                  <form onSubmit={handleAuthSubmit} className="space-y-4">
+                    {authMode === "register" && (
+                      <div>
+                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                          Nom complet
+                        </label>
+                        <div className="relative">
+                          <User
+                            size={18}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                          />
+                          <input
+                            required
+                            type="text"
+                            autoComplete="name"
+                            value={authForm.name}
+                            onChange={(e) =>
+                              setAuthForm({ ...authForm, name: e.target.value })
+                            }
+                            placeholder="Votre nom et prénom"
+                            className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white focus:border-[#f56b2a] transition-all"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Adresse email
+                      </label>
+                      <div className="relative">
+                        <Mail
+                          size={18}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                        />
+                        <input
+                          required
+                          type="email"
+                          autoComplete="email"
+                          value={authForm.email}
+                          onChange={(e) =>
+                            setAuthForm({ ...authForm, email: e.target.value })
+                          }
+                          placeholder="exemple@email.com"
+                          className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white focus:border-[#f56b2a] transition-all"
+                        />
+                      </div>
+                    </div>
 
-              <div className="my-6 flex items-center gap-3">
-                <div className="flex-1 h-px bg-gray-100" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase">ou</span>
-                <div className="flex-1 h-px bg-gray-100" />
-              </div>
+                    <Button
+                      type="submit"
+                      loading={isProcessingAuth}
+                      loadingText={
+                        authMode === "login" ? "Envoi du lien..." : "Envoi du lien..."
+                      }
+                      fullWidth
+                      size="lg"
+                      className="mt-2 rounded-2xl"
+                    >
+                      {authMode === "login"
+                        ? "Recevoir le lien de connexion"
+                        : "Créer mon compte"}
+                    </Button>
 
-              <Button
-                onClick={handleGoogleAuth}
-                loading={isProcessingAuth && !authSent}
-                loadingText="Redirection vers Google..."
-                fullWidth
-                size="lg"
-                variant="white"
-                className="border border-gray-100"
-              >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 48 48" aria-hidden="true">
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                </svg>
-                Continuer avec Google
-              </Button>
-
-              <div className="mt-6 pt-6 border-t border-gray-50 text-center">
-                <p className="text-gray-500 font-normal text-xs md:text-sm">
-                  {authMode === "login"
-                    ? "Pas encore de compte ?"
-                    : "Vous avez déjà un compte ?"}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode(authMode === "login" ? "register" : "login");
-                      setAuthSent(false);
-                    }}
-                    className="text-[#f56b2a] font-bold hover:underline underline-offset-4 ml-1"
-                  >
-                    {authMode === "login" ? "Inscrivez-vous" : "Connectez-vous"}
-                  </button>
-                </p>
-              </div>
-              </>
+                    <p className="text-center text-[11px] text-gray-400 leading-relaxed">
+                      En continuant, vous acceptez nos conditions d’utilisation et notre
+                      politique de confidentialité.
+                    </p>
+                  </form>
+                </>
               )}
             </div>
           </div>
