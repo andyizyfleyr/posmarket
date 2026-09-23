@@ -11,6 +11,7 @@ export const profiles = pgTable('profiles', {
   avatarUrl: text('avatar_url'),
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
   accountType: text('account_type').default('buyer'),
+  emailVerified: timestamp('email_verified', { mode: 'date' }),
   subscriptionTier: text('subscription_tier'),
   subscriptionDuration: text('subscription_duration'),
   subscriptionStatus: text('subscription_status'),
@@ -18,6 +19,31 @@ export const profiles = pgTable('profiles', {
   subscriptionEndDate: timestamp('subscription_end_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const verificationTokens = pgTable('verification_tokens', {
+  identifier: text('identifier').notNull(),
+  token: text('token').notNull(),
+  expires: timestamp('expires', { mode: 'date' }).notNull(),
+}, (t) => [{
+  pk: { columns: [t.identifier, t.token], name: 'verification_tokens_pk' } as const,
+}]);
+
+export const accounts = pgTable('accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  type: text('type').notNull(),
+  provider: text('provider').notNull(),
+  providerAccountId: text('provider_account_id').notNull(),
+  refreshToken: text('refresh_token'),
+  accessToken: text('access_token'),
+  expiresAt: integer('expires_at'),
+  tokenType: text('token_type'),
+  scope: text('scope'),
+  idToken: text('id_token'),
+  sessionState: text('session_state'),
+}, (t) => [{
+  providerIdx: { columns: [t.provider, t.providerAccountId], name: 'accounts_provider_provider_account_id_idx', unique: true } as const,
+}]);
 
 export const stores = pgTable('stores', {
   id: uuid('id').primaryKey().defaultRandom(),

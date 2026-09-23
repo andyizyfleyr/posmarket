@@ -4,7 +4,6 @@ import { db } from '@/db'
 import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
-import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
@@ -495,12 +494,7 @@ const resolveCurrentBuyer = async (fallbackIdOrEmail?: string) => {
   }
 
   if (profile?.id) {
-    try {
-      const cookieStore = await cookies();
-      if (!cookieStore.get('buyerUserId')?.value) {
-        cookieStore.set('buyerUserId', profile.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
-      }
-    } catch {}
+    // Identité acheteur désormais portée par la session Auth.js.
   }
 
   return { user: profile || null };

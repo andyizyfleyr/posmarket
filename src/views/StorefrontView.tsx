@@ -92,6 +92,7 @@ import {
 import { useCoupons, useStoreReviews, useProductReviews } from "@/hooks/useMarketplaceData";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/supabase";
+import { googleBuyerSignInAction } from "@/app/actions/session";
 const BuyerView = dynamic(
   () => import("./BuyerView").then((m) => m.BuyerView),
   { ssr: true },
@@ -867,8 +868,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [authForm, setAuthForm] = useState({
     name: "",
     email: "",
-    password: "",
   });
+  const [authSent, setAuthSent] = useState(false);
   const [showPropulseModal, setShowPropulseModal] = useState(false);
   const [isBulkOrderOpen, setIsBulkOrderOpen] = useState(false);
 
@@ -1150,39 +1151,31 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     setIsProcessingAuth(true);
 
     try {
-      if (authMode === "register") {
-        const { data, error } = await supabase.auth.signUp({
-          email: authForm.email,
-          password: authForm.password,
-          options: { data: { full_name: authForm.name } },
-        });
-        if (error) throw error;
-        const u = {
-          id: data.user?.id,
-          name: authForm.name,
-          email: authForm.email,
-        };
-        setUser(u);
-        try { localStorage.setItem('posmarket_buyer_user', JSON.stringify(u)); } catch {}
-        notify("Compte créé ! Bienvenue.", "success");
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: authForm.email,
-          password: authForm.password,
-        });
-        if (error) throw error;
-        const u = {
-          id: data.user?.id,
-          name: data.user?.user_metadata?.full_name || "Utilisateur",
-          email: authForm.email,
-        };
-        setUser(u);
-        try { localStorage.setItem('posmarket_buyer_user', JSON.stringify(u)); } catch {}
-        notify("Connexion réussie !", "success");
+      const email = authForm.email.trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        throw new Error("Veuillez saisir une adresse email valide");
       }
-      setShowAuthModal(false);
-      setAuthForm({ name: "", email: "", password: "" });
+
+      if (authMode === "register") {
+        if (!authForm.name.trim()) throw new Error("Veuillez saisir votre nom complet");
+        const { error } = await supabase.auth.signUp({
+          email,
+          options: { data: { full_name: authForm.name.trim() } },
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email });
+        if (error) throw error;
+      }
+
+      // Le lien de connexion a été envoyé ; l'utilisateur finalisera en cliquant dessus.
+      setAuthSent(true);
+      notify(
+        "Un lien de connexion a été envoyé à votre email. Cliquez dessus pour terminer.",
+        "success",
+      );
     } catch (err) {
+      setAuthSent(false);
       notify(
         (err instanceof Error
           ? err.message
@@ -1190,6 +1183,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           "Erreur d'authentification",
         "error",
       );
+    } finally {
+      setIsProcessingAuth(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setIsProcessingAuth(true);
+    try {
+      await googleBuyerSignInAction(window.location.pathname + window.location.search);
+    } catch (err) {
+      const e = err as { message?: unknown } | null;
+      if (e && e.message === "NEXT_REDIRECT") throw err;
+      notify("Impossible de se connecter avec Google. Réessayez.", "error");
     } finally {
       setIsProcessingAuth(false);
     }
@@ -4151,18 +4157,49 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#ffe8e0] text-[#f56b2a] mb-4 shadow-sm">
                   <User size={24} strokeWidth={2.5} />
                 </div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
-                  {authMode === "login"
-                    ? "Ravi de vous revoir !"
-                    : "Bienvenue parmi nous"}
-                </h2>
-                <p className="text-gray-500 font-normal text-xs md:text-sm">
-                  {authMode === "login"
-                    ? "Connectez-vous pour continuer vos achats."
-                    : "Créez votre compte en quelques secondes."}
-                </p>
+                {authSent ? (
+                  <>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
+                      Vérifiez votre email
+                    </h2>
+                    <p className="text-gray-500 font-normal text-xs md:text-sm">
+                      Un lien de connexion a été envoyé à{" "}
+                      <span className="font-bold text-gray-700">{authForm.email}</span>. Cliquez
+                      dessus pour{" "}
+                      {authMode === "login" ? "vous connecter" : "activer votre compte"}.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setShowAuthModal(false);
+                        setAuthSent(false);
+                        setAuthForm({ name: "", email: "" });
+                      }}
+                      fullWidth
+                      size="lg"
+                      className="mt-5"
+                    >
+                      Fermer
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 leading-tight">
+                      {authMode === "login"
+                        ? "Ravi de vous revoir !"
+                        : "Bienvenue parmi nous"}
+                    </h2>
+                    <p className="text-gray-500 font-normal text-xs md:text-sm">
+                      {authMode === "login"
+                        ? "Connectez-vous pour continuer vos achats."
+                        : "Créez votre compte en quelques secondes."}
+                    </p>
+                  </>
+                )}
               </div>
 
+              {!authSent && (
+              <>
               <form onSubmit={handleAuthSubmit} className="space-y-3">
                 {authMode === "register" && (
                   <div className="space-y-1">
@@ -4194,34 +4231,46 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-600 uppercase ml-2">
-                    Mot de passe
-                  </label>
-                  <input
-                    required
-                    type="password"
-                    value={authForm.password}
-                    onChange={(e) =>
-                      setAuthForm({ ...authForm, password: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white transition-all text-sm"
-                  />
-                </div>
 
                 <Button
                   type="submit"
                   loading={isProcessingAuth}
                   loadingText={
-                    authMode === "login" ? "Connexion..." : "Inscription..."
+                    authMode === "login" ? "Envoi du lien..." : "Envoi du lien..."
                   }
                   fullWidth
                   size="lg"
                   className="mt-2"
                 >
-                  {authMode === "login" ? "Se connecter" : "Créer mon compte"}
+                  {authMode === "login"
+                    ? "Envoyer le lien de connexion"
+                    : "Créer mon compte"}
                 </Button>
               </form>
+
+              <div className="my-6 flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-[10px] font-bold text-gray-400 uppercase">ou</span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+
+              <Button
+                onClick={handleGoogleAuth}
+                loading={isProcessingAuth && !authSent}
+                loadingText="Redirection vers Google..."
+                fullWidth
+                size="lg"
+                variant="white"
+                className="border border-gray-100"
+              >
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                </svg>
+                Continuer avec Google
+              </Button>
 
               <div className="mt-6 pt-6 border-t border-gray-50 text-center">
                 <p className="text-gray-500 font-normal text-xs md:text-sm">
@@ -4230,15 +4279,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     : "Vous avez déjà un compte ?"}
                   <button
                     type="button"
-                    onClick={() =>
-                      setAuthMode(authMode === "login" ? "register" : "login")
-                    }
+                    onClick={() => {
+                      setAuthMode(authMode === "login" ? "register" : "login");
+                      setAuthSent(false);
+                    }}
                     className="text-[#f56b2a] font-bold hover:underline underline-offset-4 ml-1"
                   >
                     {authMode === "login" ? "Inscrivez-vous" : "Connectez-vous"}
                   </button>
                 </p>
               </div>
+              </>
+              )}
             </div>
           </div>
         </div>

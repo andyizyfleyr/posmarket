@@ -1,126 +1,84 @@
 'use server';
 
-import { createHmac } from 'crypto';
+import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
-
-const BUYER_COOKIE = 'buyerUserId';
-const SESSION_MAX_AGE = 60 * 60 * 24 * 365 * 10;
-
-function getSigningSecret(): string {
-  return process.env.ADMIN_AUTH_SECRET || createHmac('sha256', 'pam-buyer').update(process.env.DATABASE_URL || '').digest('base64');
-}
-
-function signToken(userId: string): string {
-  const hmac = createHmac('sha256', getSigningSecret()).update(userId).digest('hex');
-  return `${userId}.${hmac}`;
-}
-
-function verifyToken(token: string): string | null {
-  const idx = token.lastIndexOf('.');
-  if (idx === -1) return null;
-  const userId = token.slice(0, idx);
-  const expected = createHmac('sha256', getSigningSecret()).update(userId).digest('hex');
-  const actual = token.slice(idx + 1);
-  if (expected.length !== actual.length) return null;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ actual.charCodeAt(i);
-  return diff === 0 ? userId : null;
-}
-
-function serializeUser(profile: typeof profiles.$inferSelect) {
-  return {
-    id: profile.id,
-    email: profile.email,
-    user_metadata: {
-      full_name: profile.fullName,
-      account_type: profile.accountType || 'buyer',
-    },
-    accountType: profile.accountType || 'buyer',
-    isSuperAdmin: profile.isSuperAdmin,
-  };
-}
+import { auth, signIn, signOut } from '@/auth';
+import { serializeProfile, setAuthIntentCookie } from '@/lib/auth-signin';
 
 export async function getCurrentSession() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(BUYER_COOKIE)?.value;
-  if (!token) return { user: null };
+  let session = null;
+  try {
+    session = await auth();
+  } catch {
+    return { user: null };
+  }
+  const uid = session?.user?.id;
+  if (!uid) return { user: null };
 
-  const userId = verifyToken(token);
-  if (!userId) return { user: null };
-
-  const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+  const [profile] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.id, String(uid)))
+    .limit(1)
+    .catch(() => []);
   if (!profile) return { user: null };
 
-  return { user: serializeUser(profile) };
+  return { user: serializeProfile(profile) };
+}
+
+async function sendMagicLinkForBuyer(opts: { email?: string; name?: string }): Promise<{ user: null; error: string | null; sent?: boolean }> {
+  const email = String(opts.email || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    return { user: null, error: 'Adresse email invalide.' };
+  }
+  await setAuthIntentCookie({ intent: 'buyer', name: opts.name?.trim() || undefined });
+  try {
+    const result = await signIn('email', { email, redirect: false, callbackUrl: '/' });
+    if (result?.error) {
+      return { user: null, error: String(result.error) };
+    }
+    return { user: null, error: null, sent: true };
+  } catch (error) {
+    return {
+      user: null,
+      error: error instanceof Error ? error.message : 'Erreur lors de l’envoi du lien de connexion.',
+    };
+  }
 }
 
 export async function signInWithPasswordSession(email: string) {
-  const cleanEmail = email?.trim().toLowerCase();
-  let [profile] = await db.select().from(profiles).where(eq(profiles.email, cleanEmail)).limit(1);
-
-  if (profile) {
-    if (profile.accountType === 'seller' || profile.accountType === 'admin' || profile.isSuperAdmin) {
-      return {
-        user: null,
-        error: "Cet email est associé à un compte commerçant (vendeur). Veuillez vous connecter sur le portail commerçant (/login).",
-      };
-    }
-  } else {
-    [profile] = await db.insert(profiles).values({
-      email: cleanEmail,
-      fullName: cleanEmail?.split('@')[0],
-      accountType: 'buyer',
-    }).returning();
-  }
-
-  (await cookies()).set(BUYER_COOKIE, signToken(profile.id), { path: '/', maxAge: SESSION_MAX_AGE });
-  return { user: serializeUser(profile), error: null };
+  return sendMagicLinkForBuyer({ email });
 }
 
 export async function signUpSession(name: string, email: string) {
-  const cleanEmail = email?.trim().toLowerCase();
-  const [existing] = await db.select().from(profiles).where(eq(profiles.email, cleanEmail)).limit(1);
-
-  if (existing) {
-    if (existing.accountType === 'seller' || existing.accountType === 'admin' || existing.isSuperAdmin) {
-      return {
-        user: null,
-        error: "Cet email est déjà associé à un compte commerçant (vendeur). Veuillez vous connecter sur le portail commerçant (/login).",
-      };
-    }
-    (await cookies()).set(BUYER_COOKIE, signToken(existing.id), { path: '/', maxAge: SESSION_MAX_AGE });
-    return { user: serializeUser(existing), error: null };
-  }
-
-  const [profile] = await db
-    .insert(profiles)
-    .values({
-      email: cleanEmail,
-      fullName: name?.trim(),
-      accountType: 'buyer',
-    })
-    .returning();
-
-  (await cookies()).set(BUYER_COOKIE, signToken(profile.id), { path: '/', maxAge: SESSION_MAX_AGE });
-  return { user: serializeUser(profile), error: null };
+  return sendMagicLinkForBuyer({ email, name });
 }
 
 export async function signOutSession() {
+  try {
+    await signOut({ redirect: false });
+  } catch {
+    // déjà déconnecté côté Auth.js
+  }
   const cookieStore = await cookies();
-  cookieStore.delete(BUYER_COOKIE);
   cookieStore.delete('userId');
+  cookieStore.delete('buyerUserId');
+  cookieStore.delete('auth_intent');
   return { error: null };
 }
 
-export async function setSessionUser(userId: string | null) {
-  const cookieStore = await cookies();
-  if (!userId) {
-    cookieStore.delete(BUYER_COOKIE);
-  } else {
-    cookieStore.set(BUYER_COOKIE, signToken(userId), { path: '/', maxAge: SESSION_MAX_AGE });
-  }
-  return { session: userId ? { user: { id: userId } } : null, error: null };
+export async function googleBuyerSignInAction(callbackUrl?: string) {
+  const target = typeof callbackUrl === 'string' && callbackUrl.startsWith('/')
+    ? callbackUrl
+    : '/';
+  await setAuthIntentCookie({ intent: 'buyer' });
+  const result = await signIn('google', { redirect: false, callbackUrl: target });
+  redirect(result?.url || '/');
+}
+
+export async function setSessionUser(_userId: string | null) {
+  return { session: null, error: null };
 }

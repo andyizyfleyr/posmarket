@@ -1,9 +1,9 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { profiles, notificationOutbox } from '@/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
+import { getCurrentSession } from '@/app/actions/session';
 import {
   listNotificationPreferences,
   setNotificationPreference,
@@ -13,10 +13,9 @@ import {
 import { NotificationEvent, NotificationOutboxItem } from '@/types';
 
 async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('userId')?.value || cookieStore.get('buyerUserId')?.value;
-  if (!userId) return null;
-  const [profile] = await db.select({ id: profiles.id, phone: profiles.phone, email: profiles.email }).from(profiles).where(eq(profiles.id, userId)).limit(1);
+  const { user } = await getCurrentSession();
+  if (!user?.id) return null;
+  const [profile] = await db.select({ id: profiles.id, phone: profiles.phone, email: profiles.email }).from(profiles).where(eq(profiles.id, user.id)).limit(1);
   return profile || null;
 }
 

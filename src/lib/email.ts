@@ -840,3 +840,34 @@ export async function renderEmailEvent(eventKey: string, input: RenderInput = {}
   const html = layout(content, brand);
   return { subject: finalSubject, html, text: stripHtml(html) };
 }
+
+// ---------------------------------------------------------------------------
+// Connexion par lien magique (Auth.js) — utilisateur client ou vendeur.
+// ---------------------------------------------------------------------------
+
+/** Envoi du lien de connexion magique (Auth.js Email provider). */
+export async function sendMagicLinkEmail(opts: { to: string; url: string }): Promise<{ messageId?: string; error?: string }> {
+  const cfg = await getEmailConfig();
+  const brand: Brand = {
+    brandName: cfg?.brandName,
+    tagline: cfg?.tagline,
+    logoUrl: cfg?.logoUrl,
+    footer: cfg?.footer,
+  };
+  const name = cfg?.brandName || 'PosMarket';
+  const html = layout(
+    bodyBlock(
+      {},
+      `${hero(IMG.bell, 'Votre lien de connexion', null, 'Cliquez sur le bouton ci-dessous pour vous connecter. Ce lien est valable 10 minutes et ne sert qu\u2019une seule fois.')}
+      ${CTA(opts.url, 'Se connecter')}
+      ${note(`Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${opts.url}`)}`,
+    ),
+    brand,
+  );
+  return await sendEmail({
+    to: opts.to,
+    subject: `Connexion à ${name}`,
+    html,
+    text: stripHtml(html),
+  });
+}

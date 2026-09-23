@@ -1,21 +1,20 @@
-import { cookies } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 import { QueryBuilder, runQuery } from '@/db/query';
+import { getCurrentSession } from '@/app/actions/session';
 
 async function getCurrentUser() {
-  const cookieStore = await cookies();
   try {
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) {
+    const { user } = await getCurrentSession();
+    if (!user) {
       return { user: null };
     }
 
     const [profile] = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.id, userId))
+      .where(eq(profiles.id, user.id))
       .limit(1);
 
     if (!profile) {

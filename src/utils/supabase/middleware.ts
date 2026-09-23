@@ -1,18 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-  const userId = request.cookies.get('userId')?.value
+const PROTECTED_PREFIXES = [
+  '/dashboard',
+  '/pos',
+  '/inventory',
+  '/customers',
+  '/orders',
+  '/reports',
+  '/settings',
+  '/subscription',
+  '/invoices',
+]
 
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/pos') ||
-    request.nextUrl.pathname.startsWith('/inventory') ||
-    request.nextUrl.pathname.startsWith('/customers') ||
-    request.nextUrl.pathname.startsWith('/orders') ||
-    request.nextUrl.pathname.startsWith('/reports') ||
-    request.nextUrl.pathname.startsWith('/settings') ||
-    request.nextUrl.pathname.startsWith('/subscription') ||
-    request.nextUrl.pathname.startsWith('/invoices')
+export async function updateSession(request: NextRequest, sessionUserId?: string | null) {
+  const userId = sessionUserId || null
+
+  const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
+    request.nextUrl.pathname.startsWith(p),
+  )
 
   if (!userId && isProtectedRoute) {
     const url = request.nextUrl.clone()

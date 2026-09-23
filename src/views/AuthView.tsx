@@ -1,8 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { Mail, Lock, User, ArrowRight, Store, ShoppingCart, Zap, Car, Shirt, Tent, Briefcase, BookOpen, Heart } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
-import { loginAction, signupAction } from '@/app/actions/auth';
+import { Mail, Store, ShoppingCart, Zap, Car, Shirt, Tent, Briefcase, BookOpen, Heart, MailCheck } from 'lucide-react';
+import { loginAction, signupAction, googleSignInAction } from '@/app/actions/auth';
 import { NotificationType } from '@/types';
 import Button from '@/components/Button';
 
@@ -11,56 +10,73 @@ interface AuthViewProps {
     notify: (message: string, type: NotificationType, title?: string) => void;
 }
 
-export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
-    const supabase = createClient();
+export const AuthView: React.FC<AuthViewProps> = ({ notify }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+    const [sentEmail, setSentEmail] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMsg('');
+        setSentEmail(null);
         setLoading(true);
 
-        let result;
         try {
             const formData = new FormData();
             formData.append('email', email);
-            formData.append('password', password);
             if (!isLogin) formData.append('name', name);
 
             if (isLogin) {
-                if (!email || !password) throw new Error('Veuillez remplir tous les champs');
-                result = await loginAction(formData);
+                if (!email) throw new Error('Veuillez saisir votre adresse email');
             } else {
-                if (!email || !password || !name) throw new Error('Veuillez remplir tous les champs');
-                result = await signupAction(formData);
+                if (!email || !name) throw new Error('Veuillez remplir tous les champs');
             }
+
+            const result = isLogin ? await loginAction(formData) : await signupAction(formData);
+
+            if (result && 'error' in result && result.error) {
+                setErrorMsg(result.error);
+                setLoading(false);
+                return;
+            }
+
+            setLoading(false);
+            setEmail('');
+            setName('');
+            setSentEmail((result as { email?: string })?.email || email);
+            notify(
+                'Un lien de connexion a été envoyé à votre adresse email. Vérifiez votre boîte mail.',
+                'success',
+                'Vérifiez votre email',
+            );
         } catch (error: unknown) {
             const e = error as { message?: unknown } | null;
             if (e && e.message === 'NEXT_REDIRECT') throw error;
-            setErrorMsg(e && typeof e.message === 'string' ? e.message : 'Une erreur est survenue');
+            setErrorMsg(typeof e?.message === 'string' ? e.message : 'Une erreur est survenue');
             setLoading(false);
-            return;
         }
+    };
 
-        if (result && 'error' in result) {
-            setErrorMsg(result.error || 'Une erreur est survenue');
-            setLoading(false);
-            return;
+    const handleGoogle = async () => {
+        setGoogleLoading(true);
+        setErrorMsg('');
+        try {
+            await googleSignInAction();
+        } catch (error: unknown) {
+            const e = error as { message?: unknown } | null;
+            if (e && e.message === 'NEXT_REDIRECT') throw error;
+            setErrorMsg('Impossible de se connecter avec Google. Réessayez.');
+            setGoogleLoading(false);
         }
-
-        setLoading(false);
-
-        // Redirection is handled by the server action
     };
 
     return (
         <div className="min-h-screen bg-white flex font-sans overflow-hidden">
-            {/* Left Side: Login Form */}
+            {/* Left Side: Auth Form */}
             <div className="w-full lg:w-[45%] flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-24">
                 <div className="max-w-[400px] w-full mx-auto lg:mx-0">
                     {/* Header Logo for Mobile */}
@@ -71,18 +87,37 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                     </div>
 
                     <h1 className="text-[28px] md:text-[34px] font-bold text-[#002f34] leading-tight mb-12">
-                        Connectez-vous ou créez votre compte
+                        {isLogin ? 'Connectez-vous' : 'Créez votre compte'}
                     </h1>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {errorMsg && (
-                            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-semibold border border-red-100 animate-in shake duration-500">
-                                {errorMsg}
+                    {sentEmail ? (
+                        <div className="space-y-6">
+                            <div className="bg-green-50 text-green-700 p-5 rounded-2xl border border-green-100 flex flex-col items-center text-center space-y-3">
+                                <MailCheck className="w-10 h-10 text-green-600" />
+                                <p className="text-sm font-semibold">Lien de connexion envoyé</p>
+                                <p className="text-xs text-green-600">
+                                    Cliquez sur le lien reçu à <span className="font-bold">{sentEmail}</span> pour
+                                    {isLogin ? ' vous connecter' : ' activer votre compte commerçant'}.
+                                </p>
                             </div>
-                        )}
+                            <Button
+                                onClick={() => setSentEmail(null)}
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
+                            >
+                                Envoyer un autre lien
+                            </Button>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {errorMsg && (
+                                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-semibold border border-red-100 animate-in shake duration-500">
+                                    {errorMsg}
+                                </div>
+                            )}
 
-
-                        {!isLogin && (
+                            {!isLogin && (
                                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                     <label className="text-sm font-normal text-[#002f34]">
                                         Nom complet *
@@ -97,7 +132,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                                 </div>
                             )}
 
-                        <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-normal text-[#002f34]">
                                     E-mail *
@@ -111,46 +145,54 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                                 />
                             </div>
 
-                            
+                            <Button
+                                type="submit"
+                                loading={loading}
+                                loadingText={isLogin ? 'Envoi du lien...' : 'Envoi du lien...'}
+                                fullWidth
+                                size="lg"
+                                className="rounded-full"
+                            >
+                                <Mail className="w-4 h-4 mr-2" />
+                                Continuer
+                            </Button>
+                        </form>
+                    )}
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-sm font-normal text-[#002f34]">
-                                        Mot de passe *
-                                    </label>
-                                    {isLogin && (
-                                        <button type="button" className="text-sm font-semibold text-[#4183d7] hover:underline">
-                                           
-                                        </button>
-                                    )}
-                                </div>
-                                <input
-                                    required
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-normal text-sm"
-                                />
+                    {/* Google */}
+                    {!sentEmail && (
+                        <>
+                            <div className="my-6 flex items-center gap-3">
+                                <div className="flex-1 h-px bg-gray-200" />
+                                <span className="text-xs font-semibold text-gray-500">ou</span>
+                                <div className="flex-1 h-px bg-gray-200" />
                             </div>
-                        </div>
 
-                        <Button
-                            type="submit"
-                            loading={loading}
-                            loadingText={isLogin ? 'Connexion en cours...' : 'Inscription en cours...'}
-                            fullWidth
-                            size="lg"
-                            className="rounded-full"
-                        >
-                            Continuer
-                        </Button>
-                    </form>
+                            <Button
+                                onClick={handleGoogle}
+                                loading={googleLoading}
+                                loadingText="Redirection vers Google..."
+                                fullWidth
+                                size="lg"
+                                variant="white"
+                                className="rounded-full"
+                            >
+                                <svg className="w-5 h-5 mr-2" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                                </svg>
+                                Continuer avec Google
+                            </Button>
+                        </>
+                    )}
 
-                    <div className="mt-8 text-center text-[#002f34]">
+                    <div className="mt-6 text-center text-[#002f34]">
                         <p className="text-sm font-normal">
                             {isLogin ? "Vous n'avez pas encore de compte ?" : "Vous avez déjà un compte ?"}
-                            <button 
-                                onClick={() => setIsLogin(!isLogin)}
+                            <button
+                                onClick={() => { setIsLogin(!isLogin); setSentEmail(null); setErrorMsg(''); }}
                                 className="ml-2 font-semibold text-[#4183d7] hover:underline"
                             >
                                 {isLogin ? "Inscrivez-vous" : "Connectez-vous"}
@@ -174,7 +216,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, notify }) => {
                         { color: '#D1E9F6', icon: <Briefcase className="w-12 h-12 text-[#2980B9]" />, delay: '300ms' },
                         { color: '#E8E8FF', icon: <BookOpen className="w-12 h-12 text-[#5D5DFF]" />, delay: '400ms' },
                     ].map((card, idx) => (
-                        <div 
+                        <div
                             key={idx}
                             style={{ backgroundColor: card.color, animationDelay: card.delay }}
                             className="rounded-[40px] relative flex items-center justify-center shadow-sm overflow-hidden animate-in zoom-in duration-700 fill-mode-both"
