@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings } from '@/db/schema';
-import { eq, desc, sql, inArray } from 'drizzle-orm';
+import { eq, desc, sql, inArray, and, ne } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
 import { getAdminSession } from '@/app/actions/admin-auth';
@@ -290,6 +290,71 @@ export async function updateUserSubscription(userId: string, tier: string, durat
     revalidatePath('/pam/users');
     return { success: true };
   } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
+export type SellerAccountUpdate = {
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  companyName?: string | null;
+  ninea?: string | null;
+  accountType?: string | null;
+  isSuperAdmin?: boolean;
+};
+
+/** Modifie les détails d'un compte vendeur depuis le panneau admin. */
+export async function updateSellerAccountAction(userId: string, updates: SellerAccountUpdate) {
+  try {
+    const session = await getAdminSession();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    const patch: Record<string, unknown> = {};
+    if (updates && typeof updates.fullName !== 'undefined') {
+      patch.fullName = String(updates.fullName || '').trim() || null;
+    }
+    if (typeof updates.email !== 'undefined') {
+      const email = String(updates.email || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) return { success: false, error: 'Adresse email invalide.' };
+      const [existing] = await db
+        .select({ id: profiles.id })
+        .from(profiles)
+        .where(and(eq(profiles.email, email), ne(profiles.id, userId)))
+        .limit(1);
+      if (existing) return { success: false, error: 'Cet email est déjà utilisé par un autre compte.' };
+      patch.email = email;
+    }
+    if (typeof updates.phone !== 'undefined') {
+      patch.phone = String(updates.phone || '').trim() || null;
+    }
+    if (typeof updates.companyName !== 'undefined') {
+      patch.companyName = String(updates.companyName || '').trim() || null;
+    }
+    if (typeof updates.ninea !== 'undefined') {
+      patch.ninea = String(updates.ninea || '').trim() || null;
+    }
+    if (typeof updates.accountType !== 'undefined') {
+      const accountType = String(updates.accountType || '').trim();
+      if (accountType !== 'buyer' && accountType !== 'seller') {
+        return { success: false, error: 'Type de compte invalide.' };
+      }
+      patch.accountType = accountType;
+    }
+    if (typeof updates.isSuperAdmin === 'boolean') {
+      patch.isSuperAdmin = updates.isSuperAdmin;
+    }
+
+    if (Object.keys(patch).length === 0) return { success: true };
+
+    await db.update(profiles).set(patch).where(eq(profiles.id, userId));
+    revalidatePath('/pam/users');
+    revalidatePath(`/pam/users/${userId}`);
+    revalidatePath('/pam/stores');
+    updateTag('marketplace');
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Error updating seller account:', error);
     return { success: false, error: errorMessage(error) };
   }
 }

@@ -1,4 +1,5 @@
 import { getUserById, getUserStores } from '@/app/actions/admin';
+import UserAccountEditor from '@/components/admin/UserAccountEditor';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -11,7 +12,8 @@ import {
   Store,
   Package,
   TrendingUp,
-  Wallet
+  Wallet,
+  Building2
 } from 'lucide-react';
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,17 +39,33 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">{user.fullName || 'Utilisateur'}</h1>
-              {user.isSuperAdmin && (
-                <span className="px-3 py-1 bg-orange-50 text-[#f56b2a] rounded-lg text-[9px] font-bold uppercase border border-orange-100 flex items-center gap-1">
-                  <Shield size={11} /> Super Admin
-                </span>
-              )}
+              <span className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase border flex items-center gap-1 ${
+                user.accountType === 'seller' || user.isSuperAdmin
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                  : 'bg-blue-50 text-blue-500 border-blue-100'
+              }`}>
+                {user.accountType === 'seller' || user.isSuperAdmin ? <Shield size={11} /> : <User size={11} />}
+                {user.isSuperAdmin ? 'Super Admin' : user.accountType === 'seller' ? 'Vendeur' : 'Acheteur'}
+              </span>
             </div>
             <div className="flex flex-wrap items-center gap-3 mt-3">
               <span className="text-xs font-semibold text-gray-400 lowercase flex items-center gap-1.5"><Mail size={14} className="text-orange-500" /> {user.email}</span>
               {user.phone && <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5"><Phone size={14} className="text-orange-500" /> {user.phone}</span>}
+              {user.companyName && <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5"><Building2 size={14} className="text-orange-500" /> {user.companyName}</span>}
               {user.createdAt && <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5"><Calendar size={14} className="text-orange-500" /> Inscrit le {new Date(user.createdAt).toLocaleDateString('fr-FR')}</span>}
             </div>
+          </div>
+          <div className="flex flex-col items-stretch gap-2">
+            <UserAccountEditor
+              userId={user.id}
+              fullName={user.fullName}
+              email={user.email}
+              phone={user.phone}
+              companyName={user.companyName}
+              ninea={user.ninea}
+              accountType={user.accountType}
+              isSuperAdmin={user.isSuperAdmin}
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
             {(['STARTER', 'PRO', 'ENTERPRISE'] as const).map((tier) => (
