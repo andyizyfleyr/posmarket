@@ -5,7 +5,7 @@ import { stores, products, productStats, productReviews, orders, orderItems, cus
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { getCurrentSession } from '@/app/actions/session'
-import { incrementProductSales } from '@/db/api'
+import { incrementProductSales, adjustProductStock } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
 import { orderEmailProducts } from '@/lib/email'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
@@ -327,6 +327,15 @@ export async function submitCheckoutAction(
           productId: item.product?.id || null,
           quantity: Number(item.quantity || 1),
         }))
+      );
+
+      await adjustProductStock(
+        storeId,
+        items.map((item) => ({
+          productId: item.product?.id || null,
+          quantity: Number(item.quantity || 1),
+        })),
+        'sale'
       );
 
       // --- Notifications WhatsApp (best-effort, ne bloque jamais la commande) ---

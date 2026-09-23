@@ -1,6 +1,6 @@
 import { db } from './index';
 import { products, customers, orders, orderItems, stores, profiles, productStats, invoices } from './schema';
-import { eq, desc, inArray, sql } from 'drizzle-orm';
+import { eq, desc, inArray, sql, and } from 'drizzle-orm';
 import { Product, Customer } from '@/types';
 
 type StoreRow = typeof stores.$inferSelect;
@@ -116,6 +116,51 @@ export async function incrementProductSales(
         target: productStats.productId,
         set: { totalSales: sql`${productStats.totalSales} + ${qty}` },
       });
+  }
+}
+
+const CANCELLED_STATUSES = new Set(['CANCELLED', 'ANNULEE']);
+
+export function isCancelledOrderStatus(status?: string | null): boolean {
+  return CANCELLED_STATUSES.has(String(status || '').toUpperCase());
+}
+
+export async function getOrderItemsForStock(orderId: string) {
+  return db
+    .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+}
+
+/**
+ * Décrémente (sale) ou rétablit (restore) le stock des produits d'une vente.
+ * Le stock ne descend jamais sous 0.
+ */
+export async function adjustProductStock(
+  storeId: string,
+  items: Array<{ productId?: string | null; quantity?: number | null }>,
+  mode: 'sale' | 'restore'
+) {
+  const totals = new Map<string, number>();
+  for (const item of items || []) {
+    const pid = item?.productId;
+    if (!pid) continue;
+    const qty = Math.floor(Number(item.quantity) || 0);
+    if (qty <= 0) continue;
+    totals.set(pid, (totals.get(pid) || 0) + qty);
+  }
+  for (const [productId, qty] of totals) {
+    if (mode === 'sale') {
+      await db
+        .update(products)
+        .set({ stock: sql`GREATEST(${products.stock} - ${qty}, 0)` })
+        .where(and(eq(products.id, productId), eq(products.storeId, storeId)));
+    } else {
+      await db
+        .update(products)
+        .set({ stock: sql`${products.stock} + ${qty}` })
+        .where(and(eq(products.id, productId), eq(products.storeId, storeId)));
+    }
   }
 }
 

@@ -1,9 +1,9 @@
 'use server'
 
-import { revalidatePath, revalidateTag } from 'next/cache'
+import { revalidatePath, revalidateTag, updateTag } from 'next/cache'
 import { db } from '@/db'
 import { orders, orderItems, customers } from '@/db/schema'
-import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales } from '@/db/api'
+import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
 import { eq, inArray, desc, sql, and } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
 import { isWhatsAppConfigured } from '@/lib/whatsapp'
@@ -132,6 +132,14 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
                 quantity: item.quantity ?? 1,
               }))
             );
+            await adjustProductStock(
+              storeId,
+              order.items.map((item) => ({
+                productId: item.product?.id ?? null,
+                quantity: item.quantity ?? 1,
+              })),
+              'sale'
+            );
         }
 
         if (order.customer?.id) {
@@ -151,6 +159,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
         revalidatePath('/pos');
         revalidatePath('/inventory');
         revalidatePath('/dashboard');
+        updateTag('marketplace');
         
         return { success: true, order: orderData };
     } catch (error: unknown) {
@@ -162,11 +171,21 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
 export async function updateOrderStatusAction(orderId: string, status: string) {
     try {
         const storeId = await getStoreIdForOrder(orderId);
+        const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, orderId)).limit(1);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
+
+        // Une commande annulée (pas déjà annulée) redonne son stock
+        if (existing && !isCancelledOrderStatus(existing.status) && isCancelledOrderStatus(status) && storeId) {
+            const items = await getOrderItemsForStock(orderId);
+            await adjustProductStock(storeId, items, 'restore');
+            updateTag('marketplace');
+        }
+
         sendStatusNotifications(orderId, status).catch(() => {});
         invalidateOrdersCache(storeId);
         if (storeId) revalidateTag(`orders:${storeId}`, 'max');
         revalidatePath('/orders');
+        revalidatePath('/inventory');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating order status with Drizzle:', error);
@@ -177,10 +196,17 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
 export async function deleteOrderAction(id: string) {
     try {
         const storeId = await getStoreIdForOrder(id);
+        const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, id)).limit(1);
+        if (storeId && existing && !isCancelledOrderStatus(existing.status)) {
+            const items = await getOrderItemsForStock(id);
+            await adjustProductStock(storeId, items, 'restore');
+            updateTag('marketplace');
+        }
         await db.delete(orders).where(eq(orders.id, id));
         invalidateOrdersCache(storeId);
         if (storeId) revalidateTag(`orders:${storeId}`, 'max');
         revalidatePath('/orders');
+        revalidatePath('/inventory');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error deleting order with Drizzle:', error);
@@ -195,6 +221,12 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
             for (const id of ids) {
                 const sid = await getStoreIdForOrder(id);
                 if (sid) storeIds.add(sid);
+                const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, id)).limit(1);
+                if (sid && existing && !isCancelledOrderStatus(existing.status)) {
+                    const items = await getOrderItemsForStock(id);
+                    await adjustProductStock(sid, items, 'restore');
+                    updateTag('marketplace');
+                }
             }
             await db.delete(orders).where(inArray(orders.id, ids));
             storeIds.forEach(sid => {
@@ -203,6 +235,7 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
             });
         }
         revalidatePath('/orders');
+        revalidatePath('/inventory');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error bulk deleting orders with Drizzle:', error);
