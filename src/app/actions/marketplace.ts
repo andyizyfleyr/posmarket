@@ -7,7 +7,7 @@ import { unstable_cache, updateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales } from '@/db/api'
-import { notify, getStorePhone, notifyStaff } from '@/lib/notifications'
+import { notify, getStorePhone } from '@/lib/notifications'
 import { orderEmailProducts } from '@/lib/email'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { generateProductSlug } from '@/utils/slug'
@@ -365,13 +365,6 @@ export async function submitCheckoutAction(
           }
         }
 
-        notifyStaff(storeId, 'COMMANDE_A_PREPARER', {
-          title: 'Commande à préparer',
-          body: `La commande #${shortId} de ${buyerName} (${totalStr} FCFA) est en attente de préparation.`,
-          templateParams: [shortId, buyerName, totalStr],
-          emailData: { order: shortId, buyer: buyerName, phone: customer.phone || phone || undefined, total: totalStr, items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
-        }).catch(() => {});
-
         const buyerEmail = customer.email || user?.email || '';
         if (customer.phone || buyerEmail) {
           await notify({
@@ -384,18 +377,6 @@ export async function submitCheckoutAction(
             templateParams: [shortId, storeDisplayName, totalStr],
             emailData: { order: shortId, store: storeDisplayName, storeSlug: storeInfo?.slug || '', total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, products: emailProducts },
           });
-          if (paymentMethod === 'CARTE') {
-            await notify({
-              userId: user?.id || null,
-              phone: customer.phone,
-              email: buyerEmail,
-              eventType: 'RECU_PAIEMENT',
-              title: 'Reçu de paiement',
-              body: `Paiement de ${totalStr} FCFA reçu pour la commande #${shortId}.`,
-              templateParams: [totalStr, shortId],
-              emailData: { order: shortId, total: totalStr, products: emailProducts },
-            });
-          }
         }
 
         const productIds = items.map((i) => i.product?.id).filter((x): x is string => Boolean(x));

@@ -13,27 +13,6 @@ import { isEmailConfigured, orderEmailProducts } from '@/lib/email'
 // WhatsApp notification helpers (best-effort, never blocks the action)
 // ---------------------------------------------------------------------------
 
-async function sendOrderNotifications(orderData: { id: string; storeId: string; total?: string | number; paymentMethod?: string }) {
-    if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return;
-    try {
-        const storeInfo = await getStorePhone(orderData.storeId);
-        const shortId = orderData.id.slice(0, 8).toUpperCase();
-        const totalStr = new Intl.NumberFormat('fr-FR').format(Number(orderData.total) || 0);
-        const paymentLabel = orderData.paymentMethod === 'CARTE' ? 'Carte' : 'Espèces';
-        const products = await orderEmailProducts(orderData.id);
-        await notify({
-            userId: storeInfo?.ownerId || null,
-            phone: storeInfo?.phone || '',
-            email: storeInfo?.email || '',
-            eventType: 'VENTE_POS',
-            title: 'Vente en boutique',
-            body: `Vente POS #${shortId} — ${totalStr} FCFA — ${paymentLabel}`,
-            templateParams: [shortId, totalStr],
-            emailData: { order: shortId, total: totalStr, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', payment: orderData.paymentMethod || '', paymentLabel, items: products.length || undefined, products },
-        });
-    } catch {}
-}
-
 async function sendStatusNotifications(orderId: string, status: string) {
     if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return;
     try {
@@ -63,21 +42,18 @@ async function sendStatusNotifications(orderId: string, status: string) {
         if (!buyerPhone && !buyerEmail) return;
 
         const eventName =
-            status === 'READY'
-                ? 'COMMANDE_PRET'
-                : status === 'COMPLETED'
-                    ? 'COMMANDE_LIVREE'
-                    : status === 'CANCELLED' || status === 'ANNULEE'
-                        ? 'COMMANDE_ANNULEE'
-                        : null;
+            status === 'COMPLETED'
+                ? 'COMMANDE_LIVREE'
+                : status === 'CANCELLED' || status === 'ANNULEE'
+                    ? 'COMMANDE_ANNULEE'
+                    : null;
         if (!eventName) return;
 
         const products = await orderEmailProducts(orderId);
-        const labels = { COMMANDE_PRET: 'Commande prête', COMMANDE_LIVREE: 'Commande livrée', COMMANDE_ANNULEE: 'Commande annulée' };
+        const labels = { COMMANDE_LIVREE: 'Commande livrée', COMMANDE_ANNULEE: 'Commande annulée' };
         const storeLabel = storeInfo?.name || 'boutique';
         const totalStr = new Intl.NumberFormat('fr-FR').format(Number(order.total) || 0);
         const bodies = {
-            COMMANDE_PRET: `Votre commande #${shortId} (${storeLabel}) est prête pour la récupération.`,
             COMMANDE_LIVREE: `Votre commande #${shortId} (${storeLabel}) a bien été livrée. Merci pour votre achat !`,
             COMMANDE_ANNULEE: `Votre commande #${shortId} (${storeLabel}) a été annulée. Contactez la boutique pour plus d'informations.`,
         };
@@ -169,8 +145,6 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
             }
         }
 
-        sendOrderNotifications(orderData).catch(() => {});
-        
         invalidateOrdersCache(storeId);
         if (storeId) revalidateTag(`orders:${storeId}`, 'max');
         revalidatePath('/orders');
