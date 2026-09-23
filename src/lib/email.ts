@@ -325,13 +325,13 @@ const rows = (items: Array<[string, Val]>): string =>
 const badge = (text: string, bg = '#F1F3F4', fg = '#5F6368'): string => `
   <span style="display:inline-block;background:${bg};color:${fg};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:5px 12px;border-radius:999px;">${esc(text)}</span>`;
 
-const highlight = (label: string, value: Val, note?: string): string => `
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8F9FA;border:1px solid #E8EAED;border-radius:12px;margin:0 0 24px;">
+const summaryLine = (label: string, value: Val, note?: string): string => `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 18px;">
     <tr>
-      <td style="padding:20px 24px;">
-        <div style="color:#5F6368;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">${esc(label)}</div>
-        <div style="color:#202124;font-size:26px;font-weight:800;letter-spacing:-0.02em;">${esc(value)}</div>
-        ${note ? `<div style="color:#5F6368;font-size:13px;margin-top:8px;">${esc(note)}</div>` : ''}
+      <td style="border-top:1px solid #E8EAED;padding:16px 0 0;color:#5F6368;font-size:13px;font-weight:600;line-height:1.5;">${esc(label)}</td>
+      <td align="right" style="border-top:1px solid #E8EAED;padding:16px 0 0;color:#202124;font-size:22px;font-weight:800;letter-spacing:-0.01em;white-space:nowrap;padding-left:16px;line-height:1.3;">
+        ${esc(value)}
+        ${note ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:2px;">${esc(note)}</div>` : ''}
       </td>
     </tr>
   </table>`;
@@ -340,9 +340,6 @@ const CTA = (href: string, label: string): string => `
   <p style="margin:0 0 8px;">
     <a href="${esc(href)}" style="display:block;background:#1A73E8;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;text-align:center;padding:13px 20px;border-radius:8px;">${esc(label)}</a>
   </p>`;
-
-const textLink = (href: string, label: string): string =>
-  href ? `<p style="margin:0 0 16px;"><a href="${esc(href)}" style="color:#1A73E8;font-size:13px;font-weight:600;text-decoration:underline;">${esc(label)}</a></p>` : '';
 
 const note = (text: string): string =>
   `<p style="margin:0;color:#5F6368;font-size:12px;line-height:1.7;">${esc(text)}</p>`;
@@ -372,11 +369,6 @@ const storePage = (d: EmailData): string => {
   return slug ? path(`/store/${encodeURIComponent(slug)}`) : '';
 };
 
-const productPage = (d: EmailData): string => {
-  const slug = String(d.productSlug || '').trim();
-  return slug ? path(`/product/${encodeURIComponent(slug)}`) : '';
-};
-
 const imgUrl = (v?: string | null): string => {
   if (!v) return '';
   const s = String(v).trim();
@@ -388,6 +380,9 @@ const productRow = (it: ProductEmailItem, last: boolean): string => {
   const href = it.slug ? path(`/product/${encodeURIComponent(it.slug)}`) : '';
   const img = it.image ? imgUrl(it.image) : '';
   const price = it.price ? `${esc(it.price)} FCFA` : '—';
+  const nameCell = href
+    ? `<a href="${href}" style="display:block;color:#202124;text-decoration:none;line-height:1.35;max-height:2.75em;overflow:hidden;word-break:break-word;">${esc(it.name)}</a>`
+    : `<div style="display:block;line-height:1.35;max-height:2.75em;overflow:hidden;word-break:break-word;">${esc(it.name)}</div>`;
   const imgCell = img
     ? `<img src="${img}" width="48" height="48" alt="${esc(it.name)}" style="display:block;width:48px;height:48px;border-radius:10px;object-fit:cover;border:1px solid #E8EAED;" />`
     : `<div style="display:block;width:48px;height:48px;line-height:48px;text-align:center;border-radius:10px;background:#F1F3F4;color:#9AA0A6;font-size:18px;font-weight:700;border:1px solid #E8EAED;">${esc((it.name || '?').charAt(0).toUpperCase())}</div>`;
@@ -397,15 +392,15 @@ const productRow = (it: ProductEmailItem, last: boolean): string => {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td width="56" valign="middle" style="padding-right:12px;">${imgCell}</td>
-            <td valign="middle" style="padding:0 12px 0 0;color:#202124;font-size:14px;font-weight:600;line-height:1.4;">
-              ${href ? `<a href="${href}" style="color:#202124;text-decoration:none;">${esc(it.name)}</a>` : esc(it.name)}
-              ${it.detail ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:3px;">${esc(it.detail)}</div>` : ''}
+            <td valign="middle" style="overflow:hidden;padding:0 12px 0 0;color:#202124;font-size:14px;font-weight:600;line-height:1.4;">
+              ${nameCell}
+              ${it.detail ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:3px;word-break:break-word;">${esc(it.detail)}</div>` : ''}
               ${it.wholesale ? `<div style="color:#5F6368;font-size:12px;font-weight:400;margin-top:2px;">Prix de gros : ${esc(it.wholesale)} FCFA${it.wholesaleQty ? ` dès ${esc(String(it.wholesaleQty))}` : ''}</div>` : ''}
-              ${href ? `<div style="margin-top:5px;"><a href="${href}" style="color:#1A73E8;font-size:12px;font-weight:600;text-decoration:underline;">Voir le produit →</a></div>` : ''}
+              ${href ? `<div style="margin-top:6px;"><a href="${href}" style="color:#1A73E8;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">Voir →</a></div>` : ''}
             </td>
-            <td align="right" valign="top" style="color:#202124;font-size:14px;font-weight:700;white-space:nowrap;line-height:1.4;">
+            <td valign="top" align="right" style="color:#202124;font-size:14px;font-weight:700;white-space:nowrap;line-height:1.4;padding-left:8px;padding-top:2px;">
               ${price}
-              <div style="color:#5F6368;font-size:12px;font-weight:400;text-align:right;">Quantité : ${esc(String(it.qty || 1))}${it.unit ? ` ${esc(it.unit)}` : ''}</div>
+              <div style="color:#5F6368;font-size:12px;font-weight:400;text-align:right;white-space:nowrap;">Quantité : ${esc(String(it.qty || 1))}${it.unit ? ` ${esc(it.unit)}` : ''}</div>
             </td>
           </tr>
         </table>
@@ -518,44 +513,40 @@ const renderers: Record<string, EmailRenderer> = {
   CONFIRMATION_COMMANDE: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.cart, `Commande #${d.order} confirmée`, { text: 'Confirmée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande chez ${d.store || 'la boutique'} a été enregistrée.`)}
-        ${highlight('Montant total', money(d.total), d.paymentLabel ? `Paiement : ${d.paymentLabel}` : undefined)}
-        ${productList(d.products)}
-        ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
-        ${CTA(account(), 'Suivre ma commande')}
-        ${textLink(storePage(d), 'Voir la boutique')}
-        ${note('Une question sur votre commande ? Contactez directement la boutique.')}`);
+${productList(d.products)}
+      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
+      ${summaryLine('Total', money(d.total))}
+      ${CTA(account(), 'Suivre ma commande')}
+      ${note('Une question sur votre commande ? Contactez directement la boutique.')}`);
     },
   },
   COMMANDE_PRET: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.box, `Commande #${d.order} prête`, { text: 'À récupérer', bg: '#e8f0fe', fg: '#1a73e8' }, `Votre commande peut être récupérée chez ${d.store || 'la boutique'}.`)}
-      ${highlight('Montant total', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Voir ma commande')}
-      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Présentez simplement votre numéro de commande lors du retrait.')}`);
     },
   },
   COMMANDE_EXPEDIEE: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.truck, `Commande #${d.order} expédiée`, { text: 'En route', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande ${d.store ? `de ${d.store} ` : ''}vient d'être expédiée.`)}
-      ${highlight('Montant total', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Suivre le suivi')}
-      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Vous recevrez une notification dès la livraison.')}`);
     },
   },
   COMMANDE_LIVREE: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.ok, `Commande #${d.order} livrée`, { text: 'Livrée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande de ${d.store || 'la boutique'} a été livrée. Merci pour votre achat !`)}
-      ${highlight('Montant total', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Laisser un avis')}
-      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Une remarque sur votre commande ? Contactez la boutique. Votre avis aide les commerçants locaux.')}`);
     },
   },
@@ -565,16 +556,15 @@ const renderers: Record<string, EmailRenderer> = {
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
       ${CTA(account(), 'Mes commandes')}
-      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('En cas de paiement déjà effectué, le remboursement sera traité par la boutique. Contactez-la pour plus d\u2019informations.')}`);
     },
   },
   RECU_PAIEMENT: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.card, 'Paiement reçu', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, `Le paiement de votre commande #${d.order} a bien été reçu.`)}
-      ${highlight('Montant payé', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Statut', 'Payé']])}
+      ${summaryLine('Total payé', money(d.total))}
       ${CTA(account(), 'Voir le reçu')}
       ${note('Ceci fait office de reçu de paiement pour votre commande.')}`);
     },
@@ -585,15 +575,14 @@ const renderers: Record<string, EmailRenderer> = {
       ${productList(d.products)}
       ${rows([['Commande', d.order ? `#${d.order}` : null], ['Boutique', d.store]])}
       ${CTA(account(), 'Laisser un avis')}
-      ${textLink(storePage(d), 'Voir la boutique')}
       ${note('Votre avis prend moins d\u2019une minute et compte beaucoup pour les commerçants locaux.')}`);
     },
   },
   RELANCE_PANIER_ABANDONNE: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.cart, `Bonjour ${d.name || ''}`, { text: 'En attente', bg: '#fff7ed', fg: '#c2410c' }, `Vous avez laissé ${d.items || 'des articles'} dans votre panier pour un total de ${money(d.total)}.`)}
-      ${highlight('Montant du panier', money(d.total))}
       ${rows([['Articles', `${d.items || '—'} article(s)`]])}
+      ${summaryLine('Montant du panier', money(d.total))}
       ${CTA(storePage(d) || `${siteUrl()}/`, 'Finaliser ma commande')}
       ${note('Votre panier est conservé. Revenez quand vous voulez pour finaliser votre achat.')}`);
     },
@@ -602,31 +591,29 @@ const renderers: Record<string, EmailRenderer> = {
   VENTE_POS: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.shop, 'Vente enregistrée', paymentBadge(d), d.store ? `Une vente a été enregistrée en boutique (${d.store}).` : 'Une vente a été enregistrée en boutique.')}
-      ${highlight('Montant de la vente', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
+      ${summaryLine('Total de la vente', money(d.total))}
       ${CTA(`${siteUrl()}/dashboard`, 'Voir le tableau de bord')}
-      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Le stock a été mis à jour automatiquement.')}`);
     },
   },
   NOUVELLE_COMMANDE: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.bell, `Nouvelle commande #${d.order}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${d.buyer || 'un client'} est arrivée.`)}
-      ${highlight('Total à encaisser', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Paiement', d.paymentLabel]])}
+      ${summaryLine('Total à encaisser', money(d.total))}
       ${CTA(`${siteUrl()}/orders`, 'Préparer la commande')}
-      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Pensez à notifier le client dès que la commande est prête.')}`);
     },
   },
   COMMANDE_A_PREPARER: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.bell, `Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande #${d.order} de ${d.buyer || 'un client'} attend sa préparation.`)}
-      ${highlight('Total à encaisser', money(d.total))}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Client', d.buyer]])}
+      ${summaryLine('Total à encaisser', money(d.total))}
       ${CTA(`${siteUrl()}/orders`, 'Préparer le colis')}
       ${note('Marquez la commande comme prête dès que le colis est emballé.')}`);
     },
@@ -644,7 +631,6 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.out, 'Rupture de stock', { text: 'Rupture', bg: '#fef3f2', fg: '#b42318' }, `Le produit \u201c${d.product}\u201d n\u2019est plus disponible.`)}
       ${rows([['Produit', d.product], ['Stock restant', '0']])}
       ${CTA(`${siteUrl()}/inventory`, 'Gérer le stock')}
-      ${textLink(productPage(d), 'Voir le produit')}
       ${note('Les clients ne pourront plus commander ce produit tant que le stock n\u2019est pas renouvelé.')}`);
     },
   },
@@ -661,7 +647,6 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.star, 'Nouvel avis reçu', null, d.buyer ? `${d.buyer} a noté ${d.product || 'un de vos produits'}.` : `Un client a noté ${d.product || 'un de vos produits'}.`)}
       ${rows([['Produit', d.product], ['Client', d.buyer], ['Note', `${stars(d.rating)} (${d.rating}/5)`], ['Total des avis', d.count ? `${d.count} avis` : null]])}
       ${CTA(`${siteUrl()}/reports`, 'Voir les avis')}
-      ${textLink(productPage(d), 'Voir le produit')}
       ${note('Répondez à vos clients : leurs avis améliorent la visibilité de votre boutique.')}`);
     },
   },
@@ -679,7 +664,6 @@ const renderers: Record<string, EmailRenderer> = {
       return bodyBlock(d, `${hero(IMG.ban, 'Boutique non approuvée', { text: 'Réexaminée', bg: '#fef3f2', fg: '#b42318' }, `La boutique \u201c${d.store}\u201d n\u2019a pas pu être approuvée.`)}
       ${rows([['Boutique', d.store], ['Statut', 'Rejetée']])}
       ${CTA(`${siteUrl()}/settings`, 'Retoucher ma boutique')}
-      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Bonifiez votre présentation (photos, descriptions, identité) puis soumettez-la à nouveau.')}`);
     },
   },
@@ -737,28 +721,26 @@ const renderers: Record<string, EmailRenderer> = {
   RECAP_VENTES_JOUR: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.chart, 'Récap des ventes du jour', null, `Voici le bilan de ${d.store} pour aujourd\u2019hui.`)}
-      ${highlight('Chiffre d\u2019affaires du jour', money(d.total), `${d.count || 0} commande(s)`)}
       ${rows([['Boutique', d.store]])}
+      ${summaryLine('Chiffre d\u2019affaires du jour', money(d.total), `${d.count || 0} commande(s)`)}
       ${CTA(`${siteUrl()}/dashboard`, 'Voir le détail')}
-      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Ce récap est envoyé automatiquement chaque fin de journée.')}`);
     },
   },
   RAPPORT_VENDEUR_HEBDO: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.trend, 'Votre rapport hebdomadaire', null, `La semaine dernière, ${d.store} a enregistré des performances encourageantes.`)}
-      ${highlight('Chiffre d\u2019affaires (7 jours)', money(d.total), `${d.count || 0} commande(s)`)}
       ${rows([['Boutique', d.store]])}
+      ${summaryLine('Chiffre d\u2019affaires (7 jours)', money(d.total), `${d.count || 0} commande(s)`)}
       ${CTA(`${siteUrl()}/dashboard`, 'Analyser mes ventes')}
-      ${textLink(storePage(d), 'Voir ma boutique en ligne')}
       ${note('Continuez sur votre lancée : pensez aux produits les plus demandés.')}`);
     },
   },
   RAPPORT_ADMIN: {
     render: (d) => {
       return bodyBlock(d, `${hero(IMG.chart, 'Rapport hebdomadaire PosMarket', null, 'Situation de la marketplace sur les 7 derniers jours.')}
-      ${highlight('Commandes (7 jours)', d.count, `${money(d.total)} de chiffre d\u2019affaires`)}
       ${rows([['Boutiques actives', d.stores], ['Utilisateurs', d.users]])}
+      ${summaryLine('Commandes (7 jours)', d.count, `${money(d.total)} de chiffre d\u2019affaires`)}
       ${CTA(`${siteUrl()}/pam`, 'Ouvrir le panneau')
       }
       ${note('Ce rapport est généré automatiquement chaque semaine.')}`);
