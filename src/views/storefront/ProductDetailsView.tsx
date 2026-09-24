@@ -123,6 +123,51 @@ export function ProductDetailsView(props: any) {
     const options = Array.isArray(product.options) ? product.options : [];
     const variants = Array.isArray(product.variants) ? product.variants : [];
     const reviews: Review[] = Array.isArray(product.reviews) ? product.reviews : [];
+
+    const renderReviewCard = (review: Review, idx: number) => (
+      <div key={idx} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+        <div
+          className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] md:text-xs font-bold ${
+            [
+              "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
+              "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
+              "bg-gradient-to-br from-rose-100 to-rose-200 text-rose-600",
+            ][idx % 3]
+          }`}
+        >
+          {review.author?.[0]?.toUpperCase() || "A"}
+        </div>
+        <div className="flex-grow min-w-0">
+          <div className="flex items-center justify-between gap-3 mb-0.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h4 className="text-[9px] md:text-xs font-bold text-gray-900 truncate">
+                {review.author}
+              </h4>
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={8}
+                    className="text-yellow-400"
+                    fill={s <= review.rating ? "currentColor" : "none"}
+                  />
+                ))}
+              </div>
+            </div>
+            <span className="text-[9px] font-normal text-gray-400 flex-shrink-0">
+              {new Date(review.date).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+          <p className="text-[9px] md:text-xs text-gray-600 leading-relaxed font-normal">
+            {review.comment}
+          </p>
+        </div>
+      </div>
+    );
     const hasOptions = options.length > 0;
     const allSelected =
       !hasOptions || options.every((o: any) => !!selectedOptions[o.id]);
@@ -1405,53 +1450,19 @@ export function ProductDetailsView(props: any) {
                   </div>
                 ) : reviews.length > 0 ? (
                   <>
-                    {(showAllProductReviews
-                      ? reviews
-                      : reviews.slice(0, 3)
-                    ).map((review: Review, idx: number) => (
-                      <div key={idx} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                        <div
-                          className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] md:text-xs font-bold ${
-                            [
-                              "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
-                              "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
-                              "bg-gradient-to-br from-rose-100 to-rose-200 text-rose-600",
-                            ][idx % 3]
-                          }`}
-                        >
-                          {review.author?.[0]?.toUpperCase() || "A"}
-                        </div>
-                        <div className="flex-grow min-w-0">
-                          <div className="flex items-center justify-between gap-3 mb-0.5">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <h4 className="text-[9px] md:text-xs font-bold text-gray-900 truncate">
-                                {review.author}
-                              </h4>
-                              <div className="flex items-center gap-0.5 flex-shrink-0">
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                  <Star
-                                    key={s}
-                                    size={8}
-                                    className="text-yellow-400"
-                                    fill={s <= review.rating ? "currentColor" : "none"}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <span className="text-[9px] font-normal text-gray-400 flex-shrink-0">
-                              {new Date(review.date).toLocaleDateString("fr-FR", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })}
-                            </span>
-                          </div>
-                          <p className="text-[9px] md:text-xs text-gray-600 leading-relaxed font-normal">
-                            {review.comment}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="md:hidden">
+                      {reviews.slice(0, 3).map((review: Review, idx: number) =>
+                        renderReviewCard(review, idx),
+                      )}
+                    </div>
+                    <div className="hidden md:block">
+                      {(showAllProductReviews
+                        ? reviews
+                        : reviews.slice(0, 3)
+                      ).map((review: Review, idx: number) =>
+                        renderReviewCard(review, idx),
+                      )}
+                    </div>
 
                     {reviews.length > 3 && !showAllProductReviews && (
                       <button
@@ -1478,6 +1489,49 @@ export function ProductDetailsView(props: any) {
             </div>
           </div>
         </section>
+
+        {/* ============ BOTTOM SHEET AVIS (mobile uniquement) ============ */}
+        {showAllProductReviews && (
+          <div className="md:hidden fixed inset-0 z-[2000]">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowAllProductReviews(false)}
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+              <div className="px-4 pt-3 pb-3 border-b border-gray-100 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-3" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                      <Star size={16} fill="currentColor" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">
+                        {reviews.length} avis
+                      </h4>
+                      <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">
+                        {isFood ? "Sur le repas" : "Sur le produit"} ·{" "}
+                        {(product.rating || 0).toFixed(1)}/5
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowAllProductReviews(false)}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 active:scale-95 transition-all"
+                    aria-label="Fermer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 px-4 py-2">
+                {reviews.map((review: Review, idx: number) =>
+                  renderReviewCard(review, idx),
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ================= SIMILAIRES ================= */}
         {relatedProducts.length > 0 && (
