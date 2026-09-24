@@ -3241,10 +3241,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   <span
                                     title="Boutique vérifiée"
                                     aria-label="Boutique vérifiée"
-                                    className="w-3 h-3 rounded-full bg-[#1877F2] flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/30"
+                                    className="w-2.5 h-2.5 rounded-full bg-[#1877F2] flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/30"
                                   >
                                     <Check
-                                      size={7}
+                                      size={6}
                                       strokeWidth={4}
                                       className="text-white"
                                     />
