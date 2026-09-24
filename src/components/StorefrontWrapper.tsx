@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { StoreData, Review } from '@/types';
 import type { CheckoutStoreOrderDraft, CheckoutCustomerDraft } from '@/views/StorefrontView';
 
@@ -38,9 +38,11 @@ interface StorefrontWrapperProps {
 
 export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <StorefrontView
+      key={pathname || '/'}
       stores={stores}
       initialCategory={initialCategory}
       initialStoreId={initialStoreId}
