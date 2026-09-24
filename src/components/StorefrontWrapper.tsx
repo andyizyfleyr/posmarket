@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
-import { StoreData, Review } from '@/types';
+import { StoreData } from '@/types';
 import type { CheckoutStoreOrderDraft, CheckoutCustomerDraft } from '@/views/StorefrontView';
 
 const StorefrontView = dynamic(
@@ -22,11 +22,6 @@ interface StorefrontWrapperProps {
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
   ) => Promise<{ success: boolean; error?: string | undefined }>;
-  onAddReview: (
-    storeId: string,
-    productId: string,
-    review: Review,
-  ) => Promise<{ success: boolean; error?: string | undefined }>;
   onNotifyCartInterest: (
     storeId: string,
     productName: string,
@@ -36,7 +31,7 @@ interface StorefrontWrapperProps {
   ) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
-export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onBackToApp, onMarketplaceCheckout, onAddReview, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
+export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onBackToApp, onMarketplaceCheckout, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -55,10 +50,6 @@ export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onB
       }}
       onMarketplaceCheckout={async (ordersData, customerData) => {
         const result = await onMarketplaceCheckout(ordersData, customerData);
-        return result;
-      }}
-      onAddReview={async (storeId, productId, review) => {
-        const result = await onAddReview(storeId, productId, review);
         return result;
       }}
       onNotifyCartInterest={onNotifyCartInterest}

@@ -11,6 +11,8 @@ import ProductImage from "@/components/ProductImage";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
+import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
+import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
 import { generateProductSlug } from "@/utils/slug";
 import { Link } from "@/components/RouterPolyfill";
 import type { NotificationType, Review } from "@/types";
@@ -37,11 +39,6 @@ export function ProductDetailsView(props: any) {
     addToCart,
     buyNow,
     localNotify,
-    user,
-    setAuthMode,
-    setShowAuthModal,
-    setShowReviewForm,
-    setReviewStep,
     loadingReviews,
     selectedProductId,
     showAllProductReviews,
@@ -189,6 +186,22 @@ export function ProductDetailsView(props: any) {
       stockValue === null
         ? 0
         : Math.min(Math.round((stockValue / 20) * 100), 100);
+
+    // --- Description enrichie (auto, sans action du vendeur) ---
+    const autoHighlights = extractDescriptionHighlights(descriptionText);
+    const autoSpecs = buildAutoSpecs(product, {
+      mainCategory: mainCat,
+      storeName: product.storeName,
+      isFood,
+      isOutOfStock,
+      stock: stockValue,
+    });
+    const autoBadges = buildAutoBadges(product);
+    const hasMoreContent =
+      descriptionText.length > 180 ||
+      autoSpecs.length > 0 ||
+      autoHighlights.length > 0 ||
+      autoBadges.length > 0;
 
     // --- Gallery ---
     const galleryImages = [
@@ -561,58 +574,13 @@ export function ProductDetailsView(props: any) {
                     {isFood ? "Détails & Préparation" : "Description du produit"}
                   </h3>
                 </div>
-                <div
-                  className="text-gray-600 text-xs xl:text-[13px] leading-relaxed font-normal"
-                  style={{ whiteSpace: "pre-line" }}
-                >
-                  {descriptionText}
-                </div>
-
-                {/* Caractéristiques / Détails clés */}
-                <div className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs">
-                  <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                    <span className="block text-[9px] text-gray-400 uppercase font-medium">Catégorie</span>
-                    <span className="font-medium text-gray-800 truncate block text-xs">{mainCat}</span>
-                  </div>
-                  <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                    <span className="block text-[9px] text-gray-400 uppercase font-medium">Boutique</span>
-                    <span className="font-medium text-gray-800 truncate block text-xs">{product.storeName}</span>
-                  </div>
-                  <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                    <span className="block text-[9px] text-gray-400 uppercase font-medium">Disponibilité</span>
-                    <span className={`font-medium truncate block text-xs ${isOutOfStock ? "text-red-600" : "text-emerald-700"}`}>
-                      {isOutOfStock ? "Rupture de stock" : "En stock"}
-                    </span>
-                  </div>
-                  {product.sku && (
-                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Référence</span>
-                      <span className="font-medium text-gray-800 truncate block text-xs">{product.sku}</span>
-                    </div>
-                  )}
-                  {product.unit && (
-                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Format</span>
-                      <span className="font-medium text-gray-800 truncate block text-xs">{product.unit}</span>
-                    </div>
-                  )}
-                  {!isFood && product.deliveryTime && (
-                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Délai de livraison</span>
-                      <span className="font-medium text-gray-800 truncate block text-xs">
-                        {product.deliveryTime}
-                      </span>
-                    </div>
-                  )}
-                  {isFood && (product.preparationTime || product.deliveryTime) && (
-                    <div className="bg-gray-50/70 p-2 rounded-lg border border-gray-100">
-                      <span className="block text-[9px] text-gray-400 uppercase font-medium">Délai estimé</span>
-                      <span className="font-medium text-gray-800 truncate block text-xs">
-                        {product.preparationTime || product.deliveryTime}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <RichDescription text={descriptionText} accentClass={accentText} />
+                <AutoHighlights items={autoHighlights} accentClass={accentText} />
+                <AutoBadgesRow badges={autoBadges} />
+                <AutoSpecsGrid
+                  specs={autoSpecs}
+                  className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
+                />
               </div>
             </div>
 
@@ -1324,14 +1292,21 @@ export function ProductDetailsView(props: any) {
                   </h3>
                 </div>
                 <div
-                  className={`text-gray-600 text-xs leading-relaxed font-normal ${
-                    !isDescriptionExpanded ? "line-clamp-4" : ""
+                  className={`relative ${
+                    !isDescriptionExpanded
+                      ? "max-h-32 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+                      : ""
                   }`}
-                  style={{ whiteSpace: "pre-line" }}
                 >
-                  {descriptionText}
+                  <RichDescription text={descriptionText} accentClass={accentText} />
+                  <AutoHighlights items={autoHighlights} accentClass={accentText} />
+                  <AutoBadgesRow badges={autoBadges} />
+                  <AutoSpecsGrid
+                    specs={autoSpecs}
+                    className="grid grid-cols-2 gap-2 mt-3.5"
+                  />
                 </div>
-                {descriptionText.length > 180 && (
+                {hasMoreContent && (
                   <button
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                     className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-all ${accentText}`}
@@ -1362,22 +1337,6 @@ export function ProductDetailsView(props: any) {
                 Avis {isFood ? 'sur le repas' : 'sur le produit'}
               </h3>
             </div>
-            <Button
-              onClick={() => {
-                if (!user) {
-                  setAuthMode("login");
-                  setShowAuthModal(true);
-                  return;
-                }
-                setShowReviewForm(true);
-                setReviewStep(1);
-              }}
-              variant="secondary"
-              size="sm"
-              icon={<MessageCircle size={12} />}
-            >
-              {isFood ? 'Noter ce repas' : 'Donner mon avis'}
-            </Button>
           </div>
 
           <div className="flex flex-col md:flex-row gap-6 md:gap-12">

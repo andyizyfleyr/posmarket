@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
-import { fetchMarketplaceData, submitCheckoutAction, saveProductReviewAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
+import { fetchMarketplaceData, submitCheckoutAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { MAIN_CATEGORIES } from "@/constants";
 
 export const revalidate = 60;
@@ -75,7 +75,6 @@ export default async function CategoryPage({ params }: Props) {
                     "use server";
                 }}
                 onMarketplaceCheckout={submitCheckoutAction}
-                onAddReview={saveProductReviewAction}
                 onNotifyCartInterest={notifyCartInterestAction}
                 onNotifyPostCheckout={notifyPostCheckoutAction}
             />

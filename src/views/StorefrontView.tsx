@@ -28,8 +28,6 @@ import {
   ShieldCheck,
   Zap,
   Bell,
-  PartyPopper,
-  MessageCircle,
   ArrowRight,
   Loader2,
   ChevronRight,
@@ -91,7 +89,6 @@ import {
   fetchProductReviews,
 } from "@/hooks/useSupabaseData";
 import { useCoupons, useStoreReviews, useProductReviews } from "@/hooks/useMarketplaceData";
-import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/supabase";
 const BuyerView = dynamic(
   () => import("./BuyerView").then((m) => m.BuyerView),
@@ -211,11 +208,6 @@ interface StorefrontViewProps {
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
   ) => Promise<{ success: boolean; error?: string | undefined }>;
-  onAddReview: (
-    storeId: string,
-    productId: string,
-    review: Review,
-  ) => Promise<{ success: boolean; error?: string | undefined }>;
   onNotifyCartInterest: (
     storeId: string,
     productName: string,
@@ -240,14 +232,12 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   initialStoreId,
   onBackToApp,
   onMarketplaceCheckout,
-  onAddReview,
   onNotifyCartInterest,
   onNotifyPostCheckout,
   notify,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const { isOnline, isSlow } = useNetworkStatus();
   const storeViewTracked = React.useRef<string | null>(null);
   const productViewTracked = React.useRef<string | null>(null);
@@ -821,15 +811,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   // Params logic moved to top
 
-  // Review form state
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [newReview, setNewReview] = useState({
-    author: "",
-    rating: 5,
-    comment: "",
-  });
-  const [reviewStep, setReviewStep] = useState(1);
-
   // Post-order review state
   const [completedOrderStores, setCompletedOrderStores] = useState<
     Array<{
@@ -838,12 +819,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       products: Array<{ id: string; name: string; image: string }>;
     }>
   >([]);
-  const [postOrderReviewTarget, setPostOrderReviewTarget] = useState<{
-    storeId: string;
-    productId: string;
-    productName: string;
-  } | null>(null);
-  const [, setReviewedProducts] = useState<string[]>([]);
   const [completedOrderItems, setCompletedOrderItems] = useState<
     Array<{ name: string; quantity: number; price: number }>
   >([]);
@@ -1101,14 +1076,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // ouvert (sinon la page défile derrière sur iOS).
   React.useEffect(() => {
     const locked =
-      showAuthModal || isSearchOpen || isImageModalOpen || showReviewForm;
+      showAuthModal || isSearchOpen || isImageModalOpen;
     if (!locked) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm]);
+  }, [showAuthModal, isSearchOpen, isImageModalOpen]);
 
   // Pagination & Infinite Scroll State
   const [, setPage] = useState(0);
@@ -1120,7 +1095,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
 
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
@@ -2052,7 +2026,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 })),
               );
               setCompletedOrderTotal(cartTotal);
-              setReviewedProducts([]);
               setPromoApplied(null);
               setPromoCodeInput("");
               setCheckoutStage("success");
@@ -2073,68 +2046,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             );
           }
         })();
-    }
-  };
-
-  const handleSubmitReview = async () => {
-    setIsSubmittingReview(true);
-    const reviewToSubmit = {
-      id: `rev-${Date.now()}`,
-      author: newReview.author || "Anonyme",
-      rating: newReview.rating,
-      comment: newReview.comment,
-      date: new Date().toISOString(),
-    };
-
-    try {
-      let result: { success?: boolean; error?: string } | undefined;
-      if (postOrderReviewTarget) {
-        result = await onAddReview(
-          postOrderReviewTarget.storeId,
-          postOrderReviewTarget.productId,
-          reviewToSubmit,
-        );
-        if (result?.success) {
-          setReviewedProducts((prev) => [
-            ...prev,
-            postOrderReviewTarget.productId,
-          ]);
-        }
-      } else if (selectedProductDetails) {
-        result = await onAddReview(
-          selectedProductDetails.storeId,
-          selectedProductDetails.id,
-          reviewToSubmit,
-        );
-      } else {
-        return;
-      }
-
-      if (result && !result.success) {
-        localNotify(
-          "Erreur lors de la publication de l'avis : " + result.error,
-          "error",
-        );
-        return;
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["product-reviews"] });
-      queryClient.invalidateQueries({ queryKey: ["store-reviews"] });
-      setReviewStep(4);
-      setTimeout(() => {
-        setNewReview({ author: "", rating: 5, comment: "" });
-        setShowReviewForm(false);
-        setReviewStep(1);
-        setPostOrderReviewTarget(null);
-      }, 2500);
-    } catch (error) {
-      localNotify(
-        "Une erreur est survenue lors de l'envoi de votre avis.",
-        "error",
-      );
-      console.error("Review submission error:", error);
-    } finally {
-      setIsSubmittingReview(false);
     }
   };
 
@@ -4076,8 +3987,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               user={user}
               setAuthMode={setAuthMode}
               setShowAuthModal={setShowAuthModal}
-              setShowReviewForm={setShowReviewForm}
-              setReviewStep={setReviewStep}
               loadingReviews={loadingReviews}
               selectedProductId={selectedProductId}
               showAllProductReviews={showAllProductReviews}
@@ -4436,224 +4345,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 Essai gratuit de 14 jours • Sans engagement
               </p>
             </div>
-          </div>
-        </div>
-      )}
-      {/* Step-Form Review Modal */}
-      {showReviewForm && (
-        <div
-          className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-gray-900/60 backdrop-blur-sm   duration-300"
-          onClick={() => {
-            setShowReviewForm(false);
-            setReviewStep(1);
-          }}
-        >
-          <div
-            className="bg-white w-full max-w-md md:rounded-[28px] rounded-t-[28px] overflow-hidden shadow-2xl   md: duration-400 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setShowReviewForm(false);
-                setReviewStep(1);
-                setNewReview({ author: "", rating: 5, comment: "" });
-              }}
-              className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
-            >
-              <X size={18} />
-            </button>
-
-            {/* Progress Bar */}
-            {reviewStep < 4 && (
-              <div className="px-6 pt-5 pb-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  {[1, 2, 3].map((s) => (
-                    <div
-                      key={s}
-                      className="flex-grow h-1 rounded-full overflow-hidden bg-gray-100"
-                    >
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${s <= reviewStep ? "bg-[#f56b2a] w-full" : "w-0"}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-widest text-right">
-                  Étape {reviewStep}/3
-                </p>
-              </div>
-            )}
-
-            {/* Step Content */}
-            <div className="p-6 md:p-8">
-              {/* Step 1: Rating */}
-              {reviewStep === 1 && (
-                <div className="   duration-300 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-500 flex items-center justify-center mx-auto mb-4">
-                    <Star size={24} fill="currentColor" />
-                  </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">
-                    Quelle note donnez-vous ?
-                  </h3>
-                  <p className="text-[11px] text-gray-600 font-normal mb-6">
-                    Touchez une étoile pour noter ce produit
-                  </p>
-
-                  <div className="flex items-center justify-center gap-3 mb-8">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() =>
-                          setNewReview({ ...newReview, rating: num })
-                        }
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 ${newReview.rating >= num ? "bg-yellow-400 text-white shadow-lg shadow-yellow-200 scale-110" : "bg-gray-50 text-gray-500 border border-gray-100 hover:bg-yellow-50 hover:text-yellow-400"}`}
-                      >
-                        <Star
-                          size={22}
-                          fill={
-                            newReview.rating >= num ? "currentColor" : "none"
-                          }
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs font-bold text-gray-900 mb-6">
-                    {newReview.rating === 1
-                      ? "Très insatisfait"
-                      : newReview.rating === 2
-                        ? "Insatisfait"
-                        : newReview.rating === 3
-                          ? "Correct"
-                          : newReview.rating === 4
-                            ? "Satisfait"
-                            : "Très satisfait"}{" "}
-                    — {newReview.rating}/5
-                  </p>
-                  <button
-                    onClick={() => setReviewStep(2)}
-                    className="w-full py-3.5 bg-gray-900 text-white rounded-2xl font-semibold text-xs hover:bg-[#f56b2a] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    Continuer <ArrowRight size={14} />
-                  </button>
-                </div>
-              )}
-
-              {/* Step 2: Name */}
-              {reviewStep === 2 && (
-                <div className="   duration-300 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-4">
-                    <User size={24} />
-                  </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">
-                    Comment vous appelez-vous ?
-                  </h3>
-                  <p className="text-[11px] text-gray-600 font-normal mb-6">
-                    Votre prénom sera affiché avec votre avis
-                  </p>
-
-                  <input
-                    type="text"
-                    value={newReview.author}
-                    onChange={(e) =>
-                      setNewReview({ ...newReview, author: e.target.value })
-                    }
-                    placeholder="Votre prénom..."
-                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-semibold text-sm text-gray-700 text-center focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-6"
-                    autoFocus
-                  />
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setReviewStep(1)}
-                      className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-2xl font-semibold text-xs hover:bg-gray-200 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
-                    >
-                      <ChevronLeft size={14} /> Retour
-                    </button>
-                    <button
-                      onClick={() => setReviewStep(3)}
-                      className="flex-[2] py-3.5 bg-gray-900 text-white rounded-2xl font-semibold text-xs hover:bg-[#f56b2a] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                    >
-                      Continuer <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Comment */}
-              {reviewStep === 3 && (
-                <div className="   duration-300 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center mx-auto mb-4">
-                    <MessageCircle size={24} />
-                  </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">
-                    Partagez votre expérience
-                  </h3>
-                  <p className="text-[11px] text-gray-600 font-normal mb-6">
-                    Décrivez ce que vous avez aimé ou non
-                  </p>
-
-                  <textarea
-                    rows={4}
-                    value={newReview.comment}
-                    onChange={(e) =>
-                      setNewReview({ ...newReview, comment: e.target.value })
-                    }
-                    placeholder="Écrivez votre avis ici..."
-                    className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl font-normal text-xs text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-50 transition-all no-global-border mb-2 resize-none"
-                    autoFocus
-                  />
-                  <p className="text-[9px] text-gray-500 font-normal mb-5">
-                    {newReview.comment.length}/500 caractères
-                  </p>
-
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => setReviewStep(2)}
-                      variant="ghost"
-                      size="md"
-                      className="flex-1"
-                      icon={<ChevronLeft size={14} />}
-                    >
-                      Retour
-                    </Button>
-                    <Button
-                      onClick={handleSubmitReview}
-                      disabled={!newReview.comment.trim()}
-                      loading={isSubmittingReview}
-                      loadingText="Publication..."
-                      variant="primary"
-                      size="md"
-                      className="flex-[2]"
-                      icon={<Star size={14} />}
-                    >
-                      Publier mon avis
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Success */}
-              {reviewStep === 4 && (
-                <div className="   duration-500 text-center py-4">
-                  <div className="relative w-16 h-16 mx-auto mb-5">
-                    <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-30" />
-                    <div className="relative w-full h-full bg-green-500 text-white rounded-full flex items-center justify-center shadow-xl">
-                      <CheckCircle2 size={32} strokeWidth={3} />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
-                    <PartyPopper size={20} className="inline text-[#f56b2a] -mt-1" /> Merci !
-                  </h3>
-                  <p className="text-[11px] text-gray-600 font-normal">
-                    Votre avis a été publié avec succès
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom safe area for mobile */}
-            <div className="h-2 md:hidden" />
           </div>
         </div>
       )}
