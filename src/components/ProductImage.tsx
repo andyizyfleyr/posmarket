@@ -12,6 +12,7 @@ interface ProductImageProps {
     showZoomEffect?: boolean;
     objectFit?: 'cover' | 'contain';
     shouldApplyAspectSquare?: boolean;
+    sizes?: string;
     children?: React.ReactNode;
 }
 
@@ -27,6 +28,7 @@ const ProductImage: React.FC<ProductImageProps> = ({
     showZoomEffect = true,
     objectFit = 'cover',
     shouldApplyAspectSquare = true,
+    sizes = '(max-width: 768px) 50vw, 25vw',
     children
 }) => {
     const [error, setError] = useState(false);
@@ -40,9 +42,9 @@ const ProductImage: React.FC<ProductImageProps> = ({
                     src={src!}
                     alt={alt}
                     fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className={`relative z-10 ${showZoomEffect ? 'group-hover:scale-105' : ''} ${className}`}
-                    style={{ objectFit: objectFit }}
+                    sizes={sizes}
+                    className={`relative z-10 ${showZoomEffect ? 'scale-[1.05] transition-transform duration-500 group-hover:scale-110' : ''} ${className}`}
+                    style={{ objectFit: objectFit, objectPosition: 'center' }}
                     onError={() => setError(true)}
                     priority={false}
                     placeholder="blur"

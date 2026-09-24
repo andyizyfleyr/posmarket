@@ -29,6 +29,7 @@ const CartItem: React.FC<CartItemProps> = memo(({ item, onUpdateQuantity, onRemo
           alt={item.product.name}
           containerClassName="rounded-lg border border-gray-100 shadow-sm"
           showZoomEffect={false}
+          sizes="40px"
         />
       </div>
 

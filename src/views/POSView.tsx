@@ -80,6 +80,7 @@ const POSProductCard = React.memo(({
           containerClassName="w-full h-full"
           objectFit="cover"
           showZoomEffect={false}
+          sizes="(max-width: 768px) 33vw, 25vw"
         />
         {/* Tap feedback overlay */}
         <div className={`absolute inset-0 bg-[#f56b2a]/10 transition-opacity duration-200 pointer-events-none ${tapped ? 'opacity-100' : 'opacity-0'}`} />
@@ -134,6 +135,7 @@ const POSCartItem = React.memo(({
           containerClassName="w-full h-full"
           objectFit="cover"
           showZoomEffect={false}
+          sizes="44px"
         />
       </div>
       <div className="flex-1 min-w-0">

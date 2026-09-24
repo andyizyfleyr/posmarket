@@ -532,6 +532,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               alt={product.name}
                               containerClassName="rounded-md md:rounded-lg border border-gray-100 shadow-sm"
                               showZoomEffect={false}
+                              sizes="40px"
                             />
                           </div>
                           <div className="flex flex-col min-w-0">
@@ -669,6 +670,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       src={product.image}
                       alt={product.name}
                       containerClassName="rounded-md md:rounded-lg border border-gray-50 bg-white"
+                      sizes="(max-width: 768px) 50vw, 25vw"
                     />
                     <span className={`absolute bottom-1 right-1 text-[7px] md:text-[8px] font-bold px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100/90 text-green-600' : 'bg-blue-100/90 text-blue-600'}`}>
                       {product.isOnline !== false ? 'MAR.' : 'POS'}

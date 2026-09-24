@@ -51,6 +51,19 @@ import {
   Check,
   Mail,
   MailCheck,
+  Sparkles,
+  Smartphone,
+  Shirt,
+  UtensilsCrossed,
+  Sofa,
+  HeartPulse,
+  Car,
+  Dumbbell,
+  Wrench,
+  BookOpen,
+  ToyBrick,
+  Shapes,
+  LayoutGrid,
 } from "lucide-react";
 import {
   StoreData,
@@ -231,6 +244,28 @@ interface StorefrontViewProps {
 function categoryToSlug(cat: string): string {
   return encodeURIComponent(cat);
 }
+
+// Icônes associées aux catégories marketplace (6 principales + toutes)
+type CategoryIconMap = Record<string, React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>>;
+
+const CATEGORY_ICONS: CategoryIconMap = {
+  'Cosmétique & Emballage': Sparkles,
+  'Électronique & High-Tech': Smartphone,
+  'Mode & Accessoires': Shirt,
+  'Épicerie & Supermarché': ShoppingBasketIcon,
+  'Restauration & Livraison Rapide': UtensilsCrossed,
+  'Mobilier & Décoration': Sofa,
+  'Beauté, Santé & Bien-être': HeartPulse,
+  'Auto & Moto': Car,
+  'Sport & Loisirs': Dumbbell,
+  'Bricolage & Jardin': Wrench,
+  'Livres & Papeterie': BookOpen,
+  'Jouets & Enfants': ToyBrick,
+  'Divers': Shapes,
+};
+
+// 6 catégories principales mises en avant sur mobile sous la recherche
+const HOME_CATEGORIES = MAIN_CATEGORIES.slice(0, 6);
 
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
@@ -873,6 +908,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [authSent, setAuthSent] = useState(false);
   const [showPropulseModal, setShowPropulseModal] = useState(false);
   const [isBulkOrderOpen, setIsBulkOrderOpen] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // RESTORE USER SESSION
   useEffect(() => {
@@ -1100,14 +1136,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // ouvert (sinon la page défile derrière sur iOS).
   React.useEffect(() => {
     const locked =
-      showAuthModal || isSearchOpen || isImageModalOpen || showReviewForm;
+      showAuthModal || isSearchOpen || isImageModalOpen || showReviewForm || showAllCategories;
     if (!locked) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm]);
+  }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm, showAllCategories]);
 
   // Pagination & Infinite Scroll State
   const [, setPage] = useState(0);
@@ -2633,6 +2669,53 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               </div>
             </div>
 
+            {/* Pastilles catégories - Mobile Only (6 principales + Tout voir) */}
+            <div
+              className={`md:hidden overflow-hidden transition-all ${headerCompact ? "h-0 opacity-0" : "opacity-100"}`}
+            >
+              <div className={`items-center gap-1.5 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
+                {HOME_CATEGORIES.map((cat) => {
+                  const Icon = CATEGORY_ICONS[cat] || Package;
+                  const active = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        if (
+                          location.pathname.includes("/product/") ||
+                          location.pathname.includes("/cart")
+                        ) {
+                          safeNavigate("/");
+                        }
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-[10px] uppercase tracking-wide transition-all border active:scale-95 whitespace-nowrap flex-shrink-0 ${
+                        active
+                          ? "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-500/20"
+                          : "bg-white border-gray-100 text-gray-600 hover:border-[#f56b2a]"
+                      }`}
+                    >
+                      <Icon
+                        size={13}
+                        strokeWidth={2.5}
+                        className={active ? "text-white" : "text-[#f56b2a]"}
+                      />
+                      {cat}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setShowAllCategories(true)}
+                  aria-label="Voir toutes les catégories"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#f56b2a] to-orange-500 text-white font-bold text-[10px] uppercase tracking-wide transition-all shadow-md shadow-orange-500/20 active:scale-95 whitespace-nowrap flex-shrink-0"
+                >
+                  <LayoutGrid size={12} strokeWidth={2.5} />
+                  Tout voir
+                </button>
+              </div>
+            </div>
+
             {/* Dynamic Horizontal Categories - Desktop only (causes jitter on mobile sticky header) */}
             <div
               className={`relative overflow-hidden hidden md:block ${headerCompact ? "h-0 opacity-0 md:h-auto md:opacity-100" : "opacity-100"}`}
@@ -3048,7 +3131,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Hero Bannière Premium - Carousel */}
                 {!searchTerm && selectedCategory === "all" && (
                   <div
-                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
+                    className="mb-3 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
                     onMouseEnter={() => setHeroPaused(true)}
                     onMouseLeave={() => setHeroPaused(false)}
                   >
@@ -3060,17 +3143,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <div className="min-w-full relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
                         <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
-                        <div className="absolute -left-10 bottom-0 w-40 h-40 bg-blue-100/40 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
+                        <div className="absolute -left-10 bottom-0 w-40 h-40 bg-orange-100/40 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-2 md:gap-12 px-4 md:px-12 py-3 md:py-10 min-h-[124px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-[#f56b2a] uppercase tracking-widest">
-                              <Zap size={12} fill="currentColor" /> Offre Commerçant
+                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1.5 md:mb-4 font-bold text-[9px] md:text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                              <Zap size={10} className="md:w-3 md:h-3" fill="currentColor" /> Offre Commerçant
                             </div>
-                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                            <h2 className="text-lg md:text-[38px] font-bold text-gray-900 mb-1 md:mb-3 tracking-tight leading-[1.05] md:leading-[1.1]">
                               C&apos;est le moment <br className="hidden md:block" />
                               <span className="text-[#f56b2a]">de vendre</span>
                             </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="hidden md:block text-gray-500 text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Boostez votre visibilité et attirez plus de clients
                               dès aujourd&apos;hui.
                             </p>
@@ -3079,6 +3162,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
+                              className="!px-4 !py-2 !text-[11px] md:!px-6 md:!py-3.5 md:!text-sm"
                             >
                               Commencer maintenant
                             </Button>
@@ -3093,18 +3177,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                       {/* Slide 2 - Gestion */}
                       <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#f0f9ff] via-white to-[#e0f2fe]/40" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-blue-400/8 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-2 md:gap-12 px-4 md:px-12 py-3 md:py-10 min-h-[124px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-blue-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-blue-600 uppercase tracking-widest">
-                              <ShieldCheck size={12} /> Gestion Pro
+                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1.5 md:mb-4 font-bold text-[9px] md:text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                              <ShieldCheck size={10} className="md:w-3 md:h-3" /> Gestion Pro
                             </div>
-                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                            <h2 className="text-lg md:text-[38px] font-bold text-gray-900 mb-1 md:mb-3 tracking-tight leading-[1.05] md:leading-[1.1]">
                               Gérez votre <br className="hidden md:block" />
-                              <span className="text-blue-500">stock facilement</span>
+                              <span className="text-[#f56b2a]">stock facilement</span>
                             </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="hidden md:block text-gray-500 text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Un inventaire synchronisé et des alertes
                               automatiques pour ne jamais manquer une vente.
                             </p>
@@ -3113,13 +3197,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
+                              className="!px-4 !py-2 !text-[11px] md:!px-6 md:!py-3.5 md:!text-sm"
                             >
                               Commencer maintenant
                             </Button>
                           </div>
                           <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center">
-                              <ShieldCheck size={40} className="text-blue-500" />
+                            <div className="w-24 h-24 bg-[#f56b2a]/10 rounded-3xl flex items-center justify-center">
+                              <ShieldCheck size={40} className="text-[#f56b2a]" />
                             </div>
                           </div>
                         </div>
@@ -3127,18 +3212,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                       {/* Slide 3 - Communauté */}
                       <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff5f5] via-white to-[#fef2f2]" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-red-400/8 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-2 md:gap-12 px-4 md:px-12 py-3 md:py-10 min-h-[124px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-red-500 uppercase tracking-widest">
-                              <Heart size={12} fill="currentColor" /> Communauté
+                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1.5 md:mb-4 font-bold text-[9px] md:text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                              <Heart size={10} className="md:w-3 md:h-3" fill="currentColor" /> Communauté
                             </div>
-                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
+                            <h2 className="text-lg md:text-[38px] font-bold text-gray-900 mb-1 md:mb-3 tracking-tight leading-[1.05] md:leading-[1.1]">
                               Rejoignez <br className="hidden md:block" />
-                              <span className="text-red-500">le succès</span>
+                              <span className="text-[#f56b2a]">le succès</span>
                             </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="hidden md:block text-gray-500 text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Faites partie des 500+ commerçants qui ont déjà
                               transformé leur manière de vendre.
                             </p>
@@ -3147,13 +3232,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
+                              className="!px-4 !py-2 !text-[11px] md:!px-6 md:!py-3.5 md:!text-sm"
                             >
                               Commencer maintenant
                             </Button>
                           </div>
                           <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center">
-                              <Heart size={40} className="text-red-500" fill="currentColor" />
+                            <div className="w-24 h-24 bg-[#f56b2a]/10 rounded-3xl flex items-center justify-center">
+                              <Heart size={40} className="text-[#f56b2a]" fill="currentColor" />
                             </div>
                           </div>
                         </div>
@@ -4732,6 +4818,57 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           onAddToCart={handleBulkAddToCart}
           formatCurrency={formatCurrency}
         />
+      )}
+
+      {/* 🗂️ Feuille « Toutes les catégories » (mobile-first) */}
+      {showAllCategories && (
+        <div className="fixed inset-0 z-[9500] lg:hidden">
+          <div
+            className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md"
+            onClick={() => setShowAllCategories(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[28px] shadow-2xl max-h-[82dvh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-6 pt-2 pb-3">
+              <h2 className="text-base font-bold text-gray-900 tracking-tight">
+                Toutes les catégories
+              </h2>
+              <button
+                onClick={() => setShowAllCategories(false)}
+                className="p-2 -m-2 text-gray-500 hover:text-gray-900"
+                aria-label="Fermer les catégories"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto no-scrollbar px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
+              <div className="grid grid-cols-2 gap-2.5">
+                {MAIN_CATEGORIES.map((cat) => {
+                  const Icon = CATEGORY_ICONS[cat] || Package;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setShowAllCategories(false);
+                        navigate(`/category/${categoryToSlug(cat)}`);
+                      }}
+                      className="flex items-center gap-2.5 bg-gray-50 hover:bg-orange-50 hover:border-[#f56b2a]/30 rounded-2xl border border-gray-100 p-3 text-left transition-all active:scale-[0.98] min-w-0"
+                    >
+                      <span className="w-8 h-8 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0">
+                        <Icon size={15} className="text-[#f56b2a]" strokeWidth={2.5} />
+                      </span>
+                      <span className="text-[11px] font-bold text-gray-700 leading-tight line-clamp-2">
+                        {cat}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

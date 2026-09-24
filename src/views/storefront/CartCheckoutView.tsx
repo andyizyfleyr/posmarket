@@ -342,6 +342,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                 alt={item.product.name || "Product Image"}
                                 containerClassName="rounded-xl border border-gray-100 shadow-sm"
                                 showZoomEffect={false}
+                                sizes="64px"
                               />
                             </div>
                             <div className="flex-grow min-w-0 flex flex-col">
