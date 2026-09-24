@@ -36,7 +36,6 @@ import {
   ChevronDown,
   ChevronUp,
   ShoppingBasketIcon,
-  Package,
   Trash2,
   Home,
   Briefcase,
@@ -51,19 +50,6 @@ import {
   Check,
   Mail,
   MailCheck,
-  Sparkles,
-  Smartphone,
-  Shirt,
-  UtensilsCrossed,
-  Sofa,
-  HeartPulse,
-  Car,
-  Dumbbell,
-  Wrench,
-  BookOpen,
-  ToyBrick,
-  Shapes,
-  LayoutGrid,
 } from "lucide-react";
 import {
   StoreData,
@@ -245,27 +231,7 @@ function categoryToSlug(cat: string): string {
   return encodeURIComponent(cat);
 }
 
-// Icônes associées aux catégories marketplace (6 principales + toutes)
-type CategoryIconMap = Record<string, React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>>;
 
-const CATEGORY_ICONS: CategoryIconMap = {
-  'Cosmétique & Emballage': Sparkles,
-  'Électronique & High-Tech': Smartphone,
-  'Mode & Accessoires': Shirt,
-  'Épicerie & Supermarché': ShoppingBasketIcon,
-  'Restauration & Livraison Rapide': UtensilsCrossed,
-  'Mobilier & Décoration': Sofa,
-  'Beauté, Santé & Bien-être': HeartPulse,
-  'Auto & Moto': Car,
-  'Sport & Loisirs': Dumbbell,
-  'Bricolage & Jardin': Wrench,
-  'Livres & Papeterie': BookOpen,
-  'Jouets & Enfants': ToyBrick,
-  'Divers': Shapes,
-};
-
-// 6 catégories principales mises en avant sur mobile sous la recherche
-const HOME_CATEGORIES = MAIN_CATEGORIES.slice(0, 6);
 
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
@@ -908,7 +874,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [authSent, setAuthSent] = useState(false);
   const [showPropulseModal, setShowPropulseModal] = useState(false);
   const [isBulkOrderOpen, setIsBulkOrderOpen] = useState(false);
-  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // RESTORE USER SESSION
   useEffect(() => {
@@ -1136,14 +1101,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // ouvert (sinon la page défile derrière sur iOS).
   React.useEffect(() => {
     const locked =
-      showAuthModal || isSearchOpen || isImageModalOpen || showReviewForm || showAllCategories;
+      showAuthModal || isSearchOpen || isImageModalOpen || showReviewForm;
     if (!locked) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm, showAllCategories]);
+  }, [showAuthModal, isSearchOpen, isImageModalOpen, showReviewForm]);
 
   // Pagination & Infinite Scroll State
   const [, setPage] = useState(0);
@@ -2666,53 +2631,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   onFocus={() => setIsSearchOpen(true)}
                   className="w-full bg-transparent py-2 px-3 text-[11px] font-semibold text-gray-800 focus:outline-none placeholder-gray-400 no-global-border border-none cursor-pointer"
                 />
-              </div>
-            </div>
-
-            {/* Pastilles catégories - Mobile Only (6 principales + Tout voir) */}
-            <div
-              className={`md:hidden overflow-hidden ${headerCompact ? "h-0 opacity-0" : "opacity-100"}`}
-            >
-              <div className={`items-center gap-1.5 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
-                {HOME_CATEGORIES.map((cat) => {
-                  const Icon = CATEGORY_ICONS[cat] || Package;
-                  const active = selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        if (
-                          location.pathname.includes("/product/") ||
-                          location.pathname.includes("/cart")
-                        ) {
-                          safeNavigate("/");
-                        }
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-[10px] uppercase tracking-wide transition-all border active:scale-95 whitespace-nowrap flex-shrink-0 ${
-                        active
-                          ? "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-500/20"
-                          : "bg-white border-gray-100 text-gray-600 hover:border-[#f56b2a]"
-                      }`}
-                    >
-                      <Icon
-                        size={13}
-                        strokeWidth={2.5}
-                        className={active ? "text-white" : "text-[#f56b2a]"}
-                      />
-                      {cat}
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() => setShowAllCategories(true)}
-                  aria-label="Voir toutes les catégories"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#f56b2a] to-orange-500 text-white font-bold text-[10px] uppercase tracking-wide transition-all shadow-md shadow-orange-500/20 active:scale-95 whitespace-nowrap flex-shrink-0"
-                >
-                  <LayoutGrid size={12} strokeWidth={2.5} />
-                  Tout voir
-                </button>
               </div>
             </div>
 
@@ -4817,56 +4735,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         />
       )}
 
-      {/* 🗂️ Feuille « Toutes les catégories » (mobile-first) */}
-      {showAllCategories && (
-        <div className="fixed inset-0 z-[9500] lg:hidden">
-          <div
-            className="absolute inset-0 bg-[#002f34]/60 backdrop-blur-md"
-            onClick={() => setShowAllCategories(false)}
-          />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[28px] shadow-2xl max-h-[82dvh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-200" />
-            </div>
-            <div className="flex items-center justify-between px-6 pt-2 pb-3">
-              <h2 className="text-base font-bold text-gray-900 tracking-tight">
-                Toutes les catégories
-              </h2>
-              <button
-                onClick={() => setShowAllCategories(false)}
-                className="p-2 -m-2 text-gray-500 hover:text-gray-900"
-                aria-label="Fermer les catégories"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="overflow-y-auto no-scrollbar px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
-              <div className="grid grid-cols-2 gap-2.5">
-                {MAIN_CATEGORIES.map((cat) => {
-                  const Icon = CATEGORY_ICONS[cat] || Package;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setShowAllCategories(false);
-                        navigate(`/category/${categoryToSlug(cat)}`);
-                      }}
-                      className="flex items-center gap-2.5 bg-gray-50 hover:bg-orange-50 hover:border-[#f56b2a]/30 rounded-2xl border border-gray-100 p-3 text-left transition-all active:scale-[0.98] min-w-0"
-                    >
-                      <span className="w-8 h-8 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0">
-                        <Icon size={15} className="text-[#f56b2a]" strokeWidth={2.5} />
-                      </span>
-                      <span className="text-[11px] font-bold text-gray-700 leading-tight line-clamp-2">
-                        {cat}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
