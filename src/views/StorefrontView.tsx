@@ -3131,7 +3131,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {/* Hero Bannière Premium - Carousel */}
                 {!searchTerm && selectedCategory === "all" && (
                   <div
-                    className="mb-3 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
+                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
                     onMouseEnter={() => setHeroPaused(true)}
                     onMouseLeave={() => setHeroPaused(false)}
                   >
@@ -3143,17 +3143,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <div className="min-w-full relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
                         <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
-                        <div className="absolute -left-10 bottom-0 w-40 h-40 bg-orange-100/40 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-2 md:gap-12 px-4 md:px-12 py-3 md:py-10 min-h-[124px] md:min-h-[280px]">
+                        <div className="absolute -left-10 bottom-0 w-40 h-40 bg-blue-100/40 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1.5 md:mb-4 font-bold text-[9px] md:text-[10px] text-[#f56b2a] uppercase tracking-widest">
-                              <Zap size={10} className="md:w-3 md:h-3" fill="currentColor" /> Offre Commerçant
+                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                              <Zap size={12} fill="currentColor" /> Offre Commerçant
                             </div>
-                            <h2 className="text-lg md:text-[38px] font-bold text-gray-900 mb-1 md:mb-3 tracking-tight leading-[1.05] md:leading-[1.1]">
+                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               C&apos;est le moment <br className="hidden md:block" />
                               <span className="text-[#f56b2a]">de vendre</span>
                             </h2>
-                            <p className="hidden md:block text-gray-500 text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Boostez votre visibilité et attirez plus de clients
                               dès aujourd&apos;hui.
                             </p>
@@ -3162,7 +3162,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
-                              className="!px-4 !py-2 !text-[11px] md:!px-6 md:!py-3.5 md:!text-sm"
                             >
                               Commencer maintenant
                             </Button>
@@ -3177,18 +3176,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                       {/* Slide 2 - Gestion */}
                       <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-2 md:gap-12 px-4 md:px-12 py-3 md:py-10 min-h-[124px] md:min-h-[280px]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#f0f9ff] via-white to-[#e0f2fe]/40" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-blue-400/8 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1.5 md:mb-4 font-bold text-[9px] md:text-[10px] text-[#f56b2a] uppercase tracking-widest">
-                              <ShieldCheck size={10} className="md:w-3 md:h-3" /> Gestion Pro
+                            <div className="inline-flex items-center gap-1.5 bg-blue-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-blue-600 uppercase tracking-widest">
+                              <ShieldCheck size={12} /> Gestion Pro
                             </div>
-                            <h2 className="text-lg md:text-[38px] font-bold text-gray-900 mb-1 md:mb-3 tracking-tight leading-[1.05] md:leading-[1.1]">
+                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               Gérez votre <br className="hidden md:block" />
-                              <span className="text-[#f56b2a]">stock facilement</span>
+                              <span className="text-blue-500">stock facilement</span>
                             </h2>
-                            <p className="hidden md:block text-gray-500 text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Un inventaire synchronisé et des alertes
                               automatiques pour ne jamais manquer une vente.
                             </p>
@@ -3197,14 +3196,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
-                              className="!px-4 !py-2 !text-[11px] md:!px-6 md:!py-3.5 md:!text-sm"
                             >
                               Commencer maintenant
                             </Button>
                           </div>
                           <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-[#f56b2a]/10 rounded-3xl flex items-center justify-center">
-                              <ShieldCheck size={40} className="text-[#f56b2a]" />
+                            <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center">
+                              <ShieldCheck size={40} className="text-blue-500" />
                             </div>
                           </div>
                         </div>
@@ -3212,18 +3210,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                       {/* Slide 3 - Communauté */}
                       <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-2 md:gap-12 px-4 md:px-12 py-3 md:py-10 min-h-[124px] md:min-h-[280px]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff5f5] via-white to-[#fef2f2]" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-red-400/8 rounded-full blur-3xl" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full mb-1.5 md:mb-4 font-bold text-[9px] md:text-[10px] text-[#f56b2a] uppercase tracking-widest">
-                              <Heart size={10} className="md:w-3 md:h-3" fill="currentColor" /> Communauté
+                            <div className="inline-flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-red-500 uppercase tracking-widest">
+                              <Heart size={12} fill="currentColor" /> Communauté
                             </div>
-                            <h2 className="text-lg md:text-[38px] font-bold text-gray-900 mb-1 md:mb-3 tracking-tight leading-[1.05] md:leading-[1.1]">
+                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               Rejoignez <br className="hidden md:block" />
-                              <span className="text-[#f56b2a]">le succès</span>
+                              <span className="text-red-500">le succès</span>
                             </h2>
-                            <p className="hidden md:block text-gray-500 text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
+                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Faites partie des 500+ commerçants qui ont déjà
                               transformé leur manière de vendre.
                             </p>
@@ -3232,14 +3230,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               loading={isNavigating}
                               variant="secondary"
                               size="lg"
-                              className="!px-4 !py-2 !text-[11px] md:!px-6 md:!py-3.5 md:!text-sm"
                             >
                               Commencer maintenant
                             </Button>
                           </div>
                           <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-[#f56b2a]/10 rounded-3xl flex items-center justify-center">
-                              <Heart size={40} className="text-[#f56b2a]" fill="currentColor" />
+                            <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center">
+                              <Heart size={40} className="text-red-500" fill="currentColor" />
                             </div>
                           </div>
                         </div>

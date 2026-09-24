@@ -220,7 +220,6 @@ export function BulkOrderModal({
                         alt={product.name}
                         containerClassName="w-full h-full"
                         objectFit="cover"
-                        sizes="56px"
                       />
                     </div>
 
