@@ -9,11 +9,7 @@ const StorefrontView = dynamic(
   () => import('@/views/StorefrontView').then((m) => m.StorefrontView),
   {
     ssr: true,
-    loading: () => (
-      <div className="min-h-screen w-full flex items-center justify-center bg-white">
-        <div className="w-10 h-10 border-4 border-[#f56b2a]/30 border-t-[#f56b2a] rounded-full animate-spin" />
-      </div>
-    ),
+    loading: () => null,
   },
 );
 
