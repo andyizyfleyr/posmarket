@@ -3215,7 +3215,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   );
                                 }
                               }}
-                              className="w-[112px] shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-[#f56b2a]/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/60"
+                              className="w-[calc((100vw-52px)/3)] md:w-[112px] shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-[#f56b2a]/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/60"
                             >
                               <div className="px-2.5 py-2.5 flex flex-col items-center">
                                 <div className="w-8 h-8 rounded-full bg-white border-[2px] border-[#f56b2a] shadow-sm flex items-center justify-center overflow-hidden relative shrink-0">

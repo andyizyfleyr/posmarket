@@ -27,7 +27,7 @@ export default function Loading() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="w-[112px] shrink-0 rounded-2xl bg-white border border-gray-100 shadow-sm"
+              className="w-[calc((100vw-52px)/3)] md:w-[112px] shrink-0 rounded-2xl bg-white border border-gray-100 shadow-sm"
             >
               <div className="px-2.5 py-2.5 flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-gray-100 skeleton shrink-0" />
