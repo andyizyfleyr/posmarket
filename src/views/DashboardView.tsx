@@ -172,29 +172,117 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
   }, [orders, products, store, startDate, endDate, selectedVertical]);
 
   // Custom Date Picker Logic
-  const [showPicker, setShowPicker] = useState<'start' | 'end' | null>(null);
-  const [viewDate, setViewDate] = useState(new Date());
+  const parseLocalDate = (dStr: string) => {
+    const [y, m, d] = dStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-  const handleDateSelect = (day: number) => {
-    const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-    const dateStr = getLocalYMD(newDate);
-    
-    if (showPicker === 'start') {
-      setStartDate(dateStr);
-      if (dateStr > endDate) {
-        setEndDate(dateStr);
-      }
-      setShowPicker('end');
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerStep, setPickerStep] = useState<'start' | 'end'>('start');
+  const [draftStart, setDraftStart] = useState(startDate);
+  const [draftEnd, setDraftEnd] = useState(endDate);
+  const [viewDate, setViewDate] = useState<Date>(() => parseLocalDate(startDate));
+  const pickerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isPickerOpen) {
+      pickerRef.current?.focus();
+      document.body.style.overflow = 'hidden';
     } else {
-      if (dateStr < startDate) {
-        setStartDate(dateStr);
-      } else {
-        setEndDate(dateStr);
-      }
+      document.body.style.overflow = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPickerOpen]);
+
+  const diffDays = Math.round(
+    (parseLocalDate(draftEnd).getTime() - parseLocalDate(draftStart).getTime()) /
+      (1000 * 60 * 60 * 24),
+  );
+
+  const openPicker = () => {
+    setDraftStart(startDate);
+    setDraftEnd(endDate);
+    setPickerStep('start');
+    setViewDate(parseLocalDate(startDate));
+    setIsPickerOpen(true);
+  };
+
+  const closePicker = (apply: boolean) => {
+    if (apply) {
+      setStartDate(draftStart);
+      setEndDate(draftEnd);
+    }
+    setIsPickerOpen(false);
+  };
+
+  const handleDraftSelect = (day: number) => {
+    const dateStr = getLocalYMD(
+      new Date(viewDate.getFullYear(), viewDate.getMonth(), day),
+    );
+    if (pickerStep === 'start') {
+      setDraftStart(dateStr);
+      setDraftEnd((prev) => (dateStr > prev ? dateStr : prev));
+      setPickerStep('end');
+    } else {
+      // Deuxième choix : on applique directement pour un flux fluide en 2 clics
+      setDraftEnd(dateStr);
+      setStartDate(draftStart);
+      setEndDate(dateStr);
+      setIsPickerOpen(false);
+    }
+  };
+
+  const presets: { label: string; days?: number; kind?: 'today' | 'month' | 'year' }[] = [
+    { label: "Aujourd'hui", kind: 'today' },
+    { label: '7 jours', days: 7 },
+    { label: '30 jours', days: 30 },
+    { label: '90 jours', days: 90 },
+    { label: 'Ce mois', kind: 'month' },
+    { label: '12 mois', kind: 'year' },
+  ];
+
+  const getPresetRange = (preset: { label: string; days?: number; kind?: 'today' | 'month' | 'year' }) => {
+    const today = new Date();
+    let start: Date = today;
+    if (preset.kind === 'today') {
+      start = today;
+    } else if (preset.kind === 'month') {
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (preset.kind === 'year') {
+      start = new Date(today);
+      start.setFullYear(start.getFullYear() - 1);
+    } else if (preset.days) {
+      start = new Date(today);
+      start.setDate(start.getDate() - preset.days);
+    }
+    return { start, end: today };
+  };
+
+  const isPresetActive = (preset: { label: string; days?: number; kind?: 'today' | 'month' | 'year' }) => {
+    const { start, end } = getPresetRange(preset);
+    return getLocalYMD(start) === draftStart && getLocalYMD(end) === draftEnd;
+  };
+
+  const applyPreset = (start: Date, end: Date) => {
+    const s = getLocalYMD(start);
+    const e = getLocalYMD(end);
+    setDraftStart(s);
+    setDraftEnd(e);
+    setStartDate(s);
+    setEndDate(e);
+    setIsPickerOpen(false);
+  };
+
+  const resetToDefault = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 90);
+    setDraftStart(getLocalYMD(d));
+    setDraftEnd(getLocalYMD(new Date()));
   };
 
   // Dynamic Chart Data based on Date Range
@@ -442,8 +530,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
  
               <div className="w-full md:w-auto relative">
                 {/* Shopify-style Unified Range Button */}
-                <button 
-                  onClick={() => setShowPicker(showPicker ? null : 'start')}
+                <button
+                  onClick={() => (isPickerOpen ? closePicker(false) : openPicker())}
                   className="w-full md:w-auto flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-2xl shadow-sm hover:border-[#f56b2a]/30 transition-all group active:scale-[0.98]"
                 >
                   <div className="flex items-center gap-3">
@@ -457,67 +545,114 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       </span>
                     </div>
                   </div>
-                  <ChevronRight size={14} className={`text-gray-300 transition-transform duration-300 ${showPicker ? 'rotate-90' : ''}`} />
+                  <ChevronRight size={14} className={`text-gray-300 transition-transform duration-300 ${isPickerOpen ? 'rotate-90' : ''}`} />
                 </button>
 
-                {showPicker && (
+                {isPickerOpen && (
                   <div className="contents">
                     {/* Backdrop */}
-                    <div 
+                    <div
                       className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998] animate-in fade-in duration-300"
-                      onClick={() => setShowPicker(null)}
+                      onClick={() => closePicker(false)}
                     />
-                    
-                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[92%] sm:w-[340px] md:w-[360px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-6 animate-in fade-in zoom-in-95 duration-300">
-                      {/* Shopify-style Presets at the Top */}
+
+                    <div
+                      ref={pickerRef}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Période d'analyse"
+                      tabIndex={-1}
+                      onKeyDown={(e) => { if (e.key === 'Escape') closePicker(false); }}
+                      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[92%] sm:w-[380px] md:w-[400px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-6 animate-in fade-in zoom-in-95 duration-300 outline-none"
+                    >
+                      {/* Indicateur d'étapes */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'start' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                            1 · Début
+                          </span>
+                          <span className="h-px w-4 bg-gray-200" />
+                          <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'end' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                            2 · Fin
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setPickerStep('start'); }}
+                          className="text-[10px] font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
+                        >
+                          Recommencer
+                        </button>
+                      </div>
+
+                      {/* Presets rapides */}
                       <div className="flex flex-wrap gap-2 mb-5">
-                        {[
-                          { label: '7 jours', days: 7 },
-                          { label: '30 jours', days: 30 },
-                          { label: '90 jours', days: 90 }
-                        ].map((preset) => {
-                           const start = new Date();
-                           start.setDate(start.getDate() - preset.days);
-                           const isSelected = startDate === getLocalYMD(start);
-                           return (
-                            <button 
+                        {presets.map((preset) => {
+                          const active = isPresetActive(preset);
+                          return (
+                            <button
                               key={preset.label}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const end = new Date();
-                                setStartDate(getLocalYMD(start));
-                                setEndDate(getLocalYMD(end));
-                                setShowPicker(null);
-                              }}
-                              className={`px-3 py-1.5 text-[9px] font-bold rounded-full transition-all border ${isSelected ? 'bg-[#f56b2a] border-[#f56b2a] text-white' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+                              onClick={(e) => { e.stopPropagation(); const { start, end } = getPresetRange(preset); applyPreset(start, end); }}
+                              className={`px-3 py-1.5 text-[10px] font-bold rounded-full transition-all border ${active ? 'bg-[#f56b2a] border-[#f56b2a] text-white' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
                             >
                               {preset.label}
                             </button>
-                           );
+                          );
                         })}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); resetToDefault(); }}
+                          className="ml-auto px-3 py-1.5 text-[10px] font-bold rounded-full transition-all border border-dashed border-gray-200 text-gray-400 hover:border-[#f56b2a]/30 hover:text-[#f56b2a]"
+                        >
+                          Réinitialiser
+                        </button>
                       </div>
 
-                      <div className="flex items-center justify-between mb-4 px-1">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1)); }}
-                          className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 transition-all"
+                      {/* Navigation mois + année */}
+                      <div className="flex items-center justify-between mb-1 px-1">
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear() - 1, viewDate.getMonth(), 1)); }}
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-300 hover:text-[#f56b2a] transition-all"
+                            aria-label="Année précédente"
+                          >
+                            <ChevronLeft size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1)); }}
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-[#f56b2a] transition-all"
+                            aria-label="Mois précédent"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setViewDate(new Date()); }}
+                          title="Revenir au mois actuel"
+                          className="font-bold text-[12px] uppercase tracking-wider text-gray-800 hover:text-[#f56b2a] transition-colors"
                         >
-                          <ChevronLeft size={16} />
-                        </button>
-                        <span className="font-bold text-[11px] uppercase tracking-wider text-gray-800">
                           {viewDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                        </span>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1)); }}
-                          className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 transition-all"
-                        >
-                          <ChevronRight size={16} />
                         </button>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1)); }}
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-[#f56b2a] transition-all"
+                            aria-label="Mois suivant"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear() + 1, viewDate.getMonth(), 1)); }}
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-300 hover:text-[#f56b2a] transition-all"
+                            aria-label="Année suivante"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
                       </div>
 
+                      {/* Calendrier */}
                       <div className="grid grid-cols-7 gap-y-0.5 gap-x-0 mb-4">
-                        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => (
-                          <span key={d} className="text-[9px] font-bold text-gray-300 text-center mb-2">{d}</span>
+                        {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
+                          <span key={d} className="text-[9px] font-bold text-gray-300 text-center mb-1">{d}</span>
                         ))}
                         {Array.from({ length: (firstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth()) + 6) % 7 }).map((_, i) => (
                           <div key={`empty-${i}`} />
@@ -527,24 +662,31 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                           const currentD = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
                           const dateStr = getLocalYMD(currentD);
                           const todayStr = getLocalYMD(new Date());
-                          
-                          const isStart = dateStr === startDate;
-                          const isEnd = dateStr === endDate;
-                          const inRange = dateStr > startDate && dateStr < endDate;
+
+                          const isStart = dateStr === draftStart;
+                          const isEnd = dateStr === draftEnd;
+                          const inRange = dateStr > draftStart && dateStr < draftEnd;
+                          const isToday = dateStr === todayStr;
                           const isFuture = dateStr > todayStr;
-                          
+                          const stepInvalid = pickerStep === 'start' ? dateStr > draftEnd : dateStr < draftStart;
+                          const disabled = isFuture || stepInvalid;
+                          const isActiveStep = (pickerStep === 'start' && isStart) || (pickerStep === 'end' && isEnd);
+
                           return (
                             <button
                               key={d}
-                              disabled={isFuture}
-                              onClick={(e) => { e.stopPropagation(); handleDateSelect(d); }}
-                              className={`text-[10px] font-bold h-9 transition-all relative z-10 flex items-center justify-center
-                                ${isStart ? 'bg-[#f56b2a] text-white rounded-l-2xl shadow-md z-20' : ''}
-                                ${isEnd ? 'bg-[#f56b2a] text-white rounded-r-2xl shadow-md z-20' : ''}
-                                ${inRange ? 'bg-orange-50 text-[#f56b2a]' : ''}
-                                ${!isStart && !isEnd && !inRange ? 'hover:bg-gray-50 text-gray-600 rounded-xl' : ''}
-                                ${isStart && isEnd ? 'rounded-2xl' : ''}
-                                ${isFuture ? 'opacity-20 cursor-not-allowed' : ''}
+                              disabled={disabled}
+                              onClick={(e) => { e.stopPropagation(); handleDraftSelect(d); }}
+                              aria-label={`${d} ${viewDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`}
+                              aria-pressed={isActiveStep}
+                              className={`text-[11px] font-bold h-11 transition-all relative z-10 flex items-center justify-center rounded-xl outline-none focus:outline-none
+                                ${isActiveStep ? 'bg-[#f56b2a] text-white shadow-md z-20' : ''}
+                                ${isStart && !isActiveStep ? 'bg-[#f56b2a] text-white rounded-l-2xl shadow-md z-20' : ''}
+                                ${isEnd && !isActiveStep ? 'bg-[#f56b2a] text-white rounded-r-2xl shadow-md z-20' : ''}
+                                ${!isStart && !isEnd && inRange ? 'bg-orange-50 text-[#f56b2a]' : ''}
+                                ${!isStart && !isEnd && !inRange && !disabled ? 'text-gray-600 hover:bg-gray-50' : ''}
+                                ${isToday && !isStart && !isEnd && !inRange && !disabled ? 'ring-2 ring-inset ring-[#f56b2a]/40' : ''}
+                                ${disabled ? 'opacity-25 cursor-not-allowed' : ''}
                               `}
                             >
                               {d}
@@ -553,24 +695,36 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                         })}
                       </div>
 
+                      {/* Résumé de la plage + actions */}
                       <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
-                        <div className="flex items-center justify-between gap-4 px-1">
-                          <div className="flex flex-col">
-                            <span className="text-[8px] font-bold text-gray-400 uppercase">Depuis</span>
-                            <span className="text-[10px] font-bold text-gray-800">{new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                        <div className="flex items-center justify-between gap-2 px-1">
+                          <div className="flex flex-col items-start">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">Début</span>
+                            <span className="text-[11px] font-bold text-gray-800">{draftStart ? new Date(draftStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
                           </div>
-                          <div className="h-4 w-px bg-gray-100" />
-                           <div className="flex flex-col text-right">
-                             <span className="text-[8px] font-bold text-gray-400 uppercase">Jusqu&apos;au</span>
-                            <span className="text-[10px] font-bold text-gray-800">{new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[11px] font-bold text-[#f56b2a]">{diffDays === 0 ? "Aujourd'hui" : `${diffDays} jour${diffDays > 1 ? 's' : ''}`}</span>
+                            <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">période</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">Fin</span>
+                            <span className="text-[11px] font-bold text-gray-800">{draftEnd ? new Date(draftEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
                           </div>
                         </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setShowPicker(null); }}
-                          className="w-full py-3 bg-gray-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-[0.97]"
-                        >
-                           Appliquer les dates
-                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); closePicker(false); }}
+                            className="py-3 bg-gray-100 text-gray-600 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-200 transition-all active:scale-[0.97]"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); closePicker(true); }}
+                            className="py-3 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-[0.97]"
+                          >
+                            Appliquer les dates
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
