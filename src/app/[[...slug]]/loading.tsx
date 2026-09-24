@@ -23,23 +23,16 @@ export default function Loading() {
 
         {/* Boutiques partenaires */}
         <div className="w-52 h-6 rounded-lg bg-gray-200 skeleton mb-4" />
-        <div className="flex gap-3 overflow-hidden mb-8 snap-x">
-          {[1, 2, 3].map((i) => (
+        <div className="flex gap-2.5 overflow-hidden mb-8 snap-x">
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="min-w-[190px] shrink-0 rounded-2xl bg-white border border-gray-100 overflow-hidden"
+              className="w-[112px] shrink-0 rounded-2xl bg-white border border-gray-100 shadow-sm"
             >
-              <div className="h-12 bg-gray-100 skeleton" />
-              <div className="p-3 pt-6">
-                <div className="w-3/4 h-3.5 rounded bg-gray-100 skeleton" />
-                <div className="w-1/2 h-2.5 rounded bg-gray-100 skeleton mt-2" />
-                <div className="flex justify-between mt-3">
-                  <div className="flex gap-1.5 items-center">
-                    <div className="w-5 h-5 rounded-full bg-gray-100 skeleton" />
-                    <div className="w-8 h-3 rounded bg-gray-100 skeleton" />
-                  </div>
-                  <div className="w-12 h-3 rounded bg-gray-100 skeleton" />
-                </div>
+              <div className="px-2.5 py-2.5 flex flex-col items-center">
+                <div className="w-8 h-8 rounded-full bg-gray-100 skeleton shrink-0" />
+                <div className="mt-1.5 w-16 h-2.5 rounded bg-gray-100 skeleton" />
+                <div className="mt-1 w-12 h-2 rounded bg-gray-100 skeleton" />
               </div>
             </div>
           ))}
