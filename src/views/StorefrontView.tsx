@@ -3184,58 +3184,132 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   selectedCategory === "all" &&
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
-                      <h2 className="text-xl font-bold text-gray-900 mb-4 md:mb-6 tracking-tight">
+                      <h2 className="text-[15px] md:text-xl font-bold text-gray-900 mb-3 md:mb-5 tracking-tight flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-500 flex items-center justify-center shadow-sm shadow-orange-500/25">
+                          <Store size={14} className="text-white" />
+                        </span>
                         Boutiques partenaires
+                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full ml-1">
+                          {Math.min(partnerStores.length, 6)}
+                        </span>
                       </h2>
-                      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
-                        {partnerStores.slice(0, 6).map((store) => (
-                          <div
-                            key={store.id}
-                            onClick={() =>
-                              safeNavigate(`/store/${store.slug || store.id}`)
-                            }
-                            className="min-w-[200px] max-w-[220px] bg-white rounded-2xl border border-gray-100 shadow-sm cursor-pointer group active:scale-[0.98] transition-all overflow-hidden flex-shrink-0"
-                          >
-                            <div className="p-4">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner overflow-hidden border border-gray-100 relative flex-shrink-0">
+                      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 md:pb-3 -mx-4 px-4 snap-x snap-mandatory">
+                        {partnerStores.slice(0, 6).map((store) => {
+                          const productCount = (store.products || []).filter(
+                            (p) => p.isOnline !== false && p.image,
+                          ).length;
+                          const totalViews =
+                            (store.views || 0) +
+                            (store.products?.reduce(
+                              (sum, p) => sum + (p.views || 0),
+                              0,
+                            ) || 0);
+                          return (
+                            <div
+                              key={store.id}
+                              onClick={() =>
+                                safeNavigate(`/store/${store.slug || store.id}`)
+                              }
+                              tabIndex={0}
+                              role="button"
+                              aria-label={`Voir la boutique ${store.settings?.name || "partenaire"}`}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  safeNavigate(
+                                    `/store/${store.slug || store.id}`,
+                                  );
+                                }
+                              }}
+                              className="min-w-[190px] max-w-[210px] bg-white rounded-2xl border border-gray-100 hover:border-[#f56b2a]/40 shadow-sm hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all overflow-hidden flex-shrink-0 snap-start focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/60"
+                            >
+                              {/* Bandeau supérieur */}
+                              <div className="relative h-14 bg-gradient-to-r from-[#fff4ed] via-[#ffe9da] to-[#ffdfc9]">
+                                <Store
+                                  className="absolute -right-3 -bottom-3 text-[#f56b2a]/10 group-hover:text-[#f56b2a]/20 transition-colors"
+                                  size={64}
+                                  strokeWidth={1.25}
+                                />
+                                <span className="absolute right-2.5 top-2 text-[9px] font-bold uppercase tracking-widest text-[#f56b2a] bg-white/75 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white">
+                                  Partenaire
+                                </span>
+                                <div className="absolute left-3 -bottom-6 w-[52px] h-[52px] rounded-full bg-white border-[3px] border-[#f56b2a] shadow-md flex items-center justify-center overflow-hidden ring-4 ring-white group-hover:scale-105 transition-transform">
                                   {store.settings?.logo ? (
                                     <Image
                                       src={store.settings.logo ?? ""}
                                       alt={store.settings?.name || "Boutique"}
                                       fill
-                                      sizes="44px"
+                                      sizes="48px"
                                       className="object-cover"
                                     />
                                   ) : (
-                                    <Store className="text-[#f56b2a]" size={22} />
+                                    <Store
+                                      className="text-[#f56b2a]"
+                                      size={28}
+                                    />
                                   )}
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <h3 className="font-semibold text-gray-900 text-[12px] leading-tight line-clamp-1">
-                                    {store.settings?.name || "Boutique"}
-                                  </h3>
+                              </div>
+
+                              <div className="px-3.5 pt-7 pb-3">
+                                <h3 className="font-bold text-[13px] text-gray-900 leading-tight line-clamp-1 group-hover:text-[#f56b2a] transition-colors">
+                                  {store.settings?.name || "Boutique"}
+                                </h3>
+                                {store.settings?.address ? (
+                                  <p className="flex items-center gap-1 text-[10px] font-medium text-gray-400 mt-1 line-clamp-1">
+                                    <MapPin
+                                      size={10}
+                                      className="flex-shrink-0"
+                                    />
+                                    {store.settings.address}
+                                  </p>
+                                ) : null}
+
+                                <div className="flex items-center justify-between mt-2.5">
+                                  <span
+                                    className={`flex items-center gap-1 text-[10px] font-bold ${
+                                      store.rating
+                                        ? "text-gray-700"
+                                        : "text-gray-400"
+                                    }`}
+                                  >
+                                    <Star
+                                      size={11}
+                                      className={
+                                        store.rating
+                                          ? "fill-[#f56b2a] text-[#f56b2a]"
+                                          : "text-gray-300"
+                                      }
+                                    />
+                                    {store.rating
+                                      ? store.rating.toFixed(1)
+                                      : "Nouveau"}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-[10px] font-semibold text-gray-500">
+                                    <ShoppingBag
+                                      size={10}
+                                      className="text-gray-300"
+                                    />
+                                    {productCount} prod.
+                                  </span>
+                                </div>
+
+                                <div className="mt-2.5 pt-2.5 border-t border-dashed border-gray-100 flex items-center justify-between">
+                                  <span className="text-[10px] font-semibold text-gray-400">
+                                    {formatNumber(totalViews)} vues
+                                  </span>
+                                  <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#f56b2a]">
+                                    Voir la boutique
+                                    <ChevronRight
+                                      size={11}
+                                      className="group-hover:translate-x-0.5 transition-transform"
+                                    />
+                                  </span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
-                                <span className="text-[10px] font-semibold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
-                                  {(store.products || []).filter(
-                                    (p) => p.isOnline !== false && p.image,
-                                  ).length}{" "}
-                                  prod.
-                                </span>
-                                <span className="text-[10px] font-semibold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-md">
-                                  {formatNumber((store.views || 0) +
-                                    (store.products?.reduce(
-                                      (sum, p) => sum + (p.views || 0),
-                                      0,
-                                    ) || 0))}{" "}
-                                  vues
-                                </span>
-                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

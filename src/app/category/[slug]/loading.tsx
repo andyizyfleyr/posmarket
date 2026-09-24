@@ -5,12 +5,12 @@ export default function Loading() {
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between py-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-orange-100 skeleton-dark" />
-            <div className="w-28 h-5 rounded-lg bg-gray-100 skeleton-dark" />
+            <div className="w-9 h-9 rounded-2xl bg-gray-100 skeleton" />
+            <div className="w-28 h-5 rounded-lg bg-gray-100 skeleton" />
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gray-100 skeleton-dark" />
-            <div className="w-10 h-10 rounded-2xl bg-gray-100 skeleton-dark" />
+            <div className="w-10 h-10 rounded-2xl bg-gray-100 skeleton" />
+            <div className="w-10 h-10 rounded-2xl bg-gray-100 skeleton" />
           </div>
         </div>
         <div className="h-11 w-full rounded-xl bg-gray-100 skeleton mb-3" />

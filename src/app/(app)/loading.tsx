@@ -5,7 +5,7 @@ export default function Loading() {
         {/* En-tête */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gray-100 skeleton-dark rounded-2xl" />
+            <div className="w-12 h-12 bg-gray-100 skeleton rounded-2xl" />
             <div className="h-6 w-56 rounded-lg bg-gray-200 skeleton" />
           </div>
           <div className="h-10 w-32 rounded-xl bg-gray-100 skeleton" />
