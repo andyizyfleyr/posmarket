@@ -585,7 +585,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       </div>
 
                       {/* Presets rapides */}
-                      <div className="flex flex-wrap gap-2 mb-5">
+                      <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-2 mb-5 -mx-1 px-1">
                         {presets.map((preset) => {
                           const active = isPresetActive(preset);
                           return (
