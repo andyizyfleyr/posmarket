@@ -2512,7 +2512,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       {(location.pathname === "/" ||
         !location.pathname ||
         location.pathname === "") && (
-        <header className="bg-white border-b border-gray-100 sticky top-0 z-[100]" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-[100] [overflow-anchor:none]" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="container mx-auto px-4">
             {/* Top Utility Bar - Hidden on scroll or simplified for mobile */}
 
@@ -2671,7 +2671,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
             {/* Pastilles catégories - Mobile Only (6 principales + Tout voir) */}
             <div
-              className={`md:hidden overflow-hidden transition-all ${headerCompact ? "h-0 opacity-0" : "opacity-100"}`}
+              className={`md:hidden overflow-hidden ${headerCompact ? "h-0 opacity-0" : "opacity-100"}`}
             >
               <div className={`items-center gap-1.5 py-2 overflow-x-auto no-scrollbar mask-fade-right -mx-4 px-4 whitespace-nowrap scroll-smooth ${!searchTerm && activeHomeCategory ? "hidden" : "flex"}`}>
                 {HOME_CATEGORIES.map((cat) => {
