@@ -125,9 +125,9 @@ export function ProductDetailsView(props: any) {
     const reviews: Review[] = Array.isArray(product.reviews) ? product.reviews : [];
 
     const renderReviewCard = (review: Review, idx: number) => (
-      <div key={idx} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+      <div key={idx} className="flex gap-3 py-4 first:pt-1 last:pb-0">
         <div
-          className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] md:text-xs font-bold ${
+          className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold ${
             [
               "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
               "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
@@ -138,31 +138,29 @@ export function ProductDetailsView(props: any) {
           {review.author?.[0]?.toUpperCase() || "A"}
         </div>
         <div className="flex-grow min-w-0">
-          <div className="flex items-center justify-between gap-3 mb-0.5">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h4 className="text-[9px] md:text-xs font-bold text-gray-900 truncate">
-                {review.author}
-              </h4>
-              <div className="flex items-center gap-0.5 flex-shrink-0">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={8}
-                    className="text-yellow-400"
-                    fill={s <= review.rating ? "currentColor" : "none"}
-                  />
-                ))}
-              </div>
-            </div>
-            <span className="text-[9px] font-normal text-gray-400 flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <h4 className="text-xs font-bold text-gray-900 truncate">
+              {review.author}
+            </h4>
+            <span className="text-[10px] font-medium text-gray-400 flex-shrink-0">
               {new Date(review.date).toLocaleDateString("fr-FR", {
                 day: "numeric",
-                month: "long",
+                month: "short",
                 year: "numeric",
               })}
             </span>
           </div>
-          <p className="text-[9px] md:text-xs text-gray-600 leading-relaxed font-normal">
+          <div className="flex items-center gap-0.5 mb-1.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                size={11}
+                className="text-amber-400"
+                fill={s <= review.rating ? "currentColor" : "none"}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">
             {review.comment}
           </p>
         </div>
@@ -1524,7 +1522,7 @@ export function ProductDetailsView(props: any) {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 px-4 py-2">
+              <div className="flex-1 overflow-y-auto min-h-0 px-5 pt-1 pb-6 divide-y divide-gray-100">
                 {reviews.map((review: Review, idx: number) =>
                   renderReviewCard(review, idx),
                 )}
