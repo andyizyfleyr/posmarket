@@ -3252,9 +3252,22 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               </div>
 
                               <div className="px-3.5 pt-7 pb-3">
-                                <h3 className="font-bold text-[13px] text-gray-900 leading-tight line-clamp-1 group-hover:text-[#f56b2a] transition-colors">
-                                  {store.settings?.name || "Boutique"}
-                                </h3>
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <h3 className="font-bold text-[13px] text-gray-900 leading-tight line-clamp-1 group-hover:text-[#f56b2a] transition-colors flex-1 min-w-0">
+                                    {store.settings?.name || "Boutique"}
+                                  </h3>
+                                  <span
+                                    title="Boutique vérifiée"
+                                    aria-label="Boutique vérifiée"
+                                    className="w-4 h-4 rounded-full bg-[#1877F2] flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/30"
+                                  >
+                                    <Check
+                                      size={10}
+                                      strokeWidth={3.5}
+                                      className="text-white"
+                                    />
+                                  </span>
+                                </div>
                                 {store.settings?.address ? (
                                   <p className="flex items-center gap-1 text-[10px] font-medium text-gray-400 mt-1 line-clamp-1">
                                     <MapPin
