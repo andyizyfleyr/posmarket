@@ -585,25 +585,30 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       </div>
 
                       {/* Presets rapides */}
-                      <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-2 mb-5 -mx-1 px-1">
-                        {presets.map((preset) => {
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-5">
+                        {presets.map((preset, idx) => {
                           const active = isPresetActive(preset);
                           return (
-                            <button
-                              key={preset.label}
-                              onClick={(e) => { e.stopPropagation(); const { start, end } = getPresetRange(preset); applyPreset(start, end); }}
-                              className={`px-3 py-1.5 text-[10px] font-bold rounded-full transition-all border ${active ? 'bg-[#f56b2a] border-[#f56b2a] text-white' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
-                            >
-                              {preset.label}
-                            </button>
+                            <span key={preset.label} className="flex items-center gap-1.5">
+                              {idx > 0 && <span className="text-gray-300 text-[11px] leading-none">·</span>}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); const { start, end } = getPresetRange(preset); applyPreset(start, end); }}
+                                className={`text-[11px] font-bold transition-colors ${active ? 'text-[#f56b2a] underline underline-offset-2' : 'text-gray-500 hover:text-gray-800'}`}
+                              >
+                                {preset.label}
+                              </button>
+                            </span>
                           );
                         })}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); resetToDefault(); }}
-                          className="ml-auto px-3 py-1.5 text-[10px] font-bold rounded-full transition-all border border-dashed border-gray-200 text-gray-400 hover:border-[#f56b2a]/30 hover:text-[#f56b2a]"
-                        >
-                          Réinitialiser
-                        </button>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-gray-300 text-[11px] leading-none">·</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); resetToDefault(); }}
+                            className="text-[11px] font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
+                          >
+                            Réinitialiser
+                          </button>
+                        </span>
                       </div>
 
                       {/* Navigation mois + année */}
