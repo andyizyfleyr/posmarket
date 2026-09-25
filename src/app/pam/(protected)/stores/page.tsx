@@ -18,7 +18,8 @@ import {
   ChevronRight,
   AlertTriangle,
   ShieldCheck,
-  Package
+  Package,
+  LogIn
 } from 'lucide-react';
 import {
   getAllStores,
@@ -319,7 +320,16 @@ export default function AdminStoresPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <a
+                      href={`/api/pam/impersonate?userId=${uid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-[#f56b2a] text-[#f56b2a] hover:text-white rounded-full text-xs font-bold border border-orange-200 transition-all shadow-sm"
+                      title="Se connecter au compte du propriétaire sans mot de passe (nouvel onglet)"
+                    >
+                      <LogIn size={13} /> Connexion Vendeur
+                    </a>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-semibold text-gray-700 ring-1 ring-gray-200">
                       <Store size={14} className="text-[#f56b2a]" />
                       {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''}
@@ -392,7 +402,16 @@ export default function AdminStoresPage() {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch lg:w-40 shrink-0">
+                            <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch lg:w-44 shrink-0">
+                              <a
+                                href={`/api/pam/impersonate?userId=${s.user_id || uid}&storeId=${s.id}&redirectTo=/dashboard`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#f56b2a] to-orange-600 text-white rounded-xl text-xs font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm"
+                                title="Se connecter en tant que vendeur sur cette boutique (nouvel onglet)"
+                              >
+                                <LogIn size={14} /> Ouvrir session
+                              </a>
                               {s.status === 'PENDING' && (
                                 <>
                                   <button

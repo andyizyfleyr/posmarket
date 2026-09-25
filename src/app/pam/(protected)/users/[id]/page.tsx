@@ -13,7 +13,8 @@ import {
   Package,
   TrendingUp,
   Wallet,
-  Building2
+  Building2,
+  LogIn
 } from 'lucide-react';
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -55,7 +56,16 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               {user.createdAt && <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5"><Calendar size={14} className="text-orange-500" /> Inscrit le {new Date(user.createdAt).toLocaleDateString('fr-FR')}</span>}
             </div>
           </div>
-          <div className="flex flex-col items-stretch gap-2">
+          <div className="flex flex-col sm:flex-row md:flex-col items-stretch gap-2">
+            <a
+              href={`/api/pam/impersonate?userId=${user.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+              title="Se connecter directement à ce compte sans mot de passe (nouvel onglet)"
+            >
+              <LogIn size={15} /> Se connecter au compte
+            </a>
             <UserAccountEditor
               userId={user.id}
               fullName={user.fullName}
@@ -107,29 +117,42 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         ) : (
           <div className="space-y-3">
             {userStores.map((s) => (
-              <Link
+              <div
                 key={s.id}
-                href={`/pam/stores/${s.id}`}
                 className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all group"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#f56b2a] font-bold">
+                <Link href={`/pam/stores/${s.id}`} className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#f56b2a] font-bold shrink-0">
                     <Store size={18} />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-900 group-hover:text-[#f56b2a] transition-colors">{s.name}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-900 group-hover:text-[#f56b2a] transition-colors truncate">{s.name}</p>
                     <p className="text-[10px] font-semibold text-gray-400 font-mono tracking-tight">/{s.slug}</p>
                   </div>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={`/api/pam/impersonate?userId=${user.id}&storeId=${s.id}&redirectTo=/dashboard`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] hover:bg-[#f56b2a] hover:text-white border border-orange-200 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm"
+                    title="Ouvrir la boutique en tant que commerçant (nouvel onglet)"
+                  >
+                    <LogIn size={13} /> Ouvrir boutique
+                  </a>
+                  <Link
+                    href={`/pam/stores/${s.id}`}
+                    className={`px-2 py-1 rounded-md text-[8px] font-bold uppercase border ${
+                      s.status === 'PENDING' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
+                      s.status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100' :
+                      s.status === 'DISABLED' ? 'bg-gray-50 text-gray-400 border-gray-100' :
+                      'bg-emerald-50 text-emerald-600 border-emerald-100'
+                    }`}
+                  >
+                    {s.status === 'PENDING' ? 'En attente' : s.status === 'REJECTED' ? 'Refusée' : s.status === 'DISABLED' ? 'Désactivée' : 'Active'}
+                  </Link>
                 </div>
-                <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold uppercase border ${
-                  s.status === 'PENDING' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
-                  s.status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100' :
-                  s.status === 'DISABLED' ? 'bg-gray-50 text-gray-400 border-gray-100' :
-                  'bg-emerald-50 text-emerald-600 border-emerald-100'
-                }`}>
-                  {s.status === 'PENDING' ? 'En attente' : s.status === 'REJECTED' ? 'Refusée' : s.status === 'DISABLED' ? 'Désactivée' : 'Active'}
-                </span>
-              </Link>
+              </div>
             ))}
           </div>
         )}

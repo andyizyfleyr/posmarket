@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import NextTopLoader from 'nextjs-toploader';
 import "./globals.css";
 import Providers from "./providers";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -76,6 +77,7 @@ export default function RootLayout({
           speed={400}
           shadow="0 0 15px #f56b2a, 0 0 5px #f56b2a"
         />
+        <ImpersonationBanner />
         <Providers>
           {children}
         </Providers>

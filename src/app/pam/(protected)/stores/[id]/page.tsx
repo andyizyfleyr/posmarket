@@ -13,7 +13,8 @@ import {
   Eye,
   Shield,
   Calendar,
-  Wallet
+  Wallet,
+  LogIn
 } from 'lucide-react';
 import { formatCurrency } from '@/utils';
 
@@ -60,7 +61,18 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:flex md:flex-col">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:flex md:flex-col items-stretch">
+            {owner && (
+              <a
+                href={`/api/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                title="Se connecter en tant que vendeur sur cette boutique sans mot de passe (nouvel onglet)"
+              >
+                <LogIn size={15} /> Connexion Vendeur
+              </a>
+            )}
             {store.views !== undefined && (
               <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2">
                 <Eye size={16} className="text-[#f56b2a]" />
@@ -134,23 +146,36 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
       {owner && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-gray-900 rounded-xl text-white flex items-center justify-center font-bold">
-              {owner.fullName?.[0]?.toUpperCase() || owner.email?.[0]?.toUpperCase() || 'P'}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-900 rounded-xl text-white flex items-center justify-center font-bold">
+                {owner.fullName?.[0]?.toUpperCase() || owner.email?.[0]?.toUpperCase() || 'P'}
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">{owner.fullName || 'Propriétaire'}</h3>
+                <p className="text-[10px] font-semibold text-gray-400 lowercase">{owner.email}</p>
+              </div>
+              {owner.isSuperAdmin && (
+                <span className="px-2 py-0.5 bg-orange-50 text-[#f56b2a] text-[8px] font-bold rounded-lg uppercase border border-orange-100 flex items-center gap-1">
+                  <Shield size={10} /> Super Admin
+                </span>
+              )}
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">{owner.fullName || 'Propriétaire'}</h3>
-              <p className="text-[10px] font-semibold text-gray-400 lowercase">{owner.email}</p>
+            <div className="flex items-center gap-3">
+              <a
+                href={`/api/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f56b2a] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                title="Se connecter au compte du propriétaire (nouvel onglet)"
+              >
+                <LogIn size={13} /> Connexion Vendeur
+              </a>
+              <Link href={`/pam/users/${owner.id}`} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
+                Voir le profil <span aria-hidden>→</span>
+              </Link>
             </div>
-            {owner.isSuperAdmin && (
-              <span className="px-2 py-0.5 bg-orange-50 text-[#f56b2a] text-[8px] font-bold rounded-lg uppercase border border-orange-100 flex items-center gap-1">
-                <Shield size={10} /> Super Admin
-              </span>
-            )}
           </div>
-          <Link href={`/pam/users/${owner.id}`} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
-            Voir le profil <span aria-hidden>→</span>
-          </Link>
         </div>
       )}
     </div>

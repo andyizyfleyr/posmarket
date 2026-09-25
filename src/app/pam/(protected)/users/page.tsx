@@ -7,7 +7,8 @@ import {
   RefreshCcw,
   Shield,
   Eye,
-  Trash2
+  Trash2,
+  LogIn
 } from 'lucide-react';
 import {
   getAllUsers,
@@ -232,6 +233,15 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                      <a
+                        href={`/api/pam/impersonate?userId=${u.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2.5 rounded-xl border border-orange-200 bg-orange-50 text-[#f56b2a] hover:bg-[#f56b2a] hover:text-white transition-all flex items-center justify-center min-w-[40px] shadow-sm hover:shadow-md"
+                        title="Se connecter au compte (nouvel onglet, sans mot de passe)"
+                      >
+                        <LogIn size={16} />
+                      </a>
                       <Link
                         href={`/pam/users/${u.id}`}
                         className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-[#f56b2a] hover:border-orange-200 transition-all flex items-center justify-center min-w-[40px]"
