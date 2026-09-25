@@ -160,7 +160,25 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
         revalidatePath('/inventory');
         revalidatePath('/dashboard');
         updateTag('marketplace');
-        
+
+        try {
+          const storeInfo = await getStorePhone(storeId);
+          if (storeInfo?.ownerId) {
+            const totalStr = new Intl.NumberFormat('fr-FR').format(Number(orderData.total) || 0);
+            const itemCount = (order.items || []).reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+            await notify({
+              userId: storeInfo.ownerId,
+              phone: storeInfo.phone,
+              email: storeInfo.email || '',
+              eventType: 'VENTE_POS',
+              title: 'Vente enregistrée',
+              body: `Vente ${orderData.status === 'COMPLETED' ? 'terminée' : orderData.status} : ${itemCount} article(s) pour ${totalStr} FCFA.`,
+              templateParams: [String(itemCount), totalStr],
+              emailData: { total: totalStr, items: itemCount, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
+            });
+          }
+        } catch {}
+
         return { success: true, order: orderData };
     } catch (error: unknown) {
         console.error('Order creation error with Drizzle:', error);
