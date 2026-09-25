@@ -47,26 +47,30 @@ interface POSViewProps {
 const POSProductCard = React.memo(({
   product,
   onAdd,
+  notify,
 }: {
   product: Product;
   onAdd: (p: Product) => void;
+  notify?: (message: string, type: NotificationType, title?: string) => void;
 }) => {
   const [tapped, setTapped] = useState(false);
   const isOutOfStock = (product as any).stock === 0;
   const isLowStock = typeof (product as any).stock === 'number' && (product as any).stock > 0 && (product as any).stock <= 5;
 
   const handleTap = useCallback(() => {
-    if (isOutOfStock) return;
+    if (isOutOfStock) {
+      if (notify) notify(`${product.name} est en rupture de stock`, 'error', 'Produit indisponible');
+      return;
+    }
     onAdd(product);
     setTapped(true);
     setTimeout(() => setTapped(false), 300);
-  }, [product, onAdd, isOutOfStock]);
+  }, [product, onAdd, isOutOfStock, notify]);
 
   return (
     <button
       type="button"
       onClick={handleTap}
-      disabled={isOutOfStock}
       className={`relative flex flex-col bg-white rounded-2xl border overflow-hidden text-left transition-all duration-150 active:scale-[0.96] focus:outline-none
         ${tapped ? 'border-[#f56b2a] ring-2 ring-[#f56b2a]/20 shadow-lg shadow-orange-100' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'}
         ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -733,7 +737,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 md:gap-3">
               {filteredProducts.map(product => (
-                <POSProductCard key={product.id} product={product} onAdd={addToCart} />
+                <POSProductCard key={product.id} product={product} onAdd={addToCart} notify={notify} />
               ))}
             </div>
           )}
