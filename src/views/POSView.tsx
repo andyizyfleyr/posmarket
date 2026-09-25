@@ -13,6 +13,7 @@ import {
   Receipt,
   CreditCard,
   Banknote,
+  Smartphone,
   Download,
   Printer,
   X,
@@ -436,7 +437,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       storePhone: storeSettings?.phone || undefined,
       storeEmail: storeSettings?.email || undefined,
       orderType,
-      paymentMethod: paymentMethod === PaymentMethod.CASH ? 'Espèces' : 'Carte',
+      paymentMethod: paymentMethod === PaymentMethod.CASH ? 'Espèces' : 'Mobile Money',
       customerName: selectedCustomer ? selectedCustomer.name : undefined,
       items: cart.map(item => {
         const unitPrice = getEffectiveWholesaleUnitPrice(item.product, item.quantity);
@@ -626,7 +627,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               <div className="grid grid-cols-2 gap-1.5">
                 {([
                   { id: PaymentMethod.CASH, label: 'Espèces', icon: <Banknote size={13} /> },
-                  { id: PaymentMethod.CARD, label: 'Carte', icon: <CreditCard size={13} /> }
+                  { id: PaymentMethod.MOBILE_MONEY, label: 'Mobile Money', icon: <Smartphone size={13} /> }
                 ]).map(pm => (
                   <button
                     key={pm.id}
@@ -876,8 +877,8 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-gray-200 text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
                   <span className="flex items-center gap-1">
-                    {paymentMethod === PaymentMethod.CASH ? <Banknote size={12} /> : <CreditCard size={12} />}
-                    {paymentMethod === PaymentMethod.CASH ? 'Espèces' : 'Carte'}
+                    {paymentMethod === PaymentMethod.CASH ? <Banknote size={12} /> : <Smartphone size={12} />}
+                    {paymentMethod === PaymentMethod.CASH ? 'Espèces' : 'Mobile Money'}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">

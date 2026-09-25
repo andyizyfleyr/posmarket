@@ -126,7 +126,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
  
                         <div className="flex md:hidden items-center gap-1.5 flex-shrink-0">
                           <span className={`text-[7px] md:text-[8px] font-bold px-1 md:px-1.5 py-0 md:py-0.5 rounded whitespace-nowrap tracking-tighter ${order.paymentMethod === 'CASH' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {order.paymentMethod === 'CASH' ? 'ESP' : order.paymentMethod === 'CARD' ? 'CBE' : 'VIR'}
+                            {order.paymentMethod === 'CASH' ? 'ESP' : order.paymentMethod === 'MOBILE_MONEY' ? 'MM' : order.paymentMethod === 'CARD' ? 'CBE' : 'VIR'}
                           </span>
                           <ChevronRight size={12} className="text-gray-300" />
                         </div>
@@ -146,7 +146,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
 
                     <div className="hidden md:table-cell px-6 py-4">
                       <span className="text-[10px] font-bold px-2 py-1 bg-orange-50 text-[#f56b2a] rounded-lg uppercase tracking-wider">
-                        {order.paymentMethod === 'CASH' ? 'Espèces' : order.paymentMethod === 'CARD' ? 'Carte' : 'Virement'}
+                        {order.paymentMethod === 'CASH' ? 'Espèces' : order.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : order.paymentMethod === 'CARD' ? 'Carte' : 'Virement'}
                       </span>
                     </div>
 
