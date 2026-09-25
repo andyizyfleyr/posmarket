@@ -6,7 +6,7 @@ import { notificationOutbox } from '@/db/schema';
 import { getCurrentSession } from '@/app/actions/session';
 
 // Événements pertinents pour l'affichage dans l'espace vendeur.
-export const VENDOR_EVENT_TYPES: string[] = [
+const VENDOR_EVENT_TYPES: string[] = [
   'NOUVELLE_COMMANDE',
   'COMMANDE_A_PREPARER',
   'NOUVEAU_CLIENT',
