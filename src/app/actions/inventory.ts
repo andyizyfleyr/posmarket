@@ -244,3 +244,15 @@ export async function getProductsAction(
     return { success: false, error: error instanceof Error ? error.message : String(error), products: [], total: 0 };
   }
 }
+
+export async function getStockCountsAction(storeId: string): Promise<{ ok: boolean; stock?: Record<string, number>; error?: string }> {
+  try {
+    const rows = await db.select({ id: products.id, stock: products.stock }).from(products).where(eq(products.storeId, storeId));
+    const stock: Record<string, number> = {};
+    for (const r of rows) stock[r.id] = Number(r.stock ?? 0);
+    return { ok: true, stock };
+  } catch (error: unknown) {
+    console.error('Error fetching stock counts with Drizzle:', error);
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}

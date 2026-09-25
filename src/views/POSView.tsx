@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { supabase } from '@/supabase';
 import { useRouter } from '@/components/RouterPolyfill';
 import { createOrderAction } from '@/app/actions/orders';
+import { getStockCountsAction } from '@/app/actions/inventory';
 import {
   Search,
   Plus,
@@ -46,16 +47,18 @@ interface POSViewProps {
 /* ─── POS Product Card (inline, compact, no links) ─── */
 const POSProductCard = React.memo(({
   product,
+  stock,
   onAdd,
   notify,
 }: {
   product: Product;
+  stock: number;
   onAdd: (p: Product) => void;
   notify?: (message: string, type: NotificationType, title?: string) => void;
 }) => {
   const [tapped, setTapped] = useState(false);
-  const isOutOfStock = (product as any).stock === 0;
-  const isLowStock = typeof (product as any).stock === 'number' && (product as any).stock > 0 && (product as any).stock <= 5;
+  const isOutOfStock = stock === 0;
+  const isLowStock = stock > 0 && stock <= 5;
 
   const handleTap = useCallback(() => {
     if (isOutOfStock) {
@@ -94,12 +97,17 @@ const POSProductCard = React.memo(({
         `}>
           <Plus size={14} strokeWidth={3} />
         </div>
-        {/* Low stock badge */}
+        {/* Low stock badge (top-left) */}
         {isLowStock && (
           <div className="absolute top-1.5 left-1.5 bg-amber-500 text-white px-1.5 py-0.5 rounded-md text-[7px] md:text-[8px] font-bold uppercase flex items-center gap-0.5 shadow-md">
-            <AlertTriangle size={8} /> {(product as any).stock} restant{(product as any).stock > 1 ? 's' : ''}
+            <AlertTriangle size={8} /> {stock} restant{stock > 1 ? 's' : ''}
           </div>
         )}
+        {/* Remaining stock badge (top-right, synced) */}
+        <div className={`absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[7px] md:text-[8px] font-bold text-white shadow-md
+          ${stock === 0 ? 'bg-red-500' : isLowStock ? 'bg-amber-500' : 'bg-gray-900/70'}`}>
+          <Package size={8} /> {stock}
+        </div>
         {isOutOfStock && (
           <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
             <span className="bg-gray-900/80 text-white px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider">Rupture</span>
@@ -204,6 +212,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [liveTime, setLiveTime] = useState('');
   const [promoInput, setPromoInput] = useState('');
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
 
   // Live clock
   useEffect(() => {
@@ -212,6 +221,21 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
   }, []);
+
+  // Stock syncing (badges on product cards) — polling léger, sans refresh
+  const refreshStock = useCallback(async () => {
+    if (!currentStoreId) return;
+    try {
+      const res = await getStockCountsAction(currentStoreId);
+      if (res.ok && res.stock) setStockMap(res.stock);
+    } catch {}
+  }, [currentStoreId]);
+
+  useEffect(() => {
+    refreshStock();
+    const id = setInterval(refreshStock, 5000);
+    return () => clearInterval(id);
+  }, [refreshStock]);
 
   // Load coupons
   useEffect(() => {
@@ -337,6 +361,10 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     }
   };
 
+  const stockOf = useCallback((p: Product): number => {
+    return stockMap[p.id] ?? Number((p as any).stock ?? 0);
+  }, [stockMap]);
+
   /* ─── Checkout ─── */
   const handleCheckout = () => {
     const newOrderId = 'CMD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -363,6 +391,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         playSuccessSound();
         setShowCheckoutModal(true);
         setShowCartSheet(false);
+        refreshStock();
         router.refresh();
       } catch (err: unknown) {
         console.error(err);
@@ -737,7 +766,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 md:gap-3">
               {filteredProducts.map(product => (
-                <POSProductCard key={product.id} product={product} onAdd={addToCart} notify={notify} />
+                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} notify={notify} />
               ))}
             </div>
           )}
