@@ -585,14 +585,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       </div>
 
                       {/* Presets rapides */}
-                      <div className="flex flex-wrap items-center gap-2 mb-5">
+                      <div className="flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-2 mb-5 -mx-1 px-1">
                         {presets.map((preset) => {
                           const active = isPresetActive(preset);
                           return (
                             <button
                               key={preset.label}
                               onClick={(e) => { e.stopPropagation(); const { start, end } = getPresetRange(preset); applyPreset(start, end); }}
-                              className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all border ${active ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+                              className={`px-3 py-1.5 text-[11px] font-bold whitespace-nowrap rounded-sm transition-all border ${active ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
                             >
                               {preset.label}
                             </button>
@@ -600,7 +600,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                         })}
                         <button
                           onClick={(e) => { e.stopPropagation(); resetToDefault(); }}
-                          className="ml-auto px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all border border-dashed border-gray-200 text-gray-400 hover:border-[#f56b2a]/30 hover:text-[#f56b2a]"
+                          className="px-3 py-1.5 text-[11px] font-bold whitespace-nowrap rounded-sm transition-all border border-dashed border-gray-200 text-gray-400 hover:border-[#f56b2a]/30 hover:text-[#f56b2a]"
                         >
                           Réinitialiser
                         </button>
