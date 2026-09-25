@@ -229,16 +229,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
       setDraftEnd((prev) => (dateStr > prev ? dateStr : prev));
       setPickerStep('end');
     } else {
-      // Deuxième choix : on applique directement pour un flux fluide en 2 clics
       setDraftEnd(dateStr);
-      setStartDate(draftStart);
-      setEndDate(dateStr);
-      setIsPickerOpen(false);
+      setDraftStart((prev) => (dateStr < prev ? dateStr : prev));
     }
   };
 
-  const presets: { label: string; days?: number; kind?: 'today' | 'month' | 'year' }[] = [
+  type DatePreset = { label: string; days?: number; kind?: 'today' | 'yesterday' | 'month' | 'year' };
+
+  const presets: DatePreset[] = [
     { label: "Aujourd'hui", kind: 'today' },
+    { label: 'Hier', kind: 'yesterday' },
     { label: '7 jours', days: 7 },
     { label: '30 jours', days: 30 },
     { label: '90 jours', days: 90 },
@@ -246,11 +246,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     { label: '12 mois', kind: 'year' },
   ];
 
-  const getPresetRange = (preset: { label: string; days?: number; kind?: 'today' | 'month' | 'year' }) => {
+  const getPresetRange = (preset: DatePreset) => {
     const today = new Date();
     let start: Date = today;
-    if (preset.kind === 'today') {
-      start = today;
+    let end: Date = today;
+    if (preset.kind === 'yesterday') {
+      start = new Date(today);
+      start.setDate(start.getDate() - 1);
+      end = new Date(start);
     } else if (preset.kind === 'month') {
       start = new Date(today.getFullYear(), today.getMonth(), 1);
     } else if (preset.kind === 'year') {
@@ -260,10 +263,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
       start = new Date(today);
       start.setDate(start.getDate() - preset.days);
     }
-    return { start, end: today };
+    return { start, end };
   };
 
-  const isPresetActive = (preset: { label: string; days?: number; kind?: 'today' | 'month' | 'year' }) => {
+  const isPresetActive = (preset: DatePreset) => {
     const { start, end } = getPresetRange(preset);
     return getLocalYMD(start) === draftStart && getLocalYMD(end) === draftEnd;
   };
@@ -541,7 +544,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                     <div className="flex flex-col items-start">
                       <span className="text-[8px] font-bold uppercase tracking-widest text-gray-400 leading-none mb-1">Période d&apos;analyse</span>
                       <span className="text-[10px] md:text-xs font-bold text-gray-700 whitespace-nowrap">
-                        {mounted ? `${new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Chargement...'}
+                        {mounted
+                          ? startDate === endDate
+                            ? new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : `${new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : 'Chargement...'}
                       </span>
                     </div>
                   </div>
@@ -565,19 +572,32 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                       onKeyDown={(e) => { if (e.key === 'Escape') closePicker(false); }}
                       className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[92%] sm:w-[380px] md:w-[400px] bg-white rounded-[28px] shadow-2xl border border-gray-100 p-6 animate-in fade-in zoom-in-95 duration-300 outline-none"
                     >
-                      {/* Indicateur d'étapes */}
+                      {/* Étapes cliquables Début / Fin */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'start' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPickerStep('start'); }}
+                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'start' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                          >
                             1 · Début
-                          </span>
+                          </button>
                           <span className="h-px w-4 bg-gray-200" />
-                          <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'end' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPickerStep('end'); }}
+                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'end' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                          >
                             2 · Fin
-                          </span>
+                          </button>
                         </div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setPickerStep('start'); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDraftStart(startDate);
+                            setDraftEnd(endDate);
+                            setPickerStep('start');
+                          }}
                           className="text-[10px] font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
                         >
                           Recommencer
@@ -703,7 +723,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                             <span className="text-[11px] font-bold text-gray-800">{draftStart ? new Date(draftStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
                           </div>
                           <div className="flex flex-col items-center">
-                            <span className="text-[11px] font-bold text-[#f56b2a]">{diffDays === 0 ? "Aujourd'hui" : `${diffDays} jour${diffDays > 1 ? 's' : ''}`}</span>
+                            <span className="text-[11px] font-bold text-[#f56b2a]">{diffDays === 0 ? draftStart ? new Date(draftStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : "Aujourd'hui" : `${diffDays} jour${diffDays > 1 ? 's' : ''}`}</span>
                             <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">période</span>
                           </div>
                           <div className="flex flex-col items-end">
@@ -722,7 +742,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                             onClick={(e) => { e.stopPropagation(); closePicker(true); }}
                             className="py-3 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-[0.97]"
                           >
-                            Appliquer les dates
+                            Appliquer
                           </button>
                         </div>
                       </div>
