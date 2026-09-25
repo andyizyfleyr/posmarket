@@ -41,7 +41,26 @@ const TOAST_EVENT_TYPES: Record<string, NotificationType> = {
   ABONNEMENT_EXPIRE: 'error',
   BOUTIQUE_APPROUVEE: 'success',
   BOUTIQUE_REJETEE: 'error',
+  RECAP_VENTES_JOUR: 'info',
 };
+
+const PRIORITY_EVENTS: string[] = [
+  'NOUVELLE_COMMANDE',
+  'COMMANDE_A_PREPARER',
+  'RUPTURE_STOCK',
+  'ALERTE_STOCK_BAS',
+  'NOUVEAU_CLIENT',
+  'NOUVEL_AVIS',
+  'ABONNEMENT_ACTIVE',
+  'ABONNEMENT_EXPIRANT',
+  'ABONNEMENT_EXPIRE',
+  'RECAP_VENTES_JOUR',
+];
+
+function priorityRank(eventType: string): number {
+  const idx = PRIORITY_EVENTS.indexOf(eventType);
+  return idx === -1 ? PRIORITY_EVENTS.length : idx;
+}
 
 const EVENT_META: Record<string, { label: string; icon: React.ReactNode; tone: string }> = {
   NOUVELLE_COMMANDE: { label: 'Nouvelle commande', icon: <ShoppingCart size={15} />, tone: 'bg-orange-50 text-[#f56b2a]' },
@@ -171,6 +190,15 @@ export default function SellerNotifications() {
 
   const unreadCount = items.filter((i) => !seenRef.current.has(i.id)).length;
 
+  const orderedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const rankA = priorityRank(a.eventType);
+      const rankB = priorityRank(b.eventType);
+      if (rankA !== rankB) return rankA - rankB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [items]);
+
   const markAllRead = () => {
     const ids = new Set(items.map((i) => i.id));
     seenRef.current = new Set([...seenRef.current, ...ids]);
@@ -251,7 +279,7 @@ export default function SellerNotifications() {
                 </p>
               </div>
             ) : (
-              items.map((item) => {
+              orderedItems.map((item) => {
                 const meta = EVENT_META[item.eventType] || FALLBACK_META;
                 const read = seenRef.current.has(item.id);
                 return (
@@ -268,7 +296,14 @@ export default function SellerNotifications() {
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-bold text-gray-900 truncate">{meta.label}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[11px] font-bold text-gray-900 truncate">{meta.label}</span>
+                          {priorityRank(item.eventType) < PRIORITY_EVENTS.length && (
+                            <span className="text-[7px] font-bold uppercase px-1 py-px rounded bg-[#f56b2a]/10 text-[#f56b2a] flex-shrink-0">
+                              Prioritaire
+                            </span>
+                          )}
+                        </span>
                         <span className="text-[9px] font-semibold text-gray-400 flex-shrink-0">{timeAgo(item.createdAt)}</span>
                       </span>
                       <span className="block text-[10px] font-medium text-gray-500 leading-snug mt-0.5 line-clamp-2">
