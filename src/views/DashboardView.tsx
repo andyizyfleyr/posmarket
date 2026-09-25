@@ -706,7 +706,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
                                 ${!isStart && !isEnd && inRange ? 'bg-orange-50 text-[#f56b2a]' : ''}
                                 ${!isStart && !isEnd && !inRange && !disabled ? 'text-gray-600 hover:bg-gray-50' : ''}
                                 ${isToday && !isStart && !isEnd && !inRange && !disabled ? 'ring-2 ring-inset ring-[#f56b2a]/40' : ''}
-                                ${disabled ? 'opacity-25 cursor-not-allowed' : ''}
+                                ${disabled ? 'text-gray-300 cursor-not-allowed' : ''}
                               `}
                             >
                               {d}
