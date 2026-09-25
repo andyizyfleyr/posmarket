@@ -67,14 +67,22 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         const delayDebounceFn = setTimeout(async () => {
             if (currentStoreId) {
                 setIsSearching(true);
-                const res = await getOrdersAction(currentStoreId, 0, 10, searchTerm, filterStatus);
-                if (res.success && res.orders) {
-                    setLocalOrders(res.orders as unknown as Order[]);
-                    setOffset(res.orders.length);
-                    setHasMore(res.hasMore || false);
-                    setSelectedOrderIds([]); // Reset selection when filter changes
+                try {
+                    const res = await getOrdersAction(currentStoreId, 0, 10, searchTerm, filterStatus);
+                    if (res.success && res.orders) {
+                        setLocalOrders(res.orders as unknown as Order[]);
+                        setOffset(res.orders.length);
+                        setHasMore(res.hasMore || false);
+                        setSelectedOrderIds([]); // Reset selection when filter changes
+                    } else if (res.error) {
+                        showToast(res.error, 'error');
+                    }
+                } catch (err) {
+                    console.error('Error searching orders:', err);
+                    showToast("Erreur lors de la recherche", 'error');
+                } finally {
+                    setIsSearching(false);
                 }
-                setIsSearching(false);
             }
         }, 500);
 
@@ -94,13 +102,21 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const handleLoadMore = async () => {
         if (isLoadingMore || !hasMore || !currentStoreId) return;
         setIsLoadingMore(true);
-        const res = await getOrdersAction(currentStoreId, offset, 10, searchTerm, filterStatus);
-        if (res.success && res.orders) {
-            setLocalOrders(prev => [...prev, ...(res.orders as unknown as Order[])]);
-            setOffset(prev => prev + (res.orders?.length || 0));
-            setHasMore(res.hasMore || false);
+        try {
+            const res = await getOrdersAction(currentStoreId, offset, 10, searchTerm, filterStatus);
+            if (res.success && res.orders) {
+                setLocalOrders(prev => [...prev, ...(res.orders as unknown as Order[])]);
+                setOffset(prev => prev + (res.orders?.length || 0));
+                setHasMore(res.hasMore || false);
+            } else if (res.error) {
+                showToast(res.error, 'error');
+            }
+        } catch (err) {
+            console.error('Error loading more orders:', err);
+            showToast("Erreur lors du chargement", 'error');
+        } finally {
+            setIsLoadingMore(false);
         }
-        setIsLoadingMore(false);
     };
 
     useEffect(() => {
@@ -108,15 +124,24 @@ const OrdersView: React.FC<OrdersViewProps> = ({
             setSelectedOrderItems([]);
             return;
         }
-        const timer = setTimeout(() => {
-            setLoadingOrderItems(true);
-            setSelectedOrderItems(selectedOrder.items || []);
-            fetchOrderItems(selectedOrder.id).then(items => {
-                setSelectedOrderItems(items as unknown as CartItem[]);
-                setLoadingOrderItems(false);
+        let cancelled = false;
+        const fallback = (selectedOrder.items || []) as unknown as CartItem[];
+        setSelectedOrderItems(fallback);
+        setLoadingOrderItems(fallback.length === 0);
+        fetchOrderItems(selectedOrder.id)
+            .then(items => {
+                if (cancelled) return;
+                const enriched = items && items.length > 0 ? items : fallback;
+                setSelectedOrderItems(enriched as unknown as CartItem[]);
+            })
+            .catch(err => {
+                console.error('Error loading order items:', err);
+                if (!cancelled) setSelectedOrderItems(fallback);
+            })
+            .finally(() => {
+                if (!cancelled) setLoadingOrderItems(false);
             });
-        }, 0);
-        return () => clearTimeout(timer);
+        return () => { cancelled = true; };
     }, [selectedOrder?.id]);
 
     const filteredOrders = useMemo(() => {
@@ -155,51 +180,71 @@ const OrdersView: React.FC<OrdersViewProps> = ({
 
     const handleUpdateStatus = async (orderId: string, status?: Order['status']) => {
         if (!status) return;
-        const result = await updateOrderStatusAction(orderId, status);
-        if (result.success) {
-            router.refresh();
-            showToast(`Statut mis à jour en "${getStatusLabel(status)}"`, 'success');
-            if (selectedOrder?.id === orderId) {
-                setSelectedOrder(prev => prev ? { ...prev, status: status as Order['status'] } : null);
+        try {
+            const result = await updateOrderStatusAction(orderId, status);
+            if (result.success) {
+                router.refresh();
+                showToast(`Statut mis à jour en "${getStatusLabel(status)}"`, 'success');
+                if (selectedOrder?.id === orderId) {
+                    setSelectedOrder(prev => prev ? { ...prev, status: status as Order['status'] } : null);
+                }
+            } else {
+                showToast(result.error || "Erreur de mise à jour", 'error');
             }
-        } else {
-            showToast(result.error || "Erreur de mise à jour", 'error');
+        } catch (err) {
+            console.error('Error updating order status:', err);
+            showToast("Erreur de mise à jour du statut", 'error');
         }
     };
 
     const handleDelete = async (orderId: string) => {
         if (confirm(`Êtes-vous sûr de vouloir supprimer cette commande ?`)) {
-            const result = await deleteOrderAction(orderId);
-            if (result.success) {
-                router.refresh();
-                showToast("Commande supprimée", 'info');
-                if (selectedOrder?.id === orderId) setSelectedOrder(null);
-            } else {
-                showToast(result.error || "Erreur de suppression", 'error');
+            try {
+                const result = await deleteOrderAction(orderId);
+                if (result.success) {
+                    router.refresh();
+                    showToast("Commande supprimée", 'info');
+                    if (selectedOrder?.id === orderId) setSelectedOrder(null);
+                } else {
+                    showToast(result.error || "Erreur de suppression", 'error');
+                }
+            } catch (err) {
+                console.error('Error deleting order:', err);
+                showToast("Erreur de suppression de la commande", 'error');
             }
         }
     };
 
     const handleBulkUpdateStatus = async (status: string) => {
-        const result = await bulkUpdateOrderStatusAction(selectedOrderIds, status);
-        if (result.success) {
-            router.refresh();
-            showToast(`${selectedOrderIds.length} commandes mises à jour`, 'success');
-            setSelectedOrderIds([]);
-        } else {
-            showToast(result.error || "Erreur lors de la mise à jour groupée", 'error');
+        try {
+            const result = await bulkUpdateOrderStatusAction(selectedOrderIds, status);
+            if (result.success) {
+                router.refresh();
+                showToast(`${selectedOrderIds.length} commandes mises à jour`, 'success');
+                setSelectedOrderIds([]);
+            } else {
+                showToast(result.error || "Erreur lors de la mise à jour groupée", 'error');
+            }
+        } catch (err) {
+            console.error('Error bulk updating order status:', err);
+            showToast("Erreur lors de la mise à jour groupée", 'error');
         }
     };
 
     const handleBulkDelete = async () => {
         if (confirm(`Êtes-vous sûr de vouloir supprimer ${selectedOrderIds.length} commandes ?`)) {
-            const result = await bulkDeleteOrdersAction(selectedOrderIds);
-            if (result.success) {
-                router.refresh();
-                showToast(`${selectedOrderIds.length} commandes supprimées`, 'info');
-                setSelectedOrderIds([]);
-            } else {
-                showToast(result.error || "Erreur lors de la suppression groupée", 'error');
+            try {
+                const result = await bulkDeleteOrdersAction(selectedOrderIds);
+                if (result.success) {
+                    router.refresh();
+                    showToast(`${selectedOrderIds.length} commandes supprimées`, 'info');
+                    setSelectedOrderIds([]);
+                } else {
+                    showToast(result.error || "Erreur lors de la suppression groupée", 'error');
+                }
+            } catch (err) {
+                console.error('Error bulk deleting orders:', err);
+                showToast("Erreur lors de la suppression groupée", 'error');
             }
         }
     };
@@ -480,21 +525,22 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                         </div>
                                     ) : (
                                     <div className="space-y-2 md:space-y-3">
-                                        {selectedOrderItems.map((item, idx) => {
-                                            const baseUnit = Number(item.product?.price || 0);
+{selectedOrderItems.map((item, idx) => {
+                                            const product = item.product as any;
+                                            const baseUnit = Number(product?.price || 0);
                                             const unitQty = Number(item.quantity || 1);
-                                            const effUnit = getEffectiveWholesaleUnitPrice(item.product as any, unitQty);
+                                            const effUnit = product ? getEffectiveWholesaleUnitPrice(product, unitQty) : baseUnit;
                                             const isWholesale = effUnit > 0 && effUnit < baseUnit;
                                             const lineTotal = effUnit * unitQty;
                                             return (
                                             <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-3 border border-gray-50 rounded-xl md:rounded-2xl hover:bg-gray-50/50 transition-colors">
-                                                <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 flex-shrink-0">
-                                                    <img src={item.product.image} className="w-full h-full object-cover" />
+                                                <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-2xl overflow-hidden border border-gray-100 flex-shrink-0">
+                                                    {product?.image ? <img src={product.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100" />}
                                                 </div>
                                                 <div className="flex-grow min-w-0">
-                                                    <div className="text-xs md:text-sm font-bold text-gray-900 truncate">{item.product.name}</div>
+                                                    <div className="text-xs md:text-sm font-bold text-gray-900 truncate">{product?.name || 'Article'}</div>
                                                     <div className="text-[9px] md:text-[10px] text-gray-400 font-semibold uppercase mt-0.5 flex items-center flex-wrap gap-1">
-                                                        {unitQty} {item.product.unit || 'unité(s)'}
+                                                        {unitQty} {product?.unit || 'unité(s)'}
                                                         {isWholesale && (
                                                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[8px] md:text-[9px] font-bold uppercase">
                                                                 Gros
@@ -502,7 +548,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                         )}
                                                     </div>
                                                     <div className="text-[9px] md:text-[10px] text-gray-500 font-semibold mt-0.5">
-                                                        {formatCurrency(effUnit)} / {item.product.unit || 'unité'}
+                                                        {formatCurrency(effUnit)} / {product?.unit || 'unité'}
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
