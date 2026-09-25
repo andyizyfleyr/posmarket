@@ -53,6 +53,7 @@ const POSProductCard = React.memo(({
   stock,
   onAdd,
   onAddBulk,
+  onOpenBulkPicker,
   notify,
   bulkMode,
 }: {
@@ -60,6 +61,7 @@ const POSProductCard = React.memo(({
   stock: number;
   onAdd: (p: Product) => void;
   onAddBulk?: (p: Product) => void;
+  onOpenBulkPicker?: (p: Product) => void;
   notify?: (message: string, type: NotificationType, title?: string) => void;
   bulkMode?: boolean;
 }) => {
@@ -76,14 +78,20 @@ const POSProductCard = React.memo(({
       if (notify) notify(`${product.name} est en rupture de stock`, 'error', 'Produit indisponible');
       return;
     }
-    if (bulkAdd && onAddBulk) {
-      onAddBulk(product);
+    if (bulkAdd) {
+      if (wholesaleTiers.length > 1 && onOpenBulkPicker) {
+        onOpenBulkPicker(product);
+      } else if (onAddBulk) {
+        onAddBulk(product);
+      } else {
+        onAdd(product);
+      }
     } else {
       onAdd(product);
     }
     setTapped(true);
     setTimeout(() => setTapped(false), 300);
-  }, [product, onAdd, onAddBulk, isOutOfStock, notify, bulkAdd]);
+  }, [product, onAdd, onAddBulk, onOpenBulkPicker, isOutOfStock, notify, bulkAdd, wholesaleTiers.length]);
 
   return (
     <button
@@ -224,6 +232,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
+  const [bulkPickerProduct, setBulkPickerProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<ICartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -374,6 +383,10 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     const tiers = getNormalizedWholesaleTiers(product);
     addToCartQty(product, tiers.length > 0 ? tiers[0].minQty : 1);
   }, [addToCartQty]);
+
+  const openBulkPicker = useCallback((product: Product) => {
+    setBulkPickerProduct(product);
+  }, []);
 
   const updateQuantity = useCallback((id: string, delta: number) => {
     const target = cart.find(item => item.product.id === id);
@@ -834,7 +847,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             <div className="mb-2.5 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2">
               <BadgePercent size={14} className="text-[#f56b2a] flex-shrink-0" />
               <p className="text-[10px] font-bold text-[#7a3c14] leading-snug">
-                Mode gros actif : un tap ajoute directement la quantité du palier « Dès N ».
+                Mode gros actif : un tap ajoute la quantité du palier « Dès N », ou ouvre le choix des paliers si le produit en a plusieurs.
               </p>
             </div>
           )}
@@ -849,7 +862,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 md:gap-3">
               {filteredProducts.map(product => (
-                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} onAddBulk={addToCartBulk} notify={localNotify} bulkMode={bulkMode} />
+                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} onAddBulk={addToCartBulk} onOpenBulkPicker={openBulkPicker} notify={localNotify} bulkMode={bulkMode} />
               ))}
             </div>
           )}
@@ -988,6 +1001,93 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           </div>
         </div>
       )}
+
+      {/* Sélecteur de paliers de gros (mode Gros, produits multi-paliers) */}
+      {bulkPickerProduct && (() => {
+        const p = bulkPickerProduct;
+        const tiers = getNormalizedWholesaleTiers(p);
+        const inCart = cart.filter((i) => i.product.id === p.id).reduce((s, i) => s + i.quantity, 0);
+        const stock = stockOf(p);
+        const room = stock === 0 ? 0 : Math.max(0, stock - inCart);
+        return (
+          <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setBulkPickerProduct(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="p-3.5 border-b border-gray-100 flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                  <ProductImage
+                    src={p.image}
+                    alt={p.name}
+                    containerClassName="w-full h-full"
+                    objectFit="cover"
+                    showZoomEffect={false}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-bold text-gray-800 truncate">{p.name}</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">Prix unitaire : {formatCurrency(p.price)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBulkPickerProduct(null)}
+                  className="p-1.5 -m-1 rounded-full hover:bg-gray-100 text-gray-400"
+                  aria-label="Fermer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-3.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Choisir la quantité gros</p>
+                <div className="flex flex-col gap-1.5">
+                  {tiers.map((tier) => {
+                    const canAdd = stock === 0 ? false : room >= tier.minQty;
+                    return (
+                      <button
+                        key={tier.minQty}
+                        type="button"
+                        disabled={!canAdd}
+                        onClick={() => {
+                          addToCartQty(p, tier.minQty);
+                          setBulkPickerProduct(null);
+                        }}
+                        className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
+                          ${canAdd
+                            ? 'bg-orange-50/60 border-orange-100 hover:border-[#f56b2a] hover:shadow-sm'
+                            : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                          }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="bg-[#f56b2a] text-white text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0">Dès {tier.minQty}</span>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold text-gray-800">
+                              {formatCurrency(tier.unitPrice)}
+                              <span className="text-[9px] text-gray-400 font-semibold ml-1">/u (total {formatCurrency(tier.packagePrice)})</span>
+                            </p>
+                            {tier.discountPct > 0 && (
+                              <p className="text-[8px] font-bold text-green-600">Économie {formatCurrency(tier.savings)} (-{tier.discountPct}%)</p>
+                            )}
+                          </div>
+                        </div>
+                        {!canAdd && (
+                          <span className="text-[8px] font-bold text-gray-400 uppercase">
+                            {stock === 0 ? 'Rupture' : 'Stock insuffisant'}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBulkPickerProduct(null)}
+                  className="mt-3 w-full py-2 rounded-xl border border-gray-200 text-[11px] font-bold text-gray-500 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Toasts POS (stock insuffisant, etc.) */}
       {posToasts.length > 0 && (
