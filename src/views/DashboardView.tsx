@@ -164,9 +164,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRol
     const totalTraffic = (store?.views || 0) + (products || []).reduce((sum, p) => sum + (p.views || 0), 0);
 
     return {
-      revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(revTrendValue) },
-      orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(countTrendValue) },
-      basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.abs(basketTrendValue) },
+      revenue: { current: currentRev, trend: revTrendValue >= 0 ? 'up' : 'down', pct: Math.min(Math.abs(revTrendValue), 100) },
+      orders: { current: currentCount, trend: countTrendValue >= 0 ? 'up' : 'down', pct: Math.min(Math.abs(countTrendValue), 100) },
+      basket: { current: currentBasket, trend: basketTrendValue >= 0 ? 'up' : 'down', pct: Math.min(Math.abs(basketTrendValue), 100) },
       traffic: { current: totalTraffic, trend: null, pct: '' },
     };
   }, [orders, products, store, startDate, endDate, selectedVertical]);
