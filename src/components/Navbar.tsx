@@ -23,6 +23,7 @@ import { useRouter } from '@/components/RouterPolyfill';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
 import { getDaysRemaining } from '@/utils';
 import { useOnboarding } from './Onboarding/OnboardingContext';
+import SellerNotifications from '@/components/SellerNotifications';
 
 interface NavbarProps {
   currentView: ViewType;
@@ -343,6 +344,7 @@ const Navbar: React.FC<NavbarProps> = ({
           })()}
 
           <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
+            <SellerNotifications />
             <button
               onClick={() => {
                 const target = currentStore?.slug || currentStore?.id;

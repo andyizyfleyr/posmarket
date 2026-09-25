@@ -184,10 +184,30 @@ export async function notify(input: NotifyInput): Promise<{ ok: boolean; skipped
 
   const wantWhatsapp = isWhatsAppConfigured() && !!phone;
   const wantEmail = (await isEmailConfigured()) && !!email;
+  const def = NOTIFICATION_EVENTS[eventType];
+
+  // In-app : une ligne est ALWAYS persistée pour le destinataire (fil de
+  // notifications dans l'espace vendeur), quel que soit l'état des canaux.
+  if (userId) {
+    await db
+      .insert(notificationOutbox)
+      .values({
+        recipientUserId: userId,
+        recipientPhone: phone || '',
+        recipientEmail: email || null,
+        eventType,
+        title: input.title || def?.label || null,
+        body: input.body,
+        provider: 'inapp',
+        status: 'SENT',
+        templateName: null,
+        params: {},
+        sentAt: new Date(),
+      })
+      .catch(() => {});
+  }
 
   if (!wantWhatsapp && !wantEmail) return { ok: true, skipped: true };
-
-  const def = NOTIFICATION_EVENTS[eventType];
 
   // Préférences par canal : activé par défaut pour le transactionnel ;
   // l'opt-in explicite est requis pour le marketing. Un « off » explicite
