@@ -202,6 +202,7 @@ export function BulkOrderModal({
               const activeTier = qty > 0 ? info.tiers.filter((t) => qty >= t.minQty).sort((a, b) => b.minQty - a.minQty)[0] : null;
               const nextTier = info.tiers.find((t) => qty < t.minQty);
               const savings = qty > 0 ? (product.price - effectivePrice) * qty : 0;
+              const isStockTooLow = product.stock != null && product.stock < info.minQty;
 
               return (
                 <div
@@ -251,10 +252,13 @@ export function BulkOrderModal({
                         {info.tiers.map((tier, i) => (
                           <button
                             key={i}
-                            onClick={() => setQty(product.id, tier.minQty)}
+                            onClick={() => !isStockTooLow && setQty(product.id, tier.minQty)}
+                            disabled={isStockTooLow}
                             className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-all active:scale-95 ${
                               activeTier && activeTier.minQty === tier.minQty
                                 ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm'
+                                : isStockTooLow
+                                ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-[#f56b2a]'
                             }`}
                           >
@@ -265,6 +269,15 @@ export function BulkOrderModal({
 
                       {/* Quantity control */}
                       <div className="flex items-center justify-between mt-2">
+                        {isStockTooLow ? (
+                          <div className="flex items-center gap-1.5 text-red-500 bg-red-50 border border-red-100 px-2 py-1 rounded-lg">
+                            <AlertCircle size={12} />
+                            <span className="text-[9px] font-bold uppercase">
+                              Stock bas ({product.stock} dispo.)
+                            </span>
+                          </div>
+                        ) : (
+                        <>
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => updateQty(product.id, -1)}
@@ -309,6 +322,8 @@ export function BulkOrderModal({
                           <div className="hidden md:block text-[8px] font-semibold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
                             +{nextTier.minQty - qty} pour {formatCurrency(nextTier.unitPrice)}/u
                           </div>
+                        )}
+                        </>
                         )}
                       </div>
                     </div>

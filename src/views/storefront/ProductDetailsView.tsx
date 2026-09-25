@@ -200,6 +200,13 @@ export function ProductDetailsView(props: any) {
 
     const handleWholesaleAdd = (idx: number, minQty: number) => {
       if (addingWholesaleIdx === idx || addedWholesaleIdx === idx) return;
+      if (stockValue !== null && stockValue < minQty) {
+        localNotify(
+          `Stock insuffisant (${stockValue} disponibles) pour la quantité en gros de ${minQty}`,
+          "warning",
+        );
+        return;
+      }
       setAddingWholesaleIdx(idx);
       addWholesaleToCart(product, minQty);
       setTimeout(() => {
@@ -889,10 +896,13 @@ export function ProductDetailsView(props: any) {
                         {wholesaleTiers.map((tier, idx) => {
                           const isAdding = addingWholesaleIdx === idx;
                           const isAdded = addedWholesaleIdx === idx;
+                          const isTierUnavailable = stockValue !== null && stockValue < tier.minQty;
                           return (
                           <div
                             key={idx}
-                            className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs"
+                            className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white border border-amber-200/50 text-xs ${
+                              isTierUnavailable ? "border-red-200 bg-red-50/40" : ""
+                            }`}
                           >
                             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
                               <span className="font-medium text-gray-800">Qté Min : {tier.minQty} pièces</span>
@@ -905,7 +915,19 @@ export function ProductDetailsView(props: any) {
                                   -{tier.discountPct}%
                                 </span>
                               )}
+                              {isTierUnavailable && (
+                                <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-1 rounded flex items-center gap-0.5">
+                                  <AlertCircle size={10} />
+                                  Stock bas ({stockValue} dispo.)
+                                </span>
+                              )}
                             </div>
+                            {isTierUnavailable ? (
+                              <span className="min-w-[86px] justify-center px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-500 text-[10px] font-semibold flex items-center gap-1 cursor-not-allowed">
+                                <AlertCircle size={11} />
+                                Stock bas
+                              </span>
+                            ) : (
                             <button
                               type="button"
                               onClick={() => handleWholesaleAdd(idx, tier.minQty)}
@@ -924,6 +946,7 @@ export function ProductDetailsView(props: any) {
                                 </>
                               )}
                             </button>
+                            )}
                           </div>
                           );
                         })}
@@ -1262,7 +1285,36 @@ export function ProductDetailsView(props: any) {
                       {wholesaleTiers.map((tier, idx) => {
                         const isAdding = addingWholesaleIdx === idx;
                         const isAdded = addedWholesaleIdx === idx;
+                        const isTierUnavailable = stockValue !== null && stockValue < tier.minQty;
                         return (
+                        isTierUnavailable ? (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between px-3 py-2 bg-white cursor-not-allowed"
+                        >
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+                            <span className="text-[10px] font-bold text-gray-700">
+                                Qté Min : {tier.minQty} pièces
+                            </span>
+                            <span className="text-gray-300 font-bold">•</span>
+                            <span className="text-xs font-bold text-[#f56b2a]">
+                              Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                             {tier.discountPct > 0 && (
+                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                                -{tier.discountPct}%
+                              </span>
+                             )}
+                            <div className="min-w-[52px] justify-center px-2 py-1 rounded-lg bg-red-50 border border-red-200 text-red-500 text-[9px] font-bold uppercase flex items-center gap-1">
+                              <AlertCircle size={10} />
+                              Stock bas
+                            </div>
+                          </div>
+                        </div>
+                        ) : (
                         <button
                           key={idx}
                           type="button"
@@ -1300,6 +1352,7 @@ export function ProductDetailsView(props: any) {
                             </div>
                           </div>
                         </button>
+                        )
                         );
                       })}
                     </div>
