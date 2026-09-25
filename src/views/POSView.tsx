@@ -52,12 +52,16 @@ const POSProductCard = React.memo(({
   product,
   stock,
   onAdd,
+  onAddBulk,
   notify,
+  bulkMode,
 }: {
   product: Product;
   stock: number;
   onAdd: (p: Product) => void;
+  onAddBulk?: (p: Product) => void;
   notify?: (message: string, type: NotificationType, title?: string) => void;
+  bulkMode?: boolean;
 }) => {
   const [tapped, setTapped] = useState(false);
   const isOutOfStock = stock === 0;
@@ -65,16 +69,21 @@ const POSProductCard = React.memo(({
   const wholesaleTiers = getNormalizedWholesaleTiers(product);
   const hasWholesale = wholesaleTiers.length > 0;
   const firstWholesaleTier = hasWholesale ? wholesaleTiers[0] : null;
+  const bulkAdd = bulkMode && hasWholesale && firstWholesaleTier;
 
   const handleTap = useCallback(() => {
     if (isOutOfStock) {
       if (notify) notify(`${product.name} est en rupture de stock`, 'error', 'Produit indisponible');
       return;
     }
-    onAdd(product);
+    if (bulkAdd && onAddBulk) {
+      onAddBulk(product);
+    } else {
+      onAdd(product);
+    }
     setTapped(true);
     setTimeout(() => setTapped(false), 300);
-  }, [product, onAdd, isOutOfStock, notify]);
+  }, [product, onAdd, onAddBulk, isOutOfStock, notify, bulkAdd]);
 
   return (
     <button
@@ -98,10 +107,16 @@ const POSProductCard = React.memo(({
         <div className={`absolute inset-0 bg-[#f56b2a]/10 transition-opacity duration-200 pointer-events-none ${tapped ? 'opacity-100' : 'opacity-0'}`} />
         {/* Add icon overlay */}
         <div className={`absolute bottom-1.5 right-1.5 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg
-          ${tapped ? 'bg-[#f56b2a] text-white scale-110' : 'bg-white/90 backdrop-blur-sm text-gray-600 border border-gray-100'}
+          ${tapped ? 'bg-[#f56b2a] text-white scale-110' : bulkAdd ? 'bg-[#f56b2a] text-white border border-orange-200' : 'bg-white/90 backdrop-blur-sm text-gray-600 border border-gray-100'}
           ${isOutOfStock ? 'hidden' : ''}
         `}>
-          <Plus size={14} strokeWidth={3} />
+          {bulkAdd ? (
+            <span className="flex items-center gap-0.5 text-[7px] md:text-[8px] font-bold leading-none">
+              <BadgePercent size={11} strokeWidth={2.5} /> {firstWholesaleTier?.minQty}
+            </span>
+          ) : (
+            <Plus size={14} strokeWidth={3} />
+          )}
         </div>
         {/* Low stock badge (top-left) */}
         {isLowStock && (
@@ -125,7 +140,7 @@ const POSProductCard = React.memo(({
         <h4 className="text-[9px] md:text-[11px] font-semibold text-gray-800 leading-tight line-clamp-1 mb-0.5">{product.name}</h4>
         <span className="text-[11px] md:text-sm font-bold text-gray-900">{formatCurrency(product.price)}</span>
         {hasWholesale && firstWholesaleTier && (
-          <span className="flex items-center gap-1 mt-0.5 text-[7px] md:text-[8px] font-bold text-[#f56b2a]">
+          <span className={`flex items-center gap-1 mt-0.5 text-[7px] md:text-[8px] font-bold ${bulkAdd ? 'text-[#d94f0a]' : 'text-[#f56b2a]'}`}>
             <BadgePercent size={8} /> Dès {firstWholesaleTier.minQty} : {formatCurrency(firstWholesaleTier.unitPrice)}
           </span>
         )}
@@ -208,6 +223,7 @@ POSCartItem.displayName = 'POSCartItem';
 const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify, businessType }) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
+  const [bulkMode, setBulkMode] = useState(false);
   const [cart, setCart] = useState<ICartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -327,11 +343,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     setPosToasts((prev) => [...prev.slice(-2), { id, message, type, title }]);
   }, []);
 
-  const addToCart = useCallback((product: Product) => {
+  const addToCartQty = useCallback((product: Product, qty: number) => {
+    const toAdd = Math.max(1, Math.floor(qty) || 1);
     const stock = stockOf(product);
     if (stock > 0) {
       const currentQty = cart.filter((i) => i.product.id === product.id).reduce((s, i) => s + i.quantity, 0);
-      if (currentQty + 1 > stock) {
+      if (currentQty + toAdd > stock) {
         localNotify(`Stock insuffisant : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', product.name);
         return;
       }
@@ -341,13 +358,22 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       if (existing) {
         return prev.map(item =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + toAdd }
             : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: toAdd }];
     });
   }, [cart, stockOf, localNotify]);
+
+  const addToCart = useCallback((product: Product) => {
+    addToCartQty(product, 1);
+  }, [addToCartQty]);
+
+  const addToCartBulk = useCallback((product: Product) => {
+    const tiers = getNormalizedWholesaleTiers(product);
+    addToCartQty(product, tiers.length > 0 ? tiers[0].minQty : 1);
+  }, [addToCartQty]);
 
   const updateQuantity = useCallback((id: string, delta: number) => {
     const target = cart.find(item => item.product.id === id);
@@ -759,6 +785,20 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             )}
           </div>
 
+          {/* Mode gros toggle */}
+          <button
+            onClick={() => setBulkMode(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-[10px] transition-all border flex-shrink-0 active:scale-95
+              ${bulkMode
+                ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-100'
+                : 'bg-gray-50 border-gray-100 text-gray-500 hover:text-[#f56b2a] hover:border-orange-200'
+              }`}
+            title="Ajouter directement la quantité du palier de gros (dès) en un tap"
+          >
+            <BadgePercent size={14} />
+            Gros
+          </button>
+
           {/* Product count badge */}
           <div className="hidden md:flex items-center gap-1.5 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100 flex-shrink-0">
             <Package size={14} className="text-gray-400" />
@@ -790,6 +830,14 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
         {/* Product Grid */}
         <div className="flex-grow overflow-y-auto px-3 md:px-5 py-3 md:py-4 pb-28 md:pb-4 custom-scrollbar">
+          {bulkMode && (
+            <div className="mb-2.5 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2">
+              <BadgePercent size={14} className="text-[#f56b2a] flex-shrink-0" />
+              <p className="text-[10px] font-bold text-[#7a3c14] leading-snug">
+                Mode gros actif : un tap ajoute directement la quantité du palier « Dès N ».
+              </p>
+            </div>
+          )}
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="bg-gray-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-gray-300">
@@ -801,7 +849,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 md:gap-3">
               {filteredProducts.map(product => (
-                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} notify={localNotify} />
+                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} onAddBulk={addToCartBulk} notify={localNotify} bulkMode={bulkMode} />
               ))}
             </div>
           )}
