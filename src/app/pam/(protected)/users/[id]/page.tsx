@@ -58,7 +58,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           </div>
           <div className="flex flex-col sm:flex-row md:flex-col items-stretch gap-2">
             <a
-              href={`/api/pam/impersonate?userId=${user.id}`}
+              href={`/pam/impersonate?userId=${user.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95"
@@ -132,7 +132,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                 </Link>
                 <div className="flex items-center gap-2 shrink-0">
                   <a
-                    href={`/api/pam/impersonate?userId=${user.id}&storeId=${s.id}&redirectTo=/dashboard`}
+                    href={`/pam/impersonate?userId=${user.id}&storeId=${s.id}&redirectTo=/dashboard`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] hover:bg-[#f56b2a] hover:text-white border border-orange-200 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm"

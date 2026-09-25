@@ -64,7 +64,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:flex md:flex-col items-stretch">
             {owner && (
               <a
-                href={`/api/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
+                href={`/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95"
@@ -163,7 +163,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             </div>
             <div className="flex items-center gap-3">
               <a
-                href={`/api/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
+                href={`/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f56b2a] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm"

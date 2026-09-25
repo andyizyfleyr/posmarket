@@ -45,7 +45,7 @@ export default function ImpersonationBanner() {
   const handleQuit = async () => {
     setIsQuitting(true);
     try {
-      await fetch('/api/pam/impersonate/stop', { method: 'POST' });
+      await fetch('/pam/impersonate/stop', { method: 'POST' });
       // Essayer de fermer l'onglet s'il a été ouvert par script / target="_blank"
       window.close();
       // Si l'onglet ne se ferme pas automatiquement (sécurité navigateur), rediriger vers /pam
