@@ -31,8 +31,9 @@ import { playSuccessSound, formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
 import { printPosReceipt, downloadPosReceiptPdf, ReceiptData } from '@/utils/receipt';
 import ProductImage from '../components/ProductImage';
-import { Product, CartItem as ICartItem, Customer, PaymentMethod, Order, StoreSettings, StaffPermissions, NotificationType, Coupon } from '@/types';
+import { Product, CartItem as ICartItem, Customer, PaymentMethod, Order, StoreSettings, StaffPermissions, NotificationType, ToastNotification, Coupon } from '@/types';
 import Loader from '../components/Loader';
+import Toast from '@/components/Toast';
 
 interface POSViewProps {
   products: Product[];
@@ -305,7 +306,26 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   }, [customerSearch, customers]);
 
   /* ─── Cart logic ─── */
+  const stockOf = useCallback((p: Product): number => {
+    return stockMap[p.id] ?? Number((p as any).stock ?? 0);
+  }, [stockMap]);
+
+  // Toasts locaux POS (message clair à l'écran, même sans prop notify)
+  const [posToasts, setPosToasts] = useState<ToastNotification[]>([]);
+  const localNotify = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setPosToasts((prev) => [...prev.slice(-2), { id, message, type, title }]);
+  }, []);
+
   const addToCart = useCallback((product: Product) => {
+    const stock = stockOf(product);
+    if (stock > 0) {
+      const currentQty = cart.filter((i) => i.product.id === product.id).reduce((s, i) => s + i.quantity, 0);
+      if (currentQty + 1 > stock) {
+        localNotify(`Stock insuffisant : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', product.name);
+        return;
+      }
+    }
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
@@ -317,9 +337,18 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       }
       return [...prev, { product, quantity: 1 }];
     });
-  }, []);
+  }, [cart, stockOf, localNotify]);
 
   const updateQuantity = useCallback((id: string, delta: number) => {
+    const target = cart.find(item => item.product.id === id);
+    if (!target) return;
+    if (delta > 0) {
+      const stock = stockOf(target.product);
+      if (stock > 0 && target.quantity + delta > stock) {
+        localNotify(`Stock insuffisant : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', target.product.name);
+        return;
+      }
+    }
     setCart(prev => prev.map(item => {
       if (item.product.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
@@ -327,7 +356,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       }
       return item;
     }));
-  }, []);
+  }, [cart, stockOf, localNotify]);
 
   const removeFromCart = useCallback((id: string) => {
     setCart(prev => prev.filter(item => item.product.id !== id));
@@ -360,10 +389,6 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       if (notify) notify('Code non valide ou expiré.', 'error');
     }
   };
-
-  const stockOf = useCallback((p: Product): number => {
-    return stockMap[p.id] ?? Number((p as any).stock ?? 0);
-  }, [stockMap]);
 
   /* ─── Checkout ─── */
   const handleCheckout = () => {
@@ -766,7 +791,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 md:gap-3">
               {filteredProducts.map(product => (
-                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} notify={notify} />
+                <POSProductCard key={product.id} product={product} stock={stockOf(product)} onAdd={addToCart} notify={localNotify} />
               ))}
             </div>
           )}
@@ -903,6 +928,15 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toasts POS (stock insuffisant, etc.) */}
+      {posToasts.length > 0 && (
+        <div className="fixed top-16 md:top-24 right-3 md:right-8 z-[9999] flex flex-col gap-3 pointer-events-none items-end max-w-[90vw]">
+          {posToasts.map((t) => (
+            <Toast key={t.id} notification={t} onRemove={(id) => setPosToasts((prev) => prev.filter((n) => n.id !== id))} />
+          ))}
         </div>
       )}
     </div>

@@ -48,6 +48,7 @@ import {
   Check,
   Mail,
   MailCheck,
+  AlertTriangle,
 } from "lucide-react";
 import {
   StoreData,
@@ -720,6 +721,11 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [lastAddedProduct, setLastAddedProduct] =
     useState<StorefrontProduct | null>(null);
   const [cartNotif, setCartNotif] = useState(false);
+  const [stockNotice, setStockNotice] = useState<{ message: string } | null>(null);
+  const showStockNotice = useCallback((message: string) => {
+    setStockNotice({ message });
+    setTimeout(() => setStockNotice(null), 4000);
+  }, []);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -1634,10 +1640,41 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     } catch {}
   };
 
+  const getStockFor = (
+    product: StorefrontProduct,
+    variantId?: string,
+  ): number | null => {
+    if (variantId && product.variants) {
+      const v = product.variants.find((x) => x.id === variantId);
+      if (v && typeof v.stock === "number") return v.stock;
+    }
+    const s = (product as unknown as { stock?: number | null }).stock;
+    return typeof s === "number" ? s : null;
+  };
+
   const addToCart = (
     product: StorefrontProduct,
     variantId?: string,
   ) => {
+    const stock = getStockFor(product, variantId);
+    if (stock !== null && stock > 0) {
+      const vid = variantId || null;
+      const currentQty = cart
+        .filter(
+          (i) =>
+            i.product.id === product.id &&
+            i.product.storeId === product.storeId &&
+            (i.variantId === vid || (!i.variantId && !vid)) &&
+            sameSelectedOptions(i.selectedOptions, selectedOptions),
+        )
+        .reduce((s, i) => s + i.quantity, 0);
+      if (currentQty + 1 > stock) {
+        showStockNotice(
+          `Stock insuffisant pour « ${product.name} » : ${stock} restant${stock > 1 ? "s" : ""}.`,
+        );
+        return;
+      }
+    }
     setCart((prev) => {
       const vid = variantId || null;
 
@@ -1688,6 +1725,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     variantId?: string,
     options?: Record<string, string>,
   ) => {
+    const stock = getStockFor(product, variantId);
+    if (stock !== null && stock < 1) {
+      showStockNotice(`« ${product.name} » est en rupture de stock.`);
+      return;
+    }
     // Achat direct : remplace le panier et ouvre le checkout (livraison)
     safeNavigate("/cart", {
       action: () => {
@@ -1715,6 +1757,18 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         ? Math.min(...product.wholesaleTiers.map((t) => t.minQty))
         : Number(product.wholesaleMinQty)) ||
       1;
+    const stock = getStockFor(product);
+    const effectiveQty =
+      stock !== null && stock > 0 ? Math.min(qty, stock) : qty;
+    if (stock !== null && qty > stock) {
+      showStockNotice(
+        `Stock insuffisant pour « ${product.name} » : ${stock} disponible${stock > 1 ? "s" : ""} (${effectiveQty} ajouté${effectiveQty > 1 ? "s" : ""}).`,
+      );
+    }
+    if (stock !== null && stock < 1) {
+      showStockNotice(`« ${product.name} » est en rupture de stock.`);
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find(
         (item) =>
@@ -1727,12 +1781,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           item.product.storeId === product.storeId
             ? {
                 ...item,
-                quantity: Math.max(item.quantity, qty),
+                quantity: Math.max(item.quantity, effectiveQty),
               }
             : item,
         );
       }
-      return [...prev, { product, quantity: qty }];
+      return [...prev, { product, quantity: effectiveQty }];
     });
     setLastAddedProduct(product);
     buzz();
@@ -1745,9 +1799,24 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const handleBulkAddToCart = useCallback(
     (items: Array<{ product: Product & { storeId: string; storeName: string; storeSlug?: string }; quantity: number }>) => {
+      const clippedItems = items.map((item, idx) => {
+        const sp = item.product as StorefrontProduct;
+        const stock = getStockFor(sp);
+        const original = items[idx].quantity;
+        const effective = stock !== null && stock > 0 ? Math.min(original, stock) : stock === 0 ? 0 : original;
+        return { ...item, product: sp, quantity: effective, clipped: stock !== null && effective < original };
+      });
+      const firstClipped = clippedItems.find((i) => i.clipped);
+      if (firstClipped) {
+        const stock = getStockFor(firstClipped.product as StorefrontProduct);
+        showStockNotice(
+          `Quantité limitée pour « ${firstClipped.product.name} » : ${stock} restant${(stock ?? 0) > 1 ? "s" : ""}.`,
+        );
+      }
       setCart((prev) => {
         const next = [...prev];
-        for (const item of items) {
+        for (const item of clippedItems) {
+          if (item.quantity <= 0) continue;
           const sp = item.product as StorefrontProduct;
           const idx = next.findIndex(
             (i) =>
@@ -1758,7 +1827,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           if (idx >= 0) {
             next[idx] = {
               ...next[idx],
-              quantity: next[idx].quantity + item.quantity,
+              quantity: Math.min(next[idx].quantity + item.quantity, getStockFor(sp) ?? Infinity),
             };
           } else {
             next.push({
@@ -1802,6 +1871,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     delta: number,
     variantId?: string,
   ) => {
+    const target = cart.find(
+      (item) =>
+        item.product.id === productId &&
+        item.product.storeId === storeId &&
+        item.variantId === variantId,
+    );
+    if (target && delta > 0) {
+      const stock = getStockFor(target.product, target.variantId);
+      if (stock !== null && stock > 0 && target.quantity + delta > stock) {
+        showStockNotice(
+          `Stock insuffisant pour « ${target.product.name} » : ${stock} restant${stock > 1 ? "s" : ""}.`,
+        );
+        return;
+      }
+    }
     setCart((prev) =>
       prev.map((item) => {
         if (
@@ -2595,6 +2679,32 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </div>
           </div>
         </header>
+      )}
+
+      {stockNotice && (
+        <div className="fixed top-4 right-4 left-4 md:left-auto md:w-[340px] z-[1200] px-2 md:px-0">
+          <div className="bg-amber-500/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] border border-amber-400 overflow-hidden">
+            <div className="p-3 flex items-start gap-2.5">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <AlertTriangle size={15} className="text-white flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-white leading-snug">{stockNotice.message}</p>
+                  <p className="text-[9px] font-semibold text-amber-100 mt-0.5">Quantité limitée par le stock disponible.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setStockNotice(null)}
+                className="p-1.5 -m-1 hover:bg-white/10 rounded-full transition-colors text-white flex-shrink-0"
+                aria-label="Fermer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="h-0.5 bg-amber-600/60 w-full">
+              <div className="h-full bg-white/50" style={{ animation: "shrink 4s linear forwards" }} />
+            </div>
+          </div>
+        </div>
       )}
 
       {cartNotif && lastAddedProduct && (

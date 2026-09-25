@@ -154,6 +154,13 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, cu
         const product = products.find(p => p.id === selectedProduct);
         if (!product) return;
 
+        const stock = Number((product as Product & { stock?: number | null }).stock ?? 0);
+        if (stock > 0 && quantity > stock) {
+            if (notify) notify(`Stock insuffisant pour « ${product.name} » : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', 'Quantité limitée');
+            setQuantity(stock);
+            return;
+        }
+
         const newItem: InvoiceItem = {
             description: product.name,
             quantity: quantity,
