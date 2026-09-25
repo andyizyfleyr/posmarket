@@ -369,6 +369,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
       views: Number(p.views) || 0,
       wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
       wholesaleMinQty: p.wholesaleMinQty,
+      wholesaleTiers: Array.isArray(p.wholesaleTiers) ? (p.wholesaleTiers as Array<{ minQty: number; price: number }>) : [],
       mainCategory: p.mainCategory,
       businessType: p.businessType,
       options: p.options || [],

@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   Package,
   Sparkles,
+  BadgePercent,
 } from 'lucide-react';
 import { playSuccessSound, formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
@@ -61,6 +62,9 @@ const POSProductCard = React.memo(({
   const [tapped, setTapped] = useState(false);
   const isOutOfStock = stock === 0;
   const isLowStock = stock > 0 && stock <= 5;
+  const wholesaleTiers = getNormalizedWholesaleTiers(product);
+  const hasWholesale = wholesaleTiers.length > 0;
+  const firstWholesaleTier = hasWholesale ? wholesaleTiers[0] : null;
 
   const handleTap = useCallback(() => {
     if (isOutOfStock) {
@@ -120,6 +124,11 @@ const POSProductCard = React.memo(({
       <div className="p-1.5 md:p-2 flex-1 flex flex-col justify-between min-h-0">
         <h4 className="text-[9px] md:text-[11px] font-semibold text-gray-800 leading-tight line-clamp-1 mb-0.5">{product.name}</h4>
         <span className="text-[11px] md:text-sm font-bold text-gray-900">{formatCurrency(product.price)}</span>
+        {hasWholesale && firstWholesaleTier && (
+          <span className="flex items-center gap-1 mt-0.5 text-[7px] md:text-[8px] font-bold text-[#f56b2a]">
+            <BadgePercent size={8} /> Dès {firstWholesaleTier.minQty} : {formatCurrency(firstWholesaleTier.unitPrice)}
+          </span>
+        )}
       </div>
     </button>
   );
