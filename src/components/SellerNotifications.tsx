@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { fetchSellerNotificationsAction, type SellerNotificationItem } from '@/app/actions/notifications';
 import Toast from '@/components/Toast';
+import { playAlertSound } from '@/utils/alert-sound';
 import type { ToastNotification, NotificationType } from '@/types';
 
 const STORAGE_KEY = 'seller_inapp_seen_v1';
@@ -97,6 +98,7 @@ export default function SellerNotifications() {
 
   const pushToast = useCallback((title: string, message: string, type: NotificationType) => {
     const id = Math.random().toString(36).substr(2, 9);
+    playAlertSound();
     setToasts((prev) => [...prev.slice(-3), { id, message, type, title }]);
   }, []);
 
