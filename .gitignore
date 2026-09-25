@@ -43,3 +43,5 @@ next-env.d.ts
 .gemini/
 
 .tools/
+
+_tmp_t.mjs
