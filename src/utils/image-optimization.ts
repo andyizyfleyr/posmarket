@@ -2,18 +2,20 @@ import imageCompression from 'browser-image-compression';
 
 /**
  * Optimise une image avant l'upload :
- * 1. Réduction de la résolution (max 1200px)
+ * 1. Réduction de la résolution (max 1600px)
  * 2. Compression de la qualité
  * 3. Conversion en WebP
  */
 export async function optimizeImage(file: File): Promise<File> {
   // Options de compression
   const options = {
-    maxSizeMB: 0.8, // Max 800Ko (très léger pour du WebP)
-    maxWidthOrHeight: 1200, // Résolution max pour le web
+    maxSizeMB: 2.5, // Plafond de taille (garde-fou, rarely atteint en WebP)
+    maxWidthOrHeight: 1600, // Résolution max pour le web + zoom
     useWebWorker: true,
     fileType: 'image/webp', // Conversion en WebP
-    initialQuality: 0.8, // 80% de qualité initiale
+    initialQuality: 0.92, // Qualité initiale élevée
+    alwaysKeepResolution: true, // Empêche la boucle de sous-échantillonner
+    preserveExif: false, // Supprime les métadonnées (poids)
   };
 
   try {

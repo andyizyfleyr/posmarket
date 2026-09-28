@@ -4493,6 +4493,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 <Image
                   src={zoomSrc}
                   fill
+                  quality={95}
                   sizes="100vw"
                   className="object-contain shadow-2xl rounded-2xl select-none"
                   style={{ touchAction: "pinch-zoom" }}

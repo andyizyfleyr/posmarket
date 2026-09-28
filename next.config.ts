@@ -17,14 +17,17 @@ const nextConfig: NextConfig = {
     ],
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
-    formats: ['image/avif', 'image/webp'],
+    // WebP uniquement : l'AVIF ajouterait une 2e génération lossy
+    // sur des images déjà compressées en WebP par le vendeur.
+    formats: ['image/webp'],
+    qualities: [75, 90, 95],
     minimumCacheTTL: 86400,
     dangerouslyAllowSVG: false,
   },
 
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: '30mb',
       allowedOrigins: [
         `http://localhost:3000`,
         `http://${ip}:3000`,

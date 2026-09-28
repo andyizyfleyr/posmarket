@@ -54,13 +54,18 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       }
     }
 
-    let imageValue = product.image;
-    if (typeof imageValue === 'string' && imageValue.startsWith('data:')) {
-      const r2Url = await uploadDataUriToR2(imageValue, 'products').catch(() => null);
-      if (r2Url) imageValue = r2Url;
-    }
+    const uploadCache = new Map<string, string>();
+    const resolveImage = async (img: string): Promise<string> => {
+      if (!img.startsWith('data:')) return img;
+      const cached = uploadCache.get(img);
+      if (cached) return cached;
+      const r2Url = await uploadDataUriToR2(img, 'products').catch(() => null);
+      const resolved = r2Url || img;
+      uploadCache.set(img, resolved);
+      return resolved;
+    };
 
-    let imagesValue: string[] = (
+    const sourceImages: string[] = (
       Array.isArray(product.images) && product.images.length > 0
         ? product.images
         : product.image
@@ -68,18 +73,19 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
           : []
     ).filter((img): img is string => typeof img === 'string' && !!img);
 
-    imagesValue = await Promise.all(
-      imagesValue.map(async (img) => {
-        if (img.startsWith('data:')) {
-          const r2Url = await uploadDataUriToR2(img, 'products').catch(() => null);
-          return r2Url || img;
-        }
-        return img;
-      })
-    );
+    if (product.image && !sourceImages.includes(product.image)) {
+      sourceImages.unshift(product.image);
+    }
 
-    if (imagesValue.length > 0 && !imageValue) {
-      imageValue = imagesValue[0];
+    const imagesValue: string[] = [];
+    for (const source of sourceImages) {
+      const resolved = await resolveImage(source);
+      if (!imagesValue.includes(resolved)) imagesValue.push(resolved);
+    }
+
+    let imageValue: string | null = imagesValue[0] ?? null;
+    if (!imageValue && product.image) {
+      imageValue = await resolveImage(product.image);
     }
 
     const dataToSave = {

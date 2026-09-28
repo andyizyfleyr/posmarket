@@ -411,6 +411,7 @@ export function ProductDetailsView(props: any) {
                         alt={`${product.name} - vue ${idx + 1}`}
                         fill
                         priority={idx === 0}
+                        quality={90}
                         sizes="100vw"
                         className="object-cover pointer-events-none"
                       />
@@ -511,6 +512,7 @@ export function ProductDetailsView(props: any) {
                     width={800}
                     height={800}
                     priority
+                    quality={90}
                     alt={product.name}
                     sizes="(max-width: 1024px) 100vw, 420px"
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/main:scale-105"
@@ -606,6 +608,7 @@ export function ProductDetailsView(props: any) {
                             alt={`${product.name} - vue ${idx + 1}`}
                             width={80}
                             height={80}
+                            quality={90}
                             className="w-full h-full object-cover"
                             sizes="70px"
                           />

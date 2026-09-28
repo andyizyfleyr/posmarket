@@ -133,6 +133,21 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
     ): string =>
       uri || (hasImage ? `/api/image/${apiId}` : '');
 
+    const toGalleryRefs = (
+      uris: unknown,
+      hasImage: boolean | null | undefined,
+      apiId: string
+    ): string[] => {
+      if (!Array.isArray(uris)) return [];
+      const refs: string[] = [];
+      for (const raw of uris) {
+        if (typeof raw !== 'string' || !raw || raw.startsWith('data:')) continue;
+        const ref = toImageRef(raw, hasImage, apiId);
+        if (ref && !refs.includes(ref)) refs.push(ref);
+      }
+      return refs;
+    };
+
     const productStatsMap = Object.fromEntries((productStatsData || []).map((s) => [s.productId, s]));
     const orderSalesMap = Object.fromEntries(
       (salesCountsData || [])
@@ -189,9 +204,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               price: Number(p.price) || 0,
               originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
               image: toImageRef(p.image, p.hasImage, p.id),
-              images: Array.isArray(p.images)
-                ? (p.images as string[]).map((img) => toImageRef(img, p.hasImage, p.id))
-                : undefined,
+              images: toGalleryRefs(p.images, p.hasImage, p.id),
               unit: p.unit || undefined,
               deliveryTime: p.deliveryTime || undefined,
               preparationTime: p.preparationTime || undefined,
