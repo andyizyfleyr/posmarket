@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { productCategories, products } from '@/db/schema';
-import { eq, and, isNull, isNotNull, sql, asc, ne } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, sql, asc, ne, inArray } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
 import { getAdminSession } from '@/app/actions/admin-auth';
 
@@ -14,6 +14,20 @@ export type ProductCategoryInput = {
   businessType?: string;
   position?: number;
   isActive?: boolean;
+  /**
+   * Renommer une catégorie réécrit `products.main_category` / `products.category`.
+   * Cette réécriture de masse est bloquée tant que l'appelant ne l'a pas
+   * explicitement validée après avoir vu le nombre de produits concernés.
+   */
+  acknowledgeImpact?: boolean;
+};
+
+export type CategoryRenameImpact = {
+  currentName: string;
+  nextName: string;
+  asMainCategory: number;
+  asSubCategory: number;
+  total: number;
 };
 
 export type ProductCategoryRow = {
@@ -162,6 +176,28 @@ async function ensureUniqueSlug(slug: string, excludeId?: string) {
   return existing;
 }
 
+/** Produits rattachés au nom actuel : c'est la clef de rattachement. */
+async function computeRenameImpact(
+  currentName: string,
+  nextName: string
+): Promise<CategoryRenameImpact> {
+  const [{ count: asMainCategory }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(products)
+    .where(eq(products.mainCategory, currentName));
+  const [{ count: asSubCategory }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(products)
+    .where(eq(products.category, currentName));
+  return {
+    currentName,
+    nextName,
+    asMainCategory: Number(asMainCategory) || 0,
+    asSubCategory: Number(asSubCategory) || 0,
+    total: (Number(asMainCategory) || 0) + (Number(asSubCategory) || 0),
+  };
+}
+
 async function nextPosition(parentId: string | null): Promise<number> {
   const rows = parentId
     ? await db
@@ -265,15 +301,14 @@ export async function updateProductCategoryAction(id: string, input: ProductCate
     if (!name) return { success: false, error: 'Le nom de la catégorie est obligatoire.' };
     if (name.length > 80) return { success: false, error: 'Le nom ne doit pas dépasser 80 caractères.' };
 
-    if (name !== existing.name) {
-      if (await ensureUniqueName(name, id)) {
-        return { success: false, error: 'Une catégorie porte déjà ce nom.' };
-      }
-      // Le nom est la clef de rattachement des produits : on le propage.
-      await db.update(products).set({ mainCategory: name }).where(eq(products.mainCategory, existing.name));
-      await db.update(products).set({ category: name }).where(eq(products.category, existing.name));
+    const renaming = name !== existing.name;
+    if (renaming && (await ensureUniqueName(name, id))) {
+      return { success: false, error: 'Une catégorie porte déjà ce nom.' };
     }
 
+    // Tout est validé avant la moindre écriture : le nom est la clef de
+    // rattachement des produits, une validation refusée après coup laisserait
+    // des produits orphelins.
     let slug = existing.slug;
     if (typeof input?.slug === 'string') {
       const candidate = slugifyCategory(input.slug);
@@ -282,7 +317,7 @@ export async function updateProductCategoryAction(id: string, input: ProductCate
         return { success: false, error: 'Cet identifiant est déjà utilisé.' };
       }
       slug = candidate;
-    } else if (name !== existing.name) {
+    } else if (renaming) {
       const candidate = slugifyCategory(name);
       if (candidate && !(await ensureUniqueSlug(candidate, id))) slug = candidate;
     }
@@ -292,6 +327,21 @@ export async function updateProductCategoryAction(id: string, input: ProductCate
       id
     );
     if (!parent.ok) return { success: false, error: parent.error };
+
+    // Le renommage réécrit `products.main_category` / `products.category` :
+    // opération de masse, elle exige un accord explicite de l'admin.
+    if (renaming) {
+      const impact = await computeRenameImpact(existing.name, name);
+      if (impact.total > 0 && input?.acknowledgeImpact !== true) {
+        return {
+          success: false,
+          error: `CONFIRM_IMPACT:${impact.total}`,
+          impact,
+        };
+      }
+      await db.update(products).set({ mainCategory: name }).where(eq(products.mainCategory, existing.name));
+      await db.update(products).set({ category: name }).where(eq(products.category, existing.name));
+    }
 
     const [updated] = await db
       .update(productCategories)
@@ -316,6 +366,81 @@ export async function updateProductCategoryAction(id: string, input: ProductCate
   }
 }
 
+/**
+ * Nombre de produits qu'un renommage réaffecterait, sans rien écrire.
+ * L'UI l'appelle pendant la saisie pour afficher l'avertissement avant le clic.
+ */
+export async function previewCategoryRenameAction(
+  id: string,
+  nextName: string
+): Promise<{ success: boolean; impact?: CategoryRenameImpact; error?: string }> {
+  try {
+    const session = await getAdminSession();
+    if (!session) return { success: false, error: 'Unauthorized' };
+    if (!id) return { success: false, error: 'Catégorie introuvable.' };
+
+    const candidate = normalizeName(nextName || '');
+    if (!candidate) return { success: true, impact: undefined };
+    if (candidate.length > 80) return { success: false, error: 'Le nom ne doit pas dépasser 80 caractères.' };
+
+    const [existing] = await db
+      .select({ name: productCategories.name })
+      .from(productCategories)
+      .where(eq(productCategories.id, id))
+      .limit(1);
+    if (!existing) return { success: false, error: 'Catégorie introuvable.' };
+    if (existing.name === candidate) return { success: true, impact: undefined };
+
+    if (await ensureUniqueName(candidate, id)) {
+      return { success: false, error: 'Une catégorie porte déjà ce nom.' };
+    }
+
+    return { success: true, impact: await computeRenameImpact(existing.name, candidate) };
+  } catch (error: unknown) {
+    console.error('Error previewing category rename:', error);
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
+/** Bascule l'état actif de plusieurs catégories en une seule action. */
+export async function setProductCategoriesActiveAction(ids: string[], isActive: boolean) {
+  try {
+    const session = await getAdminSession();
+    if (!session) return { success: false, error: 'Unauthorized' };
+    const targets = (ids || []).filter((id) => typeof id === 'string' && id.length > 0);
+    if (targets.length === 0) return { success: false, error: 'Aucune catégorie sélectionnée.' };
+
+    if (!isActive) {
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(productCategories)
+        .where(
+          and(
+            inArray(productCategories.parentId, targets),
+            eq(productCategories.isActive, true)
+          )
+        );
+      if (Number(count) > 0) {
+        return {
+          success: false,
+          error: 'Masquez d’abord les sous-catégories avant de masquer leur catégorie parente.',
+        };
+      }
+    }
+
+    await db
+      .update(productCategories)
+      .set({ isActive, updatedAt: new Date() })
+      .where(inArray(productCategories.id, targets));
+
+    revalidateCategoryViews();
+    return { success: true, updated: targets.length };
+  } catch (error: unknown) {
+    console.error('Error bulk toggling product categories:', error);
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
 export async function toggleProductCategoryAction(id: string, isActive: boolean) {
   try {
     const session = await getAdminSession();
@@ -330,13 +455,14 @@ export async function toggleProductCategoryAction(id: string, isActive: boolean)
     if (!existing) return { success: false, error: 'Catégorie introuvable.' };
 
     if (!isActive) {
-      const [child] = await db
-        .select({ id: productCategories.id })
+      // Seules les sous-catégories encore visibles bloquent le masquage :
+      // une sous-catégorie déjà masquée ne peut pas nuire à la catégorie parente.
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
         .from(productCategories)
-        .where(eq(productCategories.parentId, id))
-        .limit(1);
-      if (child) {
-        return { success: false, error: 'Désactivez d’abord les sous-catégories de cette catégorie.' };
+        .where(and(eq(productCategories.parentId, id), eq(productCategories.isActive, true)));
+      if (Number(count) > 0) {
+        return { success: false, error: 'Masquez d’abord les sous-catégories de cette catégorie.' };
       }
     }
 
