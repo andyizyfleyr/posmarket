@@ -26,12 +26,11 @@ export interface AccountAccess {
 /**
  * Détermine l'espace auquel appartient un utilisateur.
  *
- * L'ordre de priorité est volontaire et évite les conflits :
- * `admin` > `seller` > `buyer` > `none`.
- * Un compte possédant une boutique est considered vendeur même si son
- * `accountType` est resté « buyer » (inscription acheteur ayant ensuite créé
- * une boutique) : il doit pouvoir gérer son commerce, sinon il resterait
- * verrouillé dehors.
+ * `profiles.accountType` est l'unique source de vérité : un compte acheteur
+ * reste acheteur, un compte vendeur reste vendeur, définitivement. La
+ * possession d'une boutique ne promeut PAS un acheteur en vendeur — c'est
+ * l'inverse qui compte : si les deux se contredisent, l'incohérence doit
+ * remonter à l'administration (PAM) au lieu d'être silencieusement résolue.
  */
 export async function resolveAccountAccess(userId: string | null | undefined): Promise<AccountAccess> {
   const empty: AccountAccess = {
@@ -68,16 +67,23 @@ export async function resolveAccountAccess(userId: string | null | undefined): P
       : [];
 
     const isAdmin = profile.isSuperAdmin || profile.accountType === 'admin';
-    const isSeller =
-      profile.accountType === 'seller' ||
-      ownedStores.length > 0 ||
-      staffEntries.length > 0;
+    const accountType = profile.accountType || 'buyer';
 
     let space: AccountSpace;
     if (isAdmin) space = 'admin';
-    else if (isSeller) space = 'seller';
-    else if (profile.accountType === 'buyer') space = 'buyer';
+    else if (accountType === 'seller') space = 'seller';
+    else if (accountType === 'buyer') space = 'buyer';
     else space = 'none';
+
+    // Un acheteur (ou un compte sans type) rattaché à une boutique est une
+    // incohérence de données : on le signale plutôt que d'élargir son accès.
+    if (space !== 'seller' && space !== 'admin' && (ownedStores.length > 0 || staffEntries.length > 0)) {
+      console.warn(
+        `[account-access] Incohérence : profil ${userId} de type "${accountType}" est rattaché à une boutique ` +
+          `(${ownedStores.length} possédée(s), ${staffEntries.length} équipe(s)). ` +
+          `Accès maintenu sur "${space}". Corriger le type de compte depuis /pam/users/${userId}.`
+      );
+    }
 
     return { space, profile, ownedStores, staffStores, staffEntries };
   } catch {

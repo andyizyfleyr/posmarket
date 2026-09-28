@@ -160,6 +160,16 @@ export async function ensureAuthProfile(opts: {
   let [profile] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
 
   if (profile) {
+    // Le type de compte est définitif : une intention de connexion ne peut
+    // PAS re-typer un profil existant (un acheteur ne devient pas vendeur, ni
+    // l'inverse). Seul l'éditeur d'administration (/pam/users) peut le changer,
+    // volontairement et de façon tracée.
+    if (intent && intent.intent !== profile.accountType) {
+      console.warn(
+        `[auth] Compte existant ${email} de type "${profile.accountType}" alors que l'intention vaut ` +
+          `"${intent.intent}" : type conservé.`
+      );
+    }
     if (opts.markVerified && !profile.emailVerified) {
       [profile] = await db
         .update(profiles)

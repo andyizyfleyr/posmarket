@@ -31,7 +31,12 @@ export async function updateSession(request: NextRequest, sessionUserId?: string
 
   if (!userId && isProtectedRoute) {
     const url = request.nextUrl.clone()
+    // La destination est conservée dans `?next=` : une fois authentifié, le
+    // vendeur revient sur la page qu'il visait au lieu de l'écran d'accueil
+    // par défaut. Elle est ré-validée côté serveur par la page /login.
     url.pathname = '/login'
+    url.search = ''
+    url.searchParams.set('next', request.nextUrl.pathname)
     const res = NextResponse.redirect(url)
     res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     return res
