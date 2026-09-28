@@ -7,8 +7,7 @@ import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import Image from "next/image";
 import { PhoneInput } from '@/components/PhoneInput';
 import { CountrySelect } from '@/components/CountrySelect';
-import { NotificationsTab } from '@/components/buyer/NotificationsTab';
-import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Trash2, Plus, CheckSquare, Square, X, Camera, Tag, BellRing, Loader2, FileText, Info, Zap } from 'lucide-react';
+import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Trash2, Plus, CheckSquare, Square, X, Camera, Tag, Loader2, FileText, Info, Zap } from 'lucide-react';
 
 import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
 import { supabase } from '@/supabase';
@@ -107,8 +106,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['store', 'user', 'staff', 'promos', 'notifications'];
-        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos' | 'notifications';
+        const validTabs = ['store', 'user', 'staff', 'promos'];
+        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos';
     }, [searchParams]);
 
     const setActiveTab = useCallback((tab: string) => {
@@ -347,7 +346,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         { id: 'user', label: 'Profil', icon: <User size={18} /> },
                         { id: 'staff', label: 'Équipe', icon: <Users size={18} />, hidden: !permissions.canManageStaff },
                         { id: 'promos', label: 'Promos', icon: <Tag size={18} /> },
-                        { id: 'notifications', label: 'Notifications', icon: <BellRing size={18} /> },
                     ].filter(t => !t.hidden).map(tab => (
                         <button
                             key={tab.id}
@@ -579,12 +577,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     </div>
                                 </section>
                             </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'notifications' && (
-                        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                            <NotificationsTab notify={notify} />
                         </div>
                     )}
 

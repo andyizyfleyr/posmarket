@@ -1,10 +1,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import { getCurrentSession } from '@/app/actions/session';
 import { getStoreCookie } from '@/utils/store-cookie';
 import LayoutClientWrapper from '@/components/LayoutClientWrapper';
 import { StoreData, SubscriptionTier, SubscriptionDuration, StaffRole, UserSubscription } from '@/types';
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
 import { safeSupabaseFetch } from '@/utils/supabase/retry';
+import { canAccessSellerSpace, landingPathFor, resolveAccountAccess } from '@/utils/account-access';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -48,13 +50,26 @@ interface StaffEntryData {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // `createClient()` masque volontairement les profils acheteurs : la session
+  // brute est donc lue séparément, sinon un client qui ouvre /pos serait
+  // renvoyé vers /login au lieu de son espace compte.
+  const { user } = await getCurrentSession();
 
   if (!user) {
     redirect('/login');
   }
 
+  // Résolution partagée avec la garde de `/mon-compte` : un seul calcul de
+  // rôle pour les deux espaces, donc aucun conflit de redirection possible.
+  const access = await resolveAccountAccess(user.id);
+
+  if (!canAccessSellerSpace(access.space)) {
+    // 'none'/'anonymous' retombent sur l'espace compte : `canAccessBuyerSpace`
+    // l'autorise, la boucle de redirection est donc impossible.
+    redirect(landingPathFor(access.space));
+  }
+
+  const supabase = await createClient();
 
   // Fetch basic profile + stores + staff entries in parallel
   const [profileRes, ownedStoresRes, staffEntriesRes] = await Promise.all([
@@ -74,27 +89,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: staffEntries } = staffEntriesRes;
 
   const staffStoreIds = staffEntries?.map(s => s.store_id) || [];
-  const isSuperAdmin = !!profile?.is_super_admin || profile?.account_type === 'admin';
-  const hasOwnedStores = !!(ownedStores && ownedStores.length > 0);
-  const hasStaffStores = staffStoreIds.length > 0;
-  const isSellerAccount = profile?.account_type === 'seller';
-  const isBuyerAccount = profile?.account_type === 'buyer';
-  const isAuthorizedSeller = isSuperAdmin || (!isBuyerAccount && (hasOwnedStores || hasStaffStores || isSellerAccount));
-
-  // Séparation stricte: un compte administrateur n'a pas d'accès à l'espace
-  // vendeur; il relève de l'espace d'administration (PAM).
-  if (profile?.account_type === 'admin') {
-    redirect('/pam');
-  }
-
-  // Un compte acheteur marketplace ne peut JAMAIS accéder à l'espace vendeur
-  if (isBuyerAccount && !isSuperAdmin) {
-    redirect('/mon-compte');
-  }
-
-  if (!isAuthorizedSeller) {
-    redirect('/mon-compte');
-  }
 
   const userSubscription: UserSubscription = {
     tier: (profile?.subscription_tier as SubscriptionTier) || 'NONE',

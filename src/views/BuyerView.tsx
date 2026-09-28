@@ -9,7 +9,6 @@ import {
   Package,
   MapPin,
   Star,
-  BellRing,
   User,
   LogOut,
   AlertTriangle,
@@ -18,7 +17,6 @@ import { useBuyerData } from '@/components/buyer/useBuyerData';
 import { OrdersTab, ReviewTargetProduct } from '@/components/buyer/OrdersTab';
 import { AddressesTab } from '@/components/buyer/AddressesTab';
 import { ReviewsTab } from '@/components/buyer/ReviewsTab';
-import { NotificationsTab } from '@/components/buyer/NotificationsTab';
 import { ProfileTab } from '@/components/buyer/ProfileTab';
 import { AddressModal } from '@/components/buyer/AddressModal';
 import { ReviewModal } from '@/components/buyer/ReviewModal';
@@ -49,7 +47,6 @@ const TABS: Array<{
   { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
   { id: 'addresses', path: 'adresses', label: 'Livraison', desc: 'Vos contacts de livraison', icon: MapPin },
   { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
-  { id: 'notifications', path: 'notifications', label: 'Alertes', desc: 'Vos préférences de notification', icon: BellRing },
   { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
 ];
 
@@ -57,7 +54,6 @@ const TAB_FROM_PATH: Record<string, BuyerTabId> = {
   commandes: 'orders',
   adresses: 'addresses',
   avis: 'reviews',
-  notifications: 'notifications',
   profil: 'profile',
 };
 
@@ -201,8 +197,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
         );
       case 'reviews':
         return <ReviewsTab reviews={data.reviews} loading={data.loading} />;
-      case 'notifications':
-        return <NotificationsTab notify={notify} />;
       case 'profile':
         return (
           <ProfileTab
@@ -223,7 +217,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     orders: data.totalOrders,
     addresses: data.addresses.length,
     reviews: data.reviews.length,
-    notifications: 0,
     profile: 0,
   };
 
@@ -333,7 +326,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                         isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
                       }`}
                     >
-                      {tab.id === 'profile' || tab.id === 'notifications' ? '' : counts[tab.id]}
+                      {tab.id === 'profile' ? '' : counts[tab.id]}
                     </span>
                   </button>
                 );
