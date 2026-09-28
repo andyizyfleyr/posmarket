@@ -77,7 +77,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, trendVal
   </div>
 );
 
-const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, userRole, permissions, userName, store }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permissions, userName, store }) => {
   const router = useRouter();
   const getLocalYMD = (d: Date) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

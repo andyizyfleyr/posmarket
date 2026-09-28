@@ -2,16 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { 
-  ShoppingBag, 
-  RotateCcw, 
-  Home, 
-  ArrowLeft, 
-  Store, 
-  PackageX, 
-  Sparkles,
-  Search
-} from 'lucide-react';
+import { ShoppingBag, RotateCcw, Home, ArrowLeft, PackageX, Search } from 'lucide-react';
 
 interface ProductErrorProps {
   error: Error & { digest?: string };

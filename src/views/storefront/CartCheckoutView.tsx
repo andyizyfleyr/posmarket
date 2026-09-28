@@ -1,66 +1,91 @@
 import React from "react";
-import {
-  ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard,
-  User, Truck, RotateCcw, Zap, CheckCircle2,
-  ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell,
-  AlertTriangle, Loader2, Globe
-} from "lucide-react";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe } from "lucide-react";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
-import { formatCurrency, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN } from "@/utils";
+import { isValidPhoneNumber } from "@/utils";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
-import type { StoreData } from "@/types";
+import type { Coupon, NotificationType, StoreData } from "@/types";
+import type { StorefrontProduct } from "../StorefrontView";
 
 const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(", ");
 
+/** Ligne de panier acheteur — même forme que l'état `cart` de StorefrontView. */
+type CartLine = {
+  product: StorefrontProduct;
+  quantity: number;
+  variantId?: string;
+  selectedOptions?: Record<string, string>;
+};
+
+/** Étapes du tunnel, alignées sur l'union de `StorefrontView`. */
+type CheckoutStage = "cart" | "shipping" | "payment" | "success" | "blocked";
+
+type CustomerInfo = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+};
+
+type SwipeState = { key: string; dx: number } | null;
+
+type CompletedOrderStore = {
+  storeId: string;
+  storeName: string;
+  products: Array<{ id: string; name: string; image: string }>;
+};
+
+type CompletedOrderItem = { name: string; quantity: number; price: number };
+
 export interface CartCheckoutViewBundle {
-  checkoutStage: string;
+  checkoutStage: CheckoutStage;
   countryGate?: {
     allowed: boolean;
     countryCode: string | null;
     countryName: string | null;
   } | null;
-  cart: any[];
+  cart: CartLine[];
   cartItemsCount: number;
   isNavigating: boolean;
   expandedCartStores: Set<string>;
-  swipeState: { key: string; dx: number } | null;
+  swipeState: SwipeState;
   swipeStartRef: React.MutableRefObject<{ x: number; y: number } | null>;
-  customerInfo: any;
-  user: any;
-  buyerAddresses: any[];
+  customerInfo: CustomerInfo;
+  user: { name?: string | null; email?: string | null } | null;
+  buyerAddresses: Array<{ id: string; [key: string]: unknown }>;
   selectedAddressId: string | null;
   paymentMethod: string;
   isCheckoutTransitioning: boolean;
   keyboardOffset: number;
   isWhatsAppLoading: boolean;
   stores: StoreData[];
-  setCheckoutStage: (s: any) => void;
-  setCompletedOrderStores: (s: any[]) => void;
-  setCompletedOrderItems: (s: any[]) => void;
+  setCheckoutStage: (s: CheckoutStage) => void;
+  setCompletedOrderStores: (s: CompletedOrderStore[]) => void;
+  setCompletedOrderItems: (s: CompletedOrderItem[]) => void;
   setCompletedOrderTotal: (n: number) => void;
-  setExpandedCartStores: (s: any) => void;
-  setSwipeState: (s: any) => void;
-  setCustomerInfo: (c: any) => void;
+  setExpandedCartStores: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setSwipeState: React.Dispatch<React.SetStateAction<SwipeState>>;
+  setCustomerInfo: React.Dispatch<React.SetStateAction<CustomerInfo>>;
   setSelectedAddressId: (id: string | null) => void;
-  setPaymentMethod: (m: any) => void;
+  setPaymentMethod: React.Dispatch<React.SetStateAction<"cod" | "card">>;
   setIsCheckoutTransitioning: (b: boolean) => void;
   setIsWhatsAppLoading: (b: boolean) => void;
-  safeNavigate: (path: string, opts?: any) => void;
-  localNotify: (msg: string, type?: any) => void;
+  safeNavigate: (path: string, opts?: { action?: () => void }) => void;
+  localNotify: (msg: string, type?: NotificationType, title?: string) => void;
   formatCurrency: (n: number) => string;
   formatPhoneSN: (s: string) => string;
   isValidPhoneSN: (s: string) => boolean;
-  getEffectiveItemPrice: (item: any) => number;
-  handleCheckoutSubmit: (e: any) => void;
-  handleStageChange: (stage: any) => void;
+  getEffectiveItemPrice: (item: CartLine) => number;
+  handleCheckoutSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleStageChange: (stage: CheckoutStage) => void;
   removeFromCart: (productId: string, storeId: string, variantId?: string) => void;
   updateQuantity: (productId: string, storeId: string, delta: number, variantId?: string) => void;
   handlePromoApply: () => void;
-  promoApplied: any;
-  setPromoApplied: (c: any) => void;
+  promoApplied: Coupon | null;
+  setPromoApplied: React.Dispatch<React.SetStateAction<Coupon | null>>;
   promoCodeInput: string;
   setPromoCodeInput: (s: string) => void;
   isPromoOpen: boolean;
@@ -71,8 +96,8 @@ export interface CartCheckoutViewBundle {
   wholesaleSavings: number;
   discountAmount: number;
   cartTotal: number;
-  completedOrderStores: any[];
-  completedOrderItems: any[];
+  completedOrderStores: CompletedOrderStore[];
+  completedOrderItems: CompletedOrderItem[];
   completedOrderTotal: number;
 }
 
@@ -318,7 +343,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                 {/* Contenu glissant */}
                                 <div
                                   className="relative p-3 flex gap-3 bg-white"
-                                  style={{ transform: `translateX(${swipeDx}px)`, transition: swipeStartRef.current ? 'none' : 'transform 0.25s ease' }}
+                                  style={{ transform: `translateX(${swipeDx}px)`, transition: swipeDx !== 0 ? 'none' : 'transform 0.25s ease' }}
                                   onTouchStart={(e) => {
                                     swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                                   }}
@@ -332,7 +357,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     setSwipeState({ key: itemKey, dx: Math.max(-96, Math.min(0, ddx)) });
                                   }}
                                   onTouchEnd={() => {
-                                    setSwipeState((s: any) => (s && s.dx < -56 ? { key: s.key, dx: -80 } : null));
+                                    setSwipeState((s) => (s && s.dx < -56 ? { key: s.key, dx: -80 } : null));
                                     swipeStartRef.current = null;
                                   }}
                                 >
@@ -369,7 +394,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     <Tag size={9} />
                                     {
                                       item.product.variants.find(
-                                        (v: any) => v.id === item.variantId,
+                                        (v) => v.id === item.variantId,
                                       )?.name
                                     }
                                   </span>
@@ -447,7 +472,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     {storeItems.length > 3 && (
                       <button
                         onClick={() =>
-                          setExpandedCartStores((prev: any) => {
+                          setExpandedCartStores((prev) => {
                             const next = new Set(prev);
                             if (next.has(storeId)) next.delete(storeId);
                             else next.add(storeId);
@@ -705,12 +730,15 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     );
                     const storePhone = store?.phone || store?.settings?.phone;
                     if (completedOrderStores.length === 1 && storePhone && completedOrderItems.length > 0) {
-                      const waMsg = `NOUVELLE COMMANDE #${Date.now().toString().slice(-6)}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
-                      const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
-
                       return (
                         <Button
                           onClick={() => {
+                            // La référence est générée au clic : le message doit
+                            // refléter la commande qui vient d'être validée,
+                            // pas l'instant de rendu de l'écran.
+                            const orderRef = Date.now().toString().slice(-6);
+                            const waMsg = `NOUVELLE COMMANDE #${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
+                            const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
                             setIsWhatsAppLoading(true);
                             window.open(waUrl, "_blank");
                             setTimeout(() => setIsWhatsAppLoading(false), 1500);

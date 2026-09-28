@@ -36,7 +36,7 @@ interface InvoicesViewProps {
     userRole?: StaffRole;
 }
 
-const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, customers, products, storeSettings, permissions, notify, userRole }) => {
+const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, products, storeSettings, permissions, notify, userRole }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);

@@ -113,7 +113,12 @@ export default function AdminStoresPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // Premier chargement : etchData est aussi appelé par les actions.
+    // On le décale d'un tick pour que le rendu initial ne soit pas suivi
+    // d'un setState synchrone dans le même effet.
+    void Promise.resolve().then(fetchData);
+  }, []);
 
   const setProcessingId = (id: string, on: boolean) => {
     setProcessing(prev => {
@@ -166,7 +171,7 @@ export default function AdminStoresPage() {
     disabled: stores.filter(s => s.status === 'DISABLED').length,
   }), [stores]);
 
-  const { filtered, groups } = useMemo(() => {
+  const { groups } = useMemo(() => {
     const term = search.toLowerCase().trim();
     const result = stores.filter(s => {
       const owner = s.user_id ? userMap.get(s.user_id) : undefined;

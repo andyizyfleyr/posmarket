@@ -1,25 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  ShoppingBasket,
-  Package,
-  Users,
-  BarChart3,
-  Settings,
-  HelpCircle,
-  LogOut,
-  LayoutDashboard,
-  FileText,
-  CreditCard,
-  ShoppingBag,
-  Gift,
-  Globe,
-  TrendingUp,
-  Store,
-  Wallet,
-  Activity
-} from 'lucide-react';
+import { ShoppingBasket, Package, Users, BarChart3, Settings, LogOut, LayoutDashboard, FileText, CreditCard, ShoppingBag } from 'lucide-react';
 import { ViewType, StaffRole } from '@/types';
 
 interface SidebarItemProps {
@@ -54,7 +36,7 @@ interface SidebarProps {
   businessType?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, userRole, businessType }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, userRole }) => {
   const isSeller = userRole === 'SELLER';
 
   return (

@@ -2,49 +2,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useSearchParams } from 'next/navigation';
-import { 
-    updateStoreSettingsAction, 
-    createStoreAction, 
-    deleteStoreAction, 
-    saveCouponAction, 
-    deleteCouponAction,
-    addStaffAction,
-    deleteStaffAction,
-    updateProfileAction
-} from '@/app/actions/settings';
+import { updateStoreSettingsAction, createStoreAction, saveCouponAction, deleteCouponAction, addStaffAction, deleteStaffAction, updateProfileAction } from '@/app/actions/settings';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import Image from "next/image";
 import { PhoneInput } from '@/components/PhoneInput';
 import { CountrySelect } from '@/components/CountrySelect';
 import { NotificationsTab } from '@/components/buyer/NotificationsTab';
-import {
-    Settings,
-    Store,
-    User,
-    ShieldCheck,
-    Smartphone,
-    Languages,
-    CreditCard,
-    Building,
-    Mail,
-    Phone,
-    MapPin,
-    Save,
-    ChevronRight,
-    Users,
-    Trash2,
-    Plus,
-    CheckSquare,
-    Square,
-    X,
-    Camera,
-    Tag,
-    BellRing,
-    Loader2,
-    FileText,
-    Info,
-    Zap
-} from 'lucide-react';
+import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Trash2, Plus, CheckSquare, Square, X, Camera, Tag, BellRing, Loader2, FileText, Info, Zap } from 'lucide-react';
 
 import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
 import { supabase } from '@/supabase';
@@ -113,8 +77,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     storeSettings,
     staff,
     coupons: initialCoupons = [],
-    userRole,
-    permissions,
+      permissions,
     notify,
     stores,
     currentStoreId,
@@ -162,7 +125,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const [profileName, setProfileName] = useState(userName || '');
     const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-    const [newStaffRole, setNewStaffRole] = useState<StaffRole>('SELLER');
+    const [newStaffRole] = useState<StaffRole>('SELLER');
     const [selectedStoreId, setSelectedStoreId] = useState(currentStoreId);
     
     // Coupons state
@@ -327,7 +290,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 const optimizedFile = await optimizeImage(file);
                 const base64 = await fileToBase64(optimizedFile);
                 setProfilePhoto(base64);
-            } catch (err) {
+            } catch {
                 if (notify) notify("Erreur lors de l'optimisation de l'image", "error");
             }
         }
@@ -340,7 +303,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 const optimizedFile = await optimizeImage(file);
                 const base64 = await fileToBase64(optimizedFile);
                 setLocalSettings(prev => ({ ...prev, logo: base64 }));
-            } catch (err) {
+            } catch {
                 if (notify) notify("Erreur lors de l'optimisation de l'image", "error");
             }
         }

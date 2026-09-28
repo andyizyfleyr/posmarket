@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag, updateTag } from 'next/cache'
 import { db } from '@/db'
 import { orders, orderItems, customers } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
-import { eq, inArray, desc, sql, and } from 'drizzle-orm'
+import { eq, inArray, desc, sql, and, or, ilike } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
 import { isWhatsAppConfigured } from '@/lib/whatsapp'
 import { isEmailConfigured, orderEmailProducts } from '@/lib/email'
@@ -87,6 +87,9 @@ async function sendStatusNotifications(orderId: string, status: string) {
 type OrderItemInput = {
   product?: { id?: string; price?: number | string } | null;
   quantity?: number;
+  variantId?: string | null;
+  variantLabel?: string | null;
+  variantSku?: string | null;
 }
 
 type OrderInput = {
@@ -122,6 +125,11 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
                 quantity: item.quantity ?? 1,
                 unitPrice: String(item.product?.price ?? 0),
                 total: String(Number(item.product?.price ?? 0) * (item.quantity ?? 1)),
+                // Instantané de la variante : l'annulation doit pouvoir
+                // réintégrer le bon stock sans rouvrir la fiche produit.
+                variantId: item.variantId ?? null,
+                variantLabel: item.variantLabel ?? null,
+                variantSku: item.variantSku ?? null,
             }));
             
             await db.insert(orderItems).values(itemsToInsert);
@@ -137,6 +145,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
               order.items.map((item) => ({
                 productId: item.product?.id ?? null,
                 quantity: item.quantity ?? 1,
+                variantId: item.variantId ?? null,
               })),
               'sale'
             );
@@ -298,26 +307,44 @@ export async function getOrdersAction(
             conditions.push(eq(orders.status, statusFilter));
         }
 
+        const term = String(search || '').trim();
+
         const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
+        // La recherche porte sur la référence de commande, le code promo et le
+        // nom/téléphone du client : le nom du client vit dans une autre table,
+        // d'où le LEFT JOIN et le `or(...)`.
+        const searchClause = term
+            ? or(
+                ilike(orders.id, `%${term}%`),
+                ilike(orders.promoCode, `%${term}%`),
+                ilike(customers.name, `%${term}%`),
+                ilike(customers.phone, `%${term}%`)
+            )
+            : undefined;
+
+        const query = searchClause ? and(whereClause, searchClause) : whereClause;
+
         const [ordersList, [{ count: totalCount }]] = await Promise.all([
-            db.select()
+            db.select({ order: orders, customerName: customers.name, customerPhone: customers.phone })
                 .from(orders)
-                .where(whereClause)
+                .leftJoin(customers, eq(orders.customerId, customers.id))
+                .where(query)
                 .orderBy(desc(orders.date))
                 .limit(limit)
                 .offset(offset),
             db.select({ count: sql<number>`count(*)` })
                 .from(orders)
-                .where(whereClause)
+                .leftJoin(customers, eq(orders.customerId, customers.id))
+                .where(query)
         ]);
 
         const total = Number(totalCount) || 0;
 
-        const orderIds = (ordersList || []).map((o) => o.id);
+        const orderIds = (ordersList || []).map((row) => row.order.id);
         let customersMap: Record<string, (typeof customers.$inferSelect)> = {};
         if (orderIds.length > 0) {
-            const customerIds = [...new Set((ordersList || []).map((o) => o.customerId).filter((x): x is string => Boolean(x)))];
+            const customerIds = [...new Set((ordersList || []).map((row) => row.order.customerId).filter((x): x is string => Boolean(x)))];
             if (customerIds.length > 0) {
                 const customerRows = await db.select().from(customers).where(inArray(customers.id, customerIds));
                 customersMap = Object.fromEntries(customerRows.map((c) => [c.id, c]));
@@ -326,7 +353,7 @@ export async function getOrdersAction(
 
         return { 
             success: true, 
-            orders: (ordersList || []).map((o) => {
+            orders: (ordersList || []).map(({ order: o }) => {
                 const customer = o.customerId ? customersMap[o.customerId] : undefined;
                 return {
                     ...o,

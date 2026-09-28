@@ -6,23 +6,11 @@ import Navbar from './Navbar';
 import BottomNav from './BottomNav';
 import Toast from './Toast';
 import Loader from './Loader';
-import { 
-  Lock, ArrowRight, Clock, Ban, Mail, Phone, 
-  MapPin, FileText, Save, CheckCircle2, 
-  ChevronRight, Info
-} from 'lucide-react';
+import { Lock, ArrowRight, Clock, Ban, Mail, FileText, Save, CheckCircle2 } from 'lucide-react';
 import { updateStoreSettingsAction } from '@/app/actions/settings';
 import { PhoneInput } from '@/components/PhoneInput';
 import { CountrySelect } from '@/components/CountrySelect';
-import {
-  ViewType,
-  StaffRole,
-  StoreData,
-  SubscriptionPlan,
-  UserSubscription,
-  ToastNotification,
-  NotificationType
-} from '@/types';
+import { ViewType, StaffRole, StoreData, SubscriptionPlan, UserSubscription, ToastNotification } from '@/types';
 
 interface MainLayoutProps {
   children: React.ReactNode;

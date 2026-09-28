@@ -35,14 +35,12 @@ export function highlightSegments(text: string, query: string): HighlightSegment
 
   const segments: HighlightSegment[] = [];
   let origIdx = 0;    // cursor in original text
-  let normIdx = 0;    // cursor in normalized text
 
-  // Build a mapping: normIdx → origIdx (skipping diacritics that were removed)
+  // Build a mapping: normalized index → origIdx (skipping diacritics that were removed)
   // We walk both strings char by char using normalize so positions align
   const normToOrig: number[] = [];
   {
     const decomposed = text.normalize('NFD');
-    let di = 0; // index in decomposed
     let oi = 0; // index in original text (code points)
     const origCodePoints = [...text];
     const origLengths: number[] = origCodePoints.map(c => c.length);

@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { SUBSCRIPTION_PLANS, getSubscriptionPlan } from '@/constants';
 import { UserSubscription, SubscriptionDuration, SubscriptionTier, SubscriptionPlan, NotificationType, StaffRole } from '@/types';
-import { Check, X as XIcon, Info, Award, Star, Zap, Users, Clock, Shield } from 'lucide-react';
+import { Check, X as XIcon, Info, Award, Star, Zap, Users, Shield } from 'lucide-react';
 import { formatCurrency, getDaysRemaining } from '@/utils';
 import { useRouter } from '@/components/RouterPolyfill';
 

@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  FileText,
-  Search,
-  Store
-} from 'lucide-react';
+import { FileText, Search } from 'lucide-react';
 import { getGlobalInvoices, getAllStores } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
 import Pagination from '@/components/Pagination';
@@ -48,7 +44,12 @@ export default function AdminInvoicesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // Premier chargement : etchData est aussi appelé par les actions.
+    // On le décale d'un tick pour que le rendu initial ne soit pas suivi
+    // d'un setState synchrone dans le même effet.
+    void Promise.resolve().then(fetchData);
+  }, []);
 
   const storeMap = new Map(stores.map(s => [s.id, s]));
 

@@ -168,7 +168,19 @@ export const orderItems = pgTable('order_items', {
   quantity: integer('quantity').notNull(),
   unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
   total: numeric('total', { precision: 12, scale: 2 }).notNull(),
-});
+  // Instantané de la ligne au moment de la commande : `products.variants` est un
+  // JSONB living, on fige donc l'identité de la variante achetée.
+  variantId: text('variant_id'),
+  variantLabel: text('variant_label'),
+  variantSku: text('variant_sku'),
+  variantOptionValues: jsonb('variant_option_values').default({}),
+  productName: text('product_name'),
+  productUnit: text('product_unit'),
+  productImage: text('product_image'),
+}, (t) => [
+  { variantIdx: { columns: [t.variantId], name: 'order_items_variant_id_idx' } as const },
+  { productIdx: { columns: [t.productId], name: 'order_items_product_id_idx' } as const },
+]);
 
 export const invoices = pgTable('invoices', {
   id: uuid('id').primaryKey().defaultRandom(),

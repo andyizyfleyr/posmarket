@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Mail, Phone, User as UserIcon, LogOut, Save, Loader2 } from 'lucide-react';
+import { Mail, User as UserIcon, LogOut, Save, Loader2 } from 'lucide-react';
 import { updateBuyerProfileAction, fetchBuyerProfileAction } from '@/app/actions/marketplace';
-import { isValidPhoneNumber, formatPhoneNumber } from '@/utils';
+import { isValidPhoneNumber } from '@/utils';
 import { PhoneInput } from '@/components/PhoneInput';
 import { NotifyFn } from './accountTypes';
 

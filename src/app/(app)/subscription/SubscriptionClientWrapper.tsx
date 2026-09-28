@@ -6,13 +6,7 @@ import { useRouter } from '@/components/RouterPolyfill';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
 import { TransactionResultModal, TransactionModalData } from '@/components/TransactionResultModal';
-import {
-  UserSubscription,
-  SubscriptionDuration,
-  SubscriptionTier,
-  NotificationType,
-  StaffRole,
-} from '@/types';
+import { UserSubscription, SubscriptionDuration, SubscriptionTier, StaffRole } from '@/types';
 import { confirmKkiapayPaymentAction } from '@/app/actions/subscription';
 
 interface SubscriptionClientWrapperProps {
@@ -58,14 +52,20 @@ export default function SubscriptionClientWrapper({
 
   useEffect(() => {
     if (!paymentReturned) return;
-    setModalData({
-      status: 'success',
-      title: 'Paiement Confirmé !',
-      message: 'Votre paiement a été reçu et votre abonnement est maintenant actif.',
-      date: new Date(),
-    });
-    setIsModalOpen(true);
-    router.replace('/subscription', { scroll: false });
+    // L'ouverture de la modale réagit à un retour de paiement (donc à une
+    // navigation) : le setState est différé d'un tick pour ne pas s'exécuter
+    // pendant le rendu de cet effet.
+    const id = setTimeout(() => {
+      setModalData({
+        status: 'success',
+        title: 'Paiement Confirmé !',
+        message: 'Votre paiement a été reçu et votre abonnement est maintenant actif.',
+        date: new Date(),
+      });
+      setIsModalOpen(true);
+      router.replace('/subscription', { scroll: false });
+    }, 0);
+    return () => clearTimeout(id);
   }, [paymentReturned, router]);
 
   const handlePay = useCallback(async (tier: SubscriptionTier, duration: SubscriptionDuration): Promise<{ success: boolean; error?: string }> => {

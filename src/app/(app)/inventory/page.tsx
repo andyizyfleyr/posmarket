@@ -1,6 +1,5 @@
 import InventoryView from '@/views/InventoryView';
 import { fetchStoreData } from '@/app/actions/store';
-import { saveProductAction, deleteProductAction, bulkDeleteProductsAction } from '@/app/actions/inventory';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';

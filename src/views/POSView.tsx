@@ -68,6 +68,7 @@ const POSProductCard = React.memo(({
   const [tapped, setTapped] = useState(false);
   const isOutOfStock = stock === 0;
   const isLowStock = stock > 0 && stock <= 5;
+  const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
   const wholesaleTiers = getNormalizedWholesaleTiers(product);
   const hasWholesale = wholesaleTiers.length > 0;
   const firstWholesaleTier = hasWholesale ? wholesaleTiers[0] : null;
@@ -147,6 +148,11 @@ const POSProductCard = React.memo(({
       <div className="p-1.5 md:p-2 flex-1 flex flex-col justify-between min-h-0">
         <h4 className="text-[9px] md:text-[11px] font-semibold text-gray-800 leading-tight line-clamp-1 mb-0.5">{product.name}</h4>
         <span className="text-[11px] md:text-sm font-bold text-gray-900">{formatCurrency(product.price)}</span>
+        {hasVariants && (
+          <span className="text-[7px] md:text-[8px] font-bold text-gray-400 uppercase tracking-wide">
+            {(product.variants?.length ?? 0)} variante{(product.variants?.length ?? 0) > 1 ? 's' : ''}
+          </span>
+        )}
         {hasWholesale && firstWholesaleTier && (
           <span className={`flex items-center gap-1 mt-0.5 text-[7px] md:text-[8px] font-bold ${bulkAdd ? 'text-[#d94f0a]' : 'text-[#f56b2a]'}`}>
             <BadgePercent size={8} /> Dès {firstWholesaleTier.minQty} : {formatCurrency(firstWholesaleTier.unitPrice)}
@@ -168,14 +174,23 @@ const POSCartItem = React.memo(({
   onUpdate: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
 }) => {
-  const unitPrice = getEffectiveWholesaleUnitPrice(item.product, item.quantity);
-  const isWholesale = unitPrice < item.product.price;
+  // Une ligne = un couple (produit, variante) : la clé doit refléter les deux,
+  // sinon deux variantes du même produit seraient fusionnées.
+  const lineKey = `${item.product.id}::${item.variantId ?? 'base'}`;
+  // Le prix de la varianteprime sur le prix de base ; le palier de gros
+  // s'applique ensuite sur ce prix.
+  const variant = item.variantId
+    ? item.product.variants?.find((v) => v.id === item.variantId)
+    : undefined;
+  const basePrice = variant ? Number(variant.price) : item.product.price;
+  const unitPrice = Math.min(getEffectiveWholesaleUnitPrice({ ...item.product, price: basePrice }, item.quantity), basePrice);
+  const isWholesale = unitPrice < basePrice;
 
   return (
     <div className="flex items-center gap-2.5 py-2 border-b border-gray-50 last:border-0 group">
       <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 bg-gray-50">
         <ProductImage
-          src={item.product.image}
+          src={variant?.image || item.product.image}
           alt={item.product.name}
           containerClassName="w-full h-full"
           objectFit="cover"
@@ -184,6 +199,9 @@ const POSCartItem = React.memo(({
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="text-[11px] md:text-xs font-semibold text-gray-800 truncate leading-tight">{item.product.name}</h4>
+        {item.variantLabel && (
+          <p className="text-[9px] md:text-[10px] text-gray-500 italic truncate leading-tight">{item.variantLabel}</p>
+        )}
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className={`text-[10px] ${isWholesale ? 'text-[#f56b2a] font-semibold' : 'text-gray-400 font-medium'}`}>
             {formatCurrency(unitPrice)}
@@ -198,14 +216,14 @@ const POSCartItem = React.memo(({
       {/* Qty controls */}
       <div className="flex items-center gap-0.5 bg-gray-50 rounded-lg p-0.5 border border-gray-100">
         <button
-          onClick={() => onUpdate(item.product.id, -1)}
+          onClick={() => onUpdate(lineKey, -1)}
           className="w-6 h-6 flex items-center justify-center rounded-md bg-white text-gray-500 shadow-sm active:scale-90 transition-transform hover:text-gray-800"
         >
           <Minus size={10} strokeWidth={2.5} />
         </button>
         <span className="px-1.5 text-[11px] font-bold text-gray-800 min-w-[1.2rem] text-center tabular-nums">{item.quantity}</span>
         <button
-          onClick={() => onUpdate(item.product.id, 1)}
+          onClick={() => onUpdate(lineKey, 1)}
           className="w-6 h-6 flex items-center justify-center rounded-md bg-white text-gray-500 shadow-sm active:scale-90 transition-transform hover:text-gray-800"
         >
           <Plus size={10} strokeWidth={2.5} />
@@ -215,7 +233,7 @@ const POSCartItem = React.memo(({
       <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
         <span className="text-xs font-bold text-gray-900 tabular-nums">{formatCurrency(unitPrice * item.quantity)}</span>
         <button
-          onClick={() => onRemove(item.product.id)}
+          onClick={() => onRemove(lineKey)}
           className="text-gray-300 hover:text-red-500 transition-colors p-0.5"
           title="Supprimer"
         >
@@ -228,11 +246,13 @@ const POSCartItem = React.memo(({
 POSCartItem.displayName = 'POSCartItem';
 
 /* ─── MAIN POS VIEW ─── */
-const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify, businessType }) => {
+const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify }) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkPickerProduct, setBulkPickerProduct] = useState<Product | null>(null);
+  const [variantPickerProduct, setVariantPickerProduct] = useState<Product | null>(null);
+  const [variantPickerVariantId, setVariantPickerVariantId] = useState<string | null>(null);
   const [cart, setCart] = useState<ICartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -283,7 +303,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           .eq('active', true)
           .eq('store_id', currentStoreId);
         if (data) setCoupons(data as unknown as Coupon[]);
-      } catch (e) {
+      } catch {
         console.log('Coupons table not available');
       }
     };
@@ -342,8 +362,29 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
   /* ─── Cart logic ─── */
   const stockOf = useCallback((p: Product): number => {
-    return stockMap[p.id] ?? Number((p as any).stock ?? 0);
+    // Un produit à matrice n'est vendable que si au moins une variante l'est :
+    // le stock global peut être positif alors que tout est épuisé.
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      const total = p.variants.reduce((sum, v) => sum + (Math.max(0, Number(v.stock) || 0)), 0);
+      const live = stockMap[p.id];
+      if (live != null && total <= 0) return live;
+      return total;
+    }
+    return stockMap[p.id] ?? Number(p.stock ?? 0);
   }, [stockMap]);
+
+  // Le stock d'une ligne vient de la variante sélectionnée : le stock global du
+  // produit ne dit rien de la disponibilité d'un « Rouge / M ».
+  const stockOfLine = useCallback((product: Product, variantId?: string | null): number => {
+    if (variantId) {
+      const variant = product.variants?.find((v) => v.id === variantId);
+      if (variant) return Math.max(0, Number(variant.stock) || 0);
+      return 0;
+    }
+    return stockOf(product);
+  }, [stockOf]);
+
+  const lineKeyOf = (productId: string, variantId?: string | null) => `${productId}::${variantId ?? 'base'}`;
 
   // Toasts locaux POS (message clair à l'écran, même sans prop notify)
   const [posToasts, setPosToasts] = useState<ToastNotification[]>([]);
@@ -352,30 +393,51 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     setPosToasts((prev) => [...prev.slice(-2), { id, message, type, title }]);
   }, []);
 
-  const addToCartQty = useCallback((product: Product, qty: number) => {
+  const addToCartQty = useCallback((
+    product: Product,
+    qty: number,
+    variant?: { id: string; name: string; sku?: string; price?: number }
+  ) => {
     const toAdd = Math.max(1, Math.floor(qty) || 1);
-    const stock = stockOf(product);
-    if (stock > 0) {
-      const currentQty = cart.filter((i) => i.product.id === product.id).reduce((s, i) => s + i.quantity, 0);
-      if (currentQty + toAdd > stock) {
-        localNotify(`Stock insuffisant : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', product.name);
-        return;
-      }
+    const variantId = variant?.id ?? null;
+    const key = lineKeyOf(product.id, variantId);
+    const stock = stockOfLine(product, variantId);
+    if (stock <= 0) {
+      localNotify('Rupture de stock sur cette variante.', 'error', product.name);
+      return;
+    }
+    const currentQty = cart.filter((i) => lineKeyOf(i.product.id, i.variantId) === key).reduce((s, i) => s + i.quantity, 0);
+    if (currentQty + toAdd > stock) {
+      localNotify(`Stock insuffisant : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', product.name);
+      return;
     }
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const existing = prev.find(item => lineKeyOf(item.product.id, item.variantId) === key);
       if (existing) {
         return prev.map(item =>
-          item.product.id === product.id
+          lineKeyOf(item.product.id, item.variantId) === key
             ? { ...item, quantity: item.quantity + toAdd }
             : item
         );
       }
-      return [...prev, { product, quantity: toAdd }];
+      return [...prev, {
+        product,
+        quantity: toAdd,
+        variantId,
+        variantLabel: variant?.name ?? null,
+        variantSku: variant?.sku ?? null,
+      }];
     });
-  }, [cart, stockOf, localNotify]);
+  }, [cart, stockOfLine, localNotify]);
 
+  // Un produit avec variantes exige un choix explicite : on ouvre le sélecteur
+  // plutôt que de vendre « au hasard » la première variante.
   const addToCart = useCallback((product: Product) => {
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      setVariantPickerProduct(product);
+      setVariantPickerVariantId(null);
+      return;
+    }
     addToCartQty(product, 1);
   }, [addToCartQty]);
 
@@ -388,27 +450,40 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     setBulkPickerProduct(product);
   }, []);
 
-  const updateQuantity = useCallback((id: string, delta: number) => {
-    const target = cart.find(item => item.product.id === id);
+  const confirmVariantAdd = useCallback((product: Product, variantId: string) => {
+    const variant = product.variants?.find((v) => v.id === variantId);
+    if (!variant) return;
+    addToCartQty(product, 1, {
+      id: variant.id,
+      name: variant.name,
+      sku: variant.sku,
+      price: Number(variant.price) || 0,
+    });
+    setVariantPickerProduct(null);
+    setVariantPickerVariantId(null);
+  }, [addToCartQty]);
+
+  const updateQuantity = useCallback((key: string, delta: number) => {
+    const target = cart.find(item => lineKeyOf(item.product.id, item.variantId) === key);
     if (!target) return;
     if (delta > 0) {
-      const stock = stockOf(target.product);
-      if (stock > 0 && target.quantity + delta > stock) {
+      const stock = stockOfLine(target.product, target.variantId);
+      if (stock <= 0 || target.quantity + delta > stock) {
         localNotify(`Stock insuffisant : ${stock} restant${stock > 1 ? 's' : ''}.`, 'error', target.product.name);
         return;
       }
     }
     setCart(prev => prev.map(item => {
-      if (item.product.id === id) {
+      if (lineKeyOf(item.product.id, item.variantId) === key) {
         const newQty = Math.max(1, item.quantity + delta);
         return { ...item, quantity: newQty };
       }
       return item;
     }));
-  }, [cart, stockOf, localNotify]);
+  }, [cart, stockOfLine, localNotify]);
 
-  const removeFromCart = useCallback((id: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== id));
+  const removeFromCart = useCallback((key: string) => {
+    setCart(prev => prev.filter(item => lineKeyOf(item.product.id, item.variantId) !== key));
   }, []);
 
   const clearCart = useCallback(() => {
@@ -417,13 +492,23 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     setPromoApplied(null);
   }, []);
 
+  // Le total doit refléter le prix réellement vendu (variante), pas le prix
+  // de base du produit.
+  const unitPriceOf = useCallback((item: ICartItem): number => {
+    const variant = item.variantId
+      ? item.product.variants?.find((v) => v.id === item.variantId)
+      : undefined;
+    const basePrice = variant ? Number(variant.price) || item.product.price : item.product.price;
+    return Math.min(getEffectiveWholesaleUnitPrice({ ...item.product, price: basePrice }, item.quantity), basePrice);
+  }, []);
+
   const totals = useMemo(() => {
-    const baseSubtotal = cart.reduce((sum, item) => sum + (getEffectiveWholesaleUnitPrice(item.product, item.quantity) * item.quantity), 0);
+    const baseSubtotal = cart.reduce((sum, item) => sum + (unitPriceOf(item) * item.quantity), 0);
     const discountAmount = promoApplied ? baseSubtotal * (promoApplied.discountPct / 100) : 0;
     const subtotal = baseSubtotal - discountAmount;
     const total = subtotal;
     return { baseSubtotal, discountAmount, subtotal, total };
-  }, [cart, promoApplied]);
+  }, [cart, promoApplied, unitPriceOf]);
 
   const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
 
@@ -449,7 +534,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         const order: Order = {
           id: '',
           date: new Date().toISOString(),
-          items: [...cart],
+          // Le prix porté par la ligne doit être celui réellement facturé
+          // (variante + palier de gros) : l'action le recopie dans `order_items`.
+          items: cart.map((item) => ({
+            ...item,
+            product: { ...item.product, price: unitPriceOf(item) },
+          })),
           subtotal: totals.subtotal,
           total: totals.total,
           discountAmount: totals.discountAmount,
@@ -488,13 +578,14 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       paymentMethod: paymentMethod === PaymentMethod.CASH ? 'Espèces' : 'Mobile Money',
       customerName: selectedCustomer ? selectedCustomer.name : undefined,
       items: cart.map(item => {
-        const unitPrice = getEffectiveWholesaleUnitPrice(item.product, item.quantity);
+        const unitPrice = unitPriceOf(item);
         return {
           name: item.product.name,
           quantity: item.quantity,
           unit: item.product.unit,
           unitPrice,
-          total: unitPrice * item.quantity
+          total: unitPrice * item.quantity,
+          variantLabel: item.variantLabel ?? null,
         };
       }),
       subtotal: totals.baseSubtotal,
@@ -504,7 +595,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       } : undefined,
       total: totals.total
     };
-  }, [currentOrderId, storeSettings, orderType, paymentMethod, selectedCustomer, cart, totals, promoApplied]);
+  }, [currentOrderId, storeSettings, orderType, paymentMethod, selectedCustomer, cart, totals, promoApplied, unitPriceOf]);
 
   const handlePrint = useCallback(() => {
     try {
@@ -1006,9 +1097,20 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       {bulkPickerProduct && (() => {
         const p = bulkPickerProduct;
         const tiers = getNormalizedWholesaleTiers(p);
-        const inCart = cart.filter((i) => i.product.id === p.id).reduce((s, i) => s + i.quantity, 0);
-        const stock = stockOf(p);
-        const room = stock === 0 ? 0 : Math.max(0, stock - inCart);
+        // Un produit à variantes passe d'abord par le choix de variante :
+        // la quantité de gros s'applique ensuite sur la variante retenue.
+        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+        const inCart = (variantId?: string | null) => cart
+          .filter((i) => i.product.id === p.id && (i.variantId ?? null) === (variantId ?? null))
+          .reduce((s, i) => s + i.quantity, 0);
+        const room = (variantId?: string | null) => {
+          const stock = hasVariants
+            ? (p.variants?.find((v) => v.id === variantId)?.stock ?? 0)
+            : stockOf(p);
+          if (stock <= 0) return 0;
+          return Math.max(0, stock - inCart(variantId));
+        };
+        const bulkQty = tiers.length > 0 ? tiers[0].minQty : 1;
         return (
           <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setBulkPickerProduct(null)}>
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -1036,50 +1138,188 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 </button>
               </div>
               <div className="p-3.5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Choisir la quantité gros</p>
-                <div className="flex flex-col gap-1.5">
-                  {tiers.map((tier) => {
-                    const canAdd = stock === 0 ? false : room >= tier.minQty;
-                    return (
-                      <button
-                        key={tier.minQty}
-                        type="button"
-                        disabled={!canAdd}
-                        onClick={() => {
-                          addToCartQty(p, tier.minQty);
-                          setBulkPickerProduct(null);
-                        }}
-                        className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
-                          ${canAdd
-                            ? 'bg-orange-50/60 border-orange-100 hover:border-[#f56b2a] hover:shadow-sm'
-                            : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
-                          }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="bg-[#f56b2a] text-white text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0">Dès {tier.minQty}</span>
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-gray-800">
-                              {formatCurrency(tier.unitPrice)}
-                              <span className="text-[9px] text-gray-400 font-semibold ml-1">/u (total {formatCurrency(tier.packagePrice)})</span>
-                            </p>
-                            {tier.discountPct > 0 && (
-                              <p className="text-[8px] font-bold text-green-600">Économie {formatCurrency(tier.savings)} (-{tier.discountPct}%)</p>
+                {hasVariants ? (
+                  <>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">
+                      Choisir la variante · {bulkQty} u
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {(p.variants || []).map((v) => {
+                        const canAdd = room(v.id) >= bulkQty;
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            disabled={!canAdd}
+                            onClick={() => {
+                              addToCartQty(p, bulkQty, { id: v.id, name: v.name, sku: v.sku, price: Number(v.price) || 0 });
+                              setBulkPickerProduct(null);
+                            }}
+                            className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
+                              ${canAdd
+                                ? 'bg-orange-50/60 border-orange-100 hover:border-[#f56b2a] hover:shadow-sm'
+                                : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                              }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-gray-800 truncate">{v.name}</p>
+                              {v.sku && <p className="text-[9px] text-gray-400 font-medium">SKU {v.sku}</p>}
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-[11px] font-bold text-[#f56b2a]">{formatCurrency(Number(v.price) || 0)}</p>
+                              {!canAdd && (
+                                <p className="text-[8px] font-bold text-gray-400 uppercase">Stock insuffisant</p>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Choisir la quantité gros</p>
+                    <div className="flex flex-col gap-1.5">
+                      {tiers.map((tier) => {
+                        const available = room(null);
+                        const canAdd = available >= tier.minQty;
+                        return (
+                          <button
+                            key={tier.minQty}
+                            type="button"
+                            disabled={!canAdd}
+                            onClick={() => {
+                              addToCartQty(p, tier.minQty);
+                              setBulkPickerProduct(null);
+                            }}
+                            className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
+                              ${canAdd
+                                ? 'bg-orange-50/60 border-orange-100 hover:border-[#f56b2a] hover:shadow-sm'
+                                : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                              }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="bg-[#f56b2a] text-white text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0">Dès {tier.minQty}</span>
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-gray-800">
+                                  {formatCurrency(tier.unitPrice)}
+                                  <span className="text-[9px] text-gray-400 font-semibold ml-1">/u (total {formatCurrency(tier.packagePrice)})</span>
+                                </p>
+                                {tier.discountPct > 0 && (
+                                  <p className="text-[8px] font-bold text-green-600">Économie {formatCurrency(tier.savings)} (-{tier.discountPct}%)</p>
+                                )}
+                              </div>
+                            </div>
+                            {!canAdd && (
+                              <span className="text-[8px] font-bold text-gray-400 uppercase">
+                                {available === 0 ? 'Rupture' : 'Stock insuffisant'}
+                              </span>
                             )}
-                          </div>
-                        </div>
-                        {!canAdd && (
-                          <span className="text-[8px] font-bold text-gray-400 uppercase">
-                            {stock === 0 ? 'Rupture' : 'Stock insuffisant'}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => setBulkPickerProduct(null)}
                   className="mt-3 w-full py-2 rounded-xl border border-gray-200 text-[11px] font-bold text-gray-500 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Sélecteur de variante (produits à matrice) */}
+      {variantPickerProduct && (() => {
+        const p = variantPickerProduct;
+        const list = Array.isArray(p.variants) ? p.variants : [];
+        const selected = list.find((v) => v.id === variantPickerVariantId) || null;
+        return (
+          <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setVariantPickerProduct(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="p-3.5 border-b border-gray-100 flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                  <ProductImage
+                    src={selected?.image || p.image}
+                    alt={p.name}
+                    containerClassName="w-full h-full"
+                    objectFit="cover"
+                    showZoomEffect={false}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-bold text-gray-800 truncate">{p.name}</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">
+                    Prix unitaire : {formatCurrency(selected ? Number(selected.price) || 0 : p.price)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVariantPickerProduct(null)}
+                  className="p-1.5 -m-1 rounded-full hover:bg-gray-100 text-gray-400"
+                  aria-label="Fermer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-3.5 max-h-[55vh] overflow-y-auto">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Choisir la variante</p>
+                <div className="flex flex-col gap-1.5">
+                  {list.map((v) => {
+                    const vStock = Math.max(0, Number(v.stock) || 0);
+                    const out = vStock === 0;
+                    const isSelected = selected?.id === v.id;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        disabled={out}
+                        onClick={() => setVariantPickerVariantId(v.id)}
+                        className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
+                          ${out
+                            ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                            : isSelected
+                              ? 'bg-orange-50 border-[#f56b2a] shadow-sm'
+                              : 'bg-white border-gray-200 hover:border-[#f56b2a] hover:shadow-sm'
+                          }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold text-gray-800 truncate">{v.name}</p>
+                          {v.sku && <p className="text-[9px] text-gray-400 font-medium">SKU {v.sku}</p>}
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-[11px] font-bold text-[#f56b2a]">{formatCurrency(Number(v.price) || 0)}</p>
+                          <p className={`text-[8px] font-bold uppercase ${out ? 'text-red-500' : vStock <= 5 ? 'text-amber-600' : 'text-gray-400'}`}>
+                            {out ? 'Rupture' : `${vStock} en stock`}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!selected || (Number(selected.stock) || 0) === 0}
+                  onClick={() => selected && confirmVariantAdd(p, selected.id)}
+                  className={`mt-3 w-full py-2.5 rounded-xl text-[12px] font-bold transition-all active:scale-[0.98]
+                    ${selected && (Number(selected.stock) || 0) > 0
+                      ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200 hover:bg-[#e05f1f]'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                >
+                  {selected ? `Ajouter — ${formatCurrency(Number(selected.price) || 0)}` : 'Choisissez une variante'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVariantPickerProduct(null)}
+                  className="mt-1.5 w-full py-2 rounded-xl border border-gray-200 text-[11px] font-bold text-gray-500 hover:bg-gray-50 active:scale-[0.98] transition-all"
                 >
                   Annuler
                 </button>

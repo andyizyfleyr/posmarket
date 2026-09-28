@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Link } from "@/components/RouterPolyfill";
-import { Wrench, User, ShoppingCart, Package, Store, CreditCard, ImageIcon, ArrowLeft } from "lucide-react";
+import { Wrench, User, ShoppingCart, Package, Store, CreditCard, ImageIcon } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Problèmes fréquents — PosMarket",

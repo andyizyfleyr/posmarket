@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
 export const FEDAPAY_ENV: 'sandbox' | 'live' = 'sandbox'; // temporaire, sera remplacé par la config admin
 export const FEDAPAY_API_BASE = (FEDAPAY_ENV as string) === 'live'
   ? 'https://api.fedapay.com/v1'
@@ -28,7 +30,6 @@ export function fedapayConfigured(): boolean {
 export function verifyFedapayWebhookSignature(payloadRaw: string, signatureHeader: string | null): boolean {
   if (!FEDAPAY_WEBHOOK_SECRET || !signatureHeader) return true; // Si pas de secret configuré, on vérifie via l'API REST
   try {
-    const crypto = require('node:crypto');
     let sig = signatureHeader;
     if (signatureHeader.includes('s=')) {
       const parts = signatureHeader.split(',').reduce<Record<string, string>>((acc, part) => {
@@ -38,8 +39,8 @@ export function verifyFedapayWebhookSignature(payloadRaw: string, signatureHeade
       }, {});
       sig = parts.s || parts.v1 || signatureHeader;
     }
-    const hmac = crypto.createHmac('sha256', FEDAPAY_WEBHOOK_SECRET).update(payloadRaw).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(sig)) || hmac === sig;
+    const hmac = createHmac('sha256', FEDAPAY_WEBHOOK_SECRET).update(payloadRaw).digest('hex');
+    return timingSafeEqual(Buffer.from(hmac), Buffer.from(sig)) || hmac === sig;
   } catch {
     return true; // En cas de doute, la vérification transactionnelle par API REST fera autorité
   }

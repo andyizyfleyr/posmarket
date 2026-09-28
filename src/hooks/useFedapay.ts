@@ -25,8 +25,11 @@ export const useFedapay = () => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as Record<string, unknown>;
     if (w.FedaPay && (typeof w.FedaPay === 'object' || typeof w.FedaPay === 'function')) {
-      setReady(true);
-      return;
+      // Le widget est déjà présent (navigation revenir-arrière) : la
+      // disponibilité est annoncée sur le tick suivant pour ne pas
+      // déclencher un rendu supplémentaire dans le même effet.
+      const id = setTimeout(() => setReady(true), 0);
+      return () => clearTimeout(id);
     }
     const existing = document.querySelector('script[src*="fedapay.com/checkout.js"]');
     if (existing) {

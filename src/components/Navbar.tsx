@@ -1,25 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  ArrowLeft,
-  Settings,
-  Monitor,
-  Clock,
-  Globe,
-  ChevronDown,
-  Maximize2,
-  Lock,
-  Store,
-  Plus,
-  LogOut,
-  User as UserIcon,
-  Trash2,
-  HelpCircle,
-  ShoppingBag
-} from 'lucide-react';
+import { Monitor, Clock, Globe, ChevronDown, Maximize2, Store, Plus, LogOut, User as UserIcon, Trash2, HelpCircle, ShoppingBag } from 'lucide-react';
 import Loader from '@/components/Loader';
-import { useRouter } from '@/components/RouterPolyfill';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
 import { getDaysRemaining } from '@/utils';
 import { useOnboarding } from './Onboarding/OnboardingContext';
@@ -57,17 +40,14 @@ const Navbar: React.FC<NavbarProps> = ({
   isOnline = true,
   userRole
 }) => {
-  const router = useRouter();
   const isSeller = userRole === 'SELLER';
-  const [time, setTime] = useState(new Date().toLocaleTimeString('fr-FR'));
+  const [, setTime] = useState(new Date().toLocaleTimeString('fr-FR'));
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [newStoreName, setNewStoreName] = useState('');
   const [isCreatingStore, setIsCreatingStore] = useState(false);
   const [creationStep, setCreationStep] = useState<1 | 2>(1);
-  const [newStoreType, setNewStoreType] = useState<'shopping' | 'food'>('shopping');
   const [isSwitching, setIsSwitching] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [demoSecondsLeft] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -81,30 +61,6 @@ const Navbar: React.FC<NavbarProps> = ({
     const timer = setTimeout(() => setIsSwitching(false), 0);
     return () => clearTimeout(timer);
   }, [currentStore?.id]);
-
-  const getViewTitle = () => {
-    switch (currentView) {
-      case 'dashboard': return 'Tableau de Bord';
-      case 'pos': return 'Point de Vente';
-      case 'orders': return 'Commandes';
-      case 'inventory': return 'Inventaire';
-      case 'customers': return 'Clients';
-      case 'reports': return 'Historique';
-      case 'invoices': return 'Factures';
-      case 'settings': return 'Réglages';
-      case 'subscription': return 'Abonnement';
-      case 'admin': return 'Administration Suprême';
-      default: return 'Système PDV';
-    }
-  };
-
-  const handleBack = () => {
-    onViewChange('dashboard');
-  };
-
-  const handleSettings = () => {
-    onViewChange('settings');
-  };
 
   const { startTour } = useOnboarding();
 

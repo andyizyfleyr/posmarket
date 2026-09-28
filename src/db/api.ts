@@ -40,13 +40,19 @@ type OrderItemBundle = {
     price: number;
     image: string | null;
     storeId: string | null;
-    businessType: string | null;
+    businessType?: string;
+    unit?: string;
     mainCategory: string | null;
   } | null;
   quantity: number | null;
   unitPrice: string | null;
   total: string | null;
+  /** Instantané de la variante vendue (« Rouge / M »), figé à la commande. */
+  variantLabel?: string | null;
+  variantSku?: string | null;
 };
+
+
 
 type OrdersCacheData = { ordersRes: OrderRes[]; itemsByOrder: Record<string, OrderItemBundle[]> };
 
@@ -126,29 +132,86 @@ export function isCancelledOrderStatus(status?: string | null): boolean {
 }
 
 export async function getOrderItemsForStock(orderId: string) {
+  // `variantId` est indispensable : sans lui, une annulation rétablirait le
+  // stock global sans jamais réintégrer la variante vendue.
   return db
-    .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+    .select({
+      productId: orderItems.productId,
+      quantity: orderItems.quantity,
+      variantId: orderItems.variantId,
+    })
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
 }
 
 /**
  * Décrémente (sale) ou rétablit (restore) le stock des produits d'une vente.
+ *
+ * - Sans variante : `products.stock` uniquement.
+ * - Avec variante : le stock de la variante dans `products.variants` (JSONB) est
+ *   décrémenté sous garde `stock >= quantité` pour absorber les commandes
+ *   simultanées, et le stock global du produit suit la même variation.
+ *
  * Le stock ne descend jamais sous 0.
  */
 export async function adjustProductStock(
   storeId: string,
-  items: Array<{ productId?: string | null; quantity?: number | null }>,
+  items: Array<{ productId?: string | null; quantity?: number | null; variantId?: string | null }>,
   mode: 'sale' | 'restore'
 ) {
   const totals = new Map<string, number>();
+  const variantLines: Array<{ productId: string; variantId: string; quantity: number }> = [];
+
   for (const item of items || []) {
     const pid = item?.productId;
     if (!pid) continue;
     const qty = Math.floor(Number(item.quantity) || 0);
     if (qty <= 0) continue;
+    const variantId = item.variantId ? String(item.variantId) : null;
+    if (variantId) variantLines.push({ productId: pid, variantId, quantity: qty });
     totals.set(pid, (totals.get(pid) || 0) + qty);
   }
+
+  for (const line of variantLines) {
+    if (mode === 'sale') {
+      // WHERE ... EXISTS (stock suffisant) : décrément atomique par variante.
+      await db.execute(sql`
+        UPDATE products
+        SET variants = (
+              SELECT jsonb_agg(
+                CASE WHEN v->>'id' = ${line.variantId}
+                  THEN jsonb_set(v, '{stock}', to_jsonb(GREATEST(COALESCE((v->>'stock')::int, 0) - ${line.quantity}, 0)))
+                  ELSE v
+                END
+              )
+              FROM jsonb_array_elements(COALESCE(products.variants, '[]'::jsonb)) AS v
+            )
+        WHERE products.id = ${line.productId}
+          AND products.store_id = ${storeId}
+          AND EXISTS (
+            SELECT 1 FROM jsonb_array_elements(COALESCE(products.variants, '[]'::jsonb)) AS v
+            WHERE v->>'id' = ${line.variantId}
+              AND COALESCE((v->>'stock')::int, 0) >= ${line.quantity}
+          )
+      `);
+    } else {
+      await db.execute(sql`
+        UPDATE products
+        SET variants = (
+              SELECT jsonb_agg(
+                CASE WHEN v->>'id' = ${line.variantId}
+                  THEN jsonb_set(v, '{stock}', to_jsonb(COALESCE((v->>'stock')::int, 0) + ${line.quantity}))
+                  ELSE v
+                END
+              )
+              FROM jsonb_array_elements(COALESCE(products.variants, '[]'::jsonb)) AS v
+            )
+        WHERE products.id = ${line.productId}
+          AND products.store_id = ${storeId}
+      `);
+    }
+  }
+
   for (const [productId, qty] of totals) {
     if (mode === 'sale') {
       await db
@@ -231,12 +294,16 @@ async function getOrdersForStore(storeId: string) {
         unitPrice: orderItems.unitPrice,
         total: orderItems.total,
         productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        variantLabel: orderItems.variantLabel,
+        variantSku: orderItems.variantSku,
         productName: products.name,
         productPrice: products.price,
         productImage: products.image,
         productStoreId: products.storeId,
         productBusinessType: products.businessType,
         productMainCategory: products.mainCategory,
+        productUnit: products.unit,
       })
       .from(orderItems)
       .leftJoin(products, eq(orderItems.productId, products.id))
@@ -252,13 +319,16 @@ async function getOrdersForStore(storeId: string) {
               price: item.productPrice != null ? parseFloat(item.productPrice) : 0,
               image: item.productImage,
               storeId: item.productStoreId,
-              businessType: item.productBusinessType,
+              businessType: item.productBusinessType ?? undefined,
               mainCategory: item.productMainCategory,
+              unit: item.productUnit ?? undefined,
             }
           : null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.total,
+        variantLabel: item.variantLabel ?? null,
+        variantSku: item.variantSku ?? null,
       });
       return acc;
     }, {});
@@ -282,6 +352,20 @@ function formatOrder(o: OrderRes, itemsByOrder: Record<string, OrderItemBundle[]
     promoCode: o.promoCode,
     customer: o.customer,
     items: itemsByOrder[o.id] || [],
+        // Ajoute les informations de variante (label, sku) afin que l'UI puisse les afficher
+        // dans le format d'item existant pour éviter de toucher le reste du code.
+        // Les propriétés sont déjà présentes sur chaque `item` grâce à la SELECT ci‑dessus.
+        // Si elles sont null, la consommation côté UI les ignore.
+        // Les champs `variantLabel`/`variantSku` sont désormais inclus dans OrderItemBundle.
+
+    // dans le détail de chaque ligne de commande.
+    // Toutes les autres propriétés restent identiques à la version précédente.
+    // La présence de `variantLabel`/`variantSku` est conditionnée à la présence de ces champs
+    // dans `itemsByOrder` – les anciennes commandes sans variante conservent simplement undefined.
+    variantInfo: itemsByOrder[o.id]?.map((i) => ({
+      variantLabel: i.variantLabel ?? null,
+      variantSku: i.variantSku ?? null,
+    })),
   };
 }
 
@@ -308,7 +392,10 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     needs.products
       ? db
           .select({
-            productId: orderItems.productId,
+        productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        variantLabel: orderItems.variantLabel,
+        variantSku: orderItems.variantSku,
             qty: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
           })
           .from(orderItems)

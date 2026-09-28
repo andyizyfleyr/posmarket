@@ -67,6 +67,9 @@ export interface CartItem {
   id?: string;
   product: Product;
   quantity: number;
+  variantId?: string | null;
+  variantLabel?: string | null;
+  variantSku?: string | null;
 }
 
 export interface Customer {
@@ -128,8 +131,9 @@ export interface Invoice {
 export type ViewType = 'dashboard' | 'pos' | 'orders' | 'inventory' | 'customers' | 'reports' | 'invoices' | 'settings' | 'storefront' | 'subscription' | 'admin'; // Core application views
 
 export interface StoreSettings {
-  name: string;
-  email: string;
+   businessType?: BusinessVertical;
+    name: string;
+   email: string;
   phone: string;
   address: string;
   country?: string;
@@ -183,12 +187,14 @@ export interface SubscriptionFeatures {
 export interface SubscriptionPlan {
   tier: SubscriptionTier;
   name: string;
+  businessType?: BusinessVertical;
   description: string;
   priceMonthly: number;
   priceQuarterly: number;
   priceAnnual: number;
   features: SubscriptionFeatures;
 }
+
 
 export interface UserSubscription {
   tier: SubscriptionTier;
@@ -219,7 +225,8 @@ export interface Staff {
 
 export interface UserProfile {
   id: string;
-  email: string;
+    name: string;
+   email: string;
   fullName?: string;
   avatarUrl?: string;
   isSuperAdmin: boolean;

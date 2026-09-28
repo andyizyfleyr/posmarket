@@ -3,15 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Search, Check, Globe } from 'lucide-react';
 import { Modal } from '@/components/buyer/Modal';
-import {
-  Country,
-  COUNTRIES,
-  DEFAULT_COUNTRY,
-  getCountryByCode,
-  parsePhoneNumber,
-  formatPhoneNumber,
-  isValidPhoneNumber,
-} from '@/constants/countries';
+import { Country, COUNTRIES, DEFAULT_COUNTRY, getCountryByCode, parsePhoneNumber } from '@/constants/countries';
 
 export interface PhoneInputProps {
   value: string;
@@ -50,20 +42,15 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const [search, setSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Determine initial country & national number from value or default
-  const defaultC = getCountryByCode(defaultCountryCode) || DEFAULT_COUNTRY;
-  const parsed = parsePhoneNumber(value || '', defaultC);
-  const [selectedCountry, setSelectedCountry] = useState<Country>(parsed.country);
-
-  // Sync country if incoming value has an explicit dial code of another country
-  useEffect(() => {
-    if (value && value.trim()) {
-      const p = parsePhoneNumber(value, selectedCountry);
-      if (p.country.code !== selectedCountry.code) {
-        setSelectedCountry(p.country);
-      }
-    }
-  }, [value]);
+  // Le pays affiché est *dérivé* du numéro : un numéro reçu de l'extérieur avec
+  // un autre indicatif change le pays sans avoir besoin d'un effet de
+  // synchronisation. `countryOverride` ne mémorise que le choix explicite de
+  // l'utilisateur.
+  const [countryOverride, setCountryOverride] = useState<Country | null>(null);
+  const fallbackCountry =
+    countryOverride || getCountryByCode(defaultCountryCode) || DEFAULT_COUNTRY;
+  const parsed = parsePhoneNumber(value || '', fallbackCountry);
+  const selectedCountry = parsed.country;
 
   // Focus the search input when modal opens
   useEffect(() => {
@@ -93,7 +80,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   };
 
   const handleCountrySelect = (country: Country) => {
-    setSelectedCountry(country);
+    setCountryOverride(country);
     setIsOpen(false);
     setSearch('');
     const natDigits = getNationalDigits();
@@ -111,7 +98,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     // If the user pastes something starting with + or 00, re-parse completely
     if (raw.startsWith('+') || raw.startsWith('00')) {
       const p = parsePhoneNumber(raw, selectedCountry);
-      setSelectedCountry(p.country);
+      setCountryOverride(p.country);
       onChange(p.e164, {
         country: p.country,
         nationalNumber: p.nationalNumber,

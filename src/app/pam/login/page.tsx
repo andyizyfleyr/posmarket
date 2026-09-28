@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { adminLogin } from '@/app/actions/admin-auth';
@@ -34,10 +35,10 @@ export default function AdminLoginPage() {
       <div className="absolute bottom-24 left-20 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl" />
 
       <div className="relative w-full max-w-md">
-        <a href="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#f56b2a] transition-colors mb-6">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#f56b2a] transition-colors mb-6">
           <ArrowLeft size={16} />
           Retour au site
-        </a>
+        </Link>
 
         <div className="bg-[#141b2e]/90 backdrop-blur rounded-3xl border border-white/10 p-8 shadow-2xl">
           <div className="flex flex-col items-center text-center mb-8">

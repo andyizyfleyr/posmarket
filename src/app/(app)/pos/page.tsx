@@ -17,7 +17,7 @@ export default async function POSPage() {
   if (!storeId) return <NoStoreFound />;
   
   const { products, customers, store } = await fetchStoreData(storeId, undefined, { orders: false, invoices: false });
-  const { permissions, role } = await getPermissionsForUser(supabase, user.id, storeId);
+  const { permissions} = await getPermissionsForUser(supabase, user.id, storeId);
 
   return (
     <POSView 

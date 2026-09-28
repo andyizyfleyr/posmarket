@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { X, Zap, ShoppingCart, Search, Package, Minus, Plus, Check, AlertCircle } from 'lucide-react';
-import { Product, WholesaleTier } from '@/types';
+import { X, ShoppingCart, Search, Package, Minus, Plus, AlertCircle } from 'lucide-react';
+import { Product } from '@/types';
 import { formatCurrency } from '@/utils';
 import ProductImage from '@/components/ProductImage';
 import Button from '@/components/Button';

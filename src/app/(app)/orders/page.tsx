@@ -1,7 +1,6 @@
 import OrdersView from '@/views/OrdersView';
 import { fetchStoreData } from '@/app/actions/store';
 import { loadOrdersForStore } from '@/lib/load-store-data';
-import { updateOrderStatusAction, deleteOrderAction } from '@/app/actions/orders';
 import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';

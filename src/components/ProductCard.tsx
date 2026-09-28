@@ -11,8 +11,6 @@ import { generateProductSlug } from '@/utils/slug';
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
-  onBuyNow?: (product: Product) => void;
-  onStoreSelect?: (storeId: string) => void;
   onClick?: () => void;
   onPrefetch?: () => void;
   className?: string;
@@ -24,7 +22,7 @@ interface CardProductExtras {
   options?: unknown[];
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onBuyNow, onStoreSelect, onClick, onPrefetch, className = "" }) => {
+const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onClick, onPrefetch, className = "" }) => {
   const extras = product as CardProductExtras;
   const hasOptions = Array.isArray(extras.options) && extras.options.length > 0;
   const isOutOfStock = extras.stock === 0;
@@ -55,12 +53,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
     addingTimerRef.current = setTimeout(() => setAdding(false), 600);
     onAddToCart(product);
   }, [product, onAddToCart, onClick]);
-
-  const handleBuyNow = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    onBuyNow?.(product);
-  }, [product, onBuyNow]);
 
   const handleClick = useCallback(() => {
     onClick?.();

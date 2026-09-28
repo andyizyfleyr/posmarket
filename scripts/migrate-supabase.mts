@@ -5,7 +5,7 @@
  *
  * Usage : SUPABASE_URL=... SUPABASE_SERVICE_KEY=... node --env-file=.env.local scripts/migrate-supabase.mts
  */
-import { neon, Client } from '@neondatabase/serverless';
+import { Client } from '@neondatabase/serverless';
 
 const SB = process.env.SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_KEY!;
@@ -32,8 +32,8 @@ const TABLES = [
   'product_stats',
 ];
 
-async function fetchAll(table: string): Promise<Record<string, any>[]> {
-  const out: Record<string, any>[] = [];
+async function fetchAll(table: string): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
     const res = await fetch(
@@ -45,7 +45,7 @@ async function fetchAll(table: string): Promise<Record<string, any>[]> {
       if (res.status === 404) return out;
       throw new Error(`${table}: ${res.status} ${t.slice(0, 120)}`);
     }
-    const rows = (await res.json()) as Record<string, any>[];
+    const rows = (await res.json()) as Record<string, unknown>[];
     out.push(...rows);
     if (rows.length < pageSize) return out;
   }
@@ -56,7 +56,7 @@ const COLUMN_MAP: Record<string, Record<string, string>> = {
   order_items: { price: 'unit_price' },
 };
 
-function normalize(table: string, rows: Record<string, any>[]): Record<string, any>[] {
+function normalize(table: string, rows: Record<string, unknown>[]): Record<string, unknown>[] {
   const map = COLUMN_MAP[table];
   if (!map) return rows;
   for (const r of rows) {
@@ -77,18 +77,18 @@ for (const table of TABLES) {
     (await DST.query(
       `select column_name from information_schema.columns where table_schema='public' and table_name=$1 order by ordinal_position`,
       [table]
-    )).rows as any[]
+    )).rows as { column_name: string }[]
   ).map((r) => r.column_name);
   if (dstCols.length === 0) {
     console.log(`⚠ ${table} : absente de la destination`);
     continue;
   }
 
-  let rows: Record<string, any>[];
+  let rows: Record<string, unknown>[];
   try {
     rows = await fetchAll(table);
-  } catch (e: any) {
-    console.log(`⚠ ${table} : ${e.message}`);
+  } catch (e) {
+    console.log(`⚠ ${table} : ${e instanceof Error ? e.message : String(e)}`);
     continue;
   }
   if (rows.length === 0) {

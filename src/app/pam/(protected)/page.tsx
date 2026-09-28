@@ -1,16 +1,6 @@
 import { getGlobalStats, getAllStores } from '@/app/actions/admin';
 import Link from 'next/link';
-import {
-  Store,
-  Users,
-  TrendingUp,
-  Package,
-  Shield,
-  Activity,
-  AlertCircle,
-  ArrowRight,
-  Eye
-} from 'lucide-react';
+import { Store, Users, TrendingUp, Package, Shield, AlertCircle, ArrowRight, Eye } from 'lucide-react';
 import { formatCurrency } from '@/utils';
 
 export const metadata = {

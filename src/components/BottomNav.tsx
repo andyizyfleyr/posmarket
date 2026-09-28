@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  ShoppingBasket,
-  Package,
-  Users,
-  BarChart3,
-  LayoutDashboard,
-  Settings,
-  ShoppingBag,
-  FileText,
-  MoreHorizontal,
-  Receipt
-} from 'lucide-react';
+import { ShoppingBasket, Package, Users, BarChart3, LayoutDashboard, ShoppingBag, MoreHorizontal } from 'lucide-react';
 import { ViewType, StaffRole } from '@/types';
 
 interface BottomNavItemProps {
@@ -87,7 +76,7 @@ interface BottomNavProps {
   businessType?: string;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRole, businessType }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRole }) => {
   const isSeller = userRole === 'SELLER';
   const [showOverflow, setShowOverflow] = useState(false);
 

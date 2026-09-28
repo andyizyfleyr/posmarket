@@ -1,17 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { 
-  ShoppingBag, 
-  Home, 
-  ArrowLeft, 
-  Search, 
-  Compass, 
-  Sparkles,
-  ShoppingBasket,
-  Smartphone,
-  Shirt,
-  Utensils
-} from 'lucide-react';
+import { ShoppingBag, Home, Search, Compass, Sparkles, ShoppingBasket, Smartphone, Shirt, Utensils } from 'lucide-react';
 
 export default function NotFound() {
   const popularCategories = [

@@ -6,6 +6,8 @@ export interface ReceiptItem {
   unit?: string;
   unitPrice: number;
   total: number;
+  /** Variante vendue (« Rouge / M »), affichée sous le nom du produit. */
+  variantLabel?: string | null;
 }
 
 export interface ReceiptData {
@@ -28,12 +30,24 @@ export interface ReceiptData {
 }
 
 /**
+ * Échappe le HTML : le libellé de variante est saisi par le vendeur et
+ * recopié tel quel dans le ticket.
+ */
+function escHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
  * Génère le HTML autonome et stylisé pour le ticket thermique 80mm.
  */
 function buildReceiptHtml(data: ReceiptData): string {
   const itemsHtml = data.items.map(item => `
     <tr>
-      <td style="padding: 4px 0; text-align: left; vertical-align: top; word-break: break-word;">${item.name}</td>
+      <td style="padding: 4px 0; text-align: left; vertical-align: top; word-break: break-word;">${item.name}${item.variantLabel ? `<br><span style="font-size: 9px; color: #555;">${escHtml(item.variantLabel)}</span>` : ''}</td>
       <td style="padding: 4px 0; text-align: center; vertical-align: top; white-space: nowrap;">x${item.quantity}${item.unit && item.unit !== 'pièce' ? ` ${item.unit}` : ''}</td>
       <td style="padding: 4px 0; text-align: right; vertical-align: top; white-space: nowrap;">${formatCurrency(item.total)}</td>
     </tr>
@@ -182,7 +196,8 @@ export function printPosReceipt(data: ReceiptData): void {
  */
 export async function downloadPosReceiptPdf(data: ReceiptData): Promise<void> {
   const jspdfModule = await import('jspdf');
-  const jsPDF = jspdfModule.jsPDF || (jspdfModule as any).default || jspdfModule;
+  // Selon le bundler, `jsPDF` est exposé en named export ou en default.
+  const jsPDF = jspdfModule.jsPDF ?? jspdfModule.default;
 
   const itemHeight = 6;
   const baseHeight = 85 + (data.discount ? 8 : 0) + (data.customerName ? 6 : 0);

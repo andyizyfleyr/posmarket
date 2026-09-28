@@ -11,45 +11,7 @@ import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
-import {
-  ShoppingCart,
-  Search,
-  Store,
-  MapPin,
-  CreditCard,
-  ChevronLeft,
-  Star,
-  Heart,
-  X,
-  CheckCircle2,
-  User,
-  Phone,
-  Truck,
-  ShieldCheck,
-  Zap,
-  Bell,
-  ArrowRight,
-  Loader2,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  ShoppingBasketIcon,
-  Trash2,
-  Home,
-  Briefcase,
-  ArrowLeft,
-  AlertCircle,
-  Clock,
-  ShoppingBag,
-  Tag,
-  RotateCcw,
-  Maximize2,
-  Eye,
-  Check,
-  Mail,
-  MailCheck,
-  AlertTriangle,
-} from "lucide-react";
+import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, Heart, X, CheckCircle2, User, ShieldCheck, Zap, Bell, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle } from "lucide-react";
 import {
   StoreData,
   Product,
@@ -64,7 +26,7 @@ import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, fo
 import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
-import ProductImage, { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
+import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
@@ -110,7 +72,6 @@ const BulkOrderModal = dynamic(
 import { fetchBuyerAddressesAction } from "@/app/actions/marketplace";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useKeyboardOffset } from "@/hooks/useKeyboardOffset";
-import { enablePushNotifications, isPushSupported } from "@/utils/push";
 
 export interface StorefrontProduct extends Product {
   storeId: string;
@@ -132,7 +93,13 @@ type FtsRow = {
 };
 
 export type CheckoutStoreOrderDraft = {
-  items: Array<{ product: StorefrontProduct; quantity: number; price?: number }>;
+  items: Array<{
+    product: StorefrontProduct;
+    quantity: number;
+    price?: number;
+    variantId?: string | null;
+    selectedOptions?: Record<string, string> | null;
+  }>;
   subtotal: number;
   discountAmount?: number;
   promoCode?: string | null;
@@ -2034,6 +2001,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           product: item.product,
           quantity: item.quantity,
           price: getEffectiveItemPrice(item),
+          variantId: item.variantId ?? null,
+          selectedOptions: item.selectedOptions ?? null,
         });
       });
       Object.keys(ordersData).forEach((storeId) => {
@@ -2949,17 +2918,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             <ProductCard
                               product={product}
                               onAddToCart={handleCardAddToCart}
-                              onStoreSelect={(id) => {
+                              onClick={() =>
                                 safeNavigate(
-                                  `/store/${product.storeSlug || id}`,
+                                  `/store/${product.storeSlug || product.storeId}`,
                                   {
                                     action: () => {
                                       setIsSearchOpen(false);
                                       setSearchTerm("");
                                     },
                                   },
-                                );
-                              }}
+                                )
+                              }
                               onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                             />
                           </div>
@@ -3446,12 +3415,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
                                 onAddToCart={handleCardAddToCart}
-                                onBuyNow={handleCardBuyNow}
-                                onStoreSelect={(id) =>
-                                  safeNavigate(
-                                    `/store/${product.storeSlug || id}`,
-                                  )
-                                }
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,
@@ -3490,12 +3453,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               key={`${product.storeId}-${product.id}`}
                               product={product}
                               onAddToCart={handleCardAddToCart}
-                              onBuyNow={handleCardBuyNow}
-                              onStoreSelect={(id) =>
-                                safeNavigate(
-                                  `/store/${product.storeSlug || id}`,
-                                )
-                              }
                               onClick={() =>
                                 safeNavigate(
                                   `/product/${generateProductSlug(product)}`,
@@ -3734,12 +3691,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
                                 onAddToCart={handleCardAddToCart}
-                                onBuyNow={handleCardBuyNow}
-                                onStoreSelect={(id) =>
-                                  safeNavigate(
-                                    `/store/${product.storeSlug || id}`,
-                                  )
-                                }
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,
@@ -3778,12 +3729,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
                                 onAddToCart={handleCardAddToCart}
-                                onBuyNow={handleCardBuyNow}
-                                onStoreSelect={(id) =>
-                                  safeNavigate(
-                                    `/store/${product.storeSlug || id}`,
-                                  )
-                                }
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,

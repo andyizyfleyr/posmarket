@@ -28,7 +28,7 @@ export default function NoStoreFound() {
       } else {
         setError(result.error || 'Une erreur est survenue');
       }
-    } catch (err) {
+    } catch {
       setError('Erreur de connexion serveur');
     } finally {
       setIsCreating(false);

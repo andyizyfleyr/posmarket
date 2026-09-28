@@ -79,7 +79,6 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   onUserUpdate,
 }) => {
   const navigate = useNavigate();
-  const nextRouter = useNextRouter();
   const [activeTab, setActiveTab] = useState<BuyerTabId>(() => {
     return TAB_FROM_PATH[accountTab || 'commandes'] || 'orders';
   });

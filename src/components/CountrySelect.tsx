@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Search, Check, MapPin } from 'lucide-react';
+import { ChevronDown, Search, Check } from 'lucide-react';
 import { Country, COUNTRIES, getCountryByName, getCountryByCode } from '@/constants/countries';
 
 export interface CountrySelectProps {
@@ -21,7 +21,6 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
   onChange,
   placeholder = 'Sélectionner un pays',
   disabled = false,
-  required = false,
   error,
   className = '',
   id,

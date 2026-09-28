@@ -10,8 +10,8 @@ import { createClient } from '@/utils/supabase/server';
 import { notify, getProfilePhone, getProfileEmail } from '@/lib/notifications';
 import { eq, and } from 'drizzle-orm';
 import { activateSubscription, subscriptionAmount, isPayableTier } from '@/lib/subscription';
-import { kkiapayConfigured, verifyKkiapayTransaction, initKkiapayConfig, KKIAPAY_PUBLIC_KEY } from '@/lib/kkiapay';
-import { fedapayConfigured, verifyFedapayTransaction, initFedapayConfig, FEDAPAY_PUBLIC_KEY, FEDAPAY_ENV_VALUE } from '@/lib/fedapay';
+import { kkiapayConfigured, verifyKkiapayTransaction } from '@/lib/kkiapay';
+import { fedapayConfigured, verifyFedapayTransaction } from '@/lib/fedapay';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 
 function durationLabel(d: string): string {

@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/db'
-import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles } from '@/db/schema'
+import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles, coupons } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { getCurrentSession } from '@/app/actions/session'
@@ -17,11 +17,17 @@ const CATALOG_TAG = 'marketplace'
 type CheckoutStoreOrder = {
   items?: Array<{
     product?: { id?: string; price?: number | string } | null;
+    /** Prix indicatif du navigateur : jamais utilisé pour la facturation. */
     price?: number | string;
     quantity?: number;
+    variantId?: string | null;
+    variantLabel?: string | null;
+    variantSku?: string | null;
+    selectedOptions?: Record<string, string> | null;
   }>;
   subtotal?: number | string;
   discountAmount?: number | string;
+  shippingCost?: number | string;
   total?: number | string;
   promoCode?: string | null;
   paymentMethod?: string;
@@ -300,9 +306,137 @@ export async function submitCheckoutAction(
         }
       }
 
-      const subtotal = Number(storeOrder?.subtotal ?? 0);
-      const discount = Number(storeOrder?.discountAmount ?? 0);
-      const total = Number(storeOrder?.total ?? subtotal - discount);
+      // --- Tarification serveur -------------------------------------------
+      // Le prix transmis par le navigateur n'est jamais facturé : on relit le
+      // produit en base, on résout la variante choisie, et on refuse la
+      // commande si le stock ne suit pas. Le vendeur garde ainsi un historique
+      // fiable ("quelle taille ?") et aucun client ne peut imposer un prix.
+      const requestedIds = Array.from(
+        new Set(items.map((item) => String(item?.product?.id || '')).filter(Boolean))
+      );
+      if (requestedIds.length === 0) continue;
+
+      const dbRows = await db
+        .select({
+          id: products.id,
+          storeId: products.storeId,
+          name: products.name,
+          unit: products.unit,
+          image: products.image,
+          price: products.price,
+          stock: products.stock,
+          variants: products.variants,
+        })
+        .from(products)
+        .where(inArray(products.id, requestedIds));
+      const catalog = new Map(dbRows.map((row) => [row.id, row]));
+
+      type PricedLine = {
+        productId: string;
+        quantity: number;
+        unitPrice: number;
+        variantId: string | null;
+        variantLabel: string | null;
+        variantSku: string | null;
+        variantOptionValues: Record<string, string>;
+        productName: string;
+        productUnit: string | null;
+        productImage: string | null;
+      };
+      const pricedItems: PricedLine[] = [];
+
+      for (const item of items) {
+        const productId = String(item?.product?.id || '');
+        const row = catalog.get(productId);
+        if (!row) {
+          return {
+            success: false,
+            error: 'Un article de votre commande n\'existe plus. Actualisez votre panier.',
+          };
+        }
+        if (row.storeId !== storeId) {
+          return {
+            success: false,
+            error: 'Un article de votre commande ne provient pas de cette boutique.',
+          };
+        }
+
+        const quantity = Math.max(1, Math.floor(Number(item?.quantity) || 1));
+        const variants = Array.isArray(row.variants)
+          ? (row.variants as Array<{ id?: string; name?: string; price?: number; stock?: number; sku?: string; optionValues?: Record<string, string> }>)
+          : [];
+        const variant = item?.variantId
+          ? variants.find((v) => v.id === String(item.variantId))
+          : undefined;
+
+        if (variants.length > 0 && !variant) {
+          return {
+            success: false,
+            error: `Choisissez les options de « ${row.name} » avant de valider.`,
+          };
+        }
+
+        const unitPrice = variant ? Number(variant.price) : Number(row.price);
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+          return { success: false, error: `Le prix de « ${row.name} » est invalide.` };
+        }
+
+        const availableStock = variant ? Number(variant.stock) : Number(row.stock);
+        if (Number.isFinite(availableStock) && availableStock < quantity) {
+          const detail = variant?.name ? ` (${variant.name})` : '';
+          return {
+            success: false,
+            error: `Stock insuffisant pour « ${row.name}${detail} » : ${availableStock} disponible(s).`,
+          };
+        }
+
+        pricedItems.push({
+          productId,
+          quantity,
+          unitPrice,
+          variantId: variant?.id ? String(variant.id) : null,
+          variantLabel: variant?.name || null,
+          variantSku: variant?.sku || null,
+          variantOptionValues: variant?.optionValues || {},
+          productName: row.name,
+          productUnit: row.unit,
+          productImage: row.image,
+        });
+      }
+
+      // Le sous-total est reconstruit depuis les prix base : la remise et les
+      // frais de livraison restent ceux calculés par le panier, mais plafonnés.
+      const subtotal = pricedItems.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+
+      // La remise n'est plus calculée par le navigateur : on relit le coupon en
+      // base. Sans cela, un appel direct à l'action permettait d'imposer -100 %.
+      const requestedPromoCode = String(storeOrder?.promoCode || '').trim();
+      let promoLabel: string | null = null;
+      let discount = 0;
+      if (requestedPromoCode) {
+        const [coupon] = await db
+          .select({
+            code: coupons.code,
+            discountPct: coupons.discountPct,
+            active: coupons.active,
+            expiresAt: coupons.expiresAt,
+          })
+          .from(coupons)
+          .where(and(eq(coupons.storeId, storeId), eq(coupons.code, requestedPromoCode)))
+          .limit(1);
+        const usable =
+          coupon &&
+          coupon.active &&
+          (!coupon.expiresAt || new Date(coupon.expiresAt).getTime() > Date.now());
+        if (usable && coupon) {
+          const pct = Math.max(0, Math.min(Number(coupon.discountPct) || 0, 100));
+          discount = Math.min((subtotal * pct) / 100, subtotal);
+          promoLabel = coupon.code;
+        }
+      }
+
+      const shipping = Math.max(0, Number(storeOrder?.shippingCost ?? 0) || 0);
+      const total = Math.max(0, subtotal - discount + shipping);
 
       const [newOrder] = await db
         .insert(orders)
@@ -315,38 +449,41 @@ export async function submitCheckoutAction(
           paymentMethod: storeOrder?.paymentMethod || 'ESPECES',
           type: 'ONLINE',
           subtotal: String(subtotal),
-          discountAmount: String(discount || 0),
-          promoCode: storeOrder?.promoCode || null,
+          discountAmount: String(discount),
+          promoCode: promoLabel,
           total: String(total),
           date: new Date(),
         })
         .returning({ id: orders.id });
 
       await db.insert(orderItems).values(
-        items.map((item) => ({
+        pricedItems.map((line) => ({
           orderId: newOrder.id,
-          productId: item.product?.id || null,
-          quantity: Number(item.quantity || 1),
-          unitPrice: String(item.price ?? item.product?.price ?? 0),
-          total: String(
-            Number(item.price ?? item.product?.price ?? 0) * Number(item.quantity || 1)
-          ),
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: String(line.unitPrice),
+          total: String(line.unitPrice * line.quantity),
+          variantId: line.variantId,
+          variantLabel: line.variantLabel,
+          variantSku: line.variantSku,
+          variantOptionValues: line.variantOptionValues,
+          productName: line.productName,
+          productUnit: line.productUnit,
+          productImage: line.productImage,
         }))
       );
 
       await incrementProductSales(
         storeId,
-        items.map((item) => ({
-          productId: item.product?.id || null,
-          quantity: Number(item.quantity || 1),
-        }))
+        pricedItems.map((line) => ({ productId: line.productId, quantity: line.quantity }))
       );
 
       await adjustProductStock(
         storeId,
-        items.map((item) => ({
-          productId: item.product?.id || null,
-          quantity: Number(item.quantity || 1),
+        pricedItems.map((line) => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          variantId: line.variantId,
         })),
         'sale'
       );

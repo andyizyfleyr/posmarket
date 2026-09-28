@@ -1,6 +1,4 @@
 import { neon } from '@neondatabase/serverless';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import { config } from 'dotenv';
 
 config({ path: '.env.local' });

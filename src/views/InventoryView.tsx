@@ -26,7 +26,6 @@ import {
   Zap,
   Clock
 } from 'lucide-react';
-import { supabase } from '@/supabase';
 import { getSubscriptionPlan, MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { getProductCategoryTree } from '@/app/actions/categories';
 import type { ProductCategoryNode } from '@/app/actions/categories';
@@ -34,10 +33,16 @@ import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertica
 import { formatCurrency, formatNumber } from '@/utils';
 import { Skeleton, ProductSkeleton } from '../components/Skeleton';
 import ProductImage from '../components/ProductImage';
-import Loader from '../components/Loader';
 import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
+import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
+import {
+  normalizeOptions,
+  normalizeVariants,
+  type ProductOptionDef,
+  type ProductVariantDef,
+} from '@/utils/variants';
 
 interface InventoryViewProps {
   products: Product[];
@@ -52,7 +57,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   products: initialProducts,
   permissions,
   currentStoreId,
-  userRole,
   subscription,
   businessType = 'shopping',
 }) => {
@@ -66,6 +70,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [variantNotice, setVariantNotice] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Taxonomie produit : lue en base (geree depuis /pam/categories), avec
   // repli sur les constantes historiques si la table est vide ou inaccessible.
@@ -220,20 +226,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     if (product) {
       setEditingProduct(product);
       setCurrentStep(1);
-      const rawOptions = Array.isArray(product.options) ? product.options : [];
-      const safeOptions = (rawOptions as any[]).map((o: any) => ({
-        id: o.id || Math.random().toString(36).substr(2, 9),
-        name: o.name || '',
-        values: Array.isArray(o.values) ? o.values : typeof o.values === 'string' ? o.values.split(',').map((v: string) => v.trim()).filter(Boolean) : [],
-      }));
-      const rawVariants = Array.isArray(product.variants) ? product.variants : [];
-      const safeVariants = (rawVariants as any[]).map((v: any) => ({
-        id: v.id || Math.random().toString(36).substr(2, 9),
-        name: v.name || '',
-        optionValues: v.optionValues || {},
-        price: v.price || 0,
-        stock: v.stock || 0,
-      }));
+      setVariantNotice(null);
+      setSubmitError(null);
+      // Nettoyage à l'ouverture : SKU et photo par variante sont conservés,
+      // les orphelines sont écartées pour ne jamais casser la matrice.
+      const safeOptions = normalizeOptions(product.options);
+      const safeVariants = normalizeVariants(product.variants, safeOptions);
       const initialFormData: Partial<Product> & { isOnline: boolean, images: string[] } = {
         name: product.name || '',
         price: product.price ?? undefined,
@@ -261,6 +259,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       setFormData(initialFormData);
     } else {
       setEditingProduct(null);
+      setVariantNotice(null);
+      setSubmitError(null);
       const isOnline = type === 'store';
       setFormData({
         name: '',
@@ -290,7 +290,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
   const handleDelete = async (id: string) => {
     if (confirm('Voulez-vous vraiment supprimer ce produit ?')) {
-      const result = await deleteProductAction(id);
+      const result = await deleteProductAction(id, currentStoreId || '');
       if (result.success) {
         setLocalProducts(prev => prev.filter(p => p.id !== id));
         setSelectedIds(prev => {
@@ -307,7 +307,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     if (confirm(`Voulez-vous vraiment supprimer les ${selectedIds.size} produits sélectionnés ?`)) {
       setIsSubmitting(true);
       try {
-        const result = await bulkDeleteProductsAction(Array.from(selectedIds));
+        const result = await bulkDeleteProductsAction(Array.from(selectedIds), currentStoreId || '');
         if (result.success) {
           setLocalProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
           setSelectedIds(new Set());
@@ -340,6 +340,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const result = await saveProductAction(editingProduct ? { ...editingProduct, ...formData } : formData, currentStoreId || '');
       if (result.success && result.product) {
@@ -350,7 +351,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           }
           return [saved, ...prev];
         });
-        setShowSuccessToast(editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !');
+        const warning = Array.isArray(result.warnings) ? result.warnings[0] : null;
+        setShowSuccessToast(warning || (editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !'));
         setTimeout(() => setShowSuccessToast(null), 3000);
         setIsModalOpen(false);
       } else if (result.success) {
@@ -358,10 +360,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         setTimeout(() => setShowSuccessToast(null), 3000);
         setIsModalOpen(false);
       } else {
-        alert('Erreur: ' + (result.error || 'Impossible d\'enregistrer le produit'));
+        setSubmitError(result.error || 'Impossible d\'enregistrer le produit');
       }
     } catch (err: unknown) {
-      alert('Erreur: ' + (err instanceof Error ? err.message : 'Une erreur est survenue'));
+      setSubmitError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setIsSubmitting(false);
     }
@@ -745,7 +747,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
           {!hasMore && localProducts.length > 5 && (
             <div className="p-8 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest opacity-50 border-t border-gray-50 bg-gray-50/5">
-              Fin de l'inventaire
+              Fin de l&apos;inventaire
             </div>
           )}
         </div>
@@ -1006,7 +1008,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               onChange={e => setFormData({ ...formData, unit: e.target.value })}
                               className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:border-[#f56b2a] outline-none shadow-sm"
                             />
-                            <p className="text-[9px] text-[#f56b2a] mt-1 font-bold uppercase tracking-tighter">Saisie libre : tapez l'unité de votre choix</p>
+                            <p className="text-[9px] text-[#f56b2a] mt-1 font-bold uppercase tracking-tighter">Saisie libre : tapez l&apos;unité de votre choix</p>
                           </div>
                         )}
                       </div>
@@ -1017,265 +1019,26 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
               {currentStep === 3 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  {/* Variants & Options Section - AliExpress Style */}
                   {formData.businessType === 'shopping' && (
                     <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
-                      <div className="flex items-center justify-between mb-4 md:mb-6">
-                        <div>
-                          <h4 className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Options & Variantes</h4>
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Combinez Tailles, Couleurs, etc. (Matrix Mode)</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newOptions = [...(formData.options || [])];
-                            newOptions.push({ id: Math.random().toString(36).substr(2, 9), name: '', values: [] });
-                            setFormData({ ...formData, options: newOptions });
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[9px] font-bold hover:bg-[#f56b2a] transition-all active:scale-95"
-                        >
-                          <Plus size={12} strokeWidth={3} /> AJOUTER UNE OPTION
-                        </button>
-                      </div>
-
-                      {/* Options Management */}
-                      <div className="space-y-4 mb-8">
-                        {(formData.options || []).map((option, optIdx) => (
-                          <div key={option.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/option">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const removedId = option.id;
-                                const newOptions = formData.options?.filter((_, i) => i !== optIdx);
-                                const newVariants = (formData.variants || []).filter(v => !v.optionValues || !(removedId in v.optionValues));
-                                setFormData({ ...formData, options: newOptions, variants: newVariants });
-                              }}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-white shadow-md border border-gray-100 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/option:opacity-100 transition-all hover:bg-red-50"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                              <div className="col-span-1">
-                                 <label className="block text-[8px] font-bold text-gray-400 uppercase mb-1">Type d&apos;Option</label>
-                                 <select
-                                   value={['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids'].includes(option.name) ? option.name : (option.name === '' && !(option as unknown as { isCustom?: boolean }).isCustom ? '' : 'custom')}
-                                   onChange={e => {
-                                     const val = e.target.value;
-                                     const newOptions = [...formData.options!];
-                                     if (val === 'custom') {
-                                       newOptions[optIdx].name = '';
-                                       (newOptions[optIdx] as unknown as { isCustom?: boolean }).isCustom = true;
-                                     } else {
-                                       newOptions[optIdx].name = val;
-                                       (newOptions[optIdx] as unknown as { isCustom?: boolean }).isCustom = false;
-                                     }
-                                     setFormData({ ...formData, options: newOptions });
-                                   }}
-                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
-                                >
-                                  <option value="">Sélectionner...</option>
-                                  <option value="Taille">Taille</option>
-                                  <option value="Couleur">Couleur</option>
-                                  <option value="Pointure">Pointure</option>
-                                  <option value="Format">Format</option>
-                                  <option value="Modèle">Modèle</option>
-                                  <option value="Saveur">Saveur / Goût</option>
-                                  <option value="Matière">Matière</option>
-                                  <option value="Poids">Poids</option>
-                                  <option value="custom">Autre...</option>
-                                </select>
-
-                                {((option as any).isCustom || (!['Taille', 'Couleur', 'Pointure', 'Format', 'Modèle', 'Saveur', 'Matière', 'Poids', ''].includes(option.name))) ? (
-                                  <input
-                                    type="text"
-                                    value={option.name}
-                                    autoFocus
-                                    onChange={e => {
-                                      const newOptions = [...formData.options!];
-                                      newOptions[optIdx].name = e.target.value;
-                                      setFormData({ ...formData, options: newOptions });
-                                    }}
-                                    className="w-full px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg text-xs font-semibold focus:border-[#f56b2a] outline-none shadow-sm animate-in slide-in-from-top-1"
-                                    placeholder="Nom de l'option..."
-                                  />
-                                ) : null}
-                              </div>
-                              <div className="col-span-1 md:col-span-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <label className="block text-[8px] font-bold text-gray-400 uppercase">Valeurs (Séparez par des virgules)</label>
-                                  <span className="text-[7px] font-semibold text-orange-400 uppercase tracking-tighter">Astuce: cliquez sur les suggestions</span>
-                                </div>
-                                <input
-                                  type="text"
-                                  value={Array.isArray(option.values) ? option.values.join(', ') : ''}
-                                  onChange={e => {
-                                    const newOptions = [...formData.options!];
-                                    newOptions[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(v => v !== '');
-                                    setFormData({ ...formData, options: newOptions });
-                                  }}
-                                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:border-[#f56b2a] outline-none shadow-sm mb-2"
-                                  placeholder="Rouge, Bleu, Vert..."
-                                />
-
-                                {/* Suggestions de valeurs */}
-                                {(() => {
-                                  const suggestions: Record<string, string[]> = {
-                                    'Taille': ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'Taille Unique', 'Enfant', 'Adulte'],
-                                    'Couleur': ['Noir', 'Blanc', 'Rouge', 'Bleu', 'Marine', 'Vert', 'Kaki', 'Jaune', 'Orange', 'Rose', 'Violet', 'Gris', 'Beige', 'Marron', 'Bordeaux', 'Corail', 'Menthe', 'Or', 'Argent'],
-                                    'Pointure': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'],
-                                    'Format': ['Petit', 'Moyen', 'Grand', 'S', 'M', 'L', 'XL', 'Standard', 'Pack', 'Unité', 'Douzaine', '100ml', '250ml', '500ml', '1L', '2L', '5L'],
-                                    'Modèle': ['Standard', 'Pro', 'Max', 'Mini', 'Lite', 'Slim', 'Luxe', 'Sport', 'Classic', 'Premium', 'Edition Limitée'],
-                                    'Saveur': ['Vanille', 'Chocolat', 'Fraise', 'Citron', 'Caramel', 'Banane', 'Pistache', 'Menthe', 'Pimenté', 'Nature', 'Salé', 'Sucré', 'Épicé', 'Grillé'],
-                                    'Matière': ['Coton', 'Cuir', 'Bois', 'Acier', 'Aluminium', 'Or', 'Argent', 'Plastique', 'Verre', 'Céramique', 'Soie', 'Laine', 'Nylon', 'Polyester'],
-                                    'Poids': ['50g', '100g', '200g', '250g', '500g', '1kg', '2kg', '5kg', '10kg', '25kg', '50kg']
-                                  };
-
-                                  const currentName = option.name;
-                                  if (!suggestions[currentName]) return null;
-
-                                  return (
-                                    <div className="flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
-                                      {suggestions[currentName].map(suggest => {
-                                        const isAlreadyAdded = option.values.includes(suggest);
-                                        return (
-                                          <button
-                                            key={suggest}
-                                            type="button"
-                                            onClick={() => {
-                                              const newOptions = [...formData.options!];
-                                              if (isAlreadyAdded) {
-                                                newOptions[optIdx].values = option.values.filter(v => v !== suggest);
-                                              } else {
-                                                newOptions[optIdx].values = [...option.values, suggest];
-                                              }
-                                              setFormData({ ...formData, options: newOptions });
-                                            }}
-                                            className={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-tighter transition-all border ${isAlreadyAdded
-                                                ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm'
-                                                : 'bg-white text-gray-400 border-gray-100 hover:border-orange-200 hover:text-orange-500'
-                                              }`}
-                                          >
-                                            {isAlreadyAdded ? <Check size={10} className="inline" /> : '+ '}{suggest}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Generate Button Logic */}
-                      {(formData.options || []).length > 0 && formData.options?.every(o => o.name && o.values.length > 0) && (
-                        <div className="mb-8 flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                               // Cartesian product generator
-                               const options = formData.options!;
-                               const combinations: Array<Record<string, string>> = [];
-
-                               const combine = (optIdx: number, current: Record<string, string>) => {
-                                 if (optIdx === options.length) {
-                                   combinations.push(current);
-                                   return;
-                                 }
-                                 const option = options[optIdx];
-                                 option.values.forEach(val => {
-                                   combine(optIdx + 1, { ...current, [option.id]: val });
-                                 });
-                               };
-
-                               combine(0, {});
-
-                              const comboKey = (o: Record<string, string>) =>
-                                Object.keys(o).sort().map(k => `${k}:${o[k]}`).join('|');
-
-                              const newVariants = combinations.map(combo => {
-                                const name = Object.values(combo).join(' / ');
-                                const existing = formData.variants?.find(v => comboKey(v.optionValues) === comboKey(combo));
-
-                                return {
-                                  id: existing?.id || Math.random().toString(36).substr(2, 9),
-                                  name,
-                                  optionValues: combo,
-                                  price: existing?.price || formData.price || 0,
-                                  stock: existing?.stock || 0
-                                };
-                              });
-
-                              setFormData({ ...formData, variants: newVariants });
-                            }}
-                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl text-[10px] font-bold shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                          >
-                            <Zap size={14} fill="currentColor" /> GÉNÉRER LES COMBINAISONS
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Variants Grid */}
-                      {(formData.variants || []).length > 0 && (
-                        <div className="space-y-2.5 animate-in slide-in-from-top-4 duration-500">
-                          <div className="hidden md:grid grid-cols-12 gap-4 px-2 mb-2">
-                            <div className="col-span-5 text-[8px] font-bold text-gray-400 uppercase">Combinaison</div>
-                            <div className="col-span-3 text-[8px] font-bold text-gray-400 uppercase">Prix (XOF)</div>
-                            <div className="col-span-3 text-[8px] font-bold text-gray-400 uppercase">Stock</div>
-                            <div className="col-span-1"></div>
-                          </div>
-                          {formData.variants?.map((variant, idx) => (
-                            <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-3 bg-white border border-gray-100 rounded-xl md:rounded-2xl shadow-sm hover:border-orange-100 transition-all group/variant">
-                              <div className="col-span-1 md:col-span-5 flex items-center">
-                                <div className="flex flex-wrap gap-1">
-                                  {variant.name.split(' / ').map((val, i) => (
-                                    <span key={i} className="text-[10px] font-semibold text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{val}</span>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="col-span-1 md:col-span-3">
-                                <input
-                                  type="number"
-                                  value={variant.price}
-                                  onChange={e => {
-                                    const newVariants = [...formData.variants!];
-                                    newVariants[idx].price = parseInt(e.target.value) || 0;
-                                    setFormData({ ...formData, variants: newVariants });
-                                  }}
-                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-semibold text-[#f56b2a] focus:bg-white focus:border-[#f56b2a] outline-none"
-                                />
-                              </div>
-                              <div className="col-span-1 md:col-span-3">
-                                <input
-                                  type="number"
-                                  value={variant.stock}
-                                  onChange={e => {
-                                    const newVariants = [...formData.variants!];
-                                    newVariants[idx].stock = parseInt(e.target.value) || 0;
-                                    setFormData({ ...formData, variants: newVariants });
-                                  }}
-                                  className="w-full px-3 py-1.5 bg-gray-50 border border-transparent rounded-lg text-xs font-semibold text-gray-700 focus:bg-white focus:border-[#f56b2a] outline-none"
-                                />
-                              </div>
-                              <div className="col-span-1 flex items-center justify-end">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newVariants = formData.variants?.filter((_, i) => i !== idx);
-                                    setFormData({ ...formData, variants: newVariants });
-                                  }}
-                                  className="p-1 px-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <VariantMatrixEditor
+                        options={(formData.options || []) as ProductOptionDef[]}
+                        variants={(formData.variants || []) as ProductVariantDef[]}
+                        basePrice={Number(formData.price) || 0}
+                        images={formData.images || []}
+                        onChange={(options, variants, notice) => {
+                          setFormData((prev) => ({ ...prev, options, variants }));
+                          if (notice) setVariantNotice(notice);
+                        }}
+                      />
+                      {variantNotice && (
+                        <p className="text-[9px] font-semibold text-gray-400 mt-2">
+                          {variantNotice} La matrice est réalignée à l&apos;enregistrement.
+                        </p>
                       )}
                     </div>
                   )}
+
 
                   {/* Wholesale Section */}
                   {formData.businessType === 'shopping' && (
@@ -1533,7 +1296,22 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
 
             {/* Sticky Navigation Footer */}
-            <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between gap-3 md:gap-4">
+            <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              {submitError && (
+                <div className="flex items-start gap-2 w-full md:w-auto px-3 py-2.5 bg-rose-50 border border-rose-100 rounded-xl text-[10px] md:text-xs font-bold text-rose-600">
+                  <AlertCircle size={14} className="shrink-0 mt-px" />
+                  <span className="min-w-0 break-words">{submitError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitError(null)}
+                    className="ml-auto p-0.5 text-rose-300 hover:text-rose-600 shrink-0"
+                    aria-label="Fermer le message"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 md:gap-4 w-full md:w-auto">
               <Button
                 type="button"
                 disabled={currentStep === 1 || isSubmitting}
@@ -1572,6 +1350,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     Enregistrer
                   </Button>
                 )}
+              </div>
               </div>
             </div>
           </div>

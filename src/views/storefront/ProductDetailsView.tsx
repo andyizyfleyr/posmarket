@@ -1,32 +1,192 @@
 import React from "react";
 import Image from "next/image";
-import {
-  Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star,
-  ShoppingBag, Eye, ShoppingCart, AlertCircle, Check, MessageCircle,
-  ShieldCheck, RotateCcw, Truck, ChevronLeft, ArrowLeft, Loader2,
-  Store, CheckCircle2, PackageCheck, Heart, X, ChevronDown
-} from "lucide-react";
+import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingBag, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown } from "lucide-react";
 import Button from "@/components/Button";
-import ProductImage from "@/components/ProductImage";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
 import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
 import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
 import { generateProductSlug } from "@/utils/slug";
+import {
+  findVariantByOptions,
+  optionValueAvailability,
+  totalVariantStock,
+  variantIsInStock,
+} from "@/utils/variants";
 import { Link } from "@/components/RouterPolyfill";
-import type { NotificationType, Review } from "@/types";
+import type { NotificationType, Product, ProductVariant, Review, StoreData } from "@/types";
 import type { StorefrontProduct } from "../StorefrontView";
 
-export function ProductDetailsView(props: any) {
+/**
+ * Props de la fiche produit.
+ *
+ * Le composant est monté par `StorefrontView` via `next/dynamic` : le contrat
+ * est figé ici pour que la couche de présentation reste typée de bout en bout
+ * (les `any` laissés auparavant masquaient les erreurs de props).
+ */
+type ProductDetailsProps = {
+  selectedProductDetails: StorefrontProduct | null;
+  isInitialLoading: boolean;
+  allProducts: StorefrontProduct[];
+  isNavigating: boolean;
+  selectedOptions: Record<string, string>;
+  setSelectedOptions: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  sameSelectedOptions: (
+    a: Record<string, string> | null | undefined,
+    b: Record<string, string> | null | undefined,
+  ) => boolean;
+  selectedDetailImage: string | null;
+  setSelectedDetailImage: React.Dispatch<React.SetStateAction<string | null>>;
+  setProductSwipeIdx: React.Dispatch<React.SetStateAction<number>>;
+  productSwipeIdx: number;
+  setCurrentZoomImage: React.Dispatch<React.SetStateAction<string | null>>;
+  setZoomGallery: React.Dispatch<React.SetStateAction<string[]>>;
+  setIsImageModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  lastVisitedStoreRef?: React.MutableRefObject<string | null>;
+  user?: { name?: string | null; email?: string | null } | null;
+  setAuthMode?: (mode: "login" | "register") => void;
+  setShowAuthModal?: (open: boolean) => void;
+  handleGoBack: (path: string) => void;
+  addToCart: (product: StorefrontProduct, variantId?: string) => void;
+  buyNow: (
+    product: StorefrontProduct,
+    variantId?: string,
+    selectedOptions?: Record<string, string>,
+  ) => void;
+  localNotify: (
+    message: string,
+    type?: NotificationType,
+    title?: string,
+  ) => void;
+  loadingReviews: Record<string, boolean>;
+  selectedProductId: string | null;
+  showAllProductReviews: boolean;
+  setShowAllProductReviews: React.Dispatch<React.SetStateAction<boolean>>;
+  handleCardAddToCart: (product: Product) => void;
+  handleCardBuyNow: (product: Product) => void;
+  warmProduct: (product: { id: string; image?: string }) => void;
+  safeNavigate: (path: string, options?: { action?: () => void }) => void;
+  setSelectedCategory: (category: string) => void;
+  addWholesaleToCart: (product: StorefrontProduct, minQty?: number) => void;
+  isDescriptionExpanded: boolean;
+  setIsDescriptionExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  stores?: StoreData[];
+  cartItemsCount: number;
+  cartTotal: number;
+};
+
+function OptionSelectionHint({
+  allSelected,
+  outOfStock,
+  hasMatrix,
+  variantName,
+  variantStock,
+  price,
+}: {
+  allSelected: boolean;
+  outOfStock: boolean;
+  hasMatrix: boolean;
+  variantName?: string;
+  variantStock: number | null;
+  price: number | null;
+}) {
+  if (!allSelected) {
+    return (
+      <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
+        <AlertCircle size={11} className="flex-shrink-0" />
+        Sélectionnez les options pour commander
+      </p>
+    );
+  }
+
+  if (!hasMatrix) return null;
+
+  if (outOfStock) {
+    return (
+      <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-red-700 bg-red-50 border border-red-200/60 px-2.5 py-1.5 rounded-lg">
+        <AlertCircle size={11} className="flex-shrink-0" />
+        Cette combinaison est indisponible pour le moment
+      </p>
+    );
+  }
+
+  if (variantStock == null) return null;
+
+  return (
+    <div className="mt-3 flex items-center justify-between gap-2 text-[10px] font-semibold bg-emerald-50 border border-emerald-100 px-2.5 py-1.5 rounded-lg">
+      <span className="flex items-center gap-1.5 text-emerald-800 truncate">
+        <CheckCircle2 size={11} className="flex-shrink-0" />
+        {variantName}
+      </span>
+      <span className="flex items-center gap-2 flex-shrink-0">
+        {price != null && price > 0 && (
+          <span className="text-emerald-700">{formatCurrency(price)}</span>
+        )}
+        <span className={variantStock <= 5 ? "text-amber-600" : "text-emerald-600"}>
+          {variantStock <= 5 ? `Plus que ${variantStock}` : `${variantStock} en stock`}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+export function ProductDetailsView(props: ProductDetailsProps) {
+  const product = props.selectedProductDetails;
+  const { isInitialLoading, allProducts, handleGoBack, isNavigating } = props;
+  // Garde-fous AVANT tout hook : le composant interne déclare ses propres
+  // hooks, aucun retour anticipé n'est autorisé au-dessus de cette limite.
+  if (!product) {
+    // Catalogue chargé mais produit introuvable -> 404 explicite
+    if (!isInitialLoading && allProducts.length > 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+            <Package size={30} />
+          </div>
+          <p className="text-base font-bold text-gray-900">Produit introuvable</p>
+          <p className="text-xs text-gray-500 font-semibold mt-1 max-w-[280px]">
+            Ce produit n&apos;existe plus ou n&apos;est pas disponible actuellement.
+          </p>
+          <Button
+            onClick={() => handleGoBack("/")}
+            loading={isNavigating}
+            loadingText="Chargement..."
+            variant="primary"
+            size="md"
+            className="mt-6"
+            icon={<ArrowRight size={14} />}
+            iconPosition="right"
+          >
+            Retour à l&apos;accueil
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="aspect-square rounded-[24px] skeleton" />
+          <div className="space-y-4">
+            <div className="h-4 w-1/3 skeleton rounded" />
+            <div className="h-7 w-3/4 skeleton rounded" />
+            <div className="h-24 w-full skeleton rounded-2xl" />
+            <div className="h-12 w-full skeleton rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <ProductDetailsContent {...props} selectedProductDetails={product} />;
+}
+
+/** Corps de la fiche produit : le produit est garanti non nul ici. */
+function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDetails: StorefrontProduct }) {
   const {
     selectedProductDetails,
-    isInitialLoading,
     allProducts,
-    isNavigating,
     selectedOptions,
     setSelectedOptions,
-    sameSelectedOptions,
     selectedDetailImage,
     setSelectedDetailImage,
     setProductSwipeIdx,
@@ -34,8 +194,6 @@ export function ProductDetailsView(props: any) {
     setCurrentZoomImage,
     setZoomGallery,
     setIsImageModalOpen,
-    lastVisitedStoreRef,
-    handleGoBack,
     addToCart,
     buyNow,
     localNotify,
@@ -44,7 +202,6 @@ export function ProductDetailsView(props: any) {
     showAllProductReviews,
     setShowAllProductReviews,
     handleCardAddToCart,
-    handleCardBuyNow,
     warmProduct,
     safeNavigate,
     setSelectedCategory,
@@ -54,53 +211,8 @@ export function ProductDetailsView(props: any) {
     cartItemsCount,
     cartTotal,
   } = props;
-    const product = selectedProductDetails;
-    if (!product) {
-      // Catalogue chargé mais produit introuvable -> 404 explicite
-      if (!isInitialLoading && allProducts.length > 0) {
-        return (
-          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
-              <Package size={30} />
-            </div>
-            <p className="text-base font-bold text-gray-900">
-              Produit introuvable
-            </p>
-            <p className="text-xs text-gray-500 font-semibold mt-1 max-w-[280px]">
-              Ce produit n&apos;existe plus ou n&apos;est pas disponible
-              actuellement.
-            </p>
-            <Button
-              onClick={() => handleGoBack("/")}
-              loading={isNavigating}
-              loadingText="Chargement..."
-              variant="primary"
-              size="md"
-              className="mt-6"
-              icon={<ArrowRight size={14} />}
-              iconPosition="right"
-            >
-              Retour à l&apos;accueil
-            </Button>
-          </div>
-        );
-      }
-      return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="aspect-square rounded-[24px] skeleton" />
-            <div className="space-y-4">
-              <div className="h-4 w-1/3 skeleton rounded" />
-              <div className="h-7 w-3/4 skeleton rounded" />
-              <div className="h-24 w-full skeleton rounded-2xl" />
-              <div className="h-12 w-full skeleton rounded-full" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
+  const product = selectedProductDetails;
+  const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
     const relatedProducts = safeAllProducts
       .filter(
         (p: StorefrontProduct) =>
@@ -168,15 +280,29 @@ export function ProductDetailsView(props: any) {
     );
     const hasOptions = options.length > 0;
     const allSelected =
-      !hasOptions || options.every((o: any) => !!selectedOptions[o.id]);
+      !hasOptions || options.every((o) => !!selectedOptions[o.id]);
     const selectedOptionCount = options.filter(
-      (o: any) => !!selectedOptions[o.id],
+      (o) => !!selectedOptions[o.id],
     ).length;
+    const typedVariants: ProductVariant[] = variants;
     const matchedVariant = hasOptions
-      ? variants.find(
-          (v: any) => sameSelectedOptions(v.optionValues, selectedOptions),
-        )
+      ? findVariantByOptions(typedVariants, selectedOptions)
       : undefined;
+
+    // Stock affiché : celui de la combinaison choisie, sinon le total des
+    // variantes, sinon le stock simple du produit.
+    const selectedStock = hasOptions && variants.length > 0
+      ? matchedVariant
+        ? Math.max(0, Number(matchedVariant.stock) || 0)
+        : totalVariantStock(typedVariants)
+      : product.stock != null
+        ? (product.stock as number)
+        : null;
+    const isSelectedOutOfStock =
+      hasOptions &&
+      variants.length > 0 &&
+      allSelected &&
+      (!matchedVariant || !variantIsInStock(matchedVariant));
 
     const basePrice = matchedVariant ? matchedVariant.price : product.price;
     const discountPct =
@@ -219,23 +345,21 @@ export function ProductDetailsView(props: any) {
     };
 
     const productStore = React.useMemo(() => {
-      if (!props.stores || !product?.storeId) return null;
-      return props.stores.find((s: any) => s.id === product.storeId);
-    }, [props.stores, product?.storeId]);
+      if (!props.stores) return null;
+      return props.stores.find((s) => s.id === product.storeId);
+    }, [props.stores, product.storeId]);
 
     const storePhone = productStore?.phone || productStore?.settings?.phone;
     const waDigits = storePhone ? String(storePhone).replace(/\D/g, "") : null;
 
     // --- Stock ---
-    const stockValue =
-      product.stock != null ? (product.stock as number) : null;
+    // Dès qu'une combinaison est sélectionnée, on affiche SON stock : le
+    // total du produit masque sinon les ruptures de variante.
+    const stockValue = selectedStock;
     const isOutOfStock = stockValue === 0;
+    const isBuyDisabled = isOutOfStock || isSelectedOutOfStock;
     const isLowStock =
       stockValue !== null && stockValue > 0 && stockValue <= 5;
-    const stockFill =
-      stockValue === null
-        ? 0
-        : Math.min(Math.round((stockValue / 20) * 100), 100);
 
     // --- Description enrichie (auto, sans action du vendeur) ---
     const autoHighlights = extractDescriptionHighlights(descriptionText);
@@ -258,26 +382,66 @@ export function ProductDetailsView(props: any) {
       ...(product.image ? [product.image] : []),
       ...(Array.isArray(product.images) ? product.images : []),
     ].filter((img, i, arr) => !!img && arr.indexOf(img) === i);
-    const currentImage = selectedDetailImage || product.image;
+    // L'image de la variante sélectionnée devient la photo principale : c'est
+    // ce que l'acheteur voit réellement commander.
+    const variantImage =
+      allSelected && matchedVariant?.image && galleryImages.includes(matchedVariant.image)
+        ? matchedVariant.image
+        : null;
+    const currentImage = variantImage || selectedDetailImage || product.image;
 
     // --- Actions (options-aware) ---
     const resolveVariantId = () => {
       if (!hasOptions || variants.length === 0) return undefined;
-      const variant = variants.find(
-        (v: any) => sameSelectedOptions(v.optionValues, selectedOptions),
-      );
-      return variant?.id;
+      return findVariantByOptions(typedVariants, selectedOptions)?.id;
     };
 
-    const handleAddToCart = () => {
+    const guardSelection = (): boolean => {
       if (!allSelected) {
         setIsOptionsExpanded(true);
         localNotify(
           "Veuillez sélectionner toutes les options",
           "warning",
         );
-        return;
+        return false;
       }
+      if (isSelectedOutOfStock) {
+        setIsOptionsExpanded(true);
+        localNotify(
+          matchedVariant
+            ? "Cette combinaison est en rupture de stock"
+            : "Cette combinaison n'existe pas pour ce produit",
+          "warning",
+        );
+        return false;
+      }
+      return true;
+    };
+
+    const selectValue = (optionId: string, val: string) => {
+      setSelectedOptions((prev: Record<string, string>) => {
+        if (prev[optionId] === val) {
+          const next = { ...prev };
+          delete next[optionId];
+          return next;
+        }
+        return { ...prev, [optionId]: val };
+      });
+    };
+
+    const isValueDisabled = (optionId: string, val: string) => {
+      if (variants.length === 0) return false;
+      if (selectedOptions[optionId] === val) return false;
+      return !optionValueAvailability(
+        typedVariants,
+        selectedOptions,
+        optionId,
+        val
+      ).available;
+    };
+
+    const handleAddToCart = () => {
+      if (!guardSelection()) return;
       addToCart(product, resolveVariantId());
     };
 
@@ -286,14 +450,7 @@ export function ProductDetailsView(props: any) {
     };
 
     const handleBuyNow = () => {
-      if (!allSelected) {
-        setIsOptionsExpanded(true);
-        localNotify(
-          "Veuillez sélectionner toutes les options",
-          "warning",
-        );
-        return;
-      }
+      if (!guardSelection()) return;
       buyNow(product, resolveVariantId(), selectedOptions);
     };
 
@@ -782,7 +939,7 @@ export function ProductDetailsView(props: any) {
                     {selectedOptionCount > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2">
                         <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
-                        {options.map((o: any) => {
+                        {options.map((o) => {
                           const v = selectedOptions[o.id];
                           if (!v) return null;
                           return (
@@ -812,7 +969,7 @@ export function ProductDetailsView(props: any) {
                     )}
 
                     <div className="space-y-4">
-                      {options.map((option: any) => {
+                      {options.map((option) => {
                         const selectedVal = selectedOptions[option.id];
                         return (
                           <div key={option.id}>
@@ -827,25 +984,21 @@ export function ProductDetailsView(props: any) {
                             <div className="flex flex-wrap gap-2">
                               {option.values.map((val: string) => {
                                 const isSelected = selectedVal === val;
+                                const isDisabled = isValueDisabled(option.id, val);
                                 return (
                                   <button
                                     key={val}
                                     type="button"
-                                    onClick={() =>
-                                      setSelectedOptions((prev: Record<string, string>) => {
-                                        if (prev[option.id] === val) {
-                                          const next = { ...prev };
-                                          delete next[option.id];
-                                          return next;
-                                        }
-                                        return { ...prev, [option.id]: val };
-                                      })
-                                    }
+                                    disabled={isDisabled}
+                                    onClick={() => selectValue(option.id, val)}
                                     aria-pressed={isSelected}
-                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer active:scale-95 ${
-                                      isSelected
-                                        ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
-                                        : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-gray-900"
+                                    title={isDisabled ? "Indisponible" : undefined}
+                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border active:scale-95 ${
+                                      isDisabled
+                                        ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
+                                        : isSelected
+                                          ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100 cursor-pointer"
+                                          : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-gray-900 cursor-pointer"
                                     }`}
                                   >
                                     {isSelected && (
@@ -863,12 +1016,14 @@ export function ProductDetailsView(props: any) {
                       })}
                     </div>
 
-                    {!allSelected && (
-                      <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
-                        <AlertCircle size={11} className="flex-shrink-0" />
-                        Sélectionnez les options pour commander
-                      </p>
-                    )}
+                    <OptionSelectionHint
+                      allSelected={allSelected}
+                      outOfStock={isSelectedOutOfStock}
+                      hasMatrix={variants.length > 0}
+                      variantName={matchedVariant?.name}
+                      variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
+                      price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
+                    />
                       </div>
                     )}
                   </div>
@@ -976,20 +1131,20 @@ export function ProductDetailsView(props: any) {
                   <button
                     type="button"
                     onClick={handleAddToCart}
-                    disabled={isOutOfStock}
+                    disabled={isBuyDisabled}
                     className="h-11 px-3 rounded-xl bg-white hover:bg-gray-50 text-gray-900 font-semibold text-xs flex items-center justify-center gap-2 border border-gray-300 hover:border-gray-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                   >
                     <ShoppingCart size={15} strokeWidth={2.2} className="text-[#f56b2a] flex-shrink-0" />
-                    <span className="truncate">{isFood ? "Commander" : "Ajouter au panier"}</span>
+                    <span className="truncate">{isOutOfStock || isSelectedOutOfStock ? "Rupture" : isFood ? "Commander" : "Ajouter au panier"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleBuyNow}
-                    disabled={isOutOfStock}
+                    disabled={isBuyDisabled}
                     className="h-11 px-3 rounded-xl bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Zap size={14} fill="currentColor" className="flex-shrink-0" />
-                    <span className="truncate">{isFood ? "Commander direct" : "Acheter direct"}</span>
+                    <span className="truncate">{isOutOfStock || isSelectedOutOfStock ? "Rupture" : isFood ? "Commander direct" : "Acheter direct"}</span>
                   </button>
                 </div>
 
@@ -1172,7 +1327,7 @@ export function ProductDetailsView(props: any) {
                       {selectedOptionCount > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5">
                           <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
-                          {options.map((o: any) => {
+                          {options.map((o) => {
                             const v = selectedOptions[o.id];
                             if (!v) return null;
                             return (
@@ -1202,7 +1357,7 @@ export function ProductDetailsView(props: any) {
                       )}
 
                       <div className="space-y-3.5">
-                        {options.map((option: any) => {
+                        {options.map((option) => {
                           const selectedVal = selectedOptions[option.id];
                           return (
                             <div key={option.id}>
@@ -1217,25 +1372,21 @@ export function ProductDetailsView(props: any) {
                               <div className="flex flex-wrap gap-2">
                                 {option.values.map((val: string) => {
                                   const isSelected = selectedVal === val;
+                                  const isDisabled = isValueDisabled(option.id, val);
                                   return (
                                     <button
                                       key={val}
                                       type="button"
-                                      onClick={() =>
-                                        setSelectedOptions((prev: Record<string, string>) => {
-                                          if (prev[option.id] === val) {
-                                            const next = { ...prev };
-                                            delete next[option.id];
-                                            return next;
-                                          }
-                                          return { ...prev, [option.id]: val };
-                                        })
-                                      }
+                                      disabled={isDisabled}
+                                      onClick={() => selectValue(option.id, val)}
                                       aria-pressed={isSelected}
+                                      title={isDisabled ? "Indisponible" : undefined}
                                       className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-semibold transition-all border active:scale-95 ${
-                                        isSelected
-                                          ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
-                                          : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
+                                        isDisabled
+                                          ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
+                                          : isSelected
+                                            ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
+                                            : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
                                       }`}
                                     >
                                       {isSelected && (
@@ -1253,12 +1404,14 @@ export function ProductDetailsView(props: any) {
                         })}
                       </div>
 
-                      {!allSelected && (
-                        <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1.5 rounded-lg">
-                          <AlertCircle size={11} className="flex-shrink-0" />
-                          Choisissez vos options pour commander
-                        </p>
-                      )}
+                      <OptionSelectionHint
+                        allSelected={allSelected}
+                        outOfStock={isSelectedOutOfStock}
+                        hasMatrix={variants.length > 0}
+                        variantName={matchedVariant?.name}
+                        variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
+                        price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
+                      />
                     </div>
                   )}
                   </div>
@@ -1362,7 +1515,7 @@ export function ProductDetailsView(props: any) {
 
                     {waDigits && (
                       <div className="px-3 py-2 bg-white border-t border-amber-100 flex items-center justify-between text-[10px]">
-                        <span className="text-gray-500 font-normal italic">Besoin d'un devis volume ?</span>
+                        <span className="text-gray-500 font-normal italic">Besoin d&apos;un devis volume ?</span>
                         <a
                           href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
                             `Bonjour ${product.storeName}, je vous contacte pour le produit "${product.name}" (Réf: ${product.id}). J'aimerais commander un gros volume. Pouvez-vous me faire votre meilleur prix de gros ? Merci !`
@@ -1602,10 +1755,6 @@ export function ProductDetailsView(props: any) {
                   key={`${relProduct.storeId}-${relProduct.id}`}
                   product={relProduct}
                   onAddToCart={handleCardAddToCart}
-                  onBuyNow={handleCardBuyNow}
-                  onStoreSelect={(id) =>
-                    safeNavigate(`/store/${relProduct.storeSlug || id}`)
-                  }
                   onClick={() =>
                     safeNavigate(`/product/${generateProductSlug(relProduct)}`)
                   }

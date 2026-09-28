@@ -28,6 +28,10 @@ export default function GlobalRootError({ error, reset }: GlobalErrorProps) {
             >
               Recharger la page
             </button>
+            {/* Lien natif volontaire : la limite d'erreur racine peut être
+                affichée parce que le routeur lui-même a planté, on ne doit
+                donc pas dépendre de `next/link` pour s'en sortir. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               className="w-full py-3 px-6 bg-gray-50 hover:bg-gray-100 text-gray-800 font-semibold text-sm rounded-2xl border border-gray-200 transition-all text-center"

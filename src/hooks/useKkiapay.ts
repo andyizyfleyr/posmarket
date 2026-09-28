@@ -39,8 +39,10 @@ export const useKkiapay = () => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as Record<string, unknown>;
     if (typeof (w as { openKkiapayWidget?: unknown }).openKkiapayWidget === 'function') {
-      setReady(true);
-      return;
+      // Widget déjà chargé : on annonce la disponibilité sur le tick suivant
+      // pour éviter un rendu en cascade dans le même effet.
+      const id = setTimeout(() => setReady(true), 0);
+      return () => clearTimeout(id);
     }
     const script = document.createElement('script');
     script.src = 'https://cdn.kkiapay.me/k.js';

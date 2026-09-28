@@ -2,27 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/supabase';
 import { useRouter } from 'next/navigation';
-import {
-  Users,
-  Search,
-  Plus,
-  Mail,
-  Phone,
-  History,
-  MoreVertical,
-  Star,
-  X,
-  Edit,
-  Trash2,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Loader2
-} from 'lucide-react';
+import { Users, Search, Plus, Phone, History, Star, X, Edit, Trash2, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { Customer, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency, formatPhoneNumber } from '@/utils';
 import { getCustomersAction } from '@/app/actions/customers';
@@ -58,7 +38,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Customer; direction: 'asc' | 'desc' }>({
     key: 'totalSpent',
     direction: 'desc'

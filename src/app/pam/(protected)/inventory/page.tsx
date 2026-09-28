@@ -47,7 +47,12 @@ export default function AdminInventoryPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // Premier chargement : etchData est aussi appelé par les actions.
+    // On le décale d'un tick pour que le rendu initial ne soit pas suivi
+    // d'un setState synchrone dans le même effet.
+    void Promise.resolve().then(fetchData);
+  }, []);
 
   const storeMap = new Map(stores.map(s => [s.id, s]));
 

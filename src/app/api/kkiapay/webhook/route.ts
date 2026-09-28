@@ -4,7 +4,7 @@ import { subscriptionPayments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
-import { kkiapayConfigured, verifyKkiapayWebhookSecret, verifyKkiapayTransaction, KkiapayTransactionStatus } from '@/lib/kkiapay';
+import { kkiapayConfigured, verifyKkiapayWebhookSecret, verifyKkiapayTransaction } from '@/lib/kkiapay';
 import { notify, getAdminEmails } from '@/lib/notifications';
 
 export async function POST(request: Request) {

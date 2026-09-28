@@ -1,19 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import {
-  FileText,
-  Calendar,
-  Filter,
-  ChevronRight,
-  Printer,
-  Download,
-  X,
-  CreditCard,
-  User,
-  Package,
-  CheckCircle2
-} from 'lucide-react';
+import { FileText, Calendar, Filter, ChevronRight, Printer, Download, X, CreditCard, User, CheckCircle2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Order, Customer, StoreSettings, StaffPermissions, StaffRole } from '@/types';
@@ -248,6 +236,9 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                       <div className="flex-grow min-w-0">
                         <div className="text-[10px] md:text-sm font-bold text-gray-900 truncate whitespace-nowrap">{item.product.name}</div>
                         <div className="text-[8px] md:text-[10px] text-gray-400 font-mono truncate">{item.product.sku}</div>
+                        {item.variantLabel && (
+                          <div className="text-[8px] md:text-[10px] text-gray-600 italic">{item.variantLabel}</div>
+                        )}
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-[8px] md:text-xs font-semibold text-gray-400 leading-tight">{item.quantity}{item.product.unit && item.product.unit !== 'pièce' ? ` ${item.product.unit}` : ''} x {formatCurrency(item.product.price)}</div>
@@ -280,7 +271,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                   <div className="space-y-1 mb-4">
                     {selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="flex justify-between gap-2">
-                        <span className="truncate flex-grow">{item.product.name}</span>
+                        <span className="truncate flex-grow">{item.product.name}{item.variantLabel ? ` (${item.variantLabel})` : ''}</span>
                         <span className="flex-shrink-0">{item.quantity}{item.product.unit && item.product.unit !== 'pièce' ? ` ${item.product.unit}` : 'x'} {formatCurrency(item.product.price)}</span>
                       </div>
                     ))}

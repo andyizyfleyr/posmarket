@@ -1,42 +1,49 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
-import { ShieldAlert, X, ExternalLink, LogOut, ChevronUp, ChevronDown, UserCheck } from 'lucide-react';
+import { ShieldAlert, ExternalLink, LogOut, ChevronUp, ChevronDown, UserCheck } from 'lucide-react';
 import { ImpersonationCookiePayload } from '@/lib/impersonation';
+
+const COOKIE_NAME = 'pam_impersonation=';
+
+/**
+ * Le cookie d'impersonation est une source externe : on la lit via
+ * `useSyncExternalStore` plutôt que de la recopier dans un état depuis un
+ * effet (qui provoquerait un rendu en cascade).
+ *
+ * Le snapshot est la valeur brute — une chaîne, donc comparée par valeur, ce qui
+ * évite les boucles de rendu.
+ */
+function subscribeToImpersonationCookie() {
+  return () => {};
+}
+
+function readImpersonationCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const row = document.cookie.split('; ').find((entry) => entry.startsWith(COOKIE_NAME));
+  return row ? row.slice(COOKIE_NAME.length) : null;
+}
 
 export default function ImpersonationBanner() {
   const pathname = usePathname();
-  const [data, setData] = useState<ImpersonationCookiePayload | null>(null);
+  const rawCookie = useSyncExternalStore(
+    subscribeToImpersonationCookie,
+    readImpersonationCookie,
+    () => null,
+  );
   const [minimized, setMinimized] = useState(false);
   const [isQuitting, setIsQuitting] = useState(false);
 
-  useEffect(() => {
-    // Ne pas afficher sur les pages internes de l'administration PAM
-    if (pathname?.startsWith('/pam')) {
-      setData(null);
-      return;
-    }
-
+  const data = useMemo<ImpersonationCookiePayload | null>(() => {
+    if (!rawCookie) return null;
     try {
-      const match = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('pam_impersonation='));
-      if (match) {
-        const rawValue = match.split('=')[1];
-        if (rawValue) {
-          const parsed = JSON.parse(decodeURIComponent(rawValue)) as ImpersonationCookiePayload;
-          if (parsed && parsed.active) {
-            setData(parsed);
-          }
-        }
-      } else {
-        setData(null);
-      }
+      const parsed = JSON.parse(decodeURIComponent(rawCookie)) as ImpersonationCookiePayload;
+      return parsed && parsed.active ? parsed : null;
     } catch {
-      setData(null);
+      return null;
     }
-  }, [pathname]);
+  }, [rawCookie]);
 
   if (!data || pathname?.startsWith('/pam')) {
     return null;

@@ -1,4 +1,4 @@
-import { getGlobalOrders, getOrderItems, getStoreById, getUserById } from '@/app/actions/admin';
+import { getGlobalOrders, getOrderItems, getStoreById } from '@/app/actions/admin';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {

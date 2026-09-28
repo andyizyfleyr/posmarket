@@ -1,18 +1,6 @@
 import type { Metadata } from "next";
 import { Link } from "@/components/RouterPolyfill";
-import {
-  Store,
-  User,
-  CreditCard,
-  Package,
-  TerminalSquare,
-  Users,
-  FileText,
-  Settings,
-  BarChart,
-  LayoutDashboard,
-  ArrowRight,
-} from "lucide-react";
+import { Store, CreditCard, Users, FileText, Settings, BarChart, LayoutDashboard, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Guide Vendeur — PosMarket",

@@ -1,23 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-    ShoppingBag,
-    Search,
-    Filter,
-    ChevronRight,
-    Clock,
-    CheckCircle2,
-    CreditCard,
-    Package,
-    ArrowLeft,
-    X,
-    Truck,
-    AlertCircle,
-    Loader2,
-    Trash2,
-    Calendar,
-    Zap
-} from 'lucide-react';
+import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
@@ -37,9 +20,6 @@ interface OrdersViewProps {
 const OrdersView: React.FC<OrdersViewProps> = ({ 
     orders: initialOrders, 
     currentStoreId,
-    permissions, 
-    userRole,
-    store
 }) => {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
@@ -198,20 +178,18 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     const handleDelete = async (orderId: string) => {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer cette commande ?`)) {
-            try {
-                const result = await deleteOrderAction(orderId);
-                if (result.success) {
-                    router.refresh();
-                    showToast("Commande supprimée", 'info');
-                    if (selectedOrder?.id === orderId) setSelectedOrder(null);
-                } else {
-                    showToast(result.error || "Erreur de suppression", 'error');
-                }
-            } catch (err) {
-                console.error('Error deleting order:', err);
-                showToast("Erreur de suppression de la commande", 'error');
+        try {
+            const result = await deleteOrderAction(orderId);
+            if (result.success) {
+                router.refresh();
+                showToast("Commande supprimée", 'info');
+                if (selectedOrder?.id === orderId) setSelectedOrder(null);
+            } else {
+                showToast(result.error || "Erreur de suppression", 'error');
             }
+        } catch (err) {
+            console.error('Error deleting order:', err);
+            showToast("Erreur de suppression de la commande", 'error');
         }
     };
 
@@ -526,7 +504,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     ) : (
                                     <div className="space-y-2 md:space-y-3">
 {selectedOrderItems.map((item, idx) => {
-                                            const product = item.product as any;
+                                            const product = item.product;
                                             const baseUnit = Number(product?.price || 0);
                                             const unitQty = Number(item.quantity || 1);
                                             const effUnit = product ? getEffectiveWholesaleUnitPrice(product, unitQty) : baseUnit;
@@ -539,6 +517,12 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                 </div>
                                                 <div className="flex-grow min-w-0">
                                                     <div className="text-xs md:text-sm font-bold text-gray-900 truncate">{product?.name || 'Article'}</div>
+                                                    {item.variantLabel && (
+                                                        <div className="text-[9px] md:text-[10px] text-gray-500 italic truncate">
+                                                            {item.variantLabel}
+                                                            {item.variantSku ? ` · SKU ${item.variantSku}` : ''}
+                                                        </div>
+                                                    )}
                                                     <div className="text-[9px] md:text-[10px] text-gray-400 font-semibold uppercase mt-0.5 flex items-center flex-wrap gap-1">
                                                         {unitQty} {product?.unit || 'unité(s)'}
                                                         {isWholesale && (

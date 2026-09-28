@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Home, Search, Package, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Home, Package, ArrowRight } from 'lucide-react';
 
 export default function ProductNotFound() {
   return (
