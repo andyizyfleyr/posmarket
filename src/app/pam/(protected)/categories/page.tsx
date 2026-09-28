@@ -11,16 +11,17 @@ import {
   AlertTriangle,
   X,
   Loader2,
-  ChevronDown,
   ChevronRight,
   ArrowUp,
   ArrowDown,
-  FolderTree,
   UtensilsCrossed,
   ShoppingBag,
   Eye,
   EyeOff,
   Layers,
+  Package,
+  Ban,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   getAdminProductCategories,
@@ -32,6 +33,7 @@ import {
 } from '@/app/actions/categories';
 import type { ProductCategoryNode } from '@/app/actions/categories';
 import Loader from '@/components/Loader';
+import { formatNumber } from '@/utils';
 
 type Draft = {
   id: string | null;
@@ -51,40 +53,32 @@ const EMPTY_DRAFT: Draft = {
   isActive: true,
 };
 
-type FlatRow = {
-  node: ProductCategoryNode;
-  depth: number;
-};
+type StatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
 
-const verticalLabel = (value: string) => (value === 'food' ? 'Restauration' : 'Commerce');
+function CategoryIcon({
+  businessType,
+  size = 20,
+}: {
+  businessType: string;
+  size?: number;
+}) {
+  return businessType === 'food' ? (
+    <UtensilsCrossed size={size} className="text-emerald-600" />
+  ) : (
+    <ShoppingBag size={size} className="text-[#f56b2a]" />
+  );
+}
 
-function flatten(tree: ProductCategoryNode[], search: string): FlatRow[] {
-  const term = search.trim().toLowerCase();
-  const matches = (n: ProductCategoryNode) =>
-    !term ||
-    n.name.toLowerCase().includes(term) ||
-    (n.slug || '').toLowerCase().includes(term);
-
-  const rows: FlatRow[] = [];
-  for (const node of tree) {
-    const selfHit = matches(node);
-    // En recherche, un parent reste visible si un de ses enfants correspond.
-    const hitChildren = node.children.some(matches);
-    if (selfHit || hitChildren || !term) {
-      rows.push({ node, depth: 0 });
-      for (const child of node.children) {
-        if (!term || selfHit || matches(child)) rows.push({ node: child, depth: 1 });
-      }
-    }
-  }
-  return rows;
+function verticalLabel(value: string) {
+  return value === 'food' ? 'Restauration' : 'Commerce';
 }
 
 export default function AdminCategoriesPage() {
   const [tree, setTree] = useState<ProductCategoryNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -94,7 +88,7 @@ export default function AdminCategoriesPage() {
 
   const flash = useCallback((tone: 'success' | 'error', text: string) => {
     setNotice({ tone, text });
-    window.setTimeout(() => setNotice(null), 4000);
+    window.setTimeout(() => setNotice(null), 4500);
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -107,35 +101,48 @@ export default function AdminCategoriesPage() {
     fetchData();
   }, [fetchData]);
 
-  const rows = useMemo(() => flatten(tree, search), [tree, search]);
-  const roots = useMemo(() => tree.map((n) => n.id), [tree]);
+  const setBusy = useCallback((id: string, on: boolean) => {
+    setProcessing((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
 
-  const totals = useMemo(() => {
-    let all = 0;
+  const stats = useMemo(() => {
+    let total = 0;
     let inactive = 0;
     const walk = (list: ProductCategoryNode[]) => {
       for (const n of list) {
-        all += 1;
+        total += 1;
         if (!n.isActive) inactive += 1;
         walk(n.children);
       }
     };
     walk(tree);
-    return { all, inactive, parents: tree.length, children: all - tree.length };
+    return { total, inactive, active: total - inactive, roots: tree.length, children: total - tree.length };
   }, [tree]);
 
-  const withBusy = async (id: string, run: () => Promise<void>) => {
-    setProcessing((prev) => new Set(prev).add(id));
-    try {
-      await run();
-    } finally {
-      setProcessing((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return tree
+      .map((node) => {
+        const children = term
+          ? node.children.filter(
+              (c) => c.name.toLowerCase().includes(term) || (c.slug || '').toLowerCase().includes(term)
+            )
+          : node.children;
+        const selfHit = !term || node.name.toLowerCase().includes(term) || (node.slug || '').toLowerCase().includes(term);
+        return { node, children, selfHit };
+      })
+      .filter(({ node, children, selfHit }) => {
+        if (!selfHit && children.length === 0) return false;
+        if (statusFilter === 'ACTIVE') return node.isActive;
+        if (statusFilter === 'INACTIVE') return !node.isActive;
+        return true;
       });
-    }
-  };
+  }, [tree, search, statusFilter]);
 
   const openCreate = (parentId: string | null) => {
     setFormError(null);
@@ -172,11 +179,15 @@ export default function AdminCategoriesPage() {
         : await createProductCategoryAction(payload);
 
       if (!result.success) {
-        setFormError(result.error === 'Unauthorized' ? 'Session expirée, reconnectez-vous.' : result.error || 'Erreur inattendue.');
+        setFormError(
+          result.error === 'Unauthorized'
+            ? 'Session expirée, reconnectez-vous.'
+            : result.error || 'Erreur inattendue.'
+        );
         return;
       }
       setDraft(null);
-      flash('success', draft.id ? 'Catégorie mise à jour.' : 'Catégorie créée.');
+      flash('success', draft.id ? `« ${draft.name} » a été mise à jour.` : `« ${draft.name} » a été créée.`);
       await fetchData();
     } catch {
       setFormError('Erreur lors de l’enregistrement.');
@@ -185,55 +196,55 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleToggle = (node: ProductCategoryNode) => {
-    return withBusy(node.id, async () => {
-      const result = await toggleProductCategoryAction(node.id, !node.isActive);
-      if (!result.success) {
-        flash('error', result.error === 'Unauthorized' ? 'Session expirée, reconnectez-vous.' : result.error || 'Erreur.');
-        return;
-      }
-      flash('success', node.isActive ? 'Catégorie désactivée.' : 'Catégorie activée.');
-      await fetchData();
-    });
+  const handleToggle = async (node: ProductCategoryNode) => {
+    setBusy(node.id, true);
+    const result = await toggleProductCategoryAction(node.id, !node.isActive);
+    setBusy(node.id, false);
+    if (!result.success) {
+      flash('error', result.error === 'Unauthorized' ? 'Session expirée, reconnectez-vous.' : result.error || 'Erreur.');
+      return;
+    }
+    flash('success', node.isActive ? `« ${node.name} » est désormais masquée.` : `« ${node.name} » est de nouveau visible.`);
+    await fetchData();
   };
 
-  const handleDelete = (node: ProductCategoryNode) => {
+  const handleDelete = async (node: ProductCategoryNode) => {
     setToDelete(null);
-    return withBusy(node.id, async () => {
-      const result = await deleteProductCategoryAction(node.id);
-      if (!result.success) {
-        flash('error', result.error === 'Unauthorized' ? 'Session expirée, reconnectez-vous.' : result.error || 'Erreur.');
-        return;
-      }
-      flash('success', `Catégorie « ${node.name} » supprimée.`);
-      await fetchData();
-    });
+    setBusy(node.id, true);
+    const result = await deleteProductCategoryAction(node.id);
+    setBusy(node.id, false);
+    if (!result.success) {
+      flash('error', result.error === 'Unauthorized' ? 'Session expirée, reconnectez-vous.' : result.error || 'Erreur.');
+      return;
+    }
+    flash('success', `« ${node.name} » a été supprimée.`);
+    await fetchData();
   };
 
-  const move = (node: ProductCategoryNode, direction: -1 | 1) => {
-    return withBusy(node.id, async () => {
-      const siblings = node.parentId
-        ? tree.find((n) => n.id === node.parentId)?.children ?? []
-        : tree;
-      const index = siblings.findIndex((n) => n.id === node.id);
-      const target = siblings[index + direction];
-      if (!target) return;
+  const move = async (node: ProductCategoryNode, direction: -1 | 1) => {
+    const siblings = node.parentId
+      ? tree.find((n) => n.id === node.parentId)?.children ?? []
+      : tree;
+    const index = siblings.findIndex((n) => n.id === node.id);
+    const target = siblings[index + direction];
+    if (!target) return;
 
-      const next = [...siblings];
-      next[index] = target;
-      next[index + direction] = node;
+    const next = [...siblings];
+    next[index] = target;
+    next[index + direction] = node;
 
-      const result = await reorderProductCategoriesAction(next.map((n) => n.id));
-      if (!result.success) {
-        flash('error', result.error || 'Erreur.');
-        return;
-      }
-      await fetchData();
-    });
+    setBusy(node.id, true);
+    const result = await reorderProductCategoriesAction(next.map((n) => n.id));
+    setBusy(node.id, false);
+    if (!result.success) {
+      flash('error', result.error || 'Erreur.');
+      return;
+    }
+    await fetchData();
   };
 
-  const toggleCollapse = (id: string) => {
-    setCollapsed((prev) => {
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -241,9 +252,9 @@ export default function AdminCategoriesPage() {
     });
   };
 
-  const parentOptions = tree.filter((n) => (draft?.id ? n.id !== draft.id : true));
-  const parent = draft?.parentId ? parentOptions.find((n) => n.id === draft.parentId) : undefined;
-  const busyCount = processing.size;
+  const parent = draft?.parentId ? tree.find((n) => n.id === draft.parentId) : undefined;
+  const hasFilters = search.trim() !== '' || statusFilter !== 'ALL';
+  const busy = processing.size > 0;
 
   if (loading) {
     return (
@@ -254,266 +265,437 @@ export default function AdminCategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-8">
+      {/* En-tête */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 uppercase tracking-tighter">Catégories Produit</h1>
-          <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">
-            Taxonomie globale du catalogue · {totals.parents} catégories · {totals.children} sous-catégories
-            {totals.inactive > 0 ? ` · ${totals.inactive} désactivée(s)` : ''}
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Catégories</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {stats.roots} catégorie{stats.roots > 1 ? 's' : ''} racine{stats.roots > 1 ? 's' : ''} ·{' '}
+            {stats.children} sous-catégorie{stats.children > 1 ? 's' : ''} proposées aux vendeurs. Le nom
+            d&apos;une catégorie est la clef de rattachement des produits.
           </p>
         </div>
         <button
           onClick={() => openCreate(null)}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#f56b2a] hover:bg-[#d55a20] text-white text-xs font-bold transition-all active:scale-95 shadow-lg shadow-orange-100"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#f56b2a] to-orange-600 text-white text-sm font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-md active:scale-95 self-start"
         >
           <Plus size={16} /> Nouvelle catégorie
         </button>
       </div>
 
+      {/* Statistiques */}
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
+        {[
+          { key: 'ALL' as StatusFilter, label: 'Toutes', value: stats.total, icon: <Tags size={18} />, color: 'text-gray-700 bg-gray-100' },
+          { key: 'ACTIVE' as StatusFilter, label: 'Visibles', value: stats.active, icon: <Eye size={18} />, color: 'text-emerald-600 bg-emerald-50' },
+          { key: 'INACTIVE' as StatusFilter, label: 'Masquées', value: stats.inactive, icon: <Ban size={18} />, color: 'text-slate-600 bg-slate-100' },
+        ].map((s) => {
+          const active = statusFilter === s.key;
+          return (
+            <button
+              key={s.key}
+              onClick={() => setStatusFilter(s.key)}
+              className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${
+                active ? 'ring-2 ring-[#f56b2a]/30' : ''
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.color} mb-3`}>{s.icon}</div>
+              <p className="text-2xl font-bold text-gray-900">{formatNumber(s.value)}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-0.5">{s.label}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Barre de filtres */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder="Rechercher une catégorie ou un identifiant…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] placeholder:text-gray-400 text-sm font-normal text-gray-900 shadow-sm transition-all"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          className="px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-semibold text-gray-700 cursor-pointer shadow-sm md:w-52"
+        >
+          <option value="ALL">Toutes les catégories</option>
+          <option value="ACTIVE">Visibles uniquement</option>
+          <option value="INACTIVE">Masquées uniquement</option>
+        </select>
+        {hasFilters && (
+          <button
+            onClick={() => {
+              setSearch('');
+              setStatusFilter('ALL');
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
+          >
+            <X size={15} /> Réinitialiser
+          </button>
+        )}
+        <button
+          onClick={() => {
+            setLoading(true);
+            fetchData();
+          }}
+          disabled={busy}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-400 hover:text-gray-700 transition-all disabled:opacity-50"
+        >
+          <RefreshCcw size={16} className={busy ? 'animate-spin' : ''} />
+          <span className="md:hidden xl:inline">Actualiser</span>
+        </button>
+      </div>
+
       {notice && (
         <div
-          className={`px-4 py-3 rounded-2xl text-xs font-bold border flex items-center gap-2 ${
+          className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-sm font-semibold shadow-sm ${
             notice.tone === 'success'
-              ? 'bg-green-50 text-green-700 border-green-100'
-              : 'bg-red-50 text-red-600 border-red-100'
+              ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+              : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
           }`}
         >
-          {notice.tone === 'success' ? <Tags size={14} /> : <AlertTriangle size={14} />}
+          {notice.tone === 'success' ? <CheckCircle2 size={17} /> : <AlertTriangle size={17} />}
           {notice.text}
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Chercher une catégorie..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
-          />
+      {/* Liste */}
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
+          <div className="w-16 h-16 mx-auto bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4">
+            <Tags size={28} />
+          </div>
+          <p className="text-gray-900 font-bold text-lg">
+            {hasFilters ? 'Aucune catégorie trouvée' : 'Aucune catégorie configurée'}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {hasFilters
+              ? 'Essayez de modifier votre recherche ou vos filtres.'
+              : 'Créez la première catégorie pour qu’elle apparaisse dans les formulaires des vendeurs.'}
+          </p>
+          {!hasFilters && (
+            <button
+              onClick={() => openCreate(null)}
+              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-bold transition-all active:scale-95"
+            >
+              <Plus size={16} /> Créer une catégorie
+            </button>
+          )}
         </div>
-        <button
-          onClick={() => { setLoading(true); fetchData(); }}
-          disabled={busyCount > 0}
-          className="px-4 py-3 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-gray-700 transition-all disabled:opacity-50"
-          title="Rafraîchir"
-        >
-          <RefreshCcw size={16} className={busyCount > 0 ? 'animate-spin' : ''} />
-        </button>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map(({ node, children }) => {
+            const isOpen = expanded.has(node.id);
+            const totalProducts = node.productCount + node.children.reduce((acc, c) => acc + c.productCount, 0);
+            const nodeBusy = processing.has(node.id);
+            // Index dans l'arbre complet : le réordonnancement ignore le filtre.
+            const treeIndex = tree.findIndex((n) => n.id === node.id);
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-400 border-b border-gray-100">
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Catégorie</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest">Verticale</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-center">Produits</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-center">État</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-right">Ordre</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {rows.map(({ node, depth }) => {
-                const isParent = node.children.length > 0;
-                const isCollapsed = collapsed.has(node.id);
-                const siblings = node.parentId
-                  ? tree.find((n) => n.id === node.parentId)?.children ?? []
-                  : tree;
-                const index = siblings.findIndex((n) => n.id === node.id);
-                const busy = processing.has(node.id);
+            return (
+              <div
+                key={node.id}
+                className={`bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden ${
+                  node.isActive ? '' : 'bg-gray-50/60'
+                }`}
+              >
+                {/* En-tête catégorie */}
+                <div className="bg-gradient-to-br from-gray-50 to-white px-5 md:px-6 py-5 flex flex-col lg:flex-row lg:items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                        node.isActive ? 'bg-orange-50' : 'bg-gray-100'
+                      }`}
+                    >
+                      {node.isActive ? (
+                        <CategoryIcon businessType={node.businessType} />
+                      ) : (
+                        <EyeOff size={20} className="text-gray-400" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className={`text-base font-bold truncate ${node.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+                          {node.name}
+                        </h3>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                            node.businessType === 'food'
+                              ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                              : 'bg-orange-50 text-[#f56b2a] ring-1 ring-orange-200'
+                          }`}
+                        >
+                          <CategoryIcon businessType={node.businessType} size={11} />
+                          {verticalLabel(node.businessType)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-400 font-mono mt-0.5 truncate">/{node.slug}</p>
+                    </div>
+                  </div>
 
-                return (
-                  <tr
-                    key={node.id}
-                    className={`hover:bg-orange-50/20 group transition-colors ${node.isActive ? '' : 'opacity-55'} ${depth === 1 ? 'bg-gray-50/40' : ''}`}
-                  >
-                    <td className="px-6 py-4">
-                      <div className={`flex items-center gap-2 ${depth === 1 ? 'pl-8' : ''}`}>
-                        {depth === 0 ? (
-                          isParent ? (
-                            <button
-                              onClick={() => toggleCollapse(node.id)}
-                              className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-[#f56b2a] transition-colors shrink-0"
-                              aria-label={isCollapsed ? 'Déplier' : 'Replier'}
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-semibold text-gray-700 ring-1 ring-gray-200">
+                      <Layers size={14} className="text-gray-400" />
+                      {node.children.length} sous-catégorie{node.children.length > 1 ? 's' : ''}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-semibold text-gray-700 ring-1 ring-gray-200">
+                      <Package size={14} className="text-[#f56b2a]" />
+                      {formatNumber(totalProducts)} produit{totalProducts > 1 ? 's' : ''}
+                    </span>
+
+                    {/* Réordonnancement */}
+                    <div className="flex items-center rounded-xl ring-1 ring-gray-200 bg-white overflow-hidden">
+                      <button
+                        onClick={() => move(node, -1)}
+                        disabled={nodeBusy || treeIndex <= 0}
+                        className="p-2 text-gray-400 hover:text-[#f56b2a] hover:bg-orange-50 transition-colors disabled:opacity-30 disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+                        title="Monter"
+                      >
+                        <ArrowUp size={15} />
+                      </button>
+                      <button
+                        onClick={() => move(node, 1)}
+                        disabled={nodeBusy || treeIndex >= tree.length - 1}
+                        className="p-2 text-gray-400 hover:text-[#f56b2a] hover:bg-orange-50 transition-colors border-l border-gray-100 disabled:opacity-30 disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+                        title="Descendre"
+                      >
+                        <ArrowDown size={15} />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => handleToggle(node)}
+                      disabled={nodeBusy}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                        node.isActive
+                          ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 hover:bg-emerald-500 hover:text-white'
+                          : 'bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                      }`}
+                    >
+                      {nodeBusy ? (
+                        <RefreshCcw size={14} className="animate-spin" />
+                      ) : node.isActive ? (
+                        <Eye size={14} />
+                      ) : (
+                        <EyeOff size={14} />
+                      )}
+                      {node.isActive ? 'Masquer' : 'Afficher'}
+                    </button>
+
+                    <button
+                      onClick={() => openEdit(node)}
+                      className="p-2 text-gray-400 hover:text-[#f56b2a] transition-colors"
+                      title="Modifier"
+                    >
+                      <Pencil size={17} />
+                    </button>
+                    <button
+                      onClick={() => setToDelete(node)}
+                      className="p-2 text-gray-400 hover:text-rose-500 transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 size={17} />
+                    </button>
+                    <button
+                      onClick={() => toggleExpand(node.id)}
+                      className="p-2 text-gray-400 hover:text-[#f56b2a] transition-colors"
+                      aria-label={isOpen ? 'Réduire' : 'Déplier'}
+                    >
+                      <ChevronRight size={20} className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sous-catégories */}
+                {isOpen && (
+                  <div className="divide-y divide-gray-100 border-t border-gray-100">
+                    {children.map((child) => {
+                      const childBusy = processing.has(child.id);
+                      const childIndex = node.children.findIndex((c) => c.id === child.id);
+                      return (
+                        <div
+                          key={child.id}
+                          className={`px-5 md:px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 transition-colors ${
+                            child.isActive ? 'hover:bg-gray-50/50' : 'bg-gray-50/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="pl-3 border-l-2 border-gray-100 shrink-0">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                  child.isActive ? 'bg-gray-50' : 'bg-gray-100'
+                                }`}
+                              >
+                                {child.isActive ? (
+                                  <CategoryIcon businessType={child.businessType} size={17} />
+                                ) : (
+                                  <EyeOff size={16} className="text-gray-400" />
+                                )}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <p
+                                className={`text-sm font-bold truncate ${
+                                  child.isActive ? 'text-gray-900' : 'text-gray-400 line-through'
+                                }`}
+                              >
+                                {child.name}
+                              </p>
+                              <p className="text-xs text-gray-400 font-mono truncate">/{child.slug}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 sm:gap-3 pl-12 sm:pl-0">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                child.productCount > 0
+                                  ? 'bg-orange-50 text-[#f56b2a] ring-1 ring-orange-200'
+                                  : 'bg-gray-50 text-gray-400 ring-1 ring-gray-200'
+                              }`}
                             >
-                              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                            </button>
-                          ) : (
-                            <span className="w-6 h-6 flex items-center justify-center shrink-0">
-                              <FolderTree size={14} className="text-gray-300" />
+                              <Package size={13} />
+                              {formatNumber(child.productCount)}
                             </span>
-                          )
-                        ) : (
-                          <span className="w-6 h-6 flex items-center justify-center shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                          </span>
-                        )}
 
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-gray-900 truncate max-w-[260px] flex items-center gap-1.5">
-                            {depth === 1 && <Layers size={11} className="text-gray-300 shrink-0" />}
-                            {node.name}
-                          </p>
-                          <p className="text-[9px] font-semibold text-gray-400 truncate max-w-[260px]">/{node.slug}</p>
+                            <div className="flex items-center rounded-xl ring-1 ring-gray-200 bg-white overflow-hidden">
+                              <button
+                                onClick={() => move(child, -1)}
+                                disabled={childBusy || childIndex === 0}
+                                className="p-2 text-gray-400 hover:text-[#f56b2a] hover:bg-orange-50 transition-colors disabled:opacity-30 disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+                                title="Monter"
+                              >
+                                <ArrowUp size={14} />
+                              </button>
+                              <button
+                                onClick={() => move(child, 1)}
+                                disabled={childBusy || childIndex === node.children.length - 1}
+                                className="p-2 text-gray-400 hover:text-[#f56b2a] hover:bg-orange-50 transition-colors border-l border-gray-100 disabled:opacity-30 disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+                                title="Descendre"
+                              >
+                                <ArrowDown size={14} />
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => handleToggle(child)}
+                              disabled={childBusy}
+                              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                                child.isActive
+                                  ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 hover:bg-emerald-500 hover:text-white'
+                                  : 'bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                              }`}
+                            >
+                              {childBusy ? (
+                                <RefreshCcw size={13} className="animate-spin" />
+                              ) : child.isActive ? (
+                                <Eye size={13} />
+                              ) : (
+                                <EyeOff size={13} />
+                              )}
+                              {child.isActive ? 'Masquer' : 'Afficher'}
+                            </button>
+
+                            <button
+                              onClick={() => openEdit(child)}
+                              className="p-2 text-gray-400 hover:text-[#f56b2a] transition-colors"
+                              title="Modifier"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => setToDelete(child)}
+                              className="p-2 text-gray-400 hover:text-rose-500 transition-colors"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      );
+                    })}
 
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border ${
-                          node.businessType === 'food'
-                            ? 'bg-green-50 text-green-600 border-green-100'
-                            : 'bg-orange-50 text-[#f56b2a] border-orange-100'
-                        }`}
-                      >
-                        {node.businessType === 'food' ? <UtensilsCrossed size={10} /> : <ShoppingBag size={10} />}
-                        {verticalLabel(node.businessType)}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border ${
-                          node.productCount > 0
-                            ? 'bg-gray-50 text-gray-500 border-gray-100'
-                            : 'bg-amber-50 text-amber-600 border-amber-100'
-                        }`}
-                      >
-                        {node.productCount}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
+                    <div className="px-5 md:px-6 py-3 bg-gray-50/40">
                       <button
-                        onClick={() => handleToggle(node)}
-                        disabled={busy}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase border transition-all disabled:opacity-50 ${
-                          node.isActive
-                            ? 'bg-green-50 text-green-600 border-green-100 hover:bg-green-100'
-                            : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'
-                        }`}
-                        title={node.isActive ? 'Désactiver' : 'Activer'}
+                        onClick={() => openCreate(node.id)}
+                        className="inline-flex items-center gap-1.5 text-sm font-bold text-[#f56b2a] hover:text-[#d55a20] transition-colors"
                       >
-                        {busy ? <RefreshCcw size={10} className="animate-spin" /> : node.isActive ? <Eye size={10} /> : <EyeOff size={10} />}
-                        {node.isActive ? 'Active' : 'Inactive'}
+                        <Plus size={15} /> Ajouter une sous-catégorie à {node.name}
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                )}
 
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => move(node, -1)}
-                          disabled={busy || index <= 0}
-                          className="p-1.5 text-gray-300 hover:text-[#f56b2a] transition-colors disabled:opacity-25 disabled:hover:text-gray-300"
-                          title="Monter"
-                        >
-                          <ArrowUp size={14} />
-                        </button>
-                        <span className="text-[10px] font-bold text-gray-300 w-5 text-center">{index + 1}</span>
-                        <button
-                          onClick={() => move(node, 1)}
-                          disabled={busy || index >= siblings.length - 1}
-                          className="p-1.5 text-gray-300 hover:text-[#f56b2a] transition-colors disabled:opacity-25 disabled:hover:text-gray-300"
-                          title="Descendre"
-                        >
-                          <ArrowDown size={14} />
-                        </button>
-                      </div>
-                    </td>
+                {!isOpen && node.children.length > 0 && !search.trim() && (
+                  <div className="px-5 md:px-6 py-3 border-t border-gray-100 bg-gray-50/40 text-sm text-gray-400 font-normal">
+                    {node.children.length} sous-catégorie{node.children.length > 1 ? 's' : ''} — cliquer pour
+                    afficher le détail
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => (isParent ? openCreate(node.id) : openEdit(node))}
-                          disabled={busy}
-                          className="p-2.5 bg-white text-slate-300 border border-gray-100 rounded-xl hover:text-[#f56b2a] hover:border-orange-200 transition-all disabled:opacity-50"
-                          title={isParent ? 'Ajouter une sous-catégorie' : 'Modifier'}
-                        >
-                          {isParent ? <Plus size={16} /> : <Pencil size={16} />}
-                        </button>
-                        <button
-                          onClick={() => setToDelete(node)}
-                          disabled={busy}
-                          className="p-2.5 bg-white text-slate-300 border border-gray-100 rounded-xl hover:text-red-500 hover:border-red-200 transition-all disabled:opacity-50"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <Tags size={32} className="mx-auto text-gray-200 mb-3" />
-                    <p className="text-sm font-bold text-gray-500">
-                      {search ? 'Aucune catégorie ne correspond à cette recherche.' : 'Aucune catégorie configurée.'}
-                    </p>
-                    {!search && (
-                      <button
-                        onClick={() => openCreate(null)}
-                        className="mt-4 px-4 py-2.5 rounded-xl bg-[#f56b2a] hover:bg-[#d55a20] text-white text-xs font-bold transition-all"
-                      >
-                        <Plus size={14} className="inline mr-1" /> Créer la première catégorie
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {hasFilters && (
+            <p className="text-sm text-gray-400 text-center pt-2">
+              {filtered.length} catégorie{filtered.length > 1 ? 's' : ''} sur {stats.roots} — affinez votre
+              recherche pour en voir plus.
+            </p>
+          )}
         </div>
-      </div>
+      )}
 
-      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider leading-relaxed">
-        {roots.length} catégories racines. Le nom est la clef de rattachement des produits : le renommer
-        réaffecte automatiquement les produits concernés. Une catégorie utilisée par au moins un produit ne peut
-        pas être supprimée — désactivez-la pour la retirer des formulaires vendeur.
+      <p className="text-[13px] text-gray-400 font-normal leading-relaxed max-w-3xl">
+        Renommer une catégorie réaffecte automatiquement les produits qui la portent. Une catégorie utilisée par au
+        moins un produit ne peut pas être supprimée : masquez-la pour la retirer des formulaires vendeur, ou
+        réaffectez ses produits d&apos;abord.
       </p>
 
+      {/* Modale création / édition */}
       {draft && (
         <div className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto custom-scrollbar animate-in zoom-in-95 duration-200">
             <div className="p-6 md:p-8 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">
-                  {draft.id ? 'Modifier la catégorie' : draft.parentId ? 'Nouvelle sous-catégorie' : 'Nouvelle catégorie'}
-                </h3>
-                <p className="text-[11px] text-gray-400 font-semibold mt-0.5">
-                  {parent ? `Rattachée à « ${parent.name} »` : 'Catégorie racine du catalogue'}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                  {draft.parentId ? <Layers size={19} className="text-[#f56b2a]" /> : <Tags size={19} className="text-[#f56b2a]" />}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-gray-900 tracking-tight">
+                    {draft.id ? 'Modifier la catégorie' : draft.parentId ? 'Nouvelle sous-catégorie' : 'Nouvelle catégorie'}
+                  </h3>
+                  <p className="text-xs text-gray-400 font-semibold mt-0.5 truncate">
+                    {parent ? `Rattachée à « ${parent.name} »` : 'Catégorie racine du catalogue'}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setDraft(null)}
-                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-50 rounded-xl transition-all"
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-50 rounded-xl transition-all shrink-0"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5">
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Nom</label>
                 <input
                   required
+                  autoFocus
                   maxLength={80}
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] focus:bg-white outline-none transition-all"
                   placeholder="Ex. Électronique & High-Tech"
                 />
-                <p className="text-[10px] text-gray-400 font-semibold px-1">
-                  L&apos;identifiant d&apos;URL est généré automatiquement à partir du nom.
+                <p className="text-[11px] text-gray-400 font-normal px-1">
+                  L&apos;identifiant d&apos;URL est généré automatiquement.
                 </p>
               </div>
 
@@ -523,12 +705,16 @@ export default function AdminCategoriesPage() {
                   <select
                     value={draft.parentId ?? ''}
                     onChange={(e) => setDraft({ ...draft, parentId: e.target.value || null })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:bg-white outline-none appearance-none cursor-pointer transition-all"
                   >
-                    <option value="">Aucune (catégorie racine)</option>
-                    {parentOptions.map((n) => (
-                      <option key={n.id} value={n.id}>{n.name}</option>
-                    ))}
+                    <option value="">Aucune (racine)</option>
+                    {tree
+                      .filter((n) => n.id !== draft.id)
+                      .map((n) => (
+                        <option key={n.id} value={n.id}>
+                          {n.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -537,7 +723,7 @@ export default function AdminCategoriesPage() {
                   <select
                     value={draft.businessType}
                     onChange={(e) => setDraft({ ...draft, businessType: e.target.value as 'shopping' | 'food' })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:bg-white outline-none appearance-none cursor-pointer transition-all"
                   >
                     <option value="shopping">Commerce</option>
                     <option value="food">Restauration</option>
@@ -551,7 +737,7 @@ export default function AdminCategoriesPage() {
                   maxLength={40}
                   value={draft.icon}
                   onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] focus:bg-white outline-none transition-all"
                   placeholder="Nom d'icône lucide, ex. Smartphone"
                 />
               </div>
@@ -559,37 +745,40 @@ export default function AdminCategoriesPage() {
               <button
                 type="button"
                 onClick={() => setDraft({ ...draft, isActive: !draft.isActive })}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-                  draft.isActive ? 'bg-green-50 border-green-200 text-green-600' : 'bg-gray-50 border-gray-100 text-gray-400'
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border text-sm font-bold transition-all ${
+                  draft.isActive
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-500'
                 }`}
               >
                 <span className="flex items-center gap-2">
                   {draft.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
                   {draft.isActive ? 'Visible dans les formulaires vendeur' : 'Masquée des formulaires vendeur'}
                 </span>
-                <span className={`w-9 h-5 rounded-full transition-colors ${draft.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={`w-9 h-5 rounded-full transition-colors ${draft.isActive ? 'bg-emerald-500' : 'bg-gray-300'}`} />
               </button>
 
               {formError && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-semibold text-red-600">
+                <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-100 rounded-xl text-sm font-semibold text-rose-600">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                   {formError}
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setDraft(null)}
-                  className="flex-1 py-3.5 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all active:scale-95"
+                  className="flex-1 py-3 border-2 border-gray-100 rounded-xl font-bold text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all active:scale-95"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-[#f56b2a] hover:bg-[#d55a20] transition-all active:scale-95 shadow-lg shadow-orange-100 disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-md disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Tags size={16} />}
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                   {saving ? 'Enregistrement…' : 'Enregistrer'}
                 </button>
               </div>
@@ -598,27 +787,25 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
+      {/* Modale de confirmation */}
       {toDelete && (
-        <div className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
-              <Trash2 size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Supprimer cette catégorie ?</h3>
-            <p className="text-sm text-gray-500 font-normal text-center mb-6">
-              « {toDelete.name} » sera définitivement retirée du catalogue.
-              {toDelete.productCount > 0 && (
-                <span className="block mt-2 text-red-500 font-semibold">
-                  {toDelete.productCount} produit(s) utilisent cette catégorie : réaffectez-les d&apos;abord.
-                </span>
-              )}
-              {toDelete.children.length > 0 && (
-                <span className="block mt-2 text-red-500 font-semibold">
-                  Supprimez d&apos;abord ses {toDelete.children.length} sous-catégorie(s).
-                </span>
-              )}
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Supprimer « {toDelete.name} » ?</h3>
+            <p className="text-sm text-gray-500 font-normal mb-2">
+              Cette catégorie sera définitivement retirée du catalogue. Cette action est irréversible.
             </p>
-            <div className="flex gap-3">
+            {toDelete.productCount > 0 && (
+              <p className="text-sm font-semibold text-rose-600 mb-2">
+                {formatNumber(toDelete.productCount)} produit(s) l&apos;utilisent : réaffectez-les d&apos;abord.
+              </p>
+            )}
+            {toDelete.children.length > 0 && (
+              <p className="text-sm font-semibold text-rose-600 mb-2">
+                Elle contient {toDelete.children.length} sous-catégorie(s) : supprimez-les d&apos;abord.
+              </p>
+            )}
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setToDelete(null)}
                 className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
