@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { getSubscriptionPlan, MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
+import { getProductCategoryTree } from '@/app/actions/categories';
+import type { ProductCategoryNode } from '@/app/actions/categories';
 import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertical } from '@/types';
 import { formatCurrency, formatNumber } from '@/utils';
 import { Skeleton, ProductSkeleton } from '../components/Skeleton';
@@ -65,6 +67,26 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Taxonomie produit : lue en base (geree depuis /pam/categories), avec
+  // repli sur les constantes historiques si la table est vide ou inaccessible.
+  const [categoryTree, setCategoryTree] = useState<ProductCategoryNode[]>([]);
+  const [useLiveCategories, setUseLiveCategories] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getProductCategoryTree()
+      .then((tree) => {
+        if (active && tree.length > 0) {
+          setCategoryTree(tree);
+          setUseLiveCategories(true);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Pagination states
   const [localProducts, setLocalProducts] = useState<Product[]>(initialProducts || []);
   const [offset, setOffset] = useState(initialProducts?.length || 0);
@@ -99,11 +121,27 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   });
 
   const filteredMainCategories = useMemo(() => {
+    if (useLiveCategories) {
+      return categoryTree
+        .filter((n) => (businessType === 'food' ? n.businessType === 'food' : n.businessType !== 'food'))
+        .map((n) => n.name);
+    }
     if (businessType === 'food') return ['Restauration & Livraison Rapide'];
-    return MAIN_CATEGORIES.filter(c => c !== 'Restauration & Livraison Rapide' && c !== 'Séjours, Expériences & Immobilier' && c !== 'Produits Digitaux & Services');
-  }, [businessType]);
+    return MAIN_CATEGORIES.filter(
+      (c) => c !== 'Restauration & Livraison Rapide' && c !== 'Séjours, Expériences & Immobilier' && c !== 'Produits Digitaux & Services'
+    );
+  }, [businessType, categoryTree, useLiveCategories]);
 
   const filteredCategoryMapping = useMemo(() => {
+    if (useLiveCategories) {
+      const mapping: Record<string, string> = {};
+      categoryTree.forEach((parent) => {
+        parent.children.forEach((child) => {
+          mapping[child.name] = parent.name;
+        });
+      });
+      return mapping;
+    }
     const mapping: Record<string, string> = {};
     Object.entries(CATEGORY_MAPPING).forEach(([sub, main]) => {
       if (filteredMainCategories.includes(main)) {
@@ -111,7 +149,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       }
     });
     return mapping;
-  }, [filteredMainCategories]);
+  }, [filteredMainCategories, categoryTree, useLiveCategories]);
 
   const filteredProducts = useMemo(() => {
     return localProducts.filter(p => {
@@ -839,7 +877,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         setFormData({
                           ...formData,
                           category: newSub,
-                          mainCategory: CATEGORY_MAPPING[newSub] || 'Divers'
+                          mainCategory: filteredCategoryMapping[newSub] || filteredMainCategories[0] || 'Divers'
                         });
                       }}
                       className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"

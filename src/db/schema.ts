@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, integer, boolean, jsonb, AnyPgColumn } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const profiles = pgTable('profiles', {
@@ -70,6 +70,28 @@ export const categories = pgTable('categories', {
   name: text('name').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+/**
+ * Taxonomie produit globale, geree depuis /pam/categories.
+ * `products.mainCategory` (texte) porte le nom d'une categorie parente et
+ * `products.category` (texte) le nom d'une sous-categorie : le nom reste la
+ * clef de rattachement pour rester compatible avec les produits existants.
+ */
+export const productCategories = pgTable('product_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  slug: text('slug').notNull().unique(),
+  icon: text('icon'),
+  parentId: uuid('parent_id').references((): AnyPgColumn => productCategories.id, { onDelete: 'set null' }),
+  businessType: text('business_type').default('shopping').notNull(), // 'shopping' or 'food'
+  position: integer('position').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  { parentIdx: { columns: [t.parentId], name: 'product_categories_parent_id_idx' } as const },
+  { positionIdx: { columns: [t.position], name: 'product_categories_position_idx' } as const },
+]);
 
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -345,6 +367,15 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
 
 export const categoriesRelations = relations(categories, ({ one }) => ({
   store: one(stores, { fields: [categories.storeId], references: [stores.id] }),
+}));
+
+export const productCategoriesRelations = relations(productCategories, ({ one, many }) => ({
+  parent: one(productCategories, {
+    fields: [productCategories.parentId],
+    references: [productCategories.id],
+    relationName: 'productCategoryChildren',
+  }),
+  children: many(productCategories, { relationName: 'productCategoryChildren' }),
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({

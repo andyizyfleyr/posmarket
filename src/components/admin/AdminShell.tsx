@@ -13,6 +13,7 @@ import {
   Star,
   FileText,
   Settings,
+  Tags,
   LogOut,
   Activity
 } from 'lucide-react';
@@ -29,6 +30,7 @@ const NAV_ITEMS: AdminNavItem[] = [
   { href: '/pam/users', label: 'Utilisateurs', icon: <Users size={20} /> },
   { href: '/pam/orders', label: 'Transactions', icon: <Wallet size={20} /> },
   { href: '/pam/inventory', label: 'Inventaire', icon: <Package size={20} /> },
+  { href: '/pam/categories', label: 'Catégories', icon: <Tags size={20} /> },
   { href: '/pam/reviews', label: 'Avis', icon: <Star size={20} /> },
   { href: '/pam/invoices', label: 'Factures', icon: <FileText size={20} /> },
   { href: '/pam/settings', label: 'Paramètres', icon: <Settings size={20} /> },
