@@ -3278,9 +3278,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   );
                                 }
                               }}
-                              className="w-[calc((100vw-42px)/2)] md:w-[112px] shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-[#f56b2a]/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/60"
+                              className="w-[calc((100vw-42px)/2)] md:w-[112px] aspect-square shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-[#f56b2a]/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/60 flex"
                             >
-                              <div className="px-2.5 py-2.5 flex flex-col items-center">
+                              <div className="w-full h-full px-2.5 py-2.5 flex flex-col items-center justify-center">
                                 <div className="w-8 h-8 rounded-full bg-white border-[2px] border-[#f56b2a] shadow-sm flex items-center justify-center overflow-hidden relative shrink-0">
                                   {store.settings?.logo ? (
                                     <Image
@@ -3297,8 +3297,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     />
                                   )}
                                 </div>
-                                <h3 className="mt-1.5 w-full flex items-center justify-center gap-1 min-w-0">
-                                  <span className="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#f56b2a] transition-colors">
+                                <h3 className="mt-1.5 w-full flex items-center justify-center gap-1 min-w-0">                                  <span className="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#f56b2a] transition-colors">
                                     {store.settings?.name || "Boutique"}
                                   </span>
                                   <span
@@ -3313,7 +3312,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     />
                                   </span>
                                 </h3>
-                                <div className="mt-1 flex items-center gap-1 text-[9px] font-semibold text-gray-400">
+                                <div className="mt-1 flex items-center gap-1 text-[9px] font-semibold text-gray-400 whitespace-nowrap">
                                   {store.rating ? (
                                     <span className="flex items-center gap-0.5 text-gray-600">
                                       <Star
@@ -3326,7 +3325,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     <span>Nouveau</span>
                                   )}
                                   <span className="text-gray-300">•</span>
-                                  <span>{productCount} produits</span>
+                                  <span className="truncate">{productCount} produits</span>
                                 </div>
                               </div>
                             </div>
