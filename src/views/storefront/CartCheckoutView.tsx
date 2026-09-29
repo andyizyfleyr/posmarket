@@ -101,6 +101,8 @@ export interface CartCheckoutViewBundle {
   completedOrderTotal: number;
   /** Références des commandes créées, affichées comme preuve de l'achat. */
   completedOrderIds: string[];
+  /** Appel serveur de commande en cours : pilote le spinner de confirmation. */
+  isCheckoutSubmitting: boolean;
 }
 
 export function CartCheckoutView(props: CartCheckoutViewBundle) {
@@ -119,6 +121,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     isPromoOpen, setIsPromoOpen, isApplyingPromo, setIsApplyingPromo,
     baseCartTotal, wholesaleSavings, discountAmount, cartTotal,
     completedOrderStores, completedOrderItems, completedOrderTotal, completedOrderIds,
+    isCheckoutSubmitting,
   } = props;
 
   const handleProceedToShipping = () => {
@@ -918,6 +921,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <Button
                     form="checkout-form"
                     type="submit"
+                    loading={isCheckoutSubmitting}
                     loadingText={
                       checkoutStage === "payment"
                         ? "Traitement en cours..."
@@ -982,6 +986,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <Button
                     form="checkout-form"
                     type="submit"
+                    loading={isCheckoutSubmitting}
                     loadingText="Chargement..."
                     fullWidth
                     size="lg"

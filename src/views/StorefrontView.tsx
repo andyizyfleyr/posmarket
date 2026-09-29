@@ -569,6 +569,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   >("cart");
 
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isCheckoutSubmitting, setIsCheckoutSubmitting] = useState(false);
   const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
   const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
@@ -2059,6 +2060,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       });
 
       (async () => {
+          // Tant que l'appel serveur n'a pas rendu la main, le bouton de
+          // confirmation reste en chargement : sans cela le client pouvait
+          // appuyer plusieurs fois et ne voir aucun retour.
+          setIsCheckoutSubmitting(true);
           try {
             const response = await onMarketplaceCheckout(ordersData, {
               ...customerInfo,
@@ -2135,6 +2140,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               "Une erreur est survenue lors de la validation.",
               "error",
             );
+          } finally {
+            setIsCheckoutSubmitting(false);
           }
         })();
     }
@@ -2391,6 +2398,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       completedOrderItems={completedOrderItems}
             completedOrderTotal={completedOrderTotal}
             completedOrderIds={completedOrderIds}
+            isCheckoutSubmitting={isCheckoutSubmitting}
     />
   );
 
