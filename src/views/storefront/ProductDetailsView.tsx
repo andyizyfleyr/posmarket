@@ -164,7 +164,7 @@ export function ProductDetailsView(props: ProductDetailsProps) {
       );
     }
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-28 lg:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="aspect-square rounded-[24px] skeleton" />
           <div className="space-y-4">
@@ -597,7 +597,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         galleryScroll(-1);
                       }}
                       aria-label="Image précédente"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:scale-95 transition-all z-10"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:brightness-95 transition-colors z-10"
                     >
                       <ChevronLeft size={16} />
                     </button>
@@ -608,7 +608,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         galleryScroll(1);
                       }}
                       aria-label="Image suivante"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:scale-95 transition-all z-10"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:brightness-95 transition-colors z-10"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -641,7 +641,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 <button
                   onClick={() => openZoom(currentImage)}
                   aria-label="Agrandir l'image"
-                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 active:scale-95 transition-all z-10"
+                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 active:brightness-95 transition-colors z-10"
                 >
                   <Maximize2 size={14} />
                 </button>
@@ -696,7 +696,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         stepGallery(-1);
                       }}
                       aria-label="Image précédente"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:scale-95 transition-all z-10"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:brightness-95 transition-colors z-10"
                     >
                       <ChevronLeft size={16} />
                     </button>
@@ -707,7 +707,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         stepGallery(1);
                       }}
                       aria-label="Image suivante"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:scale-95 transition-all z-10"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:brightness-95 transition-colors z-10"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -728,7 +728,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     <button
                       onClick={(e) => { e.stopPropagation(); openZoom(currentImage); }}
                       aria-label="Agrandir l'image"
-                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] hover:scale-105 transition-all active:scale-95"
+                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] transition-colors active:brightness-95"
                     >
                       <Maximize2 size={13} />
                     </button>
@@ -1004,7 +1004,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                     onClick={() => selectValue(option.id, val)}
                                     aria-pressed={isSelected}
                                     title={isDisabled ? "Indisponible" : undefined}
-                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border active:scale-95 ${
+                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border active:brightness-95 transition-colors ${
                                       isDisabled
                                         ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
                                         : isSelected
@@ -1143,7 +1143,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isBuyDisabled}
-                    className="h-11 px-3 rounded-xl bg-white hover:bg-gray-50 text-gray-900 font-semibold text-xs flex items-center justify-center gap-2 border border-gray-300 hover:border-gray-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                    className="h-11 px-3 rounded-xl bg-white hover:bg-gray-50 text-gray-900 font-semibold text-xs flex items-center justify-center gap-2 border border-gray-300 hover:border-gray-400 active:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                   >
                     <ShoppingCart size={15} strokeWidth={2.2} className="text-[#f56b2a] flex-shrink-0" />
                     <span className="truncate">{isOutOfStock || isSelectedOutOfStock ? "Rupture" : isFood ? "Commander" : "Ajouter au panier"}</span>
@@ -1152,7 +1152,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     type="button"
                     onClick={handleBuyNow}
                     disabled={isBuyDisabled}
-                    className="h-11 px-3 rounded-xl bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="h-11 px-3 rounded-xl bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Zap size={14} fill="currentColor" className="flex-shrink-0" />
                     <span className="truncate">{isOutOfStock || isSelectedOutOfStock ? "Rupture" : isFood ? "Commander direct" : "Acheter direct"}</span>
@@ -1392,7 +1392,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                       onClick={() => selectValue(option.id, val)}
                                       aria-pressed={isSelected}
                                       title={isDisabled ? "Indisponible" : undefined}
-                                      className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-semibold transition-all border active:scale-95 ${
+                                      className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-semibold transition-all border active:brightness-95 transition-colors ${
                                         isDisabled
                                           ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
                                           : isSelected
@@ -1572,7 +1572,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 {hasMoreContent && (
                   <button
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-all ${accentText}`}
+                    className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors ${accentText}`}
                   >
                     {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
                     <ChevronRight
@@ -1735,7 +1735,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   </div>
                   <button
                     onClick={() => setShowAllProductReviews(false)}
-                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 active:scale-95 transition-all"
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 active:brightness-95 transition-colors"
                     aria-label="Fermer"
                   >
                     <X size={16} />
@@ -1818,11 +1818,18 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         {/* ================= STICKY MOBILE ACTION BAR =================
             Une seule rangée d'actions, hauteur constante, cibles tactiles
             généreuses (56px) : la barre ne sert qu'agir, l'information reste
-            dans la fiche. Le panier est un second bouton explicite (icône +
-            nombre + total) et ne peut plus remplacer l'action d'achat. */}
+            dans la fiche. Le panier est un second bouton explicite et ne peut
+            plus remplacer l'action d'achat.
+
+            Fond opaque, pas de `backdrop-blur` : sur Android, un
+            `backdrop-filter` sur un élément `fixed` crée une couche de
+            compositing qui peut s'afficher décalée pendant le défilement (les
+            boutons paraissent alors « penchés »). Le retour d'appui se fait par
+            la couleur et non par un `scale` : une mise à l'échelle de 5 % sur
+            une pilule de 56 px se lit comme un décentrement. */}
         {(
           <div
-            className="lg:hidden fixed left-0 right-0 bottom-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3 pt-2.5"
+            className="lg:hidden fixed left-0 right-0 bottom-0 z-[998] bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.07)] px-3 pt-2.5"
             style={{
               paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
             }}
@@ -1835,24 +1842,25 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isBuyDisabled}
-                className="h-14 flex-1 min-w-0 px-4 rounded-full bg-[#f56b2a] hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                className="h-14 flex-1 min-w-0 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-sm shadow-sm shadow-orange-500/25 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a]"
               >
                 <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0" />
                 <span className="truncate">{primaryActionLabel}</span>
               </button>
 
               {/* Secondaire : accès au panier. N'apparaît qu'une fois le
-                  panier non vide, à droite de l'action d'achat. */}
+                  panier non vide, à droite de l'action d'achat. Largeur fixe
+                  pour que les deux pilules restent équilibrées. */}
               {cartItemsCount > 0 && (
                 <button
                   type="button"
                   onClick={goToCart}
                   aria-label={`Mon panier, ${cartItemsCount} article(s)`}
-                  className="h-14 shrink-0 pl-4 pr-3.5 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform"
+                  className="h-14 w-[132px] shrink-0 pl-3 pr-2.5 rounded-full bg-gray-900 active:bg-gray-800 text-white font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors"
                 >
-                  <ShoppingCart size={16} strokeWidth={2.5} className="flex-shrink-0" />
+                  <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
                   <span className="whitespace-nowrap">Mon panier</span>
-                  <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-[#f56b2a] text-white text-[11px] flex items-center justify-center tabular-nums">
+                  <span className="min-w-[20px] h-5 px-1 rounded-full bg-[#f56b2a] text-white text-[10px] flex items-center justify-center tabular-nums">
                     {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
                 </button>
