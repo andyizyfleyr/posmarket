@@ -1001,11 +1001,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         return (
                           <div key={option.id}>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-semibold text-gray-900">{option.name}</span>
+                              <span className="text-[13px] font-semibold text-gray-900">{option.name}</span>
                               {selectedVal ? (
-                                <span className="text-xs font-semibold text-[#f56b2a]">{selectedVal}</span>
+                                <span className="text-[11px] font-semibold text-[#f56b2a]">{selectedVal}</span>
                               ) : (
-                                <span className="text-[10px] font-medium text-gray-300">Choisissez...</span>
+                                <span className="text-[9.5px] font-medium text-gray-300">Choisissez...</span>
                               )}
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -1020,7 +1020,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                     onClick={() => selectValue(option.id, val)}
                                     aria-pressed={isSelected}
                                     title={isDisabled ? "Indisponible" : undefined}
-                                    className={`relative min-w-[52px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border active:brightness-95 transition-colors ${
+                                    className={`relative min-w-[44px] px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all border active:brightness-95 transition-colors ${
                                       isDisabled
                                         ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
                                         : isSelected
@@ -1029,8 +1029,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                     }`}
                                   >
                                     {isSelected && (
-                                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
-                                        <Check size={9} strokeWidth={3.5} className="text-white" />
+                                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
+                                        <Check size={8} strokeWidth={3.5} className="text-white" />
                                       </span>
                                     )}
                                     {val}
@@ -1408,7 +1408,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                       onClick={() => selectValue(option.id, val)}
                                       aria-pressed={isSelected}
                                       title={isDisabled ? "Indisponible" : undefined}
-                                      className={`relative min-w-[52px] px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-semibold transition-all border active:brightness-95 transition-colors ${
+                                      className={`relative min-w-[44px] px-2.5 py-1.5 rounded-md text-[10.5px] font-semibold transition-all border active:brightness-95 transition-colors ${
                                         isDisabled
                                           ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
                                           : isSelected
@@ -1491,7 +1491,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                 -{tier.discountPct}%
                               </span>
                              )}
-                            <div className="min-w-[52px] justify-center px-2 py-1 rounded-lg bg-red-50 border border-red-200 text-red-500 text-[9px] font-bold uppercase flex items-center gap-1">
+                            <div className="min-w-[44px] justify-center px-1.5 py-0.5 rounded-md bg-red-50 border border-red-200 text-red-500 text-[9px] font-bold uppercase flex items-center gap-1">
                               <AlertCircle size={10} />
                               Stock bas
                             </div>
@@ -1521,7 +1521,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                               </span>
                              )}
                             <div
-                              className={`min-w-[52px] justify-center px-2 py-1 rounded-lg text-white text-[9px] font-bold uppercase flex items-center gap-1 transition-colors ${
+                              className={`min-w-[44px] justify-center px-1.5 py-0.5 rounded-md text-white text-[9px] font-bold uppercase flex items-center gap-1 transition-colors ${
                                 isAdded ? "bg-emerald-600" : "bg-gray-900"
                               }`}
                             >
@@ -1851,38 +1851,31 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             }}
           >
             <div className="flex items-center gap-2.5">
-              {/* Action principale : ajouter le produit courant. Masquée
-                  quand CE couple (produit, variante, options) est déjà au
-                  panier : c'est dans le panier que l'utilisateur règle la
-                  quantité, plutôt que de ré-incrémenter à chaque visite. */}
-              {!isCurrentSelectionInCart && (
+              {/* Un seul bouton, pleine largeur : l'action du produit courant.
+                  Hauteur 48px (et non 56) — sur mobile les grandes pilules
+                  paraissent surdimensionnées et butent au bord de l'écran. */}
+              {!isCurrentSelectionInCart ? (
                 <button
                   type="button"
                   onClick={handleAddToCart}
                   disabled={isBuyDisabled}
-                  className="h-14 flex-1 min-w-0 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-sm shadow-sm shadow-orange-500/25 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a]"
+                  className="h-12 w-full px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a]"
                 >
-                  <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0" />
+                  <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
                   <span className="truncate">{primaryActionLabel}</span>
                 </button>
-              )}
-
-              {/* Accès au panier. Seul bouton affiché quand le produit
-                  courant est déjà au panier : il occupe alors toute la barre. */}
-              {cartItemsCount > 0 && (
+              ) : (
+                /* Déjà au panier : la quantité se règle dans le panier, donc
+                   l'action devient « y aller ». */
                 <button
                   type="button"
                   onClick={goToCart}
                   aria-label={`Mon panier, ${cartItemsCount} article(s)`}
-                  className={`h-14 pl-3 pr-2.5 rounded-full bg-gray-900 active:bg-gray-800 text-white font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors ${
-                    isCurrentSelectionInCart ? "w-full" : "w-[132px] shrink-0"
-                  }`}
+                  className="h-12 w-full px-4 rounded-full bg-gray-900 active:bg-gray-800 text-white font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors"
                 >
-                  <Check size={17} strokeWidth={3} className="flex-shrink-0 text-emerald-400" />
-                  <span className="whitespace-nowrap">
-                    {isCurrentSelectionInCart ? "Déjà au panier" : "Mon panier"}
-                  </span>
-                  <span className="min-w-[20px] h-5 px-1 rounded-full bg-[#f56b2a] text-white text-[10px] flex items-center justify-center tabular-nums">
+                  <Check size={15} strokeWidth={3} className="flex-shrink-0 text-emerald-400" />
+                  <span className="truncate">Déjà au panier</span>
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#f56b2a] text-white text-[10px] flex items-center justify-center tabular-nums">
                     {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
                 </button>
