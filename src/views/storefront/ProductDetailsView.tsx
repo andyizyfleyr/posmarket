@@ -426,6 +426,16 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const guardSelection = (): boolean => {
       if (!allSelected) {
         setIsOptionsExpanded(true);
+        // Le bloc d'options est souvent hors champ : sans ce défilement, le
+        // client appuie sur « Choisir les options » et ne voit rien se passer.
+        // Les deux blocs (desktop et mobile) coexistent dans le DOM, un seul
+        // est visible selon la largeur : on cible donc celui qui est rendu.
+        window.requestAnimationFrame(() => {
+          const anchor = Array.from(
+            document.querySelectorAll<HTMLElement>("[data-options-anchor]"),
+          ).find((el) => el.getClientRects().length > 0);
+          anchor?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
         localNotify(
           "Veuillez sélectionner toutes les options",
           "warning",
@@ -944,7 +954,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
                 {/* Options / Variantes — SKU picker style (accordion) */}
                 {hasOptions && (
-                  <div className="border-t border-gray-100 pt-2">
+                  <div data-options-anchor className="border-t border-gray-100 pt-2">
                     <button
                       type="button"
                       onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
@@ -1328,7 +1338,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
                 {/* Mobile options: SKU picker card (accordion) */}
                 {hasOptions && (
-                  <div className="bg-white border border-gray-100 rounded-2xl mb-2.5 shadow-sm overflow-hidden">
+                  <div
+                    data-options-anchor
+                    className="bg-white border border-gray-100 rounded-2xl mb-2.5 shadow-sm overflow-hidden"
+                  >
                     <button
                       type="button"
                       onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
