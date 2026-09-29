@@ -164,7 +164,7 @@ export function ProductDetailsView(props: ProductDetailsProps) {
       );
     }
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="aspect-square rounded-[24px] skeleton" />
           <div className="space-y-4">
@@ -360,6 +360,18 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const isBuyDisabled = isOutOfStock || isSelectedOutOfStock;
     const isLowStock =
       stockValue !== null && stockValue > 0 && stockValue <= 5;
+
+    // Le libellé annonce l'action réellement possible : proposer « Ajouter »
+    // alors qu'il manque une option ne fait qu'un clic perdu.
+    const hasVariantMatrix = hasOptions && variants.length > 0;
+    const primaryActionLabel =
+      isOutOfStock || isSelectedOutOfStock
+        ? "Rupture"
+        : hasVariantMatrix && !allSelected
+          ? "Choisir les options"
+          : isFood
+            ? "Commander"
+            : "Ajouter au panier";
 
     // --- Description enrichie (auto, sans action du vendeur) ---
     const autoHighlights = extractDescriptionHighlights(descriptionText);
@@ -1766,42 +1778,72 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </section>
         )}
 
-        {/* ================= STICKY MOBILE ACTION BAR (M3 Floating style) ================= */}
+        {/* ============ RÉASSURANCE (mobile) ============
+            Elle était dans la barre fixe, ce qui la collait à l'écran et
+            mangeait la hauteur des boutons. Remontée ici, une seule fois, à
+            la fin de la fiche. */}
+        <div className="lg:hidden mt-5 grid grid-cols-3 gap-1.5 py-2 px-2.5 bg-gray-50/70 rounded-xl border border-gray-100 text-[9.5px] font-medium text-gray-500 text-center">
+          {isFood ? (
+            <>
+              <span className="flex items-center justify-center gap-1 truncate">
+                <Clock size={11} className="text-green-600 flex-shrink-0" />
+                <span>Fait minute</span>
+              </span>
+              <span className="flex items-center justify-center gap-1 truncate border-x border-gray-200">
+                <ShieldCheck size={11} className="text-emerald-600 flex-shrink-0" />
+                <span>Fraîcheur</span>
+              </span>
+              <span className="flex items-center justify-center gap-1 truncate">
+                <Truck size={11} className="text-blue-600 flex-shrink-0" />
+                <span>Livraison</span>
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flex items-center justify-center gap-1 truncate">
+                <ShieldCheck size={11} className="text-emerald-600 flex-shrink-0" />
+                <span>Paiement à la livraison</span>
+              </span>
+              <span className="flex items-center justify-center gap-1 truncate border-x border-gray-200">
+                <RotateCcw size={11} className="text-blue-600 flex-shrink-0" />
+                <span>Retour 7 jours</span>
+              </span>
+              <span className="flex items-center justify-center gap-1 truncate">
+                <CheckCircle2 size={11} className="text-emerald-600 flex-shrink-0" />
+                <span>Garantie</span>
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* ================= STICKY MOBILE ACTION BAR =================
+            Une seule rangée d'actions, hauteur constante, cibles tactiles
+            généreuses (56px) : la barre ne sert qu'agir, l'information reste
+            dans la fiche. Le panier est un second bouton explicite (icône +
+            nombre + total) et ne peut plus remplacer l'action d'achat. */}
         {(
           <div
-            className="lg:hidden fixed left-0 right-0 bottom-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-4 pt-3"
+            className="lg:hidden fixed left-0 right-0 bottom-0 z-[998] bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3 pt-2.5"
             style={{
-              paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
+              paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            {isFood ? (
-              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-semibold text-gray-400">
-                <span className="flex items-center gap-1"><Clock size={8} /> Fraîcheur garantie</span>
-                <span className="w-0.5 h-0.5 bg-gray-200 rounded-full" />
-                <span className="flex items-center gap-1"><Truck size={8} /> Livraison rapide</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-3 pb-2 text-[8px] font-semibold text-gray-400">
-                <span className="flex items-center gap-1"><ShieldCheck size={8} /> Paiement à la livraison</span>
-                <span className="w-0.5 h-0.5 bg-gray-200 rounded-full" />
-                <span className="flex items-center gap-1"><RotateCcw size={8} /> Retour 7j</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              {/* Accès au panier : secondaire, ne doit JAMAIS remplacer
-                  l'action d'achat du produit courant (c'était le cas avant :
-                  dès qu'un article était au panier, on ne pouvait plus en
-                  ajouter un autre). */}
+            <div className="flex items-center gap-2.5">
               {cartItemsCount > 0 && (
                 <button
                   type="button"
                   onClick={goToCart}
-                  aria-label={`Voir mon panier (${cartItemsCount})`}
-                  className="relative flex-shrink-0 w-14 h-14 rounded-full border-2 border-[#f56b2a] bg-white hover:bg-orange-50 text-[#f56b2a] flex items-center justify-center active:scale-95 transition-all"
+                  aria-label={`Voir mon panier, ${cartItemsCount} article(s), total ${formatCurrency(Number(cartTotal) || 0)}`}
+                  className="h-14 shrink-0 max-w-[45%] px-3 rounded-full border-2 border-[#f56b2a] bg-orange-50/70 text-[#f56b2a] flex items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <ShoppingCart size={18} strokeWidth={2.5} />
-                  <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold tabular-nums">
-                    {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                  <span className="relative flex-shrink-0">
+                    <ShoppingCart size={19} strokeWidth={2.5} />
+                    <span className="absolute -top-2 -right-2.5 bg-gray-900 text-white text-[9px] min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold tabular-nums">
+                      {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                    </span>
+                  </span>
+                  <span className="text-[11px] font-bold tabular-nums truncate">
+                    {formatCurrency(Number(cartTotal) || 0)}
                   </span>
                 </button>
               )}
@@ -1809,26 +1851,16 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isBuyDisabled}
-                className={`flex-1 rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`h-14 px-4 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   cartItemsCount > 0
-                    ? "border-2 border-[#f56b2a] bg-white hover:bg-orange-50 text-[#f56b2a]"
-                    : "bg-[#f56b2a] hover:bg-orange-600 text-white shadow-md shadow-orange-500/10"
+                    ? "flex-1 min-w-0 border-2 border-[#f56b2a] bg-white text-[#f56b2a] hover:bg-orange-50"
+                    : "w-full bg-[#f56b2a] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20"
                 }`}
               >
-                <ShoppingCart size={14} strokeWidth={2.5} />
-                {isOutOfStock || isSelectedOutOfStock
-                  ? "Rupture"
-                  : isFood
-                    ? 'Commander'
-                    : 'Ajouter au panier'}
+                <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0" />
+                <span className="truncate">{primaryActionLabel}</span>
               </button>
             </div>
-            {cartItemsCount > 0 && (
-              <p className="text-center text-[9px] font-semibold text-gray-400 pt-1.5">
-                Total panier :{" "}
-                <span className="tabular-nums">{formatCurrency(Number(cartTotal) || 0)}</span>
-              </p>
-            )}
           </div>
         )}
       </div>
