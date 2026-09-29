@@ -629,6 +629,22 @@ export async function submitCheckoutAction(
         });
     }
 
+    // Un succès sans aucune commande créée afficherait « Commande Réussie »
+    // au client alors que rien n'a été enregistré. Mieux vaut un refus
+    // explicite, qui laisse le client réessayer.
+    if (createdOrderIds.length === 0) {
+      if (idempotencyKey) {
+        await db
+          .delete(checkoutIdempotency)
+          .where(eq(checkoutIdempotency.key, idempotencyKey))
+          .catch(() => {});
+      }
+      return {
+        success: false,
+        error: 'Aucune commande n’a pu être enregistrée. Merci de réessayer.',
+      };
+    }
+
     return {
       success: true,
       orderId: createdOrderIds[0],
