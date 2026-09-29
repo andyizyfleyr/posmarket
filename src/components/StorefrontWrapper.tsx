@@ -21,7 +21,12 @@ interface StorefrontWrapperProps {
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
-  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  ) => Promise<{
+    success: boolean;
+    error?: string | undefined;
+    orderId?: string;
+    orderIds?: string[];
+  }>;
   onNotifyCartInterest: (
     storeId: string,
     productName: string,

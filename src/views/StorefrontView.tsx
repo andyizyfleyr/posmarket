@@ -175,7 +175,13 @@ interface StorefrontViewProps {
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
-  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  ) => Promise<{
+    success: boolean;
+    error?: string | undefined;
+    /** Références des commandes créées, renvoyées par l'action serveur. */
+    orderId?: string;
+    orderIds?: string[];
+  }>;
   onNotifyCartInterest: (
     storeId: string,
     productName: string,
@@ -796,6 +802,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     Array<{ name: string; quantity: number; price: number }>
   >([]);
   const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
+  /** Références des commandes créées, à afficher au client comme preuve. */
+  const [completedOrderIds, setCompletedOrderIds] = useState<string[]>([]);
 
   // User Accounts State
   const [isAccountView, setIsAccountView] = useState(false);
@@ -1846,9 +1854,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     );
     if (target && delta > 0) {
       const stock = getStockFor(target.product, target.variantId);
-      if (stock !== null && stock > 0 && target.quantity + delta > stock) {
+      // La garde doit porter sur `stock === 0` aussi. Avec `stock > 0` dans la
+      // condition, un article tombé en rupture n'était plus bloqué et le client
+      // pouvait monter la quantité au-dessus du stock disponible.
+      if (stock !== null && target.quantity + delta > stock) {
         showStockNotice(
-          `Stock insuffisant pour « ${target.product.name} » : ${stock} restant${stock > 1 ? "s" : ""}.`,
+          stock <= 0
+            ? `« ${target.product.name} » n'est plus disponible.`
+            : `Stock insuffisant pour « ${target.product.name} » : ${stock} restant${stock > 1 ? "s" : ""}.`,
         );
         return;
       }
@@ -1939,14 +1952,28 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         (c) => c.code === inputCode && c.active,
       );
 
-      if (matchedCoupon) {
-        setPromoApplied({ ...matchedCoupon });
-        setPromoCodeInput("");
-        localNotify(
-          `Code promo appliqué: ${matchedCoupon.discount_pct}% de réduction!`,
-          "success",
-        );
-      } else if (coupons.length === 0) {
+        if (matchedCoupon) {
+          // La remise ne porte que sur les lignes de la boutique du coupon.
+          // Sans cette vérification, un code valide mais absent du panier est
+          // annoncé « appliqué » alors que le total ne bouge pas.
+          const eligible = cart.some(
+            (item) => item.product.storeId === matchedCoupon.store_id,
+          );
+          if (!eligible) {
+            setPromoCodeInput("");
+            localNotify(
+              "Ce code promo s'applique à une boutique qui n'est pas dans votre panier.",
+              "error",
+            );
+            return;
+          }
+          setPromoApplied({ ...matchedCoupon });
+          setPromoCodeInput("");
+          localNotify(
+            `Code promo appliqué: ${matchedCoupon.discount_pct}% de réduction!`,
+            "success",
+          );
+        } else if (coupons.length === 0) {
         localNotify(
           "Aucun code promo disponible pour cette boutique.",
           "error",
@@ -2042,6 +2069,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             });
             if (response?.success) {
               playSuccessSound();
+
+              // L'action renvoie déjà les ids créés : on les garde pour les
+              // afficher au client, sinon il n'a aucun moyen de référence sa
+              // commande auprès du vendeur.
+              setCompletedOrderIds(
+                Array.isArray(response.orderIds)
+                  ? response.orderIds
+                  : response.orderId
+                    ? [response.orderId]
+                    : [],
+              );
 
               const storeMap: Record<
                 string,
@@ -2351,7 +2389,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       cartTotal={cartTotal}
       completedOrderStores={completedOrderStores}
       completedOrderItems={completedOrderItems}
-      completedOrderTotal={completedOrderTotal}
+            completedOrderTotal={completedOrderTotal}
+            completedOrderIds={completedOrderIds}
     />
   );
 
