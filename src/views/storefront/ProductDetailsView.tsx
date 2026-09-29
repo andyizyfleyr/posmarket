@@ -1875,20 +1875,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             }}
           >
             <div className="flex items-center gap-2.5">
-              {/* Un seul bouton, pleine largeur : l'action du produit courant.
-                  Hauteur 48px (et non 56) — sur mobile les grandes pilules
-                  paraissent surdimensionnées et butent au bord de l'écran. */}
-              {!isCurrentSelectionInCart ? (
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={isBuyDisabled}
-                  className="h-12 w-full px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a]"
-                >
-                  <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
-                  <span className="truncate">{primaryActionLabel}</span>
-                </button>
-              ) : (
+              {isCurrentSelectionInCart ? (
                 /* Le produit affiché est déjà au panier : l'action devient
                    « aller au panier » pour régler la quantité. */
                 <button
@@ -1903,6 +1890,35 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
                 </button>
+              ) : (
+                /* Produit absent du panier : l'action d'ajout, pleine largeur si
+                   le panier est vide, sinon accompagnée du bouton panier pour
+                   ne pas perdre l'accès au panier. */
+                <>
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={isBuyDisabled}
+                    className="h-12 min-w-0 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a] flex-1"
+                  >
+                    <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
+                    <span className="truncate">{primaryActionLabel}</span>
+                  </button>
+
+                  {cartItemsCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={goToCart}
+                      aria-label={`Voir le panier, ${cartItemsCount} article(s)`}
+                      className="relative h-12 w-12 shrink-0 rounded-full bg-gray-900 active:bg-gray-800 text-white flex items-center justify-center transition-colors"
+                    >
+                      <ShoppingCart size={18} strokeWidth={2.5} />
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#f56b2a] text-white text-[10px] font-bold flex items-center justify-center tabular-nums border-2 border-white">
+                        {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                      </span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
