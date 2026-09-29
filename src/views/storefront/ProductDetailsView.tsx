@@ -1788,34 +1788,47 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               </div>
             )}
             <div className="flex items-center gap-2">
-              {cartItemsCount > 0 ? (
+              {/* Accès au panier : secondaire, ne doit JAMAIS remplacer
+                  l'action d'achat du produit courant (c'était le cas avant :
+                  dès qu'un article était au panier, on ne pouvait plus en
+                  ajouter un autre). */}
+              {cartItemsCount > 0 && (
                 <button
+                  type="button"
                   onClick={goToCart}
-                  className="w-full bg-[#f56b2a] hover:bg-orange-600 text-white rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-orange-500/10 transition-all"
+                  aria-label={`Voir mon panier (${cartItemsCount})`}
+                  className="relative flex-shrink-0 w-14 h-14 rounded-full border-2 border-[#f56b2a] bg-white hover:bg-orange-50 text-[#f56b2a] flex items-center justify-center active:scale-95 transition-all"
                 >
-                  <div className="relative flex-shrink-0">
-                    <ShoppingCart size={16} strokeWidth={2.5} />
-                    <span className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold">
-                      {cartItemsCount}
-                    </span>
-                  </div>
-                  Voir mon panier
-                  <span className="opacity-60">•</span>
-                  <span className="tabular-nums">
-                    {formatCurrency(Number(cartTotal) || 0)}
+                  <ShoppingCart size={18} strokeWidth={2.5} />
+                  <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold tabular-nums">
+                    {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
                 </button>
-              ) : (
-                <button
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className="w-full border-2 border-[#f56b2a] bg-white hover:bg-orange-50 text-[#f56b2a] rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ShoppingCart size={14} strokeWidth={2.5} />
-                  {isOutOfStock ? "Rupture" : (isFood ? 'Commander' : 'Ajouter au panier')}
-                </button>
               )}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isBuyDisabled}
+                className={`flex-1 rounded-full font-bold text-xs py-3.5 flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  cartItemsCount > 0
+                    ? "border-2 border-[#f56b2a] bg-white hover:bg-orange-50 text-[#f56b2a]"
+                    : "bg-[#f56b2a] hover:bg-orange-600 text-white shadow-md shadow-orange-500/10"
+                }`}
+              >
+                <ShoppingCart size={14} strokeWidth={2.5} />
+                {isOutOfStock || isSelectedOutOfStock
+                  ? "Rupture"
+                  : isFood
+                    ? 'Commander'
+                    : 'Ajouter au panier'}
+              </button>
             </div>
+            {cartItemsCount > 0 && (
+              <p className="text-center text-[9px] font-semibold text-gray-400 pt-1.5">
+                Total panier :{" "}
+                <span className="tabular-nums">{formatCurrency(Number(cartTotal) || 0)}</span>
+              </p>
+            )}
           </div>
         )}
       </div>
