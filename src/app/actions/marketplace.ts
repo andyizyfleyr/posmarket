@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/db'
-import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles, coupons } from '@/db/schema'
+import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles, coupons, checkoutIdempotency } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
 import { getCurrentSession } from '@/app/actions/session'
@@ -257,6 +257,7 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
 export async function submitCheckoutAction(
   order: Record<string, CheckoutStoreOrder> = {},
   customerData?: CheckoutCustomer,
+  idempotencyKey?: string,
 ) {
   const ordersData = order;
   const customer = customerData || {};
@@ -270,6 +271,44 @@ export async function submitCheckoutAction(
       success: false,
       error: `Commande impossible : nous livrons actuellement uniquement au ${getSupportedCountriesLabel()}. Votre connexion indique un autre pays.`,
     };
+  }
+
+  // --- Déduplication ---------------------------------------------------
+  // La clé est réservée AVANT toute création. Deux cas à distinguer :
+  //  - clé déjà terminée (order_ids renseigné) : rejeu d'un envoi qui a
+  //    abouti, on renvoie les mêmes références sans rien recréer ;
+  //  - clé réservée mais vide : un envoi est en cours, on refuse plutôt que
+  //    de créer un doublon.
+  // Sans clé, le comportement historique est conservé (le client peut être
+  // un ancien client hors ligne qui ne l'envoie pas encore).
+  if (idempotencyKey) {
+    const [reserved] = await db
+      .insert(checkoutIdempotency)
+      .values({ key: idempotencyKey, orderIds: null })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!reserved) {
+      const [existing] = await db
+        .select()
+        .from(checkoutIdempotency)
+        .where(eq(checkoutIdempotency.key, idempotencyKey))
+        .limit(1);
+
+      if (existing?.orderIds) {
+        const replayed = existing.orderIds as string[];
+        return {
+          success: true,
+          orderId: replayed[0],
+          orderIds: replayed,
+          error: undefined,
+        };
+      }
+      return {
+        success: false,
+        error: 'Cette commande est déjà en cours de traitement. Merci de ne pas confirmer deux fois.',
+      };
+    }
   }
 
   const createdOrderIds: string[] = [];
@@ -578,6 +617,18 @@ export async function submitCheckoutAction(
       createdOrderIds.push(newOrder.id);
     }
 
+    // La clé est désormais associated aux commandes créées : un rejeu
+    // renverra ces références au lieu de dupliquer.
+    if (idempotencyKey) {
+      await db
+        .update(checkoutIdempotency)
+        .set({ orderIds: createdOrderIds })
+        .where(eq(checkoutIdempotency.key, idempotencyKey))
+        .catch((err) => {
+          console.error('[marketplace] idempotency update error:', err);
+        });
+    }
+
     return {
       success: true,
       orderId: createdOrderIds[0],
@@ -587,6 +638,14 @@ export async function submitCheckoutAction(
   } catch (error) {
     console.error('Error persisting marketplace order:', error);
     const message = error instanceof Error ? error.message : 'Erreur lors de la validation de la commande';
+    // La tentative a échoué : on rend la clé, sinon le client serait bloqué
+    // sur cette clé s'il réessayait.
+    if (idempotencyKey) {
+      await db
+        .delete(checkoutIdempotency)
+        .where(eq(checkoutIdempotency.key, idempotencyKey))
+        .catch(() => {});
+    }
     return { success: false, error: message };
   }
 }

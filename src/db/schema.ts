@@ -209,6 +209,21 @@ export const invoiceItems = pgTable('invoice_items', {
   total: numeric('total', { precision: 12, scale: 2 }).notNull(),
 });
 
+/**
+ * Clés d'idempotence des soumissions de commande.
+ *
+ * Le client génère une clé par tentative de paiement et la transmet à
+ * l'action serveur, qui la réserve avant de créer les commandes : un rejeu
+ * (double clic, retry réseau) retrouve les références existantes au lieu de
+ * dupliquer la commande.
+ */
+export const checkoutIdempotency = pgTable('checkout_idempotency', {
+  key: text('key').primaryKey(),
+  /** NULL tant que la tentative est en cours. */
+  orderIds: jsonb('order_ids'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const coupons = pgTable('coupons', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),

@@ -175,6 +175,8 @@ interface StorefrontViewProps {
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
+    /** Clé d'idempotence : évite qu'un rejeu ne duplique la commande. */
+    idempotencyKey?: string,
   ) => Promise<{
     success: boolean;
     error?: string | undefined;
@@ -570,6 +572,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const [isNavigating, setIsNavigating] = useState(false);
   const [isCheckoutSubmitting, setIsCheckoutSubmitting] = useState(false);
+  /**
+   * Clé d'idempotence de la tentative en cours.
+   *
+   * Générée à l'entrée dans le tunnel et réutilisée pour tous les essais de
+   * la même commande : si le premier envoi a abouti mais que la réponse a été
+   * perdue, le rejeu renvoie les mêmes commandes au lieu d'en créer de
+   * nouvelles. Une nouvelle clé est tirée après chaque commande réussie.
+   */
+  const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState(
+    () =>
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `chk-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+  );
   const [isCheckoutTransitioning, setIsCheckoutTransitioning] = useState(false);
   const [isCartButtonLoading, setIsCartButtonLoading] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
@@ -2071,7 +2087,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               address: [customerInfo.address, customerInfo.city]
                 .filter(Boolean)
                 .join(", "),
-            });
+            }, checkoutIdempotencyKey);
             if (response?.success) {
               playSuccessSound();
 
@@ -2127,6 +2143,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               setCheckoutStage("success");
               setCart([]);
               onNotifyPostCheckout(ordersData);
+              // Commande enregistrée : la tentative suivante est un nouvel
+              // achat, il faut donc une clé neuve.
+              setCheckoutIdempotencyKey(
+                typeof crypto !== "undefined" && "randomUUID" in crypto
+                  ? crypto.randomUUID()
+                  : `chk-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+              );
             } else {
               localNotify(
                 response?.error ||
