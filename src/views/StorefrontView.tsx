@@ -3382,7 +3382,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           <div className="h-4 w-32 skeleton rounded" />
                           <div className="flex-grow h-px skeleton" />
                         </div>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                           {[1, 2, 3, 4, 5].map((i) => (
                             <div
                               key={i}
@@ -3448,7 +3448,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       )}
                       {searchTerm || activeHomeCategory || selectedCategory === WHOLESALE_FILTER ? (
                         /* Simple grid for search results / category page */
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                           {pagedProducts.map((product) => (
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
@@ -3502,12 +3502,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             />
                           );
 
-                          // Mobile : deux rangees de 3 cartes. On complete
-                          // toujours la derniere rangee, sinon une carte reste
-                          // seule a moitie de ligne.
+                          // Mobile: max 4, avoid odd trailing card (3 -> 2),
+                          // and hide single-product categories entirely
                           const mobileSlice = (arr: typeof pagedProducts) => {
-                            const n = Math.min(6, arr.length);
-                            return arr.slice(0, n <= 3 ? n : n - (n % 3));
+                            const n = Math.min(4, arr.length);
+                            return arr.slice(0, n === 3 ? 2 : n);
                           };
 
                           return sortedCats.map((cat) => {
@@ -3552,7 +3551,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </button>
                                 </div>
                               )}
-                              <div className={`grid grid-cols-3 gap-x-2 gap-y-5 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
+                              <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                 {mobileSlice(groups[cat]).map(renderCard)}
                                 {/* Desktop only: full category */}
                                 <div className="hidden md:contents">
@@ -3822,7 +3821,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     </button>
                                   </div>
                                 )}
-                                <div className={`grid grid-cols-3 gap-x-2 gap-y-5 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
+                                <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
                                   {mobileSlice(groups[cat]).map(renderCard)}
                                   {/* Desktop only: full category */}
                                   <div className="hidden md:contents">
