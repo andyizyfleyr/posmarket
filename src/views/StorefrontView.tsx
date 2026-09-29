@@ -2394,6 +2394,23 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     />
   );
 
+  /**
+   * La barre panier fixe ne s'affiche que sur les pages de découverte
+   * (accueil, boutique), quand le panier contient quelque chose et qu'aucun
+   * autre écran de paiement n'a la main. La fiche produit a sa propre barre.
+   *
+   * Une seule condition pour l'affichage ET pour la réserve d'espace en bas
+   * de page : sans cela, le contenu pouvait être masqué par la barre.
+   */
+  const showStickyCartBar =
+    cartItemsCount > 0 &&
+    !isCartView &&
+    !isFeedView &&
+    checkoutStage !== "success" &&
+    (location.pathname === "/" ||
+      location.pathname === "" ||
+      location.pathname.startsWith("/store/"));
+
   return (
     <div className="flex flex-col bg-gray-50/50 font-sans md:min-h-screen md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
@@ -3063,7 +3080,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       )}
 
       <main
-        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8`}
+        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar ? "pb-28 md:pb-8" : ""}`}
       >
         <Routes>
           <Route
@@ -4116,19 +4133,21 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         !location.pathname ||
         location.pathname === "") && <MarketplaceFooter />}
 
-      {/* Sticky cart button - discovery pages only (home/store).
-          Exclut /product : la fiche produit a sa propre barre d'action fixe. */}
-      {cartItemsCount > 0 &&
-        !isCartView &&
-        !isFeedView &&
-        checkoutStage !== "success" &&
-        (location.pathname === "/" ||
-          location.pathname.startsWith("/store/")) && (
+      {/* Barre panier fixe : visible sur les pages de decouverte uniquement.
+          La fiche produit a sa propre barre d'action. La condition est
+          factorisee dans `showStickyCartBar` pour que la barre et la reserve
+          d'espace en bas de page ne puissent jamais diverger.
+
+          Même habillage que la barre de la fiche produit : bandeau blanc,
+          filet superieur, ombre discrete, bouton orange en pilule de 48px.
+          Le decalage au clavier est conserve (la barre reste au-dessus des
+          champs de la page panier). */}
+      {showStickyCartBar && (
         <div
-          className="fixed left-0 right-0 z-[3000] px-3 pt-2"
+          className="fixed left-0 right-0 z-[3000] bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.07)] px-3 pt-2.5"
           style={{
-            bottom: keyboardOffset || "env(safe-area-inset-bottom, 0px)",
-            paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
+            bottom: keyboardOffset || 0,
+            paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
           }}
         >
           <button
@@ -4137,31 +4156,25 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               safeNavigate("/cart");
             }}
             disabled={isCartButtonLoading}
-            className="pointer-events-auto w-full bg-[#f56b2a] text-white py-4 px-6 rounded-2xl shadow-[0_-10px_40px_rgba(245,107,42,0.45)] flex items-center justify-center gap-3 font-bold transition-all active:scale-[0.98] hover:bg-[#e55a1b] relative overflow-hidden group disabled:opacity-80"
+            className="pointer-events-auto w-full h-12 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-70 disabled:active:bg-[#f56b2a]"
           >
             {isCartButtonLoading ? (
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span className="text-sm uppercase tracking-wider font-bold">
-                  Chargement...
-                </span>
-              </div>
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="whitespace-nowrap">Chargement...</span>
+              </>
             ) : (
               <>
-                <div className="relative flex-shrink-0">
-                  <ShoppingCart
-                    size={20}
-                    strokeWidth={3}
-                    className="group-hover:rotate-12 transition-transform"
-                  />
+                <span className="relative flex-shrink-0">
+                  <ShoppingCart size={15} strokeWidth={2.5} />
                   <span
                     key={cartItemsCount}
-                    className="absolute -top-2.5 -right-2.5 bg-gray-900 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold shadow-lg shadow-orange-100"
+                    className="absolute -top-2 -right-2.5 bg-gray-900 text-white text-[9px] min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold tabular-nums"
                   >
-                    {cartItemsCount}
+                    {cartItemsCount > 99 ? "99+" : cartItemsCount}
                   </span>
-                </div>
-                <span className="text-sm uppercase font-bold whitespace-nowrap">
+                </span>
+                <span className="truncate">
                   Voir mon panier <span className="opacity-40 mx-1">•</span>{" "}
                   {formatCurrency(Number(cartTotal) || 0)}
                 </span>
