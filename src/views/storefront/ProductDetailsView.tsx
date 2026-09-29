@@ -208,9 +208,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     addWholesaleToCart,
     isDescriptionExpanded,
     setIsDescriptionExpanded,
-    cartItemsCount,
-    cartTotal,
-  } = props;
+  cartItemsCount,
+} = props;
   const product = selectedProductDetails;
   const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
     const relatedProducts = safeAllProducts
@@ -1829,37 +1828,35 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             }}
           >
             <div className="flex items-center gap-2.5">
-              {cartItemsCount > 0 && (
-                <button
-                  type="button"
-                  onClick={goToCart}
-                  aria-label={`Voir mon panier, ${cartItemsCount} article(s), total ${formatCurrency(Number(cartTotal) || 0)}`}
-                  className="h-14 shrink-0 max-w-[45%] px-3 rounded-full border-2 border-[#f56b2a] bg-orange-50/70 text-[#f56b2a] flex items-center gap-1.5 active:scale-95 transition-transform"
-                >
-                  <span className="relative flex-shrink-0">
-                    <ShoppingCart size={19} strokeWidth={2.5} />
-                    <span className="absolute -top-2 -right-2.5 bg-gray-900 text-white text-[9px] min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold tabular-nums">
-                      {cartItemsCount > 99 ? '99+' : cartItemsCount}
-                    </span>
-                  </span>
-                  <span className="text-[11px] font-bold tabular-nums truncate">
-                    {formatCurrency(Number(cartTotal) || 0)}
-                  </span>
-                </button>
-              )}
+              {/* Action principale : ajouter le produit courant. Toujours à
+                  gauche, toujours primaries — son rendu ne change pas quand le
+                  panier se remplit, donc aucun saut de mise en page. */}
               <button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isBuyDisabled}
-                className={`h-14 px-4 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  cartItemsCount > 0
-                    ? "flex-1 min-w-0 border-2 border-[#f56b2a] bg-white text-[#f56b2a] hover:bg-orange-50"
-                    : "w-full bg-[#f56b2a] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20"
-                }`}
+                className="h-14 flex-1 min-w-0 px-4 rounded-full bg-[#f56b2a] hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0" />
                 <span className="truncate">{primaryActionLabel}</span>
               </button>
+
+              {/* Secondaire : accès au panier. N'apparaît qu'une fois le
+                  panier non vide, à droite de l'action d'achat. */}
+              {cartItemsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={goToCart}
+                  aria-label={`Mon panier, ${cartItemsCount} article(s)`}
+                  className="h-14 shrink-0 pl-4 pr-3.5 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform"
+                >
+                  <ShoppingCart size={16} strokeWidth={2.5} className="flex-shrink-0" />
+                  <span className="whitespace-nowrap">Mon panier</span>
+                  <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-[#f56b2a] text-white text-[11px] flex items-center justify-center tabular-nums">
+                    {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         )}
