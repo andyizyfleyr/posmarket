@@ -99,8 +99,6 @@ export interface CartCheckoutViewBundle {
   completedOrderStores: CompletedOrderStore[];
   completedOrderItems: CompletedOrderItem[];
   completedOrderTotal: number;
-  /** Références des commandes créées, affichées comme preuve de l'achat. */
-  completedOrderIds: string[];
   /** Appel serveur de commande en cours : pilote le spinner de confirmation. */
   isCheckoutSubmitting: boolean;
 }
@@ -120,7 +118,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     updateQuantity, handlePromoApply, promoApplied, setPromoApplied, promoCodeInput, setPromoCodeInput,
     isPromoOpen, setIsPromoOpen, isApplyingPromo, setIsApplyingPromo,
     baseCartTotal, wholesaleSavings, discountAmount, cartTotal,
-    completedOrderStores, completedOrderItems, completedOrderTotal, completedOrderIds,
+    completedOrderStores, completedOrderItems, completedOrderTotal,
     isCheckoutSubmitting,
   } = props;
 
@@ -703,25 +701,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
 
               <div className="w-10 h-1 bg-green-500 rounded-full mb-4 mx-auto" />
 
-              <p className="text-gray-500 max-w-sm mb-5 font-semibold text-sm leading-relaxed">
+              <p className="text-gray-500 max-w-sm mb-8 font-semibold text-sm leading-relaxed">
                 Votre commande a été enregistrée avec succès.
                 <br className="hidden md:block" />
                 Le vendeur va traiter votre commande rapidement.
               </p>
-
-              {completedOrderIds.length > 0 && (
-                <div className="w-full max-w-sm mb-6 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
-                    Votre référence
-                  </p>
-                  <p className="font-mono text-sm font-bold text-gray-900 break-all">
-                    {completedOrderIds.map((id) => id.slice(-8).toUpperCase()).join(" · ")}
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-1.5">
-                    Communiquez-la au vendeur pour suivre votre commande.
-                  </p>
-                </div>
-              )}
 
               <div className="w-full flex flex-col items-center">
                 <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest text-center mb-3">

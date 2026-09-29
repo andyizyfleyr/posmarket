@@ -819,8 +819,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     Array<{ name: string; quantity: number; price: number }>
   >([]);
   const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
-  /** Références des commandes créées, à afficher au client comme preuve. */
-  const [completedOrderIds, setCompletedOrderIds] = useState<string[]>([]);
 
   // User Accounts State
   const [isAccountView, setIsAccountView] = useState(false);
@@ -2091,17 +2089,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             if (response?.success) {
               playSuccessSound();
 
-              // L'action renvoie déjà les ids créés : on les garde pour les
-              // afficher au client, sinon il n'a aucun moyen de référence sa
-              // commande auprès du vendeur.
-              setCompletedOrderIds(
-                Array.isArray(response.orderIds)
-                  ? response.orderIds
-                  : response.orderId
-                    ? [response.orderId]
-                    : [],
-              );
-
               const storeMap: Record<
                 string,
                 {
@@ -2420,7 +2407,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       completedOrderStores={completedOrderStores}
       completedOrderItems={completedOrderItems}
             completedOrderTotal={completedOrderTotal}
-            completedOrderIds={completedOrderIds}
             isCheckoutSubmitting={isCheckoutSubmitting}
     />
   );
