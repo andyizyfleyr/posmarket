@@ -1815,44 +1815,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </section>
         )}
 
-        {/* ============ RÉASSURANCE (mobile) ============
-            Elle était dans la barre fixe, ce qui la collait à l'écran et
-            mangeait la hauteur des boutons. Remontée ici, une seule fois, à
-            la fin de la fiche. */}
-        <div className="lg:hidden mt-5 grid grid-cols-3 gap-1.5 py-2 px-2.5 bg-gray-50/70 rounded-xl border border-gray-100 text-[9.5px] font-medium text-gray-500 text-center">
-          {isFood ? (
-            <>
-              <span className="flex items-center justify-center gap-1 truncate">
-                <Clock size={11} className="text-green-600 flex-shrink-0" />
-                <span>Fait minute</span>
-              </span>
-              <span className="flex items-center justify-center gap-1 truncate border-x border-gray-200">
-                <ShieldCheck size={11} className="text-emerald-600 flex-shrink-0" />
-                <span>Fraîcheur</span>
-              </span>
-              <span className="flex items-center justify-center gap-1 truncate">
-                <Truck size={11} className="text-blue-600 flex-shrink-0" />
-                <span>Livraison</span>
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="flex items-center justify-center gap-1 truncate">
-                <ShieldCheck size={11} className="text-emerald-600 flex-shrink-0" />
-                <span>Paiement à la livraison</span>
-              </span>
-              <span className="flex items-center justify-center gap-1 truncate border-x border-gray-200">
-                <RotateCcw size={11} className="text-blue-600 flex-shrink-0" />
-                <span>Retour 7 jours</span>
-              </span>
-              <span className="flex items-center justify-center gap-1 truncate">
-                <CheckCircle2 size={11} className="text-emerald-600 flex-shrink-0" />
-                <span>Garantie</span>
-              </span>
-            </>
-          )}
-        </div>
-
         {/* ================= STICKY MOBILE ACTION BAR =================
             Une seule rangée d'actions, hauteur constante, cibles tactiles
             généreuses (56px) : la barre ne sert qu'agir, l'information reste
