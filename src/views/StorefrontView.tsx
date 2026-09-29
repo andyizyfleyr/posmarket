@@ -4057,6 +4057,15 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               stores={stores}
               cartItemsCount={cartItemsCount}
               cartTotal={cartTotal}
+              isVariantInCart={(variantId, options) =>
+                cart.some(
+                  (item) =>
+                    item.product.id === selectedProductDetails?.id &&
+                    item.product.storeId === selectedProductDetails?.storeId &&
+                    (item.variantId ?? null) === (variantId ?? null) &&
+                    sameSelectedOptions(item.selectedOptions, options),
+                )
+              }
             />
           } />
           <Route path="cart" element={renderCart()} />

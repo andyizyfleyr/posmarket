@@ -73,6 +73,14 @@ type ProductDetailsProps = {
   setIsDescriptionExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   stores?: StoreData[];
   cartItemsCount: number;
+  /**
+   * Le couple (produit, variante, options) affiché est-il déjà au panier ?
+   * Sert à ne pas reproposer un ajout qui ne ferait qu'incrémenter en double.
+   */
+  isVariantInCart: (
+    variantId?: string | null,
+    options?: Record<string, string>,
+  ) => boolean;
   cartTotal: number;
 };
 
@@ -209,6 +217,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     isDescriptionExpanded,
     setIsDescriptionExpanded,
   cartItemsCount,
+  isVariantInCart,
 } = props;
   const product = selectedProductDetails;
   const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
@@ -406,6 +415,13 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       if (!hasOptions || variants.length === 0) return undefined;
       return findVariantByOptions(typedVariants, selectedOptions)?.id;
     };
+
+    // Le couple affiché est-il déjà au panier ? Attention à ne pas confondre
+    // « le panier contient des articles » (sans effet ici) et « CE produit
+    // dans CETTE variante est au panier » : sans cette précision, un article
+    // ajouté ailleurs ferait disparaître l'ajout sur toutes les fiches.
+    const isCurrentSelectionInCart =
+      isVariantInCart(resolveVariantId(), selectedOptions);
 
     const guardSelection = (): boolean => {
       if (!allSelected) {
@@ -1835,31 +1851,37 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             }}
           >
             <div className="flex items-center gap-2.5">
-              {/* Action principale : ajouter le produit courant. Toujours à
-                  gauche, toujours primaries — son rendu ne change pas quand le
-                  panier se remplit, donc aucun saut de mise en page. */}
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={isBuyDisabled}
-                className="h-14 flex-1 min-w-0 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-sm shadow-sm shadow-orange-500/25 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a]"
-              >
-                <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0" />
-                <span className="truncate">{primaryActionLabel}</span>
-              </button>
+              {/* Action principale : ajouter le produit courant. Masquée
+                  quand CE couple (produit, variante, options) est déjà au
+                  panier : c'est dans le panier que l'utilisateur règle la
+                  quantité, plutôt que de ré-incrémenter à chaque visite. */}
+              {!isCurrentSelectionInCart && (
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isBuyDisabled}
+                  className="h-14 flex-1 min-w-0 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-sm shadow-sm shadow-orange-500/25 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a]"
+                >
+                  <ShoppingCart size={17} strokeWidth={2.5} className="flex-shrink-0" />
+                  <span className="truncate">{primaryActionLabel}</span>
+                </button>
+              )}
 
-              {/* Secondaire : accès au panier. N'apparaît qu'une fois le
-                  panier non vide, à droite de l'action d'achat. Largeur fixe
-                  pour que les deux pilules restent équilibrées. */}
+              {/* Accès au panier. Seul bouton affiché quand le produit
+                  courant est déjà au panier : il occupe alors toute la barre. */}
               {cartItemsCount > 0 && (
                 <button
                   type="button"
                   onClick={goToCart}
                   aria-label={`Mon panier, ${cartItemsCount} article(s)`}
-                  className="h-14 w-[132px] shrink-0 pl-3 pr-2.5 rounded-full bg-gray-900 active:bg-gray-800 text-white font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors"
+                  className={`h-14 pl-3 pr-2.5 rounded-full bg-gray-900 active:bg-gray-800 text-white font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors ${
+                    isCurrentSelectionInCart ? "w-full" : "w-[132px] shrink-0"
+                  }`}
                 >
-                  <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
-                  <span className="whitespace-nowrap">Mon panier</span>
+                  <Check size={17} strokeWidth={3} className="flex-shrink-0 text-emerald-400" />
+                  <span className="whitespace-nowrap">
+                    {isCurrentSelectionInCart ? "Déjà au panier" : "Mon panier"}
+                  </span>
                   <span className="min-w-[20px] h-5 px-1 rounded-full bg-[#f56b2a] text-white text-[10px] flex items-center justify-center tabular-nums">
                     {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
