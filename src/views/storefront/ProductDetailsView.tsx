@@ -1870,7 +1870,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   className="h-12 w-full px-4 rounded-full bg-gray-900 active:bg-gray-800 text-white font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
-                  <span className="truncate">Voir panier</span>
+                  <span className="truncate">Voir mon panier</span>
                   <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#f56b2a] text-white text-[10px] flex items-center justify-center tabular-nums">
                     {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
