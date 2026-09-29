@@ -564,12 +564,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         </nav>
 
         {/* ================= MOBILE APP-BAR (M3 style) =================
-            Les deux emplacements étaient vides : il n'y avait donc ni retour
-            ni panier sur la fiche produit en mobile. Le panier en particulier
-            était inaccessible — aucun lien /cart sur la page — alors que la
-            barre du bas ne propose « Voir panier » que si le produit affiché
-            est déjà au panier. */}
-        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center justify-between -mx-4" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+            Bouton de retour uniquement. Le panier vit dans la barre du bas :
+            le dupliquer ici affichait deux boutons pointant vers la meme
+            destination sur le meme ecran. */}
+        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center gap-2 -mx-4" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <button
             type="button"
             onClick={() => safeNavigate("/")}
@@ -578,22 +576,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <span className="text-xs font-bold tracking-[0.1em] uppercase text-gray-500 max-w-[55%] truncate">
+          <span className="text-xs font-bold tracking-[0.1em] uppercase text-gray-500 truncate">
             {product.storeName}
           </span>
-          <button
-            type="button"
-            onClick={goToCart}
-            aria-label={`Voir le panier${cartItemsCount > 0 ? `, ${cartItemsCount} article(s)` : ""}`}
-            className="relative w-9 h-9 -mr-1 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100 transition-colors"
-          >
-            <ShoppingCart size={18} strokeWidth={2.5} />
-            {cartItemsCount > 0 && (
-              <span className="absolute top-0 right-0 min-w-[16px] h-4 px-1 rounded-full bg-[#f56b2a] text-white text-[9px] font-bold flex items-center justify-center tabular-nums">
-                {cartItemsCount > 99 ? '99+' : cartItemsCount}
-              </span>
-            )}
-          </button>
         </div>
 
         {/* ================= PRODUIT ================= */}
