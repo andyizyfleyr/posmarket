@@ -8,6 +8,7 @@ import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
 import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
 import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
 import { generateProductSlug } from "@/utils/slug";
+import { needsNoOptimization } from "@/lib/imageOptimizer";
 import {
   findVariantByOptions,
   optionValueAvailability,
@@ -176,6 +177,7 @@ function ProductSeller({
             fill
             sizes="40px"
             className="object-cover"
+            unoptimized={needsNoOptimization(logo)}
           />
         ) : (
           <span className="w-full h-full flex items-center justify-center">
@@ -1039,6 +1041,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         quality={90}
                         sizes="100vw"
                         className="object-cover pointer-events-none"
+                        unoptimized={needsNoOptimization(img)}
                       />
                     </div>
                   ))}
@@ -1141,6 +1144,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     alt={product.name}
                     sizes="(max-width: 1024px) 100vw, 420px"
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/main:scale-105"
+                    unoptimized={needsNoOptimization(currentImage)}
                   />
 
                   {/* Manual slide arrows (desktop) */}
@@ -1236,6 +1240,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                             quality={90}
                             className="w-full h-full object-cover"
                             sizes="70px"
+                            unoptimized={needsNoOptimization(img)}
                           />
                         </button>
                       );

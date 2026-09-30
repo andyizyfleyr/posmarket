@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Image as ImageIcon } from 'lucide-react';
+import { needsNoOptimization } from '@/lib/imageOptimizer';
 
 interface ProductImageProps {
     src: string | undefined;
@@ -47,6 +48,7 @@ const ProductImage: React.FC<ProductImageProps> = ({
                     priority={false}
                     placeholder="blur"
                     blurDataURL={PRODUCT_BLUR_DATA_URL}
+                    unoptimized={needsNoOptimization(src)}
                 />
             ) : (
                 <div className="flex flex-col items-center justify-center text-gray-300">

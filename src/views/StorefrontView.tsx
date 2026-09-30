@@ -27,6 +27,7 @@ import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
+import { needsNoOptimization } from "@/lib/imageOptimizer";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
@@ -2242,6 +2243,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     fill
                     sizes="80px"
                     className="object-cover"
+                  unoptimized={needsNoOptimization(selectedStore.settings.logo)}
                   />
                 ) : (
                   <Store size={28} className="text-[#f56b2a]" />
@@ -2764,6 +2766,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     sizes="48px"
                     placeholder="blur"
                     blurDataURL={PRODUCT_BLUR_DATA_URL}
+                  unoptimized={needsNoOptimization(lastAddedProduct.image)}
                   />
                 </div>
                 <div className="flex-grow min-w-0">
@@ -2920,6 +2923,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 fill
                                 sizes="56px"
                                 className="object-cover"
+                              unoptimized={needsNoOptimization(store.settings.logo)}
                               />
                             ) : (
                               <Store className="text-[#f56b2a]" size={28} />
@@ -3289,6 +3293,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       fill
                                       sizes="32px"
                                       className="object-cover"
+                                    unoptimized={needsNoOptimization(store.settings.logo)}
                                     />
                                   ) : (
                                     <Store
@@ -3359,6 +3364,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 fill
                                 sizes="56px"
                                 className="object-cover"
+                              unoptimized={needsNoOptimization(store.settings.logo)}
                               />
                             ) : (
                               <Store className="text-[#f56b2a]" size={28} />
@@ -4039,6 +4045,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       fill
                                       className="object-cover"
                                       sizes="40px"
+                                    unoptimized={needsNoOptimization(allProducts.find((p) => p.id === review.productId)?.image || "")}
                                     />
                                   </div>
                                   <div className="flex-grow min-w-0">
@@ -4520,6 +4527,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   className="object-contain shadow-2xl rounded-2xl select-none"
                   style={{ touchAction: "pinch-zoom" }}
                   alt="Full Size Product"
+                unoptimized={needsNoOptimization(zoomSrc)}
                 />
                 {canNavigate && (
                   <>
