@@ -133,7 +133,9 @@ function OptionSelectionHint({
           <span className="text-emerald-700">{formatCurrency(price)}</span>
         )}
         <span className={variantStock <= 5 ? "text-amber-600" : "text-emerald-600"}>
-          {variantStock <= 5 ? `Plus que ${variantStock}` : `${variantStock} en stock`}
+          {variantStock <= 5
+            ? `Plus que ${formatNumber(variantStock)}`
+            : `En stock · ${formatNumber(variantStock)}`}
         </span>
       </span>
     </div>
@@ -168,7 +170,7 @@ function ProductSeller({
         to={`/store/${product.storeSlug || product.storeId}`}
         tabIndex={-1}
         aria-hidden="true"
-        className="w-9 h-9 lg:w-10 lg:h-10 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-200/80 ring-1 ring-gray-900/[0.04] group/vendor active:opacity-80 transition-opacity"
+        className="relative w-9 h-9 lg:w-10 lg:h-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-50 border border-gray-200/80 ring-1 ring-gray-900/[0.04] group/vendor active:opacity-80 transition-opacity"
       >
         {logo ? (
           <Image
