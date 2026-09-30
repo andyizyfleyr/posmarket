@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingBag, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown } from "lucide-react";
+import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingBag, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown, Eye } from "lucide-react";
 import Button from "@/components/Button";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber } from "@/utils";
@@ -189,8 +189,10 @@ function ProductSeller({
           to={`/store/${product.storeSlug || product.storeId}`}
           className="flex items-center gap-1 min-w-0 group/vendor"
         >
-          <span className="text-[10px] text-gray-400 leading-none">Vendu par</span>
-          <span className="text-[13px] font-semibold text-gray-800 truncate group-hover/vendor:text-[#f56b2a] transition-colors">
+          <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">
+            Vendu par
+          </span>
+          <span className="text-[13px] font-semibold text-gray-800 truncate min-w-0 group-hover/vendor:text-[#f56b2a] transition-colors">
             {product.storeName}
           </span>
           <CheckCircle2
@@ -215,28 +217,23 @@ function ProductSeller({
   );
 }
 
-function ProductTitle({
-  product,
-  hasOptions,
-}: {
-  product: StorefrontProduct;
-  hasOptions: boolean;
-}) {
+/**
+ * Titre du produit.
+ *
+ * L'unité n'apparaît volontairement pas ici : le badge orange collé au `h1`
+ * faisait doublon avec le `/ {unit}` du bloc prix et décalait la ligne de base
+ * du titre.
+ */
+function ProductTitle({ product }: { product: StorefrontProduct }) {
   return (
     <h1 className="text-[17px] lg:text-[22px] font-bold text-gray-950 leading-[1.25] tracking-[-0.01em]">
       {product.name}
-      {product.unit && !hasOptions && (
-        <span className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] font-bold text-[#f56b2a] bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
-          <Package size={10} strokeWidth={2.5} />
-          {product.unit}
-        </span>
-      )}
     </h1>
   );
 }
 
 /**
- * Preuve sociale : note, avis, ventes.
+ * Preuve sociale : note, avis, ventes, vues.
  *
  * Les cinq étoiles restent visibles — réduire la note à un nombre encadré
  * jetait l'information la plus lue d'une fiche produit. Le tout tient sur une
@@ -247,15 +244,30 @@ function ProductSocialProof({
   rating,
   reviewTotal,
   salesCount,
+  viewCount,
   isFood,
   onReviewsClick,
 }: {
   rating: number;
   reviewTotal: number;
   salesCount: number;
+  viewCount: number;
   isFood: boolean;
   onReviewsClick: () => void;
 }) {
+  // Ventes et vues ne s'affichent qu'au-dessus de zéro : « 0 vendus » est un
+  // signal négatif, et un « 0 · 0 » sur une fiche neuve n'aide personne.
+  const counters = [
+    salesCount > 0 && {
+      icon: <ShoppingBag size={11} className="flex-shrink-0" />,
+      label: `${formatNumber(salesCount)} ${isFood ? "commandes" : "vendus"}`,
+    },
+    viewCount > 0 && {
+      icon: <Eye size={11} className="flex-shrink-0" />,
+      label: `${formatNumber(viewCount)} vues`,
+    },
+  ].filter(Boolean) as { icon: React.ReactNode; label: string }[];
+
   return (
     <div className="flex items-center gap-2 text-[11px] text-gray-400">
       <button
@@ -278,15 +290,15 @@ function ProductSocialProof({
         <span className="truncate">({formatNumber(reviewTotal)})</span>
       </button>
 
-      {salesCount > 0 && (
-        <>
+      {counters.map((c) => (
+        <span key={c.label} className="flex items-center gap-2 min-w-0">
           <span className="text-gray-300 flex-shrink-0">·</span>
           <span className="flex items-center gap-1 min-w-0 truncate">
-            <ShoppingBag size={11} className="flex-shrink-0" />
-            {formatNumber(salesCount)} {isFood ? "commandes" : "vendus"}
+            {c.icon}
+            {c.label}
           </span>
-        </>
-      )}
+        </span>
+      ))}
     </div>
   );
 }
@@ -1109,12 +1121,13 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   }
                 />
 
-                <ProductTitle product={product} hasOptions={hasOptions} />
+                <ProductTitle product={product} />
 
                 <ProductSocialProof
                   rating={product.rating || 0}
                   reviewTotal={reviewTotal}
                   salesCount={product.salesCount || 0}
+                  viewCount={product.views || 0}
                   isFood={isFood}
                   onReviewsClick={() => scrollToSection("pd-avis")}
                 />
@@ -1458,7 +1471,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 </div>
 
                 <div className="mb-2">
-                  <ProductTitle product={product} hasOptions={hasOptions} />
+                  <ProductTitle product={product} />
                 </div>
 
                 <div className="mb-3.5">
@@ -1466,6 +1479,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     rating={product.rating || 0}
                     reviewTotal={reviewTotal}
                     salesCount={product.salesCount || 0}
+                    viewCount={product.views || 0}
                     isFood={isFood}
                     onReviewsClick={() => scrollToSection("pd-avis")}
                   />
