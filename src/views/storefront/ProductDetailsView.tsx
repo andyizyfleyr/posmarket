@@ -135,7 +135,7 @@ function OptionSelectionHint({
         <span className={variantStock <= 5 ? "text-amber-600" : "text-emerald-600"}>
           {variantStock <= 5
             ? `Plus que ${formatNumber(variantStock)}`
-            : `En stock · ${formatNumber(variantStock)}`}
+            : `${formatNumber(variantStock)} en stock`}
         </span>
       </span>
     </div>
@@ -291,7 +291,7 @@ function ProductSocialProof({
           ))}
         </span>
         <span className="font-semibold text-gray-700">{rating.toFixed(1)}</span>
-        <span className="truncate">({formatNumber(reviewTotal)})</span>
+        <span className="truncate">({formatNumber(reviewTotal)} avis)</span>
       </button>
 
       {counters.map((c) => (
@@ -376,12 +376,8 @@ function ProductStockRow({
           <>Plus que {formatNumber(stockValue ?? 0)} disponibles</>
         ) : (
           <>
-            En stock
-            {hasCount && (
-              <span className="font-normal text-gray-400">
-                · {formatNumber(stockValue)}
-              </span>
-            )}
+            {hasCount && formatNumber(stockValue)}
+            {hasCount ? " en stock" : "En stock"}
           </>
         )}
       </p>

@@ -264,7 +264,7 @@ export function buildAutoSpecs(product: Product, ctx: ProductContext): AutoSpec[
     if (ctx.isOutOfStock) {
       specs.push({ label: 'Disponibilité', value: 'Rupture de stock', tone: 'danger' });
     } else {
-      const label = ctx.stock === 1 ? 'En stock · 1 disponible' : `En stock · ${ctx.stock.toLocaleString('fr-FR')} disponibles`;
+      const label = ctx.stock === 1 ? '1 disponible' : `${ctx.stock.toLocaleString('fr-FR')} disponibles`;
       specs.push({ label: 'Disponibilité', value: label, tone: 'success' });
     }
   } else {
