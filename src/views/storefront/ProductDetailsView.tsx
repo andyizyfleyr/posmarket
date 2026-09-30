@@ -304,97 +304,98 @@ function ProductSocialProof({
 }
 
 /**
- * Disponibilité. C'est un signal d'achat, pas une statistique : il vit sous le
- * prix, à côté du bouton, et non dans la rangée de preuve sociale.
+ * Disponibilité et délais, sur une seule rangée.
+ *
+ * Le stock est un signal d'achat, pas une statistique : il vit sous le prix, à
+ * côté du bouton, et non dans la rangée de preuve sociale. Les deux
+ * informations se lisent ensemble — « en stock » sans délai n'aide pas à
+ * décider — d'où une rangée unique plutôt que deux lignes empilées.
  */
-function ProductAvailability({
+function ProductStockRow({
   isOutOfStock,
   isLowStock,
   stockValue,
   isSelectedOutOfStock,
+  isFood,
+  deliveryTime,
+  preparationTime,
 }: {
   isOutOfStock: boolean;
   isLowStock: boolean;
   stockValue: number | null;
   isSelectedOutOfStock: boolean;
-}) {
-  const unavailable = isOutOfStock || isSelectedOutOfStock;
-  if (unavailable) {
-    return (
-      <p className="flex items-center gap-1.5 text-[12px] font-medium text-red-600">
-        <AlertCircle size={13} className="flex-shrink-0" />
-        {isSelectedOutOfStock && !isOutOfStock
-          ? "Combinaison indisponible"
-          : "Rupture de stock"}
-      </p>
-    );
-  }
-
-  return (
-    <p
-      className={`flex items-center gap-1.5 text-[12px] font-medium ${
-        isLowStock ? "text-amber-600" : "text-emerald-700"
-      }`}
-    >
-      {isLowStock ? (
-        <>
-          <AlertCircle size={13} className="flex-shrink-0" />
-          Plus que {stockValue} en stock
-        </>
-      ) : (
-        <>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
-          En stock
-        </>
-      )}
-    </p>
-  );
-}
-
-/**
- * Délais de préparation / livraison — source unique de la section logistique.
- *
- * Remplace l'affichage dispersé d'avant (overlay de l'image, ligne sous le
- * prix sur mobile, cellule de la barre de réassurance sur desktop). Ne rend
- * rien si le vendeur n'a rien renseigné : on n'invente pas de délai.
- */
-function ProductLogistics({
-  isFood,
-  deliveryTime,
-  preparationTime,
-}: {
   isFood: boolean;
   deliveryTime?: string;
   preparationTime?: string;
 }) {
-  const prepTime = isFood ? preparationTime || deliveryTime : undefined;
-  const shipTime = deliveryTime;
-  if (!prepTime && !shipTime) return null;
+  const unavailable = isOutOfStock || isSelectedOutOfStock;
+  const hasCount = stockValue !== null && !unavailable;
 
-  const items = [
+  // Préparation et livraison partagent le même champ côté vendeur : en food on
+  // retombe sur le délai de livraison quand le délai de préparation est vide.
+  const prepTime = isFood ? preparationTime || deliveryTime : undefined;
+  const delays = [
     prepTime && {
       icon: <Clock size={13} className="text-green-600 flex-shrink-0" />,
       label: "Préparation",
       value: prepTime,
     },
-    shipTime && {
+    deliveryTime && {
       icon: <Truck size={13} className="text-blue-500 flex-shrink-0" />,
       label: "Livraison",
-      value: shipTime,
+      value: deliveryTime,
     },
   ].filter(Boolean) as { icon: React.ReactNode; label: string; value: string }[];
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-      {items.map((item, i) => (
-        <span key={item.label} className="flex items-center gap-1.5 min-w-0">
-          {(i > 0) && <span className="text-gray-300">·</span>}
-          {item.icon}
-          <span className="truncate">
-            {item.label} <b className="font-semibold text-gray-800">{item.value}</b>
-          </span>
-        </span>
-      ))}
+    <div className="flex items-center justify-between gap-x-3 gap-y-1.5 flex-wrap">
+      <p
+        className={`flex items-center gap-1.5 text-[12px] font-medium min-w-0 ${
+          unavailable
+            ? "text-red-600"
+            : isLowStock
+              ? "text-amber-600"
+              : "text-emerald-700"
+        }`}
+      >
+        {unavailable || isLowStock ? (
+          <AlertCircle size={13} className="flex-shrink-0" />
+        ) : (
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+        )}
+
+        {isSelectedOutOfStock && !isOutOfStock ? (
+          "Combinaison indisponible"
+        ) : isOutOfStock ? (
+          "Rupture de stock"
+        ) : isLowStock ? (
+          <>Plus que {formatNumber(stockValue ?? 0)} disponibles</>
+        ) : (
+          <>
+            En stock
+            {hasCount && (
+              <span className="font-normal text-gray-400">
+                · {formatNumber(stockValue)}
+              </span>
+            )}
+          </>
+        )}
+      </p>
+
+      {delays.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 text-[11px] text-gray-500">
+          {delays.map((item, i) => (
+            <span key={item.label} className="flex items-center gap-1.5 min-w-0">
+              {i > 0 && <span className="text-gray-300">·</span>}
+              {item.icon}
+              <span className="truncate">
+                {item.label}{" "}
+                <b className="font-semibold text-gray-800">{item.value}</b>
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1167,19 +1168,16 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 </div>
 
                 <div className="-mt-1.5">
-                  <ProductAvailability
+                  <ProductStockRow
                     isOutOfStock={isOutOfStock}
                     isLowStock={isLowStock}
                     stockValue={stockValue}
                     isSelectedOutOfStock={isSelectedOutOfStock}
+                    isFood={isFood}
+                    deliveryTime={product.deliveryTime}
+                    preparationTime={product.preparationTime}
                   />
                 </div>
-
-                <ProductLogistics
-                  isFood={isFood}
-                  deliveryTime={product.deliveryTime}
-                  preparationTime={product.preparationTime}
-                />
 
                 {/* Options / Variantes — SKU picker style (accordion) */}
                 {hasOptions && (
@@ -1423,7 +1421,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   </button>
                 </div>
 
-                {/* Reassurance: réassurance pure, la livraison vit dans ProductLogistics.
+                {/* Reassurance: réassurance pure, la livraison vit dans ProductStockRow.
                     Deux éléments en ligne calme — une grille à 2 cases laissait un
                     vide asymétrique sous les CTA. */}
                 <div className="flex items-center justify-center gap-x-3.5 gap-y-1 flex-wrap text-[10px] text-gray-400">
@@ -1512,17 +1510,12 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   )}
                 </div>
 
-                <div className="mb-2.5">
-                  <ProductAvailability
+                <div className="mb-3.5">
+                  <ProductStockRow
                     isOutOfStock={isOutOfStock}
                     isLowStock={isLowStock}
                     stockValue={stockValue}
                     isSelectedOutOfStock={isSelectedOutOfStock}
-                  />
-                </div>
-
-                <div className="mb-3.5">
-                  <ProductLogistics
                     isFood={isFood}
                     deliveryTime={product.deliveryTime}
                     preparationTime={product.preparationTime}
