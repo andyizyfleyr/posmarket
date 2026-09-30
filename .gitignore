@@ -48,3 +48,5 @@ _tmp_t.mjs
 _tmp_*.mjs
 build.out.log
 build.err.log
+
+dev-diag.log
