@@ -140,55 +140,77 @@ function OptionSelectionHint({
 }
 
 /**
- * Bloc d'identité de la fiche : boutique vendeuse, titre et statistiques.
+ * En-tête de la fiche produit, dans l'ordre de lecture d'un acheteur :
+ * vendeur -> titre -> preuve sociale -> prix -> stock -> logistique.
  *
- * Les deuxpoints de rupture (`lg:hidden` / `hidden lg:block`) partagent le
+ * Les deux points de rupture (`lg:hidden` / `hidden lg:block`) partagent le
  * même contenu : un seul jeu de composants évite que le desktop et le mobile
  * ne dérivent l'un de l'autre. L'exemplaire masqué par `display:none` sort du
  * tree d'accessibilité, donc un seul `<h1>` reste exposé à la fois.
  */
-function ProductStoreLine({
+
+/** Fil du vendeur : logo réel, nom vérifié, catégorie. */
+function ProductSeller({
   product,
-  mainCat,
+  logo,
+  category,
   onCategoryClick,
 }: {
   product: StorefrontProduct;
-  mainCat: string;
+  logo?: string;
+  category: string;
   onCategoryClick: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 min-w-0">
+    <div className="flex items-center gap-2.5 min-w-0">
       <Link
         to={`/store/${product.storeSlug || product.storeId}`}
-        className="inline-flex items-center gap-1.5 min-w-0 group/store"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="w-9 h-9 lg:w-10 lg:h-10 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-200/80 ring-1 ring-gray-900/[0.04] group/vendor active:opacity-80 transition-opacity"
       >
-        <span className="flex items-center justify-center w-5 h-5 flex-shrink-0 rounded-md bg-gray-50 border border-gray-200/70 text-gray-400 group-hover/store:text-[#f56b2a] group-hover/store:border-orange-100 transition-colors">
-          <Store size={11} />
-        </span>
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 flex-shrink-0">
-          Vendu par
-        </span>
-        <span className="text-xs font-semibold text-gray-900 truncate">
-          {product.storeName}
-        </span>
-        <CheckCircle2
-          size={12}
-          role="img"
-          aria-label="Boutique vérifiée"
-          className="text-blue-500 flex-shrink-0"
-        />
+        {logo ? (
+          <Image
+            src={logo}
+            alt=""
+            fill
+            sizes="40px"
+            className="object-cover"
+          />
+        ) : (
+          <span className="w-full h-full flex items-center justify-center">
+            <Store size={16} className="text-gray-300" />
+          </span>
+        )}
       </Link>
 
-      {mainCat && (
-        <button
-          type="button"
-          onClick={onCategoryClick}
-          className="inline-flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-[#f56b2a] transition-colors flex-shrink-0 min-w-0 cursor-pointer"
+      <div className="min-w-0 flex-1">
+        <Link
+          to={`/store/${product.storeSlug || product.storeId}`}
+          className="flex items-center gap-1 min-w-0 group/vendor"
         >
-          <span className="truncate max-w-[140px]">{mainCat}</span>
-          <ChevronRight size={11} className="flex-shrink-0" />
-        </button>
-      )}
+          <span className="text-[10px] text-gray-400 leading-none">Vendu par</span>
+          <span className="text-[13px] font-semibold text-gray-800 truncate group-hover/vendor:text-[#f56b2a] transition-colors">
+            {product.storeName}
+          </span>
+          <CheckCircle2
+            size={13}
+            role="img"
+            aria-label="Boutique vérifiée"
+            className="text-[#f56b2a] flex-shrink-0"
+          />
+        </Link>
+        {category && (
+          <button
+            type="button"
+            onClick={onCategoryClick}
+            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-[#f56b2a] transition-colors cursor-pointer min-w-0 max-w-full"
+          >
+            <span className="truncate">{category}</span>
+            <ChevronRight size={11} className="flex-shrink-0" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -201,10 +223,10 @@ function ProductTitle({
   hasOptions: boolean;
 }) {
   return (
-    <h1 className="text-[15px] lg:text-lg xl:text-xl font-semibold text-gray-900 leading-snug tracking-tight">
+    <h1 className="text-[17px] lg:text-[22px] font-bold text-gray-950 leading-[1.25] tracking-[-0.01em]">
       {product.name}
       {product.unit && !hasOptions && (
-        <span className="inline-flex items-center gap-1 ml-1.5 lg:ml-2 align-middle text-[10px] font-bold text-[#f56b2a] bg-orange-50 border border-orange-100 px-1.5 lg:px-2 py-0.5 rounded-md uppercase tracking-wide">
+        <span className="inline-flex items-center gap-1 ml-2 align-middle text-[10px] font-bold text-[#f56b2a] bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
           <Package size={10} strokeWidth={2.5} />
           {product.unit}
         </span>
@@ -214,93 +236,115 @@ function ProductTitle({
 }
 
 /**
- * Note / ventes / disponibilité.
+ * Preuve sociale : note, avis, ventes.
  *
- * Une grille `divide-x` remplace l'ancienne ligne de séparateurs `·` en
- * `flex-wrap` : à 320px de large les points se retrouvaient orphelins en fin
- * de ligne et la typo tombait à 10px.
+ * Les cinq étoiles restent visibles — réduire la note à un nombre encadré
+ * jetait l'information la plus lue d'une fiche produit. Le tout tient sur une
+ * ligne, avec des séparateurs `·` qui ne peuvent pas se retrouver orphelins
+ * comme ceux d'un `flex-wrap`.
  */
-function ProductStats({
+function ProductSocialProof({
   rating,
   reviewTotal,
   salesCount,
-  accentText,
   isFood,
-  isOutOfStock,
-  isLowStock,
-  stockValue,
   onReviewsClick,
 }: {
   rating: number;
   reviewTotal: number;
   salesCount: number;
-  accentText: string;
   isFood: boolean;
-  isOutOfStock: boolean;
-  isLowStock: boolean;
-  stockValue: number | null;
   onReviewsClick: () => void;
 }) {
   return (
-    <div className="grid grid-cols-3 divide-x divide-gray-100">
+    <div className="flex items-center gap-2 text-[11px] text-gray-400">
       <button
         type="button"
         onClick={onReviewsClick}
-        aria-label={`Voir les avis (${reviewTotal})`}
-        className="flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer"
+        aria-label={`Voir les ${reviewTotal} avis`}
+        className="flex items-center gap-1.5 min-w-0 rounded-md hover:opacity-70 active:opacity-60 transition-opacity cursor-pointer"
       >
-        <span className="flex items-center gap-1 text-[13px] font-bold text-gray-900 leading-none">
-          <Star size={12} className="text-amber-400 flex-shrink-0" fill="currentColor" />
-          {rating.toFixed(1)}
+        <span className="flex text-amber-400 gap-px flex-shrink-0">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <Star
+              key={s}
+              size={12}
+              strokeWidth={1.5}
+              fill={s <= Math.round(rating) ? "currentColor" : "none"}
+            />
+          ))}
         </span>
-        <span className="text-[10px] text-gray-400 truncate">
-          {formatNumber(reviewTotal)} avis
-        </span>
+        <span className="font-semibold text-gray-700">{rating.toFixed(1)}</span>
+        <span className="truncate">({formatNumber(reviewTotal)})</span>
       </button>
 
-      <div className="flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0">
-        <span className="flex items-center gap-1 text-[13px] font-bold text-gray-900 leading-none">
-          <ShoppingBag size={12} className={`${accentText} flex-shrink-0`} />
-          {formatNumber(salesCount)}
-        </span>
-        <span className="text-[10px] text-gray-400 truncate">
-          {isFood ? "commandes" : "vendus"}
-        </span>
-      </div>
-
-      <div className="flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0">
-        <span
-          className={`flex items-center gap-1 text-[13px] font-bold leading-none ${
-            isOutOfStock
-              ? "text-red-600"
-              : isLowStock
-                ? "text-amber-700"
-                : "text-emerald-700"
-          }`}
-        >
-          {isOutOfStock || isLowStock ? (
-            <AlertCircle size={12} className="flex-shrink-0" />
-          ) : (
-            <span className="w-1.5 h-1.5 rounded-full bg-current flex-shrink-0" />
-          )}
-          {isOutOfStock
-            ? "Rupture"
-            : isLowStock
-              ? `Plus que ${stockValue}`
-              : "En stock"}
-        </span>
-        <span className="text-[10px] text-gray-400 truncate">stock</span>
-      </div>
+      {salesCount > 0 && (
+        <>
+          <span className="text-gray-300 flex-shrink-0">·</span>
+          <span className="flex items-center gap-1 min-w-0 truncate">
+            <ShoppingBag size={11} className="flex-shrink-0" />
+            {formatNumber(salesCount)} {isFood ? "commandes" : "vendus"}
+          </span>
+        </>
+      )}
     </div>
   );
 }
 
 /**
- * Délai de préparation / livraison — source unique de la section logistique.
+ * Disponibilité. C'est un signal d'achat, pas une statistique : il vit sous le
+ * prix, à côté du bouton, et non dans la rangée de preuve sociale.
+ */
+function ProductAvailability({
+  isOutOfStock,
+  isLowStock,
+  stockValue,
+  isSelectedOutOfStock,
+}: {
+  isOutOfStock: boolean;
+  isLowStock: boolean;
+  stockValue: number | null;
+  isSelectedOutOfStock: boolean;
+}) {
+  const unavailable = isOutOfStock || isSelectedOutOfStock;
+  if (unavailable) {
+    return (
+      <p className="flex items-center gap-1.5 text-[12px] font-medium text-red-600">
+        <AlertCircle size={13} className="flex-shrink-0" />
+        {isSelectedOutOfStock && !isOutOfStock
+          ? "Combinaison indisponible"
+          : "Rupture de stock"}
+      </p>
+    );
+  }
+
+  return (
+    <p
+      className={`flex items-center gap-1.5 text-[12px] font-medium ${
+        isLowStock ? "text-amber-600" : "text-emerald-700"
+      }`}
+    >
+      {isLowStock ? (
+        <>
+          <AlertCircle size={13} className="flex-shrink-0" />
+          Plus que {stockValue} en stock
+        </>
+      ) : (
+        <>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+          En stock
+        </>
+      )}
+    </p>
+  );
+}
+
+/**
+ * Délais de préparation / livraison — source unique de la section logistique.
  *
- * Remplace l'affiche dispersée d'avant (overlay de l'image, ligne sous le prix
- * sur mobile, cellule de la barre de réassurance sur desktop). Ne rend rien si
- * le vendeur n'a rien renseigné : on n'invente pas de délai.
+ * Remplace l'affichage dispersé d'avant (overlay de l'image, ligne sous le
+ * prix sur mobile, cellule de la barre de réassurance sur desktop). Ne rend
+ * rien si le vendeur n'a rien renseigné : on n'invente pas de délai.
  */
 function ProductLogistics({
   isFood,
@@ -315,24 +359,30 @@ function ProductLogistics({
   const shipTime = deliveryTime;
   if (!prepTime && !shipTime) return null;
 
+  const items = [
+    prepTime && {
+      icon: <Clock size={13} className="text-green-600 flex-shrink-0" />,
+      label: "Préparation",
+      value: prepTime,
+    },
+    shipTime && {
+      icon: <Truck size={13} className="text-blue-500 flex-shrink-0" />,
+      label: "Livraison",
+      value: shipTime,
+    },
+  ].filter(Boolean) as { icon: React.ReactNode; label: string; value: string }[];
+
   return (
-    <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap text-[11px] text-gray-500">
-      {prepTime && (
-        <span className="inline-flex items-center gap-1.5 min-w-0">
-          <Clock size={12} className="text-green-600 flex-shrink-0" />
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+      {items.map((item, i) => (
+        <span key={item.label} className="flex items-center gap-1.5 min-w-0">
+          {(i > 0) && <span className="text-gray-300">·</span>}
+          {item.icon}
           <span className="truncate">
-            Préparation <b className="font-semibold text-gray-800">{prepTime}</b>
+            {item.label} <b className="font-semibold text-gray-800">{item.value}</b>
           </span>
         </span>
-      )}
-      {shipTime && (
-        <span className="inline-flex items-center gap-1.5 min-w-0">
-          <Truck size={12} className="text-blue-500 flex-shrink-0" />
-          <span className="truncate">
-            Livraison <b className="font-semibold text-gray-800">{shipTime}</b>
-          </span>
-        </span>
-      )}
+      ))}
     </div>
   );
 }
@@ -430,6 +480,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       .slice(0, 10);
 
     const mainCat = product.mainCategory || product.category || "Boutique";
+    // Le breadcrumb ne montre que la vraie catégorie : le fallback "Boutique"
+    // de `mainCat` ferait afficher « Boutique › » comme un lien de navigation.
+    const realCategory = product.mainCategory || product.category || "";
     const isFood =
       product.businessType === "food" ||
       mainCat === "Restauration & Livraison Rapide";
@@ -557,6 +610,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     const storePhone = productStore?.phone || productStore?.settings?.phone;
     const waDigits = storePhone ? String(storePhone).replace(/\D/g, "") : null;
+    // Le logo est injecte par le serveur sous forme d'URL deja resolue
+    // (`/api/image/s<uuid>`), cf. src/app/actions/marketplace.ts.
+    const storeLogo = productStore?.settings?.logo;
 
     // --- Stock ---
     // Dès qu'une combinaison est sélectionnée, on affiche SON stock : le
@@ -1041,11 +1097,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             {/* ---------- Colonne Droite: Panneau d'achat compact & organisé ---------- */}
             <div className="space-y-3.5 lg:space-y-0 lg:sticky lg:top-24">
               {/* DESKTOP CARD (Sleek, Compact, Clean) */}
-              <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 space-y-4">
-                {/* Boutique vendeuse & catégorie */}
-                <ProductStoreLine
+              <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 xl:p-6 space-y-4">
+                <ProductSeller
                   product={product}
-                  mainCat={mainCat}
+                  logo={storeLogo}
+                  category={realCategory}
                   onCategoryClick={() =>
                     safeNavigate("/", {
                       action: () => setSelectedCategory(mainCat),
@@ -1055,26 +1111,22 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
                 <ProductTitle product={product} hasOptions={hasOptions} />
 
-                <ProductStats
+                <ProductSocialProof
                   rating={product.rating || 0}
                   reviewTotal={reviewTotal}
                   salesCount={product.salesCount || 0}
-                  accentText={accentText}
                   isFood={isFood}
-                  isOutOfStock={isOutOfStock}
-                  isLowStock={isLowStock}
-                  stockValue={stockValue}
                   onReviewsClick={() => scrollToSection("pd-avis")}
                 />
 
                 {/* Price block: compact & refined */}
-                <div className="bg-gray-50/90 rounded-xl p-3 border border-gray-200/70 flex items-center justify-between">
-                  <div>
-                    <span className="block text-[10px] uppercase font-semibold tracking-wider text-gray-400 mb-0.5">
+                <div className="bg-gray-50/90 rounded-xl p-3.5 border border-gray-200/70 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="block text-[10px] uppercase font-semibold tracking-wider text-gray-400 mb-1">
                       {hasOptions && !allSelected ? "À partir de" : (isFood ? "Prix unitaire" : "Prix")}
                     </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-gray-950 tracking-tight leading-none">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-[28px] leading-none font-bold text-gray-950 tracking-tight">
                         {formatCurrency(basePrice)}
                       </span>
                       {product.unit && !hasOptions && (
@@ -1083,22 +1135,31 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         </span>
                       )}
                       {product.originalPrice && product.originalPrice > basePrice && (
-                        <span className="text-xs text-gray-400 line-through font-normal">
+                        <span className="text-sm text-gray-400 line-through font-normal">
                           {formatCurrency(product.originalPrice)}
                         </span>
                       )}
                     </div>
                   </div>
                   {product.originalPrice && product.originalPrice > basePrice && (
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
-                        <Zap size={9} fill="currentColor" /> -{discountPct}%
+                    <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        <Zap size={10} fill="currentColor" /> -{discountPct}%
                       </span>
-                      <span className="text-[10px] font-normal text-gray-500">
+                      <span className="text-[10px] font-normal text-gray-500 whitespace-nowrap">
                         Éco. {formatCurrency(product.originalPrice - basePrice)}
                       </span>
                     </div>
                   )}
+                </div>
+
+                <div className="-mt-1.5">
+                  <ProductAvailability
+                    isOutOfStock={isOutOfStock}
+                    isLowStock={isLowStock}
+                    stockValue={stockValue}
+                    isSelectedOutOfStock={isSelectedOutOfStock}
+                  />
                 </div>
 
                 <ProductLogistics
@@ -1349,28 +1410,32 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   </button>
                 </div>
 
-                {/* Reassurance Bar: réassurance pure, la livraison vit dans ProductLogistics */}
-                <div className="grid grid-cols-2 gap-2 py-2 px-2.5 bg-gray-50/70 rounded-xl border border-gray-100 text-[10px] text-gray-500 font-normal text-center">
+                {/* Reassurance: réassurance pure, la livraison vit dans ProductLogistics.
+                    Deux éléments en ligne calme — une grille à 2 cases laissait un
+                    vide asymétrique sous les CTA. */}
+                <div className="flex items-center justify-center gap-x-3.5 gap-y-1 flex-wrap text-[10px] text-gray-400">
                   {isFood ? (
                     <>
-                      <span className="flex items-center justify-center gap-1 truncate">
+                      <span className="flex items-center gap-1">
                         <Clock size={11} className="text-green-600 flex-shrink-0" />
-                        <span>Fait minute</span>
+                        Fait minute
                       </span>
-                      <span className="flex items-center justify-center gap-1 truncate">
+                      <span className="text-gray-300">·</span>
+                      <span className="flex items-center gap-1">
                         <ShieldCheck size={11} className="text-emerald-600 flex-shrink-0" />
-                        <span>Fraîcheur</span>
+                        Fraîcheur
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="flex items-center justify-center gap-1 truncate">
+                      <span className="flex items-center gap-1">
                         <ShieldCheck size={11} className="text-emerald-600 flex-shrink-0" />
-                        <span>Paiement sécurisé</span>
+                        Paiement sécurisé
                       </span>
-                      <span className="flex items-center justify-center gap-1 truncate">
+                      <span className="text-gray-300">·</span>
+                      <span className="flex items-center gap-1">
                         <RotateCcw size={11} className="text-blue-600 flex-shrink-0" />
-                        <span>Retour 7 jours</span>
+                        Retour 7 jours
                       </span>
                     </>
                   )}
@@ -1379,11 +1444,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
               {/* MOBILE CARD */}
               <div className="lg:hidden bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
-                {/* Boutique vendeuse & catégorie */}
-                <div className="mb-2.5">
-                  <ProductStoreLine
+                <div className="mb-3">
+                  <ProductSeller
                     product={product}
-                    mainCat={mainCat}
+                    logo={storeLogo}
+                    category={realCategory}
                     onCategoryClick={() =>
                       safeNavigate("/", {
                         action: () => setSelectedCategory(mainCat),
@@ -1392,35 +1457,31 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   />
                 </div>
 
-                <div className="mb-2.5">
+                <div className="mb-2">
                   <ProductTitle product={product} hasOptions={hasOptions} />
                 </div>
 
-                <div className="mb-2.5">
-                  <ProductStats
+                <div className="mb-3.5">
+                  <ProductSocialProof
                     rating={product.rating || 0}
                     reviewTotal={reviewTotal}
                     salesCount={product.salesCount || 0}
-                    accentText={accentText}
                     isFood={isFood}
-                    isOutOfStock={isOutOfStock}
-                    isLowStock={isLowStock}
-                    stockValue={stockValue}
                     onReviewsClick={() => scrollToSection("pd-avis")}
                   />
                 </div>
 
-                {/* Mobile price block: Fine, sleek & compact */}
-                <div className="p-2.5 rounded-xl bg-gray-50/80 border border-gray-100 mb-2.5 flex items-center justify-between">
-                  <div className="flex items-baseline gap-1.5">
+                {/* Price block: Fine, sleek & compact */}
+                <div className="p-3 rounded-xl bg-gray-50/80 border border-gray-100 mb-2.5 flex items-center justify-between gap-3">
+                  <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
                     <span className="text-[10px] font-semibold text-gray-400 uppercase">
                       {hasOptions && !allSelected ? "Dès" : "Prix"}
                     </span>
-                    <span className="text-lg font-bold tracking-tight text-gray-950 leading-none">
+                    <span className="text-[22px] font-bold tracking-tight text-gray-950 leading-none">
                       {formatCurrency(basePrice)}
                     </span>
                     {product.unit && !hasOptions && (
-                      <span className="text-[10px] font-medium text-gray-500">
+                      <span className="text-[11px] font-medium text-gray-500">
                         /{product.unit}
                       </span>
                     )}
@@ -1431,13 +1492,22 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     )}
                   </div>
                   {product.originalPrice && product.originalPrice > basePrice && (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded-md flex-shrink-0">
                       -{discountPct}% Éco
                     </span>
                   )}
                 </div>
 
                 <div className="mb-2.5">
+                  <ProductAvailability
+                    isOutOfStock={isOutOfStock}
+                    isLowStock={isLowStock}
+                    stockValue={stockValue}
+                    isSelectedOutOfStock={isSelectedOutOfStock}
+                  />
+                </div>
+
+                <div className="mb-3.5">
                   <ProductLogistics
                     isFood={isFood}
                     deliveryTime={product.deliveryTime}
