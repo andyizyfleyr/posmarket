@@ -15,7 +15,7 @@ import {
   variantIsInStock,
 } from "@/utils/variants";
 import { Link } from "@/components/RouterPolyfill";
-import type { NotificationType, Product, ProductVariant, Review, StoreData } from "@/types";
+import type { NotificationType, Product, ProductOption, ProductVariant, Review, StoreData } from "@/types";
 import type { StorefrontProduct } from "../StorefrontView";
 
 /**
@@ -348,7 +348,7 @@ function ProductStockRow({
   ].filter(Boolean) as { icon: React.ReactNode; label: string; value: string }[];
 
   return (
-    <div className="flex items-center justify-between gap-x-3 gap-y-1.5 flex-wrap">
+    <div className="flex items-center gap-x-3 gap-y-1.5 flex-wrap">
       <p
         className={`flex items-center gap-1.5 text-[12px] font-medium min-w-0 ${
           unavailable
@@ -397,6 +397,129 @@ function ProductStockRow({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Corps du sélecteur d'options : rappels de sélection, groupes de valeurs,
+ * indice de disponibilité.
+ *
+ * Partagé entre l'accordéon de la carte mobile et la feuille modale qui
+ * s'ouvre au clic sur « Choisir les options » : le même sélecteur ne peut pas
+ * avoir deux implémentations qui divergent.
+ */
+function OptionsPicker({
+  options,
+  selectedOptions,
+  onSelect,
+  onRemove,
+  isValueDisabled,
+  allSelected,
+  outOfStock,
+  hasMatrix,
+  variantName,
+  variantStock,
+  price,
+}: {
+  options: ProductOption[];
+  selectedOptions: Record<string, string>;
+  onSelect: (optionId: string, val: string) => void;
+  onRemove: (optionId: string) => void;
+  isValueDisabled: (optionId: string, val: string) => boolean;
+  allSelected: boolean;
+  outOfStock: boolean;
+  hasMatrix: boolean;
+  variantName?: string;
+  variantStock: number | null;
+  price: number | null;
+}) {
+  const selectedCount = options.filter((o) => selectedOptions[o.id]).length;
+
+  return (
+    <>
+      {selectedCount > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5">
+          <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
+          {options.map((o) => {
+            const v = selectedOptions[o.id];
+            if (!v) return null;
+            return (
+              <span
+                key={o.id}
+                className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-0.5 py-0.5 text-[10px] font-semibold text-gray-800"
+              >
+                {o.name}: {v}
+                <button
+                  type="button"
+                  aria-label={`Retirer ${o.name}`}
+                  onClick={() => onRemove(o.id)}
+                  className="w-4 h-4 rounded-full bg-gray-100 hover:bg-[#f56b2a] hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <X size={9} strokeWidth={3} />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="space-y-3.5">
+        {options.map((option) => {
+          const selectedVal = selectedOptions[option.id];
+          return (
+            <div key={option.id}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-900">{option.name}</span>
+                {selectedVal ? (
+                  <span className="text-[11px] font-semibold text-[#f56b2a]">{selectedVal}</span>
+                ) : (
+                  <span className="text-[9px] font-medium text-gray-300">Choisissez...</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {option.values.map((val: string) => {
+                  const isSelected = selectedVal === val;
+                  const isDisabled = isValueDisabled(option.id, val);
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => onSelect(option.id, val)}
+                      aria-pressed={isSelected}
+                      title={isDisabled ? "Indisponible" : undefined}
+                      className={`relative min-w-[44px] px-2.5 py-1.5 rounded-md text-[10.5px] font-semibold transition-all border active:brightness-95 transition-colors ${
+                        isDisabled
+                          ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
+                          : isSelected
+                            ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
+                            : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
+                          <Check size={9} strokeWidth={3.5} className="text-white" />
+                        </span>
+                      )}
+                      {val}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <OptionSelectionHint
+        allSelected={allSelected}
+        outOfStock={outOfStock}
+        hasMatrix={hasMatrix}
+        variantName={variantName}
+        variantStock={variantStock}
+        price={price}
+      />
+    </>
   );
 }
 
@@ -594,6 +717,26 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const [addingWholesaleIdx, setAddingWholesaleIdx] = React.useState<number | null>(null);
     const [addedWholesaleIdx, setAddedWholesaleIdx] = React.useState<number | null>(null);
     const [isOptionsExpanded, setIsOptionsExpanded] = React.useState(false);
+  // Sur mobile, les options s'ouvrent en feuille modale : c'est la raison pour
+  // laquelle on a tape « Choisir les options », les afficher sous le doigt evite
+  // de faire défiler la page vers un accordéon plus bas.
+  const [isOptionsSheetOpen, setIsOptionsSheetOpen] = React.useState(false);
+
+  // L'arrière-plan ne doit pas défiler sous la feuille, et Escape doit
+  // fermer : sans cela le geste de fermer fait remonter la page.
+  React.useEffect(() => {
+    if (!isOptionsSheetOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOptionsSheetOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOptionsSheetOpen]);
     const [isWholesaleExpanded, setIsWholesaleExpanded] = React.useState(false);
 
     const handleWholesaleAdd = (idx: number, minQty: number) => {
@@ -690,19 +833,31 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const isCurrentSelectionInCart =
       isVariantInCart(resolveVariantId(), selectedOptions);
 
+    /**
+     * Amène l'utilisateur aux options.
+     *
+     * Mobile : la feuille modale s'ouvre au clic, l'accordéon en place reste le
+     * moyen de consulter la sélection une fois faite. Desktop : on déballe
+     * l'accordéon et on défile jusqu'à lui, les deux blocs (desktop et mobile)
+     * coexistant dans le DOM il faut viser celui qui est visible.
+     */
+    const focusOptions = () => {
+      if (window.matchMedia("(max-width: 1023px)").matches) {
+        setIsOptionsSheetOpen(true);
+        return;
+      }
+      setIsOptionsExpanded(true);
+      window.requestAnimationFrame(() => {
+        const anchor = Array.from(
+          document.querySelectorAll<HTMLElement>("[data-options-anchor]"),
+        ).find((el) => el.getClientRects().length > 0);
+        anchor?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    };
+
     const guardSelection = (): boolean => {
       if (!allSelected) {
-        setIsOptionsExpanded(true);
-        // Le bloc d'options est souvent hors champ : sans ce défilement, le
-        // client appuie sur « Choisir les options » et ne voit rien se passer.
-        // Les deux blocs (desktop et mobile) coexistent dans le DOM, un seul
-        // est visible selon la largeur : on cible donc celui qui est rendu.
-        window.requestAnimationFrame(() => {
-          const anchor = Array.from(
-            document.querySelectorAll<HTMLElement>("[data-options-anchor]"),
-          ).find((el) => el.getClientRects().length > 0);
-          anchor?.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
+        focusOptions();
         localNotify(
           "Veuillez sélectionner toutes les options",
           "warning",
@@ -710,7 +865,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         return false;
       }
       if (isSelectedOutOfStock) {
-        setIsOptionsExpanded(true);
+        focusOptions();
         localNotify(
           matchedVariant
             ? "Cette combinaison est en rupture de stock"
@@ -1558,97 +1713,28 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     </button>
 
                     {isOptionsExpanded && (
-                    <div className="p-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
-                      {selectedOptionCount > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5">
-                          <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
-                          {options.map((o) => {
-                            const v = selectedOptions[o.id];
-                            if (!v) return null;
-                            return (
-                              <span
-                                key={o.id}
-                                className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-0.5 py-0.5 text-[10px] font-semibold text-gray-800"
-                              >
-                                {o.name}: {v}
-                                <button
-                                  type="button"
-                                  aria-label={`Retirer ${o.name}`}
-                                  onClick={() =>
-                                    setSelectedOptions((prev: Record<string, string>) => {
-                                      const next = { ...prev };
-                                      delete next[o.id];
-                                      return next;
-                                    })
-                                  }
-                                  className="w-4 h-4 rounded-full bg-gray-100 hover:bg-[#f56b2a] hover:text-white flex items-center justify-center transition-colors"
-                                >
-                                  <X size={9} strokeWidth={3} />
-                                </button>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      <div className="space-y-3.5">
-                        {options.map((option) => {
-                          const selectedVal = selectedOptions[option.id];
-                          return (
-                            <div key={option.id}>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-900">{option.name}</span>
-                                {selectedVal ? (
-                                  <span className="text-[11px] font-semibold text-[#f56b2a]">{selectedVal}</span>
-                                ) : (
-                                  <span className="text-[9px] font-medium text-gray-300">Choisissez...</span>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {option.values.map((val: string) => {
-                                  const isSelected = selectedVal === val;
-                                  const isDisabled = isValueDisabled(option.id, val);
-                                  return (
-                                    <button
-                                      key={val}
-                                      type="button"
-                                      disabled={isDisabled}
-                                      onClick={() => selectValue(option.id, val)}
-                                      aria-pressed={isSelected}
-                                      title={isDisabled ? "Indisponible" : undefined}
-                                      className={`relative min-w-[44px] px-2.5 py-1.5 rounded-md text-[10.5px] font-semibold transition-all border active:brightness-95 transition-colors ${
-                                        isDisabled
-                                          ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
-                                          : isSelected
-                                            ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
-                                            : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
-                                      }`}
-                                    >
-                                      {isSelected && (
-                                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
-                                          <Check size={9} strokeWidth={3.5} className="text-white" />
-                                        </span>
-                                      )}
-                                      {val}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div className="p-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
+                        <OptionsPicker
+                          options={options}
+                          selectedOptions={selectedOptions}
+                          onSelect={selectValue}
+                          onRemove={(optionId) =>
+                            setSelectedOptions((prev: Record<string, string>) => {
+                              const next = { ...prev };
+                              delete next[optionId];
+                              return next;
+                            })
+                          }
+                          isValueDisabled={isValueDisabled}
+                          allSelected={allSelected}
+                          outOfStock={isSelectedOutOfStock}
+                          hasMatrix={variants.length > 0}
+                          variantName={matchedVariant?.name}
+                          variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
+                          price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
+                        />
                       </div>
-
-                      <OptionSelectionHint
-                        allSelected={allSelected}
-                        outOfStock={isSelectedOutOfStock}
-                        hasMatrix={variants.length > 0}
-                        variantName={matchedVariant?.name}
-                        variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
-                        price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
-                      />
-                    </div>
-                  )}
+                    )}
                   </div>
                 )}
 
@@ -2066,6 +2152,100 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   )}
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= MOBILE OPTIONS SHEET =================
+            Ouverte par « Choisir les options » de la barre du bas. Le
+            selecteur est rendu au meme endroit que dans l'accordéon, la
+            feuille n'est qu'un autre habillage. `lg:hidden` sur l'enveloppe
+            suffit a la neutraliser sur desktop : le `fixed` interne suit. */}
+        {isOptionsSheetOpen && hasOptions && (
+          <div className="lg:hidden fixed inset-0 z-[1000] flex items-end justify-center">
+            <div
+              className="absolute inset-0 bg-gray-900/50"
+              onClick={() => setIsOptionsSheetOpen(false)}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Choisir les options"
+              className="relative w-full max-w-md bg-white rounded-t-[28px] shadow-2xl flex flex-col max-h-[88vh]"
+            >
+              {/* Poignee + titre */}
+              <div className="flex flex-col items-center pt-2.5 pb-1 shrink-0">
+                <span className="w-9 h-1 rounded-full bg-gray-300" />
+                <div className="w-full flex items-center justify-between px-4 pt-2 pb-1">
+                  <h2 className="text-sm font-bold text-gray-900">Choisir les options</h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsOptionsSheetOpen(false)}
+                    aria-label="Fermer"
+                    className="w-8 h-8 -mr-1.5 rounded-full flex items-center justify-center text-gray-500 active:bg-gray-100 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Selecteur : defilable, le pied reste visible */}
+              <div className="overflow-y-auto overscroll-contain px-4 pb-2">
+                <OptionsPicker
+                  options={options}
+                  selectedOptions={selectedOptions}
+                  onSelect={selectValue}
+                  onRemove={(optionId) =>
+                    setSelectedOptions((prev: Record<string, string>) => {
+                      const next = { ...prev };
+                      delete next[optionId];
+                      return next;
+                    })
+                  }
+                  isValueDisabled={isValueDisabled}
+                  allSelected={allSelected}
+                  outOfStock={isSelectedOutOfStock}
+                  hasMatrix={variants.length > 0}
+                  variantName={matchedVariant?.name}
+                  variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
+                  price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
+                />
+              </div>
+
+              {/* Pied : prix de la selection + ajout */}
+              <div
+                className="shrink-0 border-t border-gray-100 bg-white px-4 pt-3"
+                style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+              >
+                <div className="flex items-center justify-between gap-3 mb-2.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    {selectedOptionCount}/{options.length} sélectionné{options.length > 1 ? "s" : ""}
+                  </span>
+                  <span className="text-base font-bold text-gray-950 tracking-tight">
+                    {formatCurrency(matchedVariant ? matchedVariant.price : basePrice)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (guardSelection()) {
+                      addToCart(product, resolveVariantId());
+                      setIsOptionsSheetOpen(false);
+                    }
+                  }}
+                  disabled={isBuyDisabled}
+                  className="w-full h-12 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
+                  <span className="truncate">
+                    {isOutOfStock || isSelectedOutOfStock
+                      ? "Rupture"
+                      : isFood
+                        ? "Commander"
+                        : "Ajouter au panier"}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         )}
