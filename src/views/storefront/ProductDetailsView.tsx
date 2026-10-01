@@ -900,11 +900,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     const guardSelection = (): boolean => {
       if (!allSelected) {
+        // Pas de toast ici : la feuille qui vient de s'ouvrir affiche déjà
+        // l'état « Sélectionnez les options pour commander ». Le message était
+        // un doublon qui masquait le sélecteur au moment où on veut le lire.
         focusOptions();
-        localNotify(
-          "Veuillez sélectionner toutes les options",
-          "warning",
-        );
         return false;
       }
       if (isSelectedOutOfStock) {
