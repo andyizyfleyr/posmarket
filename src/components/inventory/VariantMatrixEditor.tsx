@@ -9,7 +9,7 @@ import {
   type ProductOptionDef,
   type ProductVariantDef,
 } from '@/utils/variants';
-import OptionEditorCard from './OptionEditorCard';
+import OptionEditorCard, { OPTION_PRESETS } from './OptionEditorCard';
 import VariantMatrixTable, { MatrixStats } from './VariantMatrixTable';
 
 /**
@@ -164,113 +164,81 @@ export default function VariantMatrixEditor({
   };
 
   const canAddOption = options.length < MAX_VARIANT_OPTIONS;
-  // Une option « prête » a un nom ET au moins une valeur. `combinationsOf`
-  // fait le produit cartésien sur TOUTES les options : une seule option sans
-  // valeur suffit à vider la matrice. D'où les deux garde-fous — l'étape 2
-  // n'apparaît que si au moins une option est prête, et son libellé annonce le
-  // compte réel (`variants.length`) plutôt qu'un produit théorique qui
-  // mentirait dès qu'une option est vide.
-  const readyOptions = options.filter((o) => o.name.trim() && o.values.length > 0);
-  const pendingOptions = options.length - readyOptions.length;
 
   return (
-    <div className="space-y-6">
-      {/* ---------- Titre de section ---------- */}
-      <div className="flex items-start gap-2.5">
-        <span className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-[#f56b2a]/10 text-[#f56b2a]">
-          <Layers size={16} strokeWidth={2.5} />
-        </span>
-        <div>
-          <h4 className="text-sm font-bold text-gray-900 leading-tight">
-            Options &amp; variantes
-          </h4>
-          <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-relaxed">
-            Proposez votre produit en plusieurs versions (tailles, couleurs…) et donnez un
-            prix et un stock à chacune.
-          </p>
+    <div className="space-y-5">
+      {/* ---------- En-tête ---------- */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <span className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-[#f56b2a]/10 text-[#f56b2a]">
+            <Layers size={16} strokeWidth={2.5} />
+          </span>
+          <div>
+            <h4 className="text-sm font-bold text-gray-900 leading-tight">
+              Options &amp; variantes
+            </h4>
+            <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-relaxed">
+              Taille, couleur, format… le prix et le stock se gèrent par combinaison.
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={addOption}
+          disabled={!canAddOption}
+          className="self-start shrink-0 inline-flex items-center gap-1.5 px-4 py-3 bg-gray-900 text-white rounded-xl text-[11px] font-bold hover:bg-[#f56b2a] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Plus size={14} strokeWidth={3} /> AJOUTER UNE OPTION
+        </button>
       </div>
 
-      {/* ================= ÉTAPE 1 ================= */}
-      <section className="space-y-3">
-        <StepHeader
-          step={1}
-          title="Choisissez ce qui varie"
-          hint="Une option = une caractéristique du produit (ex. la taille). Ses valeurs se combinent entre elles."
-        />
+      {!canAddOption && (
+        <p className="flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 border border-amber-100 rounded-xl text-[11px] font-bold text-amber-700">
+          <AlertTriangle size={13} className="shrink-0" />
+          {MAX_VARIANT_OPTIONS} options maximum : au-delà, la fiche devient illisible pour vos
+          clients.
+        </p>
+      )}
 
-        {options.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-5 py-7 text-center">
-            <p className="text-sm font-bold text-gray-600">
-              Votre produit se vend en un seul prix
-            </p>
-            <p className="text-xs font-medium text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed">
-              Ajoutez une option si, par exemple, il existe en plusieurs tailles ou couleurs.
-              Sinon, rien à faire : c&apos;est déjà prêt.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {options.map((option, index) => (
-              <OptionEditorCard
-                key={option.id}
-                option={option}
-                index={index}
-                draft={valueDraft[option.id] ?? ''}
-                onDraftChange={(value) =>
-                  setValueDraft((prev) => ({ ...prev, [option.id]: value }))
-                }
-                onRename={(name) => updateOption(index, { name })}
-                onAddValue={(raw) => addValue(option, raw)}
-                onRemoveValue={(value) => removeValue(option, value)}
-                onRemove={() => removeOption(index)}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <button
-            type="button"
-            onClick={addOption}
-            disabled={!canAddOption}
-            className="self-start shrink-0 inline-flex items-center gap-1.5 px-4 py-3 bg-gray-900 text-white rounded-xl text-[11px] font-bold hover:bg-[#f56b2a] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Plus size={14} strokeWidth={3} /> AJOUTER UNE OPTION
-          </button>
-          {!canAddOption && (
-            <span className="text-[11px] font-bold text-amber-700">
-              {MAX_VARIANT_OPTIONS} options maximum : au-delà, la fiche devient illisible pour
-              vos clients.
-            </span>
-          )}
+      {/* ---------- Liste des options ---------- */}
+      {options.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-5 py-8 text-center">
+          <p className="text-sm font-bold text-gray-500">Aucune option pour l&apos;instant</p>
+          <p className="text-xs font-medium text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed">
+            Le produit se vend alors en un seul prix. Ajoutez « Taille » ou « Couleur » pour
+            créer des variantes.
+          </p>
         </div>
-      </section>
+      ) : (
+        <div className="space-y-3">
+          {options.map((option, index) => (
+            <OptionEditorCard
+              key={option.id}
+              option={option}
+              index={index}
+              draft={valueDraft[option.id] ?? ''}
+              onDraftChange={(value) =>
+                setValueDraft((prev) => ({ ...prev, [option.id]: value }))
+              }
+              onRename={(name) => updateOption(index, { name })}
+              onAddValue={(raw) => addValue(option, raw)}
+              onRemoveValue={(value) => removeValue(option, value)}
+              onRemove={() => removeOption(index)}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* ================= ÉTAPE 2 =================
-          Masquée tant que l'étape 1 n'a rien produit : afficher un tableau vide
-          sous un titre « Variantes » faisait croire à un bug. */}
-      {readyOptions.length > 0 && (
-        <section className="space-y-3 pt-2 border-t border-gray-100">
-          <StepHeader
-            step={2}
-            title="Prix et stock de chaque version"
-            hint={
-              variants.length > 0
-                ? pendingOptions > 0
-                  ? `${variants.length} ligne(s) pour le moment. ${pendingOptions} option(s) sans valeur : autant de lignes à venir.`
-                  : `${variants.length} combinaison(s) générée(s) à partir de vos options.`
-                : `Complétez l'étape 1 pour générer les lignes.`
-            }
-          />
+      {notice && (
+        <p className="flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 border border-amber-100 rounded-xl text-[11px] font-bold text-amber-700">
+          <AlertTriangle size={13} className="shrink-0" />
+          {notice}
+        </p>
+      )}
 
-          {notice && (
-            <p className="flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 border border-amber-100 rounded-xl text-[11px] font-bold text-amber-700">
-              <AlertTriangle size={13} className="shrink-0" />
-              {notice}
-            </p>
-          )}
-
+      {/* ---------- Matrice des combinaisons ---------- */}
+      {options.length > 0 && (
+        <div className="space-y-3 pt-1">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <MatrixStats
               variants={variants}
@@ -303,9 +271,9 @@ export default function VariantMatrixEditor({
           </div>
 
           {variants.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-5 py-7 text-center text-xs font-semibold text-gray-400 leading-relaxed">
-              Tant qu&apos;une option n&apos;a aucune valeur, aucune ligne ne peut être
-              construite : les versions se combinent toutes ensemble.
+            <p className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-5 py-8 text-center text-xs font-semibold text-gray-400 leading-relaxed">
+              Ajoutez au moins une valeur à chaque option : la matrice se construit
+              automatiquement, sans jamais écraser vos prix ni vos stocks.
             </p>
           ) : (
             <>
@@ -325,45 +293,20 @@ export default function VariantMatrixEditor({
               />
               <p className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-400">
                 <Zap size={11} className="text-[#f56b2a] shrink-0" />
-                Tableau régénéré automatiquement : vos prix, stocks et références sont
+                Matrice régénérée automatiquement : vos prix, stocks et références sont
                 conservés.
               </p>
             </>
           )}
-        </section>
+        </div>
       )}
-    </div>
-  );
-}
 
-/**
- * En-tête d'étape numérotée.
- *
- * La section combine deux actes dans l'ordre : définir les options, puis
- * remplir le tableau qui en découle. Sans numérotation ni ordre explicite, les
- * deux blocs se lisaient comme concurrents et l'on ne savait pas par lequel
- * commencer.
- */
-function StepHeader({
-  step,
-  title,
-  hint,
-}: {
-  step: number;
-  title: string;
-  hint: string;
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="flex items-center justify-center w-6 h-6 shrink-0 rounded-full bg-[#f56b2a] text-white text-[11px] font-black mt-px">
-        {step}
-      </span>
-      <div className="min-w-0">
-        <p className="text-[13px] font-bold text-gray-900 leading-tight">{title}</p>
-        <p className="text-[11px] font-medium text-gray-400 mt-0.5 leading-relaxed">
-          {hint}
+      {/* Rappel des presets disponibles quand aucune option n'est encore créée. */}
+      {options.length === 0 && (
+        <p className="text-[10px] font-semibold text-gray-400 text-center">
+          Options courantes : {Object.keys(OPTION_PRESETS).join(' · ')}
         </p>
-      </div>
+      )}
     </div>
   );
 }
