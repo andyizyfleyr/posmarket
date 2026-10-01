@@ -3,21 +3,22 @@
 import React from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { MAX_VALUES_PER_OPTION, type ProductOptionDef } from '@/utils/variants';
-import { inputCls, labelCls } from './fieldStyles';
 
 /**
  * Carte d'édition d'une option (ex. « Couleur »).
  *
  * Extrait de `VariantMatrixEditor` pour que la fiche reste lisible : chaque
- * champ porte un libellé explicite. Le nom de l'option passe par un
- * `<select>` et non un champ texte — un vendeur qui ne connaît pas le concept
- * d'« option » ne peut pas deviner « Taille » ou « Couleur ». La saisie libre
- * reste possible via « Autre… », elle est alors explicitement demandée.
+ * champ porte un libellé explicite. Le nom de l'option passe par un input
+ * texte et non par un `<select>` qui se substituait à lui — impossible de
+ * savoir d'un coup d'œil si un nom est tapé ou choisi, et la saisie libre
+ * d'un nom « Pointure » n'apparaissait qu'après sélection du preset.
  */
 
-export const FIELD_CLASS = inputCls;
+export const FIELD_CLASS =
+  'w-full px-3.5 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 placeholder:text-gray-300 focus:border-[#f56b2a] focus:ring-4 focus:ring-orange-50 outline-none transition-all';
 
-const LABEL_CLASS = labelCls;
+const LABEL_CLASS =
+  'block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5';
 
 /**
  * Suggestions proposées quand le nom de l'option correspond à un preset.
