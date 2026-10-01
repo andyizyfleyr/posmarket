@@ -756,9 +756,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       {/* Modal Produit (Step Form) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          {/* L'étape 3 héberge la matrice des variantes : son tableau a besoin
-              de largeur, `max-w-2xl` le rendait illisible sur desktop. */}
-          <div className={`bg-white rounded-[32px] shadow-2xl w-full ${currentStep === 3 ? 'max-w-4xl' : 'max-w-2xl'} overflow-hidden flex flex-col max-h-[90vh]`}>
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header with Step Indicator */}
             <div className="px-3 md:px-8 pt-3 md:pt-8 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between mb-4 md:mb-8">
