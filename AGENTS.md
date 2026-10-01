@@ -30,3 +30,7 @@ Contrats importants à respecter :
 - Le cache client est stocké sous la clé `buyer_data_cache_v2` (ancienne clé `buyer_data_cache` ignorée).
 - Les server actions acheteur (`fetchBuyerOrdersAction`, `fetchBuyerAddressesAction`, … de `src/app/actions/marketplace.ts`) renvoient `{ success: boolean, error?: string | undefined }` ; `error === 'Unauthorized'` doit déclencher le toast « Session expirée » côté UI.
 - Le login/logout n'utilise **jamais** de `window.confirm` (les confirmations sont des modales React).
+
+# Workflow git
+
+- **Committer et pousser après chaque modification** : dès qu'un changement de code est terminé et vérifié (`npx tsc --noEmit` + `npx eslint <fichiers modifiés>`), faire `git add` + `git commit` + `git push` sans attendre la demande. Le push n'est plus une étape qui requiert d'accord préalable.
