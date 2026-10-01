@@ -523,6 +523,64 @@ function OptionsPicker({
   );
 }
 
+/**
+ * Résumé des options affiché dans la page.
+ *
+ * Le sélecteur n'existe qu'en un seul endroit — la feuille modale — sinon il
+ * était dupliqué (accordéon desktop + carte mobile) et pouvait diverger. Cette
+ * ligne ne le reproduit pas : elle rappelle la sélection courante et sert de
+ * bouton pour rouvrir la feuille. C'est indispensable une fois la sélection
+ * complète, car le libellé du CTA passe alors de « Choisir les options » à
+ * « Ajouter au panier » : sans ce rappel, la modification devient inaccessible.
+ */
+function OptionsSummaryRow({
+  options,
+  selectedOptions,
+  onOpen,
+}: {
+  options: ProductOption[];
+  selectedOptions: Record<string, string>;
+  onOpen: () => void;
+}) {
+  const selectedCount = options.filter((o) => !!selectedOptions[o.id]).length;
+  const allSelected = selectedCount === options.length;
+  const summary = options
+    .filter((o) => !!selectedOptions[o.id])
+    .map((o) => `${o.name}: ${selectedOptions[o.id]}`)
+    .join(" · ");
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Choisir les options"
+      className="w-full flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-3 py-2.5 text-left shadow-sm active:bg-gray-50 transition-colors cursor-pointer"
+    >
+      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a] shrink-0">
+        <Package size={13} strokeWidth={2.5} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-bold text-gray-900 leading-tight">
+          Options &amp; Variantes
+        </span>
+        <span className="block text-[10px] font-medium text-gray-500 truncate">
+          {summary || "Touchez pour choisir"}
+        </span>
+      </span>
+      {allSelected ? (
+        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full shrink-0">
+          <CheckCircle2 size={10} strokeWidth={3} /> Prêt
+        </span>
+      ) : (
+        <span className="text-[10px] font-semibold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full shrink-0">
+          {selectedCount}/{options.length}
+        </span>
+      )}
+      <ChevronRight size={15} className="shrink-0 text-gray-400" />
+    </button>
+  );
+}
+
 export function ProductDetailsView(props: ProductDetailsProps) {
   const product = props.selectedProductDetails;
   const { isInitialLoading, allProducts, handleGoBack, isNavigating } = props;
@@ -716,10 +774,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     const [addingWholesaleIdx, setAddingWholesaleIdx] = React.useState<number | null>(null);
     const [addedWholesaleIdx, setAddedWholesaleIdx] = React.useState<number | null>(null);
-    const [isOptionsExpanded, setIsOptionsExpanded] = React.useState(false);
-  // Sur mobile, les options s'ouvrent en feuille modale : c'est la raison pour
-  // laquelle on a tape « Choisir les options », les afficher sous le doigt evite
-  // de faire défiler la page vers un accordéon plus bas.
+  // Le selecteur d'options n'existe qu'en feuille modale, sur toutes les
+  // tailles d'ecran : un second bloc dans la page dupliquait les memes
+  // controles et pouvait diverger du premier.
   const [isOptionsSheetOpen, setIsOptionsSheetOpen] = React.useState(false);
 
   // L'arrière-plan ne doit pas défiler sous la feuille, et Escape doit
@@ -834,25 +891,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       isVariantInCart(resolveVariantId(), selectedOptions);
 
     /**
-     * Amène l'utilisateur aux options.
-     *
-     * Mobile : la feuille modale s'ouvre au clic, l'accordéon en place reste le
-     * moyen de consulter la sélection une fois faite. Desktop : on déballe
-     * l'accordéon et on défile jusqu'à lui, les deux blocs (desktop et mobile)
-     * coexistant dans le DOM il faut viser celui qui est visible.
+     * Amène l'utilisateur aux options : la feuille modale est le seul
+     * sélecteur, elle s'ouvre donc quel que soit l'écran.
      */
     const focusOptions = () => {
-      if (window.matchMedia("(max-width: 1023px)").matches) {
-        setIsOptionsSheetOpen(true);
-        return;
-      }
-      setIsOptionsExpanded(true);
-      window.requestAnimationFrame(() => {
-        const anchor = Array.from(
-          document.querySelectorAll<HTMLElement>("[data-options-anchor]"),
-        ).find((el) => el.getClientRects().length > 0);
-        anchor?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+      setIsOptionsSheetOpen(true);
     };
 
     const guardSelection = (): boolean => {
@@ -1337,126 +1380,15 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   />
                 </div>
 
-                {/* Options / Variantes — SKU picker style (accordion) */}
+                {/* Options / Variantes — résumé seul, la sélection se fait
+                    dans la feuille modale (cf. isOptionsSheetOpen). */}
                 {hasOptions && (
-                  <div data-options-anchor className="border-t border-gray-100 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
-                      aria-expanded={isOptionsExpanded}
-                      className="w-full flex items-center justify-between py-2 cursor-pointer select-none group"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
-                          <Package size={12} strokeWidth={2.5} />
-                        </span>
-                        <span className="text-sm font-bold text-gray-900 group-hover:text-[#f56b2a] transition-colors">Options & Variantes</span>
-                        {allSelected ? (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 size={11} strokeWidth={2.5} /> Tout sélectionné
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-gray-400">
-                            {selectedOptionCount}/{options.length} choisi{options.length > 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </div>
-                      <ChevronDown size={16} strokeWidth={2.5} className={`transition-transform duration-300 text-gray-400 ${isOptionsExpanded ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {isOptionsExpanded && (
-                      <div className="pt-2.5 pb-1 animate-in slide-in-from-top-2 duration-300">
-
-                    {selectedOptionCount > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 mb-3 bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-2">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sélection :</span>
-                        {options.map((o) => {
-                          const v = selectedOptions[o.id];
-                          if (!v) return null;
-                          return (
-                            <span
-                              key={o.id}
-                              className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-[10px] font-semibold text-gray-800"
-                            >
-                              {o.name}: {v}
-                              <button
-                                type="button"
-                                aria-label={`Retirer ${o.name}`}
-                                onClick={() =>
-                                  setSelectedOptions((prev: Record<string, string>) => {
-                                    const next = { ...prev };
-                                    delete next[o.id];
-                                    return next;
-                                  })
-                                }
-                                className="w-3.5 h-3.5 rounded-full bg-gray-100 hover:bg-[#f56b2a] hover:text-white flex items-center justify-center transition-colors"
-                              >
-                                <X size={8} strokeWidth={3} />
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="space-y-4">
-                      {options.map((option) => {
-                        const selectedVal = selectedOptions[option.id];
-                        return (
-                          <div key={option.id}>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-[13px] font-semibold text-gray-900">{option.name}</span>
-                              {selectedVal ? (
-                                <span className="text-[11px] font-semibold text-[#f56b2a]">{selectedVal}</span>
-                              ) : (
-                                <span className="text-[9.5px] font-medium text-gray-300">Choisissez...</span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {option.values.map((val: string) => {
-                                const isSelected = selectedVal === val;
-                                const isDisabled = isValueDisabled(option.id, val);
-                                return (
-                                  <button
-                                    key={val}
-                                    type="button"
-                                    disabled={isDisabled}
-                                    onClick={() => selectValue(option.id, val)}
-                                    aria-pressed={isSelected}
-                                    title={isDisabled ? "Indisponible" : undefined}
-                                    className={`relative min-w-[44px] px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all border active:brightness-95 transition-colors ${
-                                      isDisabled
-                                        ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
-                                        : isSelected
-                                          ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100 cursor-pointer"
-                                          : "bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-gray-900 cursor-pointer"
-                                    }`}
-                                  >
-                                    {isSelected && (
-                                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
-                                        <Check size={8} strokeWidth={3.5} className="text-white" />
-                                      </span>
-                                    )}
-                                    {val}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <OptionSelectionHint
-                      allSelected={allSelected}
-                      outOfStock={isSelectedOutOfStock}
-                      hasMatrix={variants.length > 0}
-                      variantName={matchedVariant?.name}
-                      variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
-                      price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
+                  <div className="border-t border-gray-100 pt-2">
+                    <OptionsSummaryRow
+                      options={options}
+                      selectedOptions={selectedOptions}
+                      onOpen={focusOptions}
                     />
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -1680,64 +1612,15 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   />
                 </div>
 
-                {/* Mobile options: SKU picker card (accordion) */}
+                {/* Mobile options: résumé seul, la sélection se fait dans la
+                    feuille modale ouverte par « Choisir les options ». */}
                 {hasOptions && (
-                  <div
-                    data-options-anchor
-                    className="bg-white border border-gray-100 rounded-2xl mb-2.5 shadow-sm overflow-hidden"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
-                      aria-expanded={isOptionsExpanded}
-                      className="w-full flex items-center justify-between px-3 py-3 active:bg-gray-50 transition-colors cursor-pointer select-none"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a]">
-                          <Package size={13} strokeWidth={2.5} />
-                        </span>
-                        <div className="text-left">
-                          <p className="text-[11px] font-bold text-gray-900 leading-tight">Options & Variantes</p>
-                          <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Touchez pour déplier</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {allSelected ? (
-                          <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full">
-                            <CheckCircle2 size={10} strokeWidth={3} /> Prêt à commander
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full">
-                            {selectedOptionCount}/{options.length}
-                          </span>
-                        )}
-                        <ChevronDown size={15} className={`transition-transform duration-300 text-gray-400 ${isOptionsExpanded ? "rotate-180" : ""}`} />
-                      </div>
-                    </button>
-
-                    {isOptionsExpanded && (
-                      <div className="p-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
-                        <OptionsPicker
-                          options={options}
-                          selectedOptions={selectedOptions}
-                          onSelect={selectValue}
-                          onRemove={(optionId) =>
-                            setSelectedOptions((prev: Record<string, string>) => {
-                              const next = { ...prev };
-                              delete next[optionId];
-                              return next;
-                            })
-                          }
-                          isValueDisabled={isValueDisabled}
-                          allSelected={allSelected}
-                          outOfStock={isSelectedOutOfStock}
-                          hasMatrix={variants.length > 0}
-                          variantName={matchedVariant?.name}
-                          variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
-                          price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
-                        />
-                      </div>
-                    )}
+                  <div className="mb-2.5">
+                    <OptionsSummaryRow
+                      options={options}
+                      selectedOptions={selectedOptions}
+                      onOpen={focusOptions}
+                    />
                   </div>
                 )}
 
@@ -2159,13 +2042,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </div>
         )}
 
-        {/* ================= MOBILE OPTIONS SHEET =================
-            Ouverte par « Choisir les options » de la barre du bas. Le
-            selecteur est rendu au meme endroit que dans l'accordéon, la
-            feuille n'est qu'un autre habillage. `lg:hidden` sur l'enveloppe
-            suffit a la neutraliser sur desktop : le `fixed` interne suit. */}
+        {/* ================= OPTIONS SHEET =================
+            Seul selecteur d'options de la fiche : feuille ancree en bas sur
+            mobile, modale centree a partir de lg. */}
         {isOptionsSheetOpen && hasOptions && (
-          <div className="lg:hidden fixed inset-0 z-[1000] flex items-end justify-center">
+          <div className="fixed inset-0 z-[1000] flex items-end justify-center lg:items-center lg:p-6">
             <div
               className="absolute inset-0 bg-gray-900/50"
               onClick={() => setIsOptionsSheetOpen(false)}
@@ -2174,11 +2055,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               role="dialog"
               aria-modal="true"
               aria-label="Choisir les options"
-              className="relative w-full max-w-md bg-white rounded-t-[28px] shadow-2xl flex flex-col max-h-[88vh]"
+              className="relative w-full max-w-md bg-white rounded-t-[28px] lg:rounded-2xl shadow-2xl flex flex-col max-h-[88vh] lg:max-h-[80vh]"
             >
               {/* Poignee + titre */}
               <div className="flex flex-col items-center pt-2.5 pb-1 shrink-0">
-                <span className="w-9 h-1 rounded-full bg-gray-300" />
+                <span className="w-9 h-1 rounded-full bg-gray-300 lg:hidden" />
                 <div className="w-full flex items-center justify-between px-4 pt-2 pb-1">
                   <h2 className="text-sm font-bold text-gray-900">Choisir les options</h2>
                   <button
