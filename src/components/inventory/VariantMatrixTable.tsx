@@ -22,10 +22,8 @@ const CELL_CLASS =
   'w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:border-[#f56b2a] focus:ring-4 focus:ring-orange-50 outline-none transition-all';
 
 // `th` de tableau : pas de `block`, la mise en page columnaire en dépend.
-// `sticky` + fond opaque : le titre de colonne doit rester lisible quand on
-// descend une longue matrice.
 const HEAD_CLASS =
-  'sticky top-0 z-10 bg-white px-3 pb-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left whitespace-nowrap';
+  'px-3 pb-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left whitespace-nowrap';
 
 // Libellé posé au-dessus d'un input dans les cartes mobile.
 const FIELD_LABEL_CLASS = `block ${HEAD_CLASS} mb-1.5`;
@@ -268,11 +266,7 @@ export default function VariantMatrixTable({
       </div>
 
       {/* ---------- Desktop : tableau avec en-têtes de colonnes ---------- */}
-      {/* Pas de `overflow-x-auto` ici : combiné à `overflow-y` visible, le
-          navigateur calcule un conteneur scrollable verticalement, ce qui
-          annulerait le `sticky` de l'en-tête et créerait un second scroll.
-          Les colonnes ont des largeurs fixes qui tiennent dans la modale. */}
-      <div className="hidden md:block">
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full border-separate border-spacing-0">
           <thead>
             <tr>
@@ -288,10 +282,7 @@ export default function VariantMatrixTable({
               const price = Number(variant.price) || 0;
               const stock = variant.stock || 0;
               return (
-                <tr
-                  key={variant.id}
-                  className="group align-top odd:bg-gray-50/50 hover:bg-orange-50/40 transition-colors"
-                >
+                <tr key={variant.id} className="group align-top">
                   <td className="py-1.5 pr-3">
                     <div className="flex flex-wrap gap-1.5">
                       {combinationLabel(variant).map((value, i) => (
