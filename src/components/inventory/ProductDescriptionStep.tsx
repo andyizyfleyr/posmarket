@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Check, Globe, Monitor } from 'lucide-react';
+import { Check, Eye, EyeOff, Globe, Monitor } from 'lucide-react';
+import { RichDescription } from '@/components/storefront/RichDescription';
 import { Field, inputCls } from './fieldStyles';
 import type { ProductFormData } from './types';
 
@@ -21,6 +22,7 @@ type Props = {
 export default function ProductDescriptionStep({ formData, setFormData }: Props) {
   const description = formData.description || '';
   const [showTips, setShowTips] = React.useState(false);
+  const [showPreview, setShowPreview] = React.useState(false);
 
   return (
     <div className="space-y-5">
@@ -67,6 +69,45 @@ export default function ProductDescriptionStep({ formData, setFormData }: Props)
           </ul>
         )}
       </Field>
+
+      {/* Aperçu : le texte de la fiche est interprété côté boutique
+          (titres, puces, « Label : valeur »). Le vendeur écrivait du texte
+          plat sans savoir que la mise en forme existe — ou qu'un tiret en
+          début de ligne ne fait rien. On lui montre le rendu réel. */}
+      {description.trim() && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowPreview((v) => !v)}
+            aria-expanded={showPreview}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#f56b2a] hover:underline underline-offset-2"
+          >
+            {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
+            {showPreview ? 'Masquer l’aperçu' : 'Voir comme le client'}
+          </button>
+
+          {showPreview && (
+            <div className="mt-2.5 rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
+              <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-2.5">
+                Aperçu fiche produit
+              </p>
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-sm font-bold text-gray-900 leading-tight">
+                  {formData.name?.trim() || 'Nom du produit'}
+                </p>
+                {formData.price != null && Number(formData.price) > 0 && (
+                  <p className="text-[13px] font-bold text-[#f56b2a] mt-1 tabular-nums">
+                    {Number(formData.price).toLocaleString('fr-FR')} XOF
+                  </p>
+                )}
+                <div className="mt-2.5 pt-2.5 border-t border-gray-50">
+                  <RichDescription text={description} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
         <div className="flex items-center justify-between gap-3 p-4">
