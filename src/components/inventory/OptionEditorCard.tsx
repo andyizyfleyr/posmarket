@@ -61,35 +61,65 @@ export default function OptionEditorCard({
 }: Props) {
   const suggestions = OPTION_PRESETS[option.name] || [];
   const isFull = option.values.length >= MAX_VALUES_PER_OPTION;
-  const hasName = option.name.trim().length > 0;
+  const isPreset = !!OPTION_PRESETS[option.name];
 
   const commitDraft = () => onAddValue(draft);
 
   return (
     <section className="rounded-2xl border border-gray-100 bg-gray-50/60 overflow-hidden">
-      {/* En-tête : pastille numérotée + nom de l'option + suppression */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-xl bg-[#f56b2a]/10 text-[#f56b2a] text-xs font-black">
+      {/* En-tête : pastille numérotée + choix du type d'option + suppression.
+          Un `<select>` et non un champ texte : un vendeur qui ne connaît pas le
+          concept d'« option » ne peut pas deviner « Taille » ou « Couleur », et
+          un champ vide ne lui apprenant rien. La saisie libre reste possible
+          via « Autre… », elle est alors explicitement demandée. */}
+      <div className="flex items-start gap-3 px-4 pt-4 pb-3">
+        <span className="flex items-center justify-center w-8 h-8 shrink-0 rounded-xl bg-[#f56b2a]/10 text-[#f56b2a] text-xs font-black mt-6">
           {index + 1}
         </span>
-        <div className="min-w-0 flex-1">
-          <label htmlFor={`option-name-${option.id}`} className={LABEL_CLASS}>
-            Nom de l&apos;option {index + 1}
-          </label>
-          <input
-            id={`option-name-${option.id}`}
-            type="text"
-            value={option.name}
-            onChange={(e) => onRename(e.target.value)}
-            placeholder="ex. Taille, Couleur, Pointure…"
-            className={`${FIELD_CLASS} ${hasName ? '' : 'border-orange-200 bg-orange-50/40'}`}
-          />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <label htmlFor={`option-name-${option.id}`} className={LABEL_CLASS}>
+              Option {index + 1} — quoi différencier ?
+            </label>
+            <select
+              id={`option-name-${option.id}`}
+              value={isPreset ? option.name : 'custom'}
+              onChange={(e) => onRename(e.target.value === 'custom' ? '' : e.target.value)}
+              className={`${FIELD_CLASS} appearance-none cursor-pointer ${
+                isPreset ? '' : 'border-orange-200 bg-orange-50/40 text-orange-700'
+              }`}
+            >
+              <option value="custom">Autre… (je vais le saisir)</option>
+              {Object.keys(OPTION_PRESETS).map((preset) => (
+                <option key={preset} value={preset}>
+                  {preset}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {!isPreset && (
+            <div className="animate-in slide-in-from-top-2 duration-300">
+              <label htmlFor={`option-custom-${option.id}`} className={LABEL_CLASS}>
+                Nom de l&apos;option {index + 1}
+              </label>
+              <input
+                id={`option-custom-${option.id}`}
+                type="text"
+                autoFocus
+                value={option.name}
+                onChange={(e) => onRename(e.target.value)}
+                placeholder="ex. Pointure, Capacité, Goût…"
+                className={`${FIELD_CLASS} border-orange-200`}
+              />
+            </div>
+          )}
         </div>
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Supprimer l'option ${option.name || index + 1}`}
-          className="shrink-0 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+          className="shrink-0 w-10 h-10 mt-6 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
           title="Supprimer l'option"
         >
           <Trash2 size={16} />
