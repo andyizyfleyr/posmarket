@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Package,
   Search,
@@ -12,8 +12,6 @@ import {
   LayoutGrid,
   X,
   Image as ImageIcon,
-  Globe,
-  Monitor,
   Tag,
   DollarSign,
   Check,
@@ -23,6 +21,7 @@ import {
   Star,
   Loader2,
   Award,
+  Monitor,
   Zap,
   Clock
 } from 'lucide-react';
@@ -35,14 +34,35 @@ import { Skeleton, ProductSkeleton } from '../components/Skeleton';
 import ProductImage from '../components/ProductImage';
 import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
-import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
+import ProductImagesStep from '@/components/inventory/ProductImagesStep';
+import ProductEssentialsStep from '@/components/inventory/ProductEssentialsStep';
+import ProductDescriptionStep from '@/components/inventory/ProductDescriptionStep';
+import WholesaleTiersEditor from '@/components/inventory/WholesaleTiersEditor';
+import type { ProductFormData } from '@/components/inventory/types';
 import {
   normalizeOptions,
   normalizeVariants,
   type ProductOptionDef,
   type ProductVariantDef,
 } from '@/utils/variants';
+
+/**
+ * Sérialisation de l'état du formulaire, pour détecter une saisie en cours.
+ *
+ * Comparer les objets par identité ne marcherait pas : `setFormData` crée un
+ * nouvel objet à chaque frappe, y compris pour un retour à la valeur initiale.
+ */
+function serializeForm(form: ProductFormData): string {
+  return JSON.stringify(form);
+}
+
+/** Étapes du formulaire. `s` sert au pilotage de `currentStep`. */
+const STEPS = [
+  { s: 1, label: 'Photos', icon: ImageIcon },
+  { s: 2, label: 'Essentiels', icon: Tag },
+  { s: 3, label: 'Compléments', icon: DollarSign },
+] as const;
 
 interface InventoryViewProps {
   products: Product[];
@@ -70,8 +90,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [variantNotice, setVariantNotice] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // B8 : l'éditeur d'options porte déjà son propre bandeau de message. L'état
+  // `variantNotice` en affichait un second, identique, sous la section.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  // Rappel de l'état initial pour détecter une saisie en cours (B7).
+  const initialFormSnapshot = useRef<string>('');
+  // B6 : la modale n'écoutait ni Escape ni la.tabulation. `ProductDetailsView`
+  // le fait déjà pour sa feuille d'options — même exigence ici.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // Taxonomie produit : lue en base (geree depuis /pam/categories), avec
   // repli sur les constantes historiques si la table est vide ou inaccessible.
@@ -91,7 +119,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     return () => {
       active = false;
     };
-  }, []);
+}, []);
 
   // Pagination states
   const [localProducts, setLocalProducts] = useState<Product[]>(initialProducts || []);
@@ -107,7 +135,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setHasMore(initialProducts?.length === 10);
   }, [initialProducts]);
 
-  const [formData, setFormData] = useState<Partial<Product> & { isOnline: boolean, images: string[] }>({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     price: undefined,
     stock: undefined,
@@ -212,6 +240,87 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setIsLoadingMore(false);
   };
 
+  /** Ferme la modale et oublie la saisie courante. */
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setShowDiscardConfirm(false);
+    setFieldErrors({});
+    setSubmitError(null);
+    setCurrentStep(1);
+  };
+
+  /**
+   * Ferme seulement si rien n'a été saisi.
+   *
+   * Avant, la croix fermait immédiatement : sur l'étape 3 (matrice, paliers de
+   * gros) tout le travail disparaissait sans confirmation.
+   */
+  const requestClose = () => {
+    // Création et modification sont traitées de la même façon : l'instantané
+    // est posé à chaque ouverture (fiche vide en création). Comparer la
+    // sérialisation — et non l'identité des objets, qui change à chaque frappe.
+    if (serializeForm(formData) !== initialFormSnapshot.current) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    closeModal();
+  };
+
+  // Refs miroir, pour que l'écouteur d'Escape — installé une seule fois à
+  // l'ouverture — lise la valeur courante sans être réinstallé à chaque frappe.
+  const latest = useRef({ formData, showDiscardConfirm, closeModal });
+  useEffect(() => {
+    latest.current = { formData, showDiscardConfirm, closeModal };
+  });
+
+  // B6 : Escape ferme, le défilement de l'arrière-plan est bloqué, et le focus
+  // entre dans la modale à l'ouverture. Sans cela, la touche Échap ne faisait
+  // rien et la page continuait de défiler dessous.
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+
+      // La confirmation d'abandon a la priorité : Escape l'annule et rend la
+      // main à la saisie. Sans ce cas, elle se rouvirait aussitôt et la
+      // touche resterait sans effet.
+      if (latest.current.showDiscardConfirm) {
+        setShowDiscardConfirm(false);
+        return;
+      }
+
+      const dirty =
+        serializeForm(latest.current.formData) !== initialFormSnapshot.current;
+      if (dirty) {
+        setShowDiscardConfirm(true);
+        return;
+      }
+      latest.current.closeModal();
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    // Premier champ focalisé : sans cela la tabulation repart du début de la
+    // page, derrière la modale.
+    const focusTimer = window.setTimeout(() => {
+      dialogRef.current
+        ?.querySelector<HTMLElement>('input, select, textarea, button')
+        ?.focus();
+    }, 50);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [isModalOpen]);
+
   const handleOpenModal = (product?: Product, type?: 'pos' | 'store') => {
     // Check product limits for non-edit mode
     if (!product && subscription) {
@@ -226,13 +335,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     if (product) {
       setEditingProduct(product);
       setCurrentStep(1);
-      setVariantNotice(null);
       setSubmitError(null);
+      setFieldErrors({});
       // Nettoyage à l'ouverture : SKU et photo par variante sont conservés,
       // les orphelines sont écartées pour ne jamais casser la matrice.
       const safeOptions = normalizeOptions(product.options);
       const safeVariants = normalizeVariants(product.variants, safeOptions);
-      const initialFormData: Partial<Product> & { isOnline: boolean, images: string[] } = {
+      const initialFormData: ProductFormData = {
         name: product.name || '',
         price: product.price ?? undefined,
         stock: product.stock ?? undefined,
@@ -257,12 +366,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         variants: safeVariants
       };
       setFormData(initialFormData);
+      initialFormSnapshot.current = serializeForm(initialFormData);
     } else {
       setEditingProduct(null);
-      setVariantNotice(null);
       setSubmitError(null);
+      setFieldErrors({});
       const isOnline = type === 'store';
-      setFormData({
+      const blankForm: ProductFormData = {
         name: '',
         price: undefined,
         stock: undefined,
@@ -281,11 +391,69 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         businessType: businessType,
         options: [],
         variants: []
-      });
-
+      };
+      setFormData(blankForm);
+      // creation : l'instantané est la fiche vide, pas `''`. Sans cela, fermer
+      // une création à moitié remplie ne demandait aucune confirmation — alors
+      // que c'est précisément la saisie la plus longue à refaire.
+      initialFormSnapshot.current = serializeForm(blankForm);
       setCurrentStep(1);
     }
     setIsModalOpen(true);
+  };
+
+  /**
+   * Change d'étape en validant celle qu'on quitte.
+   *
+   * Retourne `false` si la validation bloque : le pied de page s'en sert pour
+   * ne pas avancer. Les messages d'erreur sont posés sur les champs (étape 2)
+   * et non dans un bandeau global, pour que le vendeur voie quoi corriger.
+   */
+  const goToStep = (next: number) => {
+    if (next > currentStep && !validateStep(currentStep)) return false;
+    if (next < 1 || next > STEPS.length) return false;
+    setCurrentStep(next);
+    // Remonter en haut : sur l'étape 3 la matrice est plus haute que l'écran,
+    // et le champ en erreur serait sinon hors champ de vision.
+    dialogRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+  };
+
+  /** Valide l'étape courante. Retourne `false` et affiche les erreurs sinon. */
+  const validateStep = (step: number): boolean => {
+    if (step === 1) {
+      const images = formData.images || [];
+      if (images.length === 0) {
+        setFieldErrors({ images: 'Ajoutez au moins une photo.' });
+        return false;
+      }
+      setFieldErrors((prev) => ({ ...prev, images: '' }));
+      return true;
+    }
+
+    if (step === 2) {
+      const errors: Record<string, string> = {};
+      const name = (formData.name || '').trim();
+      if (!name) errors.name = 'Le nom est obligatoire.';
+      else if (name.length > 140) errors.name = '140 caractères maximum.';
+
+      if (!(formData.category || '').trim()) errors.category = 'Choisissez une catégorie.';
+
+      if (formData.price == null) errors.price = 'Le prix est obligatoire.';
+      else if (Number(formData.price) <= 0) errors.price = 'Le prix doit être supérieur à 0.';
+
+      // Le stock n'est obligatoire que sans variantes : avec des options,
+      // `products.stock` est recalculé à partir des variantes et le champ
+      // est désactivé (cf. ProductEssentialsStep).
+      const hasVersions = (formData.options || []).length > 0;
+      if (!hasVersions && formData.stock == null) errors.stock = 'Indiquez le stock.';
+
+      setFieldErrors(errors);
+      if (Object.keys(errors).length > 0) return false;
+      return true;
+    }
+
+    return true;
   };
 
   const handleDelete = async (id: string) => {
@@ -337,8 +505,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     });
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async () => {
+    // Le pied de page est la seule porte de sortie : on valide tout d'un coup
+    // plutôt que de laisser partir une fiche à prix 0.
+    if (!validateStep(1) || !validateStep(2)) {
+      const firstBroken = !formData.images?.length ? 1 : 2;
+      setCurrentStep(firstBroken);
+      return;
+    }
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -354,11 +528,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         const warning = Array.isArray(result.warnings) ? result.warnings[0] : null;
         setShowSuccessToast(warning || (editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !'));
         setTimeout(() => setShowSuccessToast(null), 3000);
-        setIsModalOpen(false);
+        closeModal();
       } else if (result.success) {
         setShowSuccessToast(editingProduct ? 'Produit mis à jour avec succès !' : 'Produit ajouté avec succès !');
         setTimeout(() => setShowSuccessToast(null), 3000);
-        setIsModalOpen(false);
+        closeModal();
       } else {
         setSubmitError(result.error || 'Impossible d\'enregistrer le produit');
       }
@@ -754,605 +928,271 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* Modal Produit (Step Form) */}
+{/* Modal Produit (Step Form) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          {/* L'étape 3 héberge la matrice des variantes : son tableau a besoin
-              de largeur, `max-w-2xl` le rendait illisible sur desktop. */}
-          <div className={`bg-white rounded-[32px] shadow-2xl w-full ${currentStep === 3 ? 'max-w-4xl' : 'max-w-2xl'} overflow-hidden flex flex-col max-h-[90vh]`}>
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-modal-title"
+            className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
             {/* Header with Step Indicator */}
-            <div className="px-3 md:px-8 pt-3 md:pt-8 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
-              <div className="flex items-center justify-between mb-4 md:mb-8">
-                <div>
-                  <h2 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap">
-                    {editingProduct ? 'Modifier' : (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)')}
+            <div className="px-3 md:px-8 pt-3 md:pt-6 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+              <div className="flex items-start justify-between gap-3 mb-4 md:mb-6">
+                <div className="min-w-0">
+                  {/* Fil d'Ariane : sans lui, la modale flottait sans dire
+                      quel produit elle modifie ni d'où elle vient. */}
+                  <p className="text-[11px] text-gray-400 font-semibold mb-0.5">
+                    Boutique
+                    {editingProduct?.name && (
+                      <>
+                        {' '}› Modifier{' '}
+                        <span className="text-gray-600">« {editingProduct.name} »</span>
+                      </>
+                    )}
+                    {!editingProduct && <> › Nouveau produit</>}
+                  </p>
+                  <h2
+                    id="product-modal-title"
+                    className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight"
+                  >
+                    {editingProduct ? 'Modifier le produit' : 'Nouveau produit'}
                   </h2>
-                  <p className="text-gray-400 text-[10px] md:text-xs font-semibold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
+                <button
+                  type="button"
+                  onClick={requestClose}
+                  aria-label="Fermer"
+                  className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full"
+                >
                   <X size={18} className="md:size-6" />
                 </button>
               </div>
 
-              {/* Step Progress Bar */}
+              {/* Step Progress Bar — cliquable sur les étapes déjà visitées */}
               <div className="flex items-center justify-between relative px-1 md:px-2">
                 <div className="absolute top-1/2 left-0 right-0 h-px md:h-0.5 bg-gray-100 -translate-y-1/2 z-0 mx-6 md:mx-8" />
-                {[
-                  { s: 1, icon: ImageIcon, label: 'Photos' },
-                  { s: 2, icon: Tag, label: 'Essentiels' },
-                  { s: 3, icon: DollarSign, label: 'Compléments' }
-                ].map((step) => (
-                  <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
-                    <div className={`
-                      w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300
-                      ${currentStep === step.s ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100 ring-4 ring-orange-50/50' :
-                        currentStep > step.s ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-100 text-gray-300'}
-                    `}>
-                      {currentStep > step.s ? <Check size={12} className="md:size-[18px]" /> : <step.icon size={12} className="md:size-[18px]" />}
-                    </div>
-                    <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
-                      {step.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
-              {currentStep === 1 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex flex-col gap-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Images du Produit</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {(formData.images || []).map((img, idx) => (
-                        <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                          <img src={img} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newImages = formData.images.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, images: newImages, image: newImages[0] || '' });
-                            }}
-                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                          {idx === 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-bold text-center py-0.5 uppercase">Principale</div>
-                          )}
-                        </div>
-                      ))}
-                      <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl hover:bg-orange-50 hover:border-orange-200 transition-all cursor-pointer group">
-                        <Plus size={18} className="md:size-5 text-gray-300 group-hover:text-[#f56b2a]" />
-                        <span className="text-[7px] md:text-[8px] font-bold text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const files = Array.from(e.target.files || []) as File[];
-
-                            for (const file of files) {
-                              try {
-                                // Optimisation : Compression + Resolution + WebP
-                                const optimizedFile = await optimizeImage(file);
-                                // Conversion en Base64 pour le stockage actuel
-                                const base64 = await fileToBase64(optimizedFile);
-
-                                setFormData(prev => {
-                                  const newImages = [...prev.images, base64];
-                                  return {
-                                    ...prev,
-                                    images: newImages,
-                                    image: prev.image || newImages[0]
-                                  };
-                                });
-                              } catch (err) {
-                                console.error("Erreur lors de l'optimisation:", err);
-                              }
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
-                  </div>
-                </div>
-              )}
-
-              {currentStep === 2 && (
-                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
-                    <input
-                      required
-                      type="text"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Catégorie du Produit</label>
-                    <select
-                      value={formData.category}
-                      onChange={e => {
-                        const newSub = e.target.value;
-                        setFormData({
-                          ...formData,
-                          category: newSub,
-                          mainCategory: filteredCategoryMapping[newSub] || filteredMainCategories[0] || 'Divers'
-                        });
-                      }}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                    >
-                      {filteredMainCategories.map(mainCat => {
-                        const subCats = Object.keys(filteredCategoryMapping).filter(sub => filteredCategoryMapping[sub] === mainCat);
-                        if (subCats.length === 0) return <option key={mainCat} value={mainCat}>{mainCat}</option>;
-                        return (
-                          <optgroup key={mainCat} label={mainCat}>
-                            {subCats.map(sub => (
-                              <option key={sub} value={sub}>{sub}</option>
-                            ))}
-                          </optgroup>
-                        );
-                      })}
-                    </select>
-                  </div>
-                  <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
-                      </label>
-                      <select
-                        value={formData.deliveryTime}
-                        onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
-                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                {STEPS.map((step) => {
+                  const isCurrent = currentStep === step.s;
+                  const isDone = currentStep > step.s;
+                  // On ne peut revenir que sur une étape franchie : sur une
+                  // étape à venir, cela promettrait de la valider sans l'avoir vue.
+                  const canGoBack = isDone;
+                  const badge = (
+                    <>
+                      <span
+                        className={`
+                          w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300
+                          ${isCurrent ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100 ring-4 ring-orange-50/50' :
+                            isDone ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-100 text-gray-300'}
+                        `}
                       >
-                        <option value="">Sélectionnez une durée...</option>
-                        <optgroup label="Restauration / Immédiat">
-                          <option value="15 min">15 minutes</option>
-                          <option value="30 min">30 minutes</option>
-                          <option value="45 min">45 minutes</option>
-                          <option value="1h">1 heure</option>
-                        </optgroup>
-                        <optgroup label="Livraison Courte">
-                          <option value="24h">24 heures</option>
-                          <option value="48h">48 heures</option>
-                          <option value="72h">72 heures</option>
-                        </optgroup>
-                        <optgroup label="Livraison Longue">
-                          <option value="3-5 jours">3 à 5 jours</option>
-                          <option value="1 semaine">1 semaine</option>
-                          <option value="2 semaines">2 semaines</option>
-                          <option value="Sur commande">Sur commande/Mesure</option>
-                        </optgroup>
-                      </select>
-                      <p className="text-[9px] text-gray-500 mt-2 font-normal">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
-                    </div>
+                        {isDone ? <Check size={12} className="md:size-[18px]" /> : <step.icon size={12} className="md:size-[18px]" />}
+                      </span>
+                      <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
+                        {step.label}
+                      </span>
+                    </>
+                  );
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente
-                      </label>
-                      <div className="relative">
-                        <input
-                          required
-                          type="number"
-                          value={formData.price ?? ''}
-                          onChange={e => setFormData({ ...formData, price: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
-                          placeholder="0"
-                          className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-bold text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                        />
-                        <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-xs md:text-sm">XOF</span>
-                      </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
-                        <input
-                          type="number"
-                          value={formData.stock ?? ''}
-                          onChange={e => setFormData({ ...formData, stock: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
-                          placeholder="0"
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-bold text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                        />
-                    </div>
-                  </div>
-                  {formData.businessType === 'shopping' && (
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
-                      </label>
-                      <div className="space-y-3">
-                        <select
-                          value={['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') ? formData.unit : (formData.unit ? 'custom' : 'pièce')}
-                          onChange={e => {
-                            if (e.target.value === 'custom') {
-                              setFormData({ ...formData, unit: '' });
-                            } else {
-                              setFormData({ ...formData, unit: e.target.value });
-                            }
-                          }}
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                        >
-                          <optgroup label="Standard">
-                            <option value="pièce">Pièce</option>
-                            <option value="unité">Unité (u)</option>
-                            <option value="douzaine">Douzaine</option>
-                            <option value="paquet">Paquet</option>
-                            <option value="carton">Carton</option>
-                            <option value="boîte">Boîte / Box</option>
-                            <option value="sac">Sac</option>
-                            <option value="bouteille">Bouteille</option>
-                            <option value="lot">Lot</option>
-                          </optgroup>
-                          <optgroup label="Poids & Mesures">
-                            <option value="kg">Kilogramme (kg)</option>
-                            <option value="g">Gramme (g)</option>
-                            <option value="L">Litre (L)</option>
-                            <option value="m">Mètre (m)</option>
-                            <option value="m²">Mètre Carré (m²)</option>
-                          </optgroup>
-                          <optgroup label="Services">
-                            <option value="nuitée">Nuitée</option>
-                            <option value="service">Service / Forfait</option>
-                          </optgroup>
-                          <option value="custom">Autre (Saisie libre)...</option>
-                        </select>
-
-                        {(!['pièce', 'unité', 'paquet', 'carton', 'boîte', 'sac', 'bouteille', 'lot', 'douzaine', 'kg', 'g', 'tonne', 'L', 'ml', 'cl', 'm', 'cm', 'm²', 'nuitée', 'heure', 'jour', 'service', 'ticket'].includes(formData.unit || '') || formData.unit === '') && (
-                          <div className="animate-in slide-in-from-top-2 duration-300">
-                            <input
-                              type="text"
-                              placeholder="Ex: Pack de 100, Fagot, Douzaine..."
-                              value={formData.unit}
-                              onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:border-[#f56b2a] outline-none shadow-sm"
-                            />
-                            <p className="text-[9px] text-[#f56b2a] mt-1 font-bold uppercase tracking-tighter">Saisie libre : tapez l&apos;unité de votre choix</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {currentStep === 3 && (
-                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  {formData.businessType === 'shopping' && (
-                    <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
-                      <VariantMatrixEditor
-                        options={(formData.options || []) as ProductOptionDef[]}
-                        variants={(formData.variants || []) as ProductVariantDef[]}
-                        basePrice={Number(formData.price) || 0}
-                        images={formData.images || []}
-                        onChange={(options, variants, notice) => {
-                          setFormData((prev) => ({ ...prev, options, variants }));
-                          if (notice) setVariantNotice(notice);
-                        }}
-                      />
-                      {variantNotice && (
-                        <p className="text-[9px] font-semibold text-gray-400 mt-2">
-                          {variantNotice} La matrice est réalignée à l&apos;enregistrement.
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-
-                  {/* Wholesale Section */}
-                  {formData.businessType === 'shopping' && (
-                    <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
-                      <div className="flex items-center justify-between mb-4 md:mb-6">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Vente en Gros & B2B</h4>
-                            <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#f56b2a] text-[9px] font-bold uppercase">Grossiste</span>
-                          </div>
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold mt-0.5">
-                            Définissez vos prix de gros par quantité (ex : 400 000 FCFA dès 100 unités)
-                          </p>
-                        </div>
+                  return (
+                    <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
+                      {canGoBack ? (
                         <button
                           type="button"
-                          onClick={() => {
-                            const isCurrentlyEnabled = (formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined;
-                            if (isCurrentlyEnabled) {
-                              setFormData({
-                                ...formData,
-                                wholesalePrice: undefined,
-                                wholesaleMinQty: undefined,
-                                wholesaleTiers: []
-                              });
-                            } else {
-                              const baseP = Number(formData.price) || 0;
-                              const initialTier = {
-                                minQty: 100,
-                                price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0,
-                                unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0
-                              };
-                              setFormData({
-                                ...formData,
-                                wholesalePrice: initialTier.price,
-                                wholesaleMinQty: initialTier.minQty,
-                                wholesaleTiers: [initialTier]
-                              });
-                            }
-                          }}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200/50' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                          onClick={() => setCurrentStep(step.s)}
+                          aria-current={isCurrent ? 'step' : undefined}
+                          aria-label={`Revenir à l'étape ${step.s} : ${step.label}`}
+                          className="flex flex-col items-center gap-1.5 md:gap-2 group"
                         >
-                          {((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'ACTIVÉ' : 'DÉSACTIVER'}
+                          {badge}
                         </button>
-                      </div>
-
-                      {(((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined)) && (
-                        <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider">
-                              Prix de gros configurés ({(formData.wholesaleTiers || []).length})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const tiers = [...(formData.wholesaleTiers || [])];
-                                const baseP = Number(formData.price) || 0;
-                                const lastMinQty = tiers.length > 0 ? tiers[tiers.length - 1].minQty : 100;
-                                const nextQty = lastMinQty >= 100 ? lastMinQty + 100 : lastMinQty * 2;
-                                const unitRatio = tiers.length > 0 ? 0.75 : 0.8;
-                                const nextPrice = baseP > 0 ? Math.round(baseP * nextQty * unitRatio) : 0;
-                                
-                                tiers.push({ minQty: nextQty, price: nextPrice, unitPrice: nextQty > 0 ? Math.round(nextPrice / nextQty) : 0 });
-                                const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty);
-                                setFormData({
-                                  ...formData,
-                                  wholesaleTiers: sorted,
-                                  wholesaleMinQty: sorted[0]?.minQty,
-                                  wholesalePrice: sorted[0]?.price
-                                });
-                              }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[10px] font-bold hover:bg-orange-100 transition-all active:scale-95"
-                            >
-                              <Plus size={13} strokeWidth={3} /> Ajouter un prix de gros
-                            </button>
-                          </div>
-
-                          {(formData.wholesaleTiers || []).length === 0 ? (
-                            <div className="p-4 bg-orange-50/40 border border-orange-100 rounded-2xl text-center">
-                              <p className="text-xs font-semibold text-gray-600 mb-2">Aucun palier de gros défini pour l&apos;instant</p>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const baseP = Number(formData.price) || 0;
-                                  const t = { minQty: 100, price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0, unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0 };
-                                  setFormData({ ...formData, wholesaleTiers: [t], wholesaleMinQty: t.minQty, wholesalePrice: t.price });
-                                }}
-                                className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-xl text-xs font-bold"
-                              >
-                                + Ajouter le 1er prix de gros
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-2.5">
-                              {(formData.wholesaleTiers || []).map((tier, idx) => {
-                                const baseUnitPrice = Number(formData.price) || 0;
-                                const minQty = Math.max(1, Number(tier.minQty) || 1);
-                                const tierPrice = Number(tier.price) || 0;
-                                
-                                // Calcul automatique de l'unité et de l'avantage
-                                const effectiveUnit = tierPrice >= baseUnitPrice && minQty > 1
-                                  ? Math.round(tierPrice / minQty)
-                                  : (tierPrice > 0 ? tierPrice : baseUnitPrice);
-                                const normalTotal = baseUnitPrice * minQty;
-                                const packageTotal = tierPrice >= baseUnitPrice && minQty > 1 ? tierPrice : tierPrice * minQty;
-                                const savings = normalTotal > packageTotal ? normalTotal - packageTotal : 0;
-                                const savingsPct = normalTotal > 0 && savings > 0 ? Math.round((savings / normalTotal) * 100) : 0;
-
-                                return (
-                                  <div key={idx} className="bg-orange-50/40 border border-orange-100/80 rounded-2xl p-3 md:p-4 space-y-2">
-                                    <div className="flex items-center gap-2 md:gap-3">
-                                      <div className="w-6 h-6 rounded-lg bg-orange-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                                        {idx + 1}
-                                      </div>
-                                      <div className="w-32 md:w-36 shrink-0">
-                                        <label className="block text-[8px] font-bold text-gray-500 uppercase mb-1">Dès (quantité)</label>
-                                        <div className="relative">
-                                          <input
-                                            type="number"
-                                            min="2"
-                                            value={tier.minQty}
-                                            onChange={e => {
-                                              const tiers = [...(formData.wholesaleTiers || [])];
-                                              const newQty = parseInt(e.target.value) || 1;
-                                              tiers[idx] = {
-                                                ...tiers[idx],
-                                                minQty: newQty,
-                                                unitPrice: newQty > 0 ? Math.round((tiers[idx].price || 0) / newQty) : 0
-                                              };
-                                              setFormData({
-                                                ...formData,
-                                                wholesaleTiers: tiers,
-                                                wholesaleMinQty: tiers[0]?.minQty,
-                                                wholesalePrice: tiers[0]?.price
-                                              });
-                                            }}
-                                            className="w-full px-3 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-bold text-gray-800 focus:ring-2 focus:ring-orange-200 outline-none"
-                                            placeholder="100"
-                                          />
-                                        </div>
-                                      </div>
-
-                                      <div className="flex-1 min-w-0">
-                                        <label className="block text-[8px] font-bold text-gray-500 uppercase mb-1">Prix de Gros total (XOF)</label>
-                                        <div className="relative">
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={tier.price}
-                                            onChange={e => {
-                                              const tiers = [...(formData.wholesaleTiers || [])];
-                                              const newPrice = parseInt(e.target.value) || 0;
-                                              const q = Math.max(1, tiers[idx].minQty || 1);
-                                              tiers[idx] = {
-                                                ...tiers[idx],
-                                                price: newPrice,
-                                                unitPrice: q > 0 ? Math.round(newPrice / q) : 0
-                                              };
-                                              setFormData({
-                                                ...formData,
-                                                wholesaleTiers: tiers,
-                                                wholesaleMinQty: tiers[0]?.minQty,
-                                                wholesalePrice: tiers[0]?.price
-                                              });
-                                            }}
-                                            className="w-full pl-3 pr-10 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-bold text-[#f56b2a] focus:ring-2 focus:ring-orange-200 outline-none"
-                                            placeholder="400000"
-                                          />
-                                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">XOF</span>
-                                        </div>
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const tiers = (formData.wholesaleTiers || []).filter((_, i) => i !== idx);
-                                          setFormData({
-                                            ...formData,
-                                            wholesaleTiers: tiers,
-                                            wholesaleMinQty: tiers[0]?.minQty,
-                                            wholesalePrice: tiers[0]?.price
-                                          });
-                                        }}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-end"
-                                        title="Supprimer ce prix de gros"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
-                                    </div>
-
-                                    {/* Calculated feedback bar */}
-                                    <div className="flex flex-wrap items-center justify-between text-[9px] md:text-[10px] font-semibold px-1 pt-1 border-t border-orange-100/60 text-gray-500">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-gray-400">Soit:</span>
-                                        <span className="text-gray-900 font-bold">{formatCurrency(effectiveUnit)} / unité</span>
-                                        {baseUnitPrice > 0 && (
-                                          <span className="text-gray-400 line-through">({formatCurrency(baseUnitPrice)})</span>
-                                        )}
-                                      </div>
-                                      {savings > 0 && (
-                                        <div className="flex items-center gap-1 text-emerald-600 font-bold">
-                                          <span>Économie : −{formatCurrency(savings)}</span>
-                                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[8px]">−{savingsPct}%</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-
-                              <p className="text-[9px] text-gray-400 font-semibold px-1">
-                                💡 Le client bénéficie automatiquement du prix de gros dès qu&apos;il atteint la quantité minimale dans son panier.
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                      ) : (
+                        <div aria-current={isCurrent ? 'step' : undefined}>{badge}</div>
                       )}
                     </div>
-                  )}
-                </div>
-              )}
-
-              {currentStep === 3 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>
-                    <textarea
-                      value={formData.description || ''}
-                      onChange={e => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-normal focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none min-h-[80px] md:min-h-[120px] resize-none"
-                    />
-                  </div>
-
-                  {/* Manual Visibility Toggle */}
-                  <div className="flex items-center justify-between p-3 md:p-4 bg-orange-50/50 rounded-xl md:rounded-2xl border border-orange-100">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <div className="bg-[#f56b2a] p-1.5 md:p-2 rounded-lg text-white">
-                        <Globe size={16} className="md:size-[18px]" />
-                      </div>
-                      <div>
-                        <div className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Publier sur le Store</div>
-                        <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Visibilité publique</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isOnline: !formData.isOnline })}
-                      className={`w-10 md:w-12 h-5 md:h-6 rounded-full transition-colors relative ${formData.isOnline ? 'bg-[#f56b2a]' : 'bg-gray-200'}`}
-                    >
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${formData.isOnline ? 'left-5.5 md:left-7' : 'left-0.5 md:left-1'}`} />
-                    </button>
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Sticky Navigation Footer */}
-            <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              {submitError && (
-                <div className="flex items-start gap-2 w-full md:w-auto px-3 py-2.5 bg-rose-50 border border-rose-100 rounded-xl text-[10px] md:text-xs font-bold text-rose-600">
-                  <AlertCircle size={14} className="shrink-0 mt-px" />
-                  <span className="min-w-0 break-words">{submitError}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSubmitError(null)}
-                    className="ml-auto p-0.5 text-rose-300 hover:text-rose-600 shrink-0"
-                    aria-label="Fermer le message"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-3 md:gap-4 w-full md:w-auto">
-              <Button
-                type="button"
-                disabled={currentStep === 1 || isSubmitting}
-                onClick={() => setCurrentStep(prev => prev - 1)}
-                variant="ghost"
-                size="md"
-                className="text-gray-400 hover:text-gray-700 font-bold text-[10px] md:text-sm"
-                icon={<ChevronLeft size={16} className="md:size-5" />}
-              >
-                Retour
-              </Button>
+            {/* <form> : rend `<form onSubmit>`, la validation native et le
+                raccourci Entrée actifs. `handleSubmit` n'était qu'un onClick,
+                donc les `required` posés sur les champs n'étaient jamais
+                évalués. */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (currentStep < 3) goToStep(currentStep + 1);
+                else void handleSubmit();
+              }}
+              className="contents"
+            >
+              <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                {currentStep === 1 && (
+                  <div className="animate-in slide-in-from-right-4 duration-300">
+                    <ProductImagesStep
+                      formData={formData}
+                      setFormData={setFormData}
+                      errors={fieldErrors}
+                    />
+                  </div>
+                )}
 
-              <div className="flex gap-2 md:gap-3">
-                {currentStep < 3 ? (
-                  <Button
-                    type="button"
-                    onClick={() => setCurrentStep(prev => prev + 1)}
-                    variant="secondary"
-                    size="md"
-                    className="font-bold text-[10px] md:text-sm"
-                    icon={<ChevronRight size={14} className="md:size-[18px]" />}
-                    iconPosition="right"
-                  >
-                    Suivant
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleSubmit}
-                    loading={isSubmitting}
-                    loadingText="Envoi..."
-                    variant="primary"
-                    size="md"
-                    className="font-bold text-[10px] md:text-sm"
-                  >
-                    Enregistrer
-                  </Button>
+                {currentStep === 2 && (
+                  <div className="animate-in slide-in-from-right-4 duration-300">
+                    <ProductEssentialsStep
+                      formData={formData}
+                      setFormData={setFormData}
+                      mainCategories={filteredMainCategories}
+                      categoryMapping={filteredCategoryMapping}
+                      errors={fieldErrors}
+                    />
+                  </div>
+                )}
+
+                {currentStep === 3 && (
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                    {/* F1 : la description passe devant. C'est le texte le plus
+                        lu sur la fiche, il était enterré sous la matrice. */}
+                    <ProductDescriptionStep formData={formData} setFormData={setFormData} />
+
+                    {formData.businessType === 'shopping' && (
+                      <div className="pt-5 border-t border-gray-100">
+                        <VariantMatrixEditor
+                          options={(formData.options || []) as ProductOptionDef[]}
+                          variants={(formData.variants || []) as ProductVariantDef[]}
+                          basePrice={Number(formData.price) || 0}
+                          images={formData.images || []}
+                          onChange={(options, variants) => {
+                            setFormData((prev) => ({ ...prev, options, variants }));
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {formData.businessType === 'shopping' && (
+                      <div className="pt-5 border-t border-gray-100">
+                        <WholesaleTiersEditor formData={formData} setFormData={setFormData} />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
+
+              {/* Pied : toujours présent (à l'étape 1 c'est le seul moyen de
+                  continuer, le fil d'Ariane n'étant cliquable que vers l'arrière),
+                  erreurs lisibles, rappel du nombre de variantes avant de valider. */}
+              <div className="p-3 md:px-8 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+                  {submitError && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 px-3.5 py-3 bg-rose-50 border border-rose-100 rounded-xl text-sm font-bold text-rose-600"
+                    >
+                      <AlertCircle size={16} className="shrink-0 mt-px" />
+                      <span className="min-w-0 break-words">{submitError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSubmitError(null)}
+                        aria-label="Fermer le message"
+                        className="ml-auto p-1 text-rose-300 hover:text-rose-600 shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3 md:gap-4">
+                    {/* Pas de « Retour » à l'étape 1 : la croix et Échap
+                       permettent déjà de sortir, un retour serait un retour au vide. */}
+                    {currentStep > 1 && (
+                      <Button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => goToStep(currentStep - 1)}
+                        variant="ghost"
+                        size="md"
+                        className="text-gray-500 hover:text-gray-800 font-bold text-sm"
+                        icon={<ChevronLeft size={18} />}
+                      >
+                        Retour
+                      </Button>
+                    )}
+
+                    <div className={`flex flex-col items-end gap-1.5 ${currentStep === 1 ? 'ml-auto' : ''}`}>
+                      {currentStep === 3 && (formData.variants?.length || 0) > 0 && (
+                        <p className="text-[11px] font-semibold text-gray-400">
+                          {formData.variants?.length} variante(s) seront enregistrées
+                        </p>
+                      )}
+                      {currentStep < 3 ? (
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="md"
+                          className="font-bold text-sm"
+                          icon={<ChevronRight size={18} />}
+                          iconPosition="right"
+                        >
+                          {currentStep === 2 ? 'Vérifier la fiche' : 'Continuer'}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="submit"
+                          loading={isSubmitting}
+                          loadingText="Envoi..."
+                          variant="primary"
+                          size="md"
+                          className="font-bold text-sm"
+                        >
+                          Enregistrer
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation de fermeture — pas de `window.confirm` : cf. AGENTS.md */}
+      {showDiscardConfirm && (
+        <div className="fixed inset-0 z-[350] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-title"
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 mx-auto bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
+                <AlertCircle size={26} />
+              </div>
+              <h3 id="discard-title" className="text-lg font-bold text-gray-900 mb-2">
+                Abandonner la saisie ?
+              </h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Vos modifications ne sont pas enregistrées. Le produit{' '}
+                {editingProduct ? 'gardera sa version précédente' : 'ne sera pas créé'}.
+              </p>
+              <div className="flex flex-col gap-2.5 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardConfirm(false)}
+                  className="w-full py-3.5 bg-[#f56b2a] text-white rounded-2xl font-bold text-sm hover:bg-[#d55a20] transition-colors active:scale-[0.98]"
+                >
+                  Continuer la saisie
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="w-full py-3.5 text-gray-500 font-bold text-sm hover:bg-gray-50 rounded-2xl transition-colors"
+                >
+                  Abandonner
+                </button>
               </div>
             </div>
           </div>
