@@ -1380,17 +1380,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   />
                 </div>
 
-                {/* Options / Variantes — résumé seul, la sélection se fait
-                    dans la feuille modale (cf. isOptionsSheetOpen). */}
-                {hasOptions && (
-                  <div className="border-t border-gray-100 pt-2">
-                    <OptionsSummaryRow
-                      options={options}
-                      selectedOptions={selectedOptions}
-                      onOpen={focusOptions}
-                    />
-                  </div>
-                )}
+                {/* Options / Variantes — uniquement dans la feuille modale
+                    (ouverte par le bouton « Choisir les options »). */}
 
                 {/* Wholesale / B2B */}
                 {hasWholesale && (
@@ -1612,17 +1603,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   />
                 </div>
 
-                {/* Mobile options: résumé seul, la sélection se fait dans la
-                    feuille modale ouverte par « Choisir les options ». */}
-                {hasOptions && (
-                  <div className="mb-2.5">
-                    <OptionsSummaryRow
-                      options={options}
-                      selectedOptions={selectedOptions}
-                      onOpen={focusOptions}
-                    />
-                  </div>
-                )}
+                {/* Options / Variantes — uniquement dans la feuille modale
+                    (ouverte par le bouton « Choisir les options »). */}
 
                 {/* Mobile wholesale: Redesign compact & visible (accordion) */}
                 {hasWholesale && (
