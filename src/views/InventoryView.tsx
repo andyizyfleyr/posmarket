@@ -756,15 +756,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       {/* Modal Produit (Step Form) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header with Step Indicator */}
             <div className="px-3 md:px-8 pt-3 md:pt-8 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between mb-4 md:mb-8">
                 <div>
                   <h2 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap">
-                    {editingProduct ? 'Modifier' : (formData.isOnline ? 'Nouveau (Store)' : 'Nouveau (POS)')}
+                    {editingProduct ? 'Modifier le produit' : (formData.isOnline ? '✨ Nouveau produit (Store)' : '🖥️ Nouveau produit (POS)')}
                   </h2>
-                  <p className="text-gray-400 text-[10px] md:text-xs font-semibold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
+                  <p className="text-gray-400 text-xs font-semibold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
                   <X size={18} className="md:size-6" />
@@ -781,13 +781,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 ].map((step) => (
                   <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
                     <div className={`
-                      w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300
-                      ${currentStep === step.s ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100 ring-4 ring-orange-50/50' :
-                        currentStep > step.s ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-100 text-gray-300'}
+                      w-8 h-8 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all duration-300
+                      ${currentStep === step.s ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-200/60 ring-4 ring-orange-50' :
+                        currentStep > step.s ? 'bg-green-500 text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-300'}
                     `}>
-                      {currentStep > step.s ? <Check size={12} className="md:size-[18px]" /> : <step.icon size={12} className="md:size-[18px]" />}
+                      {currentStep > step.s ? <Check size={14} className="md:size-5" /> : <step.icon size={14} className="md:size-5" />}
                     </div>
-                    <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
+                    <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wide whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
                       {step.label}
                     </span>
                   </div>
@@ -861,17 +861,28 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               {currentStep === 2 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Nom du Produit</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nom du Produit</label>
                     <input
                       required
                       type="text"
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      placeholder="Ex : T-shirt Premium, Burger Classique…"
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none placeholder:text-gray-300"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Catégorie du Produit</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Description</label>
+                    <textarea
+                      value={formData.description || ''}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Décrivez votre produit : matière, utilisation, points forts…"
+                      rows={3}
+                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl text-sm font-normal text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none resize-none placeholder:text-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Catégorie du Produit</label>
                     <select
                       value={formData.category}
                       onChange={e => {
@@ -898,8 +909,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </select>
                   </div>
                   <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Clock size={12} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Clock size={13} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
                       </label>
                       <select
                         value={formData.deliveryTime}
@@ -930,8 +941,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Prix de Vente
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Tag size={13} className="text-[#f56b2a]" /> Prix de Vente
                       </label>
                       <div className="relative">
                         <input
@@ -947,7 +958,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Stock Initial</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stock Initial</label>
                         <input
                           type="number"
                           value={formData.stock ?? ''}
@@ -959,8 +970,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
                   {formData.businessType === 'shopping' && (
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-2">
-                        <Tag size={12} className="text-[#f56b2a]" /> Unité de vente
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Tag size={13} className="text-[#f56b2a]" /> Unité de vente
                       </label>
                       <div className="space-y-3">
                         <select
@@ -1020,7 +1031,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               {currentStep === 3 && (
                 <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
                   {formData.businessType === 'shopping' && (
-                    <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
+                    <div className="rounded-2xl border-2 border-gray-100 bg-gray-50/30 p-4 md:p-6">
                       <VariantMatrixEditor
                         options={(formData.options || []) as ProductOptionDef[]}
                         variants={(formData.variants || []) as ProductVariantDef[]}
@@ -1031,11 +1042,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           if (notice) setVariantNotice(notice);
                         }}
                       />
-                      {variantNotice && (
-                        <p className="text-[9px] font-semibold text-gray-400 mt-2">
-                          {variantNotice} La matrice est réalignée à l&apos;enregistrement.
-                        </p>
-                      )}
                     </div>
                   )}
 
@@ -1263,32 +1269,23 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2">Description</label>
-                    <textarea
-                      value={formData.description || ''}
-                      onChange={e => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-normal focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none min-h-[80px] md:min-h-[120px] resize-none"
-                    />
-                  </div>
-
-                  {/* Manual Visibility Toggle */}
-                  <div className="flex items-center justify-between p-3 md:p-4 bg-orange-50/50 rounded-xl md:rounded-2xl border border-orange-100">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <div className="bg-[#f56b2a] p-1.5 md:p-2 rounded-lg text-white">
-                        <Globe size={16} className="md:size-[18px]" />
+                  {/* Visibility Toggle */}
+                  <div className="flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-orange-50 to-orange-50/30 rounded-2xl border border-orange-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#f56b2a] rounded-xl flex items-center justify-center text-white shadow-md shadow-orange-200/50">
+                        <Globe size={18} />
                       </div>
                       <div>
-                        <div className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Publier sur le Store</div>
-                        <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Visibilité publique</p>
+                        <div className="text-sm font-bold text-gray-900 leading-tight">Publier sur le Store</div>
+                        <p className="text-xs text-gray-500 font-semibold mt-0.5">Visible publiquement sur votre boutique en ligne</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, isOnline: !formData.isOnline })}
-                      className={`w-10 md:w-12 h-5 md:h-6 rounded-full transition-colors relative ${formData.isOnline ? 'bg-[#f56b2a]' : 'bg-gray-200'}`}
+                      className={`w-12 h-6 rounded-full transition-all duration-300 relative shadow-inner ${formData.isOnline ? 'bg-[#f56b2a]' : 'bg-gray-200'}`}
                     >
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${formData.isOnline ? 'left-5.5 md:left-7' : 'left-0.5 md:left-1'}`} />
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${formData.isOnline ? 'left-7' : 'left-1'}`} />
                     </button>
                   </div>
                 </div>
