@@ -433,87 +433,139 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8 gap-3 md:gap-4">
-        <div className="flex items-center gap-4">
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.size > 0 && permissions.canManageInventory && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-auto max-w-[95vw] animate-in fade-in slide-in-from-bottom-6 duration-300">
+          <div className="bg-slate-900/95 text-white backdrop-blur-xl px-4 py-2.5 md:px-5 md:py-3 rounded-2xl md:rounded-3xl shadow-2xl ring-1 ring-white/15 flex items-center gap-2 md:gap-4 flex-wrap sm:flex-nowrap">
+            {/* Selection info & Clear */}
+            <div className="flex items-center gap-2 pr-2 border-r border-white/10">
+              <div className="w-6 h-6 rounded-full bg-[#f56b2a] text-white flex items-center justify-center text-xs font-black">
+                {selectedIds.size}
+              </div>
+              <span className="text-xs font-bold text-slate-200 hidden sm:inline">
+                sélectionné{selectedIds.size > 1 ? 's' : ''}
+              </span>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                title="Désélectionner tout"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Bulk actions */}
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all"
+              >
+                <Download size={14} className="text-orange-400" />
+                <span>Exporter ({selectedIds.size})</span>
+              </button>
+
+              <button
+                onClick={() => setIsTransferModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all"
+              >
+                <ArrowRightLeft size={14} className="text-blue-400" />
+                <span>Transférer ({selectedIds.size})</span>
+              </button>
+
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 border border-red-500/30 rounded-xl text-xs font-bold transition-all"
+              >
+                <Trash2 size={14} />
+                <span>Supprimer ({selectedIds.size})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-4">
+        {/* Left: Title + Badges */}
+        <div className="flex items-center gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight truncate">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight truncate">
                 Inventaire
               </h1>
-              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider ${
-                businessType === 'food' ? 'bg-yellow-100 text-yellow-700' : 
-                'bg-orange-100 text-orange-700'
+              <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider ${
+                businessType === 'food' ? 'bg-amber-100 text-amber-800' : 'bg-orange-100 text-[#f56b2a]'
               }`}>
                 Flux {businessType === 'food' ? 'Resto' : 'Shop'}
               </span>
+              <span className="text-xs text-gray-400 font-medium hidden sm:inline">
+                • {totalProductsCount} référence{totalProductsCount > 1 ? 's' : ''}
+              </span>
             </div>
-            <p className="text-gray-500 text-[10px] md:text-sm mt-0.5 md:mt-1 truncate">
-              Gérez vos produits et vos stocks.
+            <p className="text-gray-500 text-xs mt-0.5 hidden sm:block">
+              Gérez vos produits, vos stocks et vos transferts inter-boutiques.
             </p>
           </div>
-          {selectedIds.size > 0 && permissions.canManageInventory && (
-            <div className="flex items-center gap-2 animate-in slide-in-from-left-4 duration-300 flex-wrap">
-              <div className="h-8 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
+        </div>
+
+        {/* Right: Clean, Structured Action Group */}
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+          {/* Catalogue Actions (Export / Import / Transfer) */}
+          <div className="flex items-center bg-white border border-gray-200/80 p-1 rounded-2xl shadow-sm">
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 md:py-2 text-xs font-bold text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 rounded-xl transition-all"
+              title="Exporter vos produits au format JSON ou CSV"
+            >
+              <Download size={14} className="text-gray-500" />
+              <span>Exporter</span>
+            </button>
+
+            {permissions.canManageInventory && (
+              <>
+                <div className="h-4 w-px bg-gray-200 my-auto" />
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 md:py-2 text-xs font-bold text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 rounded-xl transition-all"
+                  title="Importer des produits depuis un fichier CSV ou JSON"
+                >
+                  <Upload size={14} className="text-gray-500" />
+                  <span>Importer</span>
+                </button>
+
+                <div className="h-4 w-px bg-gray-200 my-auto" />
+                <button
+                  onClick={() => setIsTransferModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 md:py-2 text-xs font-bold text-blue-700 hover:text-blue-900 hover:bg-blue-50/80 rounded-xl transition-all"
+                  title="Copier ou transférer vers une autre boutique"
+                >
+                  <ArrowRightLeft size={14} className="text-blue-600" />
+                  <span>Transférer</span>
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Create Product Buttons */}
+          {permissions.canManageInventory && (
+            <div className="flex items-center gap-2">
               <button
-                onClick={handleBulkDelete}
-                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-all shadow-sm"
+                onClick={() => handleOpenModal(undefined, 'pos')}
+                className="flex items-center gap-1.5 px-3.5 py-2 md:px-4 md:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs md:text-sm font-bold transition-all shadow-md shadow-blue-100 active:scale-95 whitespace-nowrap"
+                title="Ajouter un produit Point de Vente uniquement"
               >
-                <Trash2 size={14} /> Supprimer ({selectedIds.size})
+                <Monitor size={15} />
+                <span>+ POS</span>
               </button>
               <button
-                onClick={() => setIsExportModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 text-[#f56b2a] rounded-xl text-xs font-bold border border-orange-200 hover:bg-orange-100 transition-all shadow-sm"
+                onClick={() => handleOpenModal(undefined, 'store')}
+                className="flex items-center gap-1.5 px-3.5 py-2 md:px-4 md:py-2.5 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-2xl text-xs md:text-sm font-bold transition-all shadow-md shadow-orange-100 active:scale-95 whitespace-nowrap"
+                title="Ajouter un produit en ligne (Marketplace + Point de Vente)"
               >
-                <Download size={14} /> Exporter ({selectedIds.size})
-              </button>
-              <button
-                onClick={() => setIsTransferModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold border border-blue-200 hover:bg-blue-100 transition-all shadow-sm"
-              >
-                <ArrowRightLeft size={14} /> Transférer ({selectedIds.size})
+                <ShoppingBag size={15} />
+                <span>+ Store & POS</span>
               </button>
             </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all bg-white shadow-sm"
-          >
-            <Download size={16} /> Exporter
-          </button>
-
-          {permissions.canManageInventory && (
-            <>
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all bg-white shadow-sm"
-              >
-                <Upload size={16} /> Importer
-              </button>
-
-              <button
-                onClick={() => setIsTransferModalOpen(true)}
-                className="hidden xl:flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 border border-blue-200 bg-blue-50/60 text-blue-700 hover:bg-blue-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold transition-all shadow-sm"
-              >
-                <ArrowRightLeft size={16} /> Transférer
-              </button>
-
-              <div className="flex items-center gap-2 md:gap-3">
-                <button
-                  onClick={() => handleOpenModal(undefined, 'pos')}
-                  className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#3b82f6] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 whitespace-nowrap"
-                >
-                  <Monitor size={14} className="md:size-[18px]" /> + Point de Vente
-                </button>
-                <button
-                  onClick={() => handleOpenModal(undefined, 'store')}
-                  className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
-                >
-                  <ShoppingBag size={14} className="md:size-[18px]" /> + Store + POS
-                </button>
-              </div>
-            </>
           )}
         </div>
       </div>
