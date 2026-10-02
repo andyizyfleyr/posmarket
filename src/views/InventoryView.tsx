@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Package,
   Search,
@@ -7,6 +7,8 @@ import {
   Edit,
   Trash2,
   Download,
+  Upload,
+  ArrowRightLeft,
   AlertCircle,
   List,
   LayoutGrid,
@@ -41,6 +43,9 @@ import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
+import ExportProductsModal from '@/components/inventory/ExportProductsModal';
+import ImportProductsModal from '@/components/inventory/ImportProductsModal';
+import TransferProductsModal from '@/components/inventory/TransferProductsModal';
 import {
   normalizeOptions,
   normalizeVariants,
@@ -55,6 +60,7 @@ interface InventoryViewProps {
   userRole?: StaffRole;
   subscription?: UserSubscription;
   businessType?: BusinessVertical;
+  storeName?: string;
 }
 
 const InventoryView: React.FC<InventoryViewProps> = ({
@@ -63,6 +69,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   currentStoreId,
   subscription,
   businessType = 'shopping',
+  storeName = 'Boutique',
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewType, setViewType] = useState<'grid' | 'table'>('table');
@@ -104,11 +111,20 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState<string | null>(null);
 
+  // Modals state for export, import, transfer
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [totalProductsCount, setTotalProductsCount] = useState(initialProducts?.length || 0);
+
   // Sync local state when props change (after server re-render)
   useEffect(() => {
     setLocalProducts(initialProducts || []);
     setOffset(initialProducts?.length || 0);
     setHasMore(initialProducts?.length === 10);
+    if (initialProducts?.length) {
+      setTotalProductsCount((prev) => Math.max(prev, initialProducts.length));
+    }
   }, [initialProducts]);
 
   const [formData, setFormData] = useState<Partial<Product> & { isOnline: boolean, images: string[] }>({
@@ -182,6 +198,35 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     });
   }, [localProducts, productType, selectedVertical]);
 
+  const refreshProducts = useCallback(async () => {
+    if (!currentStoreId) return;
+    setIsLoadingMore(true);
+    const res = await getProductsAction(currentStoreId, 0, 10, searchTerm, {
+      productType,
+      businessType: selectedVertical as 'all' | 'shopping' | 'food'
+    });
+    if (res.success && res.products) {
+      setLocalProducts(res.products as unknown as Product[]);
+      setOffset(res.products.length);
+      setHasMore(res.hasMore || false);
+      if (typeof res.total === 'number') {
+        setTotalProductsCount(res.total);
+      }
+    }
+    setIsLoadingMore(false);
+  }, [currentStoreId, searchTerm, productType, selectedVertical]);
+
+  const handleImportSuccess = (summary: { createdCount: number; updatedCount: number; skippedCount: number }) => {
+    setShowSuccessToast(`🎉 Import terminé : ${summary.createdCount} créés, ${summary.updatedCount} mis à jour, ${summary.skippedCount} ignorés.`);
+    setTimeout(() => setShowSuccessToast(null), 4500);
+    refreshProducts();
+  };
+
+  const handleTransferSuccess = (summary: { createdCount: number; updatedCount: number; skippedCount: number }) => {
+    setShowSuccessToast(`🎉 Transfert terminé : ${summary.createdCount} créés, ${summary.updatedCount} mis à jour.`);
+    setTimeout(() => setShowSuccessToast(null), 4500);
+  };
+
   // Handle Search with debounce or simple effect
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -194,6 +239,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         setLocalProducts(res.products as unknown as Product[]);
         setOffset(res.products?.length || 0);
         setHasMore(res.hasMore || false);
+        if (typeof res.total === 'number') {
+          setTotalProductsCount(res.total);
+        }
       }
       setIsLoadingMore(false);
     }, 500);
@@ -404,37 +452,68 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             </p>
           </div>
           {selectedIds.size > 0 && permissions.canManageInventory && (
-            <div className="flex items-center gap-2 animate-in slide-in-from-left-4 duration-300">
+            <div className="flex items-center gap-2 animate-in slide-in-from-left-4 duration-300 flex-wrap">
               <div className="h-8 w-px bg-gray-200 mx-1 md:mx-2 hidden md:block" />
               <button
                 onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-all shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-all shadow-sm"
               >
                 <Trash2 size={14} /> Supprimer ({selectedIds.size})
+              </button>
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 text-[#f56b2a] rounded-xl text-xs font-bold border border-orange-200 hover:bg-orange-100 transition-all shadow-sm"
+              >
+                <Download size={14} /> Exporter ({selectedIds.size})
+              </button>
+              <button
+                onClick={() => setIsTransferModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold border border-blue-200 hover:bg-blue-100 transition-all shadow-sm"
+              >
+                <ArrowRightLeft size={14} /> Transférer ({selectedIds.size})
               </button>
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-          <button className="hidden md:flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all bg-white">
-            <Download size={18} /> Exporter
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all bg-white shadow-sm"
+          >
+            <Download size={16} /> Exporter
           </button>
 
           {permissions.canManageInventory && (
-            <div className="flex items-center gap-2 md:gap-3">
+            <>
               <button
-                onClick={() => handleOpenModal(undefined, 'pos')}
-                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#3b82f6] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 whitespace-nowrap"
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all bg-white shadow-sm"
               >
-                <Monitor size={14} className="md:size-[18px]" /> + Point de Vente
+                <Upload size={16} /> Importer
               </button>
+
               <button
-                onClick={() => handleOpenModal(undefined, 'store')}
-                className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
+                onClick={() => setIsTransferModalOpen(true)}
+                className="hidden xl:flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-2.5 border border-blue-200 bg-blue-50/60 text-blue-700 hover:bg-blue-100 rounded-xl md:rounded-2xl text-xs md:text-sm font-semibold transition-all shadow-sm"
               >
-                <ShoppingBag size={14} className="md:size-[18px]" /> + Store + POS
+                <ArrowRightLeft size={16} /> Transférer
               </button>
-            </div>
+
+              <div className="flex items-center gap-2 md:gap-3">
+                <button
+                  onClick={() => handleOpenModal(undefined, 'pos')}
+                  className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#3b82f6] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 whitespace-nowrap"
+                >
+                  <Monitor size={14} className="md:size-[18px]" /> + Point de Vente
+                </button>
+                <button
+                  onClick={() => handleOpenModal(undefined, 'store')}
+                  className="flex items-center justify-center gap-1.5 md:gap-2 px-3 py-2 md:px-5 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-[10px] md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
+                >
+                  <ShoppingBag size={14} className="md:size-[18px]" /> + Store + POS
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -1572,6 +1651,43 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Export Modal */}
+      <ExportProductsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        currentStoreId={currentStoreId || ''}
+        storeName={storeName}
+        businessType={businessType}
+        selectedProductsCount={selectedIds.size}
+        selectedProductIds={Array.from(selectedIds)}
+        totalProductsCount={totalProductsCount || localProducts.length}
+        localProducts={localProducts}
+      />
+
+      {/* Import Modal */}
+      <ImportProductsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetStoreId={currentStoreId || ''}
+        targetStoreName={storeName}
+        businessType={businessType}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      {/* Inter-Store Transfer Modal */}
+      <TransferProductsModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        sourceStoreId={currentStoreId || ''}
+        sourceStoreName={storeName}
+        businessType={businessType}
+        selectedProductIds={Array.from(selectedIds)}
+        selectedProductsCount={selectedIds.size}
+        totalProductsCount={totalProductsCount || localProducts.length}
+        localProducts={localProducts}
+        onTransferSuccess={handleTransferSuccess}
+      />
     </div>
   );
 };

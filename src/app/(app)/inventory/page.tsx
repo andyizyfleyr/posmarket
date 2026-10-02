@@ -27,6 +27,7 @@ export default async function InventoryPage() {
       currentStoreId={storeId}
       subscription={subscription || undefined}
       businessType={store?.business_type as BusinessVertical | undefined}
+      storeName={store?.name}
     />
   );
 }

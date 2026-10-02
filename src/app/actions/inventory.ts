@@ -3,10 +3,11 @@
 import { updateTag } from 'next/cache'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
-import { products, profiles, stores, storeStaff } from '@/db/schema'
+import { products, profiles, stores, storeStaff, categories } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
 import { normalizeOptions, normalizeVariants, buildVariantMatrix } from '@/utils/variants'
+import type { ProductImportItem } from '@/utils/product-import-export'
 
 type ProductInput = {
   id?: string;
@@ -38,11 +39,21 @@ type ProductInput = {
  * membre de son équipe. Sans ce contrôle, n'importe quel vendeur authentifié
  * pouvait altérer ou supprimer les produits d'un concurrent.
  */
-async function requireStoreAccess(storeId: string): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+async function requireStoreAccess(storeId: string): Promise<{ ok: true; userId: string; isSuperAdmin?: boolean } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Non authentifié' };
   if (!storeId) return { ok: false, error: 'Boutique inconnue' };
+
+  const [profile] = await db
+    .select({ isSuperAdmin: profiles.isSuperAdmin })
+    .from(profiles)
+    .where(eq(profiles.id, user.id))
+    .limit(1);
+
+  if (profile?.isSuperAdmin) {
+    return { ok: true, userId: user.id, isSuperAdmin: true };
+  }
 
   const [owned] = await db
     .select({ id: stores.id })
@@ -355,3 +366,535 @@ export async function getStockCountsAction(storeId: string): Promise<{ ok: boole
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+/**
+ * Récupère la liste des boutiques accessibles pour l'utilisateur courant
+ * (Boutiques dont il est propriétaire ou membre du personnel avec droits d'inventaire).
+ */
+export async function getUserManageableStoresAction(): Promise<{
+  success: boolean;
+  stores?: Array<{ id: string; name: string; slug: string; businessType: string; isOwner: boolean }>;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Non authentifié' };
+
+    const [profile] = await db
+      .select({ isSuperAdmin: profiles.isSuperAdmin })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
+
+    if (profile?.isSuperAdmin) {
+      const allStores = await db.select().from(stores).orderBy(desc(stores.createdAt));
+      return {
+        success: true,
+        stores: allStores.map((s) => ({
+          id: s.id,
+          name: s.name,
+          slug: s.slug,
+          businessType: s.businessType,
+          isOwner: s.userId === user.id,
+        })),
+      };
+    }
+
+    const ownedStores = await db
+      .select()
+      .from(stores)
+      .where(eq(stores.userId, user.id))
+      .orderBy(desc(stores.createdAt));
+
+    const staffStores = await db
+      .select({
+        id: stores.id,
+        name: stores.name,
+        slug: stores.slug,
+        businessType: stores.businessType,
+        userId: stores.userId,
+      })
+      .from(storeStaff)
+      .innerJoin(stores, eq(storeStaff.storeId, stores.id))
+      .where(eq(storeStaff.userId, user.id));
+
+    const storeMap = new Map<string, { id: string; name: string; slug: string; businessType: string; isOwner: boolean }>();
+
+    for (const s of ownedStores) {
+      storeMap.set(s.id, {
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+        businessType: s.businessType,
+        isOwner: true,
+      });
+    }
+
+    for (const s of staffStores) {
+      if (!storeMap.has(s.id)) {
+        storeMap.set(s.id, {
+          id: s.id,
+          name: s.name,
+          slug: s.slug,
+          businessType: s.businessType,
+          isOwner: false,
+        });
+      }
+    }
+
+    return { success: true, stores: Array.from(storeMap.values()) };
+  } catch (error: unknown) {
+    console.error('Error fetching user manageable stores:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Exporte l'ensemble des produits d'une boutique (avec toutes les métadonnées complètes)
+ */
+export async function exportStoreProductsAction(
+  storeId: string,
+  filterIds?: string[]
+): Promise<{
+  success: boolean;
+  products?: ProductImportItem[];
+  store?: { id: string; name: string; businessType: string };
+  error?: string;
+}> {
+  try {
+    const access = await requireStoreAccess(storeId);
+    if (!access.ok) return { success: false, error: access.error };
+
+    const [storeRow] = await db
+      .select({ id: stores.id, name: stores.name, businessType: stores.businessType })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+
+    if (!storeRow) return { success: false, error: 'Boutique introuvable' };
+
+    const conditions = [eq(products.storeId, storeId)];
+    if (filterIds && filterIds.length > 0) {
+      conditions.push(inArray(products.id, filterIds));
+    }
+
+    const rows = await db
+      .select()
+      .from(products)
+      .where(and(...conditions))
+      .orderBy(desc(products.createdAt));
+
+    const exportList: ProductImportItem[] = rows.map((p) => {
+      const options = normalizeOptions(p.options);
+      const variants = options.length > 0 ? normalizeVariants(p.variants, options) : [];
+      const images = Array.isArray(p.images) ? (p.images as string[]) : p.image ? [p.image] : [];
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: parseFloat(p.price ?? '') || 0,
+        originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : null,
+        stock: Number(p.stock) || 0,
+        category: p.category || 'Général',
+        mainCategory: p.mainCategory || 'Divers',
+        unit: p.unit || 'pièce',
+        description: p.description || '',
+        image: p.image || images[0] || '',
+        images,
+        isOnline: p.isOnline !== false,
+        businessType: (p.businessType as 'shopping' | 'food') || 'shopping',
+        deliveryTime: p.deliveryTime || '',
+        preparationTime: p.preparationTime || '',
+        wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : null,
+        wholesaleMinQty: p.wholesaleMinQty || null,
+        wholesaleTiers: Array.isArray(p.wholesaleTiers) ? (p.wholesaleTiers as Array<{ minQty: number; price: number }>) : [],
+        options,
+        variants,
+      };
+    });
+
+    return {
+      success: true,
+      products: exportList,
+      store: storeRow,
+    };
+  } catch (error: unknown) {
+    console.error('Error exporting store products:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Importe par lot une liste de produits dans une boutique cible
+ */
+export async function importProductsBatchAction(
+  targetStoreId: string,
+  items: ProductImportItem[],
+  options: {
+    duplicateStrategy: 'skip' | 'update' | 'create_new';
+    resetStock?: boolean;
+    forceOnlineStatus?: 'keep' | 'online' | 'pos';
+  } = { duplicateStrategy: 'skip' }
+): Promise<{
+  success: boolean;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  totalProcessed: number;
+  errors: string[];
+  error?: string;
+}> {
+  try {
+    const access = await requireStoreAccess(targetStoreId);
+    if (!access.ok) {
+      return {
+        success: false,
+        createdCount: 0,
+        updatedCount: 0,
+        skippedCount: 0,
+        totalProcessed: 0,
+        errors: [access.error],
+        error: access.error,
+      };
+    }
+
+    if (!items || items.length === 0) {
+      return {
+        success: false,
+        createdCount: 0,
+        updatedCount: 0,
+        skippedCount: 0,
+        totalProcessed: 0,
+        errors: ['Aucun produit à importer'],
+        error: 'Aucun produit à importer',
+      };
+    }
+
+    // 1. Vérification des quotas d'abonnement
+    const [targetStore] = await db.select().from(stores).where(eq(stores.id, targetStoreId)).limit(1);
+    if (!targetStore) return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: ['Boutique introuvable'], error: 'Boutique introuvable' };
+
+    const [profile] = await db.select().from(profiles).where(eq(profiles.id, targetStore.userId)).limit(1);
+    const [{ count: currentCountRaw }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(products)
+      .where(eq(products.storeId, targetStoreId));
+
+    const currentCount = Number(currentCountRaw) || 0;
+    const tier = profile?.subscriptionTier;
+    const limit = tier === 'STARTER' ? 50 : tier === 'PRO' ? 500 : tier === 'ENTERPRISE' ? 999999 : 50;
+
+    // 2. Pré-chargement du cache des catégories existantes pour la boutique cible
+    const existingCategories = await db
+      .select({ id: categories.id, name: categories.name })
+      .from(categories)
+      .where(eq(categories.storeId, targetStoreId));
+
+    const categoryMap = new Map<string, string>();
+    for (const c of existingCategories) {
+      categoryMap.set(c.name.trim().toLowerCase(), c.id);
+    }
+
+    // 3. Pré-chargement des produits existants pour détection des doublons
+    const existingProducts = await db
+      .select({ id: products.id, name: products.name })
+      .from(products)
+      .where(eq(products.storeId, targetStoreId));
+
+    const productMap = new Map<string, string>();
+    for (const p of existingProducts) {
+      productMap.set(p.name.trim().toLowerCase(), p.id);
+    }
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+    const itemErrors: string[] = [];
+
+    // Helper pour créer ou récupérer une catégorie
+    const resolveCategoryId = async (catName: string): Promise<string | null> => {
+      const trimmed = catName.trim();
+      if (!trimmed) return null;
+      const lower = trimmed.toLowerCase();
+      if (categoryMap.has(lower)) {
+        return categoryMap.get(lower)!;
+      }
+      try {
+        const [inserted] = await db
+          .insert(categories)
+          .values({
+            storeId: targetStoreId,
+            name: trimmed,
+          })
+          .returning({ id: categories.id });
+        if (inserted) {
+          categoryMap.set(lower, inserted.id);
+          return inserted.id;
+        }
+      } catch {
+        // Ignorer si déjà inséré en concurrence
+      }
+      return null;
+    };
+
+    for (const item of items) {
+      try {
+        const name = String(item.name || '').trim();
+        if (!name) {
+          itemErrors.push(`Ligne ignorée : nom manquant.`);
+          continue;
+        }
+
+        const price = Number(item.price);
+        if (!Number.isFinite(price) || price < 0) {
+          itemErrors.push(`Produit "${name}" ignoré : prix invalide (${item.price}).`);
+          continue;
+        }
+
+        const lowerName = name.toLowerCase();
+        const existingId = productMap.get(lowerName);
+
+        if (existingId && options.duplicateStrategy === 'skip') {
+          skippedCount++;
+          continue;
+        }
+
+        // Vérification de limite avant chaque nouvelle création
+        if (!existingId || options.duplicateStrategy === 'create_new') {
+          if (currentCount + createdCount >= limit) {
+            itemErrors.push(`Limite de ${limit} produits atteinte pour votre abonnement ${tier || 'STARTER'}. Certains produits n'ont pas pu être créés.`);
+            break;
+          }
+        }
+
+        // Variantes & options
+        const normalizedOpts = normalizeOptions(item.options);
+        let normalizedVars = normalizedOpts.length > 0 ? normalizeVariants(item.variants, normalizedOpts) : [];
+        const { variants } = buildVariantMatrix(normalizedOpts, normalizedVars, price);
+        normalizedVars = variants;
+
+        // Stock handling
+        let stockValue = options.resetStock
+          ? 0
+          : normalizedOpts.length > 0
+            ? normalizedVars.reduce((total, v) => total + Math.max(0, Math.round(Number(v.stock) || 0)), 0)
+            : Math.max(0, Math.round(Number(item.stock) || 0));
+
+        if (options.resetStock && normalizedVars.length > 0) {
+          normalizedVars = normalizedVars.map((v) => ({ ...v, stock: 0 }));
+          stockValue = 0;
+        }
+
+        // Visibilité en ligne
+        let isOnline = item.isOnline !== false;
+        if (options.forceOnlineStatus === 'online') isOnline = true;
+        if (options.forceOnlineStatus === 'pos') isOnline = false;
+
+        // Catégorie
+        const categoryName = item.category || 'Général';
+        const categoryId = await resolveCategoryId(categoryName);
+
+        // Images
+        const imagesList = Array.isArray(item.images) && item.images.length > 0
+          ? item.images
+          : item.image
+            ? [item.image]
+            : [];
+        const mainImage = item.image || imagesList[0] || null;
+
+        const dataToSave = {
+          storeId: targetStoreId,
+          categoryId,
+          category: categoryName,
+          mainCategory: item.mainCategory || 'Divers',
+          name,
+          description: item.description || null,
+          price: String(price),
+          originalPrice: item.originalPrice ? String(item.originalPrice) : null,
+          stock: stockValue,
+          image: mainImage,
+          images: imagesList,
+          unit: item.unit || 'pièce',
+          deliveryTime: item.deliveryTime || null,
+          preparationTime: item.preparationTime || null,
+          isOnline,
+          wholesalePrice: item.wholesalePrice ? String(item.wholesalePrice) : null,
+          wholesaleMinQty: item.wholesaleMinQty || null,
+          wholesaleTiers: item.wholesaleTiers || [],
+          businessType: item.businessType || targetStore.businessType || 'shopping',
+          options: normalizedOpts,
+          variants: normalizedVars,
+        };
+
+        if (existingId && options.duplicateStrategy === 'update') {
+          await db
+            .update(products)
+            .set(dataToSave)
+            .where(and(eq(products.id, existingId), eq(products.storeId, targetStoreId)));
+          updatedCount++;
+        } else {
+          const [inserted] = await db.insert(products).values(dataToSave).returning({ id: products.id });
+          if (inserted) {
+            productMap.set(lowerName, inserted.id);
+            createdCount++;
+          }
+        }
+      } catch (err: unknown) {
+        itemErrors.push(`Erreur sur "${item.name}": ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    updateTag('marketplace');
+
+    return {
+      success: true,
+      createdCount,
+      updatedCount,
+      skippedCount,
+      totalProcessed: createdCount + updatedCount + skippedCount,
+      errors: itemErrors,
+    };
+  } catch (error: unknown) {
+    console.error('Error importing products batch:', error);
+    return {
+      success: false,
+      createdCount: 0,
+      updatedCount: 0,
+      skippedCount: 0,
+      totalProcessed: 0,
+      errors: [error instanceof Error ? error.message : String(error)],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Transfère ou copie des produits d'une boutique source vers une boutique cible
+ */
+export async function transferProductsBetweenStoresAction(
+  sourceStoreId: string,
+  targetStoreId: string,
+  productIds: string[],
+  options: {
+    duplicateStrategy: 'skip' | 'update' | 'create_new';
+    copyStock: boolean;
+    priceAdjustmentPercent?: number;
+    priceAdjustmentFixed?: number;
+    forceOnlineStatus?: 'keep' | 'online' | 'pos';
+  }
+): Promise<{
+  success: boolean;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  totalProcessed: number;
+  errors: string[];
+  error?: string;
+}> {
+  try {
+    // 1. Contrôle d'accès sur la source ET sur la cible
+    const sourceAccess = await requireStoreAccess(sourceStoreId);
+    if (!sourceAccess.ok) return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: [sourceAccess.error], error: sourceAccess.error };
+
+    const targetAccess = await requireStoreAccess(targetStoreId);
+    if (!targetAccess.ok) return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: [targetAccess.error], error: targetAccess.error };
+
+    if (sourceStoreId === targetStoreId) {
+      return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: ['La boutique source et la boutique cible doivent être différentes.'], error: 'La boutique source et la boutique cible doivent être différentes.' };
+    }
+
+    // 2. Récupérer les produits source
+    const conditions = [eq(products.storeId, sourceStoreId)];
+    if (productIds && productIds.length > 0) {
+      conditions.push(inArray(products.id, productIds));
+    }
+
+    const sourceRows = await db
+      .select()
+      .from(products)
+      .where(and(...conditions));
+
+    if (sourceRows.length === 0) {
+      return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: ['Aucun produit trouvé dans la boutique source.'], error: 'Aucun produit trouvé.' };
+    }
+
+    // 3. Adapter les prix et les stocks selon les options choisies
+    const priceMultiplier = 1 + (Number(options.priceAdjustmentPercent) || 0) / 100;
+    const priceFixed = Number(options.priceAdjustmentFixed) || 0;
+
+    const itemsToImport: ProductImportItem[] = sourceRows.map((p) => {
+      const origPrice = parseFloat(p.price ?? '') || 0;
+      let newPrice = origPrice;
+      if (options.priceAdjustmentPercent !== undefined || options.priceAdjustmentFixed !== undefined) {
+        newPrice = Math.max(0, Math.round(origPrice * priceMultiplier + priceFixed));
+      }
+
+      let newOriginalPrice = p.originalPrice ? parseFloat(p.originalPrice) : null;
+      if (newOriginalPrice !== null && (options.priceAdjustmentPercent !== undefined || options.priceAdjustmentFixed !== undefined)) {
+        newOriginalPrice = Math.max(0, Math.round(newOriginalPrice * priceMultiplier + priceFixed));
+      }
+
+      const optionsList = normalizeOptions(p.options);
+      let variantsList = optionsList.length > 0 ? normalizeVariants(p.variants, optionsList) : [];
+
+      if (variantsList.length > 0) {
+        variantsList = variantsList.map((v) => {
+          let varPrice = v.price;
+          if (options.priceAdjustmentPercent !== undefined || options.priceAdjustmentFixed !== undefined) {
+            varPrice = Math.max(0, Math.round(v.price * priceMultiplier + priceFixed));
+          }
+          return {
+            ...v,
+            price: varPrice,
+            stock: options.copyStock ? v.stock : 0,
+          };
+        });
+      }
+
+      const stock = options.copyStock ? Number(p.stock) || 0 : 0;
+      const images = Array.isArray(p.images) ? (p.images as string[]) : p.image ? [p.image] : [];
+
+      return {
+        name: p.name,
+        price: newPrice,
+        originalPrice: newOriginalPrice,
+        stock,
+        category: p.category || 'Général',
+        mainCategory: p.mainCategory || 'Divers',
+        unit: p.unit || 'pièce',
+        description: p.description || '',
+        image: p.image || images[0] || '',
+        images,
+        isOnline: p.isOnline !== false,
+        businessType: (p.businessType as 'shopping' | 'food') || 'shopping',
+        deliveryTime: p.deliveryTime || '',
+        preparationTime: p.preparationTime || '',
+        wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : null,
+        wholesaleMinQty: p.wholesaleMinQty || null,
+        wholesaleTiers: Array.isArray(p.wholesaleTiers) ? (p.wholesaleTiers as Array<{ minQty: number; price: number }>) : [],
+        options: optionsList,
+        variants: variantsList,
+      };
+    });
+
+    // 4. Déléguer l'import par lot à `importProductsBatchAction`
+    return await importProductsBatchAction(targetStoreId, itemsToImport, {
+      duplicateStrategy: options.duplicateStrategy,
+      resetStock: !options.copyStock,
+      forceOnlineStatus: options.forceOnlineStatus,
+    });
+  } catch (error: unknown) {
+    console.error('Error transferring products between stores:', error);
+    return {
+      success: false,
+      createdCount: 0,
+      updatedCount: 0,
+      skippedCount: 0,
+      totalProcessed: 0,
+      errors: [error instanceof Error ? error.message : String(error)],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
