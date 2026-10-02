@@ -24,7 +24,11 @@ import {
   Loader2,
   Award,
   Zap,
-  Clock
+  Clock,
+  Layers,
+  Sparkles,
+  Info,
+  CheckCircle2
 } from 'lucide-react';
 import { getSubscriptionPlan, MAIN_CATEGORIES, CATEGORY_MAPPING } from '@/constants';
 import { getProductCategoryTree } from '@/app/actions/categories';
@@ -755,135 +759,112 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* Modal Produit (Step Form) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[28px] md:rounded-[32px] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh] border border-gray-100">
             {/* Header with Step Indicator */}
-            <div className="px-3 md:px-8 pt-3 md:pt-8 pb-3 md:pb-4 border-b border-gray-100 bg-white sticky top-0 z-10">
-              <div className="flex items-center justify-between mb-4 md:mb-8">
+            <div className="px-4 md:px-8 pt-4 md:pt-6 pb-4 md:pb-5 border-b border-gray-100 bg-white sticky top-0 z-20">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
                 <div>
-                  <h2 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight whitespace-nowrap">
-                    {editingProduct ? 'Modifier le produit' : (formData.isOnline ? '✨ Nouveau produit (Store)' : '🖥️ Nouveau produit (POS)')}
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-orange-100 text-[#f56b2a]">
+                      {editingProduct ? 'Modification' : 'Création'}
+                    </span>
+                    <span className="text-gray-400 text-xs font-semibold">
+                      Étape {currentStep} sur 3
+                    </span>
+                  </div>
+                  <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight mt-1">
+                    {editingProduct ? (editingProduct.name || 'Modifier le produit') : (formData.isOnline ? '✨ Nouveau produit (Store)' : '🖥️ Nouveau produit (POS)')}
                   </h2>
-                  <p className="text-gray-400 text-xs font-semibold mt-1 whitespace-nowrap">Étape {currentStep} sur 3</p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 md:p-2 hover:bg-gray-50 rounded-full">
-                  <X size={18} className="md:size-6" />
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                  aria-label="Fermer"
+                >
+                  <X size={20} />
                 </button>
               </div>
 
               {/* Step Progress Bar */}
-              <div className="flex items-center justify-between relative px-1 md:px-2">
-                <div className="absolute top-1/2 left-0 right-0 h-px md:h-0.5 bg-gray-100 -translate-y-1/2 z-0 mx-6 md:mx-8" />
+              <div className="flex items-center justify-between relative px-2 md:px-6">
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-100 -translate-y-1/2 z-0 mx-8 md:mx-14" />
                 {[
-                  { s: 1, icon: ImageIcon, label: 'Photos' },
-                  { s: 2, icon: Tag, label: 'Essentiels' },
-                  { s: 3, icon: DollarSign, label: 'Compléments' }
-                ].map((step) => (
-                  <div key={step.s} className="relative z-10 flex flex-col items-center gap-1.5 md:gap-2">
-                    <div className={`
-                      w-8 h-8 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all duration-300
-                      ${currentStep === step.s ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-200/60 ring-4 ring-orange-50' :
-                        currentStep > step.s ? 'bg-green-500 text-white shadow-sm' : 'bg-white border-2 border-gray-200 text-gray-300'}
-                    `}>
-                      {currentStep > step.s ? <Check size={14} className="md:size-5" /> : <step.icon size={14} className="md:size-5" />}
-                    </div>
-                    <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wide whitespace-nowrap ${currentStep >= step.s ? 'text-gray-900' : 'text-gray-300'}`}>
-                      {step.label}
-                    </span>
-                  </div>
-                ))}
+                  { s: 1, icon: Package, label: '1. Identité & Médias' },
+                  { s: 2, icon: DollarSign, label: '2. Tarifs & Stock' },
+                  { s: 3, icon: Layers, label: '3. Variantes' }
+                ].map((step) => {
+                  const isActive = currentStep === step.s;
+                  const isCompleted = currentStep > step.s;
+                  return (
+                    <button
+                      key={step.s}
+                      type="button"
+                      onClick={() => {
+                        // Allow clicking past or current steps, or next if current is valid
+                        if (step.s < currentStep) {
+                          setCurrentStep(step.s);
+                          setSubmitError(null);
+                        } else if (step.s === 2 && formData.name?.trim()) {
+                          setCurrentStep(2);
+                          setSubmitError(null);
+                        } else if (step.s === 3 && formData.name?.trim() && formData.price !== undefined) {
+                          setCurrentStep(3);
+                          setSubmitError(null);
+                        }
+                      }}
+                      className="relative z-10 flex flex-col items-center gap-1.5 focus:outline-none group cursor-pointer"
+                    >
+                      <div className={`
+                        w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all duration-300 font-bold
+                        ${isActive ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-200 ring-4 ring-orange-50 scale-105' :
+                          isCompleted ? 'bg-emerald-500 text-white shadow-xs' : 'bg-white border-2 border-gray-200 text-gray-400 group-hover:border-gray-300'}
+                      `}>
+                        {isCompleted ? <Check size={16} strokeWidth={3} className="md:size-5" /> : <step.icon size={16} className="md:size-5" />}
+                      </div>
+                      <span className={`text-[10px] md:text-xs font-bold whitespace-nowrap transition-colors ${isActive ? 'text-gray-900 font-extrabold' : isCompleted ? 'text-emerald-700' : 'text-gray-400'}`}>
+                        {step.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
+            <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar space-y-6">
+              {/* ============================================================ */}
+              {/* STEP 1: IDENTITÉ & MÉDIAS                                    */}
+              {/* ============================================================ */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex flex-col gap-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Images du Produit</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {(formData.images || []).map((img, idx) => (
-                        <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt={`Image ${idx + 1} du produit`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newImages = formData.images.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, images: newImages, image: newImages[0] || '' });
-                            }}
-                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                          {idx === 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[8px] text-white font-bold text-center py-0.5 uppercase">Principale</div>
-                          )}
-                        </div>
-                      ))}
-                      <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl hover:bg-orange-50 hover:border-orange-200 transition-all cursor-pointer group">
-                        <Plus size={18} className="md:size-5 text-gray-300 group-hover:text-[#f56b2a]" />
-                        <span className="text-[7px] md:text-[8px] font-bold text-gray-400 mt-1 uppercase group-hover:text-[#f56b2a]">Ajouter</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const files = Array.from(e.target.files || []) as File[];
-
-                            for (const file of files) {
-                              try {
-                                // Optimisation : Compression + Resolution + WebP
-                                const optimizedFile = await optimizeImage(file);
-                                // Conversion en Base64 pour le stockage actuel
-                                const base64 = await fileToBase64(optimizedFile);
-
-                                setFormData(prev => {
-                                  const newImages = [...prev.images, base64];
-                                  return {
-                                    ...prev,
-                                    images: newImages,
-                                    image: prev.image || newImages[0]
-                                  };
-                                });
-                              } catch (err) {
-                                console.error("Erreur lors de l'optimisation:", err);
-                              }
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">La première image sera l&apos;image principale du produit.</p>
-                  </div>
-                </div>
-              )}
-
-              {currentStep === 2 && (
-                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  {/* Nom du produit */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nom du Produit</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <Package size={14} className="text-[#f56b2a]" />
+                        Nom du Produit <span className="text-[#f56b2a]">*</span>
+                      </label>
+                      <span className="text-[10px] text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded-full">Requis</span>
+                    </div>
                     <input
                       required
                       type="text"
                       value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Ex : T-shirt Premium, Burger Classique…"
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none placeholder:text-gray-300"
+                      onChange={e => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (submitError) setSubmitError(null);
+                      }}
+                      placeholder="Ex : T-shirt Oversize Bio, Burger Double Fromage, Robe d'été…"
+                      className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm md:text-base font-semibold text-gray-900 focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none placeholder:text-gray-400"
                     />
                   </div>
+
+                  {/* Catégorie */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Description</label>
-                    <textarea
-                      value={formData.description || ''}
-                      onChange={e => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Décrivez votre produit : matière, utilisation, points forts…"
-                      rows={3}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl text-sm font-normal text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none resize-none placeholder:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Catégorie du Produit</label>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Tag size={14} className="text-[#f56b2a]" />
+                      Catégorie & Rayon
+                    </label>
                     <select
                       value={formData.category}
                       onChange={e => {
@@ -894,7 +875,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           mainCategory: filteredCategoryMapping[newSub] || filteredMainCategories[0] || 'Divers'
                         });
                       }}
-                      className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                      className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none cursor-pointer"
                     >
                       {filteredMainCategories.map(mainCat => {
                         const subCats = Object.keys(filteredCategoryMapping).filter(sub => filteredCategoryMapping[sub] === mainCat);
@@ -909,70 +890,177 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       })}
                     </select>
                   </div>
-                  <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Clock size={13} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
-                      </label>
-                      <select
-                        value={formData.deliveryTime}
-                        onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
-                        className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                      >
-                        <option value="">Sélectionnez une durée...</option>
-                        <optgroup label="Restauration / Immédiat">
-                          <option value="15 min">15 minutes</option>
-                          <option value="30 min">30 minutes</option>
-                          <option value="45 min">45 minutes</option>
-                          <option value="1h">1 heure</option>
-                        </optgroup>
-                        <optgroup label="Livraison Courte">
-                          <option value="24h">24 heures</option>
-                          <option value="48h">48 heures</option>
-                          <option value="72h">72 heures</option>
-                        </optgroup>
-                        <optgroup label="Livraison Longue">
-                          <option value="3-5 jours">3 à 5 jours</option>
-                          <option value="1 semaine">1 semaine</option>
-                          <option value="2 semaines">2 semaines</option>
-                          <option value="Sur commande">Sur commande/Mesure</option>
-                        </optgroup>
-                      </select>
-                      <p className="text-[9px] text-gray-500 mt-2 font-normal">Cette durée sera affichée sur votre boutique pour informer les clients.</p>
-                    </div>
 
+                  {/* Description */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                        Description détaillée
+                      </label>
+                      <span className="text-[10px] text-gray-400 font-medium">Recommandé pour la boutique</span>
+                    </div>
+                    <textarea
+                      value={formData.description || ''}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Décrivez votre produit : matière, caractéristiques, ingrédients, conseils d'utilisation…"
+                      rows={3}
+                      className="w-full px-4 md:px-5 py-3 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm text-gray-800 focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none resize-none placeholder:text-gray-400 leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Photos du produit */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <ImageIcon size={14} className="text-[#f56b2a]" />
+                        Photos du Produit
+                      </label>
+                      <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {(formData.images || []).length} photo{(formData.images || []).length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="p-4 bg-gray-50/70 border-2 border-dashed border-gray-200 rounded-2xl space-y-3">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                        {(formData.images || []).map((img, idx) => (
+                          <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-xs">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img} alt={`Image ${idx + 1} du produit`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newImages = formData.images.filter((_, i) => i !== idx);
+                                setFormData({ ...formData, images: newImages, image: newImages[0] || '' });
+                              }}
+                              className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-lg opacity-90 md:opacity-0 group-hover:opacity-100 hover:scale-110 transition-all shadow-md"
+                              title="Supprimer la photo"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                            {idx === 0 && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-[#f56b2a] text-[9px] text-white font-bold text-center py-0.5 tracking-wider uppercase">
+                                Principale
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-orange-200 bg-orange-50/40 hover:bg-orange-50 rounded-xl transition-all cursor-pointer group hover:border-[#f56b2a]">
+                          <div className="p-2 bg-white rounded-xl shadow-xs text-[#f56b2a] group-hover:scale-110 transition-transform">
+                            <Plus size={18} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[9px] font-bold text-orange-950 mt-1.5 uppercase tracking-tight">Ajouter</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []) as File[];
+                              for (const file of files) {
+                                try {
+                                  const optimizedFile = await optimizeImage(file);
+                                  const base64 = await fileToBase64(optimizedFile);
+                                  setFormData(prev => {
+                                    const newImages = [...prev.images, base64];
+                                    return {
+                                      ...prev,
+                                      images: newImages,
+                                      image: prev.image || newImages[0]
+                                    };
+                                  });
+                                } catch (err) {
+                                  console.error("Erreur lors de l'optimisation:", err);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-gray-500 font-medium flex items-center gap-1.5 pt-1">
+                        <Info size={12} className="text-[#f56b2a] shrink-0" />
+                        La première photo est l&apos;image principale. Vous pourrez aussi assigner des photos par variante à l&apos;étape 3.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Canal & Visibilité */}
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50/70 to-amber-50/40 rounded-2xl border border-orange-100">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white transition-colors ${formData.isOnline ? 'bg-[#f56b2a] shadow-md shadow-orange-200' : 'bg-gray-400'}`}>
+                        {formData.isOnline ? <Globe size={20} /> : <Monitor size={20} />}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-900 leading-tight">
+                          {formData.isOnline ? 'Publier sur la boutique en ligne' : 'Disponible uniquement en Caisse (POS)'}
+                        </div>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">
+                          {formData.isOnline ? 'Visible publiquement par vos clients sur votre catalogue web' : 'Usage interne : encaissement sur place uniquement'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isOnline: !formData.isOnline })}
+                      className={`w-12 h-6 rounded-full transition-all duration-300 relative shadow-inner shrink-0 ${formData.isOnline ? 'bg-[#f56b2a]' : 'bg-gray-300'}`}
+                      aria-label="Basculer la visibilité boutique"
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${formData.isOnline ? 'left-7' : 'left-1'}`} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================ */}
+              {/* STEP 2: TARIFS & STOCK                                       */}
+              {/* ============================================================ */}
+              {currentStep === 2 && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  {/* Prix & Stock Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Tag size={13} className="text-[#f56b2a]" /> Prix de Vente
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Tag size={14} className="text-[#f56b2a]" /> Prix de Vente <span className="text-[#f56b2a]">*</span>
                       </label>
                       <div className="relative">
                         <input
                           required
                           type="number"
                           value={formData.price ?? ''}
-                          onChange={e => setFormData({ ...formData, price: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
+                          onChange={e => {
+                            setFormData({ ...formData, price: e.target.value ? parseInt(e.target.value) || 0 : undefined });
+                            if (submitError) setSubmitError(null);
+                          }}
                           placeholder="0"
-                          className="w-full pl-4 md:pl-5 pr-12 md:pr-16 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-bold text-[#f56b2a] focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          className="w-full pl-4 md:pl-5 pr-14 py-3 md:py-3.5 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-base md:text-lg font-black text-[#f56b2a] focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none"
                         />
-                        <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-xs md:text-sm">XOF</span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs md:text-sm">XOF</span>
                       </div>
+                      <p className="text-[10px] text-gray-400 mt-1 font-medium">Prix de base unitaire standard</p>
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stock Initial</label>
-                        <input
-                          type="number"
-                          value={formData.stock ?? ''}
-                          onChange={e => setFormData({ ...formData, stock: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
-                          placeholder="0"
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-base md:text-lg font-bold text-gray-700 focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
-                        />
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Package size={14} className="text-[#f56b2a]" /> Stock Initial Disponible
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.stock ?? ''}
+                        onChange={e => setFormData({ ...formData, stock: e.target.value ? parseInt(e.target.value) || 0 : undefined })}
+                        placeholder="0"
+                        className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-base md:text-lg font-bold text-gray-800 focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1 font-medium">
+                        {(formData.variants || []).length > 0
+                          ? '💡 Des variantes existent : le stock total sera calculé depuis vos déclinaisons.'
+                          : 'Quantité totale disponible en réserve ou rayon.'}
+                      </p>
                     </div>
                   </div>
+
+                  {/* Unité de vente */}
                   {formData.businessType === 'shopping' && (
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Tag size={13} className="text-[#f56b2a]" /> Unité de vente
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Tag size={14} className="text-[#f56b2a]" /> Unité de vente
                       </label>
                       <div className="space-y-3">
                         <select
@@ -984,7 +1072,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               setFormData({ ...formData, unit: e.target.value });
                             }
                           }}
-                          className="w-full px-4 md:px-5 py-3 md:py-4 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] transition-all outline-none"
+                          className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm font-semibold focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none cursor-pointer"
                         >
                           <optgroup label="Standard">
                             <option value="pièce">Pièce</option>
@@ -1004,9 +1092,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             <option value="m">Mètre (m)</option>
                             <option value="m²">Mètre Carré (m²)</option>
                           </optgroup>
-                          <optgroup label="Services">
-                            <option value="nuitée">Nuitée</option>
+                          <optgroup label="Services & Événements">
                             <option value="service">Service / Forfait</option>
+                            <option value="ticket">Ticket / Entrée</option>
+                            <option value="heure">Heure</option>
+                            <option value="jour">Jour</option>
                           </optgroup>
                           <option value="custom">Autre (Saisie libre)...</option>
                         </select>
@@ -1015,50 +1105,65 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="animate-in slide-in-from-top-2 duration-300">
                             <input
                               type="text"
-                              placeholder="Ex: Pack de 100, Fagot, Douzaine..."
+                              placeholder="Ex: Pack de 100, Fagot, Palette, Flacon..."
                               value={formData.unit}
                               onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                              className="w-full px-4 md:px-5 py-3 md:py-4 bg-white border-2 border-orange-100 rounded-xl md:rounded-2xl text-sm font-semibold focus:border-[#f56b2a] outline-none shadow-sm"
+                              className="w-full px-4 md:px-5 py-3 bg-white border-2 border-orange-200 rounded-2xl text-sm font-semibold focus:border-[#f56b2a] outline-none shadow-xs"
                             />
-                            <p className="text-[9px] text-[#f56b2a] mt-1 font-bold uppercase tracking-tighter">Saisie libre : tapez l&apos;unité de votre choix</p>
+                            <p className="text-[10px] text-[#f56b2a] mt-1 font-bold">Tapez l&apos;unité personnalisée de votre choix</p>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              {currentStep === 3 && (
-                <div className="space-y-4 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  {/* Délai de livraison / préparation */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Clock size={14} className="text-[#f56b2a]" /> Durée de Livraison / Préparation
+                    </label>
+                    <select
+                      value={formData.deliveryTime}
+                      onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
+                      className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm font-semibold focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-[#f56b2a] transition-all outline-none cursor-pointer"
+                    >
+                      <option value="">Sélectionnez une durée indicative...</option>
+                      <optgroup label="Restauration & Immédiat">
+                        <option value="15 min">15 minutes</option>
+                        <option value="30 min">30 minutes</option>
+                        <option value="45 min">45 minutes</option>
+                        <option value="1h">1 heure</option>
+                      </optgroup>
+                      <optgroup label="Livraison Express & Rapide">
+                        <option value="24h">24 heures (1 jour)</option>
+                        <option value="48h">48 heures (2 jours)</option>
+                        <option value="72h">72 heures (3 jours)</option>
+                      </optgroup>
+                      <optgroup label="Livraison Standard & Sur-Mesure">
+                        <option value="3-5 jours">3 à 5 jours</option>
+                        <option value="1 semaine">1 semaine</option>
+                        <option value="2 semaines">2 semaines</option>
+                        <option value="Sur commande">Sur commande / Fabrication sur-mesure</option>
+                      </optgroup>
+                    </select>
+                  </div>
+
+                  {/* Wholesale Section (Vente en gros) */}
                   {formData.businessType === 'shopping' && (
-                    <div className="rounded-2xl border-2 border-gray-100 bg-gray-50/30 p-4 md:p-6">
-                      <VariantMatrixEditor
-                        options={(formData.options || []) as ProductOptionDef[]}
-                        variants={(formData.variants || []) as ProductVariantDef[]}
-                        basePrice={Number(formData.price) || 0}
-                        images={formData.images || []}
-                        onChange={(options, variants, notice) => {
-                          setFormData((prev) => ({ ...prev, options, variants }));
-                          if (notice) setVariantNotice(notice);
-                        }}
-                      />
-                    </div>
-                  )}
-
-
-                  {/* Wholesale Section */}
-                  {formData.businessType === 'shopping' && (
-                    <div className="pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-6">
-                      <div className="flex items-center justify-between mb-4 md:mb-6">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-[11px] md:text-sm font-bold text-gray-900 leading-tight">Vente en Gros & B2B</h4>
-                            <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#f56b2a] text-[9px] font-bold uppercase">Grossiste</span>
+                    <div className="pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-between p-4 bg-orange-50/50 rounded-2xl border border-orange-100 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                            B2B
                           </div>
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-semibold mt-0.5">
-                            Définissez vos prix de gros par quantité (ex : 400 000 FCFA dès 100 unités)
-                          </p>
+                          <div>
+                            <h4 className="text-xs md:text-sm font-bold text-gray-900 leading-tight">
+                              Tarifs de Gros & Vente B2B
+                            </h4>
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium">
+                              Remises automatiques par quantité pour vos clients grossistes
+                            </p>
+                          </div>
                         </div>
                         <button
                           type="button"
@@ -1074,9 +1179,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             } else {
                               const baseP = Number(formData.price) || 0;
                               const initialTier = {
-                                minQty: 100,
-                                price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0,
-                                unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0
+                                minQty: 50,
+                                price: baseP > 0 ? Math.round(baseP * 50 * 0.85) : 0,
+                                unitPrice: baseP > 0 ? Math.round(baseP * 0.85) : 0
                               };
                               setFormData({
                                 ...formData,
@@ -1086,26 +1191,26 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               });
                             }
                           }}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200/50' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'bg-[#f56b2a] text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                         >
-                          {((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'ACTIVÉ' : 'DÉSACTIVER'}
+                          {((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined) ? 'Actif' : 'Activer'}
                         </button>
                       </div>
 
                       {(((formData.wholesaleTiers && formData.wholesaleTiers.length > 0) || formData.wholesalePrice !== undefined)) && (
-                        <div className="space-y-3 animate-in slide-in-from-top-4 duration-300">
-                          <div className="flex items-center justify-between">
+                        <div className="space-y-3 animate-in slide-in-from-top-3 duration-300 p-3 bg-gray-50/60 rounded-2xl border border-gray-200/80">
+                          <div className="flex items-center justify-between px-1">
                             <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider">
-                              Prix de gros configurés ({(formData.wholesaleTiers || []).length})
+                              Paliers de gros configurés ({(formData.wholesaleTiers || []).length})
                             </span>
                             <button
                               type="button"
                               onClick={() => {
                                 const tiers = [...(formData.wholesaleTiers || [])];
                                 const baseP = Number(formData.price) || 0;
-                                const lastMinQty = tiers.length > 0 ? tiers[tiers.length - 1].minQty : 100;
-                                const nextQty = lastMinQty >= 100 ? lastMinQty + 100 : lastMinQty * 2;
-                                const unitRatio = tiers.length > 0 ? 0.75 : 0.8;
+                                const lastMinQty = tiers.length > 0 ? tiers[tiers.length - 1].minQty : 50;
+                                const nextQty = lastMinQty >= 50 ? lastMinQty + 50 : lastMinQty * 2;
+                                const unitRatio = tiers.length > 0 ? 0.75 : 0.85;
                                 const nextPrice = baseP > 0 ? Math.round(baseP * nextQty * unitRatio) : 0;
                                 
                                 tiers.push({ minQty: nextQty, price: nextPrice, unitPrice: nextQty > 0 ? Math.round(nextPrice / nextQty) : 0 });
@@ -1117,111 +1222,46 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                   wholesalePrice: sorted[0]?.price
                                 });
                               }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-100 text-[10px] font-bold hover:bg-orange-100 transition-all active:scale-95"
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-50 text-[#f56b2a] border border-orange-200 text-[11px] font-bold hover:bg-orange-100 transition-all"
                             >
-                              <Plus size={13} strokeWidth={3} /> Ajouter un prix de gros
+                              <Plus size={12} strokeWidth={3} /> Ajouter un palier
                             </button>
                           </div>
 
-                          {(formData.wholesaleTiers || []).length === 0 ? (
-                            <div className="p-4 bg-orange-50/40 border border-orange-100 rounded-2xl text-center">
-                              <p className="text-xs font-semibold text-gray-600 mb-2">Aucun palier de gros défini pour l&apos;instant</p>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const baseP = Number(formData.price) || 0;
-                                  const t = { minQty: 100, price: baseP > 0 ? Math.round(baseP * 100 * 0.8) : 0, unitPrice: baseP > 0 ? Math.round(baseP * 0.8) : 0 };
-                                  setFormData({ ...formData, wholesaleTiers: [t], wholesaleMinQty: t.minQty, wholesalePrice: t.price });
-                                }}
-                                className="px-3 py-1.5 bg-[#f56b2a] text-white rounded-xl text-xs font-bold"
-                              >
-                                + Ajouter le 1er prix de gros
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-2.5">
-                              {(formData.wholesaleTiers || []).map((tier, idx) => {
-                                const baseUnitPrice = Number(formData.price) || 0;
-                                const minQty = Math.max(1, Number(tier.minQty) || 1);
-                                const tierPrice = Number(tier.price) || 0;
-                                
-                                // Calcul automatique de l'unité et de l'avantage
-                                const effectiveUnit = tierPrice >= baseUnitPrice && minQty > 1
-                                  ? Math.round(tierPrice / minQty)
-                                  : (tierPrice > 0 ? tierPrice : baseUnitPrice);
-                                const normalTotal = baseUnitPrice * minQty;
-                                const packageTotal = tierPrice >= baseUnitPrice && minQty > 1 ? tierPrice : tierPrice * minQty;
-                                const savings = normalTotal > packageTotal ? normalTotal - packageTotal : 0;
-                                const savingsPct = normalTotal > 0 && savings > 0 ? Math.round((savings / normalTotal) * 100) : 0;
+                          <div className="space-y-2">
+                            {(formData.wholesaleTiers || []).map((tier, idx) => {
+                              const baseUnitPrice = Number(formData.price) || 0;
+                              const minQty = Math.max(1, Number(tier.minQty) || 1);
+                              const tierPrice = Number(tier.price) || 0;
+                              
+                              const effectiveUnit = tierPrice >= baseUnitPrice && minQty > 1
+                                ? Math.round(tierPrice / minQty)
+                                : (tierPrice > 0 ? tierPrice : baseUnitPrice);
+                              const normalTotal = baseUnitPrice * minQty;
+                              const packageTotal = tierPrice >= baseUnitPrice && minQty > 1 ? tierPrice : tierPrice * minQty;
+                              const savings = normalTotal > packageTotal ? normalTotal - packageTotal : 0;
+                              const savingsPct = normalTotal > 0 && savings > 0 ? Math.round((savings / normalTotal) * 100) : 0;
 
-                                return (
-                                  <div key={idx} className="bg-orange-50/40 border border-orange-100/80 rounded-2xl p-3 md:p-4 space-y-2">
-                                    <div className="flex items-center gap-2 md:gap-3">
-                                      <div className="w-6 h-6 rounded-lg bg-orange-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                                        {idx + 1}
-                                      </div>
-                                      <div className="w-32 md:w-36 shrink-0">
-                                        <label className="block text-[8px] font-bold text-gray-500 uppercase mb-1">Dès (quantité)</label>
-                                        <div className="relative">
-                                          <input
-                                            type="number"
-                                            min="2"
-                                            value={tier.minQty}
-                                            onChange={e => {
-                                              const tiers = [...(formData.wholesaleTiers || [])];
-                                              const newQty = parseInt(e.target.value) || 1;
-                                              tiers[idx] = {
-                                                ...tiers[idx],
-                                                minQty: newQty,
-                                                unitPrice: newQty > 0 ? Math.round((tiers[idx].price || 0) / newQty) : 0
-                                              };
-                                              setFormData({
-                                                ...formData,
-                                                wholesaleTiers: tiers,
-                                                wholesaleMinQty: tiers[0]?.minQty,
-                                                wholesalePrice: tiers[0]?.price
-                                              });
-                                            }}
-                                            className="w-full px-3 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-bold text-gray-800 focus:ring-2 focus:ring-orange-200 outline-none"
-                                            placeholder="100"
-                                          />
-                                        </div>
-                                      </div>
-
-                                      <div className="flex-1 min-w-0">
-                                        <label className="block text-[8px] font-bold text-gray-500 uppercase mb-1">Prix de Gros total (XOF)</label>
-                                        <div className="relative">
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={tier.price}
-                                            onChange={e => {
-                                              const tiers = [...(formData.wholesaleTiers || [])];
-                                              const newPrice = parseInt(e.target.value) || 0;
-                                              const q = Math.max(1, tiers[idx].minQty || 1);
-                                              tiers[idx] = {
-                                                ...tiers[idx],
-                                                price: newPrice,
-                                                unitPrice: q > 0 ? Math.round(newPrice / q) : 0
-                                              };
-                                              setFormData({
-                                                ...formData,
-                                                wholesaleTiers: tiers,
-                                                wholesaleMinQty: tiers[0]?.minQty,
-                                                wholesalePrice: tiers[0]?.price
-                                              });
-                                            }}
-                                            className="w-full pl-3 pr-10 py-2 bg-white border border-orange-100 rounded-xl text-xs md:text-sm font-bold text-[#f56b2a] focus:ring-2 focus:ring-orange-200 outline-none"
-                                            placeholder="400000"
-                                          />
-                                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">XOF</span>
-                                        </div>
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const tiers = (formData.wholesaleTiers || []).filter((_, i) => i !== idx);
+                              return (
+                                <div key={idx} className="bg-white border border-gray-200 rounded-xl p-3 space-y-2 shadow-xs">
+                                  <div className="flex items-center gap-2 md:gap-3">
+                                    <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                      #{idx + 1}
+                                    </div>
+                                    <div className="w-28 md:w-36 shrink-0">
+                                      <label className="block text-[8px] font-bold text-gray-500 uppercase mb-0.5">Dès (qté min)</label>
+                                      <input
+                                        type="number"
+                                        min="2"
+                                        value={tier.minQty}
+                                        onChange={e => {
+                                          const tiers = [...(formData.wholesaleTiers || [])];
+                                          const newQty = parseInt(e.target.value) || 1;
+                                          tiers[idx] = {
+                                            ...tiers[idx],
+                                            minQty: newQty,
+                                            unitPrice: newQty > 0 ? Math.round((tiers[idx].price || 0) / newQty) : 0
+                                          };
                                           setFormData({
                                             ...formData,
                                             wholesaleTiers: tiers,
@@ -1229,38 +1269,75 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                             wholesalePrice: tiers[0]?.price
                                           });
                                         }}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-end"
-                                        title="Supprimer ce prix de gros"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
+                                        className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm font-bold text-gray-800 focus:bg-white outline-none"
+                                        placeholder="50"
+                                      />
                                     </div>
 
-                                    {/* Calculated feedback bar */}
-                                    <div className="flex flex-wrap items-center justify-between text-[9px] md:text-[10px] font-semibold px-1 pt-1 border-t border-orange-100/60 text-gray-500">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-gray-400">Soit:</span>
-                                        <span className="text-gray-900 font-bold">{formatCurrency(effectiveUnit)} / unité</span>
-                                        {baseUnitPrice > 0 && (
-                                          <span className="text-gray-400 line-through">({formatCurrency(baseUnitPrice)})</span>
-                                        )}
+                                    <div className="flex-1 min-w-0">
+                                      <label className="block text-[8px] font-bold text-gray-500 uppercase mb-0.5">Prix total du lot (XOF)</label>
+                                      <div className="relative">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={tier.price}
+                                          onChange={e => {
+                                            const tiers = [...(formData.wholesaleTiers || [])];
+                                            const newPrice = parseInt(e.target.value) || 0;
+                                            const q = Math.max(1, tiers[idx].minQty || 1);
+                                            tiers[idx] = {
+                                              ...tiers[idx],
+                                              price: newPrice,
+                                              unitPrice: q > 0 ? Math.round(newPrice / q) : 0
+                                            };
+                                            setFormData({
+                                              ...formData,
+                                              wholesaleTiers: tiers,
+                                              wholesaleMinQty: tiers[0]?.minQty,
+                                              wholesalePrice: tiers[0]?.price
+                                            });
+                                          }}
+                                          className="w-full pl-2.5 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm font-bold text-[#f56b2a] focus:bg-white outline-none"
+                                          placeholder="100000"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-gray-400">XOF</span>
                                       </div>
-                                      {savings > 0 && (
-                                        <div className="flex items-center gap-1 text-emerald-600 font-bold">
-                                          <span>Économie : −{formatCurrency(savings)}</span>
-                                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[8px]">−{savingsPct}%</span>
-                                        </div>
-                                      )}
                                     </div>
-                                  </div>
-                                );
-                              })}
 
-                              <p className="text-[9px] text-gray-400 font-semibold px-1">
-                                💡 Le client bénéficie automatiquement du prix de gros dès qu&apos;il atteint la quantité minimale dans son panier.
-                              </p>
-                            </div>
-                          )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const tiers = (formData.wholesaleTiers || []).filter((_, i) => i !== idx);
+                                        setFormData({
+                                          ...formData,
+                                          wholesaleTiers: tiers,
+                                          wholesaleMinQty: tiers[0]?.minQty,
+                                          wholesalePrice: tiers[0]?.price
+                                        });
+                                      }}
+                                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all self-end"
+                                      title="Supprimer ce palier"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center justify-between text-[10px] font-semibold px-1 pt-1.5 border-t border-gray-100 text-gray-500">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-gray-400">Soit :</span>
+                                      <span className="text-gray-900 font-bold">{formatCurrency(effectiveUnit)} / unité</span>
+                                    </div>
+                                    {savings > 0 && (
+                                      <div className="flex items-center gap-1 text-emerald-600 font-bold">
+                                        <span>Économie : −{formatCurrency(savings)}</span>
+                                        <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 text-[9px]">−{savingsPct}%</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1268,87 +1345,181 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
               )}
 
+              {/* ============================================================ */}
+              {/* STEP 3: VARIANTES & DÉCLINAISONS                             */}
+              {/* ============================================================ */}
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  {/* Visibility Toggle */}
-                  <div className="flex items-center justify-between p-4 md:p-5 bg-gradient-to-r from-orange-50 to-orange-50/30 rounded-2xl border border-orange-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#f56b2a] rounded-xl flex items-center justify-center text-white shadow-md shadow-orange-200/50">
-                        <Globe size={18} />
+                  {/* Bannière d'introduction */}
+                  <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-orange-50 via-amber-50/60 to-orange-50/30 rounded-2xl border border-orange-100/80">
+                    <div className="w-9 h-9 rounded-xl bg-[#f56b2a] text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900 leading-tight">
+                        Options & Déclinaisons du Produit
+                      </h4>
+                      <p className="text-xs text-gray-600 font-normal mt-0.5 leading-relaxed">
+                        Ajoutez des options (ex : <span className="font-semibold text-gray-900">Taille</span>, <span className="font-semibold text-gray-900">Couleur</span>, <span className="font-semibold text-gray-900">Format</span>) pour générer automatiquement vos variantes avec leur propre prix, stock et photo.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Éditeur de Variantes */}
+                  {formData.businessType === 'shopping' ? (
+                    <div className="rounded-2xl border-2 border-gray-200 bg-white p-4 md:p-6 shadow-xs">
+                      <VariantMatrixEditor
+                        options={(formData.options || []) as ProductOptionDef[]}
+                        variants={(formData.variants || []) as ProductVariantDef[]}
+                        basePrice={Number(formData.price) || 0}
+                        images={formData.images || []}
+                        onChange={(options, variants, notice) => {
+                          setFormData((prev) => ({ ...prev, options, variants }));
+                          if (notice) setVariantNotice(notice);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl text-center space-y-2">
+                      <p className="text-sm font-semibold text-gray-700">Produit de Restauration / Alimentation</p>
+                      <p className="text-xs text-gray-400">Pour le secteur restauration, les options de cuisson ou suppléments sont configurées au niveau du menu.</p>
+                    </div>
+                  )}
+
+                  {/* Summary Card before saving */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <CheckCircle2 size={14} className="text-emerald-600" />
+                        Aperçu avant enregistrement
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Prêt
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100">
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
+                        {formData.images && formData.images[0] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={formData.images[0]} alt="Aperçu" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <Package size={20} />
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900 leading-tight">Publier sur le Store</div>
-                        <p className="text-xs text-gray-500 font-semibold mt-0.5">Visible publiquement sur votre boutique en ligne</p>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-sm font-bold text-gray-900 truncate">
+                          {formData.name || 'Sans titre'}
+                        </h5>
+                        <p className="text-xs text-gray-400 font-medium">
+                          {formData.category} • {formData.isOnline ? '🌐 En ligne' : '🖥️ Caisse seule'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-black text-[#f56b2a]">
+                          {(() => {
+                            const variantPrices = (formData.variants || []).map(v => Number(v.price) || 0).filter(p => p > 0);
+                            if (variantPrices.length > 0) {
+                              const min = Math.min(...variantPrices);
+                              const max = Math.max(...variantPrices);
+                              return min === max ? formatCurrency(min) : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+                            }
+                            return formData.price !== undefined ? formatCurrency(formData.price) : '0 FCFA';
+                          })()}
+                        </div>
+                        <div className="text-[10px] font-bold text-gray-500">
+                          {(() => {
+                            const count = (formData.variants || []).length;
+                            if (count > 0) {
+                              const totalStock = (formData.variants || []).reduce((acc, v) => acc + (Number(v.stock) || 0), 0);
+                              return `${count} variante${count > 1 ? 's' : ''} (${totalStock} en stock)`;
+                            }
+                            return `${formData.stock ?? 0} en stock`;
+                          })()}
+                        </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isOnline: !formData.isOnline })}
-                      className={`w-12 h-6 rounded-full transition-all duration-300 relative shadow-inner ${formData.isOnline ? 'bg-[#f56b2a]' : 'bg-gray-200'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${formData.isOnline ? 'left-7' : 'left-1'}`} />
-                    </button>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Sticky Navigation Footer */}
-            <div className="p-3 md:p-8 border-t border-gray-100 bg-gray-50/30 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="p-3 md:p-6 border-t border-gray-100 bg-gray-50/50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               {submitError && (
-                <div className="flex items-start gap-2 w-full md:w-auto px-3 py-2.5 bg-rose-50 border border-rose-100 rounded-xl text-[10px] md:text-xs font-bold text-rose-600">
-                  <AlertCircle size={14} className="shrink-0 mt-px" />
+                <div className="flex items-start gap-2 w-full md:w-auto px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
                   <span className="min-w-0 break-words">{submitError}</span>
                   <button
                     type="button"
                     onClick={() => setSubmitError(null)}
-                    className="ml-auto p-0.5 text-rose-300 hover:text-rose-600 shrink-0"
-                    aria-label="Fermer le message"
+                    className="ml-auto p-0.5 text-rose-400 hover:text-rose-700 shrink-0"
+                    aria-label="Fermer"
                   >
                     <X size={12} />
                   </button>
                 </div>
               )}
-              <div className="flex items-center justify-between gap-3 md:gap-4 w-full md:w-auto">
-              <Button
-                type="button"
-                disabled={currentStep === 1 || isSubmitting}
-                onClick={() => setCurrentStep(prev => prev - 1)}
-                variant="ghost"
-                size="md"
-                className="text-gray-400 hover:text-gray-700 font-bold text-[10px] md:text-sm"
-                icon={<ChevronLeft size={16} className="md:size-5" />}
-              >
-                Retour
-              </Button>
 
-              <div className="flex gap-2 md:gap-3">
-                {currentStep < 3 ? (
-                  <Button
-                    type="button"
-                    onClick={() => setCurrentStep(prev => prev + 1)}
-                    variant="secondary"
-                    size="md"
-                    className="font-bold text-[10px] md:text-sm"
-                    icon={<ChevronRight size={14} className="md:size-[18px]" />}
-                    iconPosition="right"
-                  >
-                    Suivant
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleSubmit}
-                    loading={isSubmitting}
-                    loadingText="Envoi..."
-                    variant="primary"
-                    size="md"
-                    className="font-bold text-[10px] md:text-sm"
-                  >
-                    Enregistrer
-                  </Button>
-                )}
-              </div>
+              <div className="flex items-center justify-between gap-3 md:gap-4 w-full md:w-auto ml-auto">
+                <Button
+                  type="button"
+                  disabled={currentStep === 1 || isSubmitting}
+                  onClick={() => {
+                    setCurrentStep(prev => Math.max(1, prev - 1));
+                    setSubmitError(null);
+                  }}
+                  variant="ghost"
+                  size="md"
+                  className="text-gray-500 hover:text-gray-900 font-bold text-xs md:text-sm"
+                  icon={<ChevronLeft size={16} className="md:size-5" />}
+                >
+                  Précédent
+                </Button>
+
+                <div className="flex gap-2 md:gap-3">
+                  {currentStep < 3 ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (currentStep === 1) {
+                          if (!formData.name || !formData.name.trim()) {
+                            setSubmitError('Veuillez renseigner le nom du produit avant de continuer.');
+                            return;
+                          }
+                        } else if (currentStep === 2) {
+                          if (formData.price === undefined || formData.price === null || isNaN(Number(formData.price)) || Number(formData.price) < 0) {
+                            setSubmitError('Veuillez renseigner un prix de vente valide.');
+                            return;
+                          }
+                        }
+                        setSubmitError(null);
+                        setCurrentStep(prev => prev + 1);
+                      }}
+                      variant="secondary"
+                      size="md"
+                      className="font-bold text-xs md:text-sm"
+                      icon={<ChevronRight size={14} className="md:size-[18px]" />}
+                      iconPosition="right"
+                    >
+                      Suivant
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleSubmit}
+                      loading={isSubmitting}
+                      loadingText="Enregistrement..."
+                      variant="primary"
+                      size="md"
+                      className="font-bold text-xs md:text-sm shadow-md shadow-orange-200"
+                    >
+                      Enregistrer le produit
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
