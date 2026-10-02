@@ -70,7 +70,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [variantNotice, setVariantNotice] = useState<string | null>(null);
+  const [_variantNotice, setVariantNotice] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Taxonomie produit : lue en base (geree depuis /pam/categories), avec
@@ -803,7 +803,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {(formData.images || []).map((img, idx) => (
                         <div key={idx} className="relative group aspect-square rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                          <img src={img} className="w-full h-full object-cover" />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img} alt={`Image ${idx + 1} du produit`} className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => {
