@@ -8,6 +8,7 @@ import { fetchOrderItems } from '../hooks/useSupabaseData';
 import { updateOrderStatusAction, deleteOrderAction, bulkUpdateOrderStatusAction, bulkDeleteOrdersAction, getOrdersAction } from '@/app/actions/orders';
 import { useRouter } from '@/components/RouterPolyfill';
 import { Plus } from 'lucide-react';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 interface OrdersViewProps {
     orders: Order[];
@@ -36,6 +37,10 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+    const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+    const [isDeletingSingle, setIsDeletingSingle] = useState(false);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ message, type });
@@ -177,19 +182,24 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         }
     };
 
-    const handleDelete = async (orderId: string) => {
+    const confirmDeleteSingleOrder = async () => {
+        if (!orderToDelete) return;
+        setIsDeletingSingle(true);
         try {
-            const result = await deleteOrderAction(orderId);
+            const result = await deleteOrderAction(orderToDelete.id);
             if (result.success) {
                 router.refresh();
                 showToast("Commande supprimée", 'info');
-                if (selectedOrder?.id === orderId) setSelectedOrder(null);
+                if (selectedOrder?.id === orderToDelete.id) setSelectedOrder(null);
             } else {
                 showToast(result.error || "Erreur de suppression", 'error');
             }
         } catch (err) {
             console.error('Error deleting order:', err);
             showToast("Erreur de suppression de la commande", 'error');
+        } finally {
+            setIsDeletingSingle(false);
+            setOrderToDelete(null);
         }
     };
 
@@ -209,21 +219,29 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         }
     };
 
-    const handleBulkDelete = async () => {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer ${selectedOrderIds.length} commandes ?`)) {
-            try {
-                const result = await bulkDeleteOrdersAction(selectedOrderIds);
-                if (result.success) {
-                    router.refresh();
-                    showToast(`${selectedOrderIds.length} commandes supprimées`, 'info');
-                    setSelectedOrderIds([]);
-                } else {
-                    showToast(result.error || "Erreur lors de la suppression groupée", 'error');
-                }
-            } catch (err) {
-                console.error('Error bulk deleting orders:', err);
-                showToast("Erreur lors de la suppression groupée", 'error');
+    const handleBulkDelete = () => {
+        if (selectedOrderIds.length > 0) {
+            setIsBulkDeleteModalOpen(true);
+        }
+    };
+
+    const confirmBulkDelete = async () => {
+        setIsDeletingBulk(true);
+        try {
+            const result = await bulkDeleteOrdersAction(selectedOrderIds);
+            if (result.success) {
+                router.refresh();
+                showToast(`${selectedOrderIds.length} commandes supprimées`, 'info');
+                setSelectedOrderIds([]);
+            } else {
+                showToast(result.error || "Erreur lors de la suppression groupée", 'error');
             }
+        } catch (err) {
+            console.error('Error bulk deleting orders:', err);
+            showToast("Erreur lors de la suppression groupée", 'error');
+        } finally {
+            setIsDeletingBulk(false);
+            setIsBulkDeleteModalOpen(false);
         }
     };
 
@@ -472,7 +490,18 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedOrder(null)} className="hidden md:block p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24} /></button>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setOrderToDelete(selectedOrder)}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                    title="Supprimer cette commande"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                                <button onClick={() => setSelectedOrder(null)} className="hidden md:block p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex-grow overflow-y-auto p-4 md:p-8 custom-scrollbar">
@@ -614,6 +643,30 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                     <span className="text-xs md:text-sm font-bold tracking-tight whitespace-nowrap">{toast.message}</span>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={isBulkDeleteModalOpen}
+                onClose={() => setIsBulkDeleteModalOpen(false)}
+                onConfirm={confirmBulkDelete}
+                isLoading={isDeletingBulk}
+                title="Supprimer les commandes"
+                message={`Êtes-vous sûr de vouloir supprimer définitivement ${selectedOrderIds.length} commande${selectedOrderIds.length > 1 ? 's' : ''} ? Cette action est irréversible.`}
+                confirmText={`Supprimer (${selectedOrderIds.length})`}
+                cancelText="Annuler"
+                type="danger"
+            />
+
+            <ConfirmationModal
+                isOpen={!!orderToDelete}
+                onClose={() => setOrderToDelete(null)}
+                onConfirm={confirmDeleteSingleOrder}
+                isLoading={isDeletingSingle}
+                title="Supprimer la commande"
+                message={`Êtes-vous sûr de vouloir supprimer définitivement la commande #${orderToDelete?.id.slice(-6).toUpperCase()} ? Cette action est irréversible.`}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                type="danger"
+            />
         </div>
     );
 };

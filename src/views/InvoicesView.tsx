@@ -777,7 +777,11 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     await onSaveInvoice(updated);
                                                 } else {
                                                     const { error } = await supabase.from('invoices').update({ status: updated.status }).eq('id', updated.id);
-                                                    if (error) alert("Erreur lors de la mise à jour");
+                                                    if (error) {
+                                                        if (notify) notify("Erreur lors de la mise à jour", 'error');
+                                                    } else {
+                                                        if (notify) notify("Statut de la facture mis à jour", 'success');
+                                                    }
                                                     router.refresh();
                                                 }
                                                 setSelectedInvoice(updated);

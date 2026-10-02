@@ -6,6 +6,8 @@ import { StoreData, StaffRole, SubscriptionPlan, UserSubscription, ViewType, Toa
 import { useRouter, usePathname } from '@/components/RouterPolyfill';
 import { createClient } from '@/utils/supabase/client';
 import { quickCreateStoreAction, quickDeleteStoreAction, clearStoreCookieAction } from '@/app/actions/store';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { ConfirmProvider } from '@/context/ConfirmContext';
 
 interface FlutterWindow {
   FlutterNotifications?: { postMessage: (message: string) => void };
@@ -164,10 +166,15 @@ export default function LayoutClientWrapper({
     }
   };
 
+  const [storeIdToDelete, setStoreIdToDelete] = useState<string | null>(null);
+
   const handleDeleteStore = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette boutique ? Toutes les données associées seront perdues.')) {
-      return;
-    }
+    setStoreIdToDelete(id);
+  };
+
+  const confirmDeleteStore = async () => {
+    if (!storeIdToDelete) return;
+    const id = storeIdToDelete;
 
     try {
       setIsSaving(true);
@@ -194,6 +201,7 @@ export default function LayoutClientWrapper({
       notify('Erreur lors de la suppression de la boutique', 'error');
     } finally {
       setIsSaving(false);
+      setStoreIdToDelete(null);
     }
   };
 
@@ -201,29 +209,45 @@ export default function LayoutClientWrapper({
     userSubscription.status === 'ACTIVE' && 
     new Date(userSubscription.endDate) > new Date();
 
+  const storeToDeleteName = stores.find(s => s.id === storeIdToDelete)?.name || 'cette boutique';
+
   return (
-    <MainLayout
-      currentUserRole={currentUserRole}
-      currentView={currentView}
-      isSubscriptionValid={isSubscriptionValid}
-      onViewChange={(view) => router.push(`/${view}`)}
-      onLogout={handleLogout}
-      stores={stores}
-      currentStore={currentStore}
-      currentPlan={currentPlan}
-      onStoreChange={handleStoreChange}
-      onCreateStore={handleCreateStore}
-      onDeleteStore={handleDeleteStore}
-      userEmail={userEmail}
-      userSubscription={userSubscription}
-      isOnline={isOnline}
-      toastNotifications={toastNotifications}
-      removeToast={(id) => setToastNotifications(prev => prev.filter(n => n.id !== id))}
-      isSaving={isSaving}
-    >
-      {/* We pass a context provider here to easily send 'notify' to children without Prop Drilling */}
-      {children}
-    </MainLayout>
+    <ConfirmProvider>
+      <MainLayout
+        currentUserRole={currentUserRole}
+        currentView={currentView}
+        isSubscriptionValid={isSubscriptionValid}
+        onViewChange={(view) => router.push(`/${view}`)}
+        onLogout={handleLogout}
+        stores={stores}
+        currentStore={currentStore}
+        currentPlan={currentPlan}
+        onStoreChange={handleStoreChange}
+        onCreateStore={handleCreateStore}
+        onDeleteStore={handleDeleteStore}
+        userEmail={userEmail}
+        userSubscription={userSubscription}
+        isOnline={isOnline}
+        toastNotifications={toastNotifications}
+        removeToast={(id) => setToastNotifications(prev => prev.filter(n => n.id !== id))}
+        isSaving={isSaving}
+      >
+        {/* We pass a context provider here to easily send 'notify' to children without Prop Drilling */}
+        {children}
+      </MainLayout>
+
+      {/* Delete Store Custom Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!storeIdToDelete}
+        onClose={() => setStoreIdToDelete(null)}
+        onConfirm={confirmDeleteStore}
+        title="Supprimer la boutique ?"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement "${storeToDeleteName}" ? Toutes les données associées (produits, ventes, factures) seront perdues.`}
+        confirmText="Supprimer la boutique"
+        type="danger"
+        isLoading={isSaving}
+      />
+    </ConfirmProvider>
   );
 }
 

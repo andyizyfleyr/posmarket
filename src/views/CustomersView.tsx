@@ -7,6 +7,7 @@ import { Customer, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency, formatPhoneNumber } from '@/utils';
 import { getCustomersAction } from '@/app/actions/customers';
 import { PhoneInput } from '@/components/PhoneInput';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 interface CustomersViewProps {
   customers: Customer[];
@@ -43,6 +44,20 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     key: 'totalSpent',
     direction: 'desc'
   });
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    id?: string;
+    name?: string;
+    isBulk?: boolean;
+    count?: number;
+    isLoading?: boolean;
+  }>({ isOpen: false });
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: '', type: null }), 3000);
+  };
 
   // Search effect
   useEffect(() => {
@@ -163,33 +178,74 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Voulez-vous vraiment supprimer ce client ?')) {
-      if (onDeleteCustomer) {
-        await onDeleteCustomer(id);
-      } else {
-        const { error } = await supabase.from('customers').delete().eq('id', id);
-        if (error) alert("Erreur lors de la suppression");
-        router.refresh();
-      }
-      setSelectedIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }
+  const handleDelete = (id: string, name?: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      id,
+      name: name || 'ce client',
+      isBulk: false,
+    });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (onBulkDeleteCustomers) {
-      await onBulkDeleteCustomers(Array.from(selectedIds));
-    } else {
-      const { error } = await supabase.from('customers').delete().in('id', Array.from(selectedIds));
-      if (error) alert("Erreur lors de la suppression");
-      router.refresh();
+    setDeleteConfirm({
+      isOpen: true,
+      count: selectedIds.size,
+      isBulk: true,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.isOpen) return;
+    setDeleteConfirm(prev => ({ ...prev, isLoading: true }));
+    try {
+      if (deleteConfirm.isBulk) {
+        if (onBulkDeleteCustomers) {
+          const res = await onBulkDeleteCustomers(Array.from(selectedIds));
+          if (res && !res.success) {
+            showToast(res.error || "Erreur lors de la suppression", 'error');
+            return;
+          }
+        } else {
+          const { error } = await supabase.from('customers').delete().in('id', Array.from(selectedIds));
+          if (error) {
+            showToast("Erreur lors de la suppression", 'error');
+            return;
+          }
+          router.refresh();
+        }
+        showToast(`${selectedIds.size} clients supprimés`, 'info');
+        setSelectedIds(new Set());
+      } else if (deleteConfirm.id) {
+        const id = deleteConfirm.id;
+        if (onDeleteCustomer) {
+          const res = await onDeleteCustomer(id);
+          if (res && !res.success) {
+            showToast(res.error || "Erreur lors de la suppression", 'error');
+            return;
+          }
+        } else {
+          const { error } = await supabase.from('customers').delete().eq('id', id);
+          if (error) {
+            showToast("Erreur lors de la suppression", 'error');
+            return;
+          }
+          router.refresh();
+        }
+        showToast("Client supprimé", 'info');
+        setSelectedIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Erreur lors de la suppression", 'error');
+    } finally {
+      setDeleteConfirm({ isOpen: false });
     }
-    setSelectedIds(new Set());
   };
 
   const toggleSelectAll = () => {
@@ -224,16 +280,21 @@ const CustomersView: React.FC<CustomersViewProps> = ({
       };
 
       if (onSaveCustomer) {
-        await onSaveCustomer(customerData as Customer);
+        const res = await onSaveCustomer(customerData as Customer);
+        if (res && !res.success) {
+          showToast(res.error || "Erreur lors de l'enregistrement", 'error');
+          return;
+        }
       } else {
         const { error } = await supabase.from('customers').upsert(dbCustomer);
         if (error) throw error;
         router.refresh();
       }
+      showToast(editingCustomer ? "Client mis à jour" : "Client ajouté", 'success');
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'enregistrement");
+      showToast("Erreur lors de l'enregistrement", 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -466,7 +527,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                             <Edit size={16} />
                           </button>
                           <button
-                            onClick={() => handleDelete(customer.id)}
+                            onClick={() => handleDelete(customer.id, customer.name)}
                             className="p-2.5 text-red-600 bg-red-50 rounded-xl transition-all active:scale-90"
                           >
                             <Trash2 size={16} />
@@ -567,6 +628,32 @@ const CustomersView: React.FC<CustomersViewProps> = ({
           </div>
         </div>
       )}
+      {/* Toast Notification */}
+      {toast.type && (
+        <div className={`fixed bottom-[88px] left-1/2 -translate-x-1/2 z-[200] px-5 py-3 rounded-2xl shadow-2xl animate-slide-up flex items-center gap-2.5 border max-w-[90vw] ${
+          toast.type === 'success' ? 'bg-green-600 text-white border-green-500' : 
+          toast.type === 'error' ? 'bg-red-600 text-white border-red-500' : 'bg-gray-800 text-white border-gray-700'
+        }`}>
+          <span className="text-xs md:text-sm font-bold tracking-tight whitespace-nowrap">{toast.message}</span>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false })}
+        onConfirm={confirmDelete}
+        isLoading={deleteConfirm.isLoading}
+        title={deleteConfirm.isBulk ? 'Supprimer les clients' : 'Supprimer ce client'}
+        message={
+          deleteConfirm.isBulk
+            ? `Êtes-vous sûr de vouloir supprimer définitivement ${deleteConfirm.count || selectedIds.size} client${(deleteConfirm.count || selectedIds.size) > 1 ? 's' : ''} ? Cette action est irréversible.`
+            : `Êtes-vous sûr de vouloir supprimer ${deleteConfirm.name || 'ce client'} ? Toutes les informations associées seront effacées.`
+        }
+        confirmText={deleteConfirm.isBulk ? `Supprimer (${deleteConfirm.count || selectedIds.size})` : 'Supprimer'}
+        cancelText="Annuler"
+        type="danger"
+      />
     </div>
   );
 };

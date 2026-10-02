@@ -11,6 +11,7 @@ import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Tr
 
 import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
 import { supabase } from '@/supabase';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 interface SettingsViewProps {
     storeSettings: StoreSettings;
@@ -308,16 +309,24 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         }
     };
 
-    const handleDeleteStaffLocal = async (id: string) => {
-        if (!confirm("Supprimer ce membre de l'équipe ?")) return;
+    const [staffToDelete, setStaffToDelete] = useState<{ id: string; name: string } | null>(null);
+
+    const handleDeleteStaffLocal = (id: string, name?: string) => {
+        setStaffToDelete({ id, name: name || "ce membre de l'équipe" });
+    };
+
+    const confirmDeleteStaff = async () => {
+        if (!staffToDelete) return;
         try {
-            const result = await deleteStaffAction(id);
+            const result = await deleteStaffAction(staffToDelete.id);
             if (result.success) {
                 if (notify) notify("Membre supprimé", 'info');
                 router.refresh();
             } else { throw new Error(result.error); }
         } catch (err: unknown) {
             if (notify) notify(err instanceof Error ? err.message : 'Erreur', 'error');
+        } finally {
+            setStaffToDelete(null);
         }
     };
 
@@ -794,6 +803,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={!!staffToDelete}
+                onClose={() => setStaffToDelete(null)}
+                onConfirm={confirmDeleteStaff}
+                title="Supprimer ce membre"
+                message={`Êtes-vous sûr de vouloir supprimer ${staffToDelete?.name || "ce membre"} de l'équipe ? Cette action est irréversible.`}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                type="danger"
+            />
         </div>
     );
 };

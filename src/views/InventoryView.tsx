@@ -46,6 +46,7 @@ import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
 import ExportProductsModal from '@/components/inventory/ExportProductsModal';
 import ImportProductsModal from '@/components/inventory/ImportProductsModal';
 import TransferProductsModal from '@/components/inventory/TransferProductsModal';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import {
   normalizeOptions,
   normalizeVariants,
@@ -340,36 +341,68 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Voulez-vous vraiment supprimer ce produit ?')) {
-      const result = await deleteProductAction(id, currentStoreId || '');
-      if (result.success) {
-        setLocalProducts(prev => prev.filter(p => p.id !== id));
-        setSelectedIds(prev => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-      }
-    }
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {},
+  });
+
+  const handleDelete = (id: string, name?: string) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      title: 'Supprimer ce produit ?',
+      message: `Êtes-vous sûr de vouloir supprimer définitivement ${name ? `"${name}"` : 'ce produit'} ? Cette action est irréversible.`,
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          const result = await deleteProductAction(id, currentStoreId || '');
+          if (result.success) {
+            setLocalProducts(prev => prev.filter(p => p.id !== id));
+            setSelectedIds(prev => {
+              const next = new Set(prev);
+              next.delete(id);
+              return next;
+            });
+            setShowSuccessToast('Produit supprimé avec succès.');
+            setTimeout(() => setShowSuccessToast(null), 3000);
+          }
+        } finally {
+          setIsSubmitting(false);
+          setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (confirm(`Voulez-vous vraiment supprimer les ${selectedIds.size} produits sélectionnés ?`)) {
-      setIsSubmitting(true);
-      try {
-        const result = await bulkDeleteProductsAction(Array.from(selectedIds), currentStoreId || '');
-        if (result.success) {
-          setLocalProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
-          setSelectedIds(new Set());
+    const count = selectedIds.size;
+    setDeleteConfirmation({
+      isOpen: true,
+      title: `Supprimer ${count} produit${count > 1 ? 's' : ''} ?`,
+      message: `Êtes-vous sûr de vouloir supprimer définitivement les ${count} produits sélectionnés ? Cette action est irréversible.`,
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          const result = await bulkDeleteProductsAction(Array.from(selectedIds), currentStoreId || '');
+          if (result.success) {
+            setLocalProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
+            setSelectedIds(new Set());
+            setShowSuccessToast(`${count} produit${count > 1 ? 's' : ''} supprimé${count > 1 ? 's' : ''} avec succès.`);
+            setTimeout(() => setShowSuccessToast(null), 3000);
+          }
+        } finally {
+          setIsSubmitting(false);
+          setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
         }
-      } catch {
-        // silent
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
+      },
+    });
   };
 
   const toggleSelectAll = () => {
@@ -1739,6 +1772,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         totalProductsCount={totalProductsCount || localProducts.length}
         localProducts={localProducts}
         onTransferSuccess={handleTransferSuccess}
+      />
+
+      {/* Delete Product Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={deleteConfirmation.onConfirm}
+        title={deleteConfirmation.title}
+        message={deleteConfirmation.message}
+        confirmText="Supprimer définitivement"
+        type="danger"
+        isLoading={isSubmitting}
       />
     </div>
   );
