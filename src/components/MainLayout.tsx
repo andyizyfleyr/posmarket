@@ -26,6 +26,7 @@ interface MainLayoutProps {
   onCreateStore: (name: string, businessType: string) => Promise<void>;
   onDeleteStore: (id: string) => Promise<void>;
   userEmail?: string;
+  userAvatarUrl?: string | null;
   userSubscription: UserSubscription;
   isOnline: boolean;
   toastNotifications: ToastNotification[];
@@ -47,6 +48,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onCreateStore,
   onDeleteStore,
   userEmail,
+  userAvatarUrl,
   userSubscription,
   isOnline,
   toastNotifications,
@@ -334,6 +336,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             onCreateStore={onCreateStore}
             onDeleteStore={onDeleteStore}
             userEmail={userEmail}
+            userAvatarUrl={userAvatarUrl}
             userSubscription={userSubscription}
             isOnline={isOnline}
             userRole={currentUserRole}

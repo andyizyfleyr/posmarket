@@ -25,6 +25,7 @@ interface SettingsViewProps {
     currentUserId?: string;
     userName?: string;
     userEmail?: string;
+    userAvatarUrl?: string | null;
 }
 
 // Sub-components for better performance (memoization)

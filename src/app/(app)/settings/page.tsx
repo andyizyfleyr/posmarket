@@ -107,6 +107,7 @@ export default async function SettingsPage() {
       currentUserId={session.user.id}
       userName={(profile?.full_name as string) || session.user.email?.split('@')[0] || ''}
       userEmail={session.user.email}
+            userAvatarUrl={session.user.avatarUrl}
     />
   );
 }

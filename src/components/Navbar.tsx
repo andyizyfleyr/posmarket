@@ -18,6 +18,8 @@ interface NavbarProps {
   onDeleteStore?: (id: string) => void;
   onLogout?: () => void;
   userEmail?: string;
+  /** Photo de profil reelle : prioritaire sur l avatar genere. */
+  userAvatarUrl?: string | null;
   userSubscription?: UserSubscription;
   isOnline?: boolean;
   userRole?: StaffRole;
@@ -25,6 +27,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({
   currentView: _currentView,
+  userAvatarUrl,
   onViewChange,
   stores,
   currentStore,
@@ -307,7 +310,19 @@ const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               className="w-8 h-8 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl cursor-pointer hover:scale-105 transition-all active:scale-95 bg-white flex items-center justify-center group"
             >
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`} alt="Avatar" className="w-full h-full object-cover" />
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              )}
             </button>
 
             {showProfileDropdown && (

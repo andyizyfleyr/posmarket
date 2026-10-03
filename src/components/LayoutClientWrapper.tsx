@@ -20,6 +20,7 @@ export default function LayoutClientWrapper({
   currentStore,
   currentPlan,
   userEmail,
+  userAvatarUrl,
   userSubscription,
   currentUserRole
 }: {
@@ -28,6 +29,7 @@ export default function LayoutClientWrapper({
   currentStore: StoreData;
   currentPlan: SubscriptionPlan;
   userEmail: string;
+  userAvatarUrl?: string | null;
   userSubscription: UserSubscription;
   currentUserRole: StaffRole;
 }) {
@@ -226,6 +228,7 @@ export default function LayoutClientWrapper({
         onCreateStore={handleCreateStore}
         onDeleteStore={handleDeleteStore}
         userEmail={userEmail}
+            userAvatarUrl={userAvatarUrl}
         userSubscription={userSubscription}
         isOnline={isOnline}
         toastNotifications={toastNotifications}

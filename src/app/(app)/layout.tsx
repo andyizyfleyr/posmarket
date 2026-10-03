@@ -173,6 +173,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       currentStore={currentStore}
       currentPlan={currentPlan}
       userEmail={user.email!}
+            userAvatarUrl={user.avatarUrl}
       userSubscription={userSubscription}
       currentUserRole={currentUserRole}
     >

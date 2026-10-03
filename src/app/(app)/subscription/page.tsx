@@ -53,6 +53,7 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       paymentProvider={config.provider}
       userName={profile?.full_name ? String(profile.full_name) : ''}
       userEmail={String(profile?.email ?? session.user.email ?? '')}
+            userAvatarUrl={session.user.avatarUrl}
       userPhone={profile?.phone ? String(profile.phone) : ''}
       paymentReturned={returnedFromPayment}
     />

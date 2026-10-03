@@ -30,6 +30,7 @@ async function getCurrentUser() {
       user: {
         id: profile.id,
         email: profile.email,
+        avatarUrl: profile.avatarUrl || null,
         user_metadata: { full_name: profile.fullName, account_type: profile.accountType },
       },
     };

@@ -21,6 +21,7 @@ interface SubscriptionClientWrapperProps {
   paymentProvider?: 'kkiapay' | 'fedapay';
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string | null;
   userPhone?: string;
   paymentReturned?: boolean;
   userRole?: string;
