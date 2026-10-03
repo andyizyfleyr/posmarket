@@ -57,18 +57,18 @@ export default function BeOpenClient() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-[#f56b2a] selection:text-white pb-24 md:pb-0">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand selection:text-white pb-24 md:pb-0">
       
       {/* 1. Navigation Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#f56b2a] flex items-center justify-center shadow-md shadow-orange-500/20 text-white font-bold shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shadow-md shadow-orange-500/20 text-white font-bold shrink-0">
               <Store size={22} />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-xl tracking-tight text-slate-900 leading-none">
-                Pos<span className="text-[#f56b2a]">Market</span>
+                Pos<span className="text-brand">Market</span>
               </span>
               <span className="text-[10px] font-semibold text-orange-600 mt-0.5">
                 Espace commerçant
@@ -77,17 +77,17 @@ export default function BeOpenClient() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm font-medium text-slate-600">
-            <a href="#features" className="hover:text-[#f56b2a] transition-colors">Ce que vous gagnez</a>
-            <a href="#timeline" className="hover:text-[#f56b2a] transition-colors">Une journée type</a>
-            <a href="#comparatif" className="hover:text-[#f56b2a] transition-colors">Comparatif</a>
-            <a href="#tarifs" className="hover:text-[#f56b2a] transition-colors">Tarifs</a>
-            <a href="#faq" className="hover:text-[#f56b2a] transition-colors">FAQ</a>
+            <a href="#features" className="hover:text-brand transition-colors">Ce que vous gagnez</a>
+            <a href="#timeline" className="hover:text-brand transition-colors">Une journée type</a>
+            <a href="#comparatif" className="hover:text-brand transition-colors">Comparatif</a>
+            <a href="#tarifs" className="hover:text-brand transition-colors">Tarifs</a>
+            <a href="#faq" className="hover:text-brand transition-colors">FAQ</a>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/subscription"
-              className="px-4 py-2.5 rounded-xl bg-[#f56b2a] hover:bg-[#e05a1d] active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-md shadow-orange-500/25 flex items-center gap-1.5 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-brand hover:bg-[#e05a1d] active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-md shadow-orange-500/25 flex items-center gap-1.5 transition-all"
             >
               <span>Démarrer</span>
               <ArrowRight size={14} />
@@ -104,13 +104,13 @@ export default function BeOpenClient() {
             {/* Left Copywriting */}
             <div className="lg:col-span-7 text-center lg:text-left">
               <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-800 text-[11px] sm:text-xs font-semibold mb-4">
-                <Flame size={14} className="text-[#f56b2a] shrink-0" />
+                <Flame size={14} className="text-brand shrink-0" />
                 <span>Pour les commerçants qui veulent avoir l&apos;esprit tranquille</span>
               </div>
 
               <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-4 tracking-tight">
                 Fini le cahier et les erreurs de caisse.
-                <span className="text-[#f56b2a] block mt-1">
+                <span className="text-brand block mt-1">
                   Vendez en boutique et en ligne sans prise de tête.
                 </span>
               </h1>
@@ -123,7 +123,7 @@ export default function BeOpenClient() {
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 mb-6 sm:mb-8">
                 <Link
                   href="/subscription"
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#f56b2a] hover:bg-[#e05a1d] active:scale-[0.98] text-white font-semibold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-brand hover:bg-[#e05a1d] active:scale-[0.98] text-white font-semibold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                 >
                   <span>Démarrer avec ma boutique</span>
                   <ArrowRight size={16} />
@@ -146,7 +146,7 @@ export default function BeOpenClient() {
                   <span className="text-[10px] sm:text-xs text-slate-500">Et livraison</span>
                 </div>
                 <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-center shadow-xs">
-                  <span className="text-[#f56b2a] block font-semibold text-xs sm:text-sm">Zéro machine</span>
+                  <span className="text-brand block font-semibold text-xs sm:text-sm">Zéro machine</span>
                   <span className="text-[10px] sm:text-xs text-slate-500">Votre téléphone</span>
                 </div>
                 <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-center shadow-xs">
@@ -197,7 +197,7 @@ export default function BeOpenClient() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
-            <span className="text-xs font-semibold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
+            <span className="text-xs font-semibold text-brand bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
               Ce que PosMarket fait pour votre quotidien
             </span>
             <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 mt-4 mb-2 tracking-tight">
@@ -213,7 +213,7 @@ export default function BeOpenClient() {
             {/* Feature 1 : Caisse Tactile & Reçus WhatsApp */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               <div className="lg:col-span-6 order-2 lg:order-1">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#f56b2a] flex items-center justify-center mb-3 sm:mb-4 font-semibold">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 text-brand flex items-center justify-center mb-3 sm:mb-4 font-semibold">
                   <Zap size={20} />
                 </div>
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2 sm:mb-3">
@@ -348,7 +348,7 @@ export default function BeOpenClient() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
-            <span className="text-xs font-semibold text-[#f56b2a] bg-orange-100 border border-orange-200 px-3.5 py-1.5 rounded-full">
+            <span className="text-xs font-semibold text-brand bg-orange-100 border border-orange-200 px-3.5 py-1.5 rounded-full">
               Toutes les fonctionnalités expliquées simplement
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mt-4 mb-2 tracking-tight">
@@ -363,7 +363,7 @@ export default function BeOpenClient() {
             
             {/* 1. Caisse tactile */}
             <div className="bg-white p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs hover:border-orange-200 hover:shadow-md transition-all">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#f56b2a] flex items-center justify-center mb-3 sm:mb-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 text-brand flex items-center justify-center mb-3 sm:mb-4">
                 <Zap size={20} />
               </div>
               <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1.5 sm:mb-2">
@@ -487,7 +487,7 @@ export default function BeOpenClient() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-            <span className="text-xs font-semibold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
+            <span className="text-xs font-semibold text-brand bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full">
               Cas d&apos;étude en conditions réelles
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mt-4 mb-2 tracking-tight">
@@ -504,7 +504,7 @@ export default function BeOpenClient() {
                 onClick={() => setTimelineTab('seller')}
                 className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
                   timelineTab === 'seller'
-                    ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-500/20'
+                    ? 'bg-brand text-white shadow-md shadow-orange-500/20'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
@@ -516,7 +516,7 @@ export default function BeOpenClient() {
                 onClick={() => setTimelineTab('customer')}
                 className={`py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
                   timelineTab === 'customer'
-                    ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-500/20'
+                    ? 'bg-brand text-white shadow-md shadow-orange-500/20'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
@@ -532,12 +532,12 @@ export default function BeOpenClient() {
               
               {/* Étape 1 : 07h30 */}
               <div className="relative">
-                <div className="absolute -left-[31px] sm:-left-[43px] top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#f56b2a] text-white flex items-center justify-center font-semibold text-xs shadow-xs ring-4 ring-white">
+                <div className="absolute -left-[31px] sm:-left-[43px] top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand text-white flex items-center justify-center font-semibold text-xs shadow-xs ring-4 ring-white">
                   <Sun size={13} />
                 </div>
                 <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-semibold text-[#f56b2a]">07h30 • Ouverture de la boutique</span>
+                    <span className="text-xs font-semibold text-brand">07h30 • Ouverture de la boutique</span>
                     <span className="text-[10px] font-medium text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">Magasin</span>
                   </div>
                   <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-1">
@@ -653,12 +653,12 @@ export default function BeOpenClient() {
 
               {/* Étape 2 : Sélection */}
               <div className="relative">
-                <div className="absolute -left-[31px] sm:-left-[43px] top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#f56b2a] text-white flex items-center justify-center font-semibold text-xs shadow-xs ring-4 ring-white">
+                <div className="absolute -left-[31px] sm:-left-[43px] top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand text-white flex items-center justify-center font-semibold text-xs shadow-xs ring-4 ring-white">
                   <ShoppingBag size={13} />
                 </div>
                 <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-semibold text-[#f56b2a]">Étape 2 • Choix des articles et remises</span>
+                    <span className="text-xs font-semibold text-brand">Étape 2 • Choix des articles et remises</span>
                     <span className="text-[10px] font-medium text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">Panier</span>
                   </div>
                   <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-1">
@@ -785,7 +785,7 @@ export default function BeOpenClient() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-            <span className="text-xs font-semibold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
+            <span className="text-xs font-semibold text-brand bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
               Tarification simple
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-3 mb-2 tracking-tight">
@@ -803,7 +803,7 @@ export default function BeOpenClient() {
                   onClick={() => setDuration(d)}
                   className={`py-2 px-1 sm:px-3 rounded-xl text-[11px] sm:text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
                     duration === d
-                      ? 'bg-[#f56b2a] text-white shadow-sm'
+                      ? 'bg-brand text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -857,9 +857,9 @@ export default function BeOpenClient() {
             </div>
 
             {/* PRO (Populaire) */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border-2 border-[#f56b2a] flex flex-col justify-between relative shadow-xl shadow-orange-500/10 md:scale-[1.02]">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#f56b2a] text-white text-[10px] font-semibold px-3 py-0.5 rounded-full shadow-xs">
-                ⭐ Le plus choisi
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border-2 border-brand flex flex-col justify-between relative shadow-xl shadow-orange-500/10 md:scale-[1.02]">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-[10px] font-semibold px-3 py-0.5 rounded-full shadow-xs">
+                Le plus choisi
               </div>
 
               <div>
@@ -885,7 +885,7 @@ export default function BeOpenClient() {
                 </div>
 
                 <ul className="space-y-2.5 text-xs text-slate-800 mb-6 border-t border-slate-100 pt-4 font-medium">
-                  <li className="flex items-center gap-2 text-orange-600"><Check size={15} className="text-[#f56b2a] shrink-0" /> Boutique en ligne ouverte 24h sur 24</li>
+                  <li className="flex items-center gap-2 text-orange-600"><Check size={15} className="text-brand shrink-0" /> Boutique en ligne ouverte 24h sur 24</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600 shrink-0" /> Jusqu&apos;à 3 boutiques connectées</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600 shrink-0" /> Jusqu&apos;à 500 articles</li>
                   <li className="flex items-center gap-2"><Check size={15} className="text-emerald-600 shrink-0" /> Paiements Mobile Money et à la livraison</li>
@@ -896,7 +896,7 @@ export default function BeOpenClient() {
 
               <Link
                 href={duration === 'monthly' ? '/subscription' : whatsappLink('PRO')}
-                className="w-full py-3.5 px-4 rounded-xl bg-[#f56b2a] hover:bg-[#e05a1d] active:scale-[0.98] text-white font-semibold text-xs text-center shadow-md shadow-orange-500/25 transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
+                className="w-full py-3.5 px-4 rounded-xl bg-brand hover:bg-[#e05a1d] active:scale-[0.98] text-white font-semibold text-xs text-center shadow-md shadow-orange-500/25 transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
               >
                 <span>{duration === 'monthly' ? 'Passer à Pro' : 'Contacter sur WhatsApp'}</span>
                 <ArrowRight size={14} />
@@ -952,7 +952,7 @@ export default function BeOpenClient() {
       <section id="faq" className="py-12 sm:py-18 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-10">
-            <span className="text-xs font-semibold text-[#f56b2a] bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
+            <span className="text-xs font-semibold text-brand bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
               Foire aux questions
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-3 mb-2">
@@ -1004,12 +1004,12 @@ export default function BeOpenClient() {
                 <button
                   type="button"
                   onClick={() => toggleFaq(idx)}
-                  className="w-full p-4 sm:p-5 text-left font-semibold text-xs sm:text-sm text-slate-900 flex items-center justify-between gap-3 cursor-pointer hover:text-[#f56b2a] transition-colors"
+                  className="w-full p-4 sm:p-5 text-left font-semibold text-xs sm:text-sm text-slate-900 flex items-center justify-between gap-3 cursor-pointer hover:text-brand transition-colors"
                 >
                   <span>{item.q}</span>
                   <ChevronDown
                     size={16}
-                    className={`shrink-0 text-slate-400 transition-transform ${openFaq === idx ? 'rotate-180 text-[#f56b2a]' : ''}`}
+                    className={`shrink-0 text-slate-400 transition-transform ${openFaq === idx ? 'rotate-180 text-brand' : ''}`}
                   />
                 </button>
                 {openFaq === idx && (
@@ -1031,7 +1031,7 @@ export default function BeOpenClient() {
         </div>
         <Link
           href="/subscription"
-          className="flex-1 max-w-[190px] py-2.5 px-4 rounded-xl bg-[#f56b2a] active:scale-[0.98] text-white font-semibold text-xs text-center shadow-md shadow-orange-500/25 flex items-center justify-center gap-1.5 min-h-[42px]"
+          className="flex-1 max-w-[190px] py-2.5 px-4 rounded-xl bg-brand active:scale-[0.98] text-white font-semibold text-xs text-center shadow-md shadow-orange-500/25 flex items-center justify-center gap-1.5 min-h-[42px]"
         >
           <span>Démarrer</span>
           <ArrowRight size={14} />
@@ -1042,7 +1042,7 @@ export default function BeOpenClient() {
       <footer className="bg-slate-900 text-slate-400 py-10 text-xs text-center">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Store size={16} className="text-[#f56b2a]" />
+            <Store size={16} className="text-brand" />
             <span className="font-semibold text-white">PosMarket</span>
             <span>&copy; {new Date().getFullYear()}</span>
           </div>

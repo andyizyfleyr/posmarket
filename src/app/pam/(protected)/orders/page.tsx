@@ -129,7 +129,7 @@ export default function AdminOrdersPage() {
                 className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#f56b2a] border border-gray-100 shadow-sm">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-brand border border-gray-100 shadow-sm">
                     <Wallet size={18} />
                   </div>
                   <div>
@@ -146,7 +146,7 @@ export default function AdminOrdersPage() {
                   <p className="text-xs font-bold text-gray-900">{formatCurrency(parseFloat(o.total ?? '') || 0)}</p>
                   {statusBadge(o.status)}
                 </div>
-                <Eye size={16} className="text-gray-300 group-hover:text-[#f56b2a] transition-colors" />
+                <Eye size={16} className="text-gray-300 group-hover:text-brand transition-colors" />
               </Link>
             );
           })}

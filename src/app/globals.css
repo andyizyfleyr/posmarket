@@ -1,10 +1,37 @@
 @import "tailwindcss";
+@plugin "tw-animate-css";
 
 @theme inline {
   --color-background: #f3f4f6;
   --color-foreground: #171717;
   --font-sans: 'Inter', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Marque */
+  --color-brand: var(--color-brand);
+  --color-brand-hover: #e55a1b;
+  --color-brand-soft: #fff3ed;
+  --color-brand-tint: #fde4d7;
+
+  /* Encre (texte sombre institutionnel) */
+  --color-ink: #002f34;
+
+  /* Surfaces et bordures */
+  --color-line: #eef0f2;
+  --color-line-strong: #e2e5e9;
+
+  /* Rayons */
+  --radius-card: 1.5rem;
+  --radius-panel: 2rem;
+
+  /* Barème d'empilement (remplace les z-[99999] à la volée) */
+  --z-header: 400;
+  --z-nav: 800;
+  --z-overlay: 900;
+  --z-modal: 1000;
+  --z-drawer: 1100;
+  --z-toast: 1200;
+  --z-tooltip: 1300;
 }
 
 html {
@@ -106,41 +133,61 @@ button, a, [role="button"], input, select, textarea {
 }
 
 @keyframes pulse-orange {
-    0% { box-shadow: 0 0 0 0 rgba(245, 107, 42, 0.4); }
-    70% { box-shadow: 0 0 0 15px rgba(245, 107, 42, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(245, 107, 42, 0); }
+    0% { box-shadow: 0 0 0 0 rgb(from var(--color-brand) r g b / 0.4); }
+    70% { box-shadow: 0 0 0 15px rgb(from var(--color-brand) r g b / 0); }
+    100% { box-shadow: 0 0 0 0 rgb(from var(--color-brand) r g b / 0); }
 }
 .animate-pulse-orange {
     animation: pulse-orange 2s infinite;
 }
 
-/* Global Form Styles - Premium Refinement */
-input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.no-global-border), 
-textarea:not(.no-global-border), 
-select:not(.no-global-border) {
-    border: 1.5px solid rgba(245, 107, 42, 0.2) !important;
-    border-radius: 14px !important;
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    transition: all 0.3s ease !important;
-    background-color: #ffffff !important;
-    font-weight: 500 !important;
-}
+/* Base form styles.
+   Placé dans @layer base (et sans !important) pour que les utilitaires Tailwind
+   de composants (border-red-200, rounded-xl, bg-gray-50...) restent prioritaires. */
+@layer base {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.no-global-border),
+    textarea:not(.no-global-border),
+    select:not(.no-global-border) {
+        border: 1.5px solid rgb(from var(--color-brand) r g b / 0.2);
+        border-radius: 14px;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        background-color: #ffffff;
+        font-weight: 500;
+    }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.no-global-border):focus, 
-textarea:not(.no-global-border):focus, 
-select:not(.no-global-border):focus {
-    outline: none !important;
-    border-color: #f56b2a !important;
-    box-shadow: 0 0 0 4px rgba(245, 107, 42, 0.08) !important;
-    background-color: #ffffff !important;
-}
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.no-global-border):hover,
+    textarea:not(.no-global-border):hover,
+    select:not(.no-global-border):hover {
+        border-color: rgb(from var(--color-brand) r g b / 0.5);
+    }
 
-/* Hover state for better interactivity */
-input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.no-global-border):hover, 
-textarea:not(.no-global-border):hover, 
-select:not(.no-global-border):hover {
-    border-color: rgba(245, 107, 42, 0.5) !important;
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.no-global-border):focus,
+    textarea:not(.no-global-border):focus,
+    select:not(.no-global-border):focus {
+        outline: none;
+        border-color: var(--color-brand);
+        box-shadow: 0 0 0 4px rgb(from var(--color-brand) r g b / 0.08);
+        background-color: #ffffff;
+    }
+
+    button {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Feedback de pression par défaut. Un `active:scale-*` Tailwind prend le dessus. */
+    button:active:not(:disabled),
+    .cursor-pointer:active,
+    .active-press:active {
+        transform: scale(0.96);
+    }
+
+    button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        filter: grayscale(0.5);
+    }
 }
 
 /* (iOS zoom prevention moved to mobile section at bottom of file) */
@@ -259,23 +306,6 @@ input[type="date"]::-webkit-clear-button {
     display: none;
     -webkit-appearance: none;
 }
-/* Premium Button & Interactive Feedback */
-button {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-button:active:not(:disabled),
-.cursor-pointer:active,
-.active-press:active {
-    transform: scale(0.96) !important;
-}
-
-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-    filter: grayscale(0.5);
-}
-
 /* Smooth page transitions support */
 .page-transition-enter {
     opacity: 0;
@@ -298,18 +328,18 @@ button:disabled {
 
 /* Glow effects for active elements */
 .active-glow-orange {
-    box-shadow: 0 0 20px rgba(245, 107, 42, 0.3);
+    box-shadow: 0 0 20px rgb(from var(--color-brand) r g b / 0.3);
 }
 
 /* Improved NextTopLoader visibility */
 #nprogress .bar {
     height: 4px !important;
-    background: #f56b2a !important;
-    box-shadow: 0 0 15px #f56b2a, 0 0 5px #f56b2a !important;
+    background: var(--color-brand) !important;
+    box-shadow: 0 0 15px var(--color-brand), 0 0 5px var(--color-brand) !important;
 }
 
 #nprogress .peg {
-    box-shadow: 0 0 15px #f56b2a, 0 0 8px #f56b2a !important;
+    box-shadow: 0 0 15px var(--color-brand), 0 0 8px var(--color-brand) !important;
 }
 
 /* 📊 Dashboard Chart Animations - Shopify Polaris Style */
@@ -408,8 +438,8 @@ button:disabled {
 
 /* Floating action button pulse (gentler than bounce) */
 @keyframes fab-pulse {
-    0%, 100% { box-shadow: 0 4px 20px rgba(245, 107, 42, 0.3); }
-    50% { box-shadow: 0 4px 30px rgba(245, 107, 42, 0.5); }
+    0%, 100% { box-shadow: 0 4px 20px rgb(from var(--color-brand) r g b / 0.3); }
+    50% { box-shadow: 0 4px 30px rgb(from var(--color-brand) r g b / 0.5); }
 }
 .fab-pulse {
     animation: fab-pulse 2s ease-in-out infinite;
@@ -455,6 +485,18 @@ button:disabled {
     }
     button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
         touch-action: manipulation;
+    }
+}
+
+/* Respect des préférences système : on coupe animations et transitions non essentielles. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
 

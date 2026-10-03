@@ -20,7 +20,7 @@ const Toast: React.FC<ToastProps> = memo(({ notification, onRemove }) => {
         success: <CheckCircle className="text-emerald-500" size={24} />,
         error: <XCircle className="text-rose-500" size={24} />,
         warning: <AlertCircle className="text-amber-500" size={24} />,
-        info: <Info className="text-[#f56b2a]" size={24} />,
+        info: <Info className="text-brand" size={24} />,
     };
 
     const bgColors = {

@@ -67,12 +67,12 @@ export const AuthView: React.FC<AuthViewProps> = ({ notify }) => {
                 <div className="max-w-[400px] w-full mx-auto lg:mx-0">
                     {/* Header Logo for Mobile */}
                     <div className="mb-10 lg:hidden text-center">
-                        <h1 className="text-3xl font-bold tracking-tight text-[#002f34]">
-                            lebon<span className="text-[#f56b2a]">coin</span>
+                        <h1 className="text-3xl font-bold tracking-tight text-ink">
+                            lebon<span className="text-brand">coin</span>
                         </h1>
                     </div>
 
-                    <h1 className="text-[28px] md:text-[34px] font-bold text-[#002f34] leading-tight mb-12">
+                    <h1 className="text-[28px] md:text-[34px] font-bold text-ink leading-tight mb-12">
                         {isLogin ? 'Connectez-vous' : 'Créez votre compte'}
                     </h1>
 
@@ -105,7 +105,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ notify }) => {
 
                             {!isLogin && (
                                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                    <label className="text-sm font-normal text-[#002f34]">
+                                    <label className="text-sm font-normal text-ink">
                                         Nom complet *
                                     </label>
                                     <input
@@ -113,13 +113,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ notify }) => {
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-normal text-sm"
+                                        className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-ink font-normal text-sm"
                                     />
                                 </div>
                             )}
 
                             <div className="space-y-2">
-                                <label className="text-sm font-normal text-[#002f34]">
+                                <label className="text-sm font-normal text-ink">
                                     E-mail *
                                 </label>
                                 <input
@@ -127,7 +127,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ notify }) => {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a] transition-all text-[#002f34] font-normal text-sm"
+                                    className="w-full px-4 py-3 border border-[#8c8c8c] rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-ink font-normal text-sm"
                                 />
                             </div>
 
@@ -146,7 +146,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ notify }) => {
                     )}
 
                     {!sentEmail && (
-                    <div className="mt-6 text-center text-[#002f34]">
+                    <div className="mt-6 text-center text-ink">
                         <p className="text-sm font-normal">
                             {isLogin ? "Vous n'avez pas encore de compte ?" : "Vous avez déjà un compte ?"}
                             <button

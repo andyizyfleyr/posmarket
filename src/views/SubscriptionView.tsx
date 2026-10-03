@@ -86,7 +86,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
     const planIcons: Record<string, { Icon: React.ComponentType<{ size?: number; className?: string }>; colorClass: string; bgClass: string }> = {
         'STARTER': { Icon: Star, colorClass: 'text-green-600', bgClass: 'bg-green-50' },
-        'PRO': { Icon: Award, colorClass: 'text-[#f56b2a]', bgClass: 'bg-orange-50' },
+        'PRO': { Icon: Award, colorClass: 'text-brand', bgClass: 'bg-orange-50' },
         'ENTERPRISE': { Icon: Zap, colorClass: 'text-purple-600', bgClass: 'bg-purple-50' }
     };
 
@@ -160,7 +160,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
                 {isSeller && (
                     <div className="mt-6 bg-orange-50 border border-orange-100 p-4 md:p-5 rounded-2xl flex items-center gap-3 max-w-md mx-auto">
-                        <Users size={20} className="text-[#f56b2a] shrink-0" />
+                        <Users size={20} className="text-brand shrink-0" />
                         <p className="text-xs md:text-sm text-slate-600 text-left">
                             En tant que vendeur, l&apos;abonnement est géré par le propriétaire de la boutique.
                         </p>
@@ -181,7 +181,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                             onClick={() => setDuration(d.value)}
                             className={`px-3 py-1.5 md:px-5 md:py-2 rounded-lg font-semibold text-[11px] md:text-sm transition-all whitespace-nowrap relative ${
                                 duration === d.value
-                                    ? 'bg-[#f56b2a] text-white shadow-md'
+                                    ? 'bg-brand text-white shadow-md'
                                     : 'text-slate-500 hover:bg-slate-50'
                             }`}
                         >
@@ -212,13 +212,13 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                             key={plan.tier}
                             className={`bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col relative transition-all duration-300 ${
                                 isCurrent && !isExpired
-                                    ? 'ring-2 ring-[#f56b2a] shadow-lg shadow-orange-100/30'
+                                    ? 'ring-2 ring-brand shadow-lg shadow-orange-100/30'
                                     : 'border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1'
                             }`}
                         >
                             {/* Badges */}
                             {isCurrent && !isExpired && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#f56b2a] text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
                                     Actuel
                                 </div>
                             )}
@@ -305,7 +305,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                             ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
                                             : isDowngrade
                                                 ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                : 'bg-[#f56b2a] text-white hover:bg-[#d55a20] hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]'
+                                                : 'bg-brand text-white hover:bg-[#d55a20] hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]'
                                 }`}
                             >
                                 {loading === plan.tier ? (

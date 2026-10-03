@@ -224,11 +224,14 @@ export function useBuyerData(
       if (res?.success) {
         notifyRef.current?.('Adresse supprimée', 'info');
         await reloadTab('addresses');
-      } else if (res?.error === 'Unauthorized') {
+        return true;
+      }
+      if (res?.error === 'Unauthorized') {
         notifyRef.current?.('Session expirée, veuillez vous reconnecter.', 'info', 'Connexion');
       } else {
         notifyRef.current?.(res?.error || 'Erreur lors de la suppression de l\'adresse.', 'error');
       }
+      return false;
     },
     [reloadTab],
   );

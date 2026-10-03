@@ -188,7 +188,7 @@ export default function ImportProductsModal({
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-br from-gray-50 via-white to-orange-50/20">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-[#f56b2a]/10 text-[#f56b2a] rounded-2xl">
+            <div className="p-3 bg-brand/10 text-brand rounded-2xl">
               <Upload size={24} />
             </div>
             <div>
@@ -225,7 +225,7 @@ export default function ImportProductsModal({
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 hover:border-[#f56b2a] hover:bg-orange-50/20 rounded-3xl p-8 md:p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-4 bg-gray-50/50 group"
+                className="border-2 border-dashed border-gray-300 hover:border-brand hover:bg-orange-50/20 rounded-3xl p-8 md:p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-4 bg-gray-50/50 group"
               >
                 <input
                   type="file"
@@ -234,11 +234,11 @@ export default function ImportProductsModal({
                   accept=".csv,.json,text/csv,application/json"
                   className="hidden"
                 />
-                <div className="w-16 h-16 rounded-2xl bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-[#f56b2a] group-hover:scale-110 transition-all">
+                <div className="w-16 h-16 rounded-2xl bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-brand group-hover:scale-110 transition-all">
                   <Upload size={30} />
                 </div>
                 <div>
-                  <p className="text-sm md:text-base font-bold text-gray-800 group-hover:text-[#f56b2a] transition-colors">
+                  <p className="text-sm md:text-base font-bold text-gray-800 group-hover:text-brand transition-colors">
                     Glissez votre fichier ici ou cliquez pour parcourir
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
@@ -250,7 +250,7 @@ export default function ImportProductsModal({
               {/* Template Helpers */}
               <div className="bg-orange-50/40 border border-orange-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <FileSpreadsheet size={20} className="text-[#f56b2a] flex-shrink-0" />
+                  <FileSpreadsheet size={20} className="text-brand flex-shrink-0" />
                   <div>
                     <span className="text-xs font-bold text-gray-900 block">
                       Besoin d&apos;un modèle pour vos fichiers Excel ?
@@ -271,7 +271,7 @@ export default function ImportProductsModal({
                   <button
                     type="button"
                     onClick={handleDownloadExample}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-[#f56b2a] hover:bg-[#d55a20] rounded-xl text-xs font-bold text-white shadow-sm transition-all"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-brand hover:bg-[#d55a20] rounded-xl text-xs font-bold text-white shadow-sm transition-all"
                   >
                     <Sparkles size={14} /> Exemple complet
                   </button>
@@ -303,7 +303,7 @@ export default function ImportProductsModal({
               <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-white border border-gray-200 rounded-xl">
-                    {fileType === 'json' ? <FileCode size={20} className="text-[#f56b2a]" /> : <FileSpreadsheet size={20} className="text-blue-600" />}
+                    {fileType === 'json' ? <FileCode size={20} className="text-brand" /> : <FileSpreadsheet size={20} className="text-blue-600" />}
                   </div>
                   <div>
                     <span className="text-xs font-bold text-gray-900 block truncate max-w-[220px]">
@@ -432,7 +432,7 @@ export default function ImportProductsModal({
                         key={opt.id}
                         className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col ${
                           duplicateStrategy === opt.id
-                            ? 'border-[#f56b2a] bg-orange-50/20'
+                            ? 'border-brand bg-orange-50/20'
                             : 'border-gray-100 hover:border-gray-200 bg-white'
                         }`}
                       >
@@ -443,7 +443,7 @@ export default function ImportProductsModal({
                             value={opt.id}
                             checked={duplicateStrategy === opt.id}
                             onChange={() => setDuplicateStrategy(opt.id as 'skip' | 'update' | 'create_new')}
-                            className="text-[#f56b2a] focus:ring-[#f56b2a]"
+                            className="text-brand focus:ring-brand"
                           />
                           <span className="text-xs font-bold text-gray-900">{opt.label}</span>
                         </div>
@@ -467,7 +467,7 @@ export default function ImportProductsModal({
                     type="checkbox"
                     checked={resetStock}
                     onChange={(e) => setResetStock(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#f56b2a] focus:ring-[#f56b2a] border-gray-300"
+                    className="w-4 h-4 rounded text-brand focus:ring-brand border-gray-300"
                   />
                 </div>
 
@@ -488,7 +488,7 @@ export default function ImportProductsModal({
                         onClick={() => setForceOnlineStatus(v.id as 'keep' | 'online' | 'pos')}
                         className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
                           forceOnlineStatus === v.id
-                            ? 'border-[#f56b2a] bg-[#f56b2a] text-white shadow-sm'
+                            ? 'border-brand bg-brand text-white shadow-sm'
                             : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                       >
@@ -504,8 +504,8 @@ export default function ImportProductsModal({
           {/* STEP 3: Importing loader */}
           {step === 'importing' && (
             <div className="py-12 flex flex-col items-center justify-center text-center gap-4">
-              <div className="p-4 bg-orange-50 text-[#f56b2a] rounded-full animate-bounce">
-                <Loader2 size={36} className="animate-spin text-[#f56b2a]" />
+              <div className="p-4 bg-orange-50 text-brand rounded-full animate-bounce">
+                <Loader2 size={36} className="animate-spin text-brand" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900">
@@ -581,7 +581,7 @@ export default function ImportProductsModal({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#f56b2a] hover:bg-[#d55a20] rounded-xl text-xs md:text-sm font-bold text-white shadow-md shadow-orange-100 transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-brand hover:bg-[#d55a20] rounded-xl text-xs md:text-sm font-bold text-white shadow-md shadow-orange-100 transition-all"
               >
                 <Upload size={16} /> Choisir un fichier
               </button>
@@ -601,7 +601,7 @@ export default function ImportProductsModal({
                 type="button"
                 disabled={isProcessing || !parseResult || parseResult.valid.length === 0}
                 onClick={handleConfirmImport}
-                className="flex items-center gap-2 px-6 py-3 bg-[#f56b2a] hover:bg-[#d55a20] rounded-2xl text-xs md:text-sm font-bold text-white shadow-lg shadow-orange-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 bg-brand hover:bg-[#d55a20] rounded-2xl text-xs md:text-sm font-bold text-white shadow-lg shadow-orange-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={16} /> Importer {parseResult?.valid.length} produit{(parseResult?.valid.length || 0) > 1 ? 's' : ''}
               </button>

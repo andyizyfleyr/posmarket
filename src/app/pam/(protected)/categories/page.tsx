@@ -76,7 +76,7 @@ function CategoryIcon({ businessType, size = 20 }: { businessType: string; size?
   return businessType === 'food' ? (
     <UtensilsCrossed size={size} className="text-emerald-600" />
   ) : (
-    <ShoppingBag size={size} className="text-[#f56b2a]" />
+    <ShoppingBag size={size} className="text-brand" />
   );
 }
 
@@ -455,7 +455,7 @@ export default function AdminCategoriesPage() {
         </div>
         <button
           onClick={openCreate}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#f56b2a] to-orange-600 text-white text-sm font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-md active:scale-95 self-start"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-brand to-orange-600 text-white text-sm font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-md active:scale-95 self-start"
         >
           <Plus size={16} /> Nouvelle catégorie
         </button>
@@ -471,7 +471,7 @@ export default function AdminCategoriesPage() {
             placeholder="Rechercher une catégorie ou une sous-catégorie…  ( / )"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] placeholder:text-gray-400 text-sm font-normal text-gray-900 shadow-sm transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand placeholder:text-gray-400 text-sm font-normal text-gray-900 shadow-sm transition-all"
           />
         </div>
         <select
@@ -531,7 +531,7 @@ export default function AdminCategoriesPage() {
           </p>
           <button
             onClick={openCreate}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#f56b2a] hover:bg-[#d55a20] text-white text-sm font-bold transition-all active:scale-95"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-brand hover:bg-[#d55a20] text-white text-sm font-bold transition-all active:scale-95"
           >
             <Plus size={16} /> Créer une catégorie
           </button>
@@ -582,7 +582,7 @@ export default function AdminCategoriesPage() {
                         </span>
                         <span
                           className={`text-sm font-bold truncate flex-1 ${
-                            parent.isActive ? (isSelected ? 'text-[#f56b2a]' : 'text-gray-900') : 'text-gray-400'
+                            parent.isActive ? (isSelected ? 'text-brand' : 'text-gray-900') : 'text-gray-400'
                           }`}
                         >
                           {parent.name}
@@ -590,7 +590,7 @@ export default function AdminCategoriesPage() {
                         <span className="text-[11px] font-bold text-gray-400 tabular-nums shrink-0">
                           {parent.children.length}
                         </span>
-                        {isSelected && <ChevronRight size={15} className="text-[#f56b2a] shrink-0" />}
+                        {isSelected && <ChevronRight size={15} className="text-brand shrink-0" />}
                       </div>
                       <div className="flex items-center gap-2 mt-1 pl-10 text-[11px] text-gray-400">
                         <span className="font-semibold">{countLabel(total)}</span>
@@ -609,7 +609,7 @@ export default function AdminCategoriesPage() {
                               setSelectedId(parent.id);
                               setInline(null);
                             }}
-                            className="w-full text-left pl-11 pr-4 py-2 text-xs text-gray-600 hover:bg-white hover:text-[#f56b2a] transition-colors flex items-center gap-2"
+                            className="w-full text-left pl-11 pr-4 py-2 text-xs text-gray-600 hover:bg-white hover:text-brand transition-colors flex items-center gap-2"
                           >
                             <Layers size={12} className="text-gray-300 shrink-0" />
                             <span className="truncate font-semibold">{child.name}</span>
@@ -663,7 +663,7 @@ export default function AdminCategoriesPage() {
                             }
                             if (e.key === 'Escape') setInline(null);
                           }}
-                          className="w-full px-3 py-2 bg-white border-2 border-[#f56b2a] rounded-xl text-base font-bold outline-none"
+                          className="w-full px-3 py-2 bg-white border-2 border-brand rounded-xl text-base font-bold outline-none"
                         />
                         <InlineImpact
                           edit={inline}
@@ -683,7 +683,7 @@ export default function AdminCategoriesPage() {
                           </h2>
                           <button
                             onClick={() => startInline(selected)}
-                            className="p-1 text-gray-300 hover:text-[#f56b2a] transition-colors"
+                            className="p-1 text-gray-300 hover:text-brand transition-colors"
                             title="Renommer (Entrée pour valider)"
                           >
                             <PencilLine size={15} />
@@ -692,7 +692,7 @@ export default function AdminCategoriesPage() {
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                               selected.businessType === 'food'
                                 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                                : 'bg-orange-50 text-[#f56b2a] ring-1 ring-orange-200'
+                                : 'bg-orange-50 text-brand ring-1 ring-orange-200'
                             }`}
                           >
                             <CategoryIcon businessType={selected.businessType} size={11} />
@@ -702,7 +702,7 @@ export default function AdminCategoriesPage() {
                         <p className="text-sm text-gray-400 font-mono mt-0.5 truncate">/{selected.slug}</p>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[13px] text-gray-500">
                           <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
-                            <Package size={14} className="text-[#f56b2a]" />
+                            <Package size={14} className="text-brand" />
                             {countLabel(selectedTotalProducts)}
                           </span>
                           <span className="inline-flex items-center gap-1.5">
@@ -844,7 +844,7 @@ export default function AdminCategoriesPage() {
                                     }
                                     if (e.key === 'Escape') setInline(null);
                                   }}
-                                  className="w-full px-3 py-2 bg-white border-2 border-[#f56b2a] rounded-xl text-sm font-bold outline-none"
+                                  className="w-full px-3 py-2 bg-white border-2 border-brand rounded-xl text-sm font-bold outline-none"
                                 />
                                 <InlineImpact
                                   edit={inline}
@@ -873,7 +873,7 @@ export default function AdminCategoriesPage() {
                                   <span
                                     className={`text-sm font-bold truncate ${
                                       child.isActive
-                                        ? 'text-gray-900 group-hover/name:text-[#f56b2a]'
+                                        ? 'text-gray-900 group-hover/name:text-brand'
                                         : 'text-gray-400 line-through'
                                     }`}
                                   >
@@ -892,7 +892,7 @@ export default function AdminCategoriesPage() {
                                 <span
                                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
                                     child.productCount > 0
-                                      ? 'bg-orange-50 text-[#f56b2a] ring-1 ring-orange-200'
+                                      ? 'bg-orange-50 text-brand ring-1 ring-orange-200'
                                       : 'bg-gray-50 text-gray-400 ring-1 ring-gray-200'
                                   }`}
                                 >
@@ -959,12 +959,12 @@ export default function AdminCategoriesPage() {
                           if (e.key === 'Escape') setNewChild(null);
                         }}
                         placeholder="Nom de la nouvelle sous-catégorie"
-                        className="flex-1 px-3 py-2.5 bg-white border-2 border-[#f56b2a] rounded-xl text-sm font-semibold outline-none"
+                        className="flex-1 px-3 py-2.5 bg-white border-2 border-brand rounded-xl text-sm font-semibold outline-none"
                       />
                       <button
                         onClick={submitNewChild}
                         disabled={newChild.saving}
-                        className="p-2.5 rounded-xl bg-[#f56b2a] text-white hover:bg-[#d55a20] transition-colors disabled:opacity-60"
+                        className="p-2.5 rounded-xl bg-brand text-white hover:bg-[#d55a20] transition-colors disabled:opacity-60"
                         title="Valider (Entrée)"
                       >
                         {newChild.saving ? <Loader2 size={16} className="animate-spin" /> : <CornerDownLeft size={16} />}
@@ -979,7 +979,7 @@ export default function AdminCategoriesPage() {
                   ) : (
                     <button
                       onClick={() => setNewChild({ value: '', saving: false })}
-                      className="inline-flex items-center gap-1.5 text-sm font-bold text-[#f56b2a] hover:text-[#d55a20] transition-colors"
+                      className="inline-flex items-center gap-1.5 text-sm font-bold text-brand hover:text-[#d55a20] transition-colors"
                     >
                       <Plus size={15} /> Ajouter une sous-catégorie
                     </button>
@@ -1006,7 +1006,7 @@ export default function AdminCategoriesPage() {
             <div className="p-6 md:p-8 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                  {draft.parentId ? <Layers size={19} className="text-[#f56b2a]" /> : <Tags size={19} className="text-[#f56b2a]" />}
+                  {draft.parentId ? <Layers size={19} className="text-brand" /> : <Tags size={19} className="text-brand" />}
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-lg font-bold text-gray-900 tracking-tight">
@@ -1045,7 +1045,7 @@ export default function AdminCategoriesPage() {
                     maxLength={80}
                     value={draft.name}
                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] focus:bg-white outline-none transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:border-brand focus:bg-white outline-none transition-all"
                     placeholder="Ex. Électronique & High-Tech"
                   />
                 </div>
@@ -1095,7 +1095,7 @@ export default function AdminCategoriesPage() {
                   maxLength={40}
                   value={draft.icon}
                   onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] focus:bg-white outline-none transition-all"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-500/20 focus:border-brand focus:bg-white outline-none transition-all"
                   placeholder="Nom d'icône lucide, ex. Smartphone"
                 />
               </div>
@@ -1132,7 +1132,7 @@ export default function AdminCategoriesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-md disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-md disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                   {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -1303,7 +1303,7 @@ function IconAction({
       className={`p-2 rounded-lg transition-all disabled:opacity-25 ${
         danger
           ? 'text-gray-400 hover:text-rose-500 hover:bg-rose-50'
-          : 'text-gray-400 hover:text-[#f56b2a] hover:bg-orange-50'
+          : 'text-gray-400 hover:text-brand hover:bg-orange-50'
       }`}
     >
       {children}

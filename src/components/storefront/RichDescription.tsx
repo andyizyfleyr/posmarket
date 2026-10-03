@@ -19,7 +19,7 @@ function toBgClass(accentClass: string): string {
 
 export function RichDescription({
   text,
-  accentClass = "text-[#f56b2a]",
+  accentClass = "text-brand",
 }: {
   text: string;
   accentClass?: string;
@@ -97,7 +97,7 @@ export function RichDescription({
 
 export function AutoHighlights({
   items,
-  accentClass = "text-[#f56b2a]",
+  accentClass = "text-brand",
   className = "",
 }: {
   items: string[];

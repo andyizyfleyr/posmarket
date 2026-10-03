@@ -96,13 +96,13 @@ export default function ProblemesPage() {
       <div className="flex justify-between pt-4 pb-4">
         <Link
           to="/docs/utilisation/fonctionnalites"
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-brand transition-colors"
         >
           Fonctionnalités
         </Link>
         <Link
           to="/docs/utilisation"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#f56b2a] hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-bold text-brand hover:underline"
         >
           Retour à l&apos;accueil du guide
         </Link>

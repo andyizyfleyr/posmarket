@@ -128,23 +128,23 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6 font-sans">
       <div className="max-w-[440px] w-full text-center space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight text-[#002f34]">
-          lebon<span className="text-[#f56b2a]">coin</span>
+        <h1 className="text-3xl font-bold tracking-tight text-ink">
+          lebon<span className="text-brand">coin</span>
         </h1>
 
         <div className="bg-orange-50 rounded-3xl p-8 space-y-4">
-          <div className="mx-auto w-14 h-14 rounded-full bg-[#f56b2a]/10 flex items-center justify-center">
-            <Icon className="w-7 h-7 text-[#f56b2a]" />
+          <div className="mx-auto w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center">
+            <Icon className="w-7 h-7 text-brand" />
           </div>
-          <h2 className="text-xl font-bold text-[#002f34]">{title}</h2>
-          <p className="text-sm text-[#002f34]/70 leading-relaxed">{message}</p>
+          <h2 className="text-xl font-bold text-ink">{title}</h2>
+          <p className="text-sm text-ink/70 leading-relaxed">{message}</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           {toPam && (
             <Link
               href="/pam/login"
-              className="flex-1 inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold bg-[#f56b2a] text-white rounded-full hover:bg-[#e55a1b] transition-all shadow-md shadow-orange-100"
+              className="flex-1 inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold bg-brand text-white rounded-full hover:bg-[#e55a1b] transition-all shadow-md shadow-orange-100"
             >
               Espace admin
             </Link>
@@ -152,7 +152,7 @@ export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps
           {showLogin && (
             <Link
               href="/login"
-              className="flex-1 inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold bg-[#f56b2a] text-white rounded-full hover:bg-[#e55a1b] transition-all shadow-md shadow-orange-100"
+              className="flex-1 inline-flex items-center justify-center px-6 py-3.5 text-sm font-bold bg-brand text-white rounded-full hover:bg-[#e55a1b] transition-all shadow-md shadow-orange-100"
             >
               Se connecter à nouveau
             </Link>

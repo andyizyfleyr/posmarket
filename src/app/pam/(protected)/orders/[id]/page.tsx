@@ -36,13 +36,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <Link href="/pam/orders" className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
+      <Link href="/pam/orders" className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand transition-colors uppercase tracking-widest">
         <ChevronLeft size={18} /> Transactions
       </Link>
 
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="w-16 h-16 bg-[#f56b2a]/10 rounded-2xl flex items-center justify-center text-[#f56b2a]">
+          <div className="w-16 h-16 bg-brand/10 rounded-2xl flex items-center justify-center text-brand">
             <Wallet size={32} />
           </div>
           <div className="flex-1 min-w-0">
@@ -63,17 +63,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </div>
           <div className="text-right">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
-            <p className="text-3xl font-bold text-[#f56b2a]">{formatCurrency(parseFloat(order.total ?? '') || 0)}</p>
+            <p className="text-3xl font-bold text-brand">{formatCurrency(parseFloat(order.total ?? '') || 0)}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2"><Store size={16} className="text-[#f56b2a]" /> Boutique</h3>
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2"><Store size={16} className="text-brand" /> Boutique</h3>
           {store ? (
             <Link href={`/pam/stores/${store.id}`} className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all">
-              <div className="w-11 h-11 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#f56b2a] font-bold">
+              <div className="w-11 h-11 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-brand font-bold">
                 <Store size={20} />
               </div>
               <div>
@@ -88,7 +88,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">
-            <ShoppingBag size={16} className="text-[#f56b2a]" /> Paiement
+            <ShoppingBag size={16} className="text-brand" /> Paiement
           </h3>
           <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-2">
             <div className="flex items-center justify-between text-xs">
@@ -110,7 +110,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             )}
             <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
               <span className="text-gray-400 font-bold">TOTAL</span>
-              <span className="font-bold text-[#f56b2a]">{formatCurrency(parseFloat(order.total ?? '') || 0)}</span>
+              <span className="font-bold text-brand">{formatCurrency(parseFloat(order.total ?? '') || 0)}</span>
             </div>
           </div>
         </div>
@@ -118,9 +118,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
       {order.buyerEmail && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2"><User size={16} className="text-[#f56b2a]" /> Client (compte)</h3>
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2"><User size={16} className="text-brand" /> Client (compte)</h3>
           <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-            <div className="w-11 h-11 bg-[#f56b2a]/10 text-[#f56b2a] rounded-xl flex items-center justify-center">
+            <div className="w-11 h-11 bg-brand/10 text-brand rounded-xl flex items-center justify-center">
               <Mail size={20} />
             </div>
             <p className="text-sm font-bold text-gray-900 lowercase">{order.buyerEmail}</p>
@@ -130,14 +130,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">
-          <Package size={16} className="text-[#f56b2a]" /> Articles ({items.length})
+          <Package size={16} className="text-brand" /> Articles ({items.length})
         </h3>
         <div className="space-y-3">
           {items.length === 0 && <p className="text-sm text-gray-400 font-semibold py-6 text-center">Aucun article trouvé</p>}
           {items.map((item) => (
             <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white rounded-xl border border-gray-100 flex items-center justify-center text-[#f56b2a] font-bold">
+                <div className="w-10 h-10 bg-white rounded-xl border border-gray-100 flex items-center justify-center text-brand font-bold">
                   <Package size={18} />
                 </div>
                 <div>

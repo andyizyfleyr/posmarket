@@ -114,7 +114,7 @@ export default function AdminInvoicesPage() {
           return (
             <div key={inv.id} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center gap-4">
-                <div className="w-11 h-11 bg-orange-50 rounded-xl flex items-center justify-center text-[#f56b2a] border border-orange-100">
+                <div className="w-11 h-11 bg-orange-50 rounded-xl flex items-center justify-center text-brand border border-orange-100">
                   <FileText size={20} />
                 </div>
                 <div>

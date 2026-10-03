@@ -156,7 +156,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
         <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
           <h2 className="text-sm md:text-lg font-bold flex items-center gap-2 leading-tight min-w-0">
             {checkoutStage === "cart" ? (
-              <ShoppingCart className="text-[#f56b2a] shrink-0" size={16} />
+              <ShoppingCart className="text-brand shrink-0" size={16} />
             ) : (
               <ShieldCheck className="text-green-500 shrink-0" size={16} />
             )}
@@ -172,7 +172,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                       : "Commande Validée"}
             </span>
             {checkoutStage === "cart" && cartItemsCount > 0 && (
-              <span className="shrink-0 px-2 py-0.5 rounded-full bg-orange-50 text-[#f56b2a] text-[10px] font-bold tabular-nums">
+              <span className="shrink-0 px-2 py-0.5 rounded-full bg-orange-50 text-brand text-[10px] font-bold tabular-nums">
                 {cartItemsCount}
               </span>
             )}
@@ -211,7 +211,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <React.Fragment key={stage.id}>
                     <div className="flex flex-col items-center gap-2 shrink-0">
                       <div
-                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-[#f56b2a] text-white shadow-lg shadow-orange-100 scale-110" : isPast ? "bg-green-100 text-green-600" : "bg-white border-2 border-gray-100 text-gray-500"}`}
+                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-brand text-white shadow-lg shadow-orange-100 scale-110" : isPast ? "bg-green-100 text-green-600" : "bg-white border-2 border-gray-100 text-gray-500"}`}
                       >
                         {isPast ? (
                           <CheckCircle2 size={18} />
@@ -228,7 +228,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     {idx < array.length - 1 && (
                       <div className="flex-grow h-[2px] mx-2 md:mx-4 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className={`h-full bg-[#f56b2a] transition-all duration-700 ${isPast ? "w-full" : "w-0"}`}
+                          className={`h-full bg-brand transition-all duration-700 ${isPast ? "w-full" : "w-0"}`}
                         />
                       </div>
                     )}
@@ -249,7 +249,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   Paiement sécurisé
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Truck size={13} className="text-[#f56b2a]" />
+                  <Truck size={13} className="text-brand" />
                   Payez à la livraison
                 </span>
               </div>
@@ -290,7 +290,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   >
                     <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-gray-50/70 border-b border-gray-100">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Store size={12} className="text-[#f56b2a] shrink-0" />
+                        <Store size={12} className="text-brand shrink-0" />
                         <span className="text-[9px] md:text-[11px] font-bold text-gray-900 truncate">
                           {storeName}
                         </span>
@@ -439,7 +439,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                       )
                                     }
                                     aria-label="Augmenter la quantité"
-                                    className="w-9 h-9 md:w-7 md:h-7 grid place-items-center rounded-full font-bold text-[#f56b2a] hover:bg-orange-50 active:bg-orange-100 transition-all"
+                                    className="w-9 h-9 md:w-7 md:h-7 grid place-items-center rounded-full font-bold text-brand hover:bg-orange-50 active:bg-orange-100 transition-all"
                                   >
                                     +
                                   </button>
@@ -450,7 +450,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                   </span>
                                   {hasWholesale && (
                                     <span
-                                      className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-[#f56b2a]"}`}
+                                      className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-brand"}`}
                                     >
                                       {wholesaleActive ? (
                                         <>
@@ -483,7 +483,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           })
                         }
                         aria-expanded={isStoreExpanded}
-                        className="w-full flex items-center justify-center gap-1.5 py-3 border-t border-gray-50 text-[10px] font-bold uppercase tracking-widest text-[#f56b2a] hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
+                        className="w-full flex items-center justify-center gap-1.5 py-3 border-t border-gray-50 text-[10px] font-bold uppercase tracking-widest text-brand hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
                       >
                         {isStoreExpanded ? (
                           <>
@@ -527,7 +527,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               <div className="relative mb-5">
                 <div className="absolute inset-0 bg-orange-100 rounded-full blur-2xl opacity-60 scale-125" />
                 <div className="relative w-20 h-20 bg-white border border-gray-100 rounded-3xl grid place-items-center shadow-sm">
-                  <ShoppingCart size={30} className="text-[#f56b2a]/60" />
+                  <ShoppingCart size={30} className="text-brand/60" />
                 </div>
               </div>
               <p className="text-lg font-bold text-gray-900">
@@ -602,7 +602,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   {/* Section 1: Informations Personnelles */}
                   <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3 mb-8">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center font-bold text-sm">
+                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-brand flex items-center justify-center font-bold text-sm">
                         1
                       </div>
                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
@@ -616,7 +616,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           Nom Complet
                         </label>
                         <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#f56b2a] transition-colors">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-brand transition-colors">
                             <User size={18} />
                           </div>
                           <input
@@ -664,13 +664,13 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <div className="grid gap-4">
                     <div
                       onClick={() => setPaymentMethod("cod")}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === "cod" ? "border-[#f56b2a] bg-orange-50" : "border-gray-100 bg-white"}`}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === "cod" ? "border-brand bg-orange-50" : "border-gray-100 bg-white"}`}
                     >
                       <Truck
                         size={24}
                         className={
                           paymentMethod === "cod"
-                            ? "text-[#f56b2a]"
+                            ? "text-brand"
                             : "text-gray-600"
                         }
                       />
@@ -778,7 +778,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         r.ok ? "success" : "info",
                       );
                     }}
-                    className="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-[#f56b2a] transition-colors"
+                    className="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-brand transition-colors"
                   >
                     <Bell size={12} className="inline -mt-0.5" /> M&apos;alerter de ma commande
                   </button>
@@ -821,7 +821,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 )}
                 <div className="flex justify-between items-center pt-1.5 border-t border-gray-200/70 text-base font-bold text-gray-900">
                   <span>Total</span>
-                  <span className="text-[#f56b2a] tabular-nums">
+                  <span className="text-brand tabular-nums">
                     {formatCurrency(Number(cartTotal) || 0)}
                   </span>
                 </div>
@@ -832,7 +832,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 <div className="mb-4">
                   {isPromoOpen ? (
                     <div>
-                      <div className="flex items-center h-[52px] bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-[#f56b2a] focus-within:ring-2 focus-within:ring-[#f56b2a]/15 transition-all">
+                      <div className="flex items-center h-[52px] bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
                         <Tag size={14} className="ml-4 shrink-0 text-gray-400" />
                         <input
                           type="text"
@@ -845,7 +845,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         <button
                           onClick={handlePromoApply}
                           disabled={!promoCodeInput.trim() || isApplyingPromo}
-                          className="m-1.5 flex items-center justify-center w-[40px] h-[40px] shrink-0 rounded-xl bg-[#f56b2a] text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="m-1.5 flex items-center justify-center w-[40px] h-[40px] shrink-0 rounded-xl bg-brand text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                           aria-label="Appliquer le code promo"
                         >
                           {isApplyingPromo ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
@@ -863,7 +863,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   ) : (
                     <button
                       onClick={() => setIsPromoOpen(true)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-[#f56b2a] hover:border-[#f56b2a]/40 hover:bg-orange-50/30 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-brand hover:border-brand/40 hover:bg-orange-50/30 transition-colors"
                     >
                       <Tag size={13} /> Ajouter un code promo
                     </button>

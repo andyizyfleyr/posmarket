@@ -89,14 +89,14 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             <div className="p-4 border-b border-gray-50 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
-                  <Package size={18} className="text-[#f56b2a]" />
+                  <Package size={18} className="text-brand" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider truncate">
                     {order.id ? `#${order.id.slice(-6)}` : 'Commande'}
                     {dateLabel ? ` • ${dateLabel}` : ''}
                   </p>
-                  <p className="text-sm font-bold text-[#002f34] truncate">{storeName}</p>
+                  <p className="text-sm font-bold text-ink truncate">{storeName}</p>
                 </div>
               </div>
               <StatusBadge status={order.status} businessType={businessType} />
@@ -112,7 +112,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   >
                     <ProductThumb src={product?.image} alt={product?.name} className="w-12 h-12" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-[#002f34] truncate">
+                      <p className="text-sm font-bold text-ink truncate">
                         {product?.name || 'Produit'}
                       </p>
                       <p className="text-[10px] text-gray-400 font-semibold">
@@ -122,7 +122,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                     {product?.id && (
                       <button
                         onClick={() => onReviewProduct(product, order.store_id || '')}
-                        className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-[#f56b2a] rounded-xl hover:bg-[#f56b2a] hover:text-white transition-all active:scale-90"
+                        className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-brand rounded-xl hover:bg-brand hover:text-white transition-all active:scale-90"
                         title={`Laisser un avis sur ${product.name}`}
                         aria-label={`Laisser un avis sur ${product.name}`}
                       >
@@ -136,7 +136,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
             <div className="px-4 py-3 bg-gray-50/60 border-t border-gray-50 flex items-center justify-between">
               <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total</span>
-              <span className="text-sm font-bold text-[#002f34]">{formatCurrency(order.total)}</span>
+              <span className="text-sm font-bold text-ink">{formatCurrency(order.total)}</span>
             </div>
           </div>
         );

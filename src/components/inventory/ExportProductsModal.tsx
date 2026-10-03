@@ -118,7 +118,7 @@ export default function ExportProductsModal({
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-br from-gray-50 via-white to-orange-50/20">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-[#f56b2a]/10 text-[#f56b2a] rounded-2xl">
+            <div className="p-3 bg-brand/10 text-brand rounded-2xl">
               <Download size={24} />
             </div>
             <div>
@@ -155,7 +155,7 @@ export default function ExportProductsModal({
               <label
                 className={`relative flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                   scope === 'all'
-                    ? 'border-[#f56b2a] bg-orange-50/20 shadow-sm'
+                    ? 'border-brand bg-orange-50/20 shadow-sm'
                     : 'border-gray-100 hover:border-gray-200 bg-white'
                 }`}
               >
@@ -165,7 +165,7 @@ export default function ExportProductsModal({
                   value="all"
                   checked={scope === 'all'}
                   onChange={() => setScope('all')}
-                  className="mt-1 text-[#f56b2a] focus:ring-[#f56b2a]"
+                  className="mt-1 text-brand focus:ring-brand"
                 />
                 <div className="min-w-0">
                   <span className="block text-sm font-bold text-gray-900">
@@ -182,7 +182,7 @@ export default function ExportProductsModal({
                   selectedProductsCount === 0
                     ? 'opacity-40 cursor-not-allowed border-gray-100 bg-gray-50'
                     : scope === 'selected'
-                    ? 'border-[#f56b2a] bg-orange-50/20 shadow-sm cursor-pointer'
+                    ? 'border-brand bg-orange-50/20 shadow-sm cursor-pointer'
                     : 'border-gray-100 hover:border-gray-200 bg-white cursor-pointer'
                 }`}
               >
@@ -193,7 +193,7 @@ export default function ExportProductsModal({
                   disabled={selectedProductsCount === 0}
                   checked={scope === 'selected'}
                   onChange={() => setScope('selected')}
-                  className="mt-1 text-[#f56b2a] focus:ring-[#f56b2a]"
+                  className="mt-1 text-brand focus:ring-brand"
                 />
                 <div className="min-w-0">
                   <span className="block text-sm font-bold text-gray-900">
@@ -220,11 +220,11 @@ export default function ExportProductsModal({
                 onClick={() => setFormat('json')}
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3.5 ${
                   format === 'json'
-                    ? 'border-[#f56b2a] bg-orange-50/20 shadow-sm'
+                    ? 'border-brand bg-orange-50/20 shadow-sm'
                     : 'border-gray-100 hover:border-gray-200 bg-white'
                 }`}
               >
-                <div className={`p-2.5 rounded-xl ${format === 'json' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-600'}`}>
+                <div className={`p-2.5 rounded-xl ${format === 'json' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'}`}>
                   <FileCode size={20} />
                 </div>
                 <div className="flex-grow min-w-0">
@@ -237,7 +237,7 @@ export default function ExportProductsModal({
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Sauvegarde 100% fidèle avec l&apos;intégralité des variantes, options complexes, galeries photos et tarifs de gros.
+                    Inclut les variantes, les options, les galeries photos et les tarifs de gros.
                   </p>
                 </div>
               </div>
@@ -247,11 +247,11 @@ export default function ExportProductsModal({
                 onClick={() => setFormat('csv')}
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3.5 ${
                   format === 'csv'
-                    ? 'border-[#f56b2a] bg-orange-50/20 shadow-sm'
+                    ? 'border-brand bg-orange-50/20 shadow-sm'
                     : 'border-gray-100 hover:border-gray-200 bg-white'
                 }`}
               >
-                <div className={`p-2.5 rounded-xl ${format === 'csv' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-600'}`}>
+                <div className={`p-2.5 rounded-xl ${format === 'csv' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'}`}>
                   <FileSpreadsheet size={20} />
                 </div>
                 <div className="flex-grow min-w-0">
@@ -273,7 +273,7 @@ export default function ExportProductsModal({
 
           {/* Info note */}
           <div className="p-3.5 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-3 text-xs text-gray-600">
-            <Sparkles size={18} className="text-[#f56b2a] flex-shrink-0" />
+            <Sparkles size={18} className="text-brand flex-shrink-0" />
             <span>
               Les fichiers exportés peuvent être directement réimportés dans n&apos;importe laquelle de vos boutiques.
             </span>
@@ -296,7 +296,7 @@ export default function ExportProductsModal({
             className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-xs md:text-sm font-bold text-white transition-all shadow-lg ${
               exportSuccess
                 ? 'bg-emerald-600 shadow-emerald-200'
-                : 'bg-[#f56b2a] hover:bg-[#d55a20] shadow-orange-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                : 'bg-brand hover:bg-[#d55a20] shadow-orange-200 disabled:opacity-50 disabled:cursor-not-allowed'
             }`}
           >
             {isExporting ? (

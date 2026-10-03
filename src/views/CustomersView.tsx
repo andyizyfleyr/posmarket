@@ -159,7 +159,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
 
   const getSortIcon = (key: keyof Customer) => {
     if (sortConfig.key !== key) return <ArrowUpDown size={14} className="text-gray-300" />;
-    return sortConfig.direction === 'asc' ? <ArrowUp size={14} className="text-[#f56b2a]" /> : <ArrowDown size={14} className="text-[#f56b2a]" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp size={14} className="text-brand" /> : <ArrowDown size={14} className="text-brand" />;
   };
 
   const handleOpenModal = (customer?: Customer) => {
@@ -323,7 +323,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
         {permissions.canManageCustomers && (
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-brand text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100 whitespace-nowrap"
           >
             <Plus size={16} className="md:w-[18px] md:h-[18px]" /> Nouveau Client
           </button>
@@ -342,7 +342,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 setActiveSegment(segment.id);
                 setSelectedIds(new Set());
             }}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap border ${activeSegment === segment.id ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}`}
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap border ${activeSegment === segment.id ? 'bg-brand border-brand text-white shadow-lg shadow-orange-100' : 'bg-white border-gray-100 text-gray-500 hover:border-orange-200'}`}
           >
             {segment.label} ({segment.count})
           </button>
@@ -354,19 +354,19 @@ const CustomersView: React.FC<CustomersViewProps> = ({
         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Trier par:</span>
         <button 
           onClick={() => handleSort('totalSpent')} 
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'totalSpent' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'totalSpent' ? 'bg-orange-50 border-orange-200 text-brand' : 'bg-white border-gray-100 text-gray-500'}`}
         >
           Dépensé {sortConfig.key === 'totalSpent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
         </button>
         <button 
           onClick={() => handleSort('ordersCount')} 
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'ordersCount' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'ordersCount' ? 'bg-orange-50 border-orange-200 text-brand' : 'bg-white border-gray-100 text-gray-500'}`}
         >
           Commandes {sortConfig.key === 'ordersCount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
         </button>
         <button 
           onClick={() => handleSort('name')} 
-          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'name' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' : 'bg-white border-gray-100 text-gray-500'}`}
+          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold whitespace-nowrap border ${sortConfig.key === 'name' ? 'bg-orange-50 border-orange-200 text-brand' : 'bg-white border-gray-100 text-gray-500'}`}
         >
           Nom {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
         </button>
@@ -381,13 +381,13 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               value={searchTerm}
               placeholder="Rechercher..."
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20"
+              className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div className="md:hidden flex items-center gap-2">
             <input 
                 type="checkbox" 
-                className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
                 checked={filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length}
                 onChange={toggleSelectAll}
             />
@@ -402,7 +402,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 <div className="table-cell px-6 py-4 w-10">
                     <input 
                       type="checkbox" 
-                      className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                      className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
                       checked={filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length}
                       onChange={toggleSelectAll}
                     />
@@ -432,7 +432,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                   <div className="hidden md:table-cell px-6 py-4 w-10">
                       <input 
                         type="checkbox" 
-                        className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
                         checked={selectedIds.has(customer.id)}
                         onChange={() => toggleSelect(customer.id)}
                       />
@@ -443,12 +443,12 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                         <div className="md:hidden">
                             <input 
                                 type="checkbox" 
-                                className="w-4 h-4 rounded border-gray-300 text-[#f56b2a] focus:ring-[#f56b2a]"
+                                className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
                                 checked={selectedIds.has(customer.id)}
                                 onChange={() => toggleSelect(customer.id)}
                             />
                         </div>
-                        <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-[#f56b2a] text-white flex items-center justify-center font-bold text-[10px] md:text-sm shadow-sm md:shadow-lg md:shadow-orange-100 flex-shrink-0">
+                        <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-brand text-white flex items-center justify-center font-bold text-[10px] md:text-sm shadow-sm md:shadow-lg md:shadow-orange-100 flex-shrink-0">
                           {customer.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div className="min-w-0 flex flex-col">
@@ -487,7 +487,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                         {permissions.canManageCustomers && !isSeller && (
                           <button
                             onClick={() => handleOpenModal(customer)}
-                            className="p-2 text-[#f56b2a] bg-orange-50 rounded-lg active:scale-95"
+                            className="p-2 text-brand bg-orange-50 rounded-lg active:scale-95"
                           >
                             <Edit size={12} />
                           </button>
@@ -522,7 +522,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                         <>
                           <button
                             onClick={() => handleOpenModal(customer)}
-                            className="p-2.5 text-[#f56b2a] bg-orange-50 rounded-xl transition-all active:scale-90"
+                            className="p-2.5 text-brand bg-orange-50 rounded-xl transition-all active:scale-90"
                           >
                             <Edit size={16} />
                           </button>
@@ -550,12 +550,12 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               <button
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-400 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-400 hover:text-brand hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoadingMore ? (
-                  <Loader2 size={14} className="animate-spin text-[#f56b2a]" />
+                  <Loader2 size={14} className="animate-spin text-brand" />
                 ) : (
-                  <Plus size={14} className="text-[#f56b2a]" />
+                  <Plus size={14} className="text-brand" />
                 )}
                 {isLoadingMore ? 'Chargement...' : 'Voir plus de clients'}
               </button>
@@ -595,7 +595,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                   type="text"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm focus:ring-4 focus:ring-orange-50 focus:border-[#f56b2a] focus:outline-none transition-all"
+                  className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-xs md:text-sm focus:ring-4 focus:ring-orange-50 focus:border-brand focus:outline-none transition-all"
                 />
               </div>
               <div className="grid grid-cols-1 gap-4">
@@ -619,7 +619,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow py-2.5 md:py-4 bg-[#f56b2a] text-white font-bold rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap"
+                  className="flex-grow py-2.5 md:py-4 bg-brand text-white font-bold rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap"
                 >
                   {editingCustomer ? 'Actualiser' : 'Enregistrer'}
                 </button>

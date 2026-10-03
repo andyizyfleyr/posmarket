@@ -39,16 +39,16 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fffaf7] via-white to-[#f8fafc] flex flex-col justify-between selection:bg-[#f56b2a]/20 selection:text-[#f56b2a]">
+    <div className="min-h-screen bg-gradient-to-b from-[#fffaf7] via-white to-[#f8fafc] flex flex-col justify-between selection:bg-brand/20 selection:text-brand">
       {/* Top Brand Bar */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#f56b2a] to-[#ff8c42] flex items-center justify-center text-white shadow-lg shadow-[#f56b2a]/25 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-[#ff8c42] flex items-center justify-center text-white shadow-lg shadow-brand/25 group-hover:scale-105 transition-transform duration-300">
             <ShoppingBag className="w-5 h-5" />
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-xl tracking-tight text-gray-950 flex items-center gap-1">
-              Pos<span className="text-[#f56b2a]">Market</span>
+              Pos<span className="text-brand">Market</span>
             </span>
             <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest -mt-1">
               Express Marketplace
@@ -69,19 +69,19 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
       <main className="flex-grow flex items-center justify-center px-4 sm:px-6 py-10">
         <div className="w-full max-w-lg mx-auto">
           {/* Main Card */}
-          <div className="relative bg-white rounded-3xl border border-orange-100/80 shadow-[0_20px_50px_rgba(245,107,42,0.08)] p-6 sm:p-10 text-center overflow-hidden">
+          <div className="relative bg-white rounded-3xl border border-orange-100/80 shadow-brand/10 p-6 sm:p-10 text-center overflow-hidden">
             {/* Ambient Background Glow */}
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-200/30 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
 
             {/* Glowing Icon Badge */}
             <div className="relative mx-auto w-20 h-20 mb-6 flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#f56b2a]/20 to-[#fb923c]/40 rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
+              <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-[#fb923c]/40 rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
               <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-orange-50 to-orange-100/80 border-2 border-orange-200/60 flex items-center justify-center shadow-inner">
-                <AlertTriangle className="w-9 h-9 text-[#f56b2a] animate-bounce" style={{ animationDuration: '2.5s' }} />
+                <AlertTriangle className="w-9 h-9 text-brand animate-bounce" style={{ animationDuration: '2.5s' }} />
               </div>
               <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white border border-orange-200 shadow-sm flex items-center justify-center">
-                <Sparkles className="w-3.5 h-3.5 text-[#f56b2a]" />
+                <Sparkles className="w-3.5 h-3.5 text-brand" />
               </div>
             </div>
 
@@ -101,7 +101,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 type="button"
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-[#f56b2a] to-[#ff7d3b] hover:from-[#e45a19] hover:to-[#f56b2a] text-white text-sm font-bold rounded-2xl shadow-lg shadow-[#f56b2a]/30 hover:shadow-xl hover:shadow-[#f56b2a]/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all disabled:opacity-70 cursor-pointer"
+                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-brand to-[#ff7d3b] hover:from-[#e45a19] hover:to-brand text-white text-sm font-bold rounded-2xl shadow-lg shadow-brand/30 hover:shadow-xl hover:shadow-brand/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all disabled:opacity-70 cursor-pointer"
               >
                 <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
                 <span>{isRetrying ? 'Rechargement...' : 'Recharger la page'}</span>
@@ -137,7 +137,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 href="https://wa.me/221781234567?text=Bonjour,%20j'ai%20rencontré%20un%20souci%20sur%20PosMarket"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-semibold text-[#f56b2a] hover:text-[#d55a20] transition-colors"
+                className="inline-flex items-center gap-1.5 font-semibold text-brand hover:text-[#d55a20] transition-colors"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>Assistance WhatsApp</span>

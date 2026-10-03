@@ -11,7 +11,7 @@ import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
-import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, Heart, X, CheckCircle2, User, ShieldCheck, Zap, Bell, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, Heart, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle } from "lucide-react";
 import {
   StoreData,
   Product,
@@ -251,7 +251,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     zip: "",
   });
   const [promoApplied, setPromoApplied] = useState<Coupon | null>(null);
-  const [selectedVertical] = useState<"all" | "shopping" | "food">("all");
+  // Le sélecteur de verticale n'est pas exposé dans l'UI marketplace :
+  // la valeur reste sur "all" et le code de filtrage est conservé pour le jour où
+  // le sélecteur est réintroduit (une seule source de vérité, pas de useState fantôme).
+  const selectedVertical: "all" | "shopping" | "food" = "all";
   const [isMounted, setIsMounted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [countryGate, setCountryGate] = useState<{
@@ -262,7 +265,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [ftsResults, setFtsResults] = useState<StorefrontProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
-  const [, setUrlKey] = useState(0);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
 
   // 0. Détection du pays par IP (garde UX) — le pays non desservi ne peut pas commander.
@@ -288,8 +290,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 0. URL Change Listener - Only re-render on navigation popstate
   useEffect(() => {
     const handlePopstate = () => {
-      setUrlKey(prev => prev + 1);
-      // Sync selectedCategory with URL on back/forward (pushState pages)
+      // Sync selectedCategory with URL on back/forward (pushState pages).
+      // Le setState suffit à déclencher le rendu, pas de compteurArtificial.
       const c = new URLSearchParams(window.location.search).get("cat");
       setSelectedCategory(c && c !== "all" ? c : "all");
     };
@@ -844,7 +846,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     email: "",
   });
   const [authSent, setAuthSent] = useState(false);
-  const [showPropulseModal, setShowPropulseModal] = useState(false);
   const [isBulkOrderOpen, setIsBulkOrderOpen] = useState(false);
 
   // RESTORE USER SESSION
@@ -1083,7 +1084,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   }, [showAuthModal, isSearchOpen, isImageModalOpen]);
 
   // Pagination & Infinite Scroll State
-  const [, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -1398,7 +1398,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     };
 
     return ["all", WHOLESALE_FILTER, ...(verticalMap[selectedVertical] || [])];
-  }, [selectedVertical]);
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const normalized = searchTerm.trim().replace(/\s+/g, ' ');
@@ -1464,7 +1464,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     searchTerm,
     selectedCategory,
     selectedStoreId,
-    selectedVertical,
   ]);
 
   // First batch computed synchronously on server AND client (identical output
@@ -1525,7 +1524,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
     if (reset) {
       currentPageRef.current = 0;
-      setPage(0);
     }
 
     const source = filteredProductsRef.current;
@@ -1537,7 +1535,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     setHasMore(end < source.length);
 
     currentPageRef.current += 1;
-    setPage(currentPageRef.current);
 
     // Small delay to allow DOM to update and avoid instant double-trigger
     setTimeout(() => {
@@ -1623,7 +1620,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         if (visitsB !== visitsA) return visitsB - visitsA;
         return (b.rating || 0) - (a.rating || 0);
       });
-  }, [stores, selectedVertical]);
+  }, [stores]);
 
   const buzz = () => {
     try {
@@ -2207,10 +2204,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         </div>
       );
     }
+    // Pas de texte de repli : la boutique n'a pas saisi de description, on
+    // n'invente donc pas de promesse commerciale à sa place.
     const descriptionText =
       selectedStore.description ||
       selectedStore.settings?.description ||
-      "Votre destination shopping préférée pour des produits locaux et de qualité.";
+      "";
     const waDigits = (
       selectedStore.phone ||
       selectedStore.settings?.phone ||
@@ -2226,7 +2225,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       <div className="mb-5 md:mb-6    duration-700">
         <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
           {/* Cover */}
-          <div className="h-[72px] md:h-32 bg-gradient-to-r from-[#f56b2a] via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
+          <div className="h-[72px] md:h-32 bg-gradient-to-r from-brand via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
             <div className="absolute -right-14 -top-20 w-56 h-56 rounded-full border-[24px] border-white/10" />
             <div className="absolute -left-10 -bottom-24 w-48 h-48 rounded-full border-[18px] border-white/10" />
           </div>
@@ -2246,7 +2245,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   unoptimized={needsNoOptimization(selectedStore.settings.logo)}
                   />
                 ) : (
-                  <Store size={28} className="text-[#f56b2a]" />
+                  <Store size={28} className="text-brand" />
                 )}
               </div>
               <div className="mt-2 md:mt-3 text-center min-w-0">
@@ -2299,7 +2298,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             {descriptionText.length > 90 && (
               <button
                 onClick={() => setStoreDescExpanded((v) => !v)}
-                className="mt-0.5 text-[11px] font-bold text-[#f56b2a] block mx-auto"
+                className="mt-0.5 text-[11px] font-bold text-brand block mx-auto"
               >
                 {storeDescExpanded ? "Réduire" : "Voir plus"}
               </button>
@@ -2449,7 +2448,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       {/* Account Loading Skeleton if loading account page without cached session */}
       {isAccountViewUrl && !user && isSessionChecking && (
         <div className="fixed inset-0 z-[900] bg-[#fafafa] flex flex-col items-center justify-center p-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#f56b2a] to-orange-400 flex items-center justify-center shadow-lg shadow-[#f56b2a]/20 mb-4 animate-pulse">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand to-orange-400 flex items-center justify-center shadow-lg shadow-brand/20 mb-4 animate-pulse">
             <User className="text-white w-6 h-6" />
           </div>
           <div className="h-4 w-32 bg-gray-200 rounded-full animate-pulse mb-2" />
@@ -2490,11 +2489,11 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
         >
           <div className="flex flex-col items-center gap-6   duration-500">
             <div className="relative">
-              <div className="w-20 h-20 border-[4px] border-gray-100 border-t-[#f56b2a] rounded-full animate-spin shadow-inner" />
+              <div className="w-20 h-20 border-[4px] border-gray-100 border-t-brand rounded-full animate-spin shadow-inner" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <ShoppingBasketIcon
                   size={32}
-                  className="text-[#f56b2a]/20 animate-pulse"
+                  className="text-brand/20 animate-pulse"
                 />
               </div>
             </div>
@@ -2503,9 +2502,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 Chargement
               </span>
               <div className="flex gap-1.5">
-                <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-1.5 h-1.5 bg-[#f56b2a] rounded-full animate-bounce" />
+                <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-1.5 h-1.5 bg-brand rounded-full animate-bounce" />
               </div>
             </div>
           </div>
@@ -2532,7 +2531,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   setSelectedCategory("all");
                 }}
               >
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-[#f56b2a] rounded-2xl flex items-center justify-center shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform mr-2 md:mr-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-brand rounded-2xl flex items-center justify-center shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform mr-2 md:mr-3">
                   <ShoppingBasketIcon
                     size={20}
                     className="text-white md:hidden"
@@ -2544,7 +2543,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 </div>
                 <div className="flex flex-col">
                   <span className="text-base md:text-2xl font-bold tracking-tight leading-none text-gray-900">
-                    Pos<span className="text-[#f56b2a]">Market</span>
+                    Pos<span className="text-brand">Market</span>
                   </span>
                   <span className="hidden md:block text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] leading-none mt-1">
                     Local & Express
@@ -2564,8 +2563,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   }
                 }}
               >
-                <div className="flex items-center bg-white rounded-2xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl focus-within:shadow-orange-100/20 transition-all group">
-                  <div className="pl-4 text-gray-600 group-focus-within:text-[#f56b2a]">
+                <div className="flex items-center bg-white rounded-2xl overflow-hidden border-[1.5px] border-line hover:border-brand focus-within:border-brand focus-within:shadow-xl focus-within:shadow-orange-100/20 transition-all group">
+                  <div className="pl-4 text-gray-600 group-focus-within:text-brand">
                     <Search size={18} strokeWidth={2.5} />
                   </div>
                   <input
@@ -2580,7 +2579,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <button
                     type="submit"
                     aria-label="Lancer la recherche"
-                    className="bg-[#f56b2a] hover:bg-[#d55a20] active:bg-[#c04e15] text-white px-6 py-3 font-bold text-sm transition-all cursor-pointer select-none"
+                    className="bg-brand hover:bg-[#d55a20] active:bg-[#c04e15] text-white px-6 py-3 font-bold text-sm transition-all cursor-pointer select-none"
                   >
                     Rechercher
                   </button>
@@ -2601,7 +2600,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setCompletedOrderTotal(0);
                       }
                     }}
-                    className="w-11 h-11 md:w-12 md:h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 group-hover:bg-[#f56b2a] group-hover:text-white transition-all active:scale-90"
+                    className="w-11 h-11 md:w-12 md:h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 group-hover:bg-brand group-hover:text-white transition-all active:scale-90"
                   >
                     <ShoppingCart
                       size={20}
@@ -2614,7 +2613,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       strokeWidth={2.5}
                     />
                     {cartItemsCount > 0 && (
-                      <div key={cartItemsCount} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f56b2a] border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white animate-pop">
+                      <div key={cartItemsCount} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-brand border-2 border-white rounded-full flex items-center justify-center text-[10px] font-bold text-white animate-pop">
                         {cartItemsCount}
                       </div>
                     )}
@@ -2632,10 +2631,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setShowAuthModal(true);
                       }
                     }}
-                    className={`flex items-center gap-2.5 p-2 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? "bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]" : "bg-gray-50 border-gray-100 text-gray-700 hover:bg-[#f56b2a]/10 hover:text-[#f56b2a] hover:border-[#f56b2a]/20"}`}
+                    className={`flex items-center gap-2.5 p-2 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? "bg-brand/5 border-brand/20 text-brand" : "bg-gray-50 border-gray-100 text-gray-700 hover:bg-brand/10 hover:text-brand hover:border-brand/20"}`}
                   >
                     <div
-                      className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? "bg-[#f56b2a] text-white" : "bg-white text-gray-400 group-hover/auth:bg-[#f56b2a] group-hover/auth:text-white"}`}
+                      className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? "bg-brand text-white" : "bg-white text-gray-400 group-hover/auth:bg-brand group-hover/auth:text-white"}`}
                     >
                       <User size={18} strokeWidth={3} />
                     </div>
@@ -2656,8 +2655,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             <div
               className={`md:hidden overflow-hidden ${headerCompact ? "h-0 opacity-0" : "opacity-100"}`}
             >
-              <div className="flex items-center bg-white rounded-xl overflow-hidden border-[1.5px] border-[rgba(245,107,42,0.2)] hover:border-[rgba(245,107,42,0.5)] focus-within:border-[#f56b2a] focus-within:shadow-xl transition-all group">
-                <div className="pl-3 text-gray-600 group-focus-within:text-[#f56b2a]">
+              <div className="flex items-center bg-white rounded-xl overflow-hidden border-[1.5px] border-line hover:border-brand focus-within:border-brand focus-within:shadow-xl transition-all group">
+                <div className="pl-3 text-gray-600 group-focus-within:text-brand">
                   <Search size={16} strokeWidth={2.5} />
                 </div>
                 <input
@@ -2695,10 +2694,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border-2 active:scale-95 whitespace-nowrap ${
                     selectedCategory === cat
                       ? cat === WHOLESALE_FILTER
-                        ? "bg-gradient-to-r from-[#f56b2a] to-orange-500 border-[#f56b2a] text-white shadow-md shadow-orange-500/20"
-                        : "bg-[#f56b2a] border-[#f56b2a] text-white shadow-md"
+                        ? "bg-gradient-to-r from-brand to-orange-500 border-brand text-white shadow-md shadow-orange-500/20"
+                        : "bg-brand border-brand text-white shadow-md"
                       : cat === WHOLESALE_FILTER
-                        ? "bg-orange-50 border-orange-200 text-[#d55a20] hover:border-[#f56b2a]"
+                        ? "bg-orange-50 border-orange-200 text-[#d55a20] hover:border-brand"
                         : "bg-white border-gray-100 text-gray-600 hover:border-gray-200"
                   }`}
                 >
@@ -2783,7 +2782,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <p className="text-[11px] font-semibold text-gray-900 truncate leading-snug">
                     {lastAddedProduct.name}
                   </p>
-                  <p className="text-[11px] font-bold text-[#f56b2a] mt-0.5">
+                  <p className="text-[11px] font-bold text-brand mt-0.5">
                     {formatCurrency(Number(lastAddedProduct.price) || 0)}
                   </p>
                 </div>
@@ -2825,7 +2824,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             </button>
             <div className="flex-grow relative">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#f56b2a]"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-brand"
                 size={18}
               />
               <input
@@ -2926,7 +2925,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               unoptimized={needsNoOptimization(store.settings.logo)}
                               />
                             ) : (
-                              <Store className="text-[#f56b2a]" size={28} />
+                              <Store className="text-brand" size={28} />
                             )}
                           </div>
                           <h3 className="font-semibold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
@@ -2941,7 +2940,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               }{" "}
                               PROD.
                             </p>
-                            <p className="text-[9px] text-[#f56b2a] font-bold tracking-wider">
+                            <p className="text-[9px] text-brand font-bold tracking-wider">
                               @{(store.slug || "boutique").toLowerCase()}
                             </p>
                           </div>
@@ -3057,7 +3056,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             setSearchTerm(term);
                             setRecentSearches(saveRecentSearch(term));
                           }}
-                          className="px-3.5 py-2 bg-white hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-semibold text-gray-600 border border-gray-100 transition-all active:scale-95"
+                          className="px-3.5 py-2 bg-white hover:bg-orange-50 hover:text-brand rounded-full text-xs font-semibold text-gray-600 border border-gray-100 transition-all active:scale-95"
                         >
                           {term}
                         </button>
@@ -3088,7 +3087,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         setSearchTerm(tag);
                         setRecentSearches(saveRecentSearch(tag));
                       }}
-                      className="px-4 py-2 bg-gray-50 hover:bg-orange-50 hover:text-[#f56b2a] rounded-full text-xs font-semibold text-gray-600 border border-gray-100 transition-all active:scale-95"
+                      className="px-4 py-2 bg-gray-50 hover:bg-orange-50 hover:text-brand rounded-full text-xs font-semibold text-gray-600 border border-gray-100 transition-all active:scale-95"
                     >
                       {tag}
                     </button>
@@ -3108,12 +3107,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
             index
             element={
               <>
-                {/* Hidden H1 for SEO - Important for index page */}
-                <h1 className="sr-only">
-                  PosMarket - Marketplace Express Premium
-                </h1>
+                <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
-                {/* Hero Bannière Premium - Carousel */}
                 {!searchTerm && selectedCategory === "all" && (
                   <div
                     className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
@@ -3127,16 +3122,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       {/* Slide 1 - Vendre */}
                       <div className="min-w-full relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-[#f56b2a]/8 rounded-full blur-3xl" />
+                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-brand/8 rounded-full blur-3xl" />
                         <div className="absolute -left-10 bottom-0 w-40 h-40 bg-blue-100/40 rounded-full blur-3xl" />
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
                           <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-[#f56b2a]/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-[#f56b2a] uppercase tracking-widest">
+                            <div className="inline-flex items-center gap-1.5 bg-brand/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-brand uppercase tracking-widest">
                               <Zap size={12} fill="currentColor" /> Offre Commerçant
                             </div>
                             <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
                               C&apos;est le moment <br className="hidden md:block" />
-                              <span className="text-[#f56b2a]">de vendre</span>
+                              <span className="text-brand">de vendre</span>
                             </h2>
                             <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
                               Boostez votre visibilité et attirez plus de clients
@@ -3152,8 +3147,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             </Button>
                           </div>
                           <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-[#f56b2a]/10 rounded-3xl flex items-center justify-center">
-                              <Zap size={40} className="text-[#f56b2a]" fill="currentColor" />
+                            <div className="w-24 h-24 bg-brand/10 rounded-3xl flex items-center justify-center">
+                              <Zap size={40} className="text-brand" fill="currentColor" />
                             </div>
                           </div>
                         </div>
@@ -3207,8 +3202,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               <span className="text-red-500">le succès</span>
                             </h2>
                             <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
-                              Faites partie des 500+ commerçants qui ont déjà
-                              transformé leur manière de vendre.
+                              Ouvrez votre boutique en ligne, encaissez vos ventes
+                              et suivez votre activité depuis le tableau de bord.
                             </p>
                             <Button
                               onClick={() => safeNavigate("/login")}
@@ -3252,7 +3247,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
                       <h2 className="text-[15px] md:text-xl font-bold text-gray-900 mb-3 md:mb-5 tracking-tight flex items-center gap-2.5">
-                        <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-500 flex items-center justify-center shadow-sm shadow-orange-500/25">
+                        <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand to-orange-500 flex items-center justify-center shadow-sm shadow-orange-500/25">
                           <Store size={14} className="text-white" />
                         </span>
                         Boutiques partenaires
@@ -3282,10 +3277,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   );
                                 }
                               }}
-                              className="w-[calc((100vw-42px)/2)] md:w-[112px] h-[120px] shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-[#f56b2a]/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/60 flex"
+                              className="w-[calc((100vw-42px)/2)] md:w-[112px] h-[120px] shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-brand/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-brand/60 flex"
                             >
                               <div className="w-full h-full px-2.5 py-2.5 flex flex-col items-center justify-center">
-                                <div className="w-8 h-8 rounded-full bg-white border-[2px] border-[#f56b2a] shadow-sm flex items-center justify-center overflow-hidden relative shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-white border-[2px] border-brand shadow-sm flex items-center justify-center overflow-hidden relative shrink-0">
                                   {store.settings?.logo ? (
                                     <Image
                                       src={store.settings.logo ?? ""}
@@ -3297,12 +3292,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     />
                                   ) : (
                                     <Store
-                                      className="text-[#f56b2a]"
+                                      className="text-brand"
                                       size={18}
                                     />
                                   )}
                                 </div>
-                                <h3 className="mt-1.5 w-full flex items-center justify-center gap-1 min-w-0">                                  <span className="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#f56b2a] transition-colors">
+                                <h3 className="mt-1.5 w-full flex items-center justify-center gap-1 min-w-0">                                  <span className="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover:text-brand transition-colors">
                                     {store.settings?.name || "Boutique"}
                                   </span>
                                   <span
@@ -3322,7 +3317,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                     <span className="flex items-center gap-0.5 text-gray-600">
                                       <Star
                                         size={9}
-                                        className="fill-[#f56b2a] text-[#f56b2a]"
+                                        className="fill-brand text-brand"
                                       />
                                       {store.rating.toFixed(1)}
                                     </span>
@@ -3344,7 +3339,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                 {searchTerm && globalSearchStores.length > 0 && (
                   <div className="mb-12    duration-500">
                     <h2 className="text-lg font-bold text-gray-900 mb-6 tracking-tight flex items-center gap-2">
-                      <Store className="text-[#f56b2a]" size={20} /> Boutiques
+                      <Store className="text-brand" size={20} /> Boutiques
                       trouvées ({globalSearchStores.length})
                     </h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -3367,7 +3362,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               unoptimized={needsNoOptimization(store.settings.logo)}
                               />
                             ) : (
-                              <Store className="text-[#f56b2a]" size={28} />
+                              <Store className="text-brand" size={28} />
                             )}
                           </div>
                           <h3 className="font-semibold text-gray-800 text-[11px] mb-1 leading-tight line-clamp-1">
@@ -3382,7 +3377,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               }{" "}
                               PROD.
                             </p>
-                            <p className="text-[9px] text-[#f56b2a] font-bold tracking-wider">
+                            <p className="text-[9px] text-brand font-bold tracking-wider">
                               @{(store.slug || "boutique").toLowerCase()}
                             </p>
                           </div>
@@ -3399,7 +3394,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                     <h2 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
                       {searchTerm ? (
                         <>
-                          <ShoppingCart className="text-[#f56b2a]" size={20} />{" "}
+                          <ShoppingCart className="text-brand" size={20} />{" "}
                           Résultats produits
                         </>
                       ) : (
@@ -3466,7 +3461,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
                     <div className="relative space-y-7 md:space-y-12">
                       {selectedCategory === WHOLESALE_FILTER && (
-                        <div className="bg-gradient-to-r from-orange-500 via-[#f56b2a] to-amber-600 rounded-3xl p-5 md:p-6 text-white shadow-xl shadow-orange-500/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="bg-gradient-to-r from-orange-500 via-brand to-amber-600 rounded-3xl p-5 md:p-6 text-white shadow-xl shadow-orange-500/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
                               <Zap size={24} className="text-white fill-white" />
@@ -3583,7 +3578,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                       link.href = catUrl;
                                       document.head.appendChild(link);
                                     }}
-                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-[#f56b2a] active:opacity-60 transition-opacity"
+                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-brand active:opacity-60 transition-opacity"
                                   >
                                     Voir tout
                                     <ChevronRight size={13} strokeWidth={3} />
@@ -3610,56 +3605,58 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       className="py-20 flex flex-col items-center justify-center"
                     >
                       {isLoadingMore && (
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="flex gap-1.5">
-                            <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.3s]" />
-                            <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce [animation-delay:-0.15s]" />
-                            <div className="w-2 h-2 bg-[#f56b2a] rounded-full animate-bounce" />
-                          </div>
-                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                            Expansion du catalogue...
+                        <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+                          <Loader2 size={22} className="animate-spin text-brand" aria-hidden="true" />
+                          <p className="text-sm font-medium text-gray-500">
+                            Chargement des produits…
                           </p>
                         </div>
                       )}
                       {!hasMore && pagedProducts.length > 0 && (
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="w-12 h-1 bg-gray-100 rounded-full" />
-                          <p className="text-[10px] font-semibold text-gray-300 uppercase tracking-widest">
-                            Vous avez atteint la fin
-                          </p>
-                        </div>
+                        <p className="text-sm font-medium text-gray-500">
+                          Vous avez vu tous les produits de cette sélection.
+                        </p>
                       )}
                     </div>
                   </>
-                ) : isInitialLoading ? (
-                  null
                 ) : activeStores.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-600">
-                    <AlertCircle size={64} className="opacity-20 mb-4" />
+                    <AlertCircle size={64} className="opacity-20 mb-4" aria-hidden="true" />
                     <p className="text-xl font-bold text-gray-600 text-center">
-                      Impossible de charger le catalogue.
+                      Aucune boutique à afficher pour le moment.
                     </p>
-                    <p className="text-xs font-semibold text-gray-400 mt-2 mb-6">
+                    <p className="text-sm text-gray-500 mt-2 mb-6">
                       Vérifiez votre connexion internet puis réessayez.
                     </p>
                     <Button
-                      onClick={() => window.location.reload()}
+                      onClick={() => void loadPagedProducts(true)}
                       variant="primary"
                       size="md"
-                      icon={<RotateCcw size={14} />}
+                      icon={<RotateCcw size={14} aria-hidden="true" />}
                     >
                       Réessayer
                     </Button>
                   </div>
-                ) : !isLoadingMore ? (
+                ) : isLoadingMore ? (
+                  <div
+                    className="flex flex-col items-center justify-center py-20"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <Loader2 size={40} className="text-brand animate-spin" aria-hidden="true" />
+                    <p className="text-sm font-medium text-gray-500 mt-4">
+                      Chargement du catalogue…
+                    </p>
+                  </div>
+                ) : (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-600">
-                    <Search size={64} className="opacity-20 mb-4" />
+                    <Search size={64} className="opacity-20 mb-4" aria-hidden="true" />
                     {searchTerm || selectedCategory !== "all" ? (
                       <>
                         <p className="text-xl font-bold text-gray-600">
-                          Aucun produit trouvé.
+                          Aucun produit ne correspond à cette recherche.
                         </p>
-                        <p className="text-xs font-semibold text-gray-400 mt-2 mb-6">
+                        <p className="text-sm text-gray-500 mt-2 mb-6">
                           Essayez un autre terme ou élargissez vos filtres.
                         </p>
                         <Button
@@ -3675,16 +3672,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       </>
                     ) : (
                       <p className="text-xl font-bold text-gray-600">
-                        Aucun produit trouvé.
+                        Aucune boutique ne publie encore de produit.
                       </p>
                     )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <Loader2
-                      size={48}
-                      className="text-[#f56b2a] animate-spin opacity-20"
-                    />
                   </div>
                 )}
               </>
@@ -3723,7 +3713,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <>
                     {/* Store search */}
                     <div className="relative group mb-4">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#f56b2a] transition-colors">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand transition-colors">
                         <Search size={16} strokeWidth={2.5} />
                       </div>
                       <input
@@ -3731,7 +3721,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         placeholder="Chercher dans cette boutique..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-full font-semibold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-[#f56b2a] focus:shadow-lg focus:shadow-orange-100/40 transition-all no-global-border placeholder:text-gray-400"
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-transparent rounded-full font-semibold text-xs md:text-sm text-gray-700 focus:bg-white focus:border-brand focus:shadow-lg focus:shadow-orange-100/40 transition-all no-global-border placeholder:text-gray-400"
                       />
                     </div>
 
@@ -3853,7 +3843,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                         link.href = catUrl;
                                         document.head.appendChild(link);
                                       }}
-                                      className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-[#f56b2a] active:opacity-60 transition-opacity"
+                                      className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-brand active:opacity-60 transition-opacity"
                                     >
                                       Voir tout
                                       <ChevronRight size={13} strokeWidth={3} />
@@ -3874,9 +3864,9 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         )
                       ) : !isLoadingMore ? (
                         <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-                          <Search size={48} className="text-gray-200 mb-4" />
-                          <p className="text-sm font-semibold text-gray-600 uppercase tracking-widest text-center">
-                            Aucun produit trouvé
+                          <Search size={48} className="text-gray-200 mb-4" aria-hidden="true" />
+                          <p className="text-base font-semibold text-gray-600 text-center">
+                            Aucun produit dans cette sélection
                           </p>
                         </div>
                       ) : null}
@@ -3891,7 +3881,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         <div className="flex flex-col items-center gap-3">
                           <Loader2
                             size={32}
-                            className="text-[#f56b2a] animate-spin"
+                            className="text-brand animate-spin"
                           />
                           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                             Chargement des produits...
@@ -3906,7 +3896,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       <div className="flex flex-col items-center justify-center py-20">
                         <Loader2
                           size={32}
-                          className="text-[#f56b2a] animate-spin mb-4"
+                          className="text-brand animate-spin mb-4"
                         />
                         <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">
                           Chargement des avis...
@@ -3993,7 +3983,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             >
                               <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-orange-50 text-[#f56b2a] flex items-center justify-center font-bold text-xs border border-orange-100 flex-shrink-0">
+                                  <div className="w-8 h-8 rounded-full bg-orange-50 text-brand flex items-center justify-center font-bold text-xs border border-orange-100 flex-shrink-0">
                                     {review.author?.[0]?.toUpperCase() || "A"}
                                   </div>
                                   <div className="min-w-0 overflow-hidden">
@@ -4071,7 +4061,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         {storeReviews.length > 5 && !showAllStoreReviews && (
                           <button
                             onClick={() => setShowAllStoreReviews(true)}
-                            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm shadow-xl transition-all hover:bg-[#f56b2a] flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm shadow-xl transition-all hover:bg-brand flex items-center justify-center gap-2"
                           >
                             Voir plus d&apos;avis ({storeReviews.length - 5})
                             <ChevronRight size={16} className="rotate-90" />
@@ -4179,7 +4169,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
               safeNavigate("/cart");
             }}
             disabled={isCartButtonLoading}
-            className="pointer-events-auto w-full h-12 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-70 disabled:active:bg-[#f56b2a]"
+            className="pointer-events-auto w-full h-12 px-4 rounded-full bg-brand active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-70 disabled:active:bg-brand"
           >
             {isCartButtonLoading ? (
               <>
@@ -4192,7 +4182,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   <ShoppingCart size={15} strokeWidth={2.5} />
                   <span
                     key={cartItemsCount}
-                    className="absolute -top-2 -right-2.5 bg-gray-900 text-white text-[9px] min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-[#f56b2a] font-bold tabular-nums"
+                    className="absolute -top-2 -right-2.5 bg-gray-900 text-white text-[9px] min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-brand font-bold tabular-nums"
                   >
                     {cartItemsCount > 99 ? "99+" : cartItemsCount}
                   </span>
@@ -4210,7 +4200,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       {showAuthModal && (
         <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center">
           <div
-            className="fixed inset-0 bg-[#002f34]/60 backdrop-blur-md"
+            className="fixed inset-0 bg-ink/60 backdrop-blur-md"
             onClick={() => setShowAuthModal(false)}
           />
           <div className="relative w-full sm:max-w-sm bg-white rounded-t-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden sm:my-auto animate-in slide-in-from-bottom-4 fade-in duration-200 sm:slide-in-from-bottom-0 sm:zoom-in-95">
@@ -4279,7 +4269,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                           }}
                           className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
                             authMode === mode
-                              ? "bg-white text-[#002f34] shadow-sm"
+                              ? "bg-white text-ink shadow-sm"
                               : "text-gray-500 hover:text-gray-700"
                           }`}
                         >
@@ -4322,7 +4312,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               setAuthForm({ ...authForm, name: e.target.value })
                             }
                             placeholder="Votre nom et prénom"
-                            className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white focus:border-[#f56b2a] transition-all"
+                            className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-white focus:border-brand transition-all"
                           />
                         </div>
                       </div>
@@ -4345,7 +4335,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             setAuthForm({ ...authForm, email: e.target.value })
                           }
                           placeholder="exemple@email.com"
-                          className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:bg-white focus:border-[#f56b2a] transition-all"
+                          className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-white focus:border-brand transition-all"
                         />
                       </div>
                     </div>
@@ -4372,117 +4362,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                   </form>
                 </>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-      {showPropulseModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm   duration-300">
-          <div className="bg-white w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl   duration-300 relative">
-            <button
-              onClick={() => setShowPropulseModal(false)}
-              className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900 z-10"
-              aria-label="Fermer propulser"
-            >
-              <X size={24} />
-            </button>
-
-            <div className="relative h-32 md:h-40 bg-gradient-to-br from-[#f56b2a] to-[#f56b2a] p-6 flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <Zap className="w-full h-full scale-150 rotate-12" />
-              </div>
-              <div className="relative text-center">
-                <Zap
-                  size={40}
-                  className="text-white mx-auto mb-2 drop-shadow-lg"
-                  fill="currentColor"
-                />
-                <h3 className="text-xl md:text-2xl font-bold text-white leading-tight">
-                  Propulsez votre Boutique
-                </h3>
-              </div>
-            </div>
-
-            <div className="p-6 md:p-8">
-              <p className="text-gray-600 font-normal text-sm md:text-base leading-relaxed mb-6 text-center">
-                Rejoignez nos commerçants d&apos;élite et bénéficiez d&apos;une visibilité
-                exceptionnelle sur leboncoin marketplace.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-2xl">
-                  <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <Zap
-                      size={16}
-                      className="text-[#f56b2a]"
-                      fill="currentColor"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
-                      Top Ranking
-                    </h4>
-                    <p className="text-[10px] text-gray-500 font-normal">
-                      Vos produits apparaissent en tête des recherches et
-                      recommandations.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-2xl">
-                  <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck size={16} className="text-[#f56b2a]" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
-                      Badge de Confiance
-                    </h4>
-                    <p className="text-[10px] text-gray-500 font-normal">
-                      Bénéficiez d&apos;un badge exclusif qui rassure vos acheteurs.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
-                  <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <Bell size={16} className="text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
-                      Alertes Mobiles
-                    </h4>
-                    <p className="text-[10px] text-gray-500 font-normal">
-                      Vos fidèles clients sont notifiés à chaque nouvel
-                      arrivage.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-2xl">
-                  <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                    <Store size={16} className="text-purple-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-xs mb-0.5 uppercase tracking-tight">
-                      Page Premium
-                    </h4>
-                    <p className="text-[10px] text-gray-500 font-normal">
-                      Personnalisez votre boutique aux couleurs de votre marque.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setShowPropulseModal(false);
-                  onBackToApp();
-                }}
-                className="w-full py-4 bg-[#f56b2a] hover:bg-[#d55a20] text-white rounded-[20px] font-bold text-lg shadow-xl shadow-orange-200 transition-all flex items-center justify-center gap-3"
-              >
-                <Zap size={20} fill="currentColor" />
-                Devenir une Boutique Premium
-              </button>
-              <p className="text-center mt-4 text-gray-600 text-[10px] font-semibold uppercase tracking-widest">
-                Essai gratuit de 14 jours • Sans engagement
-              </p>
             </div>
           </div>
         </div>
@@ -4565,7 +4444,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           }}
         >
           <div className="bg-gray-900 text-white rounded-2xl p-3 flex items-center gap-3 shadow-2xl">
-            <div className="w-9 h-9 bg-[#f56b2a] rounded-xl grid place-items-center shrink-0">
+            <div className="w-9 h-9 bg-brand rounded-xl grid place-items-center shrink-0">
               <ShoppingBasketIcon size={18} />
             </div>
             <div className="flex-grow min-w-0">

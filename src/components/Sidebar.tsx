@@ -15,10 +15,10 @@ const SidebarItem: React.FC<SidebarItemProps & { id?: string }> = ({ icon, label
   <div
     id={id}
     onClick={onClick}
-    className={`flex flex-col items-center justify-center py-4 px-2 cursor-pointer transition-all relative group ${active ? 'text-white bg-[#f56b2a]/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+    className={`flex flex-col items-center justify-center py-4 px-2 cursor-pointer transition-all relative group ${active ? 'text-white bg-brand/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'
       }`}
   >
-    {active && <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-[#f56b2a] rounded-r-md" />}
+    {active && <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-brand rounded-r-md" />}
     <div className="mb-1">{icon}</div>
     <span className="text-[10px] font-semibold uppercase tracking-tighter text-center">{label}</span>
 

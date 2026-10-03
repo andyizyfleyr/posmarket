@@ -32,9 +32,6 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
     setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
-  const handlePhoneChange = (value: string) => {
-    setField('phone', value);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +40,15 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
     const fullName = form.fullName.trim();
     const phone = form.phone.trim();
 
-    if (!name) errs.name = 'Ajoutez un label (ex : Maison).';
-    if (!fullName) errs.fullName = 'Nom complet requis.';
+    if (!name) errs.name = 'Ajoutez un libellé (ex : Maison).';
+    if (!fullName) errs.fullName = 'Nom et prénom du destinataire requis.';
+    const street = form.address.trim();
+    const city = form.city.trim();
+
     if (!phone) errs.phone = 'Téléphone requis.';
     else if (!isValidPhoneNumber(phone)) errs.phone = 'Numéro de téléphone invalide.';
+    if (!street) errs.address = 'Adresse du domicile requise.';
+    if (!city) errs.city = 'Ville requise.';
 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -58,8 +60,8 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
         name, 
         fullName, 
         phone, 
-        city: form.city, 
-        address: form.address, 
+        city, 
+        address: street, 
         isDefault: form.isDefault 
       });
       if (ok) onClose();
@@ -69,64 +71,110 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
   };
 
   const inputClass = (hasError?: string) =>
-    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-semibold outline-none transition-all focus:ring-2 ${
+    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium outline-none transition-colors focus:ring-2 ${
       hasError
-        ? 'border-red-200 focus:ring-red-200/30'
-        : 'border-transparent focus:ring-[#f56b2a]/20'
+        ? 'border-red-300 focus:ring-red-200/40'
+        : 'border-line focus:ring-brand/20'
     }`;
 
   return (
     <Modal
-      title={address ? 'Modifier le contact' : 'Ajouter un contact'}
-      subtitle="Contacts de livraison"
-      icon={<MapPin size={20} />}
+title={address ? 'Modifier l’adresse' : 'Ajouter une adresse'}
+      subtitle="Utilisée pour la livraison et la facturation"
+      icon={<MapPin size={20} aria-hidden="true" />}
       busy={saving}
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto" noValidate>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-gray-400">Label de l&apos;adresse</label>
+          <label htmlFor="addr-name" className="text-xs font-semibold text-gray-600">Libellé</label>
           <input
+            id="addr-name"
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
-            placeholder="Maison, Bureau, etc."
+            placeholder="Maison, Bureau…"
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? 'addr-name-err' : undefined}
             className={inputClass(errors.name)}
           />
-          {errors.name && <p className="text-[10px] font-semibold text-red-400">{errors.name}</p>}
+          {errors.name && (
+            <p id="addr-name-err" className="text-xs font-medium text-red-600">{errors.name}</p>
+          )}
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-gray-400">Téléphone du destinataire</label>
+          <span className="block text-xs font-semibold text-gray-600">Téléphone du destinataire</span>
           <PhoneInput
             value={form.phone}
-            onChange={handlePhoneChange}
+            onChange={(value) => setField('phone', value)}
             error={errors.phone}
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-gray-400">Nom complet</label>
+          <label htmlFor="addr-fullname" className="text-xs font-semibold text-gray-600">Nom complet</label>
           <input
+            id="addr-fullname"
             value={form.fullName}
             onChange={(e) => setField('fullName', e.target.value)}
             placeholder="Nom et prénom du destinataire"
+            aria-invalid={!!errors.fullName}
+            aria-describedby={errors.fullName ? 'addr-fullname-err' : undefined}
             className={inputClass(errors.fullName)}
           />
-          {errors.fullName && <p className="text-[10px] font-semibold text-red-400">{errors.fullName}</p>}
+          {errors.fullName && (
+            <p id="addr-fullname-err" className="text-xs font-medium text-red-600">{errors.fullName}</p>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="addr-street" className="text-xs font-semibold text-gray-600">Adresse</label>
+          <input
+            id="addr-street"
+            value={form.address}
+            onChange={(e) => setField('address', e.target.value)}
+            placeholder="Rue, quartier, repère"
+            autoComplete="street-address"
+            aria-invalid={!!errors.address}
+            aria-describedby={errors.address ? 'addr-street-err' : undefined}
+            className={inputClass(errors.address)}
+          />
+          {errors.address && (
+            <p id="addr-street-err" className="text-xs font-medium text-red-600">{errors.address}</p>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="addr-city" className="text-xs font-semibold text-gray-600">Ville</label>
+          <input
+            id="addr-city"
+            value={form.city}
+            onChange={(e) => setField('city', e.target.value)}
+            placeholder="Dakar"
+            autoComplete="address-level2"
+            aria-invalid={!!errors.city}
+            aria-describedby={errors.city ? 'addr-city-err' : undefined}
+            className={inputClass(errors.city)}
+          />
+          {errors.city && (
+            <p id="addr-city-err" className="text-xs font-medium text-red-600">{errors.city}</p>
+          )}
         </div>
 
         <label
+          htmlFor="addr-default"
           className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-            form.isDefault ? 'bg-orange-50 border border-orange-100' : 'bg-gray-50 border border-transparent'
+            form.isDefault ? 'bg-brand-soft border border-brand/20' : 'bg-gray-50 border border-transparent'
           }`}
         >
           <input
+            id="addr-default"
             type="checkbox"
             checked={form.isDefault}
             onChange={(e) => setField('isDefault', e.target.checked)}
-            className="w-5 h-5 rounded accent-[#f56b2a]"
+            className="w-5 h-5 rounded accent-brand"
           />
-          <span className="text-xs font-semibold text-gray-600">Définir par défaut</span>
+          <span className="text-sm font-medium text-gray-700">Définir par défaut</span>
         </label>
 
         <div className="flex gap-3 pt-2 pb-2">
@@ -134,16 +182,16 @@ export const AddressModal: React.FC<AddressModalProps> = ({ address, onClose, on
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 py-3 px-4 border-2 border-gray-100 text-gray-700 font-semibold text-xs rounded-2xl hover:bg-gray-50 transition-all disabled:opacity-50"
+            className="flex-1 py-3 px-4 border-2 border-line text-gray-700 font-semibold text-sm rounded-2xl hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-[2] py-3 px-4 bg-[#f56b2a] text-white font-semibold text-xs rounded-2xl shadow-md shadow-orange-100 hover:bg-[#e55a1b] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-[2] py-3 px-4 bg-brand text-white font-semibold text-sm rounded-2xl shadow-md shadow-orange-100 hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
             Enregistrer
           </button>
         </div>

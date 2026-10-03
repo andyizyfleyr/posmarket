@@ -28,6 +28,7 @@ import {
   Package,
   Sparkles,
   BadgePercent,
+  Tag,
 } from 'lucide-react';
 import { playSuccessSound, formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
@@ -99,7 +100,7 @@ const POSProductCard = React.memo(({
       type="button"
       onClick={handleTap}
       className={`relative flex flex-col bg-white rounded-2xl border overflow-hidden text-left transition-all duration-150 active:scale-[0.96] focus:outline-none
-        ${tapped ? 'border-[#f56b2a] ring-2 ring-[#f56b2a]/20 shadow-lg shadow-orange-100' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'}
+        ${tapped ? 'border-brand ring-2 ring-brand/20 shadow-lg shadow-orange-100' : 'border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200'}
         ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
     >
@@ -113,10 +114,10 @@ const POSProductCard = React.memo(({
           showZoomEffect={false}
         />
         {/* Tap feedback overlay */}
-        <div className={`absolute inset-0 bg-[#f56b2a]/10 transition-opacity duration-200 pointer-events-none ${tapped ? 'opacity-100' : 'opacity-0'}`} />
+        <div className={`absolute inset-0 bg-brand/10 transition-opacity duration-200 pointer-events-none ${tapped ? 'opacity-100' : 'opacity-0'}`} />
         {/* Add icon overlay */}
         <div className={`absolute bottom-1.5 right-1.5 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg
-          ${tapped ? 'bg-[#f56b2a] text-white scale-110' : bulkAdd ? 'bg-[#f56b2a] text-white border border-orange-200' : 'bg-white/90 backdrop-blur-sm text-gray-600 border border-gray-100'}
+          ${tapped ? 'bg-brand text-white scale-110' : bulkAdd ? 'bg-brand text-white border border-orange-200' : 'bg-white/90 backdrop-blur-sm text-gray-600 border border-gray-100'}
           ${isOutOfStock ? 'hidden' : ''}
         `}>
           {bulkAdd ? (
@@ -154,7 +155,7 @@ const POSProductCard = React.memo(({
           </span>
         )}
         {hasWholesale && firstWholesaleTier && (
-          <span className={`flex items-center gap-1 mt-0.5 text-[7px] md:text-[8px] font-bold ${bulkAdd ? 'text-[#d94f0a]' : 'text-[#f56b2a]'}`}>
+          <span className={`flex items-center gap-1 mt-0.5 text-[7px] md:text-[8px] font-bold ${bulkAdd ? 'text-[#d94f0a]' : 'text-brand'}`}>
             <BadgePercent size={8} /> Dès {firstWholesaleTier.minQty} : {formatCurrency(firstWholesaleTier.unitPrice)}
           </span>
         )}
@@ -203,11 +204,11 @@ const POSCartItem = React.memo(({
           <p className="text-[9px] md:text-[10px] text-gray-500 italic truncate leading-tight">{item.variantLabel}</p>
         )}
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className={`text-[10px] ${isWholesale ? 'text-[#f56b2a] font-semibold' : 'text-gray-400 font-medium'}`}>
+          <span className={`text-[10px] ${isWholesale ? 'text-brand font-semibold' : 'text-gray-400 font-medium'}`}>
             {formatCurrency(unitPrice)}
           </span>
           {isWholesale && (
-            <span className="text-[7.5px] bg-orange-100 text-[#f56b2a] font-bold px-1 rounded uppercase">Gros</span>
+            <span className="text-[7.5px] bg-orange-100 text-brand font-bold px-1 rounded uppercase">Gros</span>
           )}
           <span className="text-[10px] text-gray-300">×</span>
           <span className="text-[10px] font-semibold text-gray-600">{item.quantity}</span>
@@ -644,7 +645,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           >
             <ChevronDown size={20} />
           </button>
-          <div className="bg-gradient-to-br from-[#f56b2a] to-[#e04e0f] p-1.5 rounded-xl text-white shadow-md shadow-orange-200/50">
+          <div className="bg-gradient-to-br from-brand to-[#e04e0f] p-1.5 rounded-xl text-white shadow-md shadow-orange-200/50">
             <Receipt size={16} />
           </div>
           <div>
@@ -673,7 +674,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 type="text"
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-normal focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 focus:outline-none transition-all"
+                className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-normal focus:ring-2 focus:ring-brand/20 focus:border-brand/30 focus:outline-none transition-all"
                 placeholder="Nom ou téléphone..."
               />
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
@@ -696,12 +697,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           ) : (
             <div className="flex items-center justify-between p-2 bg-orange-50/60 border border-orange-100/50 rounded-xl">
               <div className="flex items-center gap-2">
-                <div className="bg-gradient-to-br from-[#f56b2a] to-[#e04e0f] w-7 h-7 rounded-lg text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                <div className="bg-gradient-to-br from-brand to-[#e04e0f] w-7 h-7 rounded-lg text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
                   {selectedCustomer.name[0].toUpperCase()}
                 </div>
                 <div>
                   <div className="text-[11px] font-semibold text-gray-800">{selectedCustomer.name}</div>
-                  <div className="text-[9px] text-[#f56b2a] font-medium">{selectedCustomer.phone}</div>
+                  <div className="text-[9px] text-brand font-medium">{selectedCustomer.phone}</div>
                 </div>
               </div>
               <button onClick={() => setSelectedCustomer(null)} className="p-1 hover:bg-orange-100 rounded-lg transition-colors">
@@ -751,7 +752,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                     onClick={() => setOrderType(t.id)}
                     className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all border active:scale-95
                       ${orderType === t.id
-                        ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-200/50'
+                        ? 'bg-brand border-brand text-white shadow-md shadow-orange-200/50'
                         : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                       }`}
                   >
@@ -773,7 +774,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                     onClick={() => setPaymentMethod(pm.id)}
                     className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all border active:scale-95
                       ${paymentMethod === pm.id
-                        ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-200/50'
+                        ? 'bg-brand border-brand text-white shadow-md shadow-orange-200/50'
                         : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                       }`}
                   >
@@ -790,7 +791,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
                   placeholder="Code promo..."
-                  className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-[10px] font-semibold focus:outline-none focus:border-[#f56b2a]/30 focus:ring-2 focus:ring-[#f56b2a]/10 transition-all"
+                  className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-[10px] font-semibold focus:outline-none focus:border-brand/30 focus:ring-2 focus:ring-brand/10 transition-all"
                   onKeyDown={(e) => { if (e.key === 'Enter' && promoInput) handlePromoApply(promoInput); }}
                 />
                 <button
@@ -803,7 +804,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             )}
             {promoApplied && (
               <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-3 py-1.5">
-                <span className="text-[10px] font-semibold text-green-700">✓ {promoApplied.code} (−{promoApplied.discountPct}%)</span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-green-700"><Tag size={12} aria-hidden="true" /> {promoApplied.code} (−{promoApplied.discountPct}%)</span>
                 <button onClick={() => setPromoApplied(null)} className="text-green-400 hover:text-red-500 transition-colors"><X size={12} /></button>
               </div>
             )}
@@ -828,7 +829,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               )}
               <div className="flex justify-between items-baseline pt-1.5 border-t border-gray-50">
                 <span className="text-sm font-bold text-gray-900">Total</span>
-                <span className="text-xl md:text-2xl font-bold text-[#f56b2a] tabular-nums">{formatCurrency(totals.total)}</span>
+                <span className="text-xl md:text-2xl font-bold text-brand tabular-nums">{formatCurrency(totals.total)}</span>
               </div>
             </div>
           </>
@@ -837,7 +838,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
           <button
             onClick={handleCheckout}
             disabled={cart.length === 0 || isProcessing}
-            className="w-full bg-gradient-to-r from-[#f56b2a] to-[#e04e0f] text-white font-bold text-sm md:text-base py-3.5 md:py-4 rounded-2xl flex items-center justify-center gap-2.5 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-xl shadow-orange-200/40 transition-all active:scale-[0.98] hover:shadow-2xl hover:shadow-orange-200/60"
+            className="w-full bg-gradient-to-r from-brand to-[#e04e0f] text-white font-bold text-sm md:text-base py-3.5 md:py-4 rounded-2xl flex items-center justify-center gap-2.5 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-xl shadow-orange-200/40 transition-all active:scale-[0.98] hover:shadow-2xl hover:shadow-orange-200/60"
           >
             {isProcessing ? (
               <Loader color="text-white" size="sm" />
@@ -862,7 +863,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         {/* POS Header */}
         <div className="px-3 md:px-5 py-2.5 md:py-3 bg-white border-b border-gray-100 flex items-center gap-3">
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="bg-gradient-to-br from-[#f56b2a] to-[#e04e0f] p-1.5 md:p-2 rounded-xl text-white shadow-md shadow-orange-200/30">
+            <div className="bg-gradient-to-br from-brand to-[#e04e0f] p-1.5 md:p-2 rounded-xl text-white shadow-md shadow-orange-200/30">
               <Sparkles size={16} className="md:w-[18px] md:h-[18px]" />
             </div>
             <div className="hidden sm:block">
@@ -880,7 +881,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               value={searchTerm}
               placeholder="Rechercher un produit..."
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 text-xs md:text-sm font-normal transition-all"
+              className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30 text-xs md:text-sm font-normal transition-all"
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
@@ -894,8 +895,8 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             onClick={() => setBulkMode(v => !v)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-[10px] transition-all border flex-shrink-0 active:scale-95
               ${bulkMode
-                ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-100'
-                : 'bg-gray-50 border-gray-100 text-gray-500 hover:text-[#f56b2a] hover:border-orange-200'
+                ? 'bg-brand border-brand text-white shadow-md shadow-orange-100'
+                : 'bg-gray-50 border-gray-100 text-gray-500 hover:text-brand hover:border-orange-200'
               }`}
             title="Ajouter directement la quantité du palier de gros (dès) en un tap"
           >
@@ -922,7 +923,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 onClick={() => setSelectedCategory(cat)}
                 className={`flex-shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-xl font-bold text-[9px] md:text-[10px] uppercase tracking-wider transition-all border active:scale-95 whitespace-nowrap
                   ${selectedCategory === cat
-                    ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-md shadow-orange-100'
+                    ? 'bg-brand border-brand text-white shadow-md shadow-orange-100'
                     : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }`}
               >
@@ -936,7 +937,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
         <div className="flex-grow overflow-y-auto px-3 md:px-5 py-3 md:py-4 pb-28 md:pb-4 custom-scrollbar">
           {bulkMode && (
             <div className="mb-2.5 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2">
-              <BadgePercent size={14} className="text-[#f56b2a] flex-shrink-0" />
+              <BadgePercent size={14} className="text-brand flex-shrink-0" />
               <p className="text-[10px] font-bold text-[#7a3c14] leading-snug">
                 Mode gros actif : un tap ajoute la quantité du palier « Dès N », ou ouvre le choix des paliers si le produit en a plusieurs.
               </p>
@@ -969,12 +970,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
       {cart.length > 0 && !showCartSheet && (
         <button
           onClick={() => setShowCartSheet(true)}
-          className="md:hidden fixed bottom-[68px] left-3 right-3 z-40 bg-gradient-to-r from-[#f56b2a] to-[#e04e0f] text-white px-4 py-3 rounded-2xl shadow-[0_4px_24px_rgba(245,107,42,0.35)] flex items-center justify-between active:scale-[0.98] transition-transform"
+          className="md:hidden fixed bottom-[68px] left-3 right-3 z-40 bg-gradient-to-r from-brand to-[#e04e0f] text-white px-4 py-3 rounded-2xl shadow-brand/40 flex items-center justify-between active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-2.5">
             <div className="relative">
               <ShoppingBasket size={18} />
-              <span className="absolute -top-1.5 -right-2 bg-white text-[#f56b2a] text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+              <span className="absolute -top-1.5 -right-2 bg-white text-brand text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                 {totalItems}
               </span>
             </div>
@@ -1034,7 +1035,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                 )}
                 <div className="flex justify-between items-baseline pt-2 border-t border-gray-200">
                   <span className="text-sm font-bold text-gray-900">Total payé</span>
-                  <span className="text-xl font-bold text-[#f56b2a]">{formatCurrency(totals.total)}</span>
+                  <span className="text-xl font-bold text-brand">{formatCurrency(totals.total)}</span>
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-gray-200 text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
                   <span className="flex items-center gap-1">
@@ -1064,7 +1065,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                   onClick={handlePrint}
                   className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm"
                 >
-                  <Printer size={16} className="text-[#f56b2a]" /> Imprimer
+                  <Printer size={16} className="text-brand" /> Imprimer
                 </button>
                 <button
                   type="button"
@@ -1073,10 +1074,10 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                   className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm disabled:opacity-50"
                 >
                   {isDownloadingPdf ? (
-                    <Loader size="sm" color="text-[#f56b2a]" />
+                    <Loader size="sm" color="text-brand" />
                   ) : (
                     <>
-                      <Download size={16} className="text-[#f56b2a]" /> PDF
+                      <Download size={16} className="text-brand" /> PDF
                     </>
                   )}
                 </button>
@@ -1084,7 +1085,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               <button
                 type="button"
                 onClick={closeCheckout}
-                className="w-full py-3.5 bg-gradient-to-r from-[#f56b2a] to-[#e04e0f] text-white font-bold text-sm rounded-2xl active:scale-[0.98] transition-transform shadow-lg shadow-orange-200/30"
+                className="w-full py-3.5 bg-gradient-to-r from-brand to-[#e04e0f] text-white font-bold text-sm rounded-2xl active:scale-[0.98] transition-transform shadow-lg shadow-orange-200/30"
               >
                 Nouvelle Vente
               </button>
@@ -1157,7 +1158,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                             }}
                             className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
                               ${canAdd
-                                ? 'bg-orange-50/60 border-orange-100 hover:border-[#f56b2a] hover:shadow-sm'
+                                ? 'bg-orange-50/60 border-orange-100 hover:border-brand hover:shadow-sm'
                                 : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
                               }`}
                           >
@@ -1166,7 +1167,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                               {v.sku && <p className="text-[9px] text-gray-400 font-medium">SKU {v.sku}</p>}
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-[11px] font-bold text-[#f56b2a]">{formatCurrency(Number(v.price) || 0)}</p>
+                              <p className="text-[11px] font-bold text-brand">{formatCurrency(Number(v.price) || 0)}</p>
                               {!canAdd && (
                                 <p className="text-[8px] font-bold text-gray-400 uppercase">Stock insuffisant</p>
                               )}
@@ -1194,12 +1195,12 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                             }}
                             className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all active:scale-[0.98]
                               ${canAdd
-                                ? 'bg-orange-50/60 border-orange-100 hover:border-[#f56b2a] hover:shadow-sm'
+                                ? 'bg-orange-50/60 border-orange-100 hover:border-brand hover:shadow-sm'
                                 : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
                               }`}
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="bg-[#f56b2a] text-white text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0">Dès {tier.minQty}</span>
+                              <span className="bg-brand text-white text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0">Dès {tier.minQty}</span>
                               <div className="min-w-0">
                                 <p className="text-[11px] font-bold text-gray-800">
                                   {formatCurrency(tier.unitPrice)}
@@ -1285,8 +1286,8 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                           ${out
                             ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
                             : isSelected
-                              ? 'bg-orange-50 border-[#f56b2a] shadow-sm'
-                              : 'bg-white border-gray-200 hover:border-[#f56b2a] hover:shadow-sm'
+                              ? 'bg-orange-50 border-brand shadow-sm'
+                              : 'bg-white border-gray-200 hover:border-brand hover:shadow-sm'
                           }`}
                       >
                         <div className="min-w-0">
@@ -1294,7 +1295,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                           {v.sku && <p className="text-[9px] text-gray-400 font-medium">SKU {v.sku}</p>}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-[11px] font-bold text-[#f56b2a]">{formatCurrency(Number(v.price) || 0)}</p>
+                          <p className="text-[11px] font-bold text-brand">{formatCurrency(Number(v.price) || 0)}</p>
                           <p className={`text-[8px] font-bold uppercase ${out ? 'text-red-500' : vStock <= 5 ? 'text-amber-600' : 'text-gray-400'}`}>
                             {out ? 'Rupture' : `${vStock} en stock`}
                           </p>
@@ -1310,7 +1311,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
                   onClick={() => selected && confirmVariantAdd(p, selected.id)}
                   className={`mt-3 w-full py-2.5 rounded-xl text-[12px] font-bold transition-all active:scale-[0.98]
                     ${selected && (Number(selected.stock) || 0) > 0
-                      ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200 hover:bg-[#e05f1f]'
+                      ? 'bg-brand text-white shadow-md shadow-orange-200 hover:bg-[#e05f1f]'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                 >

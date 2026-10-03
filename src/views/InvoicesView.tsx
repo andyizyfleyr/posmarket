@@ -260,7 +260,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"
-                            className="pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-xl text-sm font-normal focus:outline-none focus:border-[#f56b2a] focus:ring-2 focus:ring-orange-100 transition-all shadow-sm w-48"
+                            className="pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-xl text-sm font-normal focus:outline-none focus:border-brand focus:ring-2 focus:ring-orange-100 transition-all shadow-sm w-48"
                         />
                     </div>
                     <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-xl text-xs md:text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm">
@@ -272,7 +272,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                 setIsCreating(true);
                                 setStep(1);
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#f56b2a] rounded-xl text-xs md:text-sm font-bold text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-brand rounded-xl text-xs md:text-sm font-bold text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all"
                         >
                             <Plus size={16} /> Nouveau
                         </button>
@@ -304,7 +304,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                         <div className="block md:table-cell px-3 md:px-6 py-2 md:py-4">
                                             <div className="flex items-center justify-between gap-2 overflow-hidden">
                                                 <div className="flex items-center gap-3 min-w-0 flex-grow">
-                                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-orange-50 text-[#f56b2a] flex items-center justify-center flex-shrink-0">
+                                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-orange-50 text-brand flex items-center justify-center flex-shrink-0">
                                                         <FileText size={16} />
                                                     </div>
                                                     <div className="min-w-0 flex flex-col">
@@ -347,7 +347,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                             <span className="text-sm font-bold text-gray-900">{formatCurrency(invoice.total)}</span>
                                         </div>
                                         <div className="hidden md:table-cell px-6 py-4 text-right">
-                                            <button className="p-2 text-gray-300 hover:text-[#f56b2a] group-hover:bg-orange-50 rounded-xl transition-all"><ChevronRight size={18} /></button>
+                                            <button className="p-2 text-gray-300 hover:text-brand group-hover:bg-orange-50 rounded-xl transition-all"><ChevronRight size={18} /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -368,7 +368,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                         setIsCreating(true);
                                         setStep(1);
                                     }}
-                                    className="mt-2 px-6 py-3 bg-[#f56b2a] text-white rounded-xl font-semibold flex items-center gap-2 hover:bg-[#d55a20] transition"
+                                    className="mt-2 px-6 py-3 bg-brand text-white rounded-xl font-semibold flex items-center gap-2 hover:bg-[#d55a20] transition"
                                 >
                                     <Plus size={18} /> Créer une facture
                                 </button>
@@ -385,7 +385,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                         <div className="px-6 py-4 md:py-6 border-b border-gray-100 bg-white sticky top-0 z-10">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                                    <FileText className="text-[#f56b2a] size-5 md:size-6" /> Nouvelle Facture
+                                    <FileText className="text-brand size-5 md:size-6" /> Nouvelle Facture
                                 </h2>
                                 <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-50 rounded-full">
                                     <X size={20} className="md:size-6" />
@@ -395,15 +395,15 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                             {/* Step Indicator */}
                             <div className="flex items-center justify-between relative px-2">
                                 <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -translate-y-1/2 z-0"></div>
-                                <div className={`absolute top-1/2 left-0 h-0.5 bg-[#f56b2a] -translate-y-1/2 z-0 transition-all duration-500`} style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
+                                <div className={`absolute top-1/2 left-0 h-0.5 bg-brand -translate-y-1/2 z-0 transition-all duration-500`} style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
 
                                 {[1, 2, 3].map((s) => (
                                     <div key={s} className="relative z-10 flex flex-col items-center">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${step >= s ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-400'
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${step >= s ? 'bg-brand text-white' : 'bg-gray-100 text-gray-400'
                                             }`}>
                                             {step > s ? <Check size={14} strokeWidth={3} /> : s}
                                         </div>
-                                        <span className={`text-[8px] font-bold uppercase tracking-widest mt-2 ${step >= s ? 'text-[#f56b2a]' : 'text-gray-300'}`}>
+                                        <span className={`text-[8px] font-bold uppercase tracking-widest mt-2 ${step >= s ? 'text-brand' : 'text-gray-300'}`}>
                                             {s === 1 ? 'Client' : s === 2 ? 'Dates' : 'Articles'}
                                         </span>
                                     </div>
@@ -423,7 +423,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                 value={newInvoice.customerName || ''}
                                                 onChange={e => setNewInvoice({ ...newInvoice, customerName: e.target.value })}
                                                 placeholder="Ex: Jean Dupont"
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-sm"
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-sm"
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -433,7 +433,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     type="email"
                                                     value={newInvoice.customerEmail || ''}
                                                     onChange={e => setNewInvoice({ ...newInvoice, customerEmail: e.target.value })}
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-normal text-gray-900 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-sm"
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-normal text-gray-900 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-sm"
                                                 />
                                             </div>
                                             <div>
@@ -442,7 +442,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     type="text"
                                                     value={newInvoice.customerAddress || ''}
                                                     onChange={e => setNewInvoice({ ...newInvoice, customerAddress: e.target.value })}
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-normal text-gray-900 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-sm"
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-normal text-gray-900 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-sm"
                                                 />
                                             </div>
                                         </div>
@@ -461,7 +461,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     type="date"
                                                     value={newInvoice.date}
                                                     onChange={e => setNewInvoice({ ...newInvoice, date: e.target.value })}
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-sm"
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-sm"
                                                 />
                                             </div>
                                             <div>
@@ -470,7 +470,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     type="date"
                                                     value={newInvoice.dueDate}
                                                     onChange={e => setNewInvoice({ ...newInvoice, dueDate: e.target.value })}
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-sm"
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-sm"
                                                 />
                                             </div>
                                         </div>
@@ -494,7 +494,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     value={newInvoice.notes || ''}
                                                     onChange={e => setNewInvoice({ ...newInvoice, notes: e.target.value })}
                                                     placeholder="Ex: Confiance"
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-normal text-gray-900 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-sm"
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm font-normal text-gray-900 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-sm"
                                                 />
                                             </div>
                                         </div>
@@ -506,7 +506,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                                         <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Articles de la facture</h3>
-                                        <span className="text-[10px] font-bold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full">{newInvoice.items?.length || 0} Articles</span>
+                                        <span className="text-[10px] font-bold text-brand bg-orange-50 px-2 py-0.5 rounded-full">{newInvoice.items?.length || 0} Articles</span>
                                     </div>
 
                                     <div className="bg-gray-50/50 rounded-2xl p-4 md:p-6 border border-gray-100">
@@ -516,7 +516,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                 <select
                                                     value={selectedProduct}
                                                     onChange={e => setSelectedProduct(e.target.value)}
-                                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs md:text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all shadow-md"
+                                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs md:text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all shadow-md"
                                                 >
                                                     <option value="">Sélectionner un produit...</option>
                                                     {products.map(p => (
@@ -575,7 +575,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                     {newInvoice.items.map((item, idx) => (
                                                         <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                                                             <td className="px-6 py-4 font-semibold text-gray-900 max-w-[200px] truncate">{item.description}</td>
-                                                            <td className="px-4 py-4 text-center font-bold text-[#f56b2a] bg-orange-50/30">{item.quantity}</td>
+                                                            <td className="px-4 py-4 text-center font-bold text-brand bg-orange-50/30">{item.quantity}</td>
                                                             <td className="px-6 py-4 text-right text-gray-500 font-normal">{formatCurrency(item.unitPrice)}</td>
                                                             <td className="px-6 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total)}</td>
                                                             <td className="px-4 py-4 text-center">
@@ -605,7 +605,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                                 <span>Sous-total</span>
                                                 <span className="font-mono text-gray-900">{formatCurrency(formSubtotal)}</span>
                                             </div>
-                                            <div className="flex justify-between text-lg md:text-xl font-bold text-[#f56b2a] pt-4 border-t border-gray-100 tracking-tighter whitespace-nowrap">
+                                            <div className="flex justify-between text-lg md:text-xl font-bold text-brand pt-4 border-t border-gray-100 tracking-tighter whitespace-nowrap">
                                                 <span className="uppercase text-xs self-center">Total</span>
                                                 <span className="font-mono">{formatCurrency(formTotal)}</span>
                                             </div>
@@ -642,7 +642,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                             ) : (
                                 <button
                                     onClick={handleSaveInvoice}
-                                    className="flex-grow md:flex-none px-12 py-4 bg-[#f56b2a] text-white font-bold rounded-2xl shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 text-sm"
+                                    className="flex-grow md:flex-none px-12 py-4 bg-brand text-white font-bold rounded-2xl shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 text-sm"
                                 >
                                     Enregistrer la Facture
                                 </button>
@@ -673,7 +673,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                 className="print-only bg-white mx-auto shadow-xl md:shadow-sm border border-gray-100 md:border-gray-200 !max-w-[800px] w-full min-h-[500px] p-6 md:p-12 relative print:shadow-none print:border-none rounded-xl md:rounded-none overflow-x-auto"
                             >
                                 {/* Decorative Header */}
-                                <div className="absolute top-0 left-0 w-full h-2 bg-[#f56b2a]"></div>
+                                <div className="absolute top-0 left-0 w-full h-2 bg-brand"></div>
 
                                 <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8 md:mb-12 mt-4">
                                     <div className="w-full md:w-auto">
@@ -685,7 +685,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                         </div>
                                     </div>
                                     <div className="text-left md:text-right text-[10px] md:text-sm w-full md:w-auto bg-gray-50 md:bg-transparent p-4 md:p-0 rounded-xl">
-                                        <h2 className="text-sm md:text-xl font-bold text-[#f56b2a] mb-1 md:mb-2">{storeSettings.name || 'Boutique'}</h2>
+                                        <h2 className="text-sm md:text-xl font-bold text-brand mb-1 md:mb-2">{storeSettings.name || 'Boutique'}</h2>
                                         <p className="text-gray-500 whitespace-pre-line leading-relaxed">{storeSettings.address || ''}</p>
                                         <div className="mt-2 space-y-0.5">
                                             {storeSettings.phone && <p className="text-gray-700 font-semibold">{storeSettings.phone}</p>}
@@ -699,14 +699,14 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                     <div className="text-gray-900">
                                         <div className="font-bold text-base md:text-lg mb-1">{selectedInvoice.customerName}</div>
                                         {selectedInvoice.customerAddress && <div className="text-xs md:text-sm text-gray-600 whitespace-pre-line mb-1 italic">{selectedInvoice.customerAddress}</div>}
-                                        {selectedInvoice.customerEmail && <div className="text-xs md:text-sm text-[#f56b2a] font-semibold">{selectedInvoice.customerEmail}</div>}
+                                        {selectedInvoice.customerEmail && <div className="text-xs md:text-sm text-brand font-semibold">{selectedInvoice.customerEmail}</div>}
                                     </div>
                                 </div>
 
                                 <div className="overflow-x-auto -mx-6 px-6 md:mx-0 md:px-0 mb-8">
                                     {loadingInvoiceItems ? (
                                         <div className="flex items-center justify-center py-12">
-                                            <Loader2 className="animate-spin text-[#f56b2a]" size={24} />
+                                            <Loader2 className="animate-spin text-brand" size={24} />
                                         </div>
                                     ) : (
                                     <table className="w-full text-left min-w-[500px] md:min-w-0">
@@ -738,7 +738,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                             <span className="font-semibold uppercase tracking-wider">Sous-total</span>
                                             <span className="font-mono">{formatCurrency(selectedInvoice.subtotal)}</span>
                                         </div>
-                                        <div className="flex justify-between text-base md:text-xl font-bold text-[#f56b2a] pt-3 border-t-2 border-gray-900">
+                                        <div className="flex justify-between text-base md:text-xl font-bold text-brand pt-3 border-t-2 border-gray-900">
                                             <span className="uppercase tracking-tighter">Total</span>
                                             <span className="font-mono">{formatCurrency(selectedInvoice.total)}</span>
                                         </div>
@@ -805,7 +805,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                     </button>
                                     <button
                                         onClick={handleDownloadPDF}
-                                        className="flex-grow md:w-full py-2.5 md:py-3.5 bg-[#f56b2a] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all text-[11px] md:text-sm"
+                                        className="flex-grow md:w-full py-2.5 md:py-3.5 bg-brand text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all text-[11px] md:text-sm"
                                     >
                                         <Download size={16} className="md:size-[18px]" /> PDF
                                     </button>

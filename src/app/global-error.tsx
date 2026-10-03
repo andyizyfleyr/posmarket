@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -12,8 +13,8 @@ export default function GlobalRootError({ error, reset }: GlobalErrorProps) {
     <html lang="fr">
       <body className="min-h-screen bg-[#fffaf7] text-gray-900 font-sans flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-orange-100 shadow-2xl text-center">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-orange-100 text-[#f56b2a] flex items-center justify-center text-2xl font-bold">
-            ⚡
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-orange-100 text-brand flex items-center justify-center text-2xl font-bold">
+            <AlertTriangle size={28} aria-hidden="true" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             PosMarket — Erreur d&apos;affichage
@@ -24,7 +25,7 @@ export default function GlobalRootError({ error, reset }: GlobalErrorProps) {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => reset ? reset() : window.location.reload()}
-              className="w-full py-3.5 px-6 bg-[#f56b2a] hover:bg-[#e45a19] text-white font-bold text-sm rounded-2xl shadow-lg shadow-[#f56b2a]/30 transition-all cursor-pointer"
+              className="w-full py-3.5 px-6 bg-brand hover:bg-[#e45a19] text-white font-bold text-sm rounded-2xl shadow-lg shadow-brand/30 transition-all cursor-pointer"
             >
               Recharger la page
             </button>

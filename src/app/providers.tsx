@@ -52,12 +52,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const onLoad = () => {
       navigator.serviceWorker.register('/sw.js').then(
         (registration) => {
-          console.log('✅ ServiceWorker registration successful:', registration.scope);
+          console.log('ServiceWorker registration successful:', registration.scope);
           // Vérifie périodiquement les mises à jour du SW
           setInterval(() => registration.update(), 60 * 60 * 1000);
         },
         (err) => {
-          console.log('❌ ServiceWorker registration failed:', err);
+          console.log('ServiceWorker registration failed:', err);
         }
       );
     };

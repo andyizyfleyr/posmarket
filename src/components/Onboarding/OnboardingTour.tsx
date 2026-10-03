@@ -181,7 +181,7 @@ export const OnboardingTour: React.FC = () => {
       
       {currentStep.targetId !== 'center' && (
         <div 
-          className="absolute z-[10000] border-2 border-[#f56b2a] rounded-xl shadow-[0_0_0_9999px_rgba(15,23,42,0.3)] transition-all duration-500 ease-in-out pointer-events-none"
+          className="absolute z-[10000] border-2 border-brand rounded-xl shadow-[0_0_0_9999px_rgba(15,23,42,0.3)] transition-all duration-500 ease-in-out pointer-events-none"
           style={{
             top: coords.top - 4,
             left: coords.left - 4,
@@ -199,10 +199,10 @@ export const OnboardingTour: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-orange-50 rounded-lg text-[#f56b2a]">
+            <div className="p-1.5 bg-orange-50 rounded-lg text-brand">
               <Sparkles size={16} />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#f56b2a]">{currentStepIndex + 1} / {steps.length}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-brand">{currentStepIndex + 1} / {steps.length}</span>
           </div>
           <button onClick={stopTour} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
             <X size={18} />
@@ -225,13 +225,13 @@ export const OnboardingTour: React.FC = () => {
 
           <div className="flex gap-1.5">
             {steps.map((_, i) => (
-              <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentStepIndex ? 'bg-[#f56b2a] w-4' : 'bg-gray-200'}`} />
+              <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentStepIndex ? 'bg-brand w-4' : 'bg-gray-200'}`} />
             ))}
           </div>
 
           <button 
             onClick={handleNext}
-            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-[#f56b2a] text-white rounded-xl text-xs font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100"
+            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-brand text-white rounded-xl text-xs font-bold hover:bg-[#d55a20] transition-all shadow-lg shadow-orange-100"
           >
             {currentStepIndex === steps.length - 1 ? 'Terminer' : 'Suivant'} <ChevronRight size={16} />
           </button>

@@ -61,9 +61,9 @@ export default function AdminShell({
   };
 
   const sidebar = (
-    <aside className={`bg-[#0a0a0c] border-r border-[#f56b2a]/20 flex flex-col z-40 transition-all duration-300 fixed md:sticky top-0 h-screen md:h-auto w-64 md:w-64 ${sidebarOpen ? 'left-0' : '-left-64 md:left-0'}`}>
+    <aside className={`bg-[#0a0a0c] border-r border-brand/20 flex flex-col z-40 transition-all duration-300 fixed md:sticky top-0 h-screen md:h-auto w-64 md:w-64 ${sidebarOpen ? 'left-0' : '-left-64 md:left-0'}`}>
       <div className="flex items-center gap-3 px-6 py-6 border-b border-white/5">
-        <div className="w-11 h-11 bg-[#f56b2a] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-900/40">
+        <div className="w-11 h-11 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-900/40">
           <Shield size={22} />
         </div>
         <div className="min-w-0">
@@ -83,12 +83,12 @@ export default function AdminShell({
               href={item.href}
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-6 py-3.5 mx-2 rounded-xl transition-all relative group ${
-                active ? 'text-white bg-[#f56b2a]/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                active ? 'text-white bg-brand/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <span className={active ? 'text-[#f56b2a]' : 'text-slate-500 group-hover:text-slate-300'}>{item.icon}</span>
+              <span className={active ? 'text-brand' : 'text-slate-500 group-hover:text-slate-300'}>{item.icon}</span>
               <span className="text-[11px] font-bold uppercase tracking-tighter">{item.label}</span>
-              {active && <span className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-[#f56b2a] rounded-r-md" />}
+              {active && <span className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-brand rounded-r-md" />}
             </Link>
           );
         })}
@@ -117,11 +117,11 @@ export default function AdminShell({
       {sidebar}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden sticky top-0 z-20 bg-[#0a0a0c] border-b border-[#f56b2a]/20 px-4 py-3 flex items-center justify-between">
+        <header className="md:hidden sticky top-0 z-20 bg-[#0a0a0c] border-b border-brand/20 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 text-[#f56b2a]"
+              className="p-2 text-brand"
               aria-label="Ouvrir le menu"
             >
               <Shield size={20} />

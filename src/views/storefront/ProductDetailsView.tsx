@@ -196,21 +196,21 @@ function ProductSeller({
           <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">
             Vendu par
           </span>
-          <span className="text-[13px] font-semibold text-gray-800 truncate min-w-0 group-hover/vendor:text-[#f56b2a] transition-colors">
+          <span className="text-[13px] font-semibold text-gray-800 truncate min-w-0 group-hover/vendor:text-brand transition-colors">
             {product.storeName}
           </span>
           <CheckCircle2
             size={13}
             role="img"
             aria-label="Boutique vérifiée"
-            className="text-[#f56b2a] flex-shrink-0"
+            className="text-brand flex-shrink-0"
           />
         </Link>
         {category && (
           <button
             type="button"
             onClick={onCategoryClick}
-            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-[#f56b2a] transition-colors cursor-pointer min-w-0 max-w-full"
+            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
           >
             <span className="truncate">{category}</span>
             <ChevronRight size={11} className="flex-shrink-0" />
@@ -453,7 +453,7 @@ function OptionsPicker({
                   type="button"
                   aria-label={`Retirer ${o.name}`}
                   onClick={() => onRemove(o.id)}
-                  className="w-4 h-4 rounded-full bg-gray-100 hover:bg-[#f56b2a] hover:text-white flex items-center justify-center transition-colors"
+                  className="w-4 h-4 rounded-full bg-gray-100 hover:bg-brand hover:text-white flex items-center justify-center transition-colors"
                 >
                   <X size={9} strokeWidth={3} />
                 </button>
@@ -471,7 +471,7 @@ function OptionsPicker({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-gray-900">{option.name}</span>
                 {selectedVal ? (
-                  <span className="text-[11px] font-semibold text-[#f56b2a]">{selectedVal}</span>
+                  <span className="text-[11px] font-semibold text-brand">{selectedVal}</span>
                 ) : (
                   <span className="text-[9px] font-medium text-gray-300">Choisissez...</span>
                 )}
@@ -492,12 +492,12 @@ function OptionsPicker({
                         isDisabled
                           ? "bg-gray-50 text-gray-300 border-gray-100 line-through cursor-not-allowed"
                           : isSelected
-                            ? "bg-[#f56b2a] text-white border-[#f56b2a] shadow-md shadow-orange-100"
-                            : "bg-white text-gray-600 border-gray-200 active:border-[#f56b2a]"
+                            ? "bg-brand text-white border-brand shadow-md shadow-orange-100"
+                            : "bg-white text-gray-600 border-gray-200 active:border-brand"
                       }`}
                     >
                       {isSelected && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f56b2a] rounded-full flex items-center justify-center ring-2 ring-white">
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-brand rounded-full flex items-center justify-center ring-2 ring-white">
                           <Check size={9} strokeWidth={3.5} className="text-white" />
                         </span>
                       )}
@@ -556,7 +556,7 @@ function OptionsSummaryRow({
       aria-label="Choisir les options"
       className="w-full flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-3 py-2.5 text-left shadow-sm active:bg-gray-50 transition-colors cursor-pointer"
     >
-      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#f56b2a]/10 text-[#f56b2a] shrink-0">
+      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-brand/10 text-brand shrink-0">
         <Package size={13} strokeWidth={2.5} />
       </span>
       <span className="min-w-0 flex-1">
@@ -680,9 +680,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const isFood =
       product.businessType === "food" ||
       mainCat === "Restauration & Livraison Rapide";
-    const descriptionText =
-      product.description ||
-      "Découvrez cet article exceptionnel sélectionné avec soin par votre boutique pour sa qualité et son style unique.";
+    // Pas de texte de repli : une description absente ne doit pas inventer un
+    // argumentaire commercial qui n'a pas été saisi par le vendeur.
+    const descriptionText = product.description || "";
 
     // --- Pricing & variants ---
     const options = Array.isArray(product.options) ? product.options : [];
@@ -957,7 +957,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     const reviewTotal =
       product.reviewCount || reviews.length || 0;
-    const accentText = isFood ? "text-green-600" : "text-[#f56b2a]";
+    const accentText = isFood ? "text-green-600" : "text-brand";
 
     const openZoom = (img: string) => {
       setCurrentZoomImage(img);
@@ -1013,7 +1013,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         >
           <button
             onClick={() => safeNavigate("/")}
-            className="hover:text-[#f56b2a] transition-colors cursor-pointer"
+            className="hover:text-brand transition-colors cursor-pointer"
           >
             Accueil
           </button>
@@ -1024,7 +1024,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 action: () => setSelectedCategory(mainCat),
               })
             }
-            className="hover:text-[#f56b2a] transition-colors cursor-pointer truncate max-w-[220px]"
+            className="hover:text-brand transition-colors cursor-pointer truncate max-w-[220px]"
           >
             {mainCat}
           </button>
@@ -1129,7 +1129,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         aria-label={`Aller à l'image ${idx + 1}`}
                         className={`h-1.5 rounded-full transition-all duration-300 ${
                           idx === productSwipeIdx
-                            ? "w-4 bg-[#f56b2a]"
+                            ? "w-4 bg-brand"
                             : "w-1.5 bg-gray-400/60"
                         }`}
                       />
@@ -1157,7 +1157,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 {isFood && (
                   <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-50 text-green-700 text-[8px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-sm z-10">
                     <Clock size={10} className="flex-shrink-0" />
-                    Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
+                    Fraîchement préparé · {product.preparationTime || product.deliveryTime || "Délai non précisé"}
                   </div>
                 )}
 
@@ -1197,7 +1197,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         stepGallery(-1);
                       }}
                       aria-label="Image précédente"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:brightness-95 transition-colors z-10"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-brand active:brightness-95 transition-colors z-10"
                     >
                       <ChevronLeft size={16} />
                     </button>
@@ -1208,7 +1208,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                         stepGallery(1);
                       }}
                       aria-label="Image suivante"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] active:brightness-95 transition-colors z-10"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm flex items-center justify-center text-gray-600 hover:bg-white hover:text-brand active:brightness-95 transition-colors z-10"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -1229,7 +1229,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     <button
                       onClick={(e) => { e.stopPropagation(); openZoom(currentImage); }}
                       aria-label="Agrandir l'image"
-                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-[#f56b2a] transition-colors active:brightness-95"
+                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-xs flex items-center justify-center text-gray-600 hover:bg-white hover:text-brand transition-colors active:brightness-95"
                     >
                       <Maximize2 size={13} />
                     </button>
@@ -1238,7 +1238,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   {isFood && (
                     <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-100 text-green-700 text-[10px] font-semibold px-2.5 py-1 rounded-lg shadow-xs z-10">
                       <Clock size={11} />
-                      Fraîchement préparé · {product.preparationTime || product.deliveryTime || "30-45 min"}
+                      Fraîchement préparé · {product.preparationTime || product.deliveryTime || "Délai non précisé"}
                     </div>
                   )}
 
@@ -1268,7 +1268,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                           aria-label={`Voir l'image ${idx + 1}`}
                           className={`aspect-square rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer ${
                             isActive
-                              ? "border-[#f56b2a] ring-2 ring-orange-100 shadow-xs scale-[1.02]"
+                              ? "border-brand ring-2 ring-orange-100 shadow-xs scale-[1.02]"
                               : "border-gray-200/70 opacity-60 hover:opacity-100 hover:border-gray-300"
                           }`}
                         >
@@ -1292,7 +1292,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               {/* Desktop: DESCRIPTION placed under the product image */}
               <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 xl:p-5">
                 <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-gray-100">
-                  <div className="w-1 h-4 bg-[#f56b2a] rounded-full" />
+                  <div className="w-1 h-4 bg-brand rounded-full" />
                   <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     {isFood ? "Détails & Préparation" : "Description du produit"}
                   </h3>
@@ -1392,7 +1392,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                       className="w-full flex items-center justify-between px-3 py-3 cursor-pointer select-none group"
                     >
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-900 group-hover:text-amber-950 transition-colors">
-                        <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
+                        <Zap size={12} className="text-brand fill-brand" />
                         Tarifs Grossiste (B2B)
                       </div>
                       <span className="flex items-center gap-2">
@@ -1443,7 +1443,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                               type="button"
                               onClick={() => handleWholesaleAdd(idx, tier.minQty)}
                               className={`min-w-[86px] justify-center px-2 py-1 rounded-md text-white text-[10px] font-semibold flex items-center gap-1 transition-colors ${
-                                isAdded ? "bg-emerald-600" : "bg-[#f56b2a] hover:bg-[#e04e0f]"
+                                isAdded ? "bg-emerald-600" : "bg-brand hover:bg-[#e04e0f]"
                               }`}
                             >
                               {isAdding ? (
@@ -1487,14 +1487,14 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     disabled={isBuyDisabled}
                     className="h-11 px-3 rounded-xl bg-white hover:bg-gray-50 text-gray-900 font-semibold text-xs flex items-center justify-center gap-2 border border-gray-300 hover:border-gray-400 active:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
                   >
-                    <ShoppingCart size={15} strokeWidth={2.2} className="text-[#f56b2a] flex-shrink-0" />
+                    <ShoppingCart size={15} strokeWidth={2.2} className="text-brand flex-shrink-0" />
                     <span className="truncate">{isOutOfStock || isSelectedOutOfStock ? "Rupture" : isFood ? "Commander" : "Ajouter au panier"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleBuyNow}
                     disabled={isBuyDisabled}
-                    className="h-11 px-3 rounded-xl bg-[#f56b2a] hover:bg-[#e04e0f] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="h-11 px-3 rounded-xl bg-brand hover:bg-[#e04e0f] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-orange-500/20 active:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Zap size={14} fill="currentColor" className="flex-shrink-0" />
                     <span className="truncate">{isOutOfStock || isSelectedOutOfStock ? "Rupture" : isFood ? "Commander direct" : "Acheter direct"}</span>
@@ -1615,7 +1615,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                       className="w-full px-3 py-2.5 bg-amber-50/50 flex items-center justify-between active:bg-amber-100/60 transition-colors cursor-pointer select-none"
                     >
                         <span className="text-[10px] font-bold text-amber-950 flex items-center gap-1.5">
-                            <Zap size={12} className="text-[#f56b2a] fill-[#f56b2a]" />
+                            <Zap size={12} className="text-brand fill-brand" />
                             PRIX DE GROS
                         </span>
                         <span className="flex items-center gap-1.5">
@@ -1641,7 +1641,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                 Qté Min : {tier.minQty} pièces
                             </span>
                             <span className="text-gray-300 font-bold">•</span>
-                            <span className="text-xs font-bold text-[#f56b2a]">
+                            <span className="text-xs font-bold text-brand">
                               Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
                           </div>
@@ -1670,7 +1670,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                                 Qté Min : {tier.minQty} pièces
                             </span>
                             <span className="text-gray-300 font-bold">•</span>
-                            <span className="text-xs font-bold text-[#f56b2a]">
+                            <span className="text-xs font-bold text-brand">
                               Prix total : {Math.floor(tier.packagePrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F
                             </span>
                           </div>
@@ -1713,7 +1713,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                           className="font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
                         >
                           <MessageCircle size={11} className="text-emerald-600" />
-                          Négocier sur WhatsApp 🤝
+                          Négocier sur WhatsApp
                         </a>
                       </div>
                     )}
@@ -1726,7 +1726,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               {/* Mobile Description Card */}
               <div className="lg:hidden bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1 h-3.5 bg-[#f56b2a] rounded-full" />
+                  <div className="w-1 h-3.5 bg-brand rounded-full" />
                   <h3 className="text-[11px] font-semibold text-gray-900 uppercase tracking-wider">
                     {isFood ? 'Détails du plat' : 'Description produit'}
                   </h3>
@@ -1841,7 +1841,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               <div className="divide-y divide-gray-50">
                 {selectedProductId && loadingReviews[selectedProductId] ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 text-[#f56b2a] animate-spin" />
+                    <Loader2 className="w-5 h-5 text-brand animate-spin" />
                   </div>
                 ) : reviews.length > 0 ? (
                   <>
@@ -1932,7 +1932,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         {relatedProducts.length > 0 && (
           <section id="pd-similaires" className="mt-3.5 lg:mt-14 scroll-mt-14">
             <div className="flex items-center gap-2.5 mb-4 lg:mb-6 px-1">
-              <div className="hidden md:block w-1 h-5 bg-[#f56b2a] rounded-full" />
+              <div className="hidden md:block w-1 h-5 bg-brand rounded-full" />
               <h3 className="text-[9px] md:text-sm font-bold text-gray-900 uppercase tracking-[0.12em]">
                 {isFood ? 'Vous aimerez aussi' : 'Recommandations similaires'}
               </h3>
@@ -1985,7 +1985,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 >
                   <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
                   <span className="truncate">Voir mon panier</span>
-                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#f56b2a] text-white text-[10px] flex items-center justify-center tabular-nums">
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[10px] flex items-center justify-center tabular-nums">
                     {cartItemsCount > 99 ? '99+' : cartItemsCount}
                   </span>
                 </button>
@@ -1998,7 +1998,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isBuyDisabled}
-                    className="h-12 min-w-0 px-4 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#f56b2a] flex-1"
+                    className="h-12 min-w-0 px-4 rounded-full bg-brand active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-brand flex-1"
                   >
                     <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
                     <span className="truncate">{primaryActionLabel}</span>
@@ -2012,7 +2012,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                       className="relative h-12 w-12 shrink-0 rounded-full bg-gray-900 active:bg-gray-800 text-white flex items-center justify-center transition-colors"
                     >
                       <ShoppingCart size={18} strokeWidth={2.5} />
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#f56b2a] text-white text-[10px] font-bold flex items-center justify-center tabular-nums border-2 border-white">
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center tabular-nums border-2 border-white">
                         {cartItemsCount > 99 ? '99+' : cartItemsCount}
                       </span>
                     </button>
@@ -2099,7 +2099,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     }
                   }}
                   disabled={isBuyDisabled}
-                  className="w-full h-12 rounded-full bg-[#f56b2a] active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 rounded-full bg-brand active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
                   <span className="truncate">

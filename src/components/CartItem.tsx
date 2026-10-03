@@ -39,7 +39,7 @@ const CartItem: React.FC<CartItemProps> = memo(({ item, onUpdateQuantity, onRemo
               {item.product.name}
             </h4>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[9px] text-[#f56b2a] font-bold bg-orange-50 px-1 rounded leading-none py-0.5 whitespace-nowrap">
+              <span className="text-[9px] text-brand font-bold bg-orange-50 px-1 rounded leading-none py-0.5 whitespace-nowrap">
                 {formatCurrency(item.product.price)}
                 {item.product.unit && item.product.unit !== 'pièce' && <span className="text-gray-400 font-normal ml-0.5">/{item.product.unit}</span>}
               </span>

@@ -171,7 +171,7 @@ export default function AdminUsersPage() {
                     type="checkbox"
                     checked={allOnPageSelected}
                     onChange={toggleAllOnPage}
-                    className="w-4 h-4 accent-[#f56b2a] cursor-pointer"
+                    className="w-4 h-4 accent-brand cursor-pointer"
                     aria-label="Tout sélectionner"
                   />
                 </th>
@@ -189,13 +189,13 @@ export default function AdminUsersPage() {
                       type="checkbox"
                       checked={selected.has(u.id)}
                       onChange={() => toggleRow(u.id)}
-                      className="w-4 h-4 accent-[#f56b2a] cursor-pointer"
+                      className="w-4 h-4 accent-brand cursor-pointer"
                       aria-label={`Sélectionner ${u.email || u.id}`}
                     />
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${u.is_super_admin ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'bg-gray-100 text-gray-400'}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${u.is_super_admin ? 'bg-brand text-white shadow-lg shadow-orange-100' : 'bg-gray-100 text-gray-400'}`}>
                         {u.email?.[0]?.toUpperCase() || 'U'}
                       </div>
                       <div>
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-8 py-6">
                     {u.is_super_admin ? (
-                      <span className="px-2 py-1 bg-orange-50 text-[#f56b2a] text-[9px] font-bold rounded-lg uppercase tracking-tighter border border-orange-100">Super Admin</span>
+                      <span className="px-2 py-1 bg-orange-50 text-brand text-[9px] font-bold rounded-lg uppercase tracking-tighter border border-orange-100">Super Admin</span>
                     ) : (
                       <span className="px-2 py-1 bg-gray-50 text-gray-400 text-[9px] font-bold rounded-lg uppercase tracking-tighter border border-gray-100">Utilisateur</span>
                     )}
@@ -224,7 +224,7 @@ export default function AdminUsersPage() {
                         disabled={processing.has(`sub-${u.id}`)}
                         className={`text-[10px] font-bold uppercase px-3 py-1.5 rounded-xl border outline-none appearance-none cursor-pointer transition-all disabled:opacity-50 ${
                           u.subscription_tier === 'STARTER' ? 'bg-green-50 border-green-200 text-green-600' :
-                          u.subscription_tier === 'PRO' ? 'bg-orange-50 border-orange-200 text-[#f56b2a]' :
+                          u.subscription_tier === 'PRO' ? 'bg-orange-50 border-orange-200 text-brand' :
                           u.subscription_tier === 'ENTERPRISE' ? 'bg-purple-50 border-purple-200 text-purple-600' :
                           'bg-gray-50 border-gray-200 text-gray-500'
                         }`}
@@ -242,14 +242,14 @@ export default function AdminUsersPage() {
                         href={`/pam/impersonate?userId=${u.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2.5 rounded-xl border border-orange-200 bg-orange-50 text-[#f56b2a] hover:bg-[#f56b2a] hover:text-white transition-all flex items-center justify-center min-w-[40px] shadow-sm hover:shadow-md"
+                        className="p-2.5 rounded-xl border border-orange-200 bg-orange-50 text-brand hover:bg-brand hover:text-white transition-all flex items-center justify-center min-w-[40px] shadow-sm hover:shadow-md"
                         title="Se connecter au compte (nouvel onglet, sans mot de passe)"
                       >
                         <LogIn size={16} />
                       </a>
                       <Link
                         href={`/pam/users/${u.id}`}
-                        className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-[#f56b2a] hover:border-orange-200 transition-all flex items-center justify-center min-w-[40px]"
+                        className="p-2.5 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-brand hover:border-orange-200 transition-all flex items-center justify-center min-w-[40px]"
                         title="Voir le profil"
                       >
                         <Eye size={16} />
@@ -258,7 +258,7 @@ export default function AdminUsersPage() {
                         onClick={() => handleToggleAdmin(u.id, !u.is_super_admin, u.full_name || u.email || '')}
                         disabled={processing.has(`admin-${u.id}`)}
                         className={`p-2.5 rounded-xl border transition-all flex items-center justify-center min-w-[40px] disabled:opacity-50 ${
-                          u.is_super_admin ? 'bg-gray-50 text-gray-400 border-gray-100' : 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-lg shadow-orange-100'
+                          u.is_super_admin ? 'bg-gray-50 text-gray-400 border-gray-100' : 'bg-brand text-white border-brand shadow-lg shadow-orange-100'
                         }`}
                         title={u.is_super_admin ? 'Révoquer les droits admin' : 'Promouvoir super admin'}
                       >
@@ -287,7 +287,7 @@ export default function AdminUsersPage() {
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mx-auto
-              ${confirm.action === 'admin' ? 'bg-orange-50 text-[#f56b2a]' : confirm.action === 'revoke' ? 'bg-gray-50 text-gray-500' : 'bg-red-50 text-red-500'}">
+              ${confirm.action === 'admin' ? 'bg-orange-50 text-brand' : confirm.action === 'revoke' ? 'bg-gray-50 text-gray-500' : 'bg-red-50 text-red-500'}">
               {confirm.action === 'delete' || confirm.action === 'deleteBulk' ? <Trash2 size={24} /> : confirm.action === 'revoke' ? <Shield size={24} /> : <Shield size={24} />}
             </div>
             <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
@@ -325,7 +325,7 @@ export default function AdminUsersPage() {
                   }
                 }}
                 className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all ${
-                  confirm.action === 'delete' || confirm.action === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
+                  confirm.action === 'delete' || confirm.action === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-brand hover:bg-[#d55a20]'
                 }`}
               >
                 Confirmer

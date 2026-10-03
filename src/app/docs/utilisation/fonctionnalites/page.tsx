@@ -102,13 +102,13 @@ export default function FonctionnalitesPage() {
       <div className="flex justify-between pt-4 pb-4">
         <Link
           to="/docs/utilisation/vendeur"
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-brand transition-colors"
         >
           Espace Vendeur
         </Link>
         <Link
           to="/docs/utilisation/problemes"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#f56b2a] hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-bold text-brand hover:underline"
         >
           Problèmes fréquents <ArrowRight size={12} />
         </Link>

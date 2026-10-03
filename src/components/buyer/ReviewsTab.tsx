@@ -41,10 +41,10 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
             <div className="flex gap-4 mb-3">
               <ProductThumb src={product?.image} alt={product?.name} className="w-14 h-14" sizes="56px" iconSize={22} />
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] text-[#f56b2a] font-bold uppercase tracking-wider truncate">
+                <p className="text-[9px] text-brand font-bold uppercase tracking-wider truncate">
                   {storeName}
                 </p>
-                <p className="text-sm font-bold text-[#002f34] truncate">{product?.name}</p>
+                <p className="text-sm font-bold text-ink truncate">{product?.name}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <StarRating value={rev.rating} size={13} />
                   {rev.date && (

@@ -35,13 +35,13 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <Link href="/pam/stores" className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-[#f56b2a] transition-colors uppercase tracking-widest">
+      <Link href="/pam/stores" className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand transition-colors uppercase tracking-widest">
         <ChevronLeft size={18} /> Boutiques
       </Link>
 
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="w-16 h-16 bg-[#f56b2a]/10 rounded-2xl flex items-center justify-center text-[#f56b2a]">
+          <div className="w-16 h-16 bg-brand/10 rounded-2xl flex items-center justify-center text-brand">
             <Store size={32} />
           </div>
           <div className="flex-1 min-w-0">
@@ -67,7 +67,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                 href={`/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#f56b2a] to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95"
                 title="Se connecter en tant que vendeur sur cette boutique sans mot de passe (nouvel onglet)"
               >
                 <LogIn size={15} /> Connexion Vendeur
@@ -75,12 +75,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             )}
             {store.views !== undefined && (
               <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2">
-                <Eye size={16} className="text-[#f56b2a]" />
+                <Eye size={16} className="text-brand" />
                 <span className="text-xs font-bold text-gray-900">{store.views} <span className="text-gray-400 font-semibold">vues</span></span>
               </div>
             )}
             <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2">
-              <Calendar size={16} className="text-[#f56b2a]" />
+              <Calendar size={16} className="text-brand" />
               <span className="text-xs font-bold text-gray-900">{store.createdAt ? new Date(store.createdAt).toLocaleDateString('fr-FR') : '—'}</span>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           {store.email && (
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <Mail size={18} className="text-[#f56b2a]" />
+              <Mail size={18} className="text-brand" />
               <div className="min-w-0">
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Email</p>
                 <p className="text-xs font-bold text-gray-900 truncate">{store.email}</p>
@@ -102,7 +102,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           )}
           {store.phone && (
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <Phone size={18} className="text-[#f56b2a]" />
+              <Phone size={18} className="text-brand" />
               <div>
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Téléphone</p>
                 <p className="text-xs font-bold text-gray-900">{store.phone}</p>
@@ -111,7 +111,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           )}
           {store.address && (
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-              <MapPin size={18} className="text-[#f56b2a]" />
+              <MapPin size={18} className="text-brand" />
               <div>
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Adresse</p>
                 <p className="text-xs font-bold text-gray-900">{store.address}</p>
@@ -156,7 +156,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                 <p className="text-[10px] font-semibold text-gray-400 lowercase">{owner.email}</p>
               </div>
               {owner.isSuperAdmin && (
-                <span className="px-2 py-0.5 bg-orange-50 text-[#f56b2a] text-[8px] font-bold rounded-lg uppercase border border-orange-100 flex items-center gap-1">
+                <span className="px-2 py-0.5 bg-orange-50 text-brand text-[8px] font-bold rounded-lg uppercase border border-orange-100 flex items-center gap-1">
                   <Shield size={10} /> Super Admin
                 </span>
               )}
@@ -166,12 +166,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                 href={`/pam/impersonate?userId=${owner.id}&storeId=${store.id}&redirectTo=/dashboard`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f56b2a] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
                 title="Se connecter au compte du propriétaire (nouvel onglet)"
               >
                 <LogIn size={13} /> Connexion Vendeur
               </a>
-              <Link href={`/pam/users/${owner.id}`} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
+              <Link href={`/pam/users/${owner.id}`} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-brand hover:text-orange-600">
                 Voir le profil <span aria-hidden>→</span>
               </Link>
             </div>

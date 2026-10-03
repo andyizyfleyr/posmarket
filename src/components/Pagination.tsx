@@ -41,7 +41,7 @@ export default function Pagination({ total, page, pageSize, onPageChange }: Pagi
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[#f56b2a] hover:border-orange-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:border-gray-200"
+          className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-brand hover:border-orange-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:border-gray-200"
           aria-label="Page précédente"
         >
           <ChevronLeft size={16} />
@@ -55,8 +55,8 @@ export default function Pagination({ total, page, pageSize, onPageChange }: Pagi
               onClick={() => onPageChange(n)}
               className={`min-w-[36px] h-9 px-2 rounded-xl text-sm font-bold transition-all ${
                 n === page
-                  ? 'bg-[#f56b2a] text-white shadow-md shadow-orange-200'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-200 hover:text-[#f56b2a]'
+                  ? 'bg-brand text-white shadow-md shadow-orange-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-200 hover:text-brand'
               }`}
             >
               {n}
@@ -66,7 +66,7 @@ export default function Pagination({ total, page, pageSize, onPageChange }: Pagi
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[#f56b2a] hover:border-orange-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:border-gray-200"
+          className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-brand hover:border-orange-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:border-gray-200"
           aria-label="Page suivante"
         >
           <ChevronRight size={16} />

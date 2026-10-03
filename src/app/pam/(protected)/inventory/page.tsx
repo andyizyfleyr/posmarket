@@ -120,7 +120,7 @@ export default function AdminInventoryPage() {
                   <tr key={p.id} className="hover:bg-orange-50/20 group transition-colors">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center text-[#f56b2a]">
+                        <div className="w-10 h-10 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center text-brand">
                           <Package size={18} />
                         </div>
                         <div className="min-w-0">
@@ -131,7 +131,7 @@ export default function AdminInventoryPage() {
                     </td>
                     <td className="px-6 py-5">
                       {store ? (
-                        <Link href={`/pam/stores/${store.id}`} className="text-xs font-bold text-[#f56b2a] hover:underline">{store.name}</Link>
+                        <Link href={`/pam/stores/${store.id}`} className="text-xs font-bold text-brand hover:underline">{store.name}</Link>
                       ) : <span className="text-xs text-gray-400 font-semibold">—</span>}
                     </td>
                     <td className="px-6 py-5">

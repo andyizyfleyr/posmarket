@@ -178,7 +178,7 @@ export default function VariantMatrixEditor({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-            <Layers size={17} className="text-[#f56b2a]" />
+            <Layers size={17} className="text-brand" />
           </div>
           <div>
             <h4 className="text-sm font-black text-gray-900 leading-tight">Options &amp; Variantes</h4>
@@ -191,7 +191,7 @@ export default function VariantMatrixEditor({
           type="button"
           onClick={addOption}
           disabled={options.length >= MAX_OPTIONS}
-          className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#f56b2a] to-[#e0571a] text-white rounded-xl text-xs font-bold shadow-md shadow-orange-200/60 hover:shadow-orange-300/70 hover:from-[#e0571a] hover:to-[#c94a0d] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-brand to-[#e0571a] text-white rounded-xl text-xs font-bold shadow-md shadow-orange-200/60 hover:shadow-orange-300/70 hover:from-[#e0571a] hover:to-[#c94a0d] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
         >
           <Plus size={14} strokeWidth={3} /> Ajouter une option
         </button>
@@ -204,7 +204,7 @@ export default function VariantMatrixEditor({
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                i < options.length ? 'bg-[#f56b2a] flex-1' : 'bg-gray-100 flex-1'
+                i < options.length ? 'bg-brand flex-1' : 'bg-gray-100 flex-1'
               }`}
             />
           ))}
@@ -250,7 +250,7 @@ export default function VariantMatrixEditor({
             {/* Header de l'option */}
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-[#f56b2a] text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                <span className="w-6 h-6 rounded-lg bg-brand text-white text-[10px] font-black flex items-center justify-center shrink-0">
                   {index + 1}
                 </span>
                 <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
@@ -286,9 +286,9 @@ export default function VariantMatrixEditor({
                         );
                       }
                     }}
-                    className="w-full appearance-none pl-4 pr-10 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-sm font-semibold text-gray-800 focus:border-[#f56b2a] focus:bg-white outline-none transition-all cursor-pointer"
+                    className="w-full appearance-none pl-4 pr-10 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-sm font-semibold text-gray-800 focus:border-brand focus:bg-white outline-none transition-all cursor-pointer"
                   >
-                    <option value="custom">✏️ Nom personnalisé…</option>
+                    <option value="custom">Nom personnalisé…</option>
                     {Object.keys(OPTION_PRESETS).map((preset) => (
                       <option key={preset} value={preset}>
                         {preset}
@@ -311,7 +311,7 @@ export default function VariantMatrixEditor({
                     value={option.name}
                     onChange={(e) => updateOption(index, { name: e.target.value })}
                     placeholder="Ex : Pointure, Matière, Parfum…"
-                    className="w-full px-4 py-3 bg-white border-2 border-orange-100 rounded-xl text-sm font-semibold focus:border-[#f56b2a] outline-none transition-all placeholder:text-gray-300"
+                    className="w-full px-4 py-3 bg-white border-2 border-orange-100 rounded-xl text-sm font-semibold focus:border-brand outline-none transition-all placeholder:text-gray-300"
                   />
                 </div>
               )}
@@ -321,14 +321,14 @@ export default function VariantMatrixEditor({
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                   Valeurs ajoutées
                   {option.values.length > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-orange-100 text-[#f56b2a] rounded-md text-[9px]">
+                    <span className="ml-2 px-1.5 py-0.5 bg-orange-100 text-brand rounded-md text-[9px]">
                       {option.values.length}
                     </span>
                   )}
                 </label>
 
                 {/* Chips des valeurs existantes */}
-                <div className="min-h-[44px] p-2 bg-gray-50 border-2 border-gray-100 rounded-xl flex flex-wrap gap-2 mb-3 transition-colors focus-within:border-[#f56b2a]">
+                <div className="min-h-[44px] p-2 bg-gray-50 border-2 border-gray-100 rounded-xl flex flex-wrap gap-2 mb-3 transition-colors focus-within:border-brand">
                   {option.values.map((value) => (
                     <span
                       key={value}
@@ -383,8 +383,8 @@ export default function VariantMatrixEditor({
                             }
                             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                               active
-                                ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm shadow-orange-200'
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-[#f56b2a] hover:bg-orange-50'
+                                ? 'bg-brand text-white border-brand shadow-sm shadow-orange-200'
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-brand hover:bg-orange-50'
                             }`}
                           >
                             {active ? <Check size={11} /> : <Plus size={11} />}
@@ -423,7 +423,7 @@ export default function VariantMatrixEditor({
           {/* Stats en pills */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-xl text-xs font-bold text-gray-600">
-              <Package size={13} className="text-[#f56b2a]" />
+              <Package size={13} className="text-brand" />
               {variants.length} variante{variants.length > 1 ? 's' : ''}
             </div>
             {stats.total > 0 && (
@@ -439,7 +439,7 @@ export default function VariantMatrixEditor({
               </div>
             )}
             {variants.length > 0 && stats.min > 0 && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 rounded-xl text-xs font-bold text-[#f56b2a]">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 rounded-xl text-xs font-bold text-brand">
                 <Tag size={12} />
                 {stats.min === stats.max
                   ? `${stats.min.toLocaleString('fr-FR')} XOF`
@@ -458,7 +458,7 @@ export default function VariantMatrixEditor({
                     Aligner tous les prix sur {basePrice.toLocaleString('fr-FR')} XOF ?
                   </span>
                   <button type="button" onClick={setAllPrices}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#f56b2a] text-white">
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-brand text-white">
                     Confirmer
                   </button>
                   <button type="button" onClick={() => setBulkConfirm(null)}
@@ -485,7 +485,7 @@ export default function VariantMatrixEditor({
                   <button
                     type="button"
                     onClick={() => setBulkConfirm('price')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-600 bg-white ring-1 ring-gray-200 hover:text-[#f56b2a] hover:ring-orange-300 transition-all"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-600 bg-white ring-1 ring-gray-200 hover:text-brand hover:ring-orange-300 transition-all"
                   >
                     <Tag size={11} /> Prix → {basePrice.toLocaleString('fr-FR')} XOF
                   </button>
@@ -521,7 +521,7 @@ export default function VariantMatrixEditor({
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Prix XOF</div>
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Stock</div>
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">Référence SKU</div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">📷</div>
+                <div className="text-sm font-semibold text-gray-500 text-center">Photo</div>
               </div>
 
               {/* Lignes */}
@@ -577,7 +577,7 @@ export default function VariantMatrixEditor({
                             }}
                             className={`w-full px-2.5 py-2 bg-white border-2 rounded-xl text-xs font-bold text-right outline-none transition-all focus:ring-2 focus:ring-orange-100 ${
                               priceNumber > 0
-                                ? 'border-gray-200 text-[#f56b2a] focus:border-[#f56b2a]'
+                                ? 'border-gray-200 text-brand focus:border-brand'
                                 : 'border-rose-200 text-rose-500 focus:border-rose-400'
                             }`}
                             title="Prix de vente (XOF)"
@@ -606,7 +606,7 @@ export default function VariantMatrixEditor({
                                 ? 'bg-rose-50 border-rose-200 text-rose-500 focus:ring-rose-100 focus:border-rose-400'
                                 : stockStatus === 'low'
                                   ? 'bg-amber-50 border-amber-200 text-amber-600 focus:ring-amber-100 focus:border-amber-400'
-                                  : 'bg-white border-gray-200 text-gray-800 focus:ring-orange-100 focus:border-[#f56b2a]'
+                                  : 'bg-white border-gray-200 text-gray-800 focus:ring-orange-100 focus:border-brand'
                             }`}
                             title="Stock disponible"
                           />
@@ -620,7 +620,7 @@ export default function VariantMatrixEditor({
                           value={variant.sku || ''}
                           onChange={(e) => updateVariant(variant.id, { sku: e.target.value })}
                           placeholder={`ex: ${options.map((o) => (variant.optionValues[o.id] || '').slice(0, 3).toUpperCase()).join('-')}`}
-                          className="w-full px-2.5 py-2 bg-white border-2 border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:border-[#f56b2a] outline-none transition-all focus:ring-2 focus:ring-orange-100 placeholder:text-gray-300"
+                          className="w-full px-2.5 py-2 bg-white border-2 border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:border-brand outline-none transition-all focus:ring-2 focus:ring-orange-100 placeholder:text-gray-300"
                           title="Référence interne SKU"
                         />
                         {/* Bouton copier SKU */}
@@ -628,7 +628,7 @@ export default function VariantMatrixEditor({
                           <button
                             type="button"
                             onClick={() => copySkuFromIndex(index)}
-                            className="p-2 rounded-lg text-gray-300 hover:text-[#f56b2a] hover:bg-orange-50 transition-colors shrink-0"
+                            className="p-2 rounded-lg text-gray-300 hover:text-brand hover:bg-orange-50 transition-colors shrink-0"
                             title="Copier cette référence pour la ligne suivante"
                           >
                             <Copy size={12} />
@@ -656,8 +656,8 @@ export default function VariantMatrixEditor({
                             onClick={() => setImagePickerFor(imagePickerFor === variant.id ? null : variant.id)}
                             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                               variant.image
-                                ? 'ring-2 ring-[#f56b2a] ring-offset-1'
-                                : 'text-gray-300 hover:text-[#f56b2a] hover:bg-orange-50 border-2 border-dashed border-gray-200'
+                                ? 'ring-2 ring-brand ring-offset-1'
+                                : 'text-gray-300 hover:text-brand hover:bg-orange-50 border-2 border-dashed border-gray-200'
                             }`}
                             title="Photo de cette variante"
                           >
@@ -686,7 +686,7 @@ export default function VariantMatrixEditor({
                                     }}
                                     className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                                       variant.image === img
-                                        ? 'border-[#f56b2a] shadow-md'
+                                        ? 'border-brand shadow-md'
                                         : 'border-transparent hover:border-orange-200'
                                     }`}
                                   >

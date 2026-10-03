@@ -27,7 +27,7 @@ function StatCard({ title, value, icon, color, link }: StatCardProps) {
         <span className="text-2xl font-bold text-gray-900 mt-1">{value}</span>
       </div>
       {link && (
-        <Link href={link} className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
+        <Link href={link} className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-brand hover:text-orange-600">
           Voir <ArrowRight size={12} />
         </Link>
       )}
@@ -48,7 +48,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <StatCard title="Boutiques" value={stats.totalStores} icon={<Store size={20} />} color="bg-[#f56b2a]" link="/pam/stores" />
+        <StatCard title="Boutiques" value={stats.totalStores} icon={<Store size={20} />} color="bg-brand" link="/pam/stores" />
         <StatCard title="Utilisateurs" value={stats.totalUsers} icon={<Users size={20} />} color="bg-purple-600" link="/pam/users" />
         <StatCard title="Ventes Globales" value={formatCurrency(stats.totalSales)} icon={<TrendingUp size={20} />} color="bg-green-600" link="/pam/orders" />
         <StatCard title="Produits" value={stats.totalProducts} icon={<Package size={20} />} color="bg-orange-600" link="/pam/inventory" />
@@ -58,9 +58,9 @@ export default async function AdminDashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="text-[#f56b2a]" size={20} /> Dernières Boutiques
+              <TrendingUp className="text-brand" size={20} /> Dernières Boutiques
             </h3>
-            <Link href="/pam/stores" className="text-[10px] font-bold uppercase tracking-widest text-[#f56b2a] hover:text-orange-600">
+            <Link href="/pam/stores" className="text-[10px] font-bold uppercase tracking-widest text-brand hover:text-orange-600">
               Tout voir
             </Link>
           </div>
@@ -72,7 +72,7 @@ export default async function AdminDashboardPage() {
                 className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-orange-50/30 transition-all group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-[#f56b2a] font-bold">
+                  <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-brand font-bold">
                     {s.name?.[0] || 'S'}
                   </div>
                   <div>
@@ -89,7 +89,7 @@ export default async function AdminDashboardPage() {
                   }`}>
                     {s.status === 'PENDING' ? 'En attente' : s.status === 'REJECTED' ? 'Refusée' : s.status === 'DISABLED' ? 'Désactivée' : 'Active'}
                   </span>
-                  <Eye size={16} className="text-gray-300 group-hover:text-[#f56b2a] transition-colors" />
+                  <Eye size={16} className="text-gray-300 group-hover:text-brand transition-colors" />
                 </div>
               </Link>
             ))}
@@ -98,7 +98,7 @@ export default async function AdminDashboardPage() {
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 relative overflow-hidden h-fit">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 bg-orange-50 text-[#f56b2a] rounded-xl"><Shield size={20} /></div>
+            <div className="p-2.5 bg-orange-50 text-brand rounded-xl"><Shield size={20} /></div>
             <h3 className="text-lg font-bold text-gray-900">Sentinel Système</h3>
           </div>
           {stats.pendingStores > 0 && (

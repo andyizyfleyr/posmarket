@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@/components/RouterPolyfill';
-import { useRouter as useNextRouter } from 'next/navigation';
 import {
   ArrowLeft,
   RefreshCcw,
   Package,
   MapPin,
   Star,
+  BellRing,
   User,
   LogOut,
   AlertTriangle,
@@ -17,10 +17,12 @@ import { useBuyerData } from '@/components/buyer/useBuyerData';
 import { OrdersTab, ReviewTargetProduct } from '@/components/buyer/OrdersTab';
 import { AddressesTab } from '@/components/buyer/AddressesTab';
 import { ReviewsTab } from '@/components/buyer/ReviewsTab';
+import { NotificationsTab } from '@/components/buyer/NotificationsTab';
 import { ProfileTab } from '@/components/buyer/ProfileTab';
 import { AddressModal } from '@/components/buyer/AddressModal';
 import { ReviewModal } from '@/components/buyer/ReviewModal';
 import { Modal } from '@/components/buyer/Modal';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import {
   BuyerAddress,
   BuyerTabId,
@@ -47,6 +49,7 @@ const TABS: Array<{
   { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
   { id: 'addresses', path: 'adresses', label: 'Livraison', desc: 'Vos contacts de livraison', icon: MapPin },
   { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
+  { id: 'notifications', path: 'notifications', label: 'Alertes', desc: 'WhatsApp et e-mail', icon: BellRing },
   { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
 ];
 
@@ -54,15 +57,11 @@ const TAB_FROM_PATH: Record<string, BuyerTabId> = {
   commandes: 'orders',
   adresses: 'addresses',
   avis: 'reviews',
+  notifications: 'notifications',
   profil: 'profile',
 };
 
-const AVATAR_COLORS = [
-  'from-[#f56b2a] to-orange-400',
-  'from-sky-500 to-blue-400',
-  'from-emerald-500 to-teal-400',
-  'from-violet-500 to-purple-400',
-];
+const AVATAR_GRADIENT = 'from-brand to-orange-400';
 
 const avatarInitial = (name: string) => (name || 'U')[0].toUpperCase();
 
@@ -85,8 +84,9 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   const [reviewTarget, setReviewTarget] = useState<
     (ReviewTargetProduct & { store_id: string }) | null
   >(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
+const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [addressPendingDelete, setAddressPendingDelete] = useState<BuyerAddress | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
   const data = useBuyerData(user, notify);
@@ -110,7 +110,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     return () => window.removeEventListener('popstate', handlePopstate);
   }, []);
 
-  const showError = !!data.error && data.error !== dismissedError;
+const showError = !!data.error && data.error !== dismissedError;
+
+  // Un nouvel essai repart d'un état non masqué : si la requête échoue encore avec le
+  // même message, le bandeau doit réapparaître plutôt que de rester caché.
+  const handleRetry = () => {
+    setDismissedError(null);
+    void data.refreshAll();
+  };
 
   const handleTabChange = (tab: BuyerTabId) => {
     if (tab === activeTab) return;
@@ -122,10 +129,12 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     }
   };
 
-  const handleDeleteAddress = async (id: string) => {
-    setDeletingAddressId(id);
-    await data.deleteAddress(id);
-    setDeletingAddressId(null);
+  const handleDeleteAddress = async () => {
+    if (!addressPendingDelete) return;
+    setIsDeleting(true);
+    const ok = await data.deleteAddress(addressPendingDelete.id);
+    setIsDeleting(false);
+    if (ok) setAddressPendingDelete(null);
   };
 
   const handleReviewSubmit = async (rating: number, comment: string) => {
@@ -142,24 +151,23 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   const panel = (() => {
     if (showError) {
       return (
-        <div className="bg-red-50 border border-red-100 rounded-[24px] p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+<div className="bg-red-50 border border-red-200 rounded-card p-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-red-600">Une erreur est survenue</p>
-            <p className="text-[11px] font-semibold text-red-400 mt-0.5">{data.error}</p>
-            <div className="flex gap-2 mt-3">
+            <p className="text-sm font-bold text-red-700">Une erreur est survenue</p>
+            <p className="text-sm text-red-600 mt-0.5">{data.error}</p>
+<div className="flex gap-2 mt-3">
               <button
-                onClick={() => {
-                  setDismissedError(data.error ?? null);
-                  data.refreshAll();
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider"
+                type="button"
+                onClick={handleRetry}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold"
               >
                 Réessayer
               </button>
               <button
+                type="button"
                 onClick={() => setDismissedError(data.error ?? null)}
-                className="px-4 py-2 bg-white text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-red-100"
+                className="px-4 py-2 bg-white text-red-600 rounded-xl text-xs font-semibold border border-red-200"
               >
                 Fermer
               </button>
@@ -186,17 +194,18 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
         );
       case 'addresses':
         return (
-          <AddressesTab
+<AddressesTab
             addresses={data.addresses}
             loading={data.loading}
-            deletingId={deletingAddressId}
             onAdd={() => setAddressModal({ open: true, editing: null })}
             onEdit={(addr) => setAddressModal({ open: true, editing: addr })}
-            onDelete={handleDeleteAddress}
+            onDelete={(addr) => setAddressPendingDelete(addr)}
           />
         );
       case 'reviews':
         return <ReviewsTab reviews={data.reviews} loading={data.loading} />;
+      case 'notifications':
+        return <NotificationsTab notify={notify} />;
       case 'profile':
         return (
           <ProfileTab
@@ -217,6 +226,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     orders: data.totalOrders,
     addresses: data.addresses.length,
     reviews: data.reviews.length,
+    notifications: 0,
     profile: 0,
   };
 
@@ -227,20 +237,20 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <button
             onClick={onBack}
-            className="p-2 -ml-2 text-gray-400 hover:text-[#f56b2a] active:scale-95 transition-transform"
+            className="p-2 -ml-2 text-gray-400 hover:text-brand active:scale-95 transition-transform"
             aria-label="Retour"
           >
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-base font-bold text-[#002f34] tracking-tight">
+          <h1 className="text-base font-bold text-ink tracking-tight">
             Mon compte
           </h1>
           <button
             onClick={data.refreshAll}
-            className="p-2 text-gray-400 hover:text-[#f56b2a] active:scale-90 transition-transform"
+            className="p-2 text-gray-400 hover:text-brand active:scale-90 transition-transform"
             aria-label="Rafraîchir"
           >
-            <RefreshCcw size={20} className={data.refreshing ? 'animate-spin text-[#f56b2a]' : ''} />
+            <RefreshCcw size={20} className={data.refreshing ? 'animate-spin text-brand' : ''} />
           </button>
         </div>
       </div>
@@ -250,43 +260,42 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
           {/* ---- Colonne latérale ---- */}
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             {/* Carte identité */}
-            <div className="bg-white lg:bg-gradient-to-br lg:from-white lg:to-orange-50/40 rounded-[28px] p-5 md:p-6 border border-gray-100 shadow-sm relative overflow-hidden">
-              <div className="absolute -right-8 -top-8 w-32 h-32 bg-orange-100/50 rounded-full blur-2xl opacity-60 pointer-events-none hidden md:block" />
+<div className="bg-white rounded-panel p-5 md:p-6 border border-line shadow-sm relative overflow-hidden">
               <div className="relative z-10 flex items-center gap-4 lg:flex-col lg:gap-4 lg:text-center">
                 <div
-                  className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_COLORS[0]} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-bold shadow-lg shadow-orange-200/50 ring-2 ring-white`}
+                  className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_GRADIENT} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-bold shadow-md shadow-orange-100 ring-2 ring-white`}
                 >
                   {avatarInitial(user.name)}
                 </div>
                 <div className="flex-1 min-w-0 lg:w-full">
-                  <p className="text-base lg:text-xl font-bold text-[#002f34] truncate tracking-tight">
+                  <p className="text-base lg:text-xl font-bold text-ink truncate tracking-tight">
                     {user.name}
                   </p>
-                  <p className="text-[10px] lg:text-[11px] text-gray-400 font-semibold mt-0.5 truncate">
+                  <p className="text-xs lg:text-sm text-gray-500 font-medium mt-0.5 truncate">
                     {user.email}
                   </p>
                   {data.refreshing && (
-                    <p className="text-[9px] text-[#f56b2a] font-semibold mt-1 inline-flex items-center gap-1">
-                      <RefreshCcw size={10} className="animate-spin" /> Synchronisation...
+                    <p className="text-xs text-brand font-semibold mt-1 inline-flex items-center gap-1" role="status">
+                      <RefreshCcw size={12} className="animate-spin" aria-hidden="true" /> Synchronisation…
                     </p>
                   )}
                 </div>
               </div>
 
               {/* Statistiques */}
-              <div className="relative z-10 flex justify-center items-center gap-4 lg:gap-5 mt-4 pt-4 border-t border-gray-100/70">
+              <div className="relative z-10 flex justify-center items-center gap-4 lg:gap-5 mt-4 pt-4 border-t border-line">
                 {[
                   { value: counts.orders, label: 'Commandes' },
                   { value: counts.reviews, label: 'Avis' },
-                  { value: counts.addresses, label: 'Contacts de livraison' },
+                  { value: counts.addresses, label: 'Adresses' },
                 ].map((s, i) => (
                   <React.Fragment key={s.label}>
-                    {i > 0 && <div className="w-px h-5 bg-gray-100" />}
+                    {i > 0 && <div className="w-px h-5 bg-line" />}
                     <div className="text-center">
-                      <p className="text-xs lg:text-sm font-bold text-[#002f34]">
+                      <p className="text-xs lg:text-sm font-bold text-ink">
                         {data.loading ? '–' : s.value}
                       </p>
-                      <p className="text-[8px] lg:text-[9px] text-gray-400 font-semibold uppercase tracking-tighter">
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">
                         {s.label}
                       </p>
                     </div>
@@ -296,80 +305,87 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
             </div>
 
             {/* Navigation desktop */}
-            <nav className="hidden lg:block space-y-2">
+            <nav className="hidden lg:block space-y-2" role="tablist" aria-label="Sections du compte">
               {TABS.map((tab) => {
                 const isActive = tab.id === activeTab;
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`buyer-tab-${tab.id}`}
+                    aria-selected={isActive}
+                    aria-controls="buyer-tabpanel"
                     onClick={() => handleTabChange(tab.id)}
-                    className={`w-full flex items-center gap-3 p-4 rounded-[20px] border transition-all active:scale-[0.98] ${
+                    className={`w-full flex items-center gap-3 p-4 rounded-[20px] border transition-colors active:scale-[0.98] ${
                       isActive
-                        ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20'
-                        : 'bg-white border-gray-100 shadow-sm hover:border-gray-200'
+                        ? 'bg-brand-soft border-brand/20'
+                        : 'bg-white border-line shadow-sm hover:border-gray-200'
                     }`}
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
+                        isActive ? 'bg-brand/10 text-brand' : 'bg-gray-50 text-gray-500'
                       }`}
                     >
-                      <Icon size={18} />
+                      <Icon size={18} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-bold text-[#002f34]">{tab.label}</p>
-                      <p className="text-[10px] text-gray-400 font-semibold truncate">{tab.desc}</p>
+                      <p className="text-sm font-bold text-ink">{tab.label}</p>
+                      <p className="text-xs text-gray-500 font-medium truncate">{tab.desc}</p>
                     </div>
-                    <span
-                      className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        isActive ? 'bg-[#f56b2a]/10 text-[#f56b2a]' : 'bg-gray-50 text-gray-400'
-                      }`}
-                    >
-                      {tab.id === 'profile' ? '' : counts[tab.id]}
-                    </span>
+                    {counts[tab.id] > 0 && (
+                      <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {counts[tab.id]}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </nav>
           </aside>
 
-          {/* ---- Zone de contenu ---- */}
           <main className="mt-4 lg:mt-0">
             {/* Navigation mobile : tuiles onglets */}
             <div className="lg:hidden -mx-4 px-4 mb-4">
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-2" role="tablist" aria-label="Sections du compte">
                 {TABS.map((tab) => {
                   const isActive = tab.id === activeTab;
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
+                      type="button"
+                      role="tab"
+                      id={`buyer-tab-m-${tab.id}`}
+                      aria-selected={isActive}
+                      aria-controls="buyer-tabpanel"
                       onClick={() => handleTabChange(tab.id)}
-                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-all active:scale-95 ${
+                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-colors active:scale-95 ${
                         isActive
-                          ? 'bg-[#f56b2a]/5 border-[#f56b2a]/20 text-[#f56b2a]'
-                          : 'bg-white border-gray-100 shadow-sm text-gray-400'
+                          ? 'bg-brand-soft border-brand/20 text-brand'
+                          : 'bg-white border-line shadow-sm text-gray-500'
                       }`}
                     >
-                      <Icon size={20} />
-                      <span className="text-[9px] font-bold uppercase tracking-wide">
-                        {tab.label}
-                      </span>
+                      <Icon size={20} aria-hidden="true" />
+                      <span className="text-xs font-bold">{tab.label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="mb-4 lg:hidden">
-              <h2 className="text-lg font-bold text-[#002f34] tracking-tight">
+<div className="mb-4 lg:hidden">
+              <h2 className="text-lg font-bold text-ink tracking-tight">
                 {activeTabDef.label}
               </h2>
-              <p className="text-[11px] text-gray-400 font-semibold">{activeTabDef.desc}</p>
+              <p className="text-sm text-gray-500 font-medium">{activeTabDef.desc}</p>
             </div>
 
-            {data.loading ? <PanelSkeleton rows={3} /> : panel}
+            <div id="buyer-tabpanel" role="tabpanel" aria-labelledby={`buyer-tab-${activeTab}`}>
+              {data.loading ? <PanelSkeleton rows={3} /> : panel}
+            </div>
           </main>
         </div>
       </div>
@@ -391,27 +407,29 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
         />
       )}
 
-      {showLogoutModal && (
+{showLogoutModal && (
         <Modal
           title="Déconnexion"
           subtitle="Vous quittez votre compte"
-          icon={<LogOut size={20} />}
+          icon={<LogOut size={20} aria-hidden="true" />}
           onClose={() => setShowLogoutModal(false)}
         >
           <div className="p-6">
-            <p className="text-sm font-semibold text-gray-500 leading-relaxed">
-              Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Voulez-vous vraiment vous déconnecter ?
             </p>
             <div className="space-y-3 mt-6">
               <button
+                type="button"
                 onClick={onLogout}
-                className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-semibold text-sm shadow-md shadow-red-100 transition-colors"
               >
                 Oui, me déconnecter
               </button>
               <button
+                type="button"
                 onClick={() => setShowLogoutModal(false)}
-                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold text-sm active:scale-95 transition-all"
+                className="w-full py-4 bg-gray-50 text-gray-600 rounded-2xl font-semibold text-sm transition-colors"
               >
                 Annuler
               </button>
@@ -419,6 +437,21 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
           </div>
         </Modal>
       )}
+
+      <ConfirmationModal
+        isOpen={!!addressPendingDelete}
+        onClose={() => !isDeleting && setAddressPendingDelete(null)}
+        onConfirm={handleDeleteAddress}
+        title="Supprimer cette adresse"
+        message={
+          addressPendingDelete
+            ? `« ${addressPendingDelete.name} » sera définitivement retirée de vos adresses de livraison.`
+            : ''
+        }
+        confirmText="Supprimer"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

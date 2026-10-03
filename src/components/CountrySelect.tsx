@@ -74,7 +74,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
         className={`w-full flex items-center justify-between px-3.5 py-3 md:py-3.5 bg-gray-50/70 hover:bg-gray-50 focus:bg-white border rounded-2xl text-left text-sm font-semibold transition-all duration-200 cursor-pointer disabled:opacity-50 ${
           hasError
             ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
-            : 'border-gray-200/80 focus:border-[#f56b2a] focus:ring-2 focus:ring-[#f56b2a]/15'
+            : 'border-gray-200/80 focus:border-brand focus:ring-2 focus:ring-brand/15'
         }`}
       >
         <div className="flex items-center gap-2.5 truncate">
@@ -90,7 +90,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
         <ChevronDown
           size={15}
           className={`text-gray-400 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-[#f56b2a]' : ''
+            isOpen ? 'rotate-180 text-brand' : ''
           }`}
         />
       </button>
@@ -110,7 +110,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Rechercher un pays..."
-                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
           </div>
@@ -127,7 +127,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
                     onClick={() => handleSelect(c)}
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left text-xs transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-orange-50/80 font-bold text-[#f56b2a]'
+                        ? 'bg-orange-50/80 font-bold text-brand'
                         : 'hover:bg-gray-50 text-gray-700 font-medium'
                     }`}
                   >
@@ -135,7 +135,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
                       <span className="text-base shrink-0">{c.flag}</span>
                       <span className="truncate">{c.name}</span>
                     </div>
-                    {isSelected && <Check size={14} className="text-[#f56b2a] shrink-0" />}
+                    {isSelected && <Check size={14} className="text-brand shrink-0" />}
                   </button>
                 );
               })

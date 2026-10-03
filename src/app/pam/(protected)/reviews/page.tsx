@@ -141,11 +141,11 @@ export default function AdminReviewsPage() {
                   )}
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-[10px] font-semibold text-gray-400">
                     {product && (
-                      <span className="flex items-center gap-1"><Package size={11} className="text-[#f56b2a]" /> {product.name}</span>
+                      <span className="flex items-center gap-1"><Package size={11} className="text-brand" /> {product.name}</span>
                     )}
                     {store && (
-                      <Link href={`/pam/stores/${store.id}`} className="flex items-center gap-1 hover:text-[#f56b2a] transition-colors">
-                        <Store size={11} className="text-[#f56b2a]" /> {store.name}
+                      <Link href={`/pam/stores/${store.id}`} className="flex items-center gap-1 hover:text-brand transition-colors">
+                        <Store size={11} className="text-brand" /> {store.name}
                       </Link>
                     )}
                   </div>

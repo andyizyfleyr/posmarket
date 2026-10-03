@@ -182,7 +182,7 @@ export default function AdminSettingsPage() {
       {/* Protocoles */}
       <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 shadow-sm">
         <div className="flex items-center gap-6 mb-8">
-          <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f56b2a] shadow-inner border border-orange-100">
+          <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-brand shadow-inner border border-orange-100">
             <Shield size={28} />
           </div>
           <div>
@@ -195,14 +195,14 @@ export default function AdminSettingsPage() {
           {SETTINGS_DEFS.map((item) => (
             <div key={item.key} className="flex items-center justify-between p-5 rounded-2xl bg-gray-50 border border-gray-100 group cursor-pointer hover:bg-orange-50/20 transition-all">
               <div className="flex-1 mr-4">
-                <p className="text-xs font-bold text-gray-900 uppercase tracking-tight group-hover:text-[#f56b2a] transition-colors">{item.title}</p>
+                <p className="text-xs font-bold text-gray-900 uppercase tracking-tight group-hover:text-brand transition-colors">{item.title}</p>
                 <p className="text-[10px] text-gray-400 font-normal mt-0.5">{item.description}</p>
               </div>
               <button
                 role="switch"
                 aria-checked={!!settings[item.key]}
                 onClick={() => toggle(item.key)}
-                className={`w-12 h-7 rounded-full relative p-1 transition-all ${settings[item.key] ? 'bg-[#f56b2a] shadow-lg shadow-orange-100' : 'bg-gray-200'}`}
+                className={`w-12 h-7 rounded-full relative p-1 transition-all ${settings[item.key] ? 'bg-brand shadow-lg shadow-orange-100' : 'bg-gray-200'}`}
               >
                 <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${settings[item.key] ? 'right-1' : 'left-1'}`} />
               </button>
@@ -229,7 +229,7 @@ export default function AdminSettingsPage() {
             <button
               type="button"
               onClick={() => updateField('payment_provider', 'kkiapay')}
-              className={`p-5 rounded-2xl border text-xs font-bold uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'kkiapay' ? 'bg-[#f56b2a]/10 border-[#f56b2a] text-[#f56b2a]' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+              className={`p-5 rounded-2xl border text-xs font-bold uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'kkiapay' ? 'bg-brand/10 border-brand text-brand' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard size={16} />
@@ -260,7 +260,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={settings.kkiapay_public_key || ''}
                   onChange={e => updateField('kkiapay_public_key', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                   placeholder="pk_..."
                 />
               </div>
@@ -270,7 +270,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={settings.kkiapay_private_key || ''}
                   onChange={e => updateField('kkiapay_private_key', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                   placeholder="sk_..."
                 />
               </div>
@@ -280,7 +280,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={settings.kkiapay_secret_key || ''}
                   onChange={e => updateField('kkiapay_secret_key', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                   placeholder="secret_..."
                 />
               </div>
@@ -289,7 +289,7 @@ export default function AdminSettingsPage() {
                 <select
                   value={settings.kkiapay_env || 'sandbox'}
                   onChange={e => updateField('kkiapay_env', e.target.value as 'sandbox' | 'live')}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 >
                   <option value="sandbox">Sandbox</option>
                   <option value="live">Live</option>
@@ -554,7 +554,7 @@ export default function AdminSettingsPage() {
           <button
             onClick={handleSendTest}
             disabled={sendingTest || !selectedEvent || !testEmail}
-            className="flex-1 py-3.5 text-white font-bold text-[10px] uppercase tracking-[0.18em] rounded-2xl transition-all bg-[#f56b2a] hover:bg-[#d55a20] shadow-xl shadow-orange-100 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3.5 text-white font-bold text-[10px] uppercase tracking-[0.18em] rounded-2xl transition-all bg-brand hover:bg-[#d55a20] shadow-xl shadow-orange-100 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {sendingTest ? <RefreshCcw size={15} className="animate-spin" /> : <Send size={15} />}
             {sendingTest ? 'Envoi en cours...' : 'Envoyer ce test'}
@@ -594,7 +594,7 @@ export default function AdminSettingsPage() {
         onClick={handleSave}
         disabled={saving || !dirty}
         className={`w-full max-w-md mx-auto block py-4 text-white font-bold text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
-          saved ? 'bg-emerald-500 shadow-lg shadow-emerald-100' : 'bg-[#f56b2a] hover:bg-[#d55a20] shadow-xl shadow-orange-100'
+          saved ? 'bg-emerald-500 shadow-lg shadow-emerald-100' : 'bg-brand hover:bg-[#d55a20] shadow-xl shadow-orange-100'
         }`}
       >
         {saving ? <RefreshCcw size={16} className="animate-spin" /> : saved ? <CheckCircle2 size={16} /> : null}

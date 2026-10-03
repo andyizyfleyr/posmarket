@@ -9,7 +9,7 @@ interface LoaderProps {
 
 const Loader: React.FC<LoaderProps> = ({
     size = 'md',
-    color = 'text-[#f56b2a]',
+    color = 'text-brand',
     className = ''
 }) => {
     const sizeClasses = {

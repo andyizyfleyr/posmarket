@@ -46,7 +46,7 @@ export type BuyerReview = {
   }>;
 };
 
-export type BuyerTabId = 'orders' | 'addresses' | 'reviews' | 'profile';
+export type BuyerTabId = 'orders' | 'addresses' | 'reviews' | 'notifications' | 'profile';
 
 export type NotifyFn = (
   message: string,

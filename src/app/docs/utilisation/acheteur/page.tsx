@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 const step =
-  "w-7 h-7 shrink-0 rounded-full bg-[#f56b2a] text-white text-xs font-bold flex items-center justify-center shadow-md shadow-orange-100";
+  "w-7 h-7 shrink-0 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center shadow-md shadow-orange-100";
 
 function Section({
   number,
@@ -31,7 +31,7 @@ function Section({
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 space-y-3">
       <div className="flex items-center gap-3">
-        <span className="w-8 h-8 rounded-xl bg-orange-50 text-[#f56b2a] text-xs font-bold flex items-center justify-center">
+        <span className="w-8 h-8 rounded-xl bg-orange-50 text-brand text-xs font-bold flex items-center justify-center">
           {number}
         </span>
         <h2 className="text-sm font-bold text-gray-900">{title}</h2>
@@ -54,7 +54,7 @@ export default function AcheteurPage() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-2xl bg-orange-100 text-[#f56b2a] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-2xl bg-orange-100 text-brand flex items-center justify-center">
           <ShoppingBag size={20} />
         </div>
         <div>
@@ -79,10 +79,10 @@ export default function AcheteurPage() {
             const Icon = s.icon;
             return (
               <div key={i} className="relative bg-gray-50 rounded-2xl p-4 text-center">
-                <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-[#f56b2a] text-white text-[10px] font-bold flex items-center justify-center shadow-md shadow-orange-100">
+                <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center shadow-md shadow-orange-100">
                   {i + 1}
                 </div>
-                <div className="inline-flex w-10 h-10 rounded-2xl bg-orange-100 text-[#f56b2a] items-center justify-center mb-2">
+                <div className="inline-flex w-10 h-10 rounded-2xl bg-orange-100 text-brand items-center justify-center mb-2">
                   <Icon size={18} />
                 </div>
                 <p className="text-xs font-bold text-gray-900">{s.label}</p>
@@ -296,7 +296,7 @@ export default function AcheteurPage() {
                 key={tab.label}
                 className="flex items-start gap-3 rounded-2xl border border-gray-100 p-4"
               >
-                <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 text-brand flex items-center justify-center shrink-0">
                   <Icon size={16} />
                 </div>
                 <div>
@@ -315,13 +315,13 @@ export default function AcheteurPage() {
       <div className="flex justify-between pt-4 pb-4">
         <Link
           to="/docs/utilisation"
-          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-brand transition-colors"
         >
           Accueil du guide
         </Link>
         <Link
           to="/docs/utilisation/vendeur"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#f56b2a] hover:underline"
+          className="inline-flex items-center gap-2 text-xs font-bold text-brand hover:underline"
         >
           Espace Vendeur <ArrowRight size={12} />
         </Link>

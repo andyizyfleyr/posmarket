@@ -276,11 +276,11 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                             value={searchTerm}
                             placeholder="Chercher une commande..."
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full md:w-64 pl-9 pr-4 py-1.5 md:py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                            className="w-full md:w-64 pl-9 pr-4 py-1.5 md:py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                         />
                     </div>
-                    <button className="p-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-400 hover:text-[#f56b2a] shadow-sm transition-colors relative">
-                        {isSearching ? <Loader2 size={18} className="animate-spin text-[#f56b2a]" /> : <Filter size={18} className="md:w-5 md:h-5" />}
+                    <button className="p-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-400 hover:text-brand shadow-sm transition-colors relative">
+                        {isSearching ? <Loader2 size={18} className="animate-spin text-brand" /> : <Filter size={18} className="md:w-5 md:h-5" />}
                     </button>
                 </div>
             </div>
@@ -289,7 +289,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                 <div className="p-3 md:p-4 border-b border-gray-50 flex items-center gap-2 md:gap-4 overflow-x-auto no-scrollbar">
                     <button
                         onClick={() => setFilterStatus('ALL')}
-                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${filterStatus === 'ALL' ? 'bg-[#f56b2a] text-white shadow-lg shadow-orange-100' : 'text-gray-400 hover:text-gray-900'}`}
+                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${filterStatus === 'ALL' ? 'bg-brand text-white shadow-lg shadow-orange-100' : 'text-gray-400 hover:text-gray-900'}`}
                     >
                         Toutes ({localOrders.length})
                     </button>
@@ -323,7 +323,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 if (e.target.checked) setSelectedOrderIds(filteredOrders.map(o => o.id));
                                 else setSelectedOrderIds([]);
                             }}
-                            className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#f56b2a] border-gray-300 rounded focus:ring-[#f56b2a] cursor-pointer"
+                            className="w-3.5 h-3.5 md:w-4 md:h-4 text-brand border-gray-300 rounded focus:ring-brand cursor-pointer"
                         />
                         <span className="text-[10px] md:text-xs font-semibold text-gray-500 whitespace-nowrap">
                             {selectedOrderIds.length > 0 ? `${selectedOrderIds.length} sélectionnés` : 'Tout choisir'}
@@ -378,10 +378,10 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                     if (e.target.checked) setSelectedOrderIds([...selectedOrderIds, order.id]);
                                                     else setSelectedOrderIds(selectedOrderIds.filter(id => id !== order.id));
                                                 }}
-                                                className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#f56b2a] border-gray-300 rounded focus:ring-[#f56b2a] cursor-pointer"
+                                                className="w-3.5 h-3.5 md:w-4 md:h-4 text-brand border-gray-300 rounded focus:ring-brand cursor-pointer"
                                             />
                                         </div>
-                                        <div className="w-7 h-7 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-orange-50 text-[#f56b2a] flex items-center justify-center shadow-sm flex-shrink-0">
+                                        <div className="w-7 h-7 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-orange-50 text-brand flex items-center justify-center shadow-sm flex-shrink-0">
                                             <ShoppingBag size={14} className="md:hidden" />
                                             <ShoppingBag size={24} className="hidden md:block" />
                                         </div>
@@ -398,14 +398,14 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-semibold text-gray-400">
-                                                    <span className="flex items-center gap-1"><Calendar size={10} className="md:w-3 md:h-3 text-[#f56b2a]" /> {new Date(order.date).toLocaleDateString('fr-FR')}</span>
+                                                    <span className="flex items-center gap-1"><Calendar size={10} className="md:w-3 md:h-3 text-brand" /> {new Date(order.date).toLocaleDateString('fr-FR')}</span>
                                                     <span className="flex items-center gap-1"><Clock size={10} className="md:w-3 md:h-3 text-gray-400" /> {new Date(order.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
 
                                             </div>
                                             <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
                                                 <div className="text-right">
-                                                    <div className="text-[11px] md:text-sm font-bold text-[#f56b2a] whitespace-nowrap">
+                                                    <div className="text-[11px] md:text-sm font-bold text-brand whitespace-nowrap">
                                                         {formatCurrency(order.total)}
                                                     </div>
                                                     <span className={`md:hidden text-[7px] font-bold px-1 py-0.5 rounded-full uppercase tracking-tighter whitespace-nowrap ${getStatusColor(order.status || 'READY')}`}>
@@ -420,7 +420,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                     <div className="text-[10px] text-gray-400 font-semibold uppercase">{order.paymentMethod}</div>
                                                 </div>
                                                 
-                                                <ChevronRight className="text-gray-300 group-hover:text-[#f56b2a] transition-colors md:w-4 md:h-4" size={14} />
+                                                <ChevronRight className="text-gray-300 group-hover:text-brand transition-colors md:w-4 md:h-4" size={14} />
                                             </div>
                                         </div>
                                     </div>
@@ -433,12 +433,12 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 <button
                                     onClick={handleLoadMore}
                                     disabled={isLoadingMore}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-500 hover:text-[#f56b2a] hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-500 hover:text-brand hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
                                 >
                                     {isLoadingMore ? (
-                                        <Loader2 size={14} className="animate-spin text-[#f56b2a]" />
+                                        <Loader2 size={14} className="animate-spin text-brand" />
                                     ) : (
-                                        <Plus size={14} className="text-[#f56b2a]" />
+                                        <Plus size={14} className="text-brand" />
                                     )}
                                     {isLoadingMore ? 'Chargement...' : 'Voir plus de commandes'}
                                 </button>
@@ -510,7 +510,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 <div className="space-y-3 md:space-y-4">
                                     <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Client</h3>
                                     <div className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#f56b2a] text-white flex items-center justify-center font-bold text-lg md:text-xl">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-brand text-white flex items-center justify-center font-bold text-lg md:text-xl">
                                             {selectedOrder.customer?.name?.charAt(0) || '?'}
                                         </div>
                                         <div className="min-w-0">
@@ -528,7 +528,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     </div>
                                     {loadingOrderItems ? (
                                         <div className="flex items-center justify-center py-8">
-                                            <Loader2 className="animate-spin text-[#f56b2a]" size={20} />
+                                            <Loader2 className="animate-spin text-brand" size={20} />
                                         </div>
                                     ) : (
                                     <div className="space-y-2 md:space-y-3">
@@ -583,7 +583,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     <div className="bg-gray-50 p-4 md:p-6 rounded-2xl border border-gray-100 space-y-3 md:space-y-4">
                                         <div className="flex justify-between items-center text-xs md:text-sm pt-3 md:pt-4 border-t border-gray-200">
                                             <span className="font-semibold text-gray-400 uppercase tracking-widest text-[10px]">Total</span>
-                                            <span className="text-xl md:text-2xl font-bold text-[#f56b2a]">{formatCurrency(selectedOrder.total)}</span>
+                                            <span className="text-xl md:text-2xl font-bold text-brand">{formatCurrency(selectedOrder.total)}</span>
                                         </div>
                                         { (selectedOrder.discountAmount || 0) > 0 && (
                                             <div className="flex justify-between items-center text-xs md:text-sm text-green-600 bg-green-50/50 p-2 rounded-lg">
@@ -617,7 +617,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     selectedOrder.status === 'PENDING'
                                         ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-blue-100'
                                         : selectedOrder.status === 'READY'
-                                        ? 'bg-[#f56b2a] text-white hover:bg-[#d55a20] shadow-orange-100'
+                                        ? 'bg-brand text-white hover:bg-[#d55a20] shadow-orange-100'
                                         : 'bg-gray-100 text-gray-400'
                                 }`}
                             >

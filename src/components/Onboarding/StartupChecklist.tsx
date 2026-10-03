@@ -70,11 +70,11 @@ export const StartupChecklist: React.FC = () => {
             onClick={() => setIsOpen(!isOpen)}
             className="flex-grow flex items-center gap-3 p-3.5 hover:bg-slate-800 transition-colors"
           >
-            <div className={`p-1.5 rounded-lg ${completedCount === items.length ? 'bg-green-500' : 'bg-[#f56b2a]'}`}>
+            <div className={`p-1.5 rounded-lg ${completedCount === items.length ? 'bg-green-500' : 'bg-brand'}`}>
               <ListTodo size={14} />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#f56b2a]">Checklist</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-brand">Checklist</p>
               <p className="text-[11px] font-semibold leading-none mt-0.5">{completedCount}/{items.length} Terminés</p>
             </div>
             <div className="ml-auto">
@@ -96,7 +96,7 @@ export const StartupChecklist: React.FC = () => {
         {/* Progress Bar */}
         <div className="h-1 bg-gray-100 w-full">
           <div 
-            className="h-full bg-[#f56b2a] transition-all duration-1000" 
+            className="h-full bg-brand transition-all duration-1000" 
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -125,7 +125,7 @@ export const StartupChecklist: React.FC = () => {
             <div className="pt-4 border-t border-gray-50">
               <button 
                 onClick={() => { startTour(); setIsOpen(false); }}
-                className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-widest hover:border-[#f56b2a] hover:text-[#f56b2a] hover:bg-orange-50 transition-all"
+                className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-widest hover:border-brand hover:text-brand hover:bg-orange-50 transition-all"
               >
                 Relancer la visite guidée
               </button>

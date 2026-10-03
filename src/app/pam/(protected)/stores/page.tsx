@@ -82,7 +82,7 @@ function StatusBadge({ status }: { status?: string | null }) {
 function Avatar({ name, email }: { name?: string | null; email?: string | null }) {
   const letter = (name?.[0] || email?.[0] || 'U').toUpperCase();
   return (
-    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
+    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand to-orange-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
       {letter}
     </div>
   );
@@ -237,7 +237,7 @@ export default function AdminStoresPage() {
           <button
             key={s.label}
             onClick={() => setStatusFilter(s.label === 'Total' ? 'ALL' : s.label === 'En attente' ? 'PENDING' : s.label === 'Actives' ? 'APPROVED' : 'DISABLED' as StatusFilter)}
-            className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === (s.label === 'Total' ? 'ALL' : s.label === 'En attente' ? 'PENDING' : s.label === 'Actives' ? 'APPROVED' : 'DISABLED') ? 'ring-2 ring-[#f56b2a]/30' : ''}`}
+            className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === (s.label === 'Total' ? 'ALL' : s.label === 'En attente' ? 'PENDING' : s.label === 'Actives' ? 'APPROVED' : 'DISABLED') ? 'ring-2 ring-brand/30' : ''}`}
           >
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${s.color} mb-3`}>{s.icon}</div>
             <p className="text-2xl font-bold text-gray-900">{s.value}</p>
@@ -255,7 +255,7 @@ export default function AdminStoresPage() {
             placeholder="Rechercher une boutique, un slug, un email ou un propriétaire…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#f56b2a] placeholder:text-gray-400 text-sm font-normal text-gray-900 shadow-sm transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand placeholder:text-gray-400 text-sm font-normal text-gray-900 shadow-sm transition-all"
           />
         </div>
         <select
@@ -330,13 +330,13 @@ export default function AdminStoresPage() {
                       href={`/pam/impersonate?userId=${uid}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-[#f56b2a] text-[#f56b2a] hover:text-white rounded-full text-xs font-bold border border-orange-200 transition-all shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-brand text-brand hover:text-white rounded-full text-xs font-bold border border-orange-200 transition-all shadow-sm"
                       title="Se connecter au compte du propriétaire sans mot de passe (nouvel onglet)"
                     >
                       <LogIn size={13} /> Connexion Vendeur
                     </a>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-semibold text-gray-700 ring-1 ring-gray-200">
-                      <Store size={14} className="text-[#f56b2a]" />
+                      <Store size={14} className="text-brand" />
                       {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''}
                     </span>
                     {pendingCount > 0 && (
@@ -346,7 +346,7 @@ export default function AdminStoresPage() {
                     )}
                     <button
                       onClick={() => toggleOwner(uid)}
-                      className="p-2 text-gray-400 hover:text-[#f56b2a] transition-colors"
+                      className="p-2 text-gray-400 hover:text-brand transition-colors"
                       aria-label={expanded ? 'Réduire' : 'Déplier'}
                     >
                       <ChevronRight size={20} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
@@ -367,18 +367,18 @@ export default function AdminStoresPage() {
                               type="checkbox"
                               checked={selected.has(s.id)}
                               onChange={() => toggleRow(s.id)}
-                              className="w-4 h-4 mt-1 accent-[#f56b2a] cursor-pointer shrink-0"
+                              className="w-4 h-4 mt-1 accent-brand cursor-pointer shrink-0"
                               aria-label={`Sélectionner ${s.name || s.id}`}
                             />
                             {/* Infos boutique */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-[#f56b2a] shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-brand shrink-0">
                                   <Store size={20} />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Link href={`/pam/stores/${s.id}`} className="text-base font-bold text-gray-900 hover:text-[#f56b2a] transition-colors truncate">
+                                    <Link href={`/pam/stores/${s.id}`} className="text-base font-bold text-gray-900 hover:text-brand transition-colors truncate">
                                       {s.name || 'Boutique sans nom'}
                                     </Link>
                                     <StatusBadge status={s.status} />
@@ -399,7 +399,7 @@ export default function AdminStoresPage() {
                                       <Eye size={14} /> {formatNumber(Number(s.views) || 0)} visites
                                     </span>
                                     <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                                      <Package size={14} className="text-[#f56b2a]" /> {formatNumber(productCounts[s.id] || 0)} produit{(productCounts[s.id] || 0) > 1 ? 's' : ''}
+                                      <Package size={14} className="text-brand" /> {formatNumber(productCounts[s.id] || 0)} produit{(productCounts[s.id] || 0) > 1 ? 's' : ''}
                                     </span>
                                   </div>
                                 </div>
@@ -412,7 +412,7 @@ export default function AdminStoresPage() {
                                 href={`/pam/impersonate?userId=${s.user_id || uid}&storeId=${s.id}&redirectTo=/dashboard`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#f56b2a] to-orange-600 text-white rounded-xl text-xs font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm"
+                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand to-orange-600 text-white rounded-xl text-xs font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm"
                                 title="Se connecter en tant que vendeur sur cette boutique (nouvel onglet)"
                               >
                                 <LogIn size={14} /> Ouvrir session
@@ -456,7 +456,7 @@ export default function AdminStoresPage() {
                               <div className="flex gap-2 lg:w-full">
                                 <Link
                                   href={`/pam/stores/${s.id}`}
-                                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#f56b2a] rounded-xl text-sm font-semibold ring-1 ring-orange-200 hover:bg-[#f56b2a] hover:text-white transition-all"
+                                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-brand rounded-xl text-sm font-semibold ring-1 ring-orange-200 hover:bg-brand hover:text-white transition-all"
                                 >
                                   <Eye size={15} /> Détails
                                 </Link>
@@ -517,7 +517,7 @@ export default function AdminStoresPage() {
                     : handleStatus(confirmOpen.id, confirmOpen.status!)
                 }
                 className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all ${
-                  confirmOpen.type === 'delete' || confirmOpen.type === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#f56b2a] hover:bg-[#d55a20]'
+                  confirmOpen.type === 'delete' || confirmOpen.type === 'deleteBulk' ? 'bg-red-500 hover:bg-red-600' : 'bg-brand hover:bg-[#d55a20]'
                 }`}
               >
                 Confirmer

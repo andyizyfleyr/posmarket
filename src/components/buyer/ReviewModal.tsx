@@ -63,7 +63,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
       <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto" noValidate>
         <div className="flex items-center gap-3 px-1">
           <ProductThumb src={product.image} alt={product.name} className="w-12 h-12" iconSize={18} />
-          <p className="text-xs font-bold text-[#002f34] truncate">{product.name}</p>
+          <p className="text-xs font-bold text-ink truncate">{product.name}</p>
         </div>
 
         <div className="flex flex-col items-center gap-3 py-5 bg-gray-50/60 rounded-3xl border border-dashed border-gray-200">
@@ -86,7 +86,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
               </button>
             ))}
           </div>
-          <p className="text-xs font-bold text-[#f56b2a] uppercase tracking-widest">
+          <p className="text-xs font-bold text-brand uppercase tracking-widest">
             {rating >= 5 ? 'Excellent !' : LABELS[rating - 2] || ''}
           </p>
         </div>
@@ -106,7 +106,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
             className={`w-full px-5 py-4 bg-gray-50 border rounded-2xl text-sm font-semibold min-h-[110px] resize-none outline-none transition-all focus:ring-2 ${
               commentError
                 ? 'border-red-200 focus:ring-red-200/30'
-                : 'border-transparent focus:ring-[#f56b2a]/20'
+                : 'border-transparent focus:ring-brand/20'
             }`}
           />
           {commentError && (
@@ -117,7 +117,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-[#002f34] text-white rounded-2xl font-bold text-xs shadow-md shadow-gray-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-ink text-white rounded-2xl font-bold text-xs shadow-md shadow-gray-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-60"
         >
           {submitting ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
           Publier mon avis

@@ -19,7 +19,7 @@ const BottomNavItem: React.FC<BottomNavItemProps> = ({ id, icon, label, active =
     aria-label={label}
     aria-current={active ? 'page' : undefined}
     className={`relative flex flex-col items-center justify-center flex-1 min-h-[52px] py-1.5 transition-all duration-200 ${
-      active ? 'text-[#f56b2a]' : 'text-gray-400 active:text-gray-600'
+      active ? 'text-brand' : 'text-gray-400 active:text-gray-600'
     }`}
   >
     <div className={`relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 ${
@@ -35,7 +35,7 @@ const BottomNavItem: React.FC<BottomNavItemProps> = ({ id, icon, label, active =
     }`}>{label}</span>
     {/* Active indicator pill */}
     {active && (
-      <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />
+      <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-brand rounded-full shadow-brand/40" />
     )}
   </button>
 );
@@ -57,7 +57,7 @@ const OverflowMenu: React.FC<OverflowMenuProps> = ({ items, currentView, onViewC
           onClick={() => { onViewChange(item.view); onClose(); }}
           className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
             currentView === item.view
-              ? 'bg-orange-50 text-[#f56b2a]'
+              ? 'bg-orange-50 text-brand'
               : 'text-gray-600 active:bg-gray-50'
           }`}
         >
@@ -125,7 +125,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRo
             aria-label="Plus d'options"
             aria-expanded={showOverflow}
             className={`relative flex flex-col items-center justify-center flex-1 min-h-[52px] py-1.5 transition-all duration-200 ${
-              isOverflowActive ? 'text-[#f56b2a]' : 'text-gray-400 active:text-gray-600'
+              isOverflowActive ? 'text-brand' : 'text-gray-400 active:text-gray-600'
             }`}
           >
             <div className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 active:scale-95 ${
@@ -137,7 +137,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRo
               isOverflowActive ? 'opacity-100 font-bold' : 'opacity-60'
             }`}>Plus</span>
             {isOverflowActive && (
-              <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />
+              <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-brand rounded-full shadow-brand/40" />
             )}
           </button>
         )}

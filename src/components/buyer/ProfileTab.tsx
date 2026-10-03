@@ -111,18 +111,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-semibold outline-none transition-all focus:ring-2 ${
       hasError
         ? 'border-red-200 focus:ring-red-200/30'
-        : 'border-transparent focus:ring-[#f56b2a]/20'
+        : 'border-transparent focus:ring-brand/20'
     }`;
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-5 space-y-5">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-tr from-[#f56b2a] to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-200/50">
+          <div className="w-14 h-14 bg-gradient-to-tr from-brand to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-200/50">
             {(user.name || 'U')[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-[#002f34] truncate">{user.name}</p>
+            <p className="text-sm font-bold text-ink truncate">{user.name}</p>
             <p className="text-[10px] text-gray-400 font-semibold">Membre Marketplace</p>
           </div>
         </div>
@@ -172,7 +172,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           <button
             type="submit"
             disabled={saving || loadingProfile}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#f56b2a] text-white rounded-2xl font-bold text-xs shadow-md shadow-orange-100 hover:bg-[#e55a1b] active:scale-[0.98] transition-all disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-brand text-white rounded-2xl font-bold text-xs shadow-md shadow-orange-100 hover:bg-[#e55a1b] active:scale-[0.98] transition-all disabled:opacity-60"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Enregistrer mes informations

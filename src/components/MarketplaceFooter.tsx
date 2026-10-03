@@ -22,16 +22,15 @@ export const MarketplaceFooter: React.FC = () => {
               className="flex items-center gap-2.5 w-fit group"
               aria-label="PosMarket - Retour à l'accueil"
             >
-              <div className="w-9 h-9 bg-[#f56b2a] rounded-xl flex items-center justify-center shadow-md shadow-orange-100 group-hover:scale-110 transition-transform">
+              <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center shadow-md shadow-orange-100 group-hover:scale-110 transition-transform">
                 <ShoppingBasketIcon size={20} className="text-white" />
               </div>
               <span className="text-lg font-bold tracking-tight text-gray-900">
-                Pos<span className="text-[#f56b2a]">Market</span>
+                Pos<span className="text-brand">Market</span>
               </span>
             </Link>
-            <p className="mt-3 text-[11px] font-normal text-gray-500 leading-relaxed">
-              La marketplace express qui connecte les commerçants locaux et les
-              acheteurs. Achetez et vendez en toute confiance.
+            <p className="mt-3 text-sm font-normal text-gray-500 leading-relaxed">
+              Place de marché reliant les vendeurs et les acheteurs.
             </p>
           </div>
 
@@ -45,7 +44,7 @@ export const MarketplaceFooter: React.FC = () => {
                 <li key={item.href}>
                   <Link
                     to={item.href}
-                    className="text-xs font-semibold text-gray-600 hover:text-[#f56b2a] transition-colors"
+                    className="text-xs font-semibold text-gray-600 hover:text-brand transition-colors"
                   >
                     {item.label}
                   </Link>
@@ -65,7 +64,7 @@ export const MarketplaceFooter: React.FC = () => {
                 Paiement sécurisé
               </li>
               <li className="flex items-center gap-2">
-                <MapPin size={14} className="text-[#f56b2a] flex-shrink-0" />
+                <MapPin size={14} className="text-brand flex-shrink-0" />
                 Commerçants locaux vérifiés
               </li>
             </ul>

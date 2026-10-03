@@ -73,7 +73,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
           accountType: user.accountType === 'seller' ? 'seller' : 'buyer',
           isSuperAdmin: user.isSuperAdmin,
         }); setError(null); setOpen(true); }}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#f56b2a] hover:bg-[#d55a20] text-white text-xs font-bold transition-all active:scale-95 shadow-lg shadow-orange-100"
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand hover:bg-[#d55a20] text-white text-xs font-bold transition-all active:scale-95 shadow-lg shadow-orange-100"
       >
         <Pencil size={14} /> Modifier le compte
       </button>
@@ -97,7 +97,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                 <input
                   value={form.fullName}
                   onChange={(e) => set('fullName', e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all shadow-inner"
                   placeholder="Nom du commerçant"
                 />
               </div>
@@ -108,7 +108,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                   required type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all shadow-inner"
                 />
               </div>
 
@@ -117,7 +117,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                 <input
                   value={form.phone}
                   onChange={(e) => set('phone', e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all shadow-inner"
                   placeholder="+225 07 00 00 00 00"
                 />
               </div>
@@ -130,7 +130,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                     <input
                       value={form.companyName}
                       onChange={(e) => set('companyName', e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all shadow-inner"
                       placeholder="Nom de la société"
                     />
                   </div>
@@ -142,7 +142,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                     <input
                       value={form.ninea}
                       onChange={(e) => set('ninea', e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all shadow-inner"
                       placeholder="NINEA"
                     />
                   </div>
@@ -155,7 +155,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                   <select
                     value={form.accountType}
                     onChange={(e) => set('accountType', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
                   >
                     <option value="buyer">Acheteur</option>
                     <option value="seller">Vendeur</option>
@@ -168,12 +168,12 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                     onClick={() => set('isSuperAdmin', !form.isSuperAdmin)}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
                       form.isSuperAdmin
-                        ? 'bg-orange-50 border-orange-200 text-[#f56b2a]'
+                        ? 'bg-orange-50 border-orange-200 text-brand'
                         : 'bg-gray-50 border-gray-100 text-gray-400'
                     }`}
                   >
                     <span className="flex items-center gap-2"><ShieldCheck size={16} /> {form.isSuperAdmin ? 'Activé' : 'Désactivé'}</span>
-                    <span className={`w-9 h-5 rounded-full transition-colors ${form.isSuperAdmin ? 'bg-[#f56b2a]' : 'bg-gray-300'}`} />
+                    <span className={`w-9 h-5 rounded-full transition-colors ${form.isSuperAdmin ? 'bg-brand' : 'bg-gray-300'}`} />
                   </button>
                 </div>
               </div>
@@ -195,7 +195,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-[#f56b2a] hover:bg-[#d55a20] transition-all active:scale-95 shadow-lg shadow-orange-100 disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-brand hover:bg-[#d55a20] transition-all active:scale-95 shadow-lg shadow-orange-100 disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <IdCard size={16} />}
                   {saving ? 'Enregistrement…' : 'Enregistrer'}

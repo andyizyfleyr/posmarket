@@ -92,7 +92,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                     <div className="block md:table-cell px-2 md:px-6 py-1.5 md:py-4">
                       <div className="flex items-center justify-between gap-2 overflow-hidden">
                         <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-grow">
-                          <div className="w-7 h-7 md:w-10 md:h-10 rounded-lg bg-orange-50 text-[#f56b2a] flex items-center justify-center flex-shrink-0">
+                          <div className="w-7 h-7 md:w-10 md:h-10 rounded-lg bg-orange-50 text-brand flex items-center justify-center flex-shrink-0">
                             <FileText size={14} className="md:w-4 md:h-4" />
                           </div>
                           <div className="min-w-0 flex flex-col">
@@ -105,7 +105,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                                 {order.customer?.name || 'Passage'}
                               </span>
                               <span className="text-gray-200">|</span>
-                              <span className="text-[10px] font-bold text-[#f56b2a]">
+                              <span className="text-[10px] font-bold text-brand">
                                 {formatCurrency(order.total)}
                               </span>
                             </div>
@@ -133,7 +133,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                     </div>
 
                     <div className="hidden md:table-cell px-6 py-4">
-                      <span className="text-[10px] font-bold px-2 py-1 bg-orange-50 text-[#f56b2a] rounded-lg uppercase tracking-wider">
+                      <span className="text-[10px] font-bold px-2 py-1 bg-orange-50 text-brand rounded-lg uppercase tracking-wider">
                         {order.paymentMethod === 'CASH' ? 'Espèces' : order.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : order.paymentMethod === 'CARD' ? 'Carte' : 'Virement'}
                       </span>
                     </div>
@@ -148,7 +148,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
 
                     <div className="hidden md:table-cell px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-gray-300 hover:text-[#f56b2a] group-hover:bg-orange-50 rounded-xl transition-all"><ChevronRight size={18} /></button>
+                        <button className="p-2 text-gray-300 hover:text-brand group-hover:bg-orange-50 rounded-xl transition-all"><ChevronRight size={18} /></button>
                       </div>
                     </div>
                   </div>
@@ -190,7 +190,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                     <div className="bg-gray-50/50 p-2.5 md:p-4 rounded-xl md:rounded-2xl border border-gray-50">
                       {selectedOrder.customer ? (
                         <div className="flex items-center gap-2.5 md:gap-3">
-                          <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-[#f56b2a] text-white flex items-center justify-center font-bold text-base shadow-lg shadow-orange-100">
+                          <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-brand text-white flex items-center justify-center font-bold text-base shadow-lg shadow-orange-100">
                             {selectedOrder.customer.name[0]}
                           </div>
                           <div className="min-w-0">
@@ -242,7 +242,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-[8px] md:text-xs font-semibold text-gray-400 leading-tight">{item.quantity}{item.product.unit && item.product.unit !== 'pièce' ? ` ${item.product.unit}` : ''} x {formatCurrency(item.product.price)}</div>
-                        <div className="text-[10px] md:text-sm font-bold text-[#f56b2a] whitespace-nowrap">{formatCurrency(item.quantity * item.product.price)}</div>
+                        <div className="text-[10px] md:text-sm font-bold text-brand whitespace-nowrap">{formatCurrency(item.quantity * item.product.price)}</div>
                       </div>
                     </div>
                   ))}
@@ -278,7 +278,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                   </div>
  
                   <div className="border-t border-dashed border-gray-300 pt-3 space-y-1">
-                    <div className="flex justify-between font-bold text-base mt-2 pt-2 border-t border-gray-200 text-[#f56b2a]">
+                    <div className="flex justify-between font-bold text-base mt-2 pt-2 border-t border-gray-200 text-brand">
                       <span>TOTAL:</span><span>{formatCurrency(selectedOrder.total)}</span>
                     </div>
                   </div>
@@ -297,7 +297,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                   </button>
                   <button
                     onClick={handleDownloadPDF}
-                    className="w-full py-3 md:py-4 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-base flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-xl shadow-orange-100 active:scale-95 transition-all whitespace-nowrap"
+                    className="w-full py-3 md:py-4 bg-brand text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-base flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-xl shadow-orange-100 active:scale-95 transition-all whitespace-nowrap"
                   >
                     <Download size={16} className="md:w-[18px] md:h-[18px]" /> Télécharger PDF
                   </button>

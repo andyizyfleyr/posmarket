@@ -63,7 +63,7 @@ function priorityRank(eventType: string): number {
 }
 
 const EVENT_META: Record<string, { label: string; icon: React.ReactNode; tone: string }> = {
-  NOUVELLE_COMMANDE: { label: 'Nouvelle commande', icon: <ShoppingCart size={15} />, tone: 'bg-orange-50 text-[#f56b2a]' },
+  NOUVELLE_COMMANDE: { label: 'Nouvelle commande', icon: <ShoppingCart size={15} />, tone: 'bg-orange-50 text-brand' },
   COMMANDE_A_PREPARER: { label: 'Commande à préparer', icon: <ShoppingCart size={15} />, tone: 'bg-blue-50 text-blue-600' },
   NOUVEAU_CLIENT: { label: 'Nouveau client', icon: <User size={15} />, tone: 'bg-emerald-50 text-emerald-600' },
   NOUVEL_AVIS: { label: 'Nouvel avis', icon: <Star size={15} />, tone: 'bg-amber-50 text-amber-600' },
@@ -71,7 +71,7 @@ const EVENT_META: Record<string, { label: string; icon: React.ReactNode; tone: s
   ALERTE_STOCK_BAS: { label: 'Stock bas', icon: <AlertTriangle size={15} />, tone: 'bg-amber-50 text-amber-600' },
   RECU_PAIEMENT: { label: 'Reçu de paiement', icon: <Receipt size={15} />, tone: 'bg-emerald-50 text-emerald-600' },
   PAIEMENT_INCIDENT: { label: 'Paiement en erreur', icon: <AlertTriangle size={15} />, tone: 'bg-red-50 text-red-600' },
-  VENTE_POS: { label: 'Vente en boutique', icon: <Receipt size={15} />, tone: 'bg-orange-50 text-[#f56b2a]' },
+  VENTE_POS: { label: 'Vente en boutique', icon: <Receipt size={15} />, tone: 'bg-orange-50 text-brand' },
   FACTURE_PAYEE: { label: 'Facture payée', icon: <Receipt size={15} />, tone: 'bg-green-50 text-green-600' },
   ABONNEMENT_ACTIVE: { label: 'Abonnement activé', icon: <CreditCard size={15} />, tone: 'bg-green-50 text-green-600' },
   ABONNEMENT_EXPIRANT: { label: 'Abonnement expirant', icon: <CreditCard size={15} />, tone: 'bg-amber-50 text-amber-600' },
@@ -223,7 +223,7 @@ export default function SellerNotifications() {
       >
         <Bell size={17} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-[#f56b2a] text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-brand text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -299,7 +299,7 @@ export default function SellerNotifications() {
                         <span className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[11px] font-bold text-gray-900 truncate">{meta.label}</span>
                           {priorityRank(item.eventType) < PRIORITY_EVENTS.length && (
-                            <span className="text-[7px] font-bold uppercase px-1 py-px rounded bg-[#f56b2a]/10 text-[#f56b2a] flex-shrink-0">
+                            <span className="text-[7px] font-bold uppercase px-1 py-px rounded bg-brand/10 text-brand flex-shrink-0">
                               Prioritaire
                             </span>
                           )}
@@ -310,7 +310,7 @@ export default function SellerNotifications() {
                         {item.body}
                       </span>
                     </span>
-                    {!read && <span className="w-2 h-2 rounded-full bg-[#f56b2a] flex-shrink-0 mt-1.5" />}
+                    {!read && <span className="w-2 h-2 rounded-full bg-brand flex-shrink-0 mt-1.5" />}
                   </button>
                 );
               })

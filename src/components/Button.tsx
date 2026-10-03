@@ -30,7 +30,7 @@ const Button: React.FC<ButtonProps> = memo(({
   const baseStyles = 'inline-flex items-center justify-center font-bold transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed rounded-2xl relative overflow-hidden';
 
   const variants = {
-    primary: 'bg-[#f56b2a] text-white hover:bg-[#e55a1b] shadow-md shadow-orange-100',
+    primary: 'bg-brand text-white hover:bg-[#e55a1b] shadow-md shadow-orange-100',
     secondary: 'bg-gray-900 text-white hover:bg-black shadow-md shadow-gray-200',
     outline: 'bg-white border-2 border-gray-100 text-gray-700 hover:border-gray-200 hover:bg-gray-50',
     danger: 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-100',

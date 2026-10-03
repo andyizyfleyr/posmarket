@@ -34,7 +34,7 @@ export default function OfflinePage() {
       </p>
       <Link
         href="/"
-        className="px-6 py-3 bg-[#f56b2a] hover:bg-[#e55a1b] text-white rounded-2xl font-bold text-sm transition-all active:scale-95"
+        className="px-6 py-3 bg-brand hover:bg-[#e55a1b] text-white rounded-2xl font-bold text-sm transition-all active:scale-95"
       >
         Réessayer
       </Link>

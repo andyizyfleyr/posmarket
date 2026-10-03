@@ -34,7 +34,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         <div className="container mx-auto px-4 py-3">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#f56b2a] hover:underline"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand hover:underline"
           >
             <ArrowLeft size={14} /> Retour à l&apos;accueil
           </Link>
@@ -79,7 +79,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                 key={item.href}
                 to={item.href}
                 className={`flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-bold shrink-0 transition-colors ${
-                  active ? "text-[#f56b2a]" : "text-gray-400"
+                  active ? "text-brand" : "text-gray-400"
                 }`}
               >
                 <Icon size={18} />

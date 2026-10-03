@@ -42,7 +42,7 @@ const SettingItem = React.memo<SettingItemProps>(({ icon, title, description, ba
         className="flex items-center justify-between p-2.5 md:p-4 hover:bg-orange-50/50 transition-all cursor-pointer group rounded-xl md:rounded-2xl border border-transparent hover:border-orange-100"
     >
         <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#f56b2a] transition-colors flex-shrink-0">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 group-hover:text-brand transition-colors flex-shrink-0">
                 {React.cloneElement(icon, { size: 16, className: 'md:size-5' })}
             </div>
             <div className="min-w-0">
@@ -51,8 +51,8 @@ const SettingItem = React.memo<SettingItemProps>(({ icon, title, description, ba
             </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            {badge && <span className="bg-orange-100 text-[#f56b2a] text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded-full">{badge}</span>}
-            <ChevronRight size={14} className="text-gray-300 md:size-4 group-hover:text-[#f56b2a]" />
+            {badge && <span className="bg-orange-100 text-brand text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded-full">{badge}</span>}
+            <ChevronRight size={14} className="text-gray-300 md:size-4 group-hover:text-brand" />
         </div>
     </div>
 ));
@@ -65,7 +65,7 @@ interface SectionHeaderProps {
 
 const SectionHeader = React.memo<SectionHeaderProps>(({ title, icon }) => (
     <div className="flex items-center gap-2.5 md:gap-3 mb-3 md:mb-6">
-        <div className="p-1.5 md:p-2 bg-[#f56b2a] rounded-lg md:rounded-xl text-white">
+        <div className="p-1.5 md:p-2 bg-brand rounded-lg md:rounded-xl text-white">
             {React.cloneElement(icon, { size: 14, className: 'md:size-[18px]' })}
         </div>
         <h3 className="text-[10px] md:text-sm font-bold text-gray-900 uppercase tracking-widest leading-none">{title}</h3>
@@ -340,7 +340,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className={`flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 text-white rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold transition-all shadow-lg active:scale-95 whitespace-nowrap ${isSaving ? 'opacity-70 cursor-not-allowed' : ''} ${saveFeedback ? 'bg-green-500 shadow-green-100' : 'bg-[#f56b2a] shadow-orange-100 hover:bg-[#d55a20]'}`}
+                    className={`flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 text-white rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold transition-all shadow-lg active:scale-95 whitespace-nowrap ${isSaving ? 'opacity-70 cursor-not-allowed' : ''} ${saveFeedback ? 'bg-green-500 shadow-green-100' : 'bg-brand shadow-orange-100 hover:bg-[#d55a20]'}`}
                 >
                     {isSaving ? <Loader2 size={16} className="md:size-[18px] animate-spin" /> : saveFeedback ? <ShieldCheck size={16} className="md:size-[18px]" /> : <Save size={16} className="md:size-[18px]" />}
                     {isSaving ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
@@ -359,7 +359,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm transition-all whitespace-nowrap min-w-fit flex-shrink-0 ${activeTab === tab.id ? 'bg-white text-[#f56b2a] shadow-md border border-gray-100' : 'text-gray-500 hover:bg-white/50'}`}
+                            className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm transition-all whitespace-nowrap min-w-fit flex-shrink-0 ${activeTab === tab.id ? 'bg-white text-brand shadow-md border border-gray-100' : 'text-gray-500 hover:bg-white/50'}`}
                         >
                             {tab.icon}
                             {tab.label}
@@ -375,7 +375,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <SectionHeader title="Informations de la Boutique" icon={<Store />} />
                                 <div className="flex flex-col items-center mb-6">
                                     <label className="relative group cursor-pointer">
-                                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 group-hover:border-[#f56b2a] group-hover:bg-orange-50 transition-all flex items-center justify-center overflow-hidden relative">
+                                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 group-hover:border-brand group-hover:bg-orange-50 transition-all flex items-center justify-center overflow-hidden relative">
                                             {localSettings.logo ? (
                                                 <Image
                                                     src={localSettings.logo}
@@ -385,10 +385,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     className="object-cover"
                                                 />
                                             ) : (
-                                                <Store className="text-gray-300 group-hover:text-[#f56b2a] transition-colors" size={32} />
+                                                <Store className="text-gray-300 group-hover:text-brand transition-colors" size={32} />
                                             )}
                                         </div>
-                                        <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#f56b2a] rounded-full flex items-center justify-center shadow-lg">
+                                        <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-brand rounded-full flex items-center justify-center shadow-lg">
                                             <Camera size={14} className="text-white" />
                                         </div>
                                         <input
@@ -406,7 +406,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <div className="relative">
                                             <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
                                             <input
-                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                                                 value={localSettings.name}
                                                 onChange={(e) => setLocalSettings(prev => ({ ...prev, name: e.target.value }))}
                                             />
@@ -417,7 +417,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <div className="relative">
                                             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 md:size-4" size={14} />
                                             <input
-                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                                                 value={localSettings.email}
                                                 onChange={(e) => setLocalSettings(prev => ({ ...prev, email: e.target.value }))}
                                             />
@@ -442,7 +442,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <div className="relative">
                                             <FileText className="absolute left-3.5 top-3 text-gray-300 md:size-4" size={14} />
                                             <textarea
-                                                className="w-full pl-10 md:pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all resize-none min-h-[100px] no-global-border"
+                                                className="w-full pl-10 md:pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl text-[11px] md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all resize-none min-h-[100px] no-global-border"
                                                 placeholder="Décrivez votre univers (lettres, espaces et points uniquement, max 250 car.)..."
                                                 maxLength={250}
                                                 value={localSettings.description || ''}
@@ -469,8 +469,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between p-4 bg-orange-50/60 rounded-2xl border border-orange-100">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-[#f56b2a]/20 text-[#f56b2a] flex items-center justify-center shrink-0">
-                                                <Zap size={20} className="fill-[#f56b2a]" />
+                                            <div className="w-10 h-10 rounded-xl bg-brand/20 text-brand flex items-center justify-center shrink-0">
+                                                <Zap size={20} className="fill-brand" />
                                             </div>
                                             <div>
                                                 <h4 className="text-xs md:text-sm font-bold text-gray-900">Activer les commandes de gros (B2B)</h4>
@@ -484,7 +484,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                 checked={!!localSettings.wholesaleEnabled}
                                                 onChange={(e) => setLocalSettings(prev => ({ ...prev, wholesaleEnabled: e.target.checked }))}
                                             />
-                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f56b2a]"></div>
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
                                         </label>
                                     </div>
 
@@ -499,7 +499,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     min="0"
                                                     step="1000"
                                                     placeholder="Ex: 50000 (Laissez vide ou 0 pour aucun minimum)"
-                                                    className="w-full pl-4 pr-16 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#f56b2a]/20 transition-all"
+                                                    className="w-full pl-4 pr-16 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                                                     value={localSettings.wholesaleMinOrderAmount || ''}
                                                     onChange={(e) => setLocalSettings(prev => ({
                                                         ...prev,
@@ -524,7 +524,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     {activeTab === 'user' && (
                         <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-right-4 duration-300">
                             {/* Profile Header Card */}
-                            <div className="relative p-6 md:p-10 bg-gradient-to-br from-[#f56b2a] to-[#ff8c52] rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl shadow-orange-100 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                            <div className="relative p-6 md:p-10 bg-gradient-to-br from-brand to-[#ff8c52] rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl shadow-orange-100 flex flex-col md:flex-row items-center gap-6 md:gap-10">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl" />
                                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-20 -mb-20 blur-2xl" />
                                 
@@ -536,7 +536,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             alt="Profil"
                                         />
                                     </div>
-                                    <label className="absolute -bottom-2 -right-2 bg-white text-[#f56b2a] p-2.5 md:p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-90 transition-all cursor-pointer border border-[#f56b2a]/10">
+                                    <label className="absolute -bottom-2 -right-2 bg-white text-brand p-2.5 md:p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-90 transition-all cursor-pointer border border-brand/10">
                                         <Camera size={18} className="md:size-5" />
                                         <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                                     </label>
@@ -554,7 +554,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 {/* Identity Section */}
                                 <section>
                                     <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-2 bg-orange-50 rounded-xl text-[#f56b2a]">
+                                        <div className="p-2 bg-orange-50 rounded-xl text-brand">
                                             <User size={20} />
                                         </div>
                                         <h3 className="text-xs md:text-sm font-bold text-gray-900 uppercase tracking-widest leading-none">Identité Personnelle</h3>
@@ -564,12 +564,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <div className="space-y-3">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
                                             <div className="relative group">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={20} />
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand transition-colors" size={20} />
                                                 <input
                                                     type="text"
                                                     value={profileName}
                                                     onChange={(e) => setProfileName(e.target.value)}
-                                                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 outline-none shadow-sm transition-all"
+                                                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 outline-none shadow-sm transition-all"
                                                     placeholder="Votre nom"
                                                 />
                                             </div>
@@ -578,7 +578,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <button
                                             onClick={handleUpdateProfileLocal}
                                             disabled={isUpdatingProfile}
-                                            className="w-full py-4.5 bg-[#f56b2a] text-white rounded-2xl text-sm font-bold shadow-xl shadow-orange-100/50 hover:bg-[#d55a20] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                                            className="w-full py-4.5 bg-brand text-white rounded-2xl text-sm font-bold shadow-xl shadow-orange-100/50 hover:bg-[#d55a20] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
                                             {isUpdatingProfile ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                             {isUpdatingProfile ? 'Mise à jour...' : 'Sauvegarder les modifications'}
@@ -595,7 +595,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <SectionHeader title="Gestion de l'Équipe" icon={<Users />} />
                                 <button
                                     onClick={() => setIsStaffModalOpen(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-[#f56b2a] text-white rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold shadow-lg shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 whitespace-nowrap"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-brand text-white rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold shadow-lg shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 whitespace-nowrap"
                                 >
                                     <Plus size={14} /> Ajouter un membre
                                 </button>
@@ -616,13 +616,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                 <Trash2 size={12} className="md:size-4" />
                                             </button>
                                             <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
-                                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-[#f56b2a] flex-shrink-0 shadow-sm">
+                                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-brand flex-shrink-0 shadow-sm">
                                                     <User size={20} />
                                                 </div>
                                                 <div className="min-w-0">
                                                      <h4 className="font-bold text-gray-900 text-xs md:text-sm tracking-tight truncate pr-6">{(member as unknown as { fullName?: string; email?: string }).fullName || (member as unknown as { fullName?: string; email?: string }).email || member.userId?.slice(0, 8)}</h4>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className={`text-[8px] md:text-[9px] font-bold px-1.5 md:px-2 py-0.5 rounded-full ${member.role === 'OWNER' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-[#f56b2a]'}`}>
+                                                        <span className={`text-[8px] md:text-[9px] font-bold px-1.5 md:px-2 py-0.5 rounded-full ${member.role === 'OWNER' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-brand'}`}>
                                                             {member.role}
                                                         </span>
                                                         <span className="text-[9px] md:text-[10px] text-gray-400 font-semibold flex items-center gap-1 truncate">
@@ -649,7 +649,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 
                                 <div className="bg-gray-50 rounded-2xl md:rounded-3xl p-4 md:p-6 border border-gray-100 mb-8 shadow-sm">
                                     <h4 className="font-bold text-xs md:text-sm mb-4 flex items-center gap-2 uppercase tracking-tight">
-                                        <Plus size={16} className="text-[#f56b2a]" /> Nouveau Code
+                                        <Plus size={16} className="text-brand" /> Nouveau Code
                                     </h4>
                                     <div className="flex flex-col md:flex-row gap-3">
                                         <input
@@ -657,21 +657,21 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             value={newCouponCode}
                                             onChange={e => setNewCouponCode(e.target.value)}
                                             placeholder="Code (ex: BIENVENUE20)"
-                                            className="flex-grow px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm uppercase focus:ring-2 focus:ring-[#f56b2a]/10 outline-none"
+                                            className="flex-grow px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm uppercase focus:ring-2 focus:ring-brand/10 outline-none"
                                         />
                                         <div className="w-full md:w-32 relative">
                                             <input
                                                 type="number" min="1" max="100"
                                                 value={newCouponDiscount}
                                                 onChange={e => setNewCouponDiscount(Number(e.target.value))}
-                                                className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm focus:ring-2 focus:ring-[#f56b2a]/10 outline-none"
+                                                className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm focus:ring-2 focus:ring-brand/10 outline-none"
                                             />
                                             <span className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">%</span>
                                         </div>
                                         <button
                                             onClick={handleAddCoupon}
                                             disabled={!newCouponCode.trim() || loadingCoupons}
-                                            className="px-6 py-2.5 bg-[#f56b2a] text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                            className="px-6 py-2.5 bg-brand text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2 active:scale-95 transition-all"
                                         >
                                             {loadingCoupons ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                             {loadingCoupons ? 'Action...' : 'Ajouter'}
@@ -694,7 +694,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                         className="transition-transform active:scale-90"
                                                     >
                                                         {coupon.active ? (
-                                                            <CheckSquare size={22} className="text-[#f56b2a]" />
+                                                            <CheckSquare size={22} className="text-brand" />
                                                         ) : (
                                                             <Square size={22} className="text-gray-300 hover:text-gray-400" />
                                                         )}
@@ -702,7 +702,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                                     <div>
                                                         <span className="font-bold text-xs md:text-sm uppercase tracking-tighter text-gray-900">{coupon.code}</span>
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="bg-orange-50 text-[#f56b2a] text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-lg">-{coupon.discount_pct}%</span>
+                                                            <span className="bg-orange-50 text-brand text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-lg">-{coupon.discount_pct}%</span>
                                                             <span className="text-gray-400 text-[10px] md:text-xs">Valide en ligne</span>
                                                         </div>
                                                     </div>
@@ -719,8 +719,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 </div>
                                 
                                 <div className="p-4 bg-orange-50/50 rounded-2xl md:rounded-3xl border border-orange-100/50 flex gap-3 mt-8">
-                                    <ShieldCheck size={18} className="text-[#f56b2a] flex-shrink-0" />
-                                     <p className="text-[#f56b2a] text-[10px] md:text-xs font-normal leading-relaxed">
+                                    <ShieldCheck size={18} className="text-brand flex-shrink-0" />
+                                     <p className="text-brand text-[10px] md:text-xs font-normal leading-relaxed">
                                          <strong>Conseil :</strong> Les codes promo sont sensibles à la casse. Vos clients verront ces remises s&apos;appliquer automatiquement s&apos;ils saisissent le code correspondant dans leur panier.
                                      </p>
                                 </div>
@@ -744,12 +744,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             <div className="space-y-1.5">
                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Email de l&apos;employé</label>
                                 <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand transition-colors" size={18} />
                                     <input
                                         required type="email"
                                         value={newStaffEmail}
                                         onChange={e => setNewStaffEmail(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none transition-all shadow-inner"
+                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all shadow-inner"
                                         placeholder="exemple@boutique.com"
                                     />
                                 </div>
@@ -760,11 +760,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <div className="space-y-1.5">
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Attribuer à la boutique</label>
                                     <div className="relative group">
-                                        <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#f56b2a] transition-colors" size={18} />
+                                        <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand transition-colors" size={18} />
                                         <select
                                             value={selectedStoreId}
                                             onChange={e => setSelectedStoreId(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-[#f56b2a]/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
+                                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none appearance-none cursor-pointer transition-all shadow-inner"
                                         >
                                             {stores.map(s => <option key={s.id} value={s.id}>{s.settings.name}</option>)}
                                         </select>
@@ -775,12 +775,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                             <div>
                                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Niveau d&apos;accès (Rôle)</label>
-                                <div className="p-4 bg-orange-50 border-2 border-[#f56b2a] rounded-2xl flex items-center justify-between shadow-lg shadow-orange-100/50">
+                                <div className="p-4 bg-orange-50 border-2 border-brand rounded-2xl flex items-center justify-between shadow-lg shadow-orange-100/50">
                                     <div>
-                                        <span className="font-bold text-sm text-[#f56b2a]">VENDEUR (SELLER)</span>
-                                        <p className="text-[10px] text-[#f56b2a]/70 font-semibold mt-0.5">Accès au POS, commandes et inventaire.</p>
+                                        <span className="font-bold text-sm text-brand">VENDEUR (SELLER)</span>
+                                        <p className="text-[10px] text-brand/70 font-semibold mt-0.5">Accès au POS, commandes et inventaire.</p>
                                     </div>
-                                    <ShieldCheck size={24} className="text-[#f56b2a]" />
+                                    <ShieldCheck size={24} className="text-brand" />
                                 </div>
                             </div>
 
@@ -793,7 +793,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 </button>
                                 <button
                                     type="submit" disabled={isSubmittingStaff}
-                                    className="flex-grow py-4 bg-[#f56b2a] text-white font-bold rounded-2xl shadow-2xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                    className="flex-grow py-4 bg-brand text-white font-bold rounded-2xl shadow-2xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     {isSubmittingStaff ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                                     {isSubmittingStaff ? 'Création...' : 'Valider'}

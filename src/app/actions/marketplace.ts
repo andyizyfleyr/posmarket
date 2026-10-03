@@ -996,7 +996,7 @@ export async function saveBuyerAddressAction(address: SaveAddressPayload) {
   const city = String(data.city || '').trim();
   const isDefault = Boolean(data.isDefault);
 
-  if (!name || !fullName || !phone) {
+  if (!name || !fullName || !phone || !addr || !city) {
     return { success: false, error: 'Tous les champs obligatoires sont requis' };
   }
 

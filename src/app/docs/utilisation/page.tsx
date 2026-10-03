@@ -11,7 +11,7 @@ const cards = [
   {
     href: "/docs/utilisation/acheteur",
     icon: ShoppingBag,
-    color: "bg-orange-50 text-[#f56b2a] border-orange-100",
+    color: "bg-orange-50 text-brand border-orange-100",
     hoverBorder: "hover:border-orange-300",
     title: "Espace Acheteur",
     desc: "Rechercher, ajouter au panier, passer commande, gérer votre compte et vos adresses.",
@@ -46,7 +46,7 @@ export default function DocsHubPage() {
   return (
     <div className="space-y-8">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002f34] via-[#00463f] to-[#f56b2a] text-white p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink via-[#00463f] to-brand text-white p-8 md:p-10">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, #fff 0, transparent 40%)" }} />
         <div className="relative flex items-center gap-5">
           <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center shrink-0">

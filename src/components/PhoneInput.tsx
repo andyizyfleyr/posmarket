@@ -134,7 +134,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         className={`flex items-center h-[52px] w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
           hasError
             ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
-            : 'border-gray-200/80 focus-within:border-[#f56b2a] focus-within:ring-2 focus-within:ring-[#f56b2a]/15'
+            : 'border-gray-200/80 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15'
         }`}
       >
         {/* Country selector glued to the number field */}
@@ -150,7 +150,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           <ChevronDown
             size={14}
             className={`text-gray-400 transition-transform duration-200 ${
-              isOpen ? 'rotate-180 text-[#f56b2a]' : ''
+              isOpen ? 'rotate-180 text-brand' : ''
             }`}
           />
         </button>
@@ -191,7 +191,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Rechercher pays ou indicatif..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#f56b2a] focus:ring-1 focus:ring-[#f56b2a]"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               </div>
             </div>
@@ -209,7 +209,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                     onClick={() => handleCountrySelect(c)}
                     className={`w-full flex items-center justify-between px-4 py-3.5 text-left text-xs transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-orange-50/80 font-bold text-[#f56b2a]'
+                        ? 'bg-orange-50/80 font-bold text-brand'
                         : 'hover:bg-gray-50 text-gray-700 font-medium'
                     }`}
                   >
@@ -221,7 +221,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                       <span className="text-[11px] font-mono text-gray-500 font-semibold">
                         {c.dialCode}
                       </span>
-                      {isSelected && <Check size={14} className="text-[#f56b2a]" />}
+                      {isSelected && <Check size={14} className="text-brand" />}
                     </div>
                   </button>
                 );

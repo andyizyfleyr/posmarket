@@ -469,7 +469,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
               </div>
             </div>
             <div className="w-px h-8 bg-gray-100 hidden md:block" />
-            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl text-[#f56b2a] font-bold text-xs">
+            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl text-brand font-bold text-xs">
               <Clock size={14} />
               {mounted ? new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
             </div>
@@ -484,7 +484,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<DollarSign size={14} />}
           trend={filteredMetrics.revenue.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.revenue.pct}%`}
-          color="bg-[#f56b2a]"
+          color="bg-brand"
           compact={true}
         />
         <StatCard
@@ -522,7 +522,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           <div className="lg:col-span-3 bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm p-2 md:p-6 mb-2">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-1.5 md:mb-8 gap-2 md:gap-4">
               <div className="flex items-center gap-2 md:gap-3">
-                <div className="p-1.5 md:p-2.5 bg-orange-50 text-[#f56b2a] rounded-lg md:rounded-xl">
+                <div className="p-1.5 md:p-2.5 bg-orange-50 text-brand rounded-lg md:rounded-xl">
                   <BarChart2 size={18} className="md:w-6 md:h-6" />
                 </div>
                 <div>
@@ -535,10 +535,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                 {/* Shopify-style Unified Range Button */}
                 <button
                   onClick={() => (isPickerOpen ? closePicker(false) : openPicker())}
-                  className="w-full md:w-auto flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-2xl shadow-sm hover:border-[#f56b2a]/30 transition-all group active:scale-[0.98]"
+                  className="w-full md:w-auto flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-2xl shadow-sm hover:border-brand/30 transition-all group active:scale-[0.98]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-orange-50 rounded-lg text-[#f56b2a]">
+                    <div className="p-1.5 bg-orange-50 rounded-lg text-brand">
                       <Calendar size={14} className="group-hover:rotate-3 transition-transform" />
                     </div>
                     <div className="flex flex-col items-start">
@@ -578,7 +578,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setPickerStep('start'); }}
-                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'start' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'start' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                           >
                             1 · Début
                           </button>
@@ -586,7 +586,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setPickerStep('end'); }}
-                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'end' ? 'bg-[#f56b2a] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 transition-colors ${pickerStep === 'end' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                           >
                             2 · Fin
                           </button>
@@ -598,7 +598,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                             setDraftEnd(endDate);
                             setPickerStep('start');
                           }}
-                          className="text-[10px] font-bold text-gray-400 hover:text-[#f56b2a] transition-colors"
+                          className="text-[10px] font-bold text-gray-400 hover:text-brand transition-colors"
                         >
                           Recommencer
                         </button>
@@ -612,7 +612,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                             <button
                               key={preset.label}
                               onClick={(e) => { e.stopPropagation(); const { start, end } = getPresetRange(preset); applyPreset(start, end); }}
-                              className={`px-3 py-1.5 text-[11px] font-bold whitespace-nowrap rounded-sm transition-all border ${active ? 'bg-[#f56b2a] border-[#f56b2a] text-white shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+                              className={`px-3 py-1.5 text-[11px] font-bold whitespace-nowrap rounded-sm transition-all border ${active ? 'bg-brand border-brand text-white shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
                             >
                               {preset.label}
                             </button>
@@ -620,7 +620,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                         })}
                         <button
                           onClick={(e) => { e.stopPropagation(); resetToDefault(); }}
-                          className="px-3 py-1.5 text-[11px] font-bold whitespace-nowrap rounded-sm transition-all border border-dashed border-gray-200 text-gray-400 hover:border-[#f56b2a]/30 hover:text-[#f56b2a]"
+                          className="px-3 py-1.5 text-[11px] font-bold whitespace-nowrap rounded-sm transition-all border border-dashed border-gray-200 text-gray-400 hover:border-brand/30 hover:text-brand"
                         >
                           Réinitialiser
                         </button>
@@ -631,14 +631,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                         <div className="flex items-center gap-0.5">
                           <button
                             onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear() - 1, viewDate.getMonth(), 1)); }}
-                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-300 hover:text-[#f56b2a] transition-all"
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-300 hover:text-brand transition-all"
                             aria-label="Année précédente"
                           >
                             <ChevronLeft size={14} />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1)); }}
-                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-[#f56b2a] transition-all"
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-brand transition-all"
                             aria-label="Mois précédent"
                           >
                             <ChevronLeft size={16} />
@@ -647,21 +647,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                         <button
                           onClick={(e) => { e.stopPropagation(); setViewDate(new Date()); }}
                           title="Revenir au mois actuel"
-                          className="font-bold text-[12px] uppercase tracking-wider text-gray-800 hover:text-[#f56b2a] transition-colors"
+                          className="font-bold text-[12px] uppercase tracking-wider text-gray-800 hover:text-brand transition-colors"
                         >
                           {viewDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                         </button>
                         <div className="flex items-center gap-0.5">
                           <button
                             onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1)); }}
-                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-[#f56b2a] transition-all"
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-brand transition-all"
                             aria-label="Mois suivant"
                           >
                             <ChevronRight size={16} />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setViewDate(new Date(viewDate.getFullYear() + 1, viewDate.getMonth(), 1)); }}
-                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-300 hover:text-[#f56b2a] transition-all"
+                            className="p-2 hover:bg-gray-50 rounded-xl text-gray-300 hover:text-brand transition-all"
                             aria-label="Année suivante"
                           >
                             <ChevronRight size={14} />
@@ -700,12 +700,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                               aria-label={`${d} ${viewDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`}
                               aria-pressed={isActiveStep}
                               className={`text-[11px] font-bold h-11 transition-all relative z-10 flex items-center justify-center rounded-xl outline-none focus:outline-none
-                                ${isActiveStep ? 'bg-[#f56b2a] text-white shadow-md z-20' : ''}
-                                ${isStart && !isActiveStep ? 'bg-[#f56b2a] text-white rounded-l-2xl shadow-md z-20' : ''}
-                                ${isEnd && !isActiveStep ? 'bg-[#f56b2a] text-white rounded-r-2xl shadow-md z-20' : ''}
-                                ${!isStart && !isEnd && inRange ? 'bg-orange-50 text-[#f56b2a]' : ''}
+                                ${isActiveStep ? 'bg-brand text-white shadow-md z-20' : ''}
+                                ${isStart && !isActiveStep ? 'bg-brand text-white rounded-l-2xl shadow-md z-20' : ''}
+                                ${isEnd && !isActiveStep ? 'bg-brand text-white rounded-r-2xl shadow-md z-20' : ''}
+                                ${!isStart && !isEnd && inRange ? 'bg-orange-50 text-brand' : ''}
                                 ${!isStart && !isEnd && !inRange && !disabled ? 'text-gray-600 hover:bg-gray-50' : ''}
-                                ${isToday && !isStart && !isEnd && !inRange && !disabled ? 'ring-2 ring-inset ring-[#f56b2a]/40' : ''}
+                                ${isToday && !isStart && !isEnd && !inRange && !disabled ? 'ring-2 ring-inset ring-brand/40' : ''}
                                 ${disabled ? 'text-gray-300 cursor-not-allowed' : ''}
                               `}
                             >
@@ -723,7 +723,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
                             <span className="text-[11px] font-bold text-gray-800">{draftStart ? new Date(draftStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
                           </div>
                           <div className="flex flex-col items-center">
-                            <span className="text-[11px] font-bold text-[#f56b2a]">{diffDays === 0 ? draftStart ? new Date(draftStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : "Aujourd'hui" : `${diffDays} jour${diffDays > 1 ? 's' : ''}`}</span>
+                            <span className="text-[11px] font-bold text-brand">{diffDays === 0 ? draftStart ? new Date(draftStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : "Aujourd'hui" : `${diffDays} jour${diffDays > 1 ? 's' : ''}`}</span>
                             <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">période</span>
                           </div>
                           <div className="flex flex-col items-end">

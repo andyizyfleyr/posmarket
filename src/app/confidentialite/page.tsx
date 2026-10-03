@@ -13,7 +13,7 @@ export default function ConfidentialitePage() {
       <main className="container mx-auto max-w-3xl px-4 py-10 md:py-16">
         <Link
           to="/"
-          className="text-xs font-bold uppercase tracking-wider text-[#f56b2a] hover:underline"
+          className="text-xs font-bold uppercase tracking-wider text-brand hover:underline"
         >
           ← Retour à l&apos;accueil
         </Link>

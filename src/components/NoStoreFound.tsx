@@ -46,14 +46,14 @@ export default function NoStoreFound() {
     <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-slate-50 text-center min-h-screen">
       <div className="bg-white p-8 md:p-12 rounded-[40px] shadow-2xl max-w-lg w-full border border-slate-100 relative overflow-hidden animate-in fade-in zoom-in duration-500">
         {/* Top Accent */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#f56b2a] via-orange-400 to-[#f56b2a]"></div>
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand via-orange-400 to-brand"></div>
         
         {/* Floating Icon Container */}
         <div className="relative mb-10">
-          <div className="w-24 h-24 bg-orange-50 text-[#f56b2a] rounded-[32px] flex items-center justify-center mx-auto shadow-inner transform -rotate-12 transition-transform hover:rotate-0 duration-300">
+          <div className="w-24 h-24 bg-orange-50 text-brand rounded-[32px] flex items-center justify-center mx-auto shadow-inner transform -rotate-12 transition-transform hover:rotate-0 duration-300">
             <Store size={44} strokeWidth={2.5} />
           </div>
-          <div className="absolute -right-2 top-0 w-10 h-10 bg-[#f56b2a] text-white rounded-2xl flex items-center justify-center shadow-lg animate-bounce duration-[2000ms]">
+          <div className="absolute -right-2 top-0 w-10 h-10 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg animate-bounce duration-[2000ms]">
             <Plus size={20} strokeWidth={3} />
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function NoStoreFound() {
               placeholder="Nom de votre boutique (ex: Ma Boutique Pro)"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              className="w-full bg-slate-50 border-2 border-slate-100 rounded-[22px] px-6 py-5 text-lg font-semibold text-slate-800 focus:outline-none focus:border-[#f56b2a] focus:bg-white transition-all shadow-inner group-hover:border-orange-200"
+              className="w-full bg-slate-50 border-2 border-slate-100 rounded-[22px] px-6 py-5 text-lg font-semibold text-slate-800 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-inner group-hover:border-orange-200"
               autoFocus
               required
               disabled={isCreating}
@@ -89,13 +89,13 @@ export default function NoStoreFound() {
                     key={type.id}
                     type="button"
                     onClick={() => setBusinessType(type.id)}
-                    className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${businessType === type.id ? 'border-[#f56b2a] bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                    className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${businessType === type.id ? 'border-brand bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
                     <div className="text-left">
                       <p className="text-[10px] font-bold text-slate-900 leading-none mb-1">{type.label}</p>
                       <p className="text-[9px] font-semibold text-slate-400 leading-none">{type.desc}</p>
                     </div>
-                    {businessType === type.id && <div className="w-2 h-2 rounded-full bg-[#f56b2a]" />}
+                    {businessType === type.id && <div className="w-2 h-2 rounded-full bg-brand" />}
                   </button>
                 ))}
              </div>
@@ -110,7 +110,7 @@ export default function NoStoreFound() {
           <button 
             type="submit"
             disabled={isCreating || !storeName.trim()}
-            className="w-full bg-[#f56b2a] hover:bg-[#d55a20] disabled:bg-orange-200 text-white font-bold py-5 px-8 rounded-[24px] transition-all shadow-xl shadow-orange-100 active:scale-[0.98] flex items-center justify-center gap-3 text-lg group"
+            className="w-full bg-brand hover:bg-[#d55a20] disabled:bg-orange-200 text-white font-bold py-5 px-8 rounded-[24px] transition-all shadow-xl shadow-orange-100 active:scale-[0.98] flex items-center justify-center gap-3 text-lg group"
           >
             {isCreating ? (
               <>
@@ -138,8 +138,8 @@ export default function NoStoreFound() {
               </button>
             </div>
             
-            <p className="text-[10px] text-slate-300 font-semibold max-w-[150px] text-center md:text-right">
-              Configuration rapide en moins de 30 secondes.
+            <p className="text-xs text-slate-400 max-w-[180px] text-center md:text-right">
+              Vous pourrez créer votre boutique plus tard depuis les paramètres.
             </p>
         </div>
       </div>

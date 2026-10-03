@@ -150,7 +150,7 @@ export function BulkOrderModal({
         <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#f56b2a] to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
                 <Package size={18} />
               </div>
               <div>
@@ -177,7 +177,7 @@ export function BulkOrderModal({
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Rechercher un produit..."
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30 transition-all"
             />
           </div>
         </div>
@@ -209,7 +209,7 @@ export function BulkOrderModal({
                   key={product.id}
                   className={`rounded-2xl border p-3 transition-all ${
                     qty > 0
-                      ? 'border-[#f56b2a]/30 bg-orange-50/30 shadow-sm'
+                      ? 'border-brand/30 bg-orange-50/30 shadow-sm'
                       : 'border-gray-100 bg-white hover:border-gray-200'
                   }`}
                 >
@@ -256,10 +256,10 @@ export function BulkOrderModal({
                             disabled={isStockTooLow}
                             className={`text-[8px] font-bold px-2 py-0.5 rounded-full border transition-all active:scale-95 ${
                               activeTier && activeTier.minQty === tier.minQty
-                                ? 'bg-[#f56b2a] text-white border-[#f56b2a] shadow-sm'
+                                ? 'bg-brand text-white border-brand shadow-sm'
                                 : isStockTooLow
                                 ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-[#f56b2a] hover:text-[#f56b2a]'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
                             }`}
                           >
                             {tier.minQty}+ → {formatCurrency(tier.packagePrice)} ({formatCurrency(tier.unitPrice)}/u)
@@ -294,7 +294,7 @@ export function BulkOrderModal({
                               setQty(product.id, Math.min(val, product.stock));
                             }}
                             placeholder="0"
-                            className="w-14 h-7 text-center text-xs font-bold text-gray-900 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#f56b2a]/20 focus:border-[#f56b2a]/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-14 h-7 text-center text-xs font-bold text-gray-900 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             onClick={() => updateQty(product.id, 1)}
@@ -319,7 +319,7 @@ export function BulkOrderModal({
                         )}
 
                         {qty > 0 && nextTier && (
-                          <div className="hidden md:block text-[8px] font-semibold text-[#f56b2a] bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                          <div className="hidden md:block text-[8px] font-semibold text-brand bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
                             +{nextTier.minQty - qty} pour {formatCurrency(nextTier.unitPrice)}/u
                           </div>
                         )}

@@ -182,7 +182,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
             {status === 'success' && (
               <button
                 onClick={onClose}
-                className="w-full py-3.5 px-6 rounded-2xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-3.5 px-6 rounded-2xl bg-brand hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <span>Accéder à mon espace</span>
                 <ArrowRight size={16} />
@@ -194,7 +194,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
                 {onRetry && (
                   <button
                     onClick={onRetry}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-[#f56b2a] hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-brand hover:bg-[#e05a1d] text-white font-bold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <RefreshCw size={16} />
                     <span>Réessayer le paiement</span>

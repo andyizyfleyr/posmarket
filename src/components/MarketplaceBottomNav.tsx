@@ -70,7 +70,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           aria-label="Accueil"
           aria-current={isHome ? 'page' : undefined}
           className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-200 ${
-            isHome ? 'text-[#f56b2a]' : 'text-gray-400 active:text-gray-600'
+            isHome ? 'text-brand' : 'text-gray-400 active:text-gray-600'
           } ${loading ? 'opacity-50' : ''}`}
         >
           <div className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 ${
@@ -80,7 +80,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           </div>
           <span className={`text-[9px] mt-0.5 font-semibold transition-all ${isHome ? 'font-bold' : 'opacity-60'}`}>Accueil</span>
           {isHome && (
-            <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />
+            <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-brand rounded-full shadow-brand/40" />
           )}
         </button>
 
@@ -119,7 +119,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           aria-label={`Panier${cartItemsCount > 0 ? `, ${cartItemsCount} articles` : ''}`}
           aria-current={isCart ? 'page' : undefined}
           className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-200 ${
-            isCart ? 'text-[#f56b2a]' : 'text-gray-400 active:text-gray-600'
+            isCart ? 'text-brand' : 'text-gray-400 active:text-gray-600'
           } ${loading ? 'opacity-50' : ''}`}
         >
           <div className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 ${
@@ -127,7 +127,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           }`}>
             <ShoppingBag size={20} strokeWidth={isCart ? 2.5 : 1.8} className={loading && isCart ? 'animate-pulse' : ''} />
             {cartItemsCount > 0 && (
-              <span className={`absolute -top-1 -right-1 bg-[#f56b2a] text-white text-[8px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center ring-2 ring-white ${
+              <span className={`absolute -top-1 -right-1 bg-brand text-white text-[8px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center ring-2 ring-white ${
                 badgeAnimating ? 'badge-pop' : ''
               }`}>
                 {cartItemsCount > 99 ? '99+' : cartItemsCount}
@@ -136,7 +136,7 @@ export const MarketplaceBottomNav: React.FC<MarketplaceBottomNavProps> = ({
           </div>
           <span className={`text-[9px] mt-0.5 font-semibold transition-all ${isCart ? 'font-bold' : 'opacity-60'}`}>Panier</span>
           {isCart && (
-            <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-[#f56b2a] rounded-full shadow-[0_2px_8px_rgba(245,107,42,0.4)]" />
+            <div className="nav-active-pill absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-[3px] bg-brand rounded-full shadow-brand/40" />
           )}
         </button>
 
