@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Les variables de couleur doivent porter une valeur concrete. Une
+   auto-reference rendrait invalides les utilitaires .text-brand, .bg-brand et
+   .border-brand, qui se compilaient alors en var(--color-brand) et retombaient
+   sur transparent/inherit : d'ou des icones et des elements sans couleur.
+   Couleur de marque historique du projet : #f56b2a. */
 @theme inline {
   --color-background: #f3f4f6;
   --color-foreground: #171717;
@@ -8,7 +13,7 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Marque */
-  --color-brand: var(--color-brand);
+  --color-brand: #f56b2a;
   --color-brand-hover: #e55a1b;
   --color-brand-soft: #fff3ed;
   --color-brand-tint: #fde4d7;
