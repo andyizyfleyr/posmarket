@@ -170,7 +170,12 @@ export interface ProductEmailItem {
   price?: string;
   qty?: number;
   unit?: string;
-  /** détail court : variante, options, format... */
+  /**
+   * Détail court, affiché sous le nom. Renseigné UNIQUEMENT si l'acheteur a
+   * fait un choix qui change la ligne : variante retenue ou tarif de gros
+   * appliqué. Le catalogue du produit (liste des variantes/options) ne doit
+   * jamais apparaître dans un email.
+   */
   detail?: string;
 }
 
@@ -421,10 +426,18 @@ export async function orderEmailProducts(orderId: string): Promise<ProductEmailI
         productId: orderItems.productId,
         quantity: orderItems.quantity,
         unitPrice: orderItems.unitPrice,
+        // Instantané figé au moment de la commande : c'est la seule source
+        // fiable pour savoir ce que l'acheteur a réellement choisi.
+        variantId: orderItems.variantId,
+        variantLabel: orderItems.variantLabel,
+        snapName: orderItems.productName,
+        snapImage: orderItems.productImage,
+        snapUnit: orderItems.productUnit,
+        // Catalogue courant, uniquement pour le prix de base (détection du gros).
         name: products.name,
         image: products.image,
         unit: products.unit,
-        options: products.options,
+        price: products.price,
         variants: products.variants,
       })
       .from(orderItems)
@@ -432,37 +445,44 @@ export async function orderEmailProducts(orderId: string): Promise<ProductEmailI
       .where(eq(orderItems.orderId, orderId));
     const fmt = (n: string | number | null | undefined): string => new Intl.NumberFormat('fr-FR').format(Number(n) || 0);
     const out = rows.map((r) => {
-      const name = r.name || 'Article supprimé';
-      const variants = Array.isArray(r.variants) ? (r.variants as Array<{ name?: string }>) : [];
+      // L'instantané prime : le produit a pu être renommé ou supprimé depuis.
+      const name = r.snapName || r.name || 'Article supprimé';
+      const paid = Number(r.unitPrice) || 0;
+      const variantLabel = (r.variantLabel || '').trim();
+      // Prix de référence : celui de la variante achetée, sinon celui du produit.
+      const variant = variantLabel && Array.isArray(r.variants)
+        ? (r.variants as Array<{ id?: string; price?: number }>).find((v) => v.id === r.variantId) || null
+        : null;
+      const basePrice = Number(variant?.price ?? r.price) || 0;
+      const isWholesale = paid > 0 && basePrice > 0 && paid < basePrice;
+      // Détail affiché seulement si la ligne diffère réellement de l'offre
+      // catalogue : variante choisie par l'acheteur, ou tarif de gros atteint.
       const detailBits: string[] = [];
-      if (variants.length > 0) {
-        detailBits.push(`Variante : ${variants.slice(0, 3).map((v) => v.name || '').filter(Boolean).join(' / ')}`);
-      }
-      if (Array.isArray(r.options) && (r.options as Array<{ name?: string; values?: string[] }>).length > 0) {
-        const opts = (r.options as Array<{ name?: string; values?: string[] }>).slice(0, 2);
-        detailBits.push(opts.map((o) => `${o.name || ''} (${(o.values || []).join(', ')})`).join(' · '));
-      }
-      if (r.unit) detailBits.push(`Unité : ${r.unit}`);
+      if (variantLabel) detailBits.push(`Variante : ${variantLabel}`);
+      if (isWholesale) detailBits.push('Prix de gros');
       return {
         name,
         slug: r.productId ? generateProductSlug({ id: r.productId, name }) : '',
-        image: r.image || undefined,
-        price: fmt(r.unitPrice),
+        image: r.snapImage || r.image || undefined,
+        price: fmt(paid),
         qty: Number(r.quantity) || 1,
-        unit: r.unit || undefined,
-        detail: detailBits.filter(Boolean).join(' · ') || undefined,
+        unit: r.snapUnit || r.unit || undefined,
+        detail: detailBits.join(' · ') || undefined,
+        // Non renvoyé au rendu : sert uniquement à distinguer les lignes fusionnables.
+        mergeKey: `${r.productId || name}::${variantLabel}::${isWholesale ? 'gros' : ''}`,
       };
     });
-    // Fusionne les lignes pour un même produit (même commande, produit répété) :
-    // on additionne les quantités pour éviter toute doublure dans l'email.
+    // Fusionne les lignes strictement identiques (même produit, même variante,
+    // même tarif) : on additionne les quantités pour éviter toute doublure.
+    // Deux variantes différentes du même produit ne doivent pas fusionner.
     const merged = new Map<string, ProductEmailItem>();
     for (const it of out) {
-      const key = it.slug || it.name;
-      const prev = merged.get(key);
+      const prev = merged.get(it.mergeKey);
       if (prev) {
         prev.qty = (prev.qty || 0) + (it.qty || 0);
       } else {
-        merged.set(key, { ...it });
+        const { mergeKey: _mergeKey, ...rest } = it;
+        merged.set(it.mergeKey, { ...rest });
       }
     }
     return Array.from(merged.values());
@@ -773,15 +793,15 @@ export interface EmailTestEvent {
 }
 
 const EMAIL_TEST_EVENTS: EmailTestEvent[] = [
-  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2, unit: 'bouteille', detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1, unit: 'sac', detail: 'Unité : sac' }] } }) },
-  { key: 'COMMANDE_PRET', label: 'Commande prête à récupérer', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
-  { key: 'COMMANDE_EXPEDIEE', label: 'Commande expédiée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
+  { key: 'CONFIRMATION_COMMANDE', label: 'Confirmation de commande', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', payment: 'CARTE', paymentLabel: 'Carte', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2, unit: 'bouteille', }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1, unit: 'sac' }, { name: 'Huile d\'arachide 5L', slug: 'huile-d-arachide-5l-7a8b9c', price: '2 250', qty: 12, unit: 'bidon', detail: 'Prix de gros' }] } }) },
+  { key: 'COMMANDE_PRET', label: 'Commande prête à récupérer', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
+  { key: 'COMMANDE_EXPEDIEE', label: 'Commande expédiée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'COMMANDE_LIVREE', label: 'Commande livrée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=H', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', image: 'https://placehold.co/96x96/E8EAED/5F6368?text=R', price: '7 000', qty: 1 }] } }) },
   { key: 'COMMANDE_ANNULEE', label: 'Commande annulée', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'RECU_PAIEMENT', label: 'Reçu de paiement', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', total: '12000' } }) },
   { key: 'DEMANDE_AVIS', label: 'Demande d\'avis', audience: 'Acheteur', sample: () => ({ emailData: { order: '1042', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'RELANCE_PANIER_ABANDONNE', label: 'Panier abandonné', audience: 'Acheteur', sample: () => ({ emailData: { name: 'Awa', items: 2, total: '7500', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
-  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, payment: 'CARTE', paymentLabel: 'Carte', products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2, detail: 'Variante : 1L' }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
+  { key: 'NOUVELLE_COMMANDE', label: 'Nouvelle commande reçue', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, payment: 'CARTE', paymentLabel: 'Carte', products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'COMMANDE_A_PREPARER', label: 'Commande à préparer', audience: 'Vendeur', sample: () => ({ emailData: { order: '1042', buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '12000', items: 2, products: [{ name: 'Huile d\'arachide 1L', slug: 'huile-d-arachide-1l-1a2b3c', price: '2 500', qty: 2 }, { name: 'Riz parfumé 5kg', slug: 'riz-parfume-5kg-4d5e6f', price: '7 000', qty: 1 }] } }) },
   { key: 'VENTE_POS', label: 'Vente en boutique (POS)', audience: 'Vendeur', sample: () => ({ emailData: { order: '1043', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique', total: '2500', payment: 'ESPECES', paymentLabel: 'Espèces', items: 1, products: [{ name: 'Gâteau 100 F', slug: 'gateau-100-f-9f0e1d', price: '100', qty: 25, unit: 'piece', detail: 'Variante : Petite taille' }] } }) },
   { key: 'NOUVEAU_CLIENT', label: 'Nouveau client', audience: 'Vendeur', sample: () => ({ emailData: { buyer: 'Awa', phone: '+229 01 23 45 67', store: 'Ma Belle Boutique', storeSlug: 'ma-belle-boutique' } }) },
