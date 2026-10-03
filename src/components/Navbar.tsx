@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Monitor, Clock, Globe, ChevronDown, Maximize2, Store, Plus, LogOut, User as UserIcon, Trash2, HelpCircle, ShoppingBag } from 'lucide-react';
 import Loader from '@/components/Loader';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
@@ -26,7 +26,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({
-  currentView,
+  currentView: _currentView,
   onViewChange,
   stores,
   currentStore,
@@ -45,14 +45,13 @@ const Navbar: React.FC<NavbarProps> = ({
   const [newStoreName, setNewStoreName] = useState('');
   const [isCreatingStore, setIsCreatingStore] = useState(false);
   const [creationStep, setCreationStep] = useState<1 | 2>(1);
-  const [isSwitching, setIsSwitching] = useState(false);
+  const [pendingStoreId, setPendingStoreId] = useState<string | null>(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
-  // Libère le voile « changement de boutique » une fois la boutique courante posée.
-  useEffect(() => {
-    if (!currentStore?.id) return;
-    setIsSwitching(false);
-  }, [currentStore?.id]);
+  // Le changement de boutique est « en cours » tant que la boutique demandée
+  // n'est pas celle rendue : on dérive l'état au lieu de le remettre à false
+  // dans un effet (ce qui provoquait un rendu en cascade).
+  const isSwitching = pendingStoreId !== null && pendingStoreId !== currentStore?.id;
 
   const { startTour } = useOnboarding();
 
@@ -130,7 +129,7 @@ const Navbar: React.FC<NavbarProps> = ({
                           <div key={store.id} className="flex items-center gap-1 group">
                               <button
                                 onClick={() => {
-                                  setIsSwitching(true);
+                                  setPendingStoreId(store.id);
                                   onStoreChange?.(store.id);
                                   setShowStoreDropdown(false);
                                 }}

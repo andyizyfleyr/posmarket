@@ -32,7 +32,17 @@ async function handleCron(request: NextRequest) {
     const staffRecap = await sendStaffDailyRecap();
     const vendorReports = await sendWeeklyVendorReports();
     const adminReport = await sendWeeklyAdminReport();
-    return NextResponse.json({ ok: true, ...due, ...expirations, ...reviewRequests, ...staffRecap, ...vendorReports, ...adminReport });
+    // Chaque job est imbriqué sous son propre nom : un simple spread écrasait
+    // les compteurs `sent` les uns par les autres (seul le dernier était lu).
+    return NextResponse.json({
+      ok: true,
+      queue: due,
+      subscriptions: expirations,
+      reviewRequests,
+      staffRecap,
+      vendorReports,
+      adminReport,
+    });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },

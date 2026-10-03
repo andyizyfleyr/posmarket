@@ -538,6 +538,29 @@ export async function checkSubscriptionExpirations(): Promise<{ sent: number }> 
 // Jobs planifiés (cron /api/cron/notifications)
 // ---------------------------------------------------------------------------
 
+/**
+ * Le cron de notifications tourne chaque jour (`0 8 * * *` dans vercel.json).
+ * Les rapports « hebdomadaires » doivent donc se planifier eux-mêmes : sans ce
+ * garde-fou ils étaient envoyés tous les jours, le marqueur de déduplication
+ * changeant de date à chaque exécution.
+ */
+const WEEKLY_REPORT_DAY = 1; // lundi
+
+function isWeeklyReportDay(now = new Date()): boolean {
+  return now.getUTCDay() === WEEKLY_REPORT_DAY;
+}
+
+/** Marqueur de déduplication à l'échelle de la semaine ISO (ex. `week-2026-W41`). */
+function isoWeekMarker(now = new Date()): string {
+  // Copie locale : la normalisation ISO travaille sur le lundi de la semaine.
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = d.getUTCDay() || 7; // 1 = lundi ... 7 = dimanche
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `week-${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
 async function alreadyNotified(eventType: NotificationEvent, marker: string): Promise<boolean> {
   if (!marker) return false;
   const rows = await db
@@ -624,11 +647,11 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
 }
 
 /** Rapport hebdomadaire vendeurs (CA sur les 7 derniers jours). */
-export async function sendWeeklyVendorReports(): Promise<{ sent: number }> {
+export async function sendWeeklyVendorReports(): Promise<{ sent: number; skipped?: boolean }> {
   if (!(await isEmailConfigured())) return { sent: 0 };
-  const now = new Date();
+  if (!isWeeklyReportDay()) return { sent: 0, skipped: true };
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const marker = `week-${now.toISOString().slice(0, 10)}`;
+  const marker = isoWeekMarker();
 
   const storeRows = await db
     .select({ id: stores.id, name: stores.name, slug: stores.slug, userId: stores.userId, email: stores.email, settings: stores.settings })
@@ -669,10 +692,11 @@ export async function sendWeeklyVendorReports(): Promise<{ sent: number }> {
 }
 
 /** Rapport hebdomadaire global → admins. */
-export async function sendWeeklyAdminReport(): Promise<{ sent: number }> {
+export async function sendWeeklyAdminReport(): Promise<{ sent: number; skipped?: boolean }> {
   if (!(await isEmailConfigured())) return { sent: 0 };
+  if (!isWeeklyReportDay()) return { sent: 0, skipped: true };
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const marker = `week-${new Date().toISOString().slice(0, 10)}`;
+  const marker = isoWeekMarker();
   if (await alreadyNotified('RAPPORT_ADMIN', marker)) return { sent: 0 };
 
   const [[storesCount], [usersCount], [ordersAgg], [salesAgg]] = await Promise.all([

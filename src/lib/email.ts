@@ -340,13 +340,11 @@ const CTA = (href: string, label: string): string => `
 const note = (text: string): string =>
   `<p style="margin:0;color:#5F6368;font-size:12px;line-height:1.7;">${esc(text)}</p>`;
 
-const IMG = { wait: '⏳', ok: '✅', box: '📦', truck: '🚚', cart: '🛒', card: '💳', shop: '🏪', bell: '🔔', person: '👤', warn: '⚠️', out: '⛔', star: '⭐', party: '🎊', rocket: '🚀', ban: '⛔', chart: '📊', trend: '📈', alert: '🚨', news: '📰' };
-
-const hero = (icon: string, title: string, chip: { text: string; bg: string; fg: string } | null, sub?: string): string => `
+const hero = (title: string, chip: { text: string; bg: string; fg: string } | null, sub?: string): string => `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
     <tr>
       <td>
-        <div style="width:52px;height:52px;border-radius:50%;background:#F1F3F4;color:#202124;font-size:26px;text-align:center;line-height:52px;margin-bottom:16px;">${icon}</div>
+        <div style="width:44px;height:4px;border-radius:2px;background:${chip ? chip.fg : '#5F6368'};margin-bottom:18px;"></div>
         <h1 style="margin:0 0 ${chip ? 10 : 6}px;color:#202124;font-size:22px;font-weight:800;letter-spacing:-0.02em;">${esc(title)}</h1>
         ${chip ? `<div style="margin:0 0 8px;">${badge(chip.text)}</div>` : ''}
         ${sub ? `<p style="margin:0;color:#3C4043;font-size:14px;line-height:1.65;">${esc(sub)}</p>` : ''}
@@ -498,7 +496,7 @@ const renderers: Record<string, EmailRenderer> = {
   // ---------------------------------------------------------------- Acheteur
   CONFIRMATION_COMMANDE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.cart, `Commande #${d.order} confirmée`, { text: 'Confirmée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande chez ${d.store || 'la boutique'} a été enregistrée.`)}
+      return bodyBlock(d, `${hero(`Commande #${d.order} confirmée`, { text: 'Confirmée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande chez ${d.store || 'la boutique'} a été enregistrée.`)}
 ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total', money(d.total))}
@@ -508,7 +506,7 @@ ${productList(d.products)}
   },
   COMMANDE_PRET: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.box, `Commande #${d.order} prête`, { text: 'À récupérer', bg: '#e8f0fe', fg: '#1a73e8' }, `Votre commande peut être récupérée chez ${d.store || 'la boutique'}.`)}
+      return bodyBlock(d, `${hero(`Commande #${d.order} prête`, { text: 'À récupérer', bg: '#e8f0fe', fg: '#1a73e8' }, `Votre commande peut être récupérée chez ${d.store || 'la boutique'}.`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
       ${summaryLine('Total', money(d.total))}
@@ -518,7 +516,7 @@ ${productList(d.products)}
   },
   COMMANDE_EXPEDIEE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.truck, `Commande #${d.order} expédiée`, { text: 'En route', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande ${d.store ? `de ${d.store} ` : ''}vient d'être expédiée.`)}
+      return bodyBlock(d, `${hero(`Commande #${d.order} expédiée`, { text: 'En route', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande ${d.store ? `de ${d.store} ` : ''}vient d'être expédiée.`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
       ${summaryLine('Total', money(d.total))}
@@ -528,7 +526,7 @@ ${productList(d.products)}
   },
   COMMANDE_LIVREE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.ok, `Commande #${d.order} livrée`, { text: 'Livrée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande de ${d.store || 'la boutique'} a été livrée. Merci pour votre achat !`)}
+      return bodyBlock(d, `${hero(`Commande #${d.order} livrée`, { text: 'Livrée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande de ${d.store || 'la boutique'} a été livrée. Merci pour votre achat !`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
       ${summaryLine('Total', money(d.total))}
@@ -538,7 +536,7 @@ ${productList(d.products)}
   },
   COMMANDE_ANNULEE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.ban, `Commande #${d.order} annulée`, { text: 'Annulée', bg: '#fef3f2', fg: '#b42318' }, `La commande ${d.store ? `de ${d.store} ` : ''}portant le numéro \u201c#${d.order}\u201d a été annulée.`)}
+      return bodyBlock(d, `${hero(`Commande #${d.order} annulée`, { text: 'Annulée', bg: '#fef3f2', fg: '#b42318' }, `La commande ${d.store ? `de ${d.store} ` : ''}portant le numéro \u201c#${d.order}\u201d a été annulée.`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
       ${CTA(account(), 'Mes commandes')}
@@ -547,7 +545,7 @@ ${productList(d.products)}
   },
   RECU_PAIEMENT: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.card, 'Paiement reçu', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, `Le paiement de votre commande #${d.order} a bien été reçu.`)}
+      return bodyBlock(d, `${hero('Paiement reçu', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, `Le paiement de votre commande #${d.order} a bien été reçu.`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Statut', 'Payé']])}
       ${summaryLine('Total payé', money(d.total))}
@@ -557,7 +555,7 @@ ${productList(d.products)}
   },
   DEMANDE_AVIS: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.star, 'Partagez votre avis', { text: 'Merci !', bg: '#fff7ed', fg: '#c2410c' }, d.store ? `Votre commande #${d.order || ''} de ${d.store} est terminée. Aidez la boutique à progresser : notez vos produits.` : 'Aidez la boutique à progresser : notez vos produits.')}
+      return bodyBlock(d, `${hero('Partagez votre avis', { text: 'Merci !', bg: '#fff7ed', fg: '#c2410c' }, d.store ? `Votre commande #${d.order || ''} de ${d.store} est terminée. Aidez la boutique à progresser : notez vos produits.` : 'Aidez la boutique à progresser : notez vos produits.')}
       ${productList(d.products)}
       ${rows([['Commande', d.order ? `#${d.order}` : null], ['Boutique', d.store]])}
       ${CTA(account(), 'Laisser un avis')}
@@ -566,7 +564,7 @@ ${productList(d.products)}
   },
   RELANCE_PANIER_ABANDONNE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.cart, `Bonjour ${d.name || ''}`, { text: 'En attente', bg: '#fff7ed', fg: '#c2410c' }, `Vous avez laissé ${d.items || 'des articles'} dans votre panier pour un total de ${money(d.total)}.`)}
+      return bodyBlock(d, `${hero(`Bonjour ${d.name || ''}`, { text: 'En attente', bg: '#fff7ed', fg: '#c2410c' }, `Vous avez laissé ${d.items || 'des articles'} dans votre panier pour un total de ${money(d.total)}.`)}
       ${rows([['Articles', `${d.items || '—'} article(s)`]])}
       ${summaryLine('Montant du panier', money(d.total))}
       ${CTA(storePage(d) || `${siteUrl()}/`, 'Finaliser ma commande')}
@@ -576,7 +574,7 @@ ${productList(d.products)}
   // --------------------------------------------------------------- Vendeur
   VENTE_POS: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.shop, 'Vente enregistrée', paymentBadge(d), d.store ? `Une vente a été enregistrée en boutique (${d.store}).` : 'Une vente a été enregistrée en boutique.')}
+      return bodyBlock(d, `${hero('Vente enregistrée', paymentBadge(d), d.store ? `Une vente a été enregistrée en boutique (${d.store}).` : 'Une vente a été enregistrée en boutique.')}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total de la vente', money(d.total))}
@@ -586,7 +584,7 @@ ${productList(d.products)}
   },
   NOUVELLE_COMMANDE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.bell, `Nouvelle commande #${d.order}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${d.buyer || 'un client'} est arrivée.`)}
+      return bodyBlock(d, `${hero(`Nouvelle commande #${d.order}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${d.buyer || 'un client'} est arrivée.`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total à encaisser', money(d.total))}
@@ -596,7 +594,7 @@ ${productList(d.products)}
   },
   COMMANDE_A_PREPARER: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.bell, `Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande #${d.order} de ${d.buyer || 'un client'} attend sa préparation.`)}
+      return bodyBlock(d, `${hero(`Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande #${d.order} de ${d.buyer || 'un client'} attend sa préparation.`)}
       ${productList(d.products)}
       ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone]])}
       ${summaryLine('Total à encaisser', money(d.total))}
@@ -606,7 +604,7 @@ ${productList(d.products)}
   },
   NOUVEAU_CLIENT: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.person, 'Nouveau client', null, `Un nouveau client vient de s\u2019inscrire et de passer commande.`)}
+      return bodyBlock(d, `${hero('Nouveau client', null, `Un nouveau client vient de s\u2019inscrire et de passer commande.`)}
       ${rows([['Nom', d.buyer], ['Téléphone', d.phone]])}
       ${CTA(`${siteUrl()}/customers`, 'Gérer mes clients')}
       ${note('Vous pourrez gérer ce client dans votre espace commerçant.')}`);
@@ -614,7 +612,7 @@ ${productList(d.products)}
   },
   RUPTURE_STOCK: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.out, 'Rupture de stock', { text: 'Rupture', bg: '#fef3f2', fg: '#b42318' }, `Le produit \u201c${d.product}\u201d n\u2019est plus disponible.`)}
+      return bodyBlock(d, `${hero('Rupture de stock', { text: 'Rupture', bg: '#fef3f2', fg: '#b42318' }, `Le produit \u201c${d.product}\u201d n\u2019est plus disponible.`)}
       ${rows([['Produit', d.product], ['Stock restant', '0']])}
       ${CTA(`${siteUrl()}/inventory`, 'Gérer le stock')}
       ${note('Les clients ne pourront plus commander ce produit tant que le stock n\u2019est pas renouvelé.')}`);
@@ -622,7 +620,7 @@ ${productList(d.products)}
   },
   ALERTE_STOCK_BAS: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.warn, 'Stock bas', { text: 'À réapprovisionner', bg: '#fef3c7', fg: '#b45309' }, `Le produit \u201c${d.product}\u201d arrive à épuisement.`)}
+      return bodyBlock(d, `${hero('Stock bas', { text: 'À réapprovisionner', bg: '#fef3c7', fg: '#b45309' }, `Le produit \u201c${d.product}\u201d arrive à épuisement.`)}
       ${rows([['Produit', d.product], ['Stock restant', d.stock]])}
       ${CTA(`${siteUrl()}/inventory`, 'Réapprovisionner')}
       ${note(`Plus que ${d.stock} exemplaire(s) : pensez à commander de la marchandise.`)}`);
@@ -630,7 +628,7 @@ ${productList(d.products)}
   },
   NOUVEL_AVIS: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.star, 'Nouvel avis reçu', null, d.buyer ? `${d.buyer} a noté ${d.product || 'un de vos produits'}.` : `Un client a noté ${d.product || 'un de vos produits'}.`)}
+      return bodyBlock(d, `${hero('Nouvel avis reçu', null, d.buyer ? `${d.buyer} a noté ${d.product || 'un de vos produits'}.` : `Un client a noté ${d.product || 'un de vos produits'}.`)}
       ${rows([['Produit', d.product], ['Client', d.buyer], ['Note', `${stars(d.rating)} (${d.rating}/5)`], ['Total des avis', d.count ? `${d.count} avis` : null]])}
       ${CTA(`${siteUrl()}/reports`, 'Voir les avis')}
       ${note('Répondez à vos clients : leurs avis améliorent la visibilité de votre boutique.')}`);
@@ -639,7 +637,7 @@ ${productList(d.products)}
   // -------------------------------------------------------------- Boutiques
   BOUTIQUE_APPROUVEE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.party, 'Votre boutique est en ligne !', { text: 'Approuvée', bg: '#ecfdf3', fg: '#027a48' }, `Félicitations, \u201c${d.store}\u201d est désormais visible sur la marketplace.`)}
+      return bodyBlock(d, `${hero('Votre boutique est en ligne !', { text: 'Approuvée', bg: '#ecfdf3', fg: '#027a48' }, `Félicitations, \u201c${d.store}\u201d est désormais visible sur la marketplace.`)}
       ${rows([['Boutique', d.store], ['Statut', 'En ligne']])}
       ${CTA(storePage(d) || `${siteUrl()}/`, 'Voir ma boutique en ligne')}
       ${note('Vous pouvez maintenant gérer vos produits et recevoir des commandes. Bonne vente !')}`);
@@ -647,7 +645,7 @@ ${productList(d.products)}
   },
   BOUTIQUE_REJETEE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.ban, 'Boutique non approuvée', { text: 'Réexaminée', bg: '#fef3f2', fg: '#b42318' }, `La boutique \u201c${d.store}\u201d n\u2019a pas pu être approuvée.`)}
+      return bodyBlock(d, `${hero('Boutique non approuvée', { text: 'Réexaminée', bg: '#fef3f2', fg: '#b42318' }, `La boutique \u201c${d.store}\u201d n\u2019a pas pu être approuvée.`)}
       ${rows([['Boutique', d.store], ['Statut', 'Rejetée']])}
       ${CTA(`${siteUrl()}/settings`, 'Retoucher ma boutique')}
       ${note('Bonifiez votre présentation (photos, descriptions, identité) puis soumettez-la à nouveau.')}`);
@@ -655,7 +653,7 @@ ${productList(d.products)}
   },
   BOUTIQUE_EN_ATTENTE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.news, 'Boutique en attente d\u2019approbation', { text: 'Action requise', bg: '#fef3c7', fg: '#b45309' }, `La boutique \u201c${d.store}\u201d attend votre validation dans le panneau d\u2019administration.`)}
+      return bodyBlock(d, `${hero('Boutique en attente d\u2019approbation', { text: 'Action requise', bg: '#fef3c7', fg: '#b45309' }, `La boutique \u201c${d.store}\u201d attend votre validation dans le panneau d\u2019administration.`)}
       ${rows([['Boutique', d.store], ['Statut', 'En attente']])}
       ${CTA(`${siteUrl()}/pam/stores`, 'Valider maintenant')}
       ${note('Diagnostiquez la présentation avant de valider la mise en ligne.')}`);
@@ -664,7 +662,7 @@ ${productList(d.products)}
   // ------------------------------------------------------------ Abonnements
   ABONNEMENT_ACTIVE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.rocket, 'Abonnement activé', { text: 'Actif', bg: '#ecfdf3', fg: '#027a48' }, `Votre formule ${d.tier} est active. Bienvenue parmi les commerçants PosMarket !`)}
+      return bodyBlock(d, `${hero('Abonnement activé', { text: 'Actif', bg: '#ecfdf3', fg: '#027a48' }, `Votre formule ${d.tier} est active. Bienvenue parmi les commerçants PosMarket !`)}
       ${rows([['Formule', d.tier], ['Durée', d.duration]])}
       ${CTA(`${siteUrl()}/dashboard`, 'Ouvrir mon espace')}
       ${note('Toutes les fonctionnalités de votre formule sont débloquées.')}`);
@@ -672,7 +670,7 @@ ${productList(d.products)}
   },
   ABONNEMENT_EXPIRANT: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.warn, 'Votre abonnement expire bientôt', { text: `${d.days || 7} jours restants`, bg: '#fef3c7', fg: '#b45309' }, `Votre formule ${d.tier} arrive à échéance sous ${d.days || 7} jours.`)}
+      return bodyBlock(d, `${hero('Votre abonnement expire bientôt', { text: `${d.days || 7} jours restants`, bg: '#fef3c7', fg: '#b45309' }, `Votre formule ${d.tier} arrive à échéance sous ${d.days || 7} jours.`)}
       ${rows([['Formule', d.tier], ['Échéance', `${d.days || 7} jours`]])}
       ${CTA(`${siteUrl()}/subscription`, 'Renouveler mon abonnement')}
       ${note('Après expiration, votre compte passe en pause : vos commandes seront suspendues.')}`);
@@ -680,7 +678,7 @@ ${productList(d.products)}
   },
   ABONNEMENT_EXPIRE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.ban, 'Votre abonnement a expiré', { text: 'Expiré', bg: '#fef3f2', fg: '#b42318' }, `Votre formule ${d.tier} n\u2019est plus active.`)}
+      return bodyBlock(d, `${hero('Votre abonnement a expiré', { text: 'Expiré', bg: '#fef3f2', fg: '#b42318' }, `Votre formule ${d.tier} n\u2019est plus active.`)}
       ${rows([['Formule', d.tier], ['Statut', 'Expiré']])}
       ${CTA(`${siteUrl()}/subscription`, 'Réactiver mon compte')}
       ${note('Choisissez une formule pour relancer l\u2019activité de votre boutique.')}`);
@@ -689,7 +687,7 @@ ${productList(d.products)}
   // ---------------------------------------------------------------- Admins
   NOUVELLE_INSCRIPTION: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.person, 'Nouvelle inscription', null, `Un nouveau commerçant vient de créer un compte.`)}
+      return bodyBlock(d, `${hero('Nouvelle inscription', null, `Un nouveau commerçant vient de créer un compte.`)}
       ${rows([['Nom', d.name], ['Email', d.email]])}
       ${CTA(`${siteUrl()}/pam/users`, 'Voir les commerçants')}
       ${note('Rappel : la boutique doit être approuvée avant de pouvoir vendre.')}`);
@@ -697,7 +695,7 @@ ${productList(d.products)}
   },
   PAIEMENT_INCIDENT: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.alert, 'Paiement en erreur', { text: 'Action requise', bg: '#fef3f2', fg: '#b42318' }, `Un paiement d\u2019abonnement a été refusé.`)}
+      return bodyBlock(d, `${hero('Paiement en erreur', { text: 'Action requise', bg: '#fef3f2', fg: '#b42318' }, `Un paiement d\u2019abonnement a été refusé.`)}
       ${rows([['Transaction', `#${d.tx}`], ['Fournisseur', d.provider]])}
       ${CTA(`${siteUrl()}/pam/invoices`, 'Vérifier le paiement')}
       ${note('Contactez le client concerné si l\u2019incident se répète.')}`);
@@ -706,7 +704,7 @@ ${productList(d.products)}
   // ------------------------------------------------- Jobs planifiés (cron)
   RECAP_VENTES_JOUR: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.chart, 'Récap des ventes du jour', null, `Voici le bilan de ${d.store} pour aujourd\u2019hui.`)}
+      return bodyBlock(d, `${hero('Récap des ventes du jour', null, `Voici le bilan de ${d.store} pour aujourd\u2019hui.`)}
       ${rows([['Boutique', d.store]])}
       ${summaryLine('Chiffre d\u2019affaires du jour', money(d.total), `${d.count || 0} commande(s)`)}
       ${CTA(`${siteUrl()}/dashboard`, 'Voir le détail')}
@@ -715,7 +713,7 @@ ${productList(d.products)}
   },
   RAPPORT_VENDEUR_HEBDO: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.trend, 'Votre rapport hebdomadaire', null, `La semaine dernière, ${d.store} a enregistré des performances encourageantes.`)}
+      return bodyBlock(d, `${hero('Votre rapport hebdomadaire', null, `La semaine dernière, ${d.store} a enregistré des performances encourageantes.`)}
       ${rows([['Boutique', d.store]])}
       ${summaryLine('Chiffre d\u2019affaires (7 jours)', money(d.total), `${d.count || 0} commande(s)`)}
       ${CTA(`${siteUrl()}/dashboard`, 'Analyser mes ventes')}
@@ -724,7 +722,7 @@ ${productList(d.products)}
   },
   RAPPORT_ADMIN: {
     render: (d) => {
-      return bodyBlock(d, `${hero(IMG.chart, 'Rapport hebdomadaire PosMarket', null, 'Situation de la marketplace sur les 7 derniers jours.')}
+      return bodyBlock(d, `${hero('Rapport hebdomadaire PosMarket', null, 'Situation de la marketplace sur les 7 derniers jours.')}
       ${rows([['Boutiques actives', d.stores], ['Utilisateurs', d.users]])}
       ${summaryLine('Commandes (7 jours)', d.count, `${money(d.total)} de chiffre d\u2019affaires`)}
       ${CTA(`${siteUrl()}/pam`, 'Ouvrir le panneau')
@@ -735,28 +733,28 @@ ${productList(d.products)}
   // ----------------------------------------------------------- Générique
   BIENVENUE: {
     render: (d, input) => {
-      return bodyBlock(d, `${hero(IMG.party, input.title || 'Bienvenue', null, input.body || 'Merci de rejoindre PosMarket.')}
+      return bodyBlock(d, `${hero(input.title || 'Bienvenue', null, input.body || 'Merci de rejoindre PosMarket.')}
       ${CTA(storePage(d) || `${siteUrl()}/`, 'Explorer la marketplace')}
       ${note('Achetez local, soutenez vos commerçants de proximité.')}`);
     },
   },
   VERIFICATION_COMPTE_OK: {
     render: (d, input) => {
-      return bodyBlock(d, `${hero(IMG.ok, input.title || 'Compte vérifié', { text: 'Vérifié', bg: '#ecfdf3', fg: '#027a48' }, input.body || 'Votre compte a été vérifié avec succès.')}
+      return bodyBlock(d, `${hero(input.title || 'Compte vérifié', { text: 'Vérifié', bg: '#ecfdf3', fg: '#027a48' }, input.body || 'Votre compte a été vérifié avec succès.')}
       ${CTA(`${siteUrl()}/mon-compte`, 'Accéder à mon compte')}
       ${note('Toutes les fonctionnalités sont maintenant disponibles.')}`);
     },
   },
   FACTURE_PAYEE: {
     render: (d, input) => {
-      return bodyBlock(d, `${hero(IMG.card, input.title || 'Facture payée', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, input.body || 'Votre facture a été réglée.')}
+      return bodyBlock(d, `${hero(input.title || 'Facture payée', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, input.body || 'Votre facture a été réglée.')}
       ${CTA(`${siteUrl()}/mon-compte`, 'Voir mes commandes')}
       ${note('Merci pour votre confiance.')}`);
     },
   },
   JALON_MILESTONE: {
     render: (d, input) => {
-      return bodyBlock(d, `${hero('🎉', 'Félicitations !', { text: 'Mission accomplie', bg: '#fff7ed', fg: '#c2410c' }, input.body || 'Vous avez franchi une étape importante.')}
+      return bodyBlock(d, `${hero('Félicitations !', { text: 'Mission accomplie', bg: '#fff7ed', fg: '#c2410c' }, input.body || 'Vous avez franchi une étape importante.')}
       ${CTA(`${siteUrl()}/dashboard`, 'Voir mes statistiques')}
       ${note('Continuez sur cette dynamique !')}`);
     },
@@ -831,7 +829,7 @@ export async function renderEmailEvent(eventKey: string, input: RenderInput = {}
     // Événement sans gabarit dédié (fallback) : titre + message + CTA compte.
     content = bodyBlock(
       d,
-      `${hero(IMG.bell, input.title || subject, null, input.body || '')}
+      `${hero(input.title || subject, null, input.body || '')}
        ${CTA(`${siteUrl()}/mon-compte`, 'Accéder à mon compte')}
        ${note('Cet email vous a été envoyé suite à une activité sur votre compte.')}`,
     );
@@ -858,7 +856,7 @@ export async function sendMagicLinkEmail(opts: { to: string; url: string }): Pro
   const html = layout(
     bodyBlock(
       {},
-      `${hero(IMG.bell, 'Votre lien de connexion', null, 'Cliquez sur le bouton ci-dessous pour vous connecter. Ce lien est valable 10 minutes et ne sert qu\u2019une seule fois.')}
+      `${hero('Votre lien de connexion', null, 'Cliquez sur le bouton ci-dessous pour vous connecter. Ce lien est valable 10 minutes et ne sert qu\u2019une seule fois.')}
       ${CTA(opts.url, 'Se connecter')}
       ${note(`Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${opts.url}`)}`,
     ),
