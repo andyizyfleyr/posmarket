@@ -551,6 +551,23 @@ export async function submitCheckoutAction(
         'sale'
       );
 
+      // Compteurs du CRM vendeur (Dépensé / Nb de commandes). Sans ce bloc,
+      // une commande passée sur la marketplace laissait le client affiche a 0 :
+      // seuls les ventes POS les incrementaient.
+      if (customerId) {
+        await db
+          .update(customers)
+          .set({
+            totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${total}`,
+            ordersCount: sql`COALESCE(${customers.ordersCount}, 0) + 1`,
+          })
+          .where(eq(customers.id, customerId))
+          .catch((error) => {
+            // Un compteur de CRM ne doit jamais faire echouer la commande.
+            console.error('Error updating customer counters:', error);
+          });
+      }
+
       // --- Notifications WhatsApp (best-effort, ne bloque jamais la commande) ---
       try {
         const storeInfo = await getStorePhone(storeId);
