@@ -17,6 +17,67 @@ export const MAIN_CATEGORIES = [
   'Divers'
 ];
 
+/**
+ * Taxonomie par verticale.
+ *
+ * `MAIN_CATEGORIES` mélange historiquement commerce et restauration : sans ce
+ * découpage, un produit de resto apparaissait dans les sections d'un shop et
+ * l'inverse. Les catégories Food comme Shopping ne doivent jamais être
+ * mélangées, pas plus que leurs produits.
+ */
+export const FOOD_MAIN_CATEGORIES = [
+  'Restauration & Livraison Rapide',
+  'Épicerie & Supermarché',
+];
+
+export const SHOPPING_MAIN_CATEGORIES = MAIN_CATEGORIES.filter(
+  (category) => !FOOD_MAIN_CATEGORIES.includes(category),
+);
+
+/** Catégories de la verticale demandée, dans l'ordre d'affichage historique. */
+export function categoriesForVertical(vertical: 'shopping' | 'food'): string[] {
+  return vertical === 'food' ? FOOD_MAIN_CATEGORIES : SHOPPING_MAIN_CATEGORIES;
+}
+
+/** Verticale déduite du nom d'une catégorie. */
+export function verticalOfCategory(category: string): 'shopping' | 'food' {
+  return FOOD_MAIN_CATEGORIES.includes(category) ? 'food' : 'shopping';
+}
+
+/**
+ * Verticale d'un produit. `businessType` fait foi ; à défaut, on retombe sur la
+ * catégorie, la seule information disponible sur les anciennes données.
+ */
+export function verticalOfProduct(product: {
+  businessType?: string | null;
+  mainCategory?: string | null;
+  category?: string | null;
+}): 'shopping' | 'food' {
+  if (product.businessType === 'food') return 'food';
+  if (product.businessType === 'shopping') return 'shopping';
+  return verticalOfCategory(product.mainCategory || product.category || '');
+}
+
+/**
+ * Libellés dépendant de la verticale.
+ *
+ * Un resto ne parle pas de « panier » mais de « commande », et la vente en gros
+ * n'a aucun sens pour de la restauration : les textes doivent suivre le type de
+ * la boutique, sinon un shop affiche du vocabulaire de resto et inversement.
+ */
+export function cartNoun(vertical: 'shopping' | 'food'): string {
+  return vertical === 'food' ? 'Commande' : 'Panier';
+}
+
+export function cartNounLower(vertical: 'shopping' | 'food'): string {
+  return vertical === 'food' ? 'commande' : 'panier';
+}
+
+/** Les tarifs de gros n'existent que pour le commerce. */
+export function wholesaleLabel(vertical: 'shopping' | 'food'): string {
+  return vertical === 'food' ? 'Restauration' : 'Commerce';
+}
+
 export const CATEGORY_MAPPING: Record<string, string> = {
   'Boîtes pour Crème de Visage': 'Cosmétique & Emballage',
   'Boîtes pour Savon': 'Cosmétique & Emballage',

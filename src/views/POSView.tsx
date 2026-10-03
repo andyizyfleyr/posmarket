@@ -31,6 +31,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { playSuccessSound, formatCurrency } from '@/utils';
+import { cartNoun } from '@/constants';
 import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
 import { printPosReceipt, downloadPosReceiptPdf, ReceiptData } from '@/utils/receipt';
 import ProductImage from '../components/ProductImage';
@@ -247,8 +248,10 @@ const POSCartItem = React.memo(({
 POSCartItem.displayName = 'POSCartItem';
 
 /* ─── MAIN POS VIEW ─── */
-const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify }) => {
+const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify, businessType }) => {
   const router = useRouter();
+  // Un resto parle de « commande », pas de « panier ».
+  const cartWord = cartNoun(businessType === 'food' ? 'food' : 'shopping');
   const [searchTerm, setSearchTerm] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkPickerProduct, setBulkPickerProduct] = useState<Product | null>(null);
@@ -649,7 +652,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             <Receipt size={16} />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900 leading-none">Panier</h2>
+            <h2 className="text-sm font-bold text-gray-900 leading-none">{cartWord}</h2>
             <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">{totalItems} article{totalItems > 1 ? 's' : ''}</span>
           </div>
         </div>
@@ -719,7 +722,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
               <div className="bg-gray-50 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 text-gray-200">
                 <ShoppingBasket size={28} />
               </div>
-              <p className="text-gray-300 text-xs font-semibold">Panier vide</p>
+              <p className="text-gray-300 text-xs font-semibold">{cartWord} vide</p>
               <p className="text-gray-200 text-[10px] mt-1">Appuyez sur un produit pour l&apos;ajouter</p>
             </div>
           ) : (
@@ -845,7 +848,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             ) : (
               <CreditCard size={18} />
             )}
-            {isProcessing ? 'Envoi...' : cart.length === 0 ? 'Panier vide' : 'Encaisser'}
+            {isProcessing ? 'Envoi...' : cart.length === 0 ? `${cartWord} vide` : 'Encaisser'}
           </button>
         ) : (
           <div className="p-3 bg-red-50 text-red-500 rounded-xl text-[10px] font-semibold text-center border border-red-100 flex items-center justify-center gap-2">

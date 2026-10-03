@@ -5,6 +5,7 @@ import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
 import { isValidPhoneNumber } from "@/utils";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
+import { cartNoun, cartNounLower, verticalOfProduct } from "@/constants";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { Coupon, NotificationType, StoreData } from "@/types";
 import type { StorefrontProduct } from "../StorefrontView";
@@ -122,6 +123,15 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     isCheckoutSubmitting,
   } = props;
 
+  // La verticale se déduit du panier : les produits sont désormais forcés au
+  // type de leur boutique, donc le panier est homogène. Un resto parle de
+  // « commande », un shop de « panier ».
+  const cartVertical = verticalOfProduct(
+    cart.find((i) => i.product)?.product || {},
+  );
+  const cartWord = cartNoun(cartVertical);
+  const cartWordLower = cartNounLower(cartVertical);
+
   const handleProceedToShipping = () => {
     // Vérifier les MOQ (Minimum Order Quantity / Amount) par boutique
     const storeIds = Array.from(
@@ -162,7 +172,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             )}
             <span className="truncate">
               {checkoutStage === "cart"
-                ? "Mon Panier"
+                ? `Mon ${cartWord}`
                 : checkoutStage === "shipping"
                   ? "Livraison"
                   : checkoutStage === "payment"
@@ -199,7 +209,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
           <div className="bg-gray-50/50 px-4 md:px-8 py-2 border-b border-gray-100">
             <div className="flex items-center justify-between max-w-2xl mx-auto">
               {[
-                { id: "cart", label: "Panier", icon: ShoppingCart },
+                { id: "cart", label: cartWord, icon: ShoppingCart },
                 { id: "shipping", label: "Livraison", icon: MapPin },
                 { id: "payment", label: "Paiement", icon: CreditCard },
               ].map((stage, idx, array) => {
@@ -334,7 +344,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                         item.variantId,
                                       );
                                       setSwipeState(null);
-                                      localNotify("Article retiré du panier", "info");
+                                      localNotify(`Article retiré du ${cartWordLower}`, "info");
                                     }}
                                     className="text-white flex flex-col items-center gap-1 p-2"
                                     aria-label="Supprimer"
@@ -385,7 +395,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                       item.variantId,
                                     )
                                   }
-                                  aria-label={`Retirer ${item.product.name || "le produit"} du panier`}
+                                  aria-label={`Retirer ${item.product.name || "le produit"} du ${cartWordLower}`}
                                   className="shrink-0 p-2.5 -m-1.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
                                 >
                                   <Trash2 size={15} />
@@ -531,7 +541,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 </div>
               </div>
               <p className="text-lg font-bold text-gray-900">
-                Votre panier est vide
+                Votre {cartWordLower} est vide
               </p>
               <p className="text-xs font-semibold text-gray-500 mt-1 max-w-[240px] leading-relaxed">
                 Parcourez les boutiques et ajoutez vos produits favoris.

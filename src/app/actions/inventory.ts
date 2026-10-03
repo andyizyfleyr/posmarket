@@ -3,7 +3,7 @@
 import { updateTag } from 'next/cache'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
-import { products, profiles, stores, storeStaff, categories } from '@/db/schema'
+import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
 import { normalizeOptions, normalizeVariants, buildVariantMatrix } from '@/utils/variants'
@@ -77,6 +77,18 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     const access = await requireStoreAccess(storeId);
     if (!access.ok) return { success: false, error: access.error };
 
+    // La verticale est une propriété de la BOUTIQUE, jamais du produit : on la
+    // relit en base et on l'impose. Sans cela, un vendeur pouvait créer des
+    // produits « shopping » dans une boutique resto (et l'inverse), et le
+    // catalogue public affichait alors des plats dans un shop et des produits
+    // dans un resto.
+    const [storeRow] = await db
+      .select({ businessType: stores.businessType })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    const storeVertical: 'shopping' | 'food' = storeRow?.businessType === 'food' ? 'food' : 'shopping';
+
     // 1. Check Limits for NEW products
     if (!product.id) {
       const [profile] = await db.select().from(profiles).where(eq(profiles.id, access.userId)).limit(1);
@@ -103,6 +115,30 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     }
 
     if (Number(product.stock) < 0) return { success: false, error: 'Le stock ne peut pas être négatif.' };;
+
+    // La catégorie doit appartenir à la verticale de la boutique : sans ce
+    // contrôle, un produit de resto pouvait être rangé dans une catégorie de
+    // commerce et apparaître dans les sections d'un shop.
+    const wantedCategories = [product.mainCategory, product.main_category, product.category]
+      .map((c) => String(c || '').trim())
+      .filter(Boolean);
+    if (wantedCategories.length > 0) {
+      const rows = await db
+        .select({ name: productCategories.name, businessType: productCategories.businessType })
+        .from(productCategories)
+        .where(inArray(productCategories.name, [...new Set(wantedCategories)]));
+      for (const row of rows) {
+        if ((row.businessType === 'food' ? 'food' : 'shopping') !== storeVertical) {
+          return {
+            success: false,
+            error:
+              storeVertical === 'food'
+                ? `La catégorie « ${row.name} » n'appartient pas à la restauration.`
+                : `La catégorie « ${row.name} » n'appartient pas au commerce.`,
+          };
+        }
+      }
+    }
 
     // --- Variantes : cohérence serveur, sans jamais écraser la saisie ---
     const warnings: string[] = [];
@@ -182,7 +218,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       wholesalePrice: product.wholesalePrice?.toString(),
       wholesaleMinQty: product.wholesaleMinQty,
       wholesaleTiers: product.wholesaleTiers || [],
-      businessType: product.businessType || 'shopping',
+      businessType: storeVertical,
       options,
       variants
     };
@@ -307,6 +343,18 @@ export async function getProductsAction(
 
     if (options.businessType && options.businessType !== 'all') {
       conditions.push(eq(products.businessType, options.businessType));
+    }
+
+    // Garde-fou : la liste d'une boutique ne montre que ses produits. Le type
+    // vient de la boutique, pas du client.
+    {
+      const [storeRow] = await db
+        .select({ businessType: stores.businessType })
+        .from(stores)
+        .where(eq(stores.id, storeId))
+        .limit(1);
+      const storeVertical = storeRow?.businessType === 'food' ? 'food' : 'shopping';
+      conditions.push(eq(products.businessType, storeVertical));
     }
 
     if (search) {
@@ -728,7 +776,7 @@ export async function importProductsBatchAction(
           wholesalePrice: item.wholesalePrice ? String(item.wholesalePrice) : null,
           wholesaleMinQty: item.wholesaleMinQty || null,
           wholesaleTiers: item.wholesaleTiers || [],
-          businessType: item.businessType || targetStore.businessType || 'shopping',
+          businessType: targetStore.businessType === 'food' ? 'food' : 'shopping',
           options: normalizedOpts,
           variants: normalizedVars,
         };
@@ -808,6 +856,23 @@ export async function transferProductsBetweenStoresAction(
 
     if (sourceStoreId === targetStoreId) {
       return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: ['La boutique source et la boutique cible doivent être différentes.'], error: 'La boutique source et la boutique cible doivent être différentes.' };
+    }
+
+    // Un transfert entre une boutique commerce et une boutique restauration
+    // ferait apparaitre des plats dans un shop (et l'inverse). On le refuse.
+    const [verticalRows] = await db
+      .select({
+        source: stores.businessType,
+        target: sql<string>`(SELECT business_type FROM stores WHERE id = ${targetStoreId})`,
+      })
+      .from(stores)
+      .where(eq(stores.id, sourceStoreId))
+      .limit(1);
+    const sourceVertical = verticalRows?.source === 'food' ? 'food' : 'shopping';
+    const targetVertical = verticalRows?.target === 'food' ? 'food' : 'shopping';
+    if (sourceVertical !== targetVertical) {
+      const error = "Le transfert est impossible entre une boutique commerce et une boutique restauration.";
+      return { success: false, createdCount: 0, updatedCount: 0, skippedCount: 0, totalProcessed: 0, errors: [error], error };
     }
 
     // 2. Récupérer les produits source

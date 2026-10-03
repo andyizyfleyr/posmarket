@@ -92,7 +92,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
   useEffect(() => {
     let active = true;
-    getProductCategoryTree()
+    // La taxonomie dépend de la verticale : un resto ne doit voir que les
+    // catégories de restauration, un shop seulement celles du commerce.
+    getProductCategoryTree(businessType)
       .then((tree) => {
         if (active && tree.length > 0) {
           setCategoryTree(tree);
@@ -103,7 +105,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     return () => {
       active = false;
     };
-  }, []);
+  }, [businessType]);
 
   // Pagination states
   const [localProducts, setLocalProducts] = useState<Product[]>(initialProducts || []);
@@ -305,7 +307,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           : (product.wholesalePrice && product.wholesaleMinQty ? [{ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) }] : []),
         deliveryTime: product.deliveryTime || '',
         preparationTime: product.preparationTime || '',
-        businessType: product.businessType || (product.mainCategory === 'Restauration & Livraison Rapide' ? 'food' : 'shopping'),
+        // La verticale vient de la boutique, jamais du produit : c'est elle qui
+        // decide des libelles (section « Vente en gros », categories). Le
+        // serveur impose de toute facon le type de la boutique a l'ecriture.
+        businessType,
         options: safeOptions,
         variants: safeVariants
       };

@@ -21,7 +21,7 @@ import {
   ToastNotification,
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
-import { MAIN_CATEGORIES } from "@/constants";
+import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
@@ -1384,21 +1384,24 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const WHOLESALE_FILTER = "wholesale";
   const categories = useMemo(() => {
-    const all = ["all", WHOLESALE_FILTER, ...MAIN_CATEGORIES];
-    if (selectedVertical === "all") return all;
+    // Les onglets ne doivent proposer que des catégories effectivement
+    // présentes dans le catalogue affiché, et la Restauration (grossiste)
+    // n'a de sens que pour une boutique de commerce.
+    const present = new Set<string>();
+    allProducts.forEach((p) => {
+      const m = p.mainCategory || p.category;
+      if (m) present.add(m);
+    });
 
-    // Define which categories belong to which vertical
-    const verticalMap: Record<string, string[]> = {
-      food: ["Alimentation & Boissons", "Restauration & Livraison Rapide"],
-      shopping: MAIN_CATEGORIES.filter(
-        (cat) =>
-          cat !== "Alimentation & Boissons" &&
-          cat !== "Restauration & Livraison Rapide",
-      ),
-    };
+    const ordered = MAIN_CATEGORIES.filter((cat) => present.has(cat));
+    const extras = [...present].filter((cat) => !MAIN_CATEGORIES.includes(cat));
+    const tabs = [...ordered, ...extras];
 
-    return ["all", WHOLESALE_FILTER, ...(verticalMap[selectedVertical] || [])];
-  }, []);
+    const hasWholesale = allProducts.some(
+      (p) => p.wholesalePrice || (p.wholesaleTiers && p.wholesaleTiers.length > 0),
+    );
+    return ["all", ...(hasWholesale ? [WHOLESALE_FILTER] : []), ...tabs];
+  }, [allProducts]);
 
   const filteredProducts = useMemo(() => {
     const normalized = searchTerm.trim().replace(/\s+/g, ' ');
@@ -1429,13 +1432,13 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
           mCategory === selectedCategory;
 
         // Vertical Filtering
-        let matchesVertical = true;
-        if (selectedVertical !== "all") {
-          const v =
-            p.businessType ||
-            (p.mainCategory === "Restauration & Livraison Rapide" ? "food" : "shopping");
-          matchesVertical = v === selectedVertical;
-        }
+        // Le filtre historique était inactif (`selectedVertical` valait
+        // toujours "all") : des plats pouvaient donc apparaître dans les
+        // sections d'un shop. La verticale du produit est désormais comparée à
+        // celle du contexte, et un produit sans verticale explicite est
+        // rattaché d'après sa catégorie.
+        const matchesVertical =
+          selectedVertical === "all" || verticalOfProduct(p) === selectedVertical;
 
         return isFromStore && matchesCategory && matchesVertical;
       })
@@ -1592,19 +1595,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const partnerStores = useMemo(() => {
     return stores
       .filter((s) => {
+        // On ne propose que les boutiques ayant des produits de la verticale
+        // demandée : une boutique resto ne doit pas apparaître dans un shop.
         if (selectedVertical === "all") return true;
-        // A store matches a vertical if it has products of that vertical
-        // or if its main category matches. Usually, stores are specialized.
-        const storeProducts = s.products || [];
-        if (storeProducts.length === 0) return true; // Keep empty stores for now
-
-        const firstProd = storeProducts[0];
-        const v =
-          firstProd.businessType ||
-          (firstProd.mainCategory === "Restauration & Livraison Rapide"
-            ? "food"
-            : "shopping");
-        return v === selectedVertical;
+        const storeProducts = (s.products || []).filter((p) => p.isOnline !== false);
+        if (storeProducts.length === 0) return false;
+        return storeProducts.some((p) => verticalOfProduct(p) === selectedVertical);
       })
       .sort((a, b) => {
         const visitsA =
@@ -3501,19 +3497,26 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                       ) : (
                         /* Grouped sections for browsing - 4 products per category on mobile */
                         (() => {
-                          const groups: Record<string, typeof pagedProducts> =
-                            {};
+                          // La verticale entre dans la clef : une section ne doit jamais
+                          // regrouper un plat et un produit de commerce sous la
+                          // meme categorie.
+                          const groups: Record<string, typeof pagedProducts> = {};
                           pagedProducts.forEach((p) => {
                             const cat = p.mainCategory || p.category || "Autre";
-                            if (!groups[cat]) groups[cat] = [];
-                            groups[cat].push(p);
+                            const key = `${verticalOfProduct(p)}::${cat}`;
+                            if (!groups[key]) groups[key] = [];
+                            groups[key].push(p);
                           });
 
-                          // Maintain MAIN_CATEGORIES order
+                          // Commerce d'abord, puis restauration ; a l'interieur de chaque
+                          // verticale on garde l'ordre historique.
                           const sortedCats = Object.keys(groups).sort(
                             (a: string, b: string) => {
-                              const idxA = MAIN_CATEGORIES.indexOf(a);
-                              const idxB = MAIN_CATEGORIES.indexOf(b);
+                              const [va, ca] = a.split("::");
+                              const [vb, cb] = b.split("::");
+                              if (va !== vb) return va === "shopping" ? -1 : 1;
+                              const idxA = MAIN_CATEGORIES.indexOf(ca);
+                              const idxB = MAIN_CATEGORIES.indexOf(cb);
                               return (
                                 (idxA === -1 ? 999 : idxA) -
                                 (idxB === -1 ? 999 : idxB)
@@ -3543,7 +3546,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                             return arr.slice(0, n === 3 ? 2 : n);
                           };
 
-                          return sortedCats.map((cat) => {
+                                                    return sortedCats.map((groupKey) => {
+                            // La clef porte la verticale ; seul le nom de la categorie est
+                            // affiche et utilise pour le filtre, sinon le titre afficherait
+                            // un libelle technique.
+                            const cat = groupKey.slice(groupKey.indexOf("::") + 2);
+                            const vertical = groupKey.slice(0, groupKey.indexOf("::")) as "shopping" | "food";
                             // Le titre de section fait doublon avec la chip
                             // active quand cette catégorie est filtrée.
                             const showGroupHeader =
@@ -3551,14 +3559,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               cat !== selectedCategory;
                             return (
                             <div
-                              key={cat}
+                              key={groupKey}
                               className="   duration-500"
                             >
                               {showGroupHeader && (
                                 <div className={`flex items-center justify-between gap-3 mb-4`}>
                                   <h3 className="text-sm md:text-base font-bold text-gray-900 truncate">
-                                    {cat}
-                                  </h3>
+                                      {cat}
+                                      {vertical === "food" && (
+                                        <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-brand">
+                                          Restauration
+                                        </span>
+                                      )}
+                                    </h3>
                                   <button
                                     onClick={() => {
                                       if (selectedStoreParam) {
@@ -3772,25 +3785,32 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                         ) : (
                           /* Grouped sections - 4 products per category on mobile */
                           (() => {
-                            const groups: Record<string, typeof pagedProducts> =
-                              {};
-                            pagedProducts.forEach((p) => {
-                              const cat = p.mainCategory || p.category || "Autre";
-                              if (!groups[cat]) groups[cat] = [];
-                              groups[cat].push(p);
-                            });
+                            // La verticale entre dans la clef : une section ne doit jamais
+                          // regrouper un plat et un produit de commerce sous la
+                          // meme categorie.
+                          const groups: Record<string, typeof pagedProducts> = {};
+                          pagedProducts.forEach((p) => {
+                            const cat = p.mainCategory || p.category || "Autre";
+                            const key = `${verticalOfProduct(p)}::${cat}`;
+                            if (!groups[key]) groups[key] = [];
+                            groups[key].push(p);
+                          });
 
-                            // Maintain MAIN_CATEGORIES order
-                            const sortedCats = Object.keys(groups).sort(
-                              (a: string, b: string) => {
-                                const idxA = MAIN_CATEGORIES.indexOf(a);
-                                const idxB = MAIN_CATEGORIES.indexOf(b);
-                                return (
-                                  (idxA === -1 ? 999 : idxA) -
-                                  (idxB === -1 ? 999 : idxB)
-                                );
-                              },
-                            );
+                            // Commerce d'abord, puis restauration ; a l'interieur de chaque
+                          // verticale on garde l'ordre historique.
+                          const sortedCats = Object.keys(groups).sort(
+                            (a: string, b: string) => {
+                              const [va, ca] = a.split("::");
+                              const [vb, cb] = b.split("::");
+                              if (va !== vb) return va === "shopping" ? -1 : 1;
+                              const idxA = MAIN_CATEGORIES.indexOf(ca);
+                              const idxB = MAIN_CATEGORIES.indexOf(cb);
+                              return (
+                                (idxA === -1 ? 999 : idxA) -
+                                (idxB === -1 ? 999 : idxB)
+                              );
+                            },
+                          );
 
                             const renderCard = (product: StorefrontProduct) => (
                               <ProductCard
@@ -3814,7 +3834,12 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                               return arr.slice(0, n === 3 ? 2 : n);
                             };
 
-                            return sortedCats.map((cat) => {
+                                                      return sortedCats.map((groupKey) => {
+                            // La clef porte la verticale ; seul le nom de la categorie est
+                            // affiche et utilise pour le filtre, sinon le titre afficherait
+                            // un libelle technique.
+                            const cat = groupKey.slice(groupKey.indexOf("::") + 2);
+                            const vertical = groupKey.slice(0, groupKey.indexOf("::")) as "shopping" | "food";
                               // Pas de titre de groupe redondant avec la
                               // catégorie déjà filtrée via les chips.
                               const showGroupHeader =
@@ -3822,14 +3847,19 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 cat !== selectedCategory;
                               return (
                               <div
-                                key={cat}
+                                key={groupKey}
                                 className="   duration-500"
                               >
                                 {showGroupHeader && (
                                   <div className={`flex items-center justify-between gap-3 mb-4`}>
                                     <h3 className="text-sm md:text-base font-bold text-gray-900 truncate">
-                                      {cat}
-                                    </h3>
+                                        {cat}
+                                        {vertical === "food" && (
+                                          <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-brand">
+                                            Restauration
+                                          </span>
+                                        )}
+                                      </h3>
                                     <button
                                       onClick={() => {
                                         setSelectedCategory(cat);

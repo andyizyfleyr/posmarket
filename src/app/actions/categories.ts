@@ -63,18 +63,23 @@ function slugifyCategory(value: string): string {
     .slice(0, 80);
 }
 
-async function countProductsByCategoryNames(names: string[]): Promise<Record<string, number>> {
+async function countProductsByCategoryNames(
+  names: string[],
+  businessType?: string,
+): Promise<Record<string, number>> {
   if (names.length === 0) return {};
+  const verticalFilter = businessType === 'food' ? 'food' : businessType === 'shopping' ? 'shopping' : null;
+
   const rows = await db
     .select({ name: products.mainCategory, count: sql<number>`count(*)::int` })
     .from(products)
-    .where(isNotNull(products.mainCategory))
+    .where(and(isNotNull(products.mainCategory), verticalFilter ? eq(products.businessType, verticalFilter) : undefined))
     .groupBy(products.mainCategory);
 
   const subRows = await db
     .select({ name: products.category, count: sql<number>`count(*)::int` })
     .from(products)
-    .where(isNotNull(products.category))
+    .where(and(isNotNull(products.category), verticalFilter ? eq(products.businessType, verticalFilter) : undefined))
     .groupBy(products.category);
 
   const totals: Record<string, number> = {};
@@ -120,14 +125,29 @@ function buildTree(rows: ProductCategoryRow[], counts: Record<string, number>): 
 // ---------------------------------------------------------------------------
 
 /** Catégories actives, arborescence — usage vendeur / storefront. */
-export async function getProductCategoryTree(): Promise<ProductCategoryNode[]> {
+/**
+ * Arbre des.categories pour une verticale.
+ *
+ * Le paramètre est obligatoire : les catégories sont typées
+ * (`shopping` / `food`) et une boutique ne doit jamais voir les catégories de
+ * l'autre type. Sans filtre, un resto voyait les catégories de commerce et
+ * inversement, et pouvait y ranger ses produits.
+ */
+export async function getProductCategoryTree(businessType: string): Promise<ProductCategoryNode[]> {
   try {
+    const vertical = businessType === 'food' ? 'food' : 'shopping';
     const rows = await db
       .select()
       .from(productCategories)
-      .where(eq(productCategories.isActive, true))
+      .where(and(eq(productCategories.isActive, true), eq(productCategories.businessType, vertical)))
       .orderBy(asc(productCategories.position));
-    return buildTree(rows, {});
+
+    // Les produits sont rangés par nom de catégorie (colonne texte) : le compte
+    // doit donc être restreint à la même verticale, sinon un produit d'une
+    // autre boutiqueurerait le total d'une catégorie.
+    const names = rows.map((r) => r.name);
+    const counts = await countProductsByCategoryNames(names, vertical);
+    return buildTree(rows, counts);
   } catch (error: unknown) {
     console.error('Error fetching product categories:', error);
     return [];
