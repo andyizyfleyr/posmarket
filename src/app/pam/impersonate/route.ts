@@ -4,6 +4,21 @@ import { getAdminSession } from '@/app/actions/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Échappe le texte inséré dans la page d'erreur HTML.
+ * Les messages actuels sont statiques, mais un jour un `error` pourrait
+ * reprendre une saisie (email, identifiant) : sans échappement, ce serait une
+ * XSS réfléchie dans le contexte d'un administrateur connecté.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export async function GET(request: NextRequest) {
   try {
     const admin = await getAdminSession();
@@ -48,7 +63,7 @@ export async function GET(request: NextRequest) {
           <body>
             <div class="card">
               <h1>Connexion impossible</h1>
-              <p>${result.error || 'Une erreur est survenue lors de la tentative de connexion.'}</p>
+              <p>${escapeHtml(result.error || 'Une erreur est survenue lors de la tentative de connexion.')}</p>
               <a href="/pam/users">Retour à l'espace Admin</a>
             </div>
           </body>

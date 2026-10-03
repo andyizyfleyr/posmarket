@@ -236,9 +236,19 @@ export async function createImpersonationSession(
   }
 
   // 6. Détermination de l'URL de redirection
+  // Un chemin doit commencer par un unique `/` : `//evil.tld` passerait le
+  // test `startsWith('/')` alors que c'est une URL protocol-relative, et
+  // l'administrateur serait renvoyé vers un site tiers.
   let targetRedirectUrl: string;
-  if (opts.redirectTo && opts.redirectTo.startsWith('/')) {
-    targetRedirectUrl = opts.redirectTo;
+  const requested = typeof opts.redirectTo === 'string' ? opts.redirectTo.trim() : '';
+  const isSafePath =
+    requested.startsWith('/') &&
+    !requested.startsWith('//') &&
+    !requested.startsWith('/\\') &&
+    !/[\r\n]/.test(requested);
+
+  if (isSafePath) {
+    targetRedirectUrl = requested;
   } else if (accountType === 'buyer' && !isSuperAdmin) {
     targetRedirectUrl = '/mon-compte';
   } else {
