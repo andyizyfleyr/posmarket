@@ -52,6 +52,24 @@ export async function POST(request: Request) {
           const tx = await verifyKkiapayTransaction(kTxId);
           const expectedStatus = tx.status === 'SUCCESS' ? 'APPROVED' : 'DECLINED';
 
+          // Rapprochement transaction / facture : sans cela, une seule
+          // transaction réellement payée pouvait faire approuver toutes les
+          // factures en attente du meme client (rejeu du webhook).
+          if (expectedStatus === 'APPROVED') {
+            const paidAmount = Number(tx.amount ?? 0);
+            const expectedAmount = Number(row.amount ?? 0);
+            if (paidAmount <= 0 || expectedAmount <= 0 || Math.abs(paidAmount - expectedAmount) > 1) {
+              throw new Error(
+                `Montant incoherent pour la facture ${row.transactionId} : ${paidAmount} != ${expectedAmount}`,
+              );
+            }
+            if (tx.partnerId && String(tx.partnerId) !== String(row.transactionId)) {
+              throw new Error(
+                `Reference de transaction non concordante pour la facture ${row.transactionId}`,
+              );
+            }
+          }
+
           await db.update(subscriptionPayments)
             .set({ status: expectedStatus, reference: kTxId, updatedAt: new Date() })
             .where(and(

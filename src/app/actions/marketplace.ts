@@ -672,67 +672,55 @@ const normalizeImageUrl = (uri: string | null | undefined): string => {
   return uri;
 };
 
-const resolveCurrentBuyer = async (fallbackIdOrEmail?: string) => {
+/**
+ * Identité de l'acheteur, établie EXCLUSIVEMENT à partir de la session Auth.js.
+ *
+ * Une version antérieure acceptait un `fallbackIdOrEmail` transmis par le
+ * client et, à défaut de session, résolvait — voire créait — le profil
+ * correspondant. Sans être connecté, il suffisait donc de passer l'email de
+ * quelqu'un d'autre pour lire ses commandes et ses adresses, modifier son
+ * profil ou y injecter une adresse.
+ *
+ * Le paramètre est conservé pour ne pas casser les appels existants côté
+ * client, mais il n'est plus utilisé : l'identité vient du cookie de session.
+ */
+const resolveCurrentBuyer = async (_fallbackIdOrEmail?: string) => {
   const { user: sessionUser } = await getCurrentSession();
-  let targetId = sessionUser?.id;
-  let targetEmail = sessionUser?.email;
+  const sessionId = sessionUser?.id ? String(sessionUser.id) : '';
+  if (!sessionId) return { user: null };
 
-  if (!targetId && fallbackIdOrEmail && typeof fallbackIdOrEmail === 'string') {
-    const trimmed = fallbackIdOrEmail.trim();
-    if (trimmed.includes('@')) {
-      targetEmail = trimmed.toLowerCase();
-    } else if (trimmed.length > 0) {
-      targetId = trimmed;
-    }
+  const select = {
+    id: profiles.id,
+    email: profiles.email,
+    fullName: profiles.fullName,
+    phone: profiles.phone,
+    companyName: profiles.companyName,
+    ninea: profiles.ninea,
+    createdAt: profiles.createdAt
+  };
+
+  const [existing] = await db.select(select).from(profiles).where(eq(profiles.id, sessionId)).limit(1);
+  if (existing) return { user: existing };
+
+  // Compte Auth.js valide mais profil pas encore créé : on l'aligne une fois.
+  const email = String(sessionUser?.email || '').trim().toLowerCase();
+  if (!email) return { user: null };
+  try {
+    const [created] = await db
+      .insert(profiles)
+      .values({
+        id: sessionId,
+        email,
+        fullName: String(sessionUser?.user_metadata?.full_name || email.split('@')[0] || 'Client'),
+      })
+      .returning(select);
+    if (created) return { user: created };
+  } catch {
+    const [retry] = await db.select(select).from(profiles).where(eq(profiles.id, sessionId)).limit(1);
+    return { user: retry || null };
   }
-
-  if (!targetId && !targetEmail) return { user: null };
-
-  const conditions = [];
-  if (targetId) conditions.push(eq(profiles.id, targetId));
-  if (targetEmail) conditions.push(eq(profiles.email, targetEmail));
-
-  let [profile] = await db
-    .select({
-      id: profiles.id,
-      email: profiles.email,
-      fullName: profiles.fullName,
-      phone: profiles.phone,
-      companyName: profiles.companyName,
-      ninea: profiles.ninea,
-      createdAt: profiles.createdAt
-    })
-    .from(profiles)
-    .where(or(...conditions))
-    .limit(1);
-
-  if (!profile && targetEmail) {
-    try {
-      const [newProfile] = await db.insert(profiles).values({
-        email: targetEmail,
-        fullName: targetEmail.split('@')[0],
-      }).returning({
-        id: profiles.id,
-        email: profiles.email,
-        fullName: profiles.fullName,
-        phone: profiles.phone,
-        companyName: profiles.companyName,
-        ninea: profiles.ninea,
-        createdAt: profiles.createdAt
-      });
-      profile = newProfile;
-    } catch {
-      const [existing] = await db.select().from(profiles).where(eq(profiles.email, targetEmail)).limit(1);
-      profile = existing || null;
-    }
-  }
-
-  if (profile?.id) {
-    // Identité acheteur désormais portée par la session Auth.js.
-  }
-
-  return { user: profile || null };
-};
+  return { user: null };
+}
 
 export async function saveProductReviewAction(
   storeId: string,

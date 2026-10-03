@@ -28,7 +28,11 @@ export function fedapayConfigured(): boolean {
 }
 
 export function verifyFedapayWebhookSignature(payloadRaw: string, signatureHeader: string | null): boolean {
-  if (!FEDAPAY_WEBHOOK_SECRET || !signatureHeader) return true; // Si pas de secret configuré, on vérifie via l'API REST
+  // Refus par défaut : sans secret configuré, la signature ne peut pas être
+  // vérifiée. Une ancienne version renvoyait `true` dans ce cas, ce qui
+  // rendait ce webhook de paiement accessible à n'importe qui.
+  if (!FEDAPAY_WEBHOOK_SECRET) return false;
+  if (!signatureHeader) return false;
   try {
     let sig = signatureHeader;
     if (signatureHeader.includes('s=')) {
@@ -40,9 +44,13 @@ export function verifyFedapayWebhookSignature(payloadRaw: string, signatureHeade
       sig = parts.s || parts.v1 || signatureHeader;
     }
     const hmac = createHmac('sha256', FEDAPAY_WEBHOOK_SECRET).update(payloadRaw).digest('hex');
-    return timingSafeEqual(Buffer.from(hmac), Buffer.from(sig)) || hmac === sig;
+    const expected = Buffer.from(hmac);
+    const received = Buffer.from(sig);
+    if (expected.length !== received.length) return false;
+    return timingSafeEqual(expected, received);
   } catch {
-    return true; // En cas de doute, la vérification transactionnelle par API REST fera autorité
+    // Une erreur de calcul ne doit jamais valider la requête.
+    return false;
   }
 }
 

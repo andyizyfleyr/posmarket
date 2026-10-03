@@ -87,6 +87,17 @@ export async function POST(request: Request) {
 
       for (const row of rows) {
         try {
+          // La transaction est rapprochée de la facture : sans cette vérification,
+          // une seule transaction réellement payée pouvait faire approuver
+          // toutes les factures en attente du même client (rejeu).
+          const paidAmount = Number(verifiedTx.amount ?? 0);
+          const expectedAmount = Number(row.amount ?? 0);
+          if (paidAmount <= 0 || expectedAmount <= 0 || Math.abs(paidAmount - expectedAmount) > 1) {
+            throw new Error(
+              `Montant incohérent pour la facture ${row.transactionId} : ${paidAmount} ≠ ${expectedAmount}`,
+            );
+          }
+
           await db
             .update(subscriptionPayments)
             .set({ status: 'APPROVED', reference: fTxId, updatedAt: new Date() })
