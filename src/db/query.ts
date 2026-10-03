@@ -83,6 +83,26 @@ function toSnakeRows(table: AnyPgTable, rows: Record<string, unknown>[]): Record
 
 const CATALOG_TABLES = new Set(['stores', 'products']);
 
+/**
+ * Périmètre imposé par l'appelant.
+ *
+ * `runQuery` est aussi exposé comme server action (`src/app/actions/sql.ts`) :
+ * sans périmètre, une requête `delete` sans filtre vide la table entière. Le
+ * périmètre est donc appliqué ici, au plus près de la construction du `where`,
+ * et non seulement dans l'action.
+ */
+export type QueryScope = {
+  /** Restreint les lignes accessibles à ces boutiques (colonne `store_id`). */
+  storeIds?: string[] | null;
+  /** Refuse `update`/`delete` sans aucun filtre (protection contre l'écriture globale). */
+  requireFilterForWrite?: boolean;
+};
+
+function deny(message: string): QueryResult {
+  return { data: null, error: { message } };
+}
+
+
 function revalidateCatalog(table: string) {
   if (!CATALOG_TABLES.has(table)) return;
   try {
@@ -219,7 +239,7 @@ async function runRpc(name: string, argsRaw: unknown): Promise<QueryResult> {
   }
 }
 
-export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
+export async function runQuery(spec: QuerySpec, scope?: QueryScope): Promise<QueryResult> {
   if (spec.rpc) {
     return runRpc(spec.rpc, spec.rpcArgs);
   }
@@ -239,6 +259,23 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
       else if (f.op === 'in') conditions.push(inArray(info.col, f.value as never[]));
     }
 
+    // Périmètre boutique : ajouté au `where`, donc impossible à contourner en
+    //	forgeant des filtres depuis le client.
+    if (scope?.storeIds) {
+      const storeCol = columns.get('storeId');
+      if (!storeCol) return deny('Périmètre boutique inapplicable à cette table');
+      if (scope.storeIds.length === 0) {
+        // Aucune boutique gérable : on ne doit toucher aucune ligne.
+        return { data: null, error: null, count: 0 };
+      }
+      conditions.push(inArray(storeCol.col, scope.storeIds as never[]));
+    }
+
+    const isWrite = spec.method !== 'select';
+    if (isWrite && scope?.requireFilterForWrite && conditions.length === 0) {
+      return deny('Refusé : une écriture sans filtre modifierait toutes les lignes');
+    }
+
     // ---------- DELETE ----------
     if (spec.method === 'delete') {
       await db.delete(table).where(conditions.length ? and(...conditions) : undefined);
@@ -249,11 +286,48 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     // ---------- INSERT / UPSERT ----------
     if (spec.method === 'insert' || spec.method === 'upsert') {
       const dbRows = toDbValues(spec.values, columns);
+      const rows: Array<Record<string, unknown>> = Array.isArray(dbRows)
+        ? (dbRows as Array<Record<string, unknown>>)
+        : [dbRows as Record<string, unknown>];
+
+      if (scope?.storeIds) {
+        const storeCol = columns.get('storeId');
+        if (!storeCol) return deny('Périmètre boutique inapplicable à cette table');
+        const allowed = new Set(scope.storeIds as string[]);
+        const idCol = columns.get('id');
+
+        for (const row of rows) {
+          // Un INSERT n'a pas de `where` : le `store_id` fourni par le client
+          // doit être vérifié, sinon il permet d'écrire dans n'importe quelle
+          // boutique en connaissant son identifiant.
+          const providedStore = row[storeCol.key];
+          if (providedStore != null && !allowed.has(String(providedStore))) {
+            return deny("Vous n'avez pas accès à cette boutique");
+          }
+
+          // `onConflictDoUpdate` ignore le `where` : sans cette vérification, un
+          // vendeur pourrait réécrire une ligne existante d'une autre boutique
+          // en forgeant son `id`.
+          const rowId = idCol ? row[idCol.key] : undefined;
+          if (rowId) {
+            const [existing] = await db
+              .select({ storeId: storeCol.col })
+              .from(table as AnyPgTable)
+              .where(eq((table as DynamicTable).id, rowId as never))
+              .limit(1);
+            if (!existing) return deny('Ligne introuvable ou déjà supprimée');
+            if (!allowed.has(String(existing.storeId))) {
+              return deny("Vous n'avez pas accès à cette ressource");
+            }
+          } else if (spec.method === 'upsert' && !idCol) {
+            return deny('Refusé : mise à jour sans identifiant de ligne');
+          }
+        }
+      }
+
       if (spec.method === 'upsert') {
         const setObj: Record<string, unknown> = {};
-        const firstRow = Array.isArray(dbRows)
-          ? (dbRows[0] as Record<string, unknown>)
-          : (dbRows as Record<string, unknown>);
+        const firstRow = rows[0] || {};
         for (const [key, value] of Object.entries(firstRow)) {
           if (key !== 'id') setObj[key] = value;
         }
@@ -271,6 +345,15 @@ export async function runQuery(spec: QuerySpec): Promise<QueryResult> {
     // ---------- UPDATE ----------
     if (spec.method === 'update') {
       const dbValues = toDbValues(spec.values, columns);
+      // Le `where` borne les lignes touchées, mais pas la valeur écrite : sans
+      // ce contrôle, un vendeur could déplacer une ligne vers une autre boutique.
+      if (scope?.storeIds) {
+        const storeCol = columns.get('storeId');
+        const nextStore = storeCol ? (dbValues as Record<string, unknown>)[storeCol.key] : undefined;
+        if (nextStore != null && !(scope.storeIds as string[]).includes(String(nextStore))) {
+          return deny("Vous n'avez pas accès à cette boutique");
+        }
+      }
       await db.update(table).set(dbValues as never).where(conditions.length ? and(...conditions) : undefined);
       revalidateCatalog(spec.table);
       return { data: null, error: null };

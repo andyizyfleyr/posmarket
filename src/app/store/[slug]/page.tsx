@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { serializeJsonLd } from '@/lib/json-ld';
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { fetchMarketplaceData, submitCheckoutAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { getStoreSeo, absoluteImage } from "@/utils/catalog-seo";
@@ -91,7 +92,7 @@ export default async function StorePage({ params, searchParams }: Props) {
             {jsonLd && (
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                    dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
                 />
             )}
             <StorefrontWrapper

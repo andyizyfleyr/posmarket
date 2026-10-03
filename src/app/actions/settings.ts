@@ -6,9 +6,32 @@ import { db } from '@/db'
 import { stores, profiles, coupons, storeStaff } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { StoreSettings } from '@/types'
+import { requireStoreAccess, requireSelfOrAdmin } from '@/lib/authorization'
+
+/**
+ * Résout la boutique d'une ligne (coupon, membre d'équipe) afin d'en vérifier
+ * la propriété avant de la modifier ou de la supprimer.
+ */
+async function requireRowStoreAccess(
+    table: typeof coupons | typeof storeStaff,
+    id: string,
+): Promise<{ ok: true; storeId: string } | { ok: false; error: string }> {
+    const [row] = await db
+        .select({ storeId: table.storeId })
+        .from(table)
+        .where(eq(table.id, id))
+        .limit(1)
+    if (!row) return { ok: false, error: 'Introuvable' }
+    const access = await requireStoreAccess(row.storeId)
+    if (!access.ok) return { ok: false, error: access.error }
+    return { ok: true, storeId: row.storeId }
+}
 
 export async function updateStoreSettingsAction(storeId: string, settings: StoreSettings) {
     try {
+        const access = await requireStoreAccess(storeId)
+        if (!access.ok) return { success: false, error: access.error }
+
         if (typeof settings.logo === 'string' && settings.logo.startsWith('data:')) {
             const r2Logo = await uploadDataUriToR2(settings.logo, 'logos').catch(() => null);
             if (r2Logo) settings = { ...settings, logo: r2Logo };
@@ -37,6 +60,11 @@ export async function updateStoreSettingsAction(storeId: string, settings: Store
 
 export async function createStoreAction(settings: StoreSettings, userId: string) {
     try {
+        // Sans ce contrôle, n'importe qui pouvait créer une boutique au nom
+        // d'un autre compte.
+        const self = await requireSelfOrAdmin(userId)
+        if (!self.ok) return { success: false, error: self.error }
+
         const slug = settings.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         
         const [newStore] = await db.insert(stores).values({
@@ -61,6 +89,9 @@ export async function createStoreAction(settings: StoreSettings, userId: string)
 
 export async function deleteStoreAction(id: string) {
     try {
+        const access = await requireStoreAccess(id)
+        if (!access.ok) return { success: false, error: access.error }
+
         await db.delete(stores).where(eq(stores.id, id));
         revalidatePath('/settings');
         updateTag('marketplace');
@@ -73,6 +104,9 @@ export async function deleteStoreAction(id: string) {
 
 export async function updateProfileSettingsAction(userId: string, data: { fullName: string, email?: string, avatarUrl?: string }) {
     try {
+        const self = await requireSelfOrAdmin(userId)
+        if (!self.ok) return { success: false, error: self.error }
+
         const updateData: Record<string, string> = {};
         if (data.fullName) updateData.fullName = data.fullName;
         if (data.email) updateData.email = data.email;
@@ -97,6 +131,9 @@ type CouponInput = {
 
 export async function saveCouponAction(coupon: CouponInput, storeId: string) {
     try {
+        const access = await requireStoreAccess(storeId)
+        if (!access.ok) return { success: false, error: access.error }
+
         if (!coupon || !coupon.code) return { success: false, error: 'Code promo manquant' };
 
         const [saved] = await db.insert(coupons).values({
@@ -117,6 +154,9 @@ export async function saveCouponAction(coupon: CouponInput, storeId: string) {
 
 export async function deleteCouponAction(id: string) {
     try {
+        const access = await requireRowStoreAccess(coupons, id)
+        if (!access.ok) return { success: false, error: access.error }
+
         await db.delete(coupons).where(eq(coupons.id, id));
         revalidatePath('/settings');
         return { success: true };
@@ -128,6 +168,9 @@ export async function deleteCouponAction(id: string) {
 
 export async function toggleCouponAction(id: string, active: boolean) {
     try {
+        const access = await requireRowStoreAccess(coupons, id)
+        if (!access.ok) return { success: false, error: access.error }
+
         await db.update(coupons).set({ active }).where(eq(coupons.id, id));
         revalidatePath('/settings');
         return { success: true };
@@ -146,6 +189,9 @@ type StaffInput = {
 
 export async function addStaffAction(staff: StaffInput, storeId: string) {
     try {
+        const access = await requireStoreAccess(storeId)
+        if (!access.ok) return { success: false, error: access.error }
+
         const email = String(staff?.email || '').trim().toLowerCase();
         if (!email) return { success: false, error: 'Email manquant' };
 
@@ -179,6 +225,9 @@ export async function addStaffAction(staff: StaffInput, storeId: string) {
 
 export async function deleteStaffAction(id: string) {
     try {
+        const access = await requireRowStoreAccess(storeStaff, id)
+        if (!access.ok) return { success: false, error: access.error }
+
         await db.delete(storeStaff).where(eq(storeStaff.id, id));
         revalidatePath('/settings');
         return { success: true };

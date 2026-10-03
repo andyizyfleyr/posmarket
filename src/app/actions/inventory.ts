@@ -291,8 +291,11 @@ export async function getProductsAction(
   search: string = '',
   options: { productType?: 'all' | 'pos' | 'marketplace', businessType?: 'all' | 'shopping' | 'food' } = {}
 ) {
-  try {
-    const conditions = [eq(products.storeId, storeId)];
+    try {
+      const access = await requireStoreAccess(storeId);
+      if (!access.ok) return { success: false, error: access.error };
+
+      const conditions = [eq(products.storeId, storeId)];
 
     if (options.productType && options.productType !== 'all') {
       if (options.productType === 'pos') {
@@ -356,8 +359,11 @@ export async function getProductsAction(
 }
 
 export async function getStockCountsAction(storeId: string): Promise<{ ok: boolean; stock?: Record<string, number>; error?: string }> {
-  try {
-    const rows = await db.select({ id: products.id, stock: products.stock }).from(products).where(eq(products.storeId, storeId));
+    try {
+      const access = await requireStoreAccess(storeId);
+      if (!access.ok) return { ok: false, error: access.error };
+
+      const rows = await db.select({ id: products.id, stock: products.stock }).from(products).where(eq(products.storeId, storeId));
     const stock: Record<string, number> = {};
     for (const r of rows) stock[r.id] = Number(r.stock ?? 0);
     return { ok: true, stock };

@@ -4,6 +4,24 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
 import { customers } from '@/db/schema'
 import { eq, or, and, sql, inArray, desc } from 'drizzle-orm'
+import { requireStoreAccess } from '@/lib/authorization'
+
+/**
+ * Vérifie que l'appelant gère la boutique concernée : sans ce contrôle, un
+ * vendeur authentifié pouvait lire, modifier ou supprimer les clients d'une
+ * boutique concurrente en devinant son identifiant.
+ */
+async function requireCustomerStoreAccess(customerId: string): Promise<{ ok: true; storeId: string } | { ok: false; error: string }> {
+    const [row] = await db
+        .select({ storeId: customers.storeId })
+        .from(customers)
+        .where(eq(customers.id, customerId))
+        .limit(1)
+    if (!row) return { ok: false, error: 'Client introuvable' }
+    const access = await requireStoreAccess(row.storeId)
+    if (!access.ok) return { ok: false, error: access.error }
+    return { ok: true, storeId: row.storeId }
+}
 
 type CustomerInput = {
     id?: string;
@@ -18,8 +36,11 @@ type CustomerInput = {
 }
 
 export async function saveCustomerAction(customer: CustomerInput, storeId: string) {
-    try {
-        const dataToSave = {
+try {
+            const access = await requireStoreAccess(storeId);
+            if (!access.ok) return { success: false, error: access.error };
+
+            const dataToSave = {
             storeId,
             name: customer.name || '',
             email: customer.email,
@@ -52,8 +73,10 @@ export async function saveCustomerAction(customer: CustomerInput, storeId: strin
 }
 
 export async function deleteCustomerAction(id: string) {
-    try {
-        await db.delete(customers).where(eq(customers.id, id));
+try {
+            const access = await requireCustomerStoreAccess(id);
+            if (!access.ok) return { success: false, error: access.error };
+            await db.delete(customers).where(eq(customers.id, id));
         revalidatePath('/customers');
         return { success: true };
     } catch (error: unknown) {
@@ -63,10 +86,14 @@ export async function deleteCustomerAction(id: string) {
 }
 
 export async function bulkDeleteCustomersAction(ids: string[]) {
-    try {
-        if (ids.length > 0) {
-            await db.delete(customers).where(inArray(customers.id, ids));
-        }
+try {
+            if (ids.length > 0) {
+                for (const id of ids) {
+                    const access = await requireCustomerStoreAccess(id);
+                    if (!access.ok) return { success: false, error: access.error };
+                }
+                await db.delete(customers).where(inArray(customers.id, ids));
+            }
         revalidatePath('/customers');
         return { success: true };
     } catch (error: unknown) {
@@ -76,8 +103,11 @@ export async function bulkDeleteCustomersAction(ids: string[]) {
 }
 
 export async function getCustomersAction(storeId: string, offset: number = 0, limit: number = 10, search: string = '') {
-    try {
-        const conditions = [eq(customers.storeId, storeId)];
+try {
+            const access = await requireStoreAccess(storeId);
+            if (!access.ok) return { success: false, error: access.error };
+
+            const conditions = [eq(customers.storeId, storeId)];
 
         if (search) {
             conditions.push(or(

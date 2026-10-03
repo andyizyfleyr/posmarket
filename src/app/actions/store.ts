@@ -4,14 +4,23 @@ import { revalidatePath, updateTag } from 'next/cache'
 import { dbFetchStores, dbFetchStoreData, dbCreateStore, StoreDataFields } from '@/db/api'
 import { db } from '@/db'
 import { stores, profiles } from '@/db/schema'
-import { eq, count } from 'drizzle-orm'
+import { eq, count, inArray } from 'drizzle-orm'
 import { SubscriptionTier, SubscriptionDuration, SubscriptionTierStatus } from '@/types'
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants'
 import { createClient } from '@/utils/supabase/server'
+import { requireStoreAccess, authorizeSeller } from '@/lib/authorization'
 
 export async function fetchStores() {
   try {
-    const storesList = await dbFetchStores();
+    // Borné aux boutiques de l'appelant : cette action renvoyait la totalité de
+    // la table `stores` (boutiques en attente comprises, avec email, téléphone
+    // et NINEA) à n'importe quel visiteur.
+    const access = await authorizeSeller();
+    if (!access.ok) return { success: false, error: access.error };
+    const storesList = await db
+      .select()
+      .from(stores)
+      .where(inArray(stores.id, access.storeIds.length > 0 ? access.storeIds : ['']));
     return { success: true, stores: storesList };
   } catch (error: unknown) {
     console.error('Error fetching stores with Drizzle:', error);
@@ -21,6 +30,12 @@ export async function fetchStores() {
 
 export async function fetchStoreData(storeId: string, ownerId?: string, fields?: StoreDataFields) {
   try {
+    // Sans ce contrôle, un vendeur authentifié pouvait lire les produits,
+    // commandes, clients et factures d'une boutique concurrente en passant son
+    // identifiant en argument.
+    const access = await requireStoreAccess(storeId);
+    if (!access.ok) return { store: null, products: [], orders: [], customers: [], invoices: [], subscription: null, error: access.error } as never;
+
     const data = await dbFetchStoreData(storeId, ownerId, fields);
     
     return {
@@ -101,6 +116,9 @@ export async function quickCreateStoreAction(name: string, businessType: string)
  */
 export async function quickDeleteStoreAction(storeId: string) {
   try {
+    const access = await requireStoreAccess(storeId);
+    if (!access.ok) return { success: false, error: access.error };
+
     const [store] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
     if (!store) {
       return { success: false, error: 'Boutique introuvable.' };

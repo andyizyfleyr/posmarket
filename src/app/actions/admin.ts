@@ -6,6 +6,17 @@ import { eq, desc, sql, inArray, and, ne } from 'drizzle-orm';
 import { revalidatePath, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
 import { getAdminSession } from '@/app/actions/admin-auth';
+import { ACCES_REFUSE } from '@/lib/authorization';
+
+/**
+ * Garde-fou commun à toutes les actions de ce fichier : elles appartiennent à
+ * l'espace d'administration /pam. Sans cette vérification, ces actions sont des
+ * endpoints HTTP publics (mise à jour de rôles, suppression de comptes, lecture
+ * de l'intégralité des commandes et factures).
+ */
+async function requirePamAdmin() {
+  return await getAdminSession();
+}
 import { renderEmailEvent, sendEmail, EMAIL_TEST_EVENTS } from '@/lib/email';
 
 function errorMessage(error: unknown): string {
@@ -13,6 +24,7 @@ function errorMessage(error: unknown): string {
 }
 
 export async function getGlobalStats() {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const [
       [{ count: totalStores }],
@@ -44,6 +56,7 @@ export async function getGlobalStats() {
 }
 
 export async function getAllStores() {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const storesList = await db.select().from(stores).orderBy(desc(stores.createdAt));
     return storesList || [];
@@ -54,6 +67,7 @@ export async function getAllStores() {
 }
 
 export async function getAllUsers() {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const usersList = await db.select().from(profiles).orderBy(desc(profiles.createdAt));
     return usersList || [];
@@ -64,6 +78,7 @@ export async function getAllUsers() {
 }
 
 export async function getGlobalProducts(limit = 100) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const productsList = await db.select().from(products).orderBy(desc(products.createdAt)).limit(limit);
     return productsList || [];
@@ -74,6 +89,7 @@ export async function getGlobalProducts(limit = 100) {
 }
 
 export async function getGlobalOrders(limit = 100) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const ordersList = await db.select().from(orders).orderBy(desc(orders.date)).limit(limit);
     return ordersList || [];
@@ -84,6 +100,7 @@ export async function getGlobalOrders(limit = 100) {
 }
 
 export async function getGlobalReviews(limit = 100) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const reviewsList = await db.select().from(productReviews).orderBy(desc(productReviews.createdAt)).limit(limit);
     return reviewsList || [];
@@ -94,6 +111,7 @@ export async function getGlobalReviews(limit = 100) {
 }
 
 export async function getGlobalInvoices(limit = 100) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const invoicesList = await db.select().from(invoices).orderBy(desc(invoices.createdAt)).limit(limit);
     return invoicesList || [];
@@ -104,6 +122,7 @@ export async function getGlobalInvoices(limit = 100) {
 }
 
 export async function getOrderItems(orderId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
     return items || [];
@@ -114,6 +133,7 @@ export async function getOrderItems(orderId: string) {
 }
 
 export async function getStoreById(storeId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const [store] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
     return store || null;
@@ -124,6 +144,7 @@ export async function getStoreById(storeId: string) {
 }
 
 export async function getUserById(userId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const [user] = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
     return user || null;
@@ -134,6 +155,7 @@ export async function getUserById(userId: string) {
 }
 
 export async function getUserStores(userId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const userStores = await db.select().from(stores).where(eq(stores.userId, userId)).orderBy(desc(stores.createdAt));
     return userStores || [];
@@ -144,6 +166,7 @@ export async function getUserStores(userId: string) {
 }
 
 export async function getStoreOrders(storeId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const storeOrders = await db.select().from(orders).where(eq(orders.storeId, storeId)).orderBy(desc(orders.date));
     return storeOrders || [];
@@ -154,6 +177,7 @@ export async function getStoreOrders(storeId: string) {
 }
 
 export async function getStoreProducts(storeId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const storeProducts = await db.select().from(products).where(eq(products.storeId, storeId)).orderBy(desc(products.createdAt));
     return storeProducts || [];
@@ -164,6 +188,7 @@ export async function getStoreProducts(storeId: string) {
 }
 
 export async function getAllStoreProductCounts(): Promise<Record<string, number>> {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const rows = await db
       .select({ storeId: products.storeId, count: sql<number>`count(*)` })
@@ -181,6 +206,7 @@ export async function getAllStoreProductCounts(): Promise<Record<string, number>
 }
 
 export async function getStoreReviews(storeId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const storeReviews = await db.select().from(productReviews).where(eq(productReviews.storeId, storeId)).orderBy(desc(productReviews.createdAt));
     return storeReviews || [];
@@ -191,6 +217,7 @@ export async function getStoreReviews(storeId: string) {
 }
 
 export async function updateStoreApproval(storeId: string, status: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     await db.update(stores).set({ status }).where(eq(stores.id, storeId));
     revalidatePath('/pam/stores');
@@ -242,6 +269,7 @@ export async function updateStoreApproval(storeId: string, status: string) {
 }
 
 export async function updateUserRole(userId: string, isSuperAdmin: boolean) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     await db.update(profiles).set({ isSuperAdmin }).where(eq(profiles.id, userId));
     revalidatePath('/pam/users');
@@ -252,10 +280,12 @@ export async function updateUserRole(userId: string, isSuperAdmin: boolean) {
 }
 
 export async function updateUserAdminStatus(userId: string, isAdmin: boolean) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   return updateUserRole(userId, isAdmin);
 }
 
 export async function updateUserSubscription(userId: string, tier: string, duration: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     if (tier === 'NONE') {
       await db.update(profiles).set({
@@ -375,6 +405,7 @@ export async function updateSellerAccountAction(userId: string, updates: SellerA
 }
 
 export async function deleteUser(userId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     await db.delete(profiles).where(eq(profiles.id, userId));
     revalidatePath('/pam/users');
@@ -386,6 +417,7 @@ export async function deleteUser(userId: string) {
 }
 
 export async function forceDeleteStore(storeId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     await db.delete(stores).where(eq(stores.id, storeId));
     revalidatePath('/pam/stores');
@@ -397,10 +429,12 @@ export async function forceDeleteStore(storeId: string) {
 }
 
 export async function deleteStoreAdmin(storeId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   return forceDeleteStore(storeId);
 }
 
 export async function deleteUsersBulk(userIds: string[]) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   if (!userIds.length) return { success: true, deleted: 0 };
   try {
     await db.delete(profiles).where(inArray(profiles.id, userIds));
@@ -413,6 +447,7 @@ export async function deleteUsersBulk(userIds: string[]) {
 }
 
 export async function deleteStoresBulk(storeIds: string[]) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   if (!storeIds.length) return { success: true, deleted: 0 };
   try {
     await db.delete(stores).where(inArray(stores.id, storeIds));
@@ -425,6 +460,7 @@ export async function deleteStoresBulk(storeIds: string[]) {
 }
 
 export async function deleteReview(reviewId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     await db.delete(productReviews).where(eq(productReviews.id, reviewId));
     revalidatePath('/pam/reviews');
@@ -436,6 +472,7 @@ export async function deleteReview(reviewId: string) {
 }
 
 export async function deleteProduct(productId: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     await db.delete(products).where(eq(products.id, productId));
     revalidatePath('/pam/inventory');
@@ -447,6 +484,7 @@ export async function deleteProduct(productId: string) {
 }
 
 export async function updateStoreStatusAction(storeId: string, status: string) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   return updateStoreApproval(storeId, status);
 }
 
@@ -480,6 +518,7 @@ export interface SystemSettingsData {
 }
 
 export async function getSystemSettings(): Promise<{ success: boolean; error?: string; settings: SystemSettingsData }> {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const rows = await db.select().from(systemSettings);
     const settings: SystemSettingsData = { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay', smtp_pass_set: false };
@@ -507,6 +546,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
 }
 
 export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'smtp_from_name', 'mail_reply_to', 'mail_brand_name', 'mail_tagline', 'mail_logo_url', 'mail_footer', 'admin_emails'];
     const allowedEnvKeys = ['kkiapay_env', 'fedapay_env'];
@@ -554,6 +594,7 @@ function isEmailAddress(value: string): boolean {
 }
 
 export async function getEmailTestEventsAction() {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   return EMAIL_TEST_EVENTS.map(({ key, label, audience }) => ({ key, label, audience }));
 }
 

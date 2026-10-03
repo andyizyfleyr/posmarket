@@ -8,6 +8,35 @@ import { eq, inArray, desc, sql, and, or, ilike } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
 import { isWhatsAppConfigured } from '@/lib/whatsapp'
 import { isEmailConfigured, orderEmailProducts } from '@/lib/email'
+import { requireStoreAccess, ACCES_REFUSE } from '@/lib/authorization'
+
+// ---------------------------------------------------------------------------
+// Garde-fous d'accès
+//
+// Sans ces vérifications, ces actions sont des endpoints HTTP publics : il
+// suffit de connaître un identifiant de commande pour la supprimer, ou celui
+// d'une boutique pour lire toutes ses commandes.
+// ---------------------------------------------------------------------------
+
+/** Vérifie que l'appelant peut gérer la boutique à laquelle appartient la commande. */
+async function requireOrderAccess(orderId: string): Promise<{ ok: true; storeId: string | null } | { ok: false; error: string }> {
+    const storeId = await getStoreIdForOrder(orderId)
+    if (!storeId) return { ok: false, error: 'Commande introuvable' }
+    const access = await requireStoreAccess(storeId)
+    if (!access.ok) return { ok: false, error: access.error }
+    return { ok: true, storeId }
+}
+
+/** Variante « toutes les commandes doivent être accessibles » pour les actions groupées. */
+async function requireAllOrdersAccess(orderIds: string[]): Promise<{ ok: true; storeIds: string[] } | { ok: false; error: string }> {
+    const storeIds = new Set<string>()
+    for (const id of orderIds) {
+        const check = await requireOrderAccess(id)
+        if (!check.ok) return { ok: false, error: check.error }
+        if (check.storeId) storeIds.add(check.storeId)
+    }
+    return { ok: true, storeIds: Array.from(storeIds) }
+}
 
 // ---------------------------------------------------------------------------
 // WhatsApp notification helpers (best-effort, never blocks the action)
@@ -105,6 +134,9 @@ type OrderInput = {
 
 export async function createOrderAction(order: OrderInput, storeId: string) {
     try {
+        const access = await requireStoreAccess(storeId);
+        if (!access.ok) return { success: false, error: access.error };
+
         const dbOrder = {
             storeId,
             customerId: order.customer?.id || null,
@@ -197,7 +229,9 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
 
 export async function updateOrderStatusAction(orderId: string, status: string) {
     try {
-        const storeId = await getStoreIdForOrder(orderId);
+        const access = await requireOrderAccess(orderId);
+        if (!access.ok) return { success: false, error: access.error };
+        const storeId = access.storeId;
         const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, orderId)).limit(1);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
 
@@ -222,7 +256,9 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
 
 export async function deleteOrderAction(id: string) {
     try {
-        const storeId = await getStoreIdForOrder(id);
+        const access = await requireOrderAccess(id);
+        if (!access.ok) return { success: false, error: access.error };
+        const storeId = access.storeId;
         const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, id)).limit(1);
         if (storeId && existing && !isCancelledOrderStatus(existing.status)) {
             const items = await getOrderItemsForStock(id);
@@ -244,6 +280,8 @@ export async function deleteOrderAction(id: string) {
 export async function bulkDeleteOrdersAction(ids: string[]) {
     try {
         if (ids.length > 0) {
+            const bulkAccess = await requireAllOrdersAccess(ids);
+            if (!bulkAccess.ok) return { success: false, error: bulkAccess.error };
             const storeIds = new Set<string>();
             for (const id of ids) {
                 const sid = await getStoreIdForOrder(id);
@@ -273,6 +311,8 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
 export async function bulkUpdateOrderStatusAction(orderIds: string[], status: string) {
     try {
         if (orderIds.length > 0) {
+            const bulkAccess = await requireAllOrdersAccess(orderIds);
+            if (!bulkAccess.ok) return { success: false, error: bulkAccess.error };
             const storeIds = new Set<string>();
             for (const id of orderIds) {
                 const sid = await getStoreIdForOrder(id);
@@ -300,6 +340,9 @@ export async function getOrdersAction(
     filterStatus: string = 'all'
 ) {
     try {
+        const access = await requireStoreAccess(storeId);
+        if (!access.ok) return { success: false, error: access.error };
+
         const conditions = [eq(orders.storeId, storeId)];
         const statusFilter = String(filterStatus || '').toUpperCase();
 

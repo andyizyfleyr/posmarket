@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { serializeJsonLd } from '@/lib/json-ld';
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { fetchMarketplaceData, submitCheckoutAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { MAIN_CATEGORIES } from "@/constants";
@@ -55,7 +56,7 @@ export default async function CategoryPage({ params }: Props) {
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
+                    __html: serializeJsonLd({
                         "@context": "https://schema.org",
                         "@type": "ItemList",
                         name: category,

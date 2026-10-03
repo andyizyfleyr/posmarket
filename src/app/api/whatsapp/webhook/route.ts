@@ -17,15 +17,21 @@ export const dynamic = 'force-dynamic';
  */
 
 function verifyWebhookToken(token: string | null): boolean {
-  if (!token) return false;
-  // Fallback : valeur partagée avec le client (à remplacer par l'env Vercel dès que possible)
-  const expected = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '778e6c6bbf0854fd56ad2edc90920e10313f4b652f3127ca';
-  return expected.length > 0 && token === expected;
+  const expected = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+  // Pas de valeur par défaut : un secret codé en dur est divulgué dès que le
+  // dépôt est public, et un secret absent doit faire échouer la vérification.
+  if (!expected || expected.length < 16 || !token) return false;
+  const a = Buffer.from(token);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 function isValidSignature(rawBody: string, signatureHeader: string | null): boolean {
   const secret = process.env.WHATSAPP_APP_SECRET;
-  if (!secret) return true;
+  // Sans secret configuré, la signature ne peut pas être vérifiée : on refuse
+  // plutôt que d'accepter une requête non authentifiée.
+  if (!secret) return false;
   if (!signatureHeader) return false;
   const prefix = 'sha256=';
   if (!signatureHeader.startsWith(prefix)) return false;
