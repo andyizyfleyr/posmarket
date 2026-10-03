@@ -3544,20 +3544,8 @@ const WHOLESALE_FILTER = "wholesale";
                             />
                           );
 
-                          // Mobile: max 4, avoid odd trailing card (3 -> 2),
-                          // and hide single-product categories entirely
-                          const mobileSlice = (arr: typeof pagedProducts) => {
-                            const n = Math.min(4, arr.length);
-                            return arr.slice(0, n === 3 ? 2 : n);
-                          };
-
                                                     return sortedCats.map((groupKey) => {
-                            const sectionTotal = groups[groupKey].length;
-                            const isExpanded = !!expandedSections[groupKey];
-                            const hasMore = sectionTotal > SECTION_PREVIEW_COUNT;
-                            const sectionItems = isExpanded
-                              ? groups[groupKey]
-                              : groups[groupKey].slice(0, SECTION_PREVIEW_COUNT);
+                            const sectionItems = groups[groupKey].slice(0, SECTION_PREVIEW_COUNT);
                             // La clef porte la verticale ; seul le nom de la categorie est
                             // affiche et utilise pour le filtre, sinon le titre afficherait
                             // un libelle technique.
@@ -3614,27 +3602,6 @@ const WHOLESALE_FILTER = "wholesale";
                               <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                                 {sectionItems.map(renderCard)}
                               </div>
-                              {hasMore && (
-                                <div className="mt-4 flex justify-center">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setExpandedSections((prev) => ({
-                                        ...prev,
-                                        [groupKey]: !prev[groupKey],
-                                      }))
-                                    }
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-[11px] font-bold text-ink hover:border-brand hover:text-brand transition-colors"
-                                  >
-                                    {isExpanded ? "Réduire" : `Voir tout (${sectionTotal})`}
-                                    <ChevronRight
-                                      size={13}
-                                      strokeWidth={3}
-                                      className={isExpanded ? "rotate-90 transition-transform" : "transition-transform"}
-                                    />
-                                  </button>
-                                </div>
-                              )}
                             </div>
                             );
                           });
@@ -3857,20 +3824,8 @@ const WHOLESALE_FILTER = "wholesale";
                               />
                             );
 
-                            // Mobile: max 4, avoid odd trailing card (3 -> 2),
-                            // and hide single-product categories entirely
-                            const mobileSlice = (arr: typeof pagedProducts) => {
-                              const n = Math.min(4, arr.length);
-                              return arr.slice(0, n === 3 ? 2 : n);
-                            };
-
                                                       return sortedCats.map((groupKey) => {
-                            const sectionTotal = groups[groupKey].length;
-                            const isExpanded = !!expandedSections[groupKey];
-                            const hasMore = sectionTotal > SECTION_PREVIEW_COUNT;
-                            const sectionItems = isExpanded
-                              ? groups[groupKey]
-                              : groups[groupKey].slice(0, SECTION_PREVIEW_COUNT);
+                            const sectionItems = groups[groupKey].slice(0, SECTION_PREVIEW_COUNT);
                             // La clef porte la verticale ; seul le nom de la categorie est
                             // affiche et utilise pour le filtre, sinon le titre afficherait
                             // un libelle technique.
@@ -3916,12 +3871,8 @@ const WHOLESALE_FILTER = "wholesale";
                                     </button>
                                   </div>
                                 )}
-                                <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
-                                  {mobileSlice(groups[groupKey]).map(renderCard)}
-                                  {/* Desktop only: full category */}
-                                  <div className="hidden md:contents">
-                                    {groups[groupKey].slice(4).map(renderCard)}
-                                  </div>
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                                  {sectionItems.map(renderCard)}
                                 </div>
                               </div>
                               );
