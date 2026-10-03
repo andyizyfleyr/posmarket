@@ -17,6 +17,8 @@ export type SerializedSessionUser = {
   user_metadata: { full_name?: string | null; account_type?: string | null };
   accountType: string;
   isSuperAdmin: boolean;
+  /** Photo de profil (R2), pour les en-tetes et les initiales. */
+  avatarUrl?: string | null;
 };
 
 export function serializeProfile(profile: typeof profiles.$inferSelect): SerializedSessionUser {
@@ -26,6 +28,7 @@ export function serializeProfile(profile: typeof profiles.$inferSelect): Seriali
     email: profile.email,
     user_metadata: { full_name: profile.fullName, account_type: accountType },
     accountType,
+    avatarUrl: profile.avatarUrl || null,
     isSuperAdmin: profile.isSuperAdmin,
   };
 }

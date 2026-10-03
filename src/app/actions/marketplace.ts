@@ -11,6 +11,7 @@ import { orderEmailProducts } from '@/lib/email'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { generateProductSlug } from '@/utils/slug'
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale'
+import { uploadDataUriToR2 } from '@/lib/r2'
 import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
 import { StoreData, BusinessVertical, Product, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
@@ -1146,6 +1147,8 @@ export async function updateBuyerProfileAction(updates: {
   phone?: string;
   companyName?: string;
   ninea?: string;
+  /** Photo de profil : URL R2, ou data-URI envoyee par le client. */
+  avatarUrl?: string | null;
 }, fallbackIdOrEmail?: string) {
   const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized' };
@@ -1159,7 +1162,28 @@ export async function updateBuyerProfileAction(updates: {
     return { success: false, error: 'Le nom doit contenir au moins 2 caractères' };
   }
 
+  // Photo de profil : une data-URI est d'abord envoyee sur R2, on ne stocke
+  // jamais l'image brute en base. Une URL est acceptee telle quelle.
+  let avatarUrl: string | null = null;
+  if (typeof updates?.avatarUrl !== 'undefined') {
+    const raw = String(updates.avatarUrl || '').trim();
+    if (!raw) {
+      avatarUrl = null;
+    } else if (raw.startsWith('data:')) {
+      const uploaded = await uploadDataUriToR2(raw, 'avatars').catch(() => null);
+      if (!uploaded) {
+        return { success: false, error: "La photo n'a pas pu être envoyée. Réessayez." };
+      }
+      avatarUrl = uploaded;
+    } else if (/^https?:\/\//i.test(raw)) {
+      avatarUrl = raw;
+    } else {
+      return { success: false, error: 'Format de photo non pris en charge.' };
+    }
+  }
+
   const patch: Record<string, unknown> = {};
+  if (typeof updates?.avatarUrl !== 'undefined') patch.avatarUrl = avatarUrl;
   if (fullName) patch.fullName = fullName;
   if (typeof updates?.phone !== 'undefined') patch.phone = phone || null;
   if (typeof updates?.companyName !== 'undefined') patch.companyName = companyName || null;
@@ -1181,6 +1205,7 @@ export async function updateBuyerProfileAction(updates: {
         phone: profiles.phone,
         companyName: profiles.companyName,
         ninea: profiles.ninea,
+        avatarUrl: profiles.avatarUrl,
       });
     return {
       success: true,
@@ -1213,6 +1238,7 @@ export async function fetchBuyerProfileAction(fallbackIdOrEmail?: string) {
       phone: user.phone || '',
       companyName: user.companyName || '',
       ninea: user.ninea || '',
+      avatarUrl: (user as { avatarUrl?: string | null }).avatarUrl || '',
     },
   };
 }

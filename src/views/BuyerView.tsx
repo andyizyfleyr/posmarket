@@ -31,7 +31,7 @@ import {
 import { PanelSkeleton } from '@/components/buyer/accountUtils';
 
 interface BuyerViewProps {
-  user: { id?: string; name: string; email: string };
+  user: { id?: string; name: string; email: string; avatarUrl?: string | null };
   accountTab?: string;
   onBack: () => void;
   notify?: NotifyFn;
@@ -283,7 +283,15 @@ const showError = !!data.error && data.error !== dismissedError;
                 <div
                   className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_GRADIENT} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-bold shadow-md shadow-orange-100 ring-2 ring-white`}
                 >
-                  {avatarInitial(user.name)}
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    avatarInitial(user.name)
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 lg:w-full">
                   <p className="text-base lg:text-xl font-bold text-ink truncate tracking-tight">

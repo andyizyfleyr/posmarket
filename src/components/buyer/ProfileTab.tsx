@@ -43,6 +43,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const initialProfile = readProfileCache();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(() => initialProfile?.phone || '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
   const [loadingProfile, setLoadingProfile] = useState(() => !initialProfile);
   const [saving, setSaving] = useState(false);
   const [validation, setValidation] = useState<{ name?: string; phone?: string }>({});
@@ -56,7 +59,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     (async () => {
       try {
         const res = await fetchBuyerProfileAction();
-        if (active && res?.success && res.profile) {
+        setAvatarUrl((res?.profile as { avatarUrl?: string | null } | undefined)?.avatarUrl || null);
+    if (active && res?.success && res.profile) {
           const rawPhone = res.profile.phone || '';
           setPhone(rawPhone);
           patchProfileCache({ phone: rawPhone });
@@ -92,6 +96,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       const res = await updateBuyerProfileAction({
         fullName: trimmedName,
         phone: phone.trim(),
+        avatarUrl,
       });
       if (res?.success) {
         notify?.('Profil mis à jour', 'success');
@@ -104,6 +109,37 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       notify?.('Erreur de connexion. Veuillez réessayer.', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Repartir de zero : sinon choisir le meme fichier deux fois ne declenche
+    // pas l'evenement change.
+    event.target.value = '';
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+      notify?.('Format non pris en charge. Utilisez JPEG, PNG ou WebP.', 'error');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      notify?.('La photo ne doit pas dépasser 2 Mo.', 'error');
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('read'));
+        reader.readAsDataURL(file);
+      });
+      setAvatarUrl(dataUri);
+      notify?.('Photo prête. Enregistrez pour la appliquer.', 'info');
+    } catch {
+      notify?.('Impossible de lire cette image.', 'error');
+    } finally {
+      setAvatarBusy(false);
     }
   };
 
@@ -124,6 +160,52 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-ink truncate">{user.name}</p>
             <p className="text-[10px] text-gray-400 font-semibold">Membre Marketplace</p>
+          </div>
+        </div>
+
+        {/* Photo de profil */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-gray-400 px-1">Photo de profil</label>
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-brand to-orange-400 flex items-center justify-center text-white text-base font-bold shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (user.name || 'U')[0].toUpperCase()
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-gray-500 font-medium truncate">
+                JPEG ou PNG, 2 Mo maximum.
+              </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={avatarBusy || saving}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] font-bold text-ink hover:border-brand disabled:opacity-50"
+                >
+                  {avatarBusy ? 'Envoi...' : avatarUrl ? 'Changer' : 'Choisir une photo'}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl(null)}
+                    disabled={avatarBusy || saving}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handleAvatarPick}
+            />
           </div>
         </div>
 
