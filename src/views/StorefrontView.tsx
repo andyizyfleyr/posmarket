@@ -3599,10 +3599,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                 </div>
                               )}
                               <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
-                                {mobileSlice(groups[cat]).map(renderCard)}
+                                {mobileSlice(groups[groupKey]).map(renderCard)}
                                 {/* Desktop only: full category */}
                                 <div className="hidden md:contents">
-                                  {groups[cat].slice(4).map(renderCard)}
+                                  {groups[groupKey].slice(4).map(renderCard)}
                                 </div>
                               </div>
                             </div>
@@ -3881,10 +3881,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
                                   </div>
                                 )}
                                 <div className={`grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6`}>
-                                  {mobileSlice(groups[cat]).map(renderCard)}
+                                  {mobileSlice(groups[groupKey]).map(renderCard)}
                                   {/* Desktop only: full category */}
                                   <div className="hidden md:contents">
-                                    {groups[cat].slice(4).map(renderCard)}
+                                    {groups[groupKey].slice(4).map(renderCard)}
                                   </div>
                                 </div>
                               </div>
