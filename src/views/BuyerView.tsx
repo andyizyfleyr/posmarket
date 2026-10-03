@@ -39,7 +39,7 @@ interface BuyerViewProps {
   onUserUpdate: (updates: { name: string }) => void;
 }
 
-const TABS: Array<{
+const ALL_TABS: Array<{
   id: BuyerTabId;
   path: string;
   label: string;
@@ -52,6 +52,24 @@ const TABS: Array<{
   { id: 'notifications', path: 'notifications', label: 'Alertes', desc: 'WhatsApp et e-mail', icon: BellRing },
   { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
 ];
+
+/**
+ * Onglets « Alertes » et « Livraison » masqués dans la navigation : les pages
+ * restent montées et accessibles via /mon-compte/notifications et
+ * /mon-compte/adresses, seules les entrées de menu disparaissent. Les retirer
+ * aussi de `ALL_TABS` comme de `TAB_FROM_PATH` les rendrait inaccessibles.
+ */
+const HIDDEN_TAB_IDS: BuyerTabId[] = ['notifications', 'addresses'];
+
+const TABS = ALL_TABS.filter((t) => !HIDDEN_TAB_IDS.includes(t.id));
+
+/** Tailwind ne génère pas les classes construites : table de correspondance. */
+const TAB_GRID_COLS: Record<number, string> = {
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+  5: 'grid-cols-5',
+};
 
 const TAB_FROM_PATH: Record<string, BuyerTabId> = {
   commandes: 'orders',
@@ -146,7 +164,7 @@ const showError = !!data.error && data.error !== dismissedError;
     });
   };
 
-  const activeTabDef = TABS.find((t) => t.id === activeTab) || TABS[0];
+  const activeTabDef = ALL_TABS.find((t) => t.id === activeTab) || ALL_TABS[0];
 
   const panel = (() => {
     if (showError) {
@@ -349,7 +367,7 @@ const showError = !!data.error && data.error !== dismissedError;
           <main className="mt-4 lg:mt-0">
             {/* Navigation mobile : tuiles onglets */}
             <div className="lg:hidden -mx-4 px-4 mb-4">
-              <div className="grid grid-cols-5 gap-2" role="tablist" aria-label="Sections du compte">
+              <div className={`grid gap-2 ${TAB_GRID_COLS[TABS.length] ?? "grid-cols-3"}`} role="tablist" aria-label="Sections du compte">
                 {TABS.map((tab) => {
                   const isActive = tab.id === activeTab;
                   const Icon = tab.icon;

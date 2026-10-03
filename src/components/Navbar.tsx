@@ -6,8 +6,6 @@ import Loader from '@/components/Loader';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
 import { getDaysRemaining } from '@/utils';
 import { useOnboarding } from './Onboarding/OnboardingContext';
-import SellerNotifications from '@/components/SellerNotifications';
-import NotificationsBoundary from '@/components/NotificationsBoundary';
 
 interface NavbarProps {
   currentView: ViewType;
@@ -292,9 +290,9 @@ const Navbar: React.FC<NavbarProps> = ({
           })()}
 
           <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
-            <NotificationsBoundary>
-              <SellerNotifications />
-            </NotificationsBoundary>
+            {/* Cloche « Alertes » masquée côté vendeur, comme l'onglet du même
+                nom côté acheteur. Le composant SellerNotifications et son action
+                restent en place : il suffit de ne plus l'afficher. */}
             <button
               onClick={() => {
                 const target = currentStore?.slug || currentStore?.id;
