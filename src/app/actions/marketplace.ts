@@ -10,7 +10,9 @@ import { notify, getStorePhone } from '@/lib/notifications'
 import { orderEmailProducts } from '@/lib/email'
 import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { generateProductSlug } from '@/utils/slug'
-import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
+import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale'
+import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
+import { StoreData, BusinessVertical, Product, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
 
@@ -364,6 +366,9 @@ export async function submitCheckoutAction(
           image: products.image,
           price: products.price,
           stock: products.stock,
+          wholesalePrice: products.wholesalePrice,
+          wholesaleMinQty: products.wholesaleMinQty,
+          wholesaleTiers: products.wholesaleTiers,
           variants: products.variants,
         })
         .from(products)
@@ -415,10 +420,29 @@ export async function submitCheckoutAction(
           };
         }
 
-        const unitPrice = variant ? Number(variant.price) : Number(row.price);
-        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        const basePrice = variant ? Number(variant.price) : Number(row.price);
+        if (!Number.isFinite(basePrice) || basePrice < 0) {
           return { success: false, error: `Le prix de « ${row.name} » est invalide.` };
         }
+
+        // Paliers de gros : la regle du panier (getEffectiveItemPrice) est
+        // rejouee ici, sinon le serveur facturait le prix de base alors que le
+        // client affichait le prix degresif. Le meme utilitaire est utilise des
+        // deux cotes pour qu'il n'y ait jamais d'ecart.
+        const wholesaleUnitPrice = getEffectiveWholesaleUnitPrice(
+          {
+            price: basePrice,
+            wholesalePrice: row.wholesalePrice != null ? Number(row.wholesalePrice) : undefined,
+            wholesaleMinQty: row.wholesaleMinQty != null ? Number(row.wholesaleMinQty) : undefined,
+            wholesaleTiers: Array.isArray(row.wholesaleTiers)
+              ? (row.wholesaleTiers as Array<{ minQty: number; price: number; unitPrice?: number }>)
+              : [],
+          } as Product,
+          quantity,
+          basePrice,
+        );
+        const unitPrice =
+          Number.isFinite(wholesaleUnitPrice) && wholesaleUnitPrice > 0 ? wholesaleUnitPrice : basePrice;
 
         const availableStock = variant ? Number(variant.stock) : Number(row.stock);
         if (Number.isFinite(availableStock) && availableStock < quantity) {
@@ -735,7 +759,18 @@ export async function saveProductReviewAction(
     }
 
     const rating = Math.min(5, Math.max(1, Number(data.rating) || 5));
-    const { user } = await resolveCurrentBuyer();
+
+    // Avis : les visiteurs anonymes peuvent spammer sans limite et faire
+    // fonctionner la moyenne d'une boutique.
+    const ip = await getClientIp();
+    const reviewer = await resolveCurrentBuyer();
+    const scope = reviewer.user?.id || ip;
+    const perScope = rateLimit(`review:${storeId}:${productId}:${scope}`, 3, 60 * 60 * 1000);
+    const perIp = rateLimit(`review:ip:${ip}`, 20, 60 * 60 * 1000);
+    if (!perScope.ok) return { success: false, error: rateLimitMessage(perScope.retryAfterSeconds) };
+    if (!perIp.ok) return { success: false, error: rateLimitMessage(perIp.retryAfterSeconds) };
+
+    const { user } = reviewer;
 
     const [review] = await db
       .insert(productReviews)
@@ -811,6 +846,12 @@ export async function notifyCartInterestAction(data: unknown) {
   };
   const phone = String(payload.phone || '').trim();
   if (!phone) return { success: true, error: undefined };
+
+  // Cette action déclenche un WhatsApp à un numéro fourni par le client : sans
+  // plafond, elle devient un outil d'envoi de SMS en masse.
+  const ip = await getClientIp();
+  const notifyLimit = rateLimit(`notify-cart:${ip}`, 10, 60 * 60 * 1000);
+  if (!notifyLimit.ok) return { success: false, error: rateLimitMessage(notifyLimit.retryAfterSeconds) };
 
   try {
     const retryAt = new Date(Date.now() + 24 * 60 * 60 * 1000);

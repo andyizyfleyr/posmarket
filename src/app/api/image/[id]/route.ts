@@ -76,7 +76,18 @@ export async function GET(
         }
         return new Response('Upstream error', { status: 502 });
       }
-      return Response.redirect(source, 302);
+      // La source vient du vendeur : on ne redirige que vers une URL http(s)
+      // valide. Sans ce contrôle, cette route servait de redirecteur ouvert sur
+      // le domaine de l'application (schémas `javascript:` et consorts).
+      let target: URL | null = null;
+      try {
+        const parsed = new URL(source);
+        target = parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed : null;
+      } catch {
+        target = null;
+      }
+      if (!target) return new Response('Unsupported media type', { status: 415 });
+      return Response.redirect(target.toString(), 302);
     }
 
     const match = /^data:(image\/[a-z0-9.+-]+);base64,([\s\S]+)$/.exec(source);

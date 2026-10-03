@@ -7,9 +7,14 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/db';
 import { adminUsers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit';
 
 const SESSION_COOKIE = 'pam_admin_session';
 const SESSION_MAX_AGE = 60 * 60 * 8; // 8 heures
+
+/** 5 tentatives par quart d'heure et par IP : bloque le bourrage d'identifiants. */
+const LOGIN_LIMIT = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 function getSigningSecret(): string {
   // Secret de signature stable, dérivé de DATABASE_URL si ADMIN_AUTH_SECRET absent.
@@ -30,6 +35,15 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function adminLogin(usernameOrEmail: string, password: string): Promise<{ success: boolean; error?: string }> {
+  // La limite est posée avant toute vérification : c'est elle qui rend le
+  // bourrage d'identifications coûteux. Le message reste identique à celui d'un
+  // échec de credentials pour ne rien révéler sur l'existence du compte.
+  const ip = await getClientIp();
+  const attempt = rateLimit(`pam-login:${ip}`, LOGIN_LIMIT, LOGIN_WINDOW_MS);
+  if (!attempt.ok) {
+    return { success: false, error: rateLimitMessage(attempt.retryAfterSeconds) };
+  }
+
   try {
     const [admin] = await db
       .select()

@@ -12,6 +12,11 @@ import {
   googleErrorToMessage,
   findProfileForAuth,
 } from '@/lib/auth-signin';
+import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit';
+
+/** 5 demandes de lien par quart d'heure : évite le flood d'emails et l'énumération. */
+const MAGIC_LINK_LIMIT = 5;
+const MAGIC_LINK_WINDOW_MS = 15 * 60 * 1000;
 
 export async function getCurrentSession() {
   let session = null;
@@ -43,6 +48,15 @@ async function sendMagicLinkForBuyer(opts: {
   if (!email || !email.includes('@')) {
     return { user: null, error: 'Adresse email invalide.' };
   }
+
+  // Deux clefs : par adresse (bloque l'enumeration de comptes et le flood sur
+  // une cible) et par IP (bloque le balayage d'une liste d'adresses).
+  const ip = await getClientIp();
+  const perEmail = rateLimit(`magic-link:email:${email}`, MAGIC_LINK_LIMIT, MAGIC_LINK_WINDOW_MS);
+  const perIp = rateLimit(`magic-link:ip:${ip}`, MAGIC_LINK_LIMIT * 4, MAGIC_LINK_WINDOW_MS);
+  if (!perEmail.ok) return { user: null, error: rateLimitMessage(perEmail.retryAfterSeconds) };
+  if (!perIp.ok) return { user: null, error: rateLimitMessage(perIp.retryAfterSeconds) };
+
   const account = await findProfileForAuth(email).catch(() => null);
   if (opts.register && account) {
     return { user: null, error: 'Un compte existe déjà avec cet email. Connectez-vous.' };
