@@ -1290,12 +1290,16 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               </div>
 
               {/* Desktop: DESCRIPTION placed under the product image */}
-              <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 xl:p-5">
-                <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-gray-100">
-                  <div className="w-1 h-4 bg-brand rounded-full" />
-                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                    {isFood ? "Détails & Préparation" : "Description du produit"}
-                  </h3>
+              {/* Mêmes dimensions que la section « Avis » : même rayon, même bordure,
+                  même ombre et mêmes espacements. */}
+              <div className="mt-3.5 lg:mt-10 bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4 lg:p-10">
+                <div className="flex items-center gap-2 mb-4 lg:mb-6 flex-wrap gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="hidden md:block w-1 h-5 bg-brand rounded-full" />
+                    <h3 className="text-[9px] md:text-sm font-bold text-gray-900 uppercase tracking-[0.12em]">
+                      {isFood ? "Détails & Préparation" : "Description du produit"}
+                    </h3>
+                  </div>
                 </div>
                 {/* Meme repli que sur mobile : sans cela une description longue
                     occupe toute la colonne et repousse le bouton d ajout. */}
