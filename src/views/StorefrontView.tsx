@@ -2547,24 +2547,14 @@ const WHOLESALE_FILTER = "wholesale";
                   setSelectedCategory("all");
                 }}
               >
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-brand rounded-2xl flex items-center justify-center shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform mr-2 md:mr-3">
-                  <ShoppingBasketIcon
-                    size={20}
-                    className="text-white md:hidden"
-                  />
-                  <ShoppingBasketIcon
-                    size={24}
-                    className="text-white hidden md:block"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base md:text-2xl font-bold tracking-tight leading-none text-gray-900">
-                    Pos<span className="text-brand">Market</span>
-                  </span>
-                  <span className="hidden md:block text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] leading-none mt-1">
-                    Local & Express
-                  </span>
-                </div>
+                <Image
+                  src="/logo-trimmed.png"
+                  alt="PosMarket - Local & Express"
+                  width={1767}
+                  height={401}
+                  priority
+                  className="h-7 md:h-9 w-auto group-hover:opacity-80 transition-opacity"
+                />
               </Link>
 
               {/* Search Bar - Desktop Only version */}

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ShoppingBasketIcon, ShieldCheck, MapPin } from 'lucide-react';
+import Image from 'next/image';
+import { ShieldCheck, MapPin } from 'lucide-react';
 import { Link } from '@/components/RouterPolyfill';
 
 const footerNav = [
@@ -22,12 +23,13 @@ export const MarketplaceFooter: React.FC = () => {
               className="flex items-center gap-2.5 w-fit group"
               aria-label="PosMarket - Retour à l'accueil"
             >
-              <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center shadow-md shadow-orange-100 group-hover:scale-110 transition-transform">
-                <ShoppingBasketIcon size={20} className="text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-tight text-gray-900">
-                Pos<span className="text-brand">Market</span>
-              </span>
+              <Image
+                src="/logo-trimmed.png"
+                alt="PosMarket - Local & Express"
+                width={1767}
+                height={401}
+                className="h-8 w-auto group-hover:opacity-80 transition-opacity"
+              />
             </Link>
             <p className="mt-3 text-sm font-normal text-gray-500 leading-relaxed">
               Place de marché reliant les vendeurs et les acheteurs.
