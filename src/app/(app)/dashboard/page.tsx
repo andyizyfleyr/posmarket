@@ -30,6 +30,7 @@ export default async function DashboardPage() {
       orders={orders as unknown as Order[]} 
       store={store ? (store as { id: string; name?: string; business_type?: 'shopping' | 'food'; views?: number; [key: string]: unknown }) : undefined}
       userName={store?.name || user.email?.split('@')[0]}
+      userAvatarUrl={user.avatarUrl}
       userRole={role as unknown as StaffRole}
       permissions={permissions as unknown as StaffPermissions}
     />

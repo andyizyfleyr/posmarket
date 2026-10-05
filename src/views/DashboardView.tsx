@@ -28,6 +28,7 @@ interface DashboardViewProps {
   userRole?: StaffRole;
   permissions: StaffPermissions;
   userName?: string;
+  userAvatarUrl?: string | null;
   store?: {
     id: string;
     name?: string;
@@ -77,7 +78,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, trendVal
   </div>
 );
 
-const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permissions, userName, store }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permissions, userName, userAvatarUrl, store }) => {
   const router = useRouter();
   const getLocalYMD = (d: Date) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -419,8 +420,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 md:mb-8 gap-1 md:gap-6">
         <div className="flex items-center gap-2 md:gap-4">
               <div className="md:hidden w-8 h-8 rounded-xl overflow-hidden border border-white shadow-lg flex-shrink-0 relative">
-            <Image 
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName || 'user'}`} 
+            <Image
+              src={userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName || 'user'}`}
               alt="Avatar"
               fill
               className="object-cover bg-orange-50"

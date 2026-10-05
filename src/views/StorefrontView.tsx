@@ -829,6 +829,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     id?: string;
     name: string;
     email: string;
+    avatarUrl?: string | null;
   } | null>(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -862,6 +863,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             id: session.user.id,
             name: session.user.user_metadata?.full_name || "Utilisateur",
             email: session.user.email || "",
+            avatarUrl:
+              (session.user as { avatarUrl?: string | null }).avatarUrl ||
+              ((session.user.user_metadata as Record<string, string | undefined>)
+                ?.avatar_url as string | undefined) ||
+              ((session.user.user_metadata as Record<string, string | undefined>)
+                ?.picture as string | undefined) ||
+              null,
           };
           setUser(u);
           try {
@@ -1176,10 +1184,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     localNotify("Déconnexion réussie", "info");
   };
 
-  const handleUserUpdate = (updates: { name: string }) => {
+  const handleUserUpdate = (updates: { name: string; avatarUrl?: string | null }) => {
     setUser((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, name: updates.name || prev.name };
+      const updated = {
+        ...prev,
+        name: updates.name || prev.name,
+        avatarUrl:
+          typeof updates.avatarUrl !== 'undefined'
+            ? updates.avatarUrl
+            : prev.avatarUrl,
+      };
       try { localStorage.setItem('posmarket_buyer_user', JSON.stringify(updated)); } catch {}
       return updated;
     });
@@ -2461,7 +2476,7 @@ const WHOLESALE_FILTER = "wholesale";
       {(isAccountView || isAccountViewUrl) && user && (
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
-            user={{ id: user.id, name: user.name, email: user.email }}
+            user={{ id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl }}
             accountTab={location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0] || 'commandes'}
             onBack={() => {
               if (isAccountViewUrl) handleGoBack("/");
@@ -2635,9 +2650,17 @@ const WHOLESALE_FILTER = "wholesale";
                     className={`flex items-center gap-2.5 p-2 md:px-4 md:py-2.5 rounded-2xl transition-all active:scale-[0.98] group/auth border-[1.5px] ${user ? "bg-brand/5 border-brand/20 text-brand" : "bg-gray-50 border-gray-100 text-gray-700 hover:bg-brand/10 hover:text-brand hover:border-brand/20"}`}
                   >
                     <div
-                      className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all ${user ? "bg-brand text-white" : "bg-white text-gray-400 group-hover/auth:bg-brand group-hover/auth:text-white"}`}
+                      className={`w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center shadow-sm transition-all overflow-hidden ${user ? "bg-brand text-white" : "bg-white text-gray-400 group-hover/auth:bg-brand group-hover/auth:text-white"}`}
                     >
-                      <User size={18} strokeWidth={3} />
+                      {user?.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={18} strokeWidth={3} />
+                      )}
                     </div>
                     <div className="hidden md:flex flex-col items-start leading-none pr-1">
                       <span className="text-[9px] font-bold uppercase tracking-wider opacity-60 mb-0.5">

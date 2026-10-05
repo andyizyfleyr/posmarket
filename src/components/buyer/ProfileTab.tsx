@@ -8,8 +8,8 @@ import { PhoneInput } from '@/components/PhoneInput';
 import { NotifyFn } from './accountTypes';
 
 interface ProfileTabProps {
-  user: { id?: string; name: string; email: string };
-  onUserUpdate: (name: string) => void;
+  user: { id?: string; name: string; email: string; avatarUrl?: string | null };
+  onUserUpdate: (updates: { name: string; avatarUrl?: string | null }) => void;
   onLogout: () => void;
   notify?: NotifyFn;
 }
@@ -43,16 +43,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const initialProfile = readProfileCache();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(() => initialProfile?.phone || '');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [loadingProfile, setLoadingProfile] = useState(() => !initialProfile);
   const [saving, setSaving] = useState(false);
   const [validation, setValidation] = useState<{ name?: string; phone?: string }>({});
 
-  useEffect(() => {
+useEffect(() => {
     setName(user.name);
   }, [user.name]);
+
+  useEffect(() => {
+    if (user.avatarUrl) setAvatarUrl(user.avatarUrl);
+  }, [user.avatarUrl]);
 
   useEffect(() => {
     let active = true;
@@ -98,9 +102,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
         phone: phone.trim(),
         avatarUrl,
       });
-      if (res?.success) {
+if (res?.success) {
         notify?.('Profil mis à jour', 'success');
-        onUserUpdate(trimmedName);
+        onUserUpdate({
+          name: trimmedName,
+          avatarUrl: res.user?.avatarUrl ?? avatarUrl,
+        });
         patchProfileCache({ phone: phone.trim() });
       } else {
         notify?.(res?.error || 'Erreur lors de la mise à jour du profil.', 'error');
@@ -154,8 +161,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     <div className="space-y-4">
       <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-5 space-y-5">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-tr from-brand to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-200/50">
-            {(user.name || 'U')[0].toUpperCase()}
+<div className="w-14 h-14 bg-gradient-to-tr from-brand to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-200/50 overflow-hidden shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              (user.name || 'U')[0].toUpperCase()
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-ink truncate">{user.name}</p>

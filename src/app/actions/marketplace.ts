@@ -4,6 +4,7 @@ import { db } from '@/db'
 import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles, coupons, checkoutIdempotency } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache, updateTag } from 'next/cache'
+import { revalidatePath } from 'next/cache'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales, adjustProductStock } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
@@ -738,6 +739,7 @@ const resolveCurrentBuyer = async (_fallbackIdOrEmail?: string) => {
     phone: profiles.phone,
     companyName: profiles.companyName,
     ninea: profiles.ninea,
+    avatarUrl: profiles.avatarUrl,
     createdAt: profiles.createdAt
   };
 
@@ -1207,6 +1209,7 @@ export async function updateBuyerProfileAction(updates: {
         ninea: profiles.ninea,
         avatarUrl: profiles.avatarUrl,
       });
+    revalidatePath('/mon-compte');
     return {
       success: true,
       error: undefined,
@@ -1217,6 +1220,7 @@ export async function updateBuyerProfileAction(updates: {
         phone: profile.phone || '',
         companyName: profile.companyName || '',
         ninea: profile.ninea || '',
+        avatarUrl: profile.avatarUrl || '',
       },
     };
   } catch (error) {

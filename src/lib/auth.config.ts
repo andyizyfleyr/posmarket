@@ -23,6 +23,7 @@ export const authConfig = {
           id: token.id ? String(token.id) : session.user.id,
           accountType: (token.accountType as string) ?? 'buyer',
           isSuperAdmin: Boolean(token.isSuperAdmin),
+          avatarUrl: (token.picture as string | undefined) ?? null,
         } as typeof session.user;
       }
       return session;

@@ -36,7 +36,7 @@ interface BuyerViewProps {
   onBack: () => void;
   notify?: NotifyFn;
   onLogout: () => void;
-  onUserUpdate: (updates: { name: string }) => void;
+  onUserUpdate: (updates: { name: string; avatarUrl?: string | null }) => void;
 }
 
 const ALL_TABS: Array<{
@@ -229,8 +229,8 @@ const showError = !!data.error && data.error !== dismissedError;
           <ProfileTab
             user={user}
             notify={notify}
-            onUserUpdate={(name) => {
-              onUserUpdate({ name });
+onUserUpdate={(updates) => {
+              onUserUpdate(updates);
             }}
             onLogout={() => setShowLogoutModal(true)}
           />

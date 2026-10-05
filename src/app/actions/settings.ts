@@ -107,13 +107,33 @@ export async function updateProfileSettingsAction(userId: string, data: { fullNa
         const self = await requireSelfOrAdmin(userId)
         if (!self.ok) return { success: false, error: self.error }
 
-        const updateData: Record<string, string> = {};
+        const updateData: Record<string, unknown> = {};
         if (data.fullName) updateData.fullName = data.fullName;
         if (data.email) updateData.email = data.email;
+
+        // Photo de profil : data-URI envoyee sur R2 avant enregistrement, on ne
+        // stocke jamais l'image brute en base (meme contrat que
+        // updateBuyerProfileAction).
+        if (typeof data.avatarUrl !== 'undefined') {
+            const raw = String(data.avatarUrl || '').trim();
+            if (!raw) {
+                updateData.avatarUrl = null;
+            } else if (raw.startsWith('data:')) {
+                const uploaded = await uploadDataUriToR2(raw, 'avatars').catch(() => null);
+                if (!uploaded) return { success: false, error: "La photo n'a pas pu être envoyée. Réessayez." };
+                updateData.avatarUrl = uploaded;
+            } else if (/^https?:\/\//i.test(raw)) {
+                updateData.avatarUrl = raw;
+            } else {
+                return { success: false, error: 'Format de photo non pris en charge.' };
+            }
+        }
 
         await db.update(profiles).set(updateData as Partial<typeof profiles.$inferInsert>).where(eq(profiles.id, userId));
 
         revalidatePath('/settings');
+        revalidatePath('/mon-compte');
+        updateTag('marketplace');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating profile with Drizzle:', error);
