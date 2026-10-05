@@ -26,6 +26,19 @@ export const metadata: Metadata = {
     "vente express",
   ],
   applicationName: "PosMarket",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "PosMarket",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "fr_FR",
@@ -48,6 +61,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
+  themeColor: "#f56b2a",
 };
 
 export default function RootLayout({
