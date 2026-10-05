@@ -1297,13 +1297,37 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     {isFood ? "Détails & Préparation" : "Description du produit"}
                   </h3>
                 </div>
-                <RichDescription text={descriptionText} accentClass={accentText} />
-                <AutoHighlights items={autoHighlights} accentClass={accentText} />
-                <AutoBadgesRow badges={autoBadges} />
-                <AutoSpecsGrid
-                  specs={autoSpecs}
-                  className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
-                />
+                {/* Meme repli que sur mobile : sans cela une description longue
+                    occupe toute la colonne et repousse le bouton d ajout. */}
+                <div
+                  className={`relative ${
+                    !isDescriptionExpanded
+                      ? "max-h-56 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+                      : ""
+                  }`}
+                >
+                  <RichDescription text={descriptionText} accentClass={accentText} />
+                  <AutoHighlights items={autoHighlights} accentClass={accentText} />
+                  <AutoBadgesRow badges={autoBadges} />
+                  <AutoSpecsGrid
+                    specs={autoSpecs}
+                    className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
+                  />
+                </div>
+                {hasMoreContent && (
+                  <button
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform text-brand"
+                  >
+                    {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
+                    <ChevronRight
+                      size={10}
+                      className={`transition-transform duration-300 ${
+                        isDescriptionExpanded ? "-rotate-90" : "rotate-90"
+                      }`}
+                    />
+                  </button>
+                )}
               </div>
             </div>
 
