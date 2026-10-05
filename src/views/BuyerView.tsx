@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from '@/components/RouterPolyfill';
 import {
   ArrowLeft,
@@ -155,14 +155,23 @@ const showError = !!data.error && data.error !== dismissedError;
     if (ok) setAddressPendingDelete(null);
   };
 
-  const handleReviewSubmit = async (rating: number, comment: string) => {
-    if (!reviewTarget) return false;
-    return data.submitReview(reviewTarget.store_id, reviewTarget.id, {
-      rating,
-      comment,
-      author: user.name,
-    });
-  };
+const { submitReview } = data;
+
+  const handleReviewSubmit = useCallback(
+    async (rating: number, comment: string) => {
+      if (!reviewTarget) return false;
+      return submitReview(reviewTarget.store_id, reviewTarget.id, {
+        rating,
+        comment,
+        author: user.name,
+      });
+    },
+    [submitReview, reviewTarget, user.name],
+  );
+
+  // Stable : évite de recréer la modale d'avis (et son piégeage de focus) à
+  // chaque render de l'espace acheteur.
+  const closeReviewModal = useCallback(() => setReviewTarget(null), []);
 
   const activeTabDef = ALL_TABS.find((t) => t.id === activeTab) || ALL_TABS[0];
 
@@ -428,7 +437,7 @@ onUserUpdate={(updates) => {
       {reviewTarget && (
         <ReviewModal
           product={reviewTarget}
-          onClose={() => setReviewTarget(null)}
+          onClose={closeReviewModal}
           onSubmit={handleReviewSubmit}
         />
       )}
