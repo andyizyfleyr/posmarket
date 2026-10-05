@@ -2,6 +2,8 @@
 export interface Review {
   id: string;
   author: string;
+  /** Photo de l'auteur (R2) ; absent pour un avis anonyme. */
+  avatarUrl?: string | null;
   rating: number;
   comment: string;
   date: string;

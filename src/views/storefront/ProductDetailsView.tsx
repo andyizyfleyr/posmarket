@@ -692,15 +692,25 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const renderReviewCard = (review: Review, idx: number) => (
       <div key={idx} className="flex gap-3 py-4 first:pt-1 last:pb-0">
         <div
-          className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold ${
-            [
-              "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
-              "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
-              "bg-gradient-to-br from-rose-100 to-rose-200 text-rose-600",
-            ][idx % 3]
+          className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold overflow-hidden ${
+            review.avatarUrl
+              ? "bg-gray-100"
+              : [
+                  "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
+                  "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
+                  "bg-gradient-to-br from-rose-100 to-rose-200 text-rose-600",
+                ][idx % 3]
           }`}
         >
-          {review.author?.[0]?.toUpperCase() || "A"}
+          {review.avatarUrl ? (
+            <img
+              src={review.avatarUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            review.author?.[0]?.toUpperCase() || "A"
+          )}
         </div>
         <div className="flex-grow min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">

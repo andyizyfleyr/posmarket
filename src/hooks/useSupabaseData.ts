@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/supabase';
 import { StoreData, Staff } from '@/types';
+import { fetchProductReviewsAction } from '@/app/actions/marketplace';
 
 /* =========================================================
    FORMATTERS (UI SAFE)
@@ -292,13 +293,9 @@ export const fetchInvoiceItems = async (invoiceId: string): Promise<Record<strin
 };
 
 export const fetchProductReviews = async (productId: string): Promise<Record<string, unknown>[]> => {
-    const { data, error } = await supabase
-        .from('product_reviews')
-        .select('*')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+    const res = await fetchProductReviewsAction(productId);
+    if (!res?.success) throw new Error(res?.error || 'Erreur lors du chargement des avis');
+    return res.reviews as unknown as Record<string, unknown>[];
 };
 
 export const fetchMarketplaceProducts = async () => {

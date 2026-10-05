@@ -856,6 +856,99 @@ export async function saveProductReviewAction(
   }
 }
 
+/**
+ * Avis d'un produit avec la photo de son auteur.
+ *
+ * Jointure externe sur `profiles` : les avis anonymes (`user_id` NULL) n'ont
+ * pas de photo et conservent l'affichage par initiale côté client.
+ */
+export async function fetchProductReviewsAction(productId: string) {
+  if (!productId) return { success: false, error: 'Produit invalide', reviews: [] };
+
+  try {
+    const rows = await db
+      .select({
+        id: productReviews.id,
+        rating: productReviews.rating,
+        comment: productReviews.comment,
+        createdAt: productReviews.createdAt,
+        authorName: productReviews.authorName,
+        avatarUrl: profiles.avatarUrl,
+      })
+      .from(productReviews)
+      .leftJoin(profiles, eq(productReviews.userId, profiles.id))
+      .where(eq(productReviews.productId, productId))
+      .orderBy(desc(productReviews.createdAt));
+
+    return {
+      success: true,
+      error: undefined,
+      reviews: rows.map((r) => ({
+        id: r.id,
+        author: r.authorName || 'Anonyme',
+        avatarUrl: r.avatarUrl || null,
+        rating: Number(r.rating) || 0,
+        comment: r.comment || '',
+        date: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt || ''),
+        productId,
+      })),
+    };
+  } catch (error) {
+    console.error('Error fetching product reviews:', error);
+    const message = error instanceof Error ? error.message : 'Erreur lors du chargement des avis';
+    return { success: false, error: message, reviews: [] };
+  }
+}
+
+/**
+ * Avis d'une boutique (tous ses produits) avec la photo de chaque auteur.
+ * Même jointure externe que `fetchProductReviewsAction`.
+ */
+export async function fetchStoreReviewsAction(storeId: string) {
+  if (!storeId) return { success: false, error: 'Boutique invalide', reviews: [] };
+
+  try {
+    const rows = await db
+      .select({
+        id: productReviews.id,
+        rating: productReviews.rating,
+        comment: productReviews.comment,
+        createdAt: productReviews.createdAt,
+        authorName: productReviews.authorName,
+        productId: productReviews.productId,
+        productName: products.name,
+        productImage: products.image,
+        avatarUrl: profiles.avatarUrl,
+      })
+      .from(productReviews)
+      .leftJoin(profiles, eq(productReviews.userId, profiles.id))
+      .leftJoin(products, eq(productReviews.productId, products.id))
+      .where(eq(productReviews.storeId, storeId))
+      .orderBy(desc(productReviews.createdAt));
+
+    return {
+      success: true,
+      error: undefined,
+      reviews: rows.map((r) => ({
+        id: r.id,
+        author: r.authorName || 'Anonyme',
+        avatarUrl: r.avatarUrl || null,
+        rating: Number(r.rating) || 0,
+        comment: r.comment || '',
+        date: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt || ''),
+        productId: r.productId || undefined,
+        productName: r.productName || undefined,
+        productImage: normalizeImageUrl(r.productImage),
+        storeId,
+      })),
+    };
+  } catch (error) {
+    console.error('Error fetching store reviews:', error);
+    const message = error instanceof Error ? error.message : 'Erreur lors du chargement des avis';
+    return { success: false, error: message, reviews: [] };
+  }
+}
+
 export async function notifyCartInterestAction(data: unknown) {
   const payload = (data || {}) as {
     phone?: string;
