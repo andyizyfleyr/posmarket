@@ -1793,6 +1793,48 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </div>
         </div>
 
+        {/* Description : pleine largeur, comme la section Avis qui suit. */}
+        <section className="mt-3.5 lg:mt-10 bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4 lg:p-10">
+          <div className="flex items-center justify-between mb-4 lg:mb-6 flex-wrap gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="hidden md:block w-1 h-5 bg-brand rounded-full" />
+              <h3 className="text-[9px] md:text-sm font-bold text-gray-900 uppercase tracking-[0.12em]">
+                {isFood ? "Détails & Préparation" : "Description du produit"}
+              </h3>
+            </div>
+          </div>
+
+          <div
+            className={`relative ${
+              !isDescriptionExpanded
+                ? "max-h-56 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+                : ""
+            }`}
+          >
+            <RichDescription text={descriptionText} accentClass={accentText} />
+            <AutoHighlights items={autoHighlights} accentClass={accentText} />
+            <AutoBadgesRow badges={autoBadges} />
+            <AutoSpecsGrid
+              specs={autoSpecs}
+              className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
+            />
+          </div>
+
+          {hasMoreContent && (
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform text-brand"
+            >
+              {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
+              <ChevronRight
+                size={10}
+                className={`transition-transform duration-300 ${
+                  isDescriptionExpanded ? "-rotate-90" : "rotate-90"
+                }`}
+              />
+            </button>
+          )}
+        </section>
         {/* ================= AVIS (CARD-BASED) ================= */}
         <section
           id="pd-avis"
