@@ -1,5 +1,5 @@
-const CACHE_NAME = 'marketplace-premium-cache-v4';
-const MAX_ENTRIES = 500;
+const CACHE_NAME = 'marketplace-premium-cache-v3';
+const MAX_ENTRIES = 200;
 const STATIC_ASSETS = [
     '/manifest.json',
     '/offline',
@@ -43,44 +43,11 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 🛡️ Navigation requests : réseau d'abord, page en cache en secours
-    // (permet de revisiter une page déjà vue hors-ligne), /offline en dernier recours.
+    // 🛡️ Navigation requests : réseau d'abord, page /offline en secours
     if (request.mode === 'navigate') {
         event.respondWith(
-            fetch(request)
-                .then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        const clone = networkResponse.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-                    }
-                    return networkResponse;
-                })
-                .catch(async () =>
-                    (await caches.match(request, { ignoreSearch: true })) ||
-                    (await caches.match(request)) ||
-                    caches.match('/offline').then((r) => r || Response.error())
-                )
-        );
-        return;
-    }
-
-    // ⚡ RSC / DATA Next.js (App Router) : indispensable à la navigation
-    // client-side. Network-First avec repli cache — hors-ligne, une page déjà
-    // visitée se rend au lieu d'échouer.
-    if (request.method === 'GET' && url.origin === self.location.origin &&
-        (url.searchParams.has('_rsc') || request.headers.get('rsc') === '1')) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then((cache) =>
-                fetch(request)
-                    .then((networkResponse) => {
-                        if (networkResponse && networkResponse.status === 200) {
-                            cache.put(request, networkResponse.clone());
-                        }
-                        return networkResponse;
-                    })
-                    .catch(() =>
-                        cache.match(request).then((cached) => cached || Response.error())
-                    )
+            fetch(request).catch(() =>
+                caches.match('/offline').then((r) => r || Response.error())
             )
         );
         return;
