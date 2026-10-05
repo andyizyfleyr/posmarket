@@ -265,6 +265,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [ftsResults, setFtsResults] = useState<StorefrontProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
+  // Instantané hors-ligne : survit au vidage de `marketplace_data_cache`
+  // (effectué par la recherche full-text) et garantit un catalogue lisible
+  // sans réseau, même après une session longue.
+  const [offlineStores, setOfflineStores] = useState<StoreData[]>([]);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
 
   // 0. Détection du pays par IP (garde UX) — le pays non desservi ne peut pas commander.
@@ -319,10 +323,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return null;
   })();
 
-  // ⚡ Derive active data from props or cache
+  // ⚡ Derive active data from props or cache.
+  // Priorité : props serveur → cache de session → instantané hors-ligne persistant.
   const activeStores = useMemo(() => {
-    return stores && stores.length > 0 ? stores : cachedStores;
-  }, [stores, cachedStores]);
+    if (stores && stores.length > 0) return stores;
+    if (cachedStores.length > 0) return cachedStores;
+    return offlineStores;
+  }, [stores, cachedStores, offlineStores]);
 
   // Resolve store ID from param using ALL available stores (props + cache) for instant filtering
   // Also use initialStoreId passed from server for instant SSR filtering
@@ -453,6 +460,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       } catch {}
 
       try {
+        const offline = localStorage.getItem("storefront_offline_snapshot");
+        if (offline) {
+          const { stores: parsedStores, timestamp } = JSON.parse(offline);
+          if (
+            Array.isArray(parsedStores) &&
+            parsedStores.length > 0 &&
+            Date.now() - timestamp < 7 * 24 * 60 * 60 * 1000
+          ) {
+            setOfflineStores(parsedStores);
+          }
+        }
+      } catch {}
+
+      try {
         const savedCart = localStorage.getItem("storefront_cart");
         if (savedCart) {
           const { data, timestamp } = JSON.parse(savedCart);
@@ -544,6 +565,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           timestamp: Date.now(),
         }),
       );
+    } catch {}
+
+    // Instantané hors-ligne (7 jours) : alimenté depuis les props serveur,
+    // donc jamais depuis le cache de session — il reste valide même quand la
+    // recherche full-text vide `marketplace_data_cache`.
+    try {
+      if (stores && stores.length > 0) {
+        localStorage.setItem(
+          "storefront_offline_snapshot",
+          JSON.stringify({ stores, timestamp: Date.now() }),
+        );
+      }
     } catch {}
   }, [stores, allProducts, isMounted]);
 
