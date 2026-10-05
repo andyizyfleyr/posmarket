@@ -294,8 +294,9 @@ const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center gap-2 md:gap-2 md:pl-6 md:border-l border-gray-100 relative">
             {/* Cloche « Alertes » masquée côté vendeur, comme l'onglet du même
-                nom côté acheteur. Le composant SellerNotifications et son action
-                restent en place : il suffit de ne plus l'afficher. */}
+                nom côté acheteur. Le composant SellerNotifications, son action
+                et NotificationsBoundary ont été supprimés : plus rien ne les
+                référençait. */}
             <button
               onClick={() => {
                 const target = currentStore?.slug || currentStore?.id;
