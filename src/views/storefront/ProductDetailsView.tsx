@@ -1794,7 +1794,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         </div>
 
         {/* Description : pleine largeur, comme la section Avis qui suit. */}
-        <section className="mt-3.5 lg:mt-10 bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4 lg:p-10">
+        <section className="hidden lg:block mt-3.5 lg:mt-10 bg-white rounded-[24px] lg:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4 lg:p-10">
           <div className="flex items-center justify-between mb-4 lg:mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-2.5">
               <div className="hidden md:block w-1 h-5 bg-brand rounded-full" />
