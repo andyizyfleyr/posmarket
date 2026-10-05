@@ -1,5 +1,5 @@
-import { pgTable, uuid, text, timestamp, numeric, integer, boolean, jsonb, AnyPgColumn } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, uuid, text, timestamp, numeric, integer, boolean, jsonb, AnyPgColumn, index } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -117,6 +117,7 @@ export const products = pgTable('products', {
   businessType: text('business_type').default('shopping').notNull(), // 'shopping' or 'food'
   options: jsonb('options').default([]),
   variants: jsonb('variants').default([]),
+  searchVector: text('search_vector').notNull().default(''),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

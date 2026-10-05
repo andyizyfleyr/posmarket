@@ -36,6 +36,96 @@
       "when": 1788620531249,
       "tag": "0004_reflective_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0005_search_engine"
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0006_search_unaccent"
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0007_account_types"
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0008_fedapay_subscriptions"
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0009_email_notifications"
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0010_dedupe_product_images"
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0011_product_categories"
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0011_product_categories_seed"
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0012_order_item_variants"
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0012_variants_json_cleanup"
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0013_checkout_idempotency"
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0014_fix_missing_columns"
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0015_create_missing_tables"
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0016_rebuild_search"
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0017_indexes"
     }
   ]
 }

@@ -1,0 +1,21 @@
+-- Performance indexes (from supabase migration 20260824)
+CREATE INDEX IF NOT EXISTS idx_products_store_id ON products (store_id);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products (category_id);
+CREATE INDEX IF NOT EXISTS idx_products_is_online ON products (is_online);
+CREATE INDEX IF NOT EXISTS idx_products_views ON products (views);
+CREATE INDEX IF NOT EXISTS idx_products_created_at ON products (created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_store_id ON orders (store_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
+CREATE INDEX IF NOT EXISTS idx_orders_date ON orders (date);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items (product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items (variant_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_store_id ON invoices (store_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices (status);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_store_id ON product_reviews (store_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON product_reviews (product_id);
+CREATE INDEX IF NOT EXISTS idx_customers_store_id ON customers (store_id);
+CREATE INDEX IF NOT EXISTS idx_store_staff_store_id ON store_staff (store_id);
+CREATE INDEX IF NOT EXISTS idx_store_staff_user_id ON store_staff (user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_outbox_status ON notification_outbox (status);
+CREATE INDEX IF NOT EXISTS idx_notification_outbox_scheduled_at ON notification_outbox (scheduled_at);
