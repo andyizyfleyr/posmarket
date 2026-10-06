@@ -234,11 +234,13 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
         const access = await requireOrderAccess(orderId);
         if (!access.ok) return { success: false, error: access.error };
         const storeId = access.storeId;
-        const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, orderId)).limit(1);
+        const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, orderId)).limit(1);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
 
-        // Une commande annulée (pas déjà annulée) redonne son stock
-        if (existing && !isCancelledOrderStatus(existing.status) && isCancelledOrderStatus(status) && storeId) {
+        // Une commande annulée (pas déjà annulée) redonne son stock.
+        // Une commande boostée n'a jamais décrémenté ce stock : la réintégrer
+        // ferait monter l'inventaire au-dessus du niveau réel.
+        if (existing && !existing.boosted && !isCancelledOrderStatus(existing.status) && isCancelledOrderStatus(status) && storeId) {
             const items = await getOrderItemsForStock(orderId);
             await adjustProductStock(storeId, items, 'restore');
             updateTag('marketplace');
@@ -261,8 +263,10 @@ export async function deleteOrderAction(id: string) {
         const access = await requireOrderAccess(id);
         if (!access.ok) return { success: false, error: access.error };
         const storeId = access.storeId;
-        const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, id)).limit(1);
-        if (storeId && existing && !isCancelledOrderStatus(existing.status)) {
+        const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, id)).limit(1);
+        // Voir `updateOrderStatusAction` : une commande boostée n'a jamais
+        // décrémenté le stock, on ne réintègre donc rien à sa suppression.
+        if (storeId && existing && !existing.boosted && !isCancelledOrderStatus(existing.status)) {
             const items = await getOrderItemsForStock(id);
             await adjustProductStock(storeId, items, 'restore');
             updateTag('marketplace');
@@ -288,8 +292,8 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
             for (const id of ids) {
                 const sid = await getStoreIdForOrder(id);
                 if (sid) storeIds.add(sid);
-                const [existing] = await db.select({ status: orders.status }).from(orders).where(eq(orders.id, id)).limit(1);
-                if (sid && existing && !isCancelledOrderStatus(existing.status)) {
+                const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, id)).limit(1);
+                if (sid && existing && !existing.boosted && !isCancelledOrderStatus(existing.status)) {
                     const items = await getOrderItemsForStock(id);
                     await adjustProductStock(sid, items, 'restore');
                     updateTag('marketplace');

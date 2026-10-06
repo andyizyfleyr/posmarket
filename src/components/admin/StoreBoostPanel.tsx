@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, Eye, Package, ShoppingBag, Loader2, Info, CheckCircle2, AlertCircle } from 'lucide-react';
-import { boostStoreViewsAction, boostStoreOrdersAction } from '@/app/actions/admin';
+import { Zap, Eye, Package, ShoppingBag, Star, Loader2, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { boostStoreViewsAction, boostStoreOrdersAction, boostStoreReviewsAction } from '@/app/actions/admin';
+import { formatCurrency } from '@/utils';
 
-type Busy = null | 'views-store' | 'views-products' | 'orders';
+type Busy = null | 'views-store' | 'views-products' | 'orders' | 'reviews';
 type Feedback = { type: 'ok' | 'err'; text: string } | null;
 
 const inputClass =
@@ -13,6 +14,10 @@ const inputClass =
 const labelClass = 'block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5';
 const primaryButtonClass =
   'inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-brand hover:bg-[#d55a20] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm';
+
+/** Bornes alignées sur les clamps serveur (100000 vues / 50 commandes / 50 avis). */
+const clampViews = (raw: string) => Math.min(100000, Math.max(1, Math.floor(Number(raw) || 1)));
+const clampCount = (raw: string) => Math.min(50, Math.max(1, Math.floor(Number(raw) || 1)));
 
 export default function StoreBoostPanel({
   storeId,
@@ -22,11 +27,16 @@ export default function StoreBoostPanel({
   productCount: number;
 }) {
   const router = useRouter();
-  const [views, setViews] = useState(100);
-  const [orderCount, setOrderCount] = useState(5);
+  const [viewsText, setViewsText] = useState('100');
+  const [orderText, setOrderText] = useState('5');
+  const [reviewText, setReviewText] = useState('5');
   const [spreadDays, setSpreadDays] = useState(30);
   const [busy, setBusy] = useState<Busy>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+
+  const views = clampViews(viewsText);
+  const orderCount = clampCount(orderText);
+  const reviewCount = clampCount(reviewText);
 
   const handleViews = async (scope: 'store' | 'products') => {
     const key: Busy = scope === 'store' ? 'views-store' : 'views-products';
@@ -43,7 +53,7 @@ export default function StoreBoostPanel({
         text:
           scope === 'store'
             ? `+${res.amount} vues ajoutées à la boutique.`
-            : `+${res.amount} vues réparties sur ${productCount} produit(s).`,
+            : `+${res.amount} vues réparties sur ${res.products ?? productCount} produit(s).`,
       });
       router.refresh();
     } catch {
@@ -64,7 +74,7 @@ export default function StoreBoostPanel({
       }
       setFeedback({
         type: 'ok',
-        text: `${res.created} commande(s) générée(s) sur ${spreadDays} jours pour un total de ${new Intl.NumberFormat('fr-FR').format(res.revenue || 0)} FCFA.`,
+        text: `${res.created} commande(s) générée(s) sur ${spreadDays} jours pour un total de ${formatCurrency(res.revenue || 0)}.`,
       });
       router.refresh();
     } catch {
@@ -74,7 +84,29 @@ export default function StoreBoostPanel({
     }
   };
 
+  const handleReviews = async () => {
+    setBusy('reviews');
+    setFeedback(null);
+    try {
+      const res = await boostStoreReviewsAction(storeId, reviewCount, spreadDays);
+      if (!res.success) {
+        setFeedback({ type: 'err', text: res.error || 'Erreur lors de la génération des avis.' });
+        return;
+      }
+      setFeedback({
+        type: 'ok',
+        text: `${res.created} avis générés sur ${spreadDays} jours (moyenne ${res.average}/5 sur les avis créés).`,
+      });
+      router.refresh();
+    } catch {
+      setFeedback({ type: 'err', text: 'Erreur serveur lors de la génération des avis.' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const noProduct = productCount === 0;
+  const disabledReason = 'Aucun produit dans cette boutique';
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
@@ -85,12 +117,12 @@ export default function StoreBoostPanel({
         <div>
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Booster les statistiques</h2>
           <p className="text-[11px] text-gray-400 font-medium mt-0.5">
-            Vues et ventes artificielles — le stock du vendeur n&apos;est jamais modifié.
+            Vues, ventes et avis artificiels — le stock du vendeur n&apos;est jamais modifié.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {/* Vues */}
         <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
           <div className="flex items-center gap-2">
@@ -107,8 +139,12 @@ export default function StoreBoostPanel({
               type="number"
               min={1}
               max={100000}
-              value={views}
-              onChange={(e) => setViews(Math.max(1, Math.floor(Number(e.target.value) || 1)))}
+              value={viewsText}
+              onChange={(e) => {
+                setViewsText(e.target.value);
+                setFeedback(null);
+              }}
+              onBlur={() => setViewsText(String(clampViews(viewsText)))}
               className={inputClass}
               disabled={busy !== null}
             />
@@ -120,6 +156,7 @@ export default function StoreBoostPanel({
               onClick={() => handleViews('store')}
               disabled={busy !== null}
               className={primaryButtonClass}
+              title="Ajouter des vues à la boutique"
             >
               {busy === 'views-store' ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
               Boutique
@@ -129,7 +166,7 @@ export default function StoreBoostPanel({
               onClick={() => handleViews('products')}
               disabled={busy !== null || noProduct}
               className={primaryButtonClass}
-              title={noProduct ? 'Aucun produit dans cette boutique' : 'Répartir les vues sur les produits'}
+              title={noProduct ? disabledReason : 'Répartir les vues sur les produits'}
             >
               {busy === 'views-products' ? <Loader2 size={13} className="animate-spin" /> : <Package size={13} />}
               Produits
@@ -154,8 +191,12 @@ export default function StoreBoostPanel({
                 type="number"
                 min={1}
                 max={50}
-                value={orderCount}
-                onChange={(e) => setOrderCount(Math.min(50, Math.max(1, Math.floor(Number(e.target.value) || 1))))}
+                value={orderText}
+                onChange={(e) => {
+                  setOrderText(e.target.value);
+                  setFeedback(null);
+                }}
+                onBlur={() => setOrderText(String(clampCount(orderText)))}
                 className={inputClass}
                 disabled={busy !== null}
               />
@@ -167,7 +208,10 @@ export default function StoreBoostPanel({
               <select
                 id="boost-spread"
                 value={spreadDays}
-                onChange={(e) => setSpreadDays(Number(e.target.value))}
+                onChange={(e) => {
+                  setSpreadDays(Number(e.target.value));
+                  setFeedback(null);
+                }}
                 className={inputClass}
                 disabled={busy !== null}
               >
@@ -183,12 +227,63 @@ export default function StoreBoostPanel({
             onClick={handleOrders}
             disabled={busy !== null || noProduct}
             className={`${primaryButtonClass} w-full`}
+            title={noProduct ? disabledReason : 'Générer des commandes livrées'}
           >
             {busy === 'orders' ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
             Générer {orderCount} commande{orderCount > 1 ? 's' : ''}
           </button>
         </div>
+
+        {/* Avis */}
+        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+          <div className="flex items-center gap-2">
+            <Star size={14} className="text-brand" />
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avis</p>
+          </div>
+
+          <div>
+            <label className={labelClass} htmlFor="boost-reviews">
+              Nombre d&apos;avis
+            </label>
+            <input
+              id="boost-reviews"
+              type="number"
+              min={1}
+              max={50}
+              value={reviewText}
+              onChange={(e) => {
+                setReviewText(e.target.value);
+                setFeedback(null);
+              }}
+              onBlur={() => setReviewText(String(clampCount(reviewText)))}
+              className={inputClass}
+              disabled={busy !== null}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleReviews}
+            disabled={busy !== null || noProduct}
+            className={`${primaryButtonClass} w-full`}
+            title={noProduct ? disabledReason : 'Générer des avis produits'}
+          >
+            {busy === 'reviews' ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
+            Générer {reviewCount} avis
+          </button>
+
+          <p className="text-[10px] text-gray-400 font-semibold leading-relaxed">
+            Répartis sur les mêmes {spreadDays} jours, notés majoritairement 4 et 5.
+          </p>
+        </div>
       </div>
+
+      {noProduct && (
+        <p className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-amber-600">
+          <AlertCircle size={14} className="shrink-0" />
+          Ajoutez d&apos;abord des produits à cette boutique : commandes, avis et vues produits sont désactivés.
+        </p>
+      )}
 
       {feedback && (
         <div
@@ -211,8 +306,9 @@ export default function StoreBoostPanel({
         <Info size={14} className="shrink-0 mt-0.5 text-gray-300" />
         <span>
           Les commandes générées sont créées comme « Livrée » (client de passage), étalées aléatoirement sur la
-          période choisie, avec les prix réels des produits. Elles apparaissent dans la liste des commandes du
-          vendeur, sans jamais décrémenter son stock.
+          période choisie, avec les prix réels des produits — jamais avant la création de la boutique ou du produit.
+          Elles apparaissent dans la liste des commandes du vendeur, sans jamais décrémenter son stock. Les avis
+          générés sont attribués à des clients de passage et recalculent la moyenne des produits.
         </span>
       </p>
     </div>

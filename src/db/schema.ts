@@ -207,6 +207,10 @@ export const orders = pgTable('orders', {
   type: text('type').default('IN_STORE').notNull(),
   date: timestamp('date').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  // Vrai = commande fabriquée par le panneau admin « Booster les statistiques » :
+  // son stock n'a jamais été décrémenté, annulation/suppression ne doit donc
+  // rien réintégrer (voir `updateOrderStatusAction` / `deleteOrderAction`).
+  boosted: boolean('boosted').default(false).notNull(),
 });
 
 export const orderItems = pgTable('order_items', {
@@ -291,6 +295,8 @@ export const productReviews = pgTable('product_reviews', {
   rating: integer('rating').notNull(),
   comment: text('comment'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  // Vrai = avis fabriqué par le panneau admin « Booster les statistiques ».
+  boosted: boolean('boosted').default(false).notNull(),
 });
 
 export const systemSettings = pgTable('system_settings', {
