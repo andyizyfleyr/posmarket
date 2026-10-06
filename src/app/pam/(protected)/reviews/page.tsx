@@ -20,6 +20,7 @@ interface ReviewRow {
   product_id?: string | null;
   user_id?: string | null;
   author_name?: string | null;
+  author_avatar?: string | null;
   rating?: number | null;
   comment?: string | null;
   created_at?: string | null;
@@ -125,8 +126,16 @@ export default function AdminReviewsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 font-bold">
-                      {r.author_name?.[0]?.toUpperCase() || 'A'}
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold flex-shrink-0 overflow-hidden">
+                      {r.author_avatar ? (
+                        <img
+                          src={r.author_avatar}
+                          alt=""
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        r.author_name?.[0]?.toUpperCase() || 'A'
+                      )}
                     </div>
                     <div>
                       <p className="text-xs font-bold text-gray-900">{r.author_name || 'Anonyme'}</p>

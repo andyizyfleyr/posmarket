@@ -772,7 +772,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         <div className="flex-grow min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <h4 className="text-xs font-bold text-gray-900 truncate">
-              {review.author}
+              {review.author?.split(' ')[0] || review.author}
             </h4>
             <span className="text-[10px] font-medium text-gray-400 flex-shrink-0">
               {new Date(review.date).toLocaleDateString("fr-FR", {
@@ -781,6 +781,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 year: "numeric",
               })}
             </span>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium mb-1.5">
+            <CheckCircle2 size={10} className="text-emerald-500" />
+            <span>Avis vérifié</span>
           </div>
           <div className="flex items-center gap-0.5 mb-1.5">
             {[1, 2, 3, 4, 5].map((s) => (

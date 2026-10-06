@@ -292,11 +292,25 @@ export const productReviews = pgTable('product_reviews', {
   productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
   userId: uuid('user_id').references(() => profiles.id, { onDelete: 'set null' }),
   authorName: text('author_name').default('Anonyme').notNull(),
+  // Photo de l'auteur (avis générés par le boost, ou profil plus tard).
+  authorAvatar: text('author_avatar'),
   rating: integer('rating').notNull(),
   comment: text('comment'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   // Vrai = avis fabriqué par le panneau admin « Booster les statistiques ».
   boosted: boolean('boosted').default(false).notNull(),
+});
+
+/**
+ * Pool d'auteurs fictifs (nom + photo) injecté par
+ * `scripts/seed-review-authors.mjs` et consommé par `boostStoreReviewsAction`.
+ * `id` reprend l'`id` du JSON source pour rendre le seed rejouable.
+ */
+export const reviewAuthors = pgTable('review_authors', {
+  id: integer('id').primaryKey(),
+  fullName: text('full_name').notNull(),
+  gender: text('gender'),
+  avatarUrl: text('avatar_url').notNull(),
 });
 
 export const systemSettings = pgTable('system_settings', {

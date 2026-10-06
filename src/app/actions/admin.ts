@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings, productStats } from '@/db/schema';
+import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings, productStats, reviewAuthors } from '@/db/schema';
 import { eq, desc, sql, inArray, and, ne } from 'drizzle-orm';
 import { revalidatePath, revalidateTag, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
@@ -835,12 +835,6 @@ export async function boostStoreOrdersAction(
   }
 }
 
-/** Prénoms utilisés comme auteur des avis générés. */
-const BOOST_REVIEW_AUTHORS = [
-  'Awa', 'Mamadou', 'Fatou', 'Ibrahima', 'Aïssatou', 'Ousmane', 'Ndèye', 'Cheikh',
-  'Khady', 'Modou', 'Mariama', 'Pape', 'Sokhna', 'Moussa', 'Bineta', 'Lamine',
-];
-
 /** Commentaires courts et neutres, adaptés aux boutiques sénégalaises. */
 const BOOST_REVIEW_COMMENTS = [
   'Produit conforme, très satisfait de ma commande.',
@@ -872,6 +866,8 @@ function pickBoostedRating(): number {
  * attribués à des produits de la boutique, notés majoritairement 4-5, étalés
  * sur `spreadDays` jours et marqués `boosted = true`. Recalcule ensuite
  * `product_stats.review_count` / `average_rating` des produits touchés.
+ * Les auteurs (nom + photo) sont tirés du pool `review_authors` peuplé par
+ * `scripts/seed-review-authors.mjs`.
  */
 export async function boostStoreReviewsAction(
   storeId: string,
@@ -899,12 +895,19 @@ export async function boostStoreReviewsAction(
       .limit(200);
     if (catalog.length === 0) return { success: false, error: 'Aucun produit dans cette boutique.' };
 
+    // Récupère `nb` auteurs aléatoires du pool (plus du pool > 10k, donc
+    // toujours assez). On récupère tout et on mélange en JS pour éviter
+    // le coût d'un ORDER BY RANDOM() sur 10k lignes (négligeable mais bon).
+    const authors = await db.select().from(reviewAuthors);
+    if (authors.length === 0) return { success: false, error: 'Pool d\'auteurs vide : lancez scripts/seed-review-authors.mjs.' };
+
     const now = Date.now();
     const span = days * 86_400_000;
     const values: Array<typeof productReviews.$inferInsert> = [];
 
     for (let i = 0; i < nb; i += 1) {
       const product = catalog[Math.floor(Math.random() * catalog.length)];
+      const author = authors[Math.floor(Math.random() * authors.length)];
       const productCreatedAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
       const earliest = Math.max(storeCreatedAt, productCreatedAt);
       const when = new Date(Math.min(now, Math.max(earliest, now - Math.floor(Math.random() * span))));
@@ -913,7 +916,8 @@ export async function boostStoreReviewsAction(
         storeId,
         productId: product.id,
         userId: null,
-        authorName: BOOST_REVIEW_AUTHORS[Math.floor(Math.random() * BOOST_REVIEW_AUTHORS.length)],
+        authorName: author.fullName,
+        authorAvatar: author.avatarUrl,
         rating: pickBoostedRating(),
         comment: BOOST_REVIEW_COMMENTS[Math.floor(Math.random() * BOOST_REVIEW_COMMENTS.length)],
         createdAt: when,

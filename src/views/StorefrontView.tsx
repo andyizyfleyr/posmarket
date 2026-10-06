@@ -4040,7 +4040,7 @@ const WHOLESALE_FILTER = "wholesale";
                                   </div>
                                   <div className="min-w-0 overflow-hidden">
                                     <p className="font-bold text-gray-900 text-xs leading-none mb-1 truncate max-w-[120px]">
-                                      {review.author}
+                                      {review.author?.split(' ')[0] || review.author}
                                     </p>
                                     <div className="flex gap-0.5">
                                       {[...Array(5)].map((_, i) => (
@@ -4062,9 +4062,10 @@ const WHOLESALE_FILTER = "wholesale";
                                     </div>
                                   </div>
                                 </div>
-                                <span className="text-[9px] font-semibold text-gray-500">
-                                  {new Date(review.date).toLocaleDateString()}
-                                </span>
+                                <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-medium">
+                                  <CheckCircle2 size={9} className="text-emerald-500" />
+                                  <span>Avis vérifié</span>
+                                </div>
                               </div>
                               <p className="text-gray-500 text-[11px] leading-relaxed mb-3 line-clamp-3">
                                 {review.comment}

@@ -857,11 +857,12 @@ export async function saveProductReviewAction(
 }
 
 /**
- * Avis d'un produit avec la photo de son auteur.
- *
- * Jointure externe sur `profiles` : les avis anonymes (`user_id` NULL) n'ont
- * pas de photo et conservent l'affichage par initiale côté client.
- */
+* Avis d'un produit avec la photo de son auteur.
+  *
+  * Jointure externe sur `profiles` : les avis anonymes (`user_id` NULL) n'ont
+  * pas de photo et conservent l'affichage par initiale côté client.
+  * Les avis boostés fournissent `author_avatar` depuis le pool admin.
+  */
 export async function fetchProductReviewsAction(productId: string) {
   if (!productId) return { success: false, error: 'Produit invalide', reviews: [] };
 
@@ -874,6 +875,7 @@ export async function fetchProductReviewsAction(productId: string) {
         createdAt: productReviews.createdAt,
         authorName: productReviews.authorName,
         avatarUrl: profiles.avatarUrl,
+        authorAvatar: productReviews.authorAvatar,
       })
       .from(productReviews)
       .leftJoin(profiles, eq(productReviews.userId, profiles.id))
@@ -886,7 +888,7 @@ export async function fetchProductReviewsAction(productId: string) {
       reviews: rows.map((r) => ({
         id: r.id,
         author: r.authorName || 'Anonyme',
-        avatarUrl: r.avatarUrl || null,
+        avatarUrl: r.avatarUrl || r.authorAvatar || null,
         rating: Number(r.rating) || 0,
         comment: r.comment || '',
         date: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt || ''),
@@ -903,6 +905,7 @@ export async function fetchProductReviewsAction(productId: string) {
 /**
  * Avis d'une boutique (tous ses produits) avec la photo de chaque auteur.
  * Même jointure externe que `fetchProductReviewsAction`.
+ * Les avis boostés fournissent `author_avatar` depuis le pool admin.
  */
 export async function fetchStoreReviewsAction(storeId: string) {
   if (!storeId) return { success: false, error: 'Boutique invalide', reviews: [] };
@@ -919,6 +922,7 @@ export async function fetchStoreReviewsAction(storeId: string) {
         productName: products.name,
         productImage: products.image,
         avatarUrl: profiles.avatarUrl,
+        authorAvatar: productReviews.authorAvatar,
       })
       .from(productReviews)
       .leftJoin(profiles, eq(productReviews.userId, profiles.id))
@@ -932,7 +936,7 @@ export async function fetchStoreReviewsAction(storeId: string) {
       reviews: rows.map((r) => ({
         id: r.id,
         author: r.authorName || 'Anonyme',
-        avatarUrl: r.avatarUrl || null,
+        avatarUrl: r.avatarUrl || r.authorAvatar || null,
         rating: Number(r.rating) || 0,
         comment: r.comment || '',
         date: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt || ''),
