@@ -56,6 +56,12 @@ function denied(message: string) {
 const PUBLIC_RPCS = new Set(['increment_product_views', 'increment_store_views']);
 
 export async function execQuery(spec: QuerySpec) {
+  // Une RPC n'a pas de table : le shim `src/supabase.ts` les construit avec un
+  // nom de table vide. Sans cette délégation, le garde ci-dessous renverrait
+  // « Table manquante » et figerait les compteurs de vues (produit/boutique),
+  // c'est-à-dire les statistiques affichées en fiche et sur le tableau de bord.
+  if (spec?.rpc) return execRpc(spec.rpc, spec.rpcArgs);
+
   const method = spec?.method ?? 'select';
   const table = String(spec?.table ?? '');
 
