@@ -5,6 +5,7 @@ import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
 import { isValidPhoneNumber } from "@/utils";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
+import { generateProductSlug } from "@/utils/slug";
 import { cartNoun, cartNounLower, verticalOfProduct } from "@/constants";
 import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { Coupon, NotificationType, StoreData } from "@/types";
@@ -384,9 +385,19 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                             </div>
                             <div className="flex-grow min-w-0 flex flex-col">
                               <div className="flex items-start justify-between gap-2">
-                                <h4 className="text-[10px] md:text-sm font-semibold text-gray-900 leading-tight line-clamp-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    item.product.id &&
+                                    safeNavigate(
+                                      `/product/${generateProductSlug(item.product)}`,
+                                    )
+                                  }
+                                  disabled={!item.product.id}
+                                  className="text-left text-[10px] md:text-sm font-semibold text-gray-900 leading-tight line-clamp-1 hover:text-brand disabled:hover:text-gray-900 transition-colors"
+                                >
                                   {item.product.name || "Unknown Product"}
-                                </h4>
+                                </button>
                                 <button
                                   onClick={() =>
                                     removeFromCart(

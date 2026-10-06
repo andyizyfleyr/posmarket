@@ -9,6 +9,7 @@ import {
   EmptyState,
   PanelSkeleton,
   ProductThumb,
+  ProductNameLink,
   StatusBadge,
 } from './accountUtils';
 
@@ -112,9 +113,10 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   >
                     <ProductThumb src={product?.image} alt={product?.name} className="w-12 h-12" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-ink truncate">
-                        {product?.name || 'Produit'}
-                      </p>
+                      <ProductNameLink
+                        product={product}
+                        className="text-sm font-bold text-ink"
+                      />
                       <p className="text-[10px] text-gray-400 font-semibold">
                         {item.quantity} × {formatCurrency(item.price)}
                       </p>

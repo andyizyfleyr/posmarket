@@ -7,6 +7,7 @@ import {
   EmptyState,
   PanelSkeleton,
   ProductThumb,
+  ProductNameLink,
   StarRating,
 } from './accountUtils';
 
@@ -44,7 +45,10 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
                 <p className="text-[9px] text-brand font-bold uppercase tracking-wider truncate">
                   {storeName}
                 </p>
-                <p className="text-sm font-bold text-ink truncate">{product?.name}</p>
+                <ProductNameLink
+                  product={product}
+                  className="text-sm font-bold text-ink block"
+                />
                 <div className="flex items-center gap-2 mt-1">
                   <StarRating value={rev.rating} size={13} />
                   {rev.date && (

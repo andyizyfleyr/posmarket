@@ -2,6 +2,8 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { generateProductSlug } from '@/utils/slug';
 import {
   CheckCircle2,
   Clock,
@@ -97,6 +99,30 @@ export const ProductThumb: React.FC<{
         sizes={sizes}
       />
     </div>
+  );
+};
+
+/**
+ * Nom de produit cliquable vers la page produit.
+ * Rend un simple texte si l'identifiant est absent (produit supprimé, ligne
+ * de commande orpheline) afin de ne jamais proposer un lien mort.
+ */
+export const ProductNameLink: React.FC<{
+  product?: { id?: string | null; name?: string | null } | null;
+  fallback?: string;
+  className?: string;
+  titleClassName?: string;
+}> = ({ product, fallback = 'Produit', className = '', titleClassName = '' }) => {
+  const name = product?.name || fallback;
+  const id = product?.id;
+  if (!id) return <p className={`truncate ${className}`}>{name}</p>;
+  return (
+    <Link
+      href={`/product/${generateProductSlug({ id, name: product?.name || undefined })}`}
+      className={`truncate hover:text-brand transition-colors ${titleClassName} ${className}`}
+    >
+      {name}
+    </Link>
   );
 };
 
