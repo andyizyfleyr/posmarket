@@ -5,15 +5,12 @@ import {
   Store,
   ArrowRight,
   Loader2,
-  LogOut,
   ShoppingBag,
   UtensilsCrossed,
   Check,
   CircleAlert,
 } from 'lucide-react';
-import { quickCreateStoreAction, clearStoreCookieAction } from '@/app/actions/store';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import { quickCreateStoreAction } from '@/app/actions/store';
 
 const TEMPLATES = [
   {
@@ -37,7 +34,6 @@ export default function NoStoreFound() {
   const [businessType, setBusinessType] = useState<'shopping' | 'food'>('shopping');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,13 +55,6 @@ export default function NoStoreFound() {
     } finally {
       setIsCreating(false);
     }
-  };
-
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    await clearStoreCookieAction();
-    router.push('/login');
   };
 
   return (
@@ -95,11 +84,11 @@ export default function NoStoreFound() {
       <div className="relative w-full max-w-[560px] animate-in fade-in slide-in-from-bottom-5 duration-500">
         {/* Carte principale */}
         <div
-          className="bg-white border border-line rounded-[28px] p-6 sm:p-10"
+          className="bg-white border border-line rounded-[28px] p-5 sm:p-8"
           style={{ boxShadow: '0 1px 2px rgba(16,24,40,.04), 0 28px 56px -28px rgba(16,24,40,.22)' }}
         >
           {/* Marque */}
-          <div className="flex items-center gap-2.5 mb-8">
+          <div className="flex items-center gap-2.5 mb-6">
             <span
               className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
               style={{ background: 'linear-gradient(135deg, #f56b2a, #e55a1b)' }}
@@ -112,15 +101,15 @@ export default function NoStoreFound() {
             </span>
           </div>
 
-          <h1 className="text-[26px] sm:text-[32px] leading-[1.1] font-semibold tracking-[-0.03em] text-ink">
+          <h1 className="text-[24px] sm:text-[28px] leading-[1.12] font-semibold tracking-[-0.03em] text-ink">
             Bienvenue sur votre PDV !
           </h1>
-          <p className="mt-3 text-[14.5px] leading-relaxed text-slate-500 max-w-[440px]">
+          <p className="mt-2.5 text-[14px] leading-relaxed text-slate-500 max-w-[440px]">
             Pour commencer, donnez un nom à votre première boutique. C&apos;est l&apos;endroit où vous
             gérerez vos ventes et stocks.
           </p>
 
-          <form onSubmit={handleCreate} className="mt-8 space-y-6">
+          <form onSubmit={handleCreate} className="mt-6 space-y-5">
             {/* Nom */}
             <div>
               <label
@@ -249,30 +238,7 @@ export default function NoStoreFound() {
               )}
             </button>
           </form>
-
-          {/* Pied */}
-          <div className="mt-8 pt-6 border-t border-line flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-3">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                Plus tard ?
-              </p>
-              <button
-                onClick={handleLogout}
-                type="button"
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-red-500 transition-colors"
-              >
-                <LogOut size={14} /> Se déconnecter
-              </button>
-            </div>
-            <p className="text-[12px] leading-snug text-slate-400 sm:ml-auto sm:text-right sm:max-w-[230px]">
-              Vous pourrez créer votre boutique plus tard depuis les paramètres.
-            </p>
-          </div>
         </div>
-
-        <p className="text-center text-[11px] text-slate-400 mt-5 px-4">
-          Un modèle peut être changé à tout moment depuis les paramètres de la boutique.
-        </p>
       </div>
     </div>
   );
