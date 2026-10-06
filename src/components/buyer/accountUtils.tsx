@@ -115,11 +115,11 @@ export const ProductNameLink: React.FC<{
 }> = ({ product, fallback = 'Produit', className = '', titleClassName = '' }) => {
   const name = product?.name || fallback;
   const id = product?.id;
-  if (!id) return <p className={`truncate ${className}`}>{name}</p>;
+  if (!id) return <p className={`block truncate ${className}`}>{name}</p>;
   return (
     <Link
       href={`/product/${generateProductSlug({ id, name: product?.name || undefined })}`}
-      className={`truncate hover:text-brand transition-colors ${titleClassName} ${className}`}
+      className={`block truncate hover:underline decoration-dotted underline-offset-4 transition-all ${titleClassName} ${className}`}
     >
       {name}
     </Link>

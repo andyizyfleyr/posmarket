@@ -47,7 +47,7 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
                 </p>
                 <ProductNameLink
                   product={product}
-                  className="text-sm font-bold text-ink block"
+                  className="text-sm font-bold text-ink"
                 />
                 <div className="flex items-center gap-2 mt-1">
                   <StarRating value={rev.rating} size={13} />

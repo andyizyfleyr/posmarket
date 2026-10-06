@@ -394,7 +394,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     )
                                   }
                                   disabled={!item.product.id}
-                                  className="text-left text-[10px] md:text-sm font-semibold text-gray-900 leading-tight line-clamp-1 hover:text-brand disabled:hover:text-gray-900 transition-colors"
+                                  className="text-left text-[10px] md:text-sm font-semibold text-gray-900 leading-tight line-clamp-1 hover:underline decoration-dotted underline-offset-4 transition-all"
                                 >
                                   {item.product.name || "Unknown Product"}
                                 </button>
