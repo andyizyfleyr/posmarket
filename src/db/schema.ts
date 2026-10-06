@@ -128,7 +128,11 @@ export const products = pgTable('products', {
  * index SQL, contraintes et reporting sans devoir fouiller dans le JSON.
  */
 export const productVariants = pgTable('product_variants', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  // `id` = id de la variante telle que stockée dans `products.variants` (JSONB) :
+  // c'est ce que porte `order_items.variant_id`. `text` et non `uuid` :
+  // `newVariantId()` bascule sur un id non-uuid sans `crypto.randomUUID()`.
+  // PK composite : deux produits peuvent porter le même id de variante.
+  id: text('id').notNull(),
   productId: uuid('product_id')
     .references(() => products.id, { onDelete: 'cascade' })
     .notNull(),
@@ -142,7 +146,7 @@ export const productVariants = pgTable('product_variants', {
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => [{
-  pvProductIdx: { columns: [t.productId], name: 'product_variants_product_id_idx' } as const,
+  pvPk: { columns: [t.productId, t.id], name: 'product_variants_pk' } as const,
 }]);
 
 /** Historique gelé de la matrice à chaque changement (V2).

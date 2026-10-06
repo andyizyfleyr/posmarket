@@ -1,9 +1,37 @@
-import { desc, eq, inArray, sql } from 'drizzle-orm';
-import { db } from './index';
-import { productVariants, productVariantSnapshots } from './schema';
-import type { ProductOptionDef, ProductVariantDef } from '@/utils/variants';
+import { desc, eq, inArray } from 'drizzle-orm';
+import { productVariants, productVariantSnapshots, products } from './schema';
+import { newVariantId, type ProductOptionDef, type ProductVariantDef } from '@/utils/variants';
 
-type Db = typeof db;
+type Db = typeof import('./index').db;
+
+/**
+ * Ligne relationnelle pour une variante JSONB.
+ *
+ * L'id doit être celui du JSONB (c'est lui que porte `order_items.variant_id`) :
+ * un id dupliqué ou manquant casserait l'insert en clé primaire, d'où la garde.
+ */
+function toVariantRow(
+  v: ProductVariantDef,
+  i: number,
+  productId: string,
+  used: Set<string>
+) {
+  let id = v.id;
+  while (!id || used.has(id)) id = newVariantId();
+  used.add(id);
+  return {
+    id,
+    productId,
+    name: v.name || null,
+    optionValues: v.optionValues ?? {},
+    price: String(Number(v.price) || 0),
+    stock: Math.max(0, Math.round(Number(v.stock) || 0)),
+    sku: v.sku || null,
+    image: v.image || null,
+    enabled: v.enabled !== false,
+    sortOrder: i,
+  };
+}
 
 /**
  * Empreinte de la matrice « options + variantes », hors stock courant.
@@ -72,53 +100,41 @@ export async function syncProductVariants(
   variants: ProductVariantDef[],
   reason = 'update'
 ) {
-  const dbc2 = dbc ?? db;
-  await dbc2.delete(productVariants).where(eq(productVariants.productId, productId));
+  await dbc.delete(productVariants).where(eq(productVariants.productId, productId));
   if (variants.length > 0) {
-    await dbc2.insert(productVariants).values(
-      variants.map((v, i) => ({
-        productId,
-        name: v.name || null,
-        optionValues: v.optionValues ?? {},
-        price: String(Number(v.price) || 0),
-        stock: Math.max(0, Math.round(Number(v.stock) || 0)),
-        sku: v.sku || null,
-        image: v.image || null,
-        enabled: v.enabled !== false,
-        sortOrder: i,
-      }))
-    );
+    const used = new Set<string>();
+    await dbc.insert(productVariants).values(variants.map((v, i) => toVariantRow(v, i, productId, used)));
   }
-  await freezeVariantSnapshot(dbc2, productId, options, variants, reason);
+  await freezeVariantSnapshot(dbc, productId, options, variants, reason);
 }
 
 /**
- * Reconstruit `product_variants` directement depuis le JSONB du produit.
+ * Reconstruit `product_variants` depuis le JSONB du produit.
  * Utilisé après un ajustement de stock (vente / restitution) : le stock des
  * lignes relationnelles doit rester fidèle au JSON vivant, sans créer
  * d'instantané d'historique (B3 réservé aux modifications de structure).
+ *
+ * Tout passe par drizzle : un tableau glissé dans du SQL brut arrive côté
+ * Postgres comme un littéral JSON `["..."]` et casse le typage `uuid[]`.
  */
 export async function resyncVariantsFromJson(dbc: Db, productIds: string[]) {
   const ids = Array.from(new Set(productIds.filter(Boolean)));
   if (ids.length === 0) return;
-  const dbc2 = dbc ?? db;
-  // Retirer les lignes puis les reconstruire depuis le JSONB : une seule
-  // requête paramétrée, atomique.
-  await dbc2.delete(productVariants).where(inArray(productVariants.productId, ids));
-  await dbc2.execute(sql`
-    INSERT INTO product_variants (product_id, name, option_values, price, stock, sku, image, enabled, sort_order)
-    SELECT
-      p.id,
-      v->>'name',
-      COALESCE(v->'optionValues', '{}'::jsonb),
-      COALESCE((v->>'price')::numeric, 0),
-      COALESCE((v->>'stock')::int, 0),
-      v->>'sku',
-      v->>'image',
-      COALESCE((v->>'enabled')::boolean, true),
-      row_number() OVER ()
-    FROM products p,
-         jsonb_array_elements(COALESCE(p.variants, '[]'::jsonb)) AS v
-    WHERE p.id = ANY(${ids})
-  `);
+  const rows = await dbc
+    .select({ id: products.id, variants: products.variants })
+    .from(products)
+    .where(inArray(products.id, ids));
+  if (rows.length === 0) return;
+
+  const values: (typeof productVariants.$inferInsert)[] = [];
+  for (const row of rows) {
+    const variants = (Array.isArray(row.variants) ? row.variants : []) as ProductVariantDef[];
+    const used = new Set<string>();
+    variants.forEach((v, i) => {
+      values.push(toVariantRow(v, i, row.id, used));
+    });
+  }
+
+  await dbc.delete(productVariants).where(inArray(productVariants.productId, ids));
+  if (values.length > 0) await dbc.insert(productVariants).values(values);
 }
