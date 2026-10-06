@@ -23,7 +23,6 @@ interface MainLayoutProps {
   currentStore: StoreData;
   currentPlan: SubscriptionPlan;
   onStoreChange: (id: string) => void;
-  onCreateStore: (name: string, businessType: string) => Promise<void>;
   onDeleteStore: (id: string) => Promise<void>;
   userEmail?: string;
   userAvatarUrl?: string | null;
@@ -45,7 +44,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   currentStore,
   currentPlan,
   onStoreChange,
-  onCreateStore,
   onDeleteStore,
   userEmail,
   userAvatarUrl,
@@ -333,7 +331,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             currentStore={currentStore}
             currentPlan={currentPlan}
             onStoreChange={onStoreChange}
-            onCreateStore={onCreateStore}
             onDeleteStore={onDeleteStore}
             userEmail={userEmail}
             userAvatarUrl={userAvatarUrl}

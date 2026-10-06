@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Monitor, Clock, Globe, ChevronDown, Maximize2, Store, Plus, LogOut, User as UserIcon, Trash2, HelpCircle, ShoppingBag } from 'lucide-react';
+import { Monitor, Clock, Globe, ChevronDown, Maximize2, Store, Plus, LogOut, User as UserIcon, Trash2, HelpCircle } from 'lucide-react';
 import Loader from '@/components/Loader';
 import { ViewType, StoreData, SubscriptionPlan, UserSubscription, StaffRole } from '@/types';
 import { getDaysRemaining } from '@/utils';
 import { useOnboarding } from './Onboarding/OnboardingContext';
+import { useRouter } from 'next/navigation';
 
 interface NavbarProps {
   currentView: ViewType;
@@ -14,7 +15,6 @@ interface NavbarProps {
   currentStore?: StoreData;
   currentPlan?: SubscriptionPlan;
   onStoreChange?: (storeId: string) => void;
-  onCreateStore?: (name: string, businessType: string) => void;
   onDeleteStore?: (id: string) => void;
   onLogout?: () => void;
   userEmail?: string;
@@ -33,7 +33,6 @@ const Navbar: React.FC<NavbarProps> = ({
   currentStore,
   currentPlan,
   onStoreChange,
-  onCreateStore,
   onDeleteStore,
   onLogout,
   userEmail,
@@ -42,10 +41,8 @@ const Navbar: React.FC<NavbarProps> = ({
   userRole
 }) => {
   const isSeller = userRole === 'SELLER';
+  const router = useRouter();
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
-  const [newStoreName, setNewStoreName] = useState('');
-  const [isCreatingStore, setIsCreatingStore] = useState(false);
-  const [creationStep, setCreationStep] = useState<1 | 2>(1);
   const [pendingStoreId, setPendingStoreId] = useState<string | null>(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
@@ -162,93 +159,16 @@ const Navbar: React.FC<NavbarProps> = ({
 
                       {stores.length < (currentPlan?.features.maxStores || 0) && !isSeller && (
                         <div className="mt-4 pt-4 border-t border-gray-100">
-                          {isCreatingStore ? (
-                        <div className="px-1 space-y-4">
-                          {creationStep === 1 ? (
-                            <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
-                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 1: Nom</div>
-                              <input
-                                type="text"
-                                className="w-full text-sm font-bold px-5 py-4 rounded-[20px] bg-gray-50 border border-transparent outline-none focus:border-brand focus:bg-white transition-all text-gray-900 shadow-inner"
-                                placeholder="Ex: Ma Boutique..."
-                                value={newStoreName}
-                                onChange={(e) => setNewStoreName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && newStoreName.trim()) {
-                                    setCreationStep(2);
-                                  }
-                                }}
-                                autoFocus
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    if (newStoreName.trim()) setCreationStep(2);
-                                  }}
-                                  disabled={!newStoreName.trim()}
-                                  className="flex-1 bg-brand text-white text-xs font-bold py-3.5 rounded-[18px] hover:bg-[#d55a20] disabled:opacity-50 shadow-lg shadow-orange-100 transition-all active:scale-95"
-                                >
-                                  Continuer
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsCreatingStore(false);
-                                    setNewStoreName('');
-                                    setCreationStep(1);
-                                  }}
-                                  className="flex-1 bg-gray-100 text-gray-600 text-xs font-bold py-3.5 rounded-[18px] hover:bg-gray-200 transition-all"
-                                >
-                                  Annuler
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Étape 2: Modèle</div>
-                              <div className="grid grid-cols-1 gap-2">
-                                {[
-{ id: 'shopping', label: 'SHOP', desc: 'Produits & E-commerce', icon: <ShoppingBag size={14} /> },
-                                   { id: 'food', label: 'RESTO', desc: 'Plats & Restauration', icon: <Clock size={14} /> }
-                                ].map(type => (
-                                  <button
-                                    key={type.id}
-                                    onClick={() => {
-                                      onCreateStore?.(newStoreName.trim(), type.id);
-                                      setNewStoreName('');
-                                      setIsCreatingStore(false);
-                                      setCreationStep(1);
-                                      setShowStoreDropdown(false);
-                                    }}
-                                    className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all hover:border-brand hover:bg-orange-50 group text-left`}
-                                  >
-                                    <div className={`w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-600 group-hover:text-brand group-hover:scale-110 transition-all`}>
-                                      {type.icon}
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-bold text-gray-900 tracking-tight leading-none mb-1">{type.label}</p>
-                                      <p className="text-[9px] font-semibold text-gray-400 leading-none">{type.desc}</p>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                              <button
-                                onClick={() => setCreationStep(1)}
-                                className="w-full py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-all"
-                              >
-                                Retour au nom
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                          ) : (
-                            <button
-                              onClick={() => setIsCreatingStore(true)}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-[20px] text-white bg-brand font-bold text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-[0.98]"
-                            >
-                              <Plus size={18} />
-                              Nouveau Magasin
-                            </button>
-                          )}
+                          <button
+                            onClick={() => {
+                              setShowStoreDropdown(false);
+                              router.push('/new-store');
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-[20px] text-white bg-brand font-bold text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-[0.98]"
+                          >
+                            <Plus size={18} />
+                            Nouveau Magasin
+                          </button>
                         </div>
                       )}
                     </div>

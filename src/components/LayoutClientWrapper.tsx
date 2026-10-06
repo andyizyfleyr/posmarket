@@ -5,7 +5,7 @@ import MainLayout from '@/components/MainLayout';
 import { StoreData, StaffRole, SubscriptionPlan, UserSubscription, ViewType, ToastNotification, NotificationType } from '@/types';
 import { useRouter, usePathname } from '@/components/RouterPolyfill';
 import { createClient } from '@/utils/supabase/client';
-import { quickCreateStoreAction, quickDeleteStoreAction, clearStoreCookieAction } from '@/app/actions/store';
+import { quickDeleteStoreAction, clearStoreCookieAction } from '@/app/actions/store';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { ConfirmProvider } from '@/context/ConfirmContext';
 
@@ -141,33 +141,6 @@ export default function LayoutClientWrapper({
     }
   };
 
-  const handleCreateStore = async (name: string, businessType: string) => {
-    if (!name.trim()) return;
-
-    try {
-      setIsSaving(true);
-      const result = await quickCreateStoreAction(name.trim(), businessType);
-
-      if (result.success && result.store) {
-        // Switch to the newly created store
-        await fetch('/api/set-store', {
-          method: 'POST',
-          body: JSON.stringify({ storeId: result.store.id })
-        });
-        notify('Boutique créée avec succès !', 'success');
-        router.push('/dashboard');
-        router.refresh();
-      } else {
-        notify(result.error || 'Erreur lors de la création de la boutique', 'error');
-      }
-    } catch (err) {
-      console.error('Error creating store:', err);
-      notify('Erreur lors de la création de la boutique', 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const [storeIdToDelete, setStoreIdToDelete] = useState<string | null>(null);
 
   const handleDeleteStore = async (id: string) => {
@@ -225,7 +198,6 @@ export default function LayoutClientWrapper({
         currentStore={currentStore}
         currentPlan={currentPlan}
         onStoreChange={handleStoreChange}
-        onCreateStore={handleCreateStore}
         onDeleteStore={handleDeleteStore}
         userEmail={userEmail}
             userAvatarUrl={userAvatarUrl}
