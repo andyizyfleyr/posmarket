@@ -3,9 +3,10 @@
 import { db } from '@/db';
 import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings } from '@/db/schema';
 import { eq, desc, sql, inArray, and, ne } from 'drizzle-orm';
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
 import { getAdminSession } from '@/app/actions/admin-auth';
+import { invalidateOrdersCache, incrementProductSales } from '@/db/api';
 import { ACCES_REFUSE } from '@/lib/authorization';
 
 /**
@@ -641,4 +642,171 @@ export async function sendAllTestEmailsAction(email: string): Promise<{ success:
   }
 
   return { success: failures.length === 0, sent, failures };
+}
+
+/**
+ * Boost administrateur des vues : soit sur la boutique, soit réparti sur ses
+ * produits. Aucune écriture sur le stock ni sur les commandes.
+ */
+export async function boostStoreViewsAction(
+  storeId: string,
+  amount: number,
+  scope: 'store' | 'products'
+): Promise<{ success: boolean; error?: string; amount?: number }> {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
+  try {
+    const value = Math.min(100000, Math.max(1, Math.floor(Number(amount) || 0)));
+
+    const [store] = await db
+      .select({ id: stores.id })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    if (!store) return { success: false, error: 'Boutique introuvable.' };
+
+    if (scope === 'products') {
+      const list = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.storeId, storeId));
+      if (list.length === 0) return { success: false, error: 'Aucun produit dans cette boutique.' };
+
+      const base = Math.floor(value / list.length);
+      let rest = value - base * list.length;
+      for (const row of list) {
+        const add = base + (rest > 0 ? 1 : 0);
+        if (rest > 0) rest -= 1;
+        if (add <= 0) continue;
+        await db.update(products).set({ views: sql`${products.views} + ${add}` }).where(eq(products.id, row.id));
+      }
+    } else {
+      await db.update(stores).set({ views: sql`${stores.views} + ${value}` }).where(eq(stores.id, storeId));
+    }
+
+    revalidatePath('/pam/stores');
+    revalidatePath('/dashboard');
+    updateTag('marketplace');
+    return { success: true, amount: value };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
+/**
+ * Boost administrateur des ventes : génère de vraies commandes « Livrée »
+ * étalées sur les `spreadDays` derniers jours, avec leurs lignes et la mise à
+ * jour de `product_stats.total_sales`. Le stock du vendeur n'est jamais
+ * décrémenté (pas d'appel à `adjustProductStock`).
+ */
+export async function boostStoreOrdersAction(
+  storeId: string,
+  count: number,
+  spreadDays: number
+): Promise<{ success: boolean; error?: string; created?: number; revenue?: number }> {
+  if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
+  try {
+    const nb = Math.min(50, Math.max(1, Math.floor(Number(count) || 0)));
+    const days = Math.min(365, Math.max(1, Math.floor(Number(spreadDays) || 30)));
+
+    const [store] = await db
+      .select({ id: stores.id })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    if (!store) return { success: false, error: 'Boutique introuvable.' };
+
+    const catalog = (
+      await db
+        .select({ id: products.id, name: products.name, price: products.price, image: products.image })
+        .from(products)
+        .where(eq(products.storeId, storeId))
+        .limit(200)
+    ).filter((p) => Number(p.price) > 0);
+
+    if (catalog.length === 0) return { success: false, error: 'Aucun produit vendable dans cette boutique.' };
+
+    const now = Date.now();
+    const span = days * 86_400_000;
+    const orderValues: Array<Omit<typeof orders.$inferInsert, 'id'>> = [];
+    const itemsByOrder: Array<Array<{ productId: string; name: string; image: string | null; quantity: number; unit: number; lineTotal: number }>> = [];
+    const sales = new Map<string, number>();
+    let revenue = 0;
+
+    for (let i = 0; i < nb; i += 1) {
+      const lineCount = 1 + Math.floor(Math.random() * Math.min(3, catalog.length));
+      const picked = [...catalog];
+      for (let j = picked.length - 1; j > 0; j -= 1) {
+        const k = Math.floor(Math.random() * (j + 1));
+        [picked[j], picked[k]] = [picked[k], picked[j]];
+      }
+
+      const lines = picked.slice(0, lineCount).map((p) => {
+        const quantity = 1 + Math.floor(Math.random() * 3);
+        const unit = Math.round(Number(p.price) * 100) / 100;
+        return {
+          productId: p.id,
+          name: p.name,
+          image: p.image,
+          quantity,
+          unit,
+          lineTotal: Math.round(unit * quantity * 100) / 100,
+        };
+      });
+
+      const subtotal = Math.round(lines.reduce((sum, line) => sum + line.lineTotal, 0) * 100) / 100;
+      const when = new Date(now - Math.floor(Math.random() * span));
+
+      orderValues.push({
+        storeId,
+        status: 'COMPLETED',
+        type: 'IN_STORE',
+        paymentMethod: 'ESPECES',
+        subtotal: subtotal.toFixed(2),
+        total: subtotal.toFixed(2),
+        discountAmount: '0',
+        date: when,
+        createdAt: when,
+      });
+      itemsByOrder.push(lines);
+      revenue += subtotal;
+    }
+
+    const inserted = await db.insert(orders).values(orderValues).returning();
+
+    const itemValues: Array<typeof orderItems.$inferInsert> = [];
+    for (let i = 0; i < inserted.length; i += 1) {
+      const orderId = inserted[i].id;
+      for (const line of itemsByOrder[i]) {
+        itemValues.push({
+          orderId,
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unit.toFixed(2),
+          total: line.lineTotal.toFixed(2),
+          productName: line.name,
+          productImage: line.image,
+        });
+        sales.set(line.productId, (sales.get(line.productId) || 0) + line.quantity);
+      }
+    }
+    if (itemValues.length > 0) await db.insert(orderItems).values(itemValues);
+
+    await incrementProductSales(
+      storeId,
+      [...sales].map(([productId, quantity]) => ({ productId, quantity }))
+    );
+
+    invalidateOrdersCache(storeId);
+    revalidateTag(`orders:${storeId}`, 'max');
+    revalidatePath('/orders');
+    revalidatePath('/pos');
+    revalidatePath('/inventory');
+    revalidatePath('/dashboard');
+    revalidatePath('/pam/stores');
+    updateTag('marketplace');
+
+    return { success: true, created: inserted.length, revenue: Math.round(revenue * 100) / 100 };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
 }

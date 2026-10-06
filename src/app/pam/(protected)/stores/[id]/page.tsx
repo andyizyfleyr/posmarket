@@ -17,6 +17,7 @@ import {
   LogIn
 } from 'lucide-react';
 import { formatCurrency } from '@/utils';
+import StoreBoostPanel from '@/components/admin/StoreBoostPanel';
 
 export default async function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -143,6 +144,8 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{reviews.length} avis</p>
         </div>
       </div>
+
+      <StoreBoostPanel storeId={store.id} productCount={products.length} />
 
       {owner && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
