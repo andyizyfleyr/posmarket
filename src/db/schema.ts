@@ -121,6 +121,49 @@ export const products = pgTable('products', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+/** Stockage relationnel des variantes (V2).
+ *
+ * `products.variants` (JSONB) reste la source de lecture pour le storefront,
+ * mais chaque enregistrement produit synchronise ici une ligne par combinaison :
+ * index SQL, contraintes et reporting sans devoir fouiller dans le JSON.
+ */
+export const productVariants = pgTable('product_variants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id')
+    .references(() => products.id, { onDelete: 'cascade' })
+    .notNull(),
+  name: text('name'),
+  optionValues: jsonb('option_values').default({}),
+  price: numeric('price', { precision: 12, scale: 2 }).default('0'),
+  stock: integer('stock').default(0).notNull(),
+  sku: text('sku'),
+  image: text('image'),
+  enabled: boolean('enabled').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [{
+  pvProductIdx: { columns: [t.productId], name: 'product_variants_product_id_idx' } as const,
+}]);
+
+/** Historique gelé de la matrice à chaque changement (V2).
+ *
+ * Permet de confronter une ancienne commande à la version de la matrice qui
+ * existait au moment de la vente, sans dépendre du JSON vivant de `products`.
+ */
+export const productVariantSnapshots = pgTable('product_variant_snapshots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id')
+    .references(() => products.id, { onDelete: 'cascade' })
+    .notNull(),
+  options: jsonb('options').default([]),
+  variants: jsonb('variants').default([]),
+  reason: text('reason'),
+  createdBy: text('created_by').default('system'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [{
+  pvsProductIdx: { columns: [t.productId], name: 'product_variant_snapshots_product_id_idx' } as const,
+}]);
+
 export const customers = pgTable('customers', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),

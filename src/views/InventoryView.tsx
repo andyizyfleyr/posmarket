@@ -1534,8 +1534,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Éditeur de Variantes */}
-                  {formData.businessType === 'shopping' ? (
+                  {/* Éditeur de Variantes — ouvert à tous les verticaux :
+                      en restauration on peut décliner par format ou portion,
+                      le réglage des cuissons/suppléments restant lui aussi
+                      exprimé en options de produit. */}
                     <div className="rounded-2xl border-2 border-gray-200 bg-white p-4 md:p-6 shadow-xs">
                       <VariantMatrixEditor
                         options={(formData.options || []) as ProductOptionDef[]}
@@ -1548,12 +1550,6 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         }}
                       />
                     </div>
-                  ) : (
-                    <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl text-center space-y-2">
-                      <p className="text-sm font-semibold text-gray-700">Produit de Restauration / Alimentation</p>
-                      <p className="text-xs text-gray-400">Pour le secteur restauration, les options de cuisson ou suppléments sont configurées au niveau du menu.</p>
-                    </div>
-                  )}
 
                   {/* Summary Card before saving */}
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">

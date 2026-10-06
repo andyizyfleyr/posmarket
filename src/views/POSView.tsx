@@ -397,10 +397,16 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
     setPosToasts((prev) => [...prev.slice(-2), { id, message, type, title }]);
   }, []);
 
-  const addToCartQty = useCallback((
+const addToCartQty = useCallback((
     product: Product,
     qty: number,
-    variant?: { id: string; name: string; sku?: string; price?: number }
+    variant?: {
+      id: string;
+      name: string;
+      sku?: string;
+      price?: number;
+      optionValues?: Record<string, string>;
+    }
   ) => {
     const toAdd = Math.max(1, Math.floor(qty) || 1);
     const variantId = variant?.id ?? null;
@@ -424,12 +430,13 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
             : item
         );
       }
-      return [...prev, {
+return [...prev, {
         product,
         quantity: toAdd,
         variantId,
         variantLabel: variant?.name ?? null,
         variantSku: variant?.sku ?? null,
+        variantOptionValues: variant?.optionValues ?? null,
       }];
     });
   }, [cart, stockOfLine, localNotify]);

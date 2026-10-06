@@ -69,7 +69,7 @@ type ProductDetailsProps = {
   warmProduct: (product: { id: string; image?: string }) => void;
   safeNavigate: (path: string, options?: { action?: () => void }) => void;
   setSelectedCategory: (category: string) => void;
-  addWholesaleToCart: (product: StorefrontProduct, minQty?: number) => void;
+  addWholesaleToCart: (product: StorefrontProduct, minQty?: number, variantId?: string | null) => void;
   isDescriptionExpanded: boolean;
   setIsDescriptionExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   stores?: StoreData[];
@@ -408,6 +408,28 @@ function ProductStockRow({
  * s'ouvre au clic sur « Choisir les options » : le même sélecteur ne peut pas
  * avoir deux implémentations qui divergent.
  */
+/**
+ * Carte de couleurs pour l'affichage nuancier (D1) : une option nommée
+ * « couleur » se choisit avec des pastilles plutôt que des boutons texte.
+ */
+const COLOR_HEX: Record<string, string> = {
+  noir: '#111111', blanc: '#ffffff', rouge: '#dc2626', bleu: '#2563eb',
+  marine: '#1e3a8a', vert: '#16a34a', kaki: '#6b7280', jaune: '#eab308',
+  orange: '#f97316', rose: '#ec4899', violet: '#7c3aed', gris: '#9ca3af',
+  beige: '#d6c7a1', marron: '#795548', bordeaux: '#6b1226', or: '#f59e0b',
+  argent: '#cbd5e1', 'bleu ciel': '#38bdf8', menthe: '#2dd4bf',
+  ecru: '#efeae2', turquoise: '#14b8a6', magenta: '#d946ef', cyan: '#22d3ee',
+  lavande: '#a78bfa', corail: '#fb7185', saumon: '#fda4af', champagne: '#f7e7ce',
+};
+
+function colorHexFor(value: string): string | undefined {
+  const v = value.trim().toLowerCase();
+  if (COLOR_HEX[v]) return COLOR_HEX[v];
+  // Hex / rgb direct ("#FF0000", "rgb(...)") collé comme valeur d'option.
+  if (/^#?[0-9a-f]{3,8}$/i.test(v)) return v.startsWith('#') ? v : `#${v}`;
+  return undefined;
+}
+
 function OptionsPicker({
   options,
   selectedOptions,
@@ -480,6 +502,39 @@ function OptionsPicker({
                 {option.values.map((val: string) => {
                   const isSelected = selectedVal === val;
                   const isDisabled = isValueDisabled(option.id, val);
+                  const isSwatch = /couleur|color/i.test(option.name);
+                  const hex = isSwatch ? colorHexFor(val) : undefined;
+                  if (isSwatch && hex) {
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => onSelect(option.id, val)}
+                        aria-pressed={isSelected}
+                        title={isDisabled ? `Indisponible : ${val}` : val}
+                        className={`relative w-10 h-10 rounded-full transition-all active:scale-90 border-2 ${
+                          isSelected
+                            ? "border-brand ring-2 ring-orange-100 scale-110"
+                            : isDisabled
+                              ? "border-gray-200 opacity-35 cursor-not-allowed"
+                              : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        style={{ backgroundColor: hex }}
+                      >
+                        {isSelected && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <Check
+                              size={14}
+                              strokeWidth={3.5}
+                              className={COLOR_HEX[val.trim().toLowerCase()] === '#ffffff' && val.trim() !== '' ? 'text-gray-800' : 'text-white'}
+                            />
+                          </span>
+                        )}
+                        {isDisabled && <span className="absolute inset-0 flex items-center justify-center"><X size={12} className="text-gray-400" /></span>}
+                      </button>
+                    );
+                  }
                   return (
                     <button
                       key={val}
@@ -808,6 +863,12 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     const handleWholesaleAdd = (idx: number, minQty: number) => {
       if (addingWholesaleIdx === idx || addedWholesaleIdx === idx) return;
+      if (hasOptions && variants.length > 0 && !matchedVariant) {
+        // Un produit à matrice ne se vend pas « au hasard » : on ouvre le
+        // sélecteur plutôt que d'ajouter une ligne sans variante.
+        guardSelection();
+        return;
+      }
       if (stockValue !== null && stockValue < minQty) {
         localNotify(
           `Stock insuffisant (${stockValue} disponibles) pour la quantité en gros de ${minQty}`,
@@ -816,7 +877,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         return;
       }
       setAddingWholesaleIdx(idx);
-      addWholesaleToCart(product, minQty);
+      addWholesaleToCart(product, minQty, matchedVariant?.id ?? null);
       setTimeout(() => {
         setAddingWholesaleIdx(null);
         setAddedWholesaleIdx(idx);
@@ -880,9 +941,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       ...(Array.isArray(product.images) ? product.images : []),
     ].filter((img, i, arr) => !!img && arr.indexOf(img) === i);
     // L'image de la variante sélectionnée devient la photo principale : c'est
-    // ce que l'acheteur voit réellement commander.
+    // ce que l'acheteur voit réellement commander. Une URL propre à la
+    // variante est acceptée même hors galerie (photo téléversée liée).
     const variantImage =
-      allSelected && matchedVariant?.image && galleryImages.includes(matchedVariant.image)
+      allSelected && matchedVariant?.image
         ? matchedVariant.image
         : null;
     const currentImage = variantImage || selectedDetailImage || product.image;
@@ -1372,8 +1434,38 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   />
                 </div>
 
-                {/* Options / Variantes — uniquement dans la feuille modale
-                    (ouverte par le bouton « Choisir les options »). */}
+                {/* Options / Variantes — le même sélecteur est rendu en inline
+                    sur desktop et dans la feuille modale sur mobile : même
+                    composant, même état, pas de divergence possible. */}
+                {hasOptions && variants.length > 0 && (
+                  <div className="bg-white border border-gray-100 rounded-2xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-gray-900">Choisir vos options</span>
+                      <span className="text-[9px] font-semibold text-brand">
+                        {selectedOptionCount}/{options.length} sélectionné{options.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <OptionsPicker
+                      options={options}
+                      selectedOptions={selectedOptions}
+                      onSelect={selectValue}
+                      onRemove={(optionId) =>
+                        setSelectedOptions((prev: Record<string, string>) => {
+                          const next = { ...prev };
+                          delete next[optionId];
+                          return next;
+                        })
+                      }
+                      isValueDisabled={isValueDisabled}
+                      allSelected={allSelected}
+                      outOfStock={isSelectedOutOfStock}
+                      hasMatrix={variants.length > 0}
+                      variantName={matchedVariant?.name}
+                      variantStock={matchedVariant ? Number(matchedVariant.stock) || 0 : null}
+                      price={matchedVariant ? Number(matchedVariant.price) || 0 : null}
+                    />
+                  </div>
+                )}
 
                 {/* Wholesale / B2B */}
                 {hasWholesale && (
@@ -2118,9 +2210,25 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
               >
                 <div className="flex items-center justify-between gap-3 mb-2.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                    {selectedOptionCount}/{options.length} sélectionné{options.length > 1 ? "s" : ""}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      {selectedOptionCount}/{options.length} sélectionné{options.length > 1 ? "s" : ""}
+                    </span>
+                    {/* D4 : stock de la combinaison choisie */}
+                    {matchedVariant && (
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                          (Number(matchedVariant.stock) || 0) > 0
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                            : "bg-rose-50 text-rose-600 border border-rose-100"
+                        }`}
+                      >
+                        {(Number(matchedVariant.stock) || 0) > 0
+                          ? `${Number(matchedVariant.stock)} en stock`
+                          : "Rupture"}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-base font-bold text-gray-950 tracking-tight">
                     {formatCurrency(matchedVariant ? matchedVariant.price : basePrice)}
                   </span>

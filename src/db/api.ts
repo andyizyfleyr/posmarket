@@ -1,6 +1,7 @@
 import { db } from './index';
 import { products, customers, orders, orderItems, stores, profiles, productStats, invoices } from './schema';
 import { eq, desc, inArray, sql, and } from 'drizzle-orm';
+import { resyncVariantsFromJson } from './variants';
 import { Product, Customer } from '@/types';
 
 type StoreRow = typeof stores.$inferSelect;
@@ -225,6 +226,12 @@ export async function adjustProductStock(
         .where(and(eq(products.id, productId), eq(products.storeId, storeId)));
     }
   }
+
+  // --- V2 (B1) : garder la table relationnelle synchronisée avec le JSONB ---
+  await resyncVariantsFromJson(
+    db,
+    Array.from(totals.keys()).concat(variantLines.map((l) => l.productId))
+  );
 }
 
 async function getOrdersForStore(storeId: string) {

@@ -119,6 +119,7 @@ type OrderItemInput = {
   variantId?: string | null;
   variantLabel?: string | null;
   variantSku?: string | null;
+  variantOptionValues?: Record<string, string> | null;
 }
 
 type OrderInput = {
@@ -162,6 +163,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
                 variantId: item.variantId ?? null,
                 variantLabel: item.variantLabel ?? null,
                 variantSku: item.variantSku ?? null,
+                variantOptionValues: item.variantOptionValues ?? {},
             }));
             
             await db.insert(orderItems).values(itemsToInsert);

@@ -26,11 +26,54 @@ export type ProductVariantDef = {
   stock: number;
   sku?: string;
   image?: string;
+  /** Nom modifié manuellement : il n'est plus recalculé à chaque reconstr. */
+  nameCustom?: boolean;
+  /** Variante conservée mais non vendable (masquée côté acheteur). */
+  enabled?: boolean;
 };
 
-export const MAX_VARIANT_OPTIONS = 3;
-export const MAX_VALUES_PER_OPTION = 20;
-export const MAX_VARIANTS = 200;
+export type VariantLimits = {
+  maxOptions: number;
+  maxValuesPerOption: number;
+  maxVariants: number;
+};
+
+/**
+ * Bornes par défaut. Raisonnables en perf : la génération de combinaisons est
+ * bornée par `maxVariants`, donc même avec le maximum d'options le produit
+ * reste exploitable.
+ */
+export const DEFAULT_VARIANT_LIMITS: VariantLimits = {
+  maxOptions: 4,
+  maxValuesPerOption: 20,
+  maxVariants: 500,
+};
+
+export const MAX_VARIANT_OPTIONS = DEFAULT_VARIANT_LIMITS.maxOptions;
+export const MAX_VALUES_PER_OPTION = DEFAULT_VARIANT_LIMITS.maxValuesPerOption;
+export const MAX_VARIANTS = DEFAULT_VARIANT_LIMITS.maxVariants;
+
+/**
+ * Active une surcharge boutique : les bornes sont plafonnées pour garder un
+ * plafond de sécurité même si un appelleur fournit une valeur absurde.
+ */
+export function resolveVariantLimits(limits?: Partial<VariantLimits>): VariantLimits {
+  const clamp = (v: unknown, fallback: number, min: number, max: number) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  };
+  return {
+    maxOptions: clamp(limits?.maxOptions, DEFAULT_VARIANT_LIMITS.maxOptions, 1, 6),
+    maxValuesPerOption: clamp(
+      limits?.maxValuesPerOption,
+      DEFAULT_VARIANT_LIMITS.maxValuesPerOption,
+      1,
+      50,
+    ),
+    maxVariants: clamp(limits?.maxVariants, DEFAULT_VARIANT_LIMITS.maxVariants, 1, 2000),
+  };
+}
 
 /** Identifiant durable : survit aux rechargements de la fiche produit. */
 export function newVariantId(): string {
@@ -56,13 +99,14 @@ function cleanText(value: unknown, max = 80): string {
  * Une option sans nom ou sans valeur est ignorée : elle ne peut pas
  * produire de variante exploitable.
  */
-export function normalizeOptions(raw: unknown): ProductOptionDef[] {
+export function normalizeOptions(raw: unknown, limits?: Partial<VariantLimits>): ProductOptionDef[] {
   if (!Array.isArray(raw)) return [];
+  const { maxOptions, maxValuesPerOption } = resolveVariantLimits(limits);
   const seenIds = new Set<string>();
   const seenNames = new Set<string>();
   const out: ProductOptionDef[] = [];
 
-  for (const entry of raw.slice(0, MAX_VARIANT_OPTIONS)) {
+  for (const entry of raw.slice(0, maxOptions)) {
     if (!entry || typeof entry !== 'object') continue;
     const option = entry as Record<string, unknown>;
     const name = cleanText(option.name, 40);
@@ -79,7 +123,7 @@ export function normalizeOptions(raw: unknown): ProductOptionDef[] {
       if (!cleaned) continue;
       if (values.some((v) => v.toLowerCase() === cleaned.toLowerCase())) continue;
       values.push(cleaned);
-      if (values.length >= MAX_VALUES_PER_OPTION) break;
+      if (values.length >= maxValuesPerOption) break;
     }
     if (values.length === 0) continue;
 
@@ -113,8 +157,12 @@ export function variantLabel(
     .join(' / ');
 }
 
-export function combinationsOf(options: ProductOptionDef[]): Record<string, string>[] {
+export function combinationsOf(
+  options: ProductOptionDef[],
+  limits?: Partial<VariantLimits>,
+): Record<string, string>[] {
   if (options.length === 0) return [];
+  const { maxVariants } = resolveVariantLimits(limits);
   let combinations: Record<string, string>[] = [{}];
   for (const option of options) {
     const next: Record<string, string>[] = [];
@@ -124,9 +172,9 @@ export function combinationsOf(options: ProductOptionDef[]): Record<string, stri
       }
     }
     combinations = next;
-    if (combinations.length > MAX_VARIANTS) break;
+    if (combinations.length > maxVariants) break;
   }
-  return combinations.slice(0, MAX_VARIANTS);
+  return combinations.slice(0, maxVariants);
 }
 
 /**
@@ -141,9 +189,10 @@ export function combinationsOf(options: ProductOptionDef[]): Record<string, stri
 export function buildVariantMatrix(
   options: ProductOptionDef[],
   existing: ProductVariantDef[],
-  fallbackPrice: number
+  fallbackPrice: number,
+  limits?: Partial<VariantLimits>
 ): { variants: ProductVariantDef[]; dropped: ProductVariantDef[] } {
-  const combinations = combinationsOf(options);
+  const combinations = combinationsOf(options, limits);
   const byKey = new Map<string, ProductVariantDef>();
   for (const variant of existing) {
     const key = variantCombinationKey(variant.optionValues);
@@ -157,10 +206,14 @@ export function buildVariantMatrix(
     byKey.delete(key);
     return {
       id: previous?.id || newVariantId(),
-      name: variantLabel(combination, options),
+      // Un nom saisi à la main est conservé, sinon il suit les options.
+      name: previous?.nameCustom ? previous.name : variantLabel(combination, options),
       optionValues: combination,
       price: previous ? toFiniteNumber(previous.price, price) : price,
       stock: previous ? Math.max(0, Math.round(toFiniteNumber(previous.stock, 0))) : 0,
+      nameCustom: previous?.nameCustom === true,
+      // Une variante désactivée le reste tant que sa combinaison existe.
+      enabled: previous ? previous.enabled !== false : true,
       ...(previous?.sku ? { sku: previous.sku } : {}),
       ...(previous?.image ? { image: previous.image } : {}),
     };
@@ -173,15 +226,20 @@ export function buildVariantMatrix(
  * Nettoie les variantes avant écriture : clés d'options valides, valeurs
  * autorisées par l'option correspondante, prix et stock coercés.
  */
-export function normalizeVariants(raw: unknown, options: ProductOptionDef[]): ProductVariantDef[] {
+export function normalizeVariants(
+  raw: unknown,
+  options: ProductOptionDef[],
+  limits?: Partial<VariantLimits>
+): ProductVariantDef[] {
   if (!Array.isArray(raw)) return [];
   if (options.length === 0) return [];
 
-  const valid = new Set(combinationsOf(options).map((combination) => variantCombinationKey(combination)));
+  const { maxVariants } = resolveVariantLimits(limits);
+  const valid = new Set(combinationsOf(options, limits).map((combination) => variantCombinationKey(combination)));
   const seen = new Set<string>();
   const out: ProductVariantDef[] = [];
 
-  for (const entry of raw.slice(0, MAX_VARIANTS)) {
+  for (const entry of raw.slice(0, maxVariants)) {
     if (!entry || typeof entry !== 'object') continue;
     const variant = entry as Record<string, unknown>;
     const optionValues: Record<string, string> = {};
@@ -203,12 +261,18 @@ export function normalizeVariants(raw: unknown, options: ProductOptionDef[]): Pr
     const sku = cleanText(variant.sku, 60);
     const image = cleanText(variant.image, 2048);
 
+    const name = cleanText(variant.name, 120);
+    const nameCustom = variant.nameCustom === true;
+    const enabled = variant.enabled !== false;
+
     out.push({
       id: cleanText(variant.id, 64) || newVariantId(),
-      name: variantLabel(optionValues, options),
+      name: nameCustom && name ? name : variantLabel(optionValues, options),
+      nameCustom,
       optionValues,
       price,
       stock,
+      enabled,
       ...(sku ? { sku } : {}),
       ...(image ? { image } : {}),
     });
@@ -225,13 +289,17 @@ export function findVariantByOptions<T extends { optionValues?: Record<string, s
   if (!Array.isArray(variants) || variants.length === 0) return undefined;
   const key = variantCombinationKey(selected);
   if (!key) return undefined;
-  return variants.find((variant) => variantCombinationKey(variant.optionValues) === key);
+  return variants.find((variant) => {
+    if ((variant as { enabled?: boolean }).enabled === false) return false;
+    return variantCombinationKey(variant.optionValues) === key;
+  });
 }
 
 export function variantIsInStock(
-  variant: { stock?: number | null } | null | undefined
+  variant: { stock?: number | null; enabled?: boolean } | null | undefined
 ): boolean {
   if (!variant) return false;
+  if (variant.enabled === false) return false;
   return toFiniteNumber(variant.stock, 0) > 0;
 }
 
@@ -264,7 +332,7 @@ function isVariantCompatibleWith(
  * le vendeur n'a simplement pas de matrice à respecter.
  */
 export function optionValueAvailability(
-  variants: Array<{ stock?: number | null; optionValues?: Record<string, string> }> | undefined,
+  variants: Array<{ stock?: number | null; enabled?: boolean; optionValues?: Record<string, string> }> | undefined,
   selected: Record<string, string>,
   optionId: string,
   value: string
@@ -277,17 +345,21 @@ export function optionValueAvailability(
     isVariantCompatibleWith(variant, candidate)
   );
   return {
-    exists: compatible.length > 0,
+    exists: compatible.some((v) => v.enabled !== false),
     available: compatible.some((variant) => variantIsInStock(variant)),
   };
 }
 
 /** Stock total disponible toutes variantes confondues. */
 export function totalVariantStock(
-  variants: Array<{ stock?: number | null }> | undefined
+  variants: Array<{ stock?: number | null; enabled?: boolean }> | undefined
 ): number | null {
   if (!Array.isArray(variants) || variants.length === 0) return null;
-  return variants.reduce((total, variant) => total + toFiniteNumber(variant?.stock, 0), 0);
+  return variants.reduce(
+    (total, variant) =>
+      total + (variant.enabled === false ? 0 : toFiniteNumber(variant?.stock, 0)),
+    0,
+  );
 }
 
 /** Stock disponible d'une variante, ou null si le produit n'en a pas. */

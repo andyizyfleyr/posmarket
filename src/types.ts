@@ -30,7 +30,6 @@ export interface Product {
   stock: number;
   category: string;
   mainCategory?: string;
-  hasOptions?: boolean;
   unit?: string;
   description?: string;
   isOnline?: boolean;
@@ -72,6 +71,7 @@ export interface CartItem {
   variantId?: string | null;
   variantLabel?: string | null;
   variantSku?: string | null;
+  variantOptionValues?: Record<string, string> | null;
 }
 
 export interface Customer {

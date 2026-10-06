@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -14,10 +14,16 @@ import {
   Layers,
   Tag,
   BarChart3,
+  Eye,
+  EyeOff,
+  Upload,
+  Download,
 } from 'lucide-react';
 import {
   buildVariantMatrix,
   newVariantId,
+  resolveVariantLimits,
+  variantCombinationKey,
   type ProductOptionDef,
   type ProductVariantDef,
 } from '@/utils/variants';
@@ -43,7 +49,9 @@ const VARIANT_COLORS = [
   'bg-pink-500', 'bg-cyan-500', 'bg-lime-500', 'bg-red-500',
 ];
 
-const MAX_OPTIONS = 3;
+// Bornes par défaut de la matrice (surchargeables par boutique via la prop
+// `limits` si un jour on expose les réglages) : voir resolveVariantLimits.
+const { maxOptions: MAX_OPTIONS } = resolveVariantLimits();
 
 type Props = {
   options: ProductOptionDef[];
@@ -69,6 +77,8 @@ export default function VariantMatrixEditor({
   const [valueDraft, setValueDraft] = useState<Record<string, string>>({});
   const [priceDraft, setPriceDraft] = useState<Record<string, string>>({});
   const [bulkConfirm, setBulkConfirm] = useState<null | 'price' | 'stock'>(null);
+  const [imageUrlDraft, setImageUrlDraft] = useState<string>('');
+  const csvFileRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
     const total = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
@@ -169,6 +179,125 @@ export default function VariantMatrixEditor({
       candidate = `${base}-${suffix}`;
     }
     updateVariant(variants[index + 1]?.id || source.id, { sku: candidate });
+  };
+
+  // ── CSV : export / import de la matrice des variantes (C5) ────────
+  const csvCell = (value: unknown): string => {
+    const text = value == null ? '' : String(value);
+    return /[",;\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+
+  const exportVariantsCsv = () => {
+    if (variants.length === 0) return;
+    const header = [
+      ...options.map((o) => o.name || 'Option'),
+      'Nom', 'Prix', 'Stock', 'SKU', 'Image', 'Activee',
+    ];
+    const rows = variants.map((v) => [
+      ...options.map((o) => v.optionValues[o.id] || ''),
+      v.name || '',
+      v.price ?? '',
+      v.stock ?? '',
+      v.sku || '',
+      v.image || '',
+      v.enabled === false ? '0' : '1',
+    ]);
+    const csv = [header, ...rows].map((line) => line.map(csvCell).join(';')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `variantes-${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const importVariantsCsv = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || '')
+          .replace(/^\ufeff/, '')
+          .trim();
+        if (!text) return;
+        const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+        if (lines.length < 2) return;
+        const parseLine = (line: string): string[] => {
+          const cells: string[] = [];
+          let cur = '';
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i += 1) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inQuotes && line[i + 1] === '"') { cur += '"'; i += 1; }
+              else inQuotes = !inQuotes;
+            } else if (ch === ';' && !inQuotes) {
+              cells.push(cur);
+              cur = '';
+            } else {
+              cur += ch;
+            }
+          }
+          cells.push(cur);
+          return cells.map((c) => c.trim());
+        };
+
+        const existingByKey = new Map(
+          variants.map((v) => [variantCombinationKey(v.optionValues), v]),
+        );
+        const merged: ProductVariantDef[] = [...variants];
+        const mergedKeys = new Set(variants.map((v) => variantCombinationKey(v.optionValues)));
+
+        for (const line of lines.slice(1)) {
+          const cells = parseLine(line);
+          if (cells.length < options.length + 2) continue;
+          const optionValues: Record<string, string> = {};
+          options.forEach((o, i) => {
+            const val = cells[i]?.replace(/"/g, '');
+            if (val) optionValues[o.id] = val;
+          });
+          const nbOpts = options.length;
+          const name = cells[nbOpts]?.replace(/"/g, '') || '';
+          const price = Math.max(0, Number(String(cells[nbOpts + 1]).replace(',', '.')) || 0);
+          const stock = Math.max(0, Math.round(Number(cells[nbOpts + 2]) || 0));
+          const sku = cells[nbOpts + 3]?.replace(/"/g, '') || '';
+          const image = cells[nbOpts + 4]?.replace(/"/g, '') || '';
+          const enabled = String(cells[nbOpts + 5] ?? '1') !== '0';
+
+          const key = variantCombinationKey(optionValues);
+          if (!key || Object.keys(optionValues).length !== options.length) continue;
+          const previous = existingByKey.get(key);
+          const variant: ProductVariantDef = {
+            id: previous?.id || newVariantId(),
+            name: name || previous?.name || '',
+            nameCustom: !!(name && name !== (previous?.name || '')),
+            optionValues,
+            price,
+            stock,
+            enabled,
+            ...(sku ? { sku } : {}),
+            ...(image ? { image } : {}),
+            ...(previous?.image && !image ? { image: previous.image } : {}),
+          };
+          if (mergedKeys.has(key)) {
+            const idx = merged.findIndex((v) => variantCombinationKey(v.optionValues) === key);
+            if (idx >= 0) merged[idx] = variant;
+          } else {
+            merged.push(variant);
+            mergedKeys.add(key);
+          }
+        }
+        setNotice('Importation CSV : variantes fusionnées avec la matrice existante.');
+        onChange(options, merged, null);
+      } catch {
+        setNotice("Importation impossible : le format du fichier est invalide.");
+      } finally {
+        if (csvFileRef.current) csvFileRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -452,6 +581,33 @@ export default function VariantMatrixEditor({
           {variants.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Actions groupées :</span>
+              <input
+                ref={csvFileRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) importVariantsCsv(file);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => csvFileRef.current?.click()}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-600 bg-white ring-1 ring-gray-200 hover:text-brand hover:ring-orange-300 transition-all"
+                title="Importer une matrice depuis un CSV"
+              >
+                <Upload size={11} /> Importer
+              </button>
+              <button
+                type="button"
+                onClick={exportVariantsCsv}
+                disabled={variants.length === 0}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-600 bg-white ring-1 ring-gray-200 hover:text-brand hover:ring-orange-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Exporter la matrice en CSV"
+              >
+                <Download size={11} /> Exporter
+              </button>
               {bulkConfirm === 'price' ? (
                 <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200">
                   <span className="text-xs font-semibold text-gray-600">
@@ -535,21 +691,33 @@ export default function VariantMatrixEditor({
                   return (
                     <div
                       key={variant.id}
-                      className={`grid grid-cols-[1fr_120px_72px_1fr_48px] gap-0 items-center px-3 py-2.5 transition-colors hover:bg-orange-50/30 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                      className={`grid grid-cols-[1fr_120px_72px_1fr_48px] gap-0 items-center px-3 py-2.5 transition-colors hover:bg-orange-50/30 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} ${variant.enabled === false ? 'opacity-45' : ''}`}
                     >
-                      {/* Nom de la variante */}
+                      {/* Nom de la variante — éditable (C1) */}
                       <div className="flex items-center gap-2.5 min-w-0 pl-1">
-                        <span className={`w-2.5 h-2.5 rounded-full ${colorClass} shrink-0`} />
+                        <span className={`w-2.5 h-2.5 rounded-full ${colorClass} shrink-0 ${variant.enabled === false ? 'bg-gray-300' : ''}`} />
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-gray-800 truncate leading-tight">
-                            {options.map((o) => variant.optionValues[o.id]).filter(Boolean).join(' / ')}
+                          <input
+                            type="text"
+                            value={variant.name ?? options.map((o) => variant.optionValues[o.id]).filter(Boolean).join(' / ')}
+                            onChange={(e) =>
+                              updateVariant(variant.id, { name: e.target.value, nameCustom: true })
+                            }
+                            placeholder={options.map((o) => variant.optionValues[o.id]).filter(Boolean).join(' / ') || 'Nom de la variante'}
+                            className="w-full text-sm font-bold text-gray-800 truncate leading-tight bg-transparent border-b border-dashed border-transparent focus:border-brand focus:outline-none transition-colors"
+                            title="Nom d'affichage (modifiable)"
+                          />
+                          <p className="flex items-center gap-1 mt-0.5">
+                            {variant.enabled === false && (
+                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Masquée</span>
+                            )}
+                            {priceNumber === 0 && (
+                              <span className="text-[9px] font-bold text-rose-500 leading-tight">Prix manquant</span>
+                            )}
+                            {stock === 0 && priceNumber > 0 && variant.enabled !== false && (
+                              <span className="text-[9px] font-bold text-amber-500 leading-tight">Épuisé</span>
+                            )}
                           </p>
-                          {priceNumber === 0 && (
-                            <p className="text-[9px] font-bold text-rose-500 leading-tight">Prix manquant</p>
-                          )}
-                          {stock === 0 && priceNumber > 0 && (
-                            <p className="text-[9px] font-bold text-amber-500 leading-tight">Épuisé</p>
-                          )}
                         </div>
                       </div>
 
@@ -634,6 +802,21 @@ export default function VariantMatrixEditor({
                             <Copy size={12} />
                           </button>
                         )}
+                        {/* Bouton masquer / réactiver (C4) */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateVariant(variant.id, { enabled: variant.enabled === false ? true : false })
+                          }
+                          className={`p-2 rounded-lg transition-colors shrink-0 ${
+                            variant.enabled === false
+                              ? 'text-emerald-500 hover:bg-emerald-50'
+                              : 'text-gray-300 hover:text-gray-600 hover:bg-gray-100'
+                          }`}
+                          title={variant.enabled === false ? 'Réactiver cette variante' : 'Masquer cette variante (non vendable)'}
+                        >
+                          {variant.enabled === false ? <Eye size={12} /> : <EyeOff size={12} />}
+                        </button>
                         {/* Bouton supprimer variante */}
                         <button
                           type="button"
@@ -669,42 +852,67 @@ export default function VariantMatrixEditor({
                             )}
                           </button>
 
-                          {/* Picker de photo */}
-                          {imagePickerFor === variant.id && images.length > 0 && (
-                            <div className="absolute right-0 top-full mt-2 z-30 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 p-3">
+                          {/* Picker de photo — indépendant de la galerie : URL libre + raccourcis */}
+                          {imagePickerFor === variant.id && (
+                            <div className="absolute right-0 top-full mt-2 z-30 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 p-3">
                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                                Choisir une image
+                                Photo de la variante
                               </p>
-                              <div className="grid grid-cols-3 gap-1.5">
-                                {images.map((img) => (
+                              <input
+                                type="url"
+                                value={imageUrlDraft}
+                                onChange={(e) => setImageUrlDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const url = imageUrlDraft.trim();
+                                    if (url) {
+                                      updateVariant(variant.id, { image: url });
+                                      setImageUrlDraft('');
+                                      setImagePickerFor(null);
+                                    }
+                                  }
+                                }}
+                                placeholder="Collez une URL d'image…"
+                                className="w-full px-2.5 py-2 mb-2 bg-gray-50 border-2 border-gray-100 rounded-lg text-[11px] font-semibold focus:border-brand focus:bg-white outline-none transition-all placeholder:text-gray-300"
+                              />
+                              {images.length > 0 ? (
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {images.map((img) => (
+                                    <button
+                                      key={img}
+                                      type="button"
+                                      onClick={() => {
+                                        updateVariant(variant.id, { image: img });
+                                        setImageUrlDraft('');
+                                        setImagePickerFor(null);
+                                      }}
+                                      className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                                        variant.image === img
+                                          ? 'border-brand shadow-md'
+                                          : 'border-transparent hover:border-orange-200'
+                                      }`}
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={img} alt="" className="w-full h-full object-cover" />
+                                    </button>
+                                  ))}
                                   <button
-                                    key={img}
                                     type="button"
                                     onClick={() => {
-                                      updateVariant(variant.id, { image: img });
+                                      updateVariant(variant.id, { image: '' });
+                                      setImageUrlDraft('');
                                       setImagePickerFor(null);
                                     }}
-                                    className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                      variant.image === img
-                                        ? 'border-brand shadow-md'
-                                        : 'border-transparent hover:border-orange-200'
-                                    }`}
+                                    className="aspect-square rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 text-[9px] font-bold text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-colors flex items-center justify-center"
                                   >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                    <X size={12} />
                                   </button>
-                                ))}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    updateVariant(variant.id, { image: '' });
-                                    setImagePickerFor(null);
-                                  }}
-                                  className="aspect-square rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 text-[9px] font-bold text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-colors flex items-center justify-center"
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
+                                </div>
+                              ) : (
+                                <p className="text-[9px] font-semibold text-gray-400">
+                                  Astuce : ajoutez aussi la photo à la galerie du produit pour qu&apos;elle apparaisse sur la fiche.
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>

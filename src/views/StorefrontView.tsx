@@ -1754,14 +1754,20 @@ const WHOLESALE_FILTER = "wholesale";
   const handleCardAddToCart = (p: Product) => addToCart(p as StorefrontProduct);
   const handleCardBuyNow = (p: Product) => buyNow(p as StorefrontProduct);
 
-  const addWholesaleToCart = (product: StorefrontProduct, minQty?: number) => {
+  const addWholesaleToCart = (
+    product: StorefrontProduct,
+    minQty?: number,
+    variantId?: string | null,
+  ) => {
     const qty =
       minQty ||
       (product.wholesaleTiers && product.wholesaleTiers.length > 0
         ? Math.min(...product.wholesaleTiers.map((t) => t.minQty))
         : Number(product.wholesaleMinQty)) ||
       1;
-    const stock = getStockFor(product);
+    // Le stock doit être lu sur la variante choisie : sinon on autorise
+    // l'achat d'un gros lot à partir du stock global du produit.
+    const stock = getStockFor(product, variantId ?? undefined);
     const effectiveQty =
       stock !== null && stock > 0 ? Math.min(qty, stock) : qty;
     if (stock !== null && qty > stock) {
@@ -1774,15 +1780,13 @@ const WHOLESALE_FILTER = "wholesale";
       return;
     }
     setCart((prev) => {
-      const existing = prev.find(
-        (item) =>
-          item.product.id === product.id &&
-          item.product.storeId === product.storeId,
-      );
+      const lineKey = (item: CartItem) =>
+        `${item.product.id}::${item.product.storeId}::${item.variantId ?? 'base'}`;
+      const key = `${product.id}::${product.storeId}::${variantId ?? 'base'}`;
+      const existing = prev.find((item) => lineKey(item) === key);
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id &&
-          item.product.storeId === product.storeId
+          lineKey(item) === key
             ? {
                 ...item,
                 quantity: Math.max(item.quantity, effectiveQty),
@@ -1790,7 +1794,7 @@ const WHOLESALE_FILTER = "wholesale";
             : item,
         );
       }
-      return [...prev, { product, quantity: effectiveQty }];
+      return [...prev, { product, quantity: effectiveQty, variantId: variantId ?? undefined }];
     });
     setLastAddedProduct(product);
     buzz();
@@ -1962,11 +1966,21 @@ const WHOLESALE_FILTER = "wholesale";
   const cartTotal = baseCartTotal - discountAmount + shippingCost;
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Économies réalisées grâce aux tarifs de gros (hors coupon)
+  // Économies réalisées grâce aux tarifs de gros (hors coupon).
+  // La référence est le prix de la variante si elle est choisie : sinon une
+  // ligne à variante afficherait un « gain » négatif (prix de variante plus
+  // bas que le prix de base du produit) et serait exclue du calcul.
+  const referenceItemPrice = useCallback((item: CartItem) => {
+    if (item.variantId && item.product.variants) {
+      const variant = item.product.variants.find((v) => v.id === item.variantId);
+      if (variant) return Number(variant.price);
+    }
+    return Number(item.product.price);
+  }, []);
+
   const wholesaleSavings = cart.reduce((sum, item) => {
-    if (item.variantId) return sum;
     const saved =
-      (Number(item.product.price) - getEffectiveItemPrice(item)) *
+      (referenceItemPrice(item) - getEffectiveItemPrice(item)) *
       (item.quantity || 1);
     return sum + (saved > 0 ? saved : 0);
   }, 0);

@@ -7,6 +7,7 @@ import { products, profiles, stores, storeStaff, categories, productCategories }
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
 import { normalizeOptions, normalizeVariants, buildVariantMatrix } from '@/utils/variants'
+import { syncProductVariants } from '@/db/variants'
 import type { ProductImportItem } from '@/utils/product-import-export'
 
 type ProductInput = {
@@ -240,6 +241,15 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     }
 
     if (!savedProduct) return { success: false, error: 'Produit introuvable' };
+
+    // --- V2 (B1/B3) : table relationnelle + historique gelé de la matrice ---
+    await syncProductVariants(
+      db,
+      savedProduct.id,
+      options,
+      variants,
+      product.id && !product.id.startsWith('temp-') ? 'update' : 'create'
+    );
 
     updateTag('marketplace');
 

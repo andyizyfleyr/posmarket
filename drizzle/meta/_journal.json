@@ -126,6 +126,12 @@
       "version": "7",
       "when": 1791221307795,
       "tag": "0017_indexes"
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791221307795,
+      "tag": "0018_variant_v2"
     }
   ]
 }
