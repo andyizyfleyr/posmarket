@@ -164,8 +164,10 @@ function ProductSeller({
   category: string;
   onCategoryClick: () => void;
 }) {
+  // Le bloc est centré : un nom long déborde des deux côtés du bloc, la ligne se
+  // remplit donc de gauche à droite et se termine par « … » (truncate).
   return (
-    <div className="flex items-center gap-2.5 min-w-0">
+    <div className="flex items-center justify-center gap-2.5 min-w-0">
       <Link
         to={`/store/${product.storeSlug || product.storeId}`}
         tabIndex={-1}
@@ -188,10 +190,10 @@ function ProductSeller({
         )}
       </Link>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 max-w-full">
         <Link
           to={`/store/${product.storeSlug || product.storeId}`}
-          className="flex items-center gap-1 min-w-0 group/vendor"
+          className="flex items-center gap-1 min-w-0 justify-center group/vendor"
         >
           <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">
             Vendu par
@@ -210,7 +212,7 @@ function ProductSeller({
           <button
             type="button"
             onClick={onCategoryClick}
-            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
+            className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
           >
             <span className="truncate">{category}</span>
             <ChevronRight size={11} className="flex-shrink-0" />
@@ -1113,17 +1115,23 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             Bouton de retour uniquement. Le panier vit dans la barre du bas :
             le dupliquer ici affichait deux boutons pointant vers la meme
             destination sur le meme ecran. */}
-        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center gap-2 -mx-4" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center gap-2 -mx-4 relative" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <button
             type="button"
             onClick={() => safeNavigate("/")}
             aria-label="Retour"
-            className="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100 transition-colors"
+            className="relative z-10 w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100 transition-colors"
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <span className="text-xs font-bold tracking-[0.1em] uppercase text-gray-500 truncate">
-            {product.storeName}
+          {/* Nom centré dans la barre entière (et non dans l'espace restant
+              après le bouton). `px-12` réserve de part et d'autre la place du
+              bouton : le nom démarre donc à gauche dès qu'il déborde et se
+              termine par « … ». */}
+          <span className="absolute inset-0 px-12 flex items-center justify-center pointer-events-none">
+            <span className="max-w-full truncate text-center text-xs font-bold tracking-[0.1em] uppercase text-gray-500">
+              {product.storeName}
+            </span>
           </span>
         </div>
 
