@@ -1,10 +1,36 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, ArrowRight, Loader2, Plus, LogOut } from 'lucide-react';
+import {
+  Store,
+  ArrowRight,
+  Loader2,
+  LogOut,
+  ShoppingBag,
+  UtensilsCrossed,
+  Check,
+  CircleAlert,
+} from 'lucide-react';
 import { quickCreateStoreAction, clearStoreCookieAction } from '@/app/actions/store';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+
+const TEMPLATES = [
+  {
+    id: 'shopping' as const,
+    label: 'SHOP',
+    desc: 'Shopping & E-commerce',
+    icon: ShoppingBag,
+    chips: ['Stocks', 'Livraison'],
+  },
+  {
+    id: 'food' as const,
+    label: 'RESTO',
+    desc: 'Cuisine & Restauration',
+    icon: UtensilsCrossed,
+    chips: ['Menu', 'Préparation'],
+  },
+];
 
 export default function NoStoreFound() {
   const [storeName, setStoreName] = useState('');
@@ -43,105 +69,210 @@ export default function NoStoreFound() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-slate-50 text-center min-h-screen">
-      <div className="bg-white p-8 md:p-12 rounded-[40px] shadow-2xl max-w-lg w-full border border-slate-100 relative overflow-hidden animate-in fade-in zoom-in duration-500">
-        {/* Top Accent */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand via-orange-400 to-brand"></div>
-        
-        {/* Floating Icon Container */}
-        <div className="relative mb-10">
-          <div className="w-24 h-24 bg-orange-50 text-brand rounded-[32px] flex items-center justify-center mx-auto shadow-inner transform -rotate-12 transition-transform hover:rotate-0 duration-300">
-            <Store size={44} strokeWidth={2.5} />
-          </div>
-          <div className="absolute -right-2 top-0 w-10 h-10 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg animate-bounce duration-[2000ms]">
-            <Plus size={20} strokeWidth={3} />
-          </div>
-        </div>
-        
-        <h2 className="text-3xl font-bold text-slate-800 mb-4 tracking-tight">Bienvenue sur votre PDV !</h2>
-        <p className="text-slate-500 mb-10 font-normal leading-relaxed max-w-sm mx-auto">
-          Pour commencer, donnez un nom à votre première boutique. C&apos;est l&apos;endroit où vous gérerez vos ventes et stocks.
-        </p>
+    <div className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#f7f8fa] overflow-hidden">
+      {/* Décor : halo marque en haut à droite, encre en bas à gauche, grille fine */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute -top-48 -right-40 h-[460px] w-[460px] rounded-full blur-[80px]"
+          style={{ background: 'radial-gradient(circle, rgba(245,107,42,.22), transparent 65%)' }}
+        />
+        <div
+          className="absolute -bottom-52 -left-40 h-[420px] w-[420px] rounded-full blur-[80px]"
+          style={{ background: 'radial-gradient(circle, rgba(0,47,52,.12), transparent 65%)' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(16,24,40,.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,24,40,.05) 1px, transparent 1px)',
+            backgroundSize: '56px 56px',
+            maskImage: 'radial-gradient(ellipse at center, black 20%, transparent 78%)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, black 20%, transparent 78%)',
+          }}
+        />
+      </div>
 
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="relative group">
-            <input
-              type="text"
-              name="storeName"
-              placeholder="Nom de votre boutique (ex: Ma Boutique Pro)"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              className="w-full bg-slate-50 border-2 border-slate-100 rounded-[22px] px-6 py-5 text-lg font-semibold text-slate-800 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-inner group-hover:border-orange-200"
-              autoFocus
-              required
-              disabled={isCreating}
-            />
-          </div>
-
-          <div className="space-y-3">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left ml-2">Modèle de boutique</p>
-             <div className="grid grid-cols-1 gap-2">
-                {[
-                  { id: 'shopping' as const, label: 'SHOP', desc: 'Shopping & E-commerce', color: 'orange' },
-                  { id: 'food' as const, label: 'RESTO', desc: 'Cuisine & Restauration', color: 'yellow' }
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setBusinessType(type.id)}
-                    className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${businessType === type.id ? 'border-brand bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-                  >
-                    <div className="text-left">
-                      <p className="text-[10px] font-bold text-slate-900 leading-none mb-1">{type.label}</p>
-                      <p className="text-[9px] font-semibold text-slate-400 leading-none">{type.desc}</p>
-                    </div>
-                    {businessType === type.id && <div className="w-2 h-2 rounded-full bg-brand" />}
-                  </button>
-                ))}
-             </div>
+      <div className="relative w-full max-w-[560px] animate-in fade-in slide-in-from-bottom-5 duration-500">
+        {/* Carte principale */}
+        <div
+          className="bg-white border border-line rounded-[28px] p-6 sm:p-10"
+          style={{ boxShadow: '0 1px 2px rgba(16,24,40,.04), 0 28px 56px -28px rgba(16,24,40,.22)' }}
+        >
+          {/* Marque */}
+          <div className="flex items-center gap-2.5 mb-8">
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
+              style={{ background: 'linear-gradient(135deg, #f56b2a, #e55a1b)' }}
+            >
+              <Store size={17} strokeWidth={2.5} />
+            </span>
+            <span className="text-[13px] font-semibold tracking-[-0.01em] text-ink">PosMarket</span>
+            <span className="ml-auto text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Étape 1 / 1
+            </span>
           </div>
 
-          {error && (
-            <div className="bg-red-50 text-red-600 text-sm font-semibold p-4 rounded-2xl border border-red-100">
-              {error}
+          <h1 className="text-[26px] sm:text-[32px] leading-[1.1] font-semibold tracking-[-0.03em] text-ink">
+            Bienvenue sur votre PDV !
+          </h1>
+          <p className="mt-3 text-[14.5px] leading-relaxed text-slate-500 max-w-[440px]">
+            Pour commencer, donnez un nom à votre première boutique. C&apos;est l&apos;endroit où vous
+            gérerez vos ventes et stocks.
+          </p>
+
+          <form onSubmit={handleCreate} className="mt-8 space-y-6">
+            {/* Nom */}
+            <div>
+              <label
+                htmlFor="storeName"
+                className="block text-[12.5px] font-semibold text-ink mb-2"
+              >
+                Nom de votre boutique
+              </label>
+              <div className="relative">
+                <Store
+                  size={17}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+                <input
+                  id="storeName"
+                  type="text"
+                  name="storeName"
+                  placeholder="ex: Ma Boutique Pro"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  className="w-full rounded-2xl border border-line bg-white pl-11 pr-4 py-4 text-[15px] font-medium text-ink placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all"
+                  autoFocus
+                  required
+                  disabled={isCreating}
+                />
+              </div>
             </div>
-          )}
 
-          <button 
-            type="submit"
-            disabled={isCreating || !storeName.trim()}
-            className="w-full bg-brand hover:bg-[#d55a20] disabled:bg-orange-200 text-white font-bold py-5 px-8 rounded-[24px] transition-all shadow-xl shadow-orange-100 active:scale-[0.98] flex items-center justify-center gap-3 text-lg group"
-          >
-            {isCreating ? (
-              <>
-                <Loader2 size={24} className="animate-spin" />
-                <span>Création en cours...</span>
-              </>
-            ) : (
-              <>
-                <span>Créer ma boutique</span>
-                <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
-              </>
+            {/* Modèle */}
+            <div>
+              <p className="text-[12.5px] font-semibold text-ink mb-2">Modèle de boutique</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label="Modèle de boutique">
+                {TEMPLATES.map((type) => {
+                  const Icon = type.icon;
+                  const selected = businessType === type.id;
+                  return (
+                    <button
+                      key={type.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setBusinessType(type.id)}
+                      disabled={isCreating}
+                      className={`group relative flex items-start gap-3 p-4 rounded-2xl border text-left transition-all focus:outline-none focus:ring-4 focus:ring-brand/10 ${
+                        selected
+                          ? 'border-brand bg-brand-soft/60'
+                          : 'border-line bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <span
+                        className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-colors ${
+                          selected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                        }`}
+                      >
+                        <Icon size={18} strokeWidth={2.2} />
+                      </span>
+
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-[12.5px] font-bold tracking-[0.08em] text-ink">
+                            {type.label}
+                          </span>
+                          {selected && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-brand/12 px-1.5 py-0.5 text-[9.5px] font-bold text-brand">
+                              <Check size={9} strokeWidth={3.5} /> CHOISI
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-[11.5px] font-medium text-slate-500 mt-0.5">
+                          {type.desc}
+                        </span>
+                        <span className="flex flex-wrap gap-1.5 mt-2">
+                          {type.chips.map((chip) => (
+                            <span
+                              key={chip}
+                              className="text-[10px] font-semibold text-slate-500 bg-white border border-line rounded-md px-1.5 py-0.5"
+                            >
+                              {chip}
+                            </span>
+                          ))}
+                        </span>
+                      </span>
+
+                      <span
+                        className={`mt-0.5 w-[18px] h-[18px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selected ? 'border-brand bg-brand' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {selected && <Check size={11} strokeWidth={3.5} className="text-white" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-2 bg-red-50 text-red-600 text-[13.5px] font-medium p-4 rounded-2xl border border-red-100">
+                <CircleAlert size={16} className="shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
             )}
-          </button>
-        </form>
-        
-        <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-left">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1">Passer à plus tard ?</p>
-              <button 
+
+            <button
+              type="submit"
+              disabled={isCreating || !storeName.trim()}
+              className={`group w-full rounded-full py-4 px-6 text-[15px] font-semibold text-white transition-all flex items-center justify-center gap-2.5 active:scale-[0.985] disabled:cursor-not-allowed ${
+                isCreating || !storeName.trim()
+                  ? 'bg-[#f7c9b0]'
+                  : 'bg-brand hover:bg-brand-hover shadow-[0_14px_28px_-14px_rgba(245,107,42,.7)] hover:shadow-[0_18px_32px_-14px_rgba(245,107,42,.8)]'
+              }`}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Création en cours...</span>
+                </>
+              ) : (
+                <>
+                  <span>Créer ma boutique</span>
+                  <ArrowRight
+                    size={17}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Pied */}
+          <div className="mt-8 pt-6 border-t border-line flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Plus tard ?
+              </p>
+              <button
                 onClick={handleLogout}
-                className="text-xs text-slate-500 hover:text-red-500 font-semibold flex items-center gap-1.5 transition-colors"
                 type="button"
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-red-500 transition-colors"
               >
                 <LogOut size={14} /> Se déconnecter
               </button>
             </div>
-            
-            <p className="text-xs text-slate-400 max-w-[180px] text-center md:text-right">
+            <p className="text-[12px] leading-snug text-slate-400 sm:ml-auto sm:text-right sm:max-w-[230px]">
               Vous pourrez créer votre boutique plus tard depuis les paramètres.
             </p>
+          </div>
         </div>
+
+        <p className="text-center text-[11px] text-slate-400 mt-5 px-4">
+          Un modèle peut être changé à tout moment depuis les paramètres de la boutique.
+        </p>
       </div>
     </div>
   );
