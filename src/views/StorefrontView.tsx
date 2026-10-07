@@ -11,7 +11,7 @@ import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
-import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, Heart, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, Heart, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle, Eye } from "lucide-react";
 import {
   StoreData,
   Product,
@@ -1054,7 +1054,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     null
   );
   const [storeTab, setStoreTab] = useState<"products" | "reviews">("products");
-  const [storeDescExpanded, setStoreDescExpanded] = useState(false);
   const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const storeReviewsCacheRef = useRef<Record<string, Review[]>>({});
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
@@ -1362,7 +1361,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
       }
       setStoreTab("products"); // Reset to products tab on navigation
       setShowAllStoreReviews(false); // Reset see more
-      setStoreDescExpanded(false);
     }
   }, [selectedStoreId, selectedStoreParam]);
 
@@ -2218,17 +2216,26 @@ const WHOLESALE_FILTER = "wholesale";
       }
       return (
         <div className="mb-5 md:mb-6">
-          <div className="bg-white rounded-[24px] overflow-hidden ring-1 ring-gray-100">
-            <div className="h-[72px] md:h-32 skeleton" />
-            <div className="px-4 md:px-8 pb-5">
-              <div className="flex items-end gap-3 -mt-7 md:-mt-10">
-                <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl skeleton ring-4 ring-white" />
-                <div className="flex-grow space-y-2 pb-1">
-                  <div className="h-5 w-1/3 skeleton rounded" />
-                  <div className="h-3 w-1/4 skeleton rounded" />
-                </div>
+          <div className="bg-white rounded-[28px] md:rounded-[32px] overflow-hidden ring-1 ring-gray-100 shadow-sm">
+            <div className="h-28 md:h-44 skeleton" />
+            <div className="px-4 md:px-7 pb-5 md:pb-6">
+              <div className="flex items-end justify-between gap-3 -mt-10 md:-mt-14">
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl md:rounded-3xl skeleton ring-4 ring-white" />
+                <div className="h-7 w-28 rounded-full skeleton mb-2" />
               </div>
-              <div className="h-3 w-2/3 skeleton rounded mt-4" />
+              <div className="h-6 w-2/3 skeleton rounded-lg mt-4" />
+              <div className="flex gap-2 mt-3">
+                <div className="h-7 w-36 rounded-full skeleton" />
+                <div className="h-7 w-28 rounded-full skeleton" />
+              </div>
+              <div className="h-3 w-full skeleton rounded mt-4" />
+              <div className="h-3 w-4/5 skeleton rounded mt-2" />
+              <div className="h-12 w-full rounded-full skeleton mt-5" />
+              <div className="grid grid-cols-3 gap-2 md:gap-3 mt-4">
+                <div className="h-[84px] rounded-2xl skeleton" />
+                <div className="h-[84px] rounded-2xl skeleton" />
+                <div className="h-[84px] rounded-2xl skeleton" />
+              </div>
             </div>
           </div>
         </div>
@@ -2252,133 +2259,153 @@ const WHOLESALE_FILTER = "wholesale";
       ) || 0;
     const reviewCountTotal = selectedStore.reviewCount ?? productReviewTotal;
     return (
-      <div className="mb-5 md:mb-6    duration-700">
-        <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
+      <section className="mb-5 md:mb-6">
+        {/* Carte boutique : cover, identité, meta, description entière, CTA et
+            stats. Aucune information n'est masquée, mobile compris. */}
+        <div className="rounded-[28px] md:rounded-[32px] overflow-hidden bg-white ring-1 ring-gray-100 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_20px_48px_-24px_rgba(16,24,40,0.28)]">
           {/* Cover */}
-          <div className="h-[72px] md:h-32 bg-gradient-to-r from-brand via-[#ff8a50] to-[#ffb26b] relative overflow-hidden">
-            <div className="absolute -right-14 -top-20 w-56 h-56 rounded-full border-[24px] border-white/10" />
-            <div className="absolute -left-10 -bottom-24 w-48 h-48 rounded-full border-[18px] border-white/10" />
+          <div className="relative h-28 md:h-44 overflow-hidden bg-gradient-to-br from-brand via-[#ff7a3c] to-[#ffb26b]">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.6)_1px,transparent_0)] [background-size:14px_14px]"
+            />
+            <div aria-hidden="true" className="absolute -right-16 -top-24 w-64 h-64 rounded-full border-[26px] border-white/10" />
+            <div aria-hidden="true" className="absolute -left-14 -bottom-28 w-56 h-56 rounded-full border-[20px] border-white/10" />
+            <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/10 to-transparent" />
           </div>
 
           {/* Body */}
-          <div className="px-4 md:px-8 pb-4 relative">
-            {/* Logo + name */}
-            <div className="flex flex-col items-center -mt-7 md:-mt-10">
-              <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center z-10 relative">
+          <div className="px-4 md:px-7 pb-5 md:pb-6">
+            {/* Logo + note : la note et le nombre d'avis sont toujours
+                visibles, dans une pastille à droite du logo. */}
+            <div className="flex items-end justify-between gap-3 -mt-10 md:-mt-14">
+              <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl md:rounded-3xl bg-white ring-4 ring-white shadow-[0_14px_30px_-14px_rgba(16,24,40,0.45)] overflow-hidden shrink-0 flex items-center justify-center">
                 {selectedStore.settings?.logo ? (
                   <Image
                     src={selectedStore.settings.logo}
                     alt={selectedStore.name || "Boutique"}
                     fill
-                    sizes="80px"
+                    sizes="96px"
                     className="object-cover"
-                  unoptimized={needsNoOptimization(selectedStore.settings.logo)}
+                    unoptimized={needsNoOptimization(selectedStore.settings.logo)}
                   />
                 ) : (
-                  <Store size={28} className="text-brand" />
+                  <Store size={32} className="text-brand" />
                 )}
               </div>
-              <div className="mt-2 md:mt-3 text-center min-w-0">
-                <h1 className="text-lg md:text-2xl font-bold text-gray-900 max-w-full flex items-center justify-center gap-1.5 min-w-0 leading-tight">
-                  <span className="inline-block min-w-0 line-clamp-2 md:truncate">{selectedStore.settings.name}</span>
-                  <ShieldCheck
-                    size={15}
-                    strokeWidth={3}
-                    className="text-green-500 flex-shrink-0"
-                  />
-                </h1>
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <Star size={12} fill="currentColor" className="text-yellow-400" />
-                  <span className="text-xs font-bold text-gray-900">
-                    {(selectedStore.rating || 0).toFixed(1)}
-                  </span>
-                  <span className="text-[11px] font-semibold text-gray-400">
-                    ({formatNumber(reviewCountTotal)} avis)
-                  </span>
-                </div>
+
+              <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-gray-100 bg-white/95 px-2.5 py-1.5 shadow-sm backdrop-blur-md">
+                <Star size={12} fill="currentColor" className="text-yellow-400" />
+                <span className="text-xs font-extrabold text-gray-900 tabular-nums">
+                  {(selectedStore.rating || 0).toFixed(1)}
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">
+                  ({formatNumber(reviewCountTotal)} avis)
+                </span>
               </div>
             </div>
 
-            {/* Meta line */}
-            <div className="flex items-center justify-center gap-2.5 mt-2.5 flex-wrap text-[11px] font-semibold text-gray-400">
+            {/* Nom + badge vérifié : le nom n'est jamais tronqué */}
+            <div className="mt-3 flex items-start gap-1.5">
+              <h1 className="min-w-0 text-xl md:text-3xl font-extrabold tracking-[-0.02em] text-gray-900 leading-[1.15] break-words">
+                {selectedStore.settings.name}
+              </h1>
+              <ShieldCheck
+                size={17}
+                strokeWidth={2.75}
+                role="img"
+                aria-label="Boutique vérifiée"
+                className="text-green-500 shrink-0 mt-1.5"
+              />
+            </div>
+
+            {/* Meta : adresse complète (plus de troncature) + produits en ligne */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               {(() => {
                 const countryValue =
                   selectedStore.address || selectedStore.settings?.address;
                 if (!countryValue) return null;
                 return (
-                  <div className="flex items-center gap-1">
-                    <MapPin size={12} className="text-gray-300" />
-                    <span className="truncate max-w-[160px]">{countryValue}</span>
-                  </div>
+                  <span className="inline-flex max-w-full items-start gap-1.5 rounded-full border border-gray-100 bg-gray-50 px-3 py-1.5 text-[11px] font-semibold text-gray-600">
+                    <MapPin size={12} className="mt-0.5 shrink-0 text-brand" />
+                    <span className="min-w-0 break-words">{countryValue}</span>
+                  </span>
                 );
               })()}
-              <span className="text-gray-200">·</span>
-              <span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-brand-soft px-3 py-1.5 text-[11px] font-bold text-brand">
+                <ShoppingBasketIcon size={12} className="shrink-0" />
                 {selectedStore.products?.filter((p) => p.isOnline !== false).length || 0}{" "}
                 produits en ligne
               </span>
             </div>
 
-            {/* Description */}
-            <p
-              className={`mt-2 text-xs md:text-sm text-gray-500 leading-relaxed text-center ${storeDescExpanded ? "" : "line-clamp-2"}`}
-            >
-              {descriptionText}
-            </p>
-            {descriptionText.length > 90 && (
-              <button
-                onClick={() => setStoreDescExpanded((v) => !v)}
-                className="mt-0.5 text-[11px] font-bold text-brand block mx-auto"
-              >
-                {storeDescExpanded ? "Réduire" : "Voir plus"}
-              </button>
+            {/* Description : entièrement affichée, sans « Voir plus » */}
+            {descriptionText && (
+              <p className="mt-3 text-[13px] md:text-sm text-gray-600 leading-relaxed whitespace-pre-line break-words">
+                {descriptionText}
+              </p>
             )}
 
-            {/* CTAs */}
+            {/* CTA WhatsApp */}
             {waDigits && (
               <a
                 href={`https://wa.me/${waDigits}?text=${encodeURIComponent(`Bonjour ${selectedStore.settings.name}, je vous contacte depuis PosMarket.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full h-11 mt-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all active:scale-[0.97]"
+                className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-white text-sm font-bold shadow-[0_14px_28px_-14px_rgba(37,211,102,0.95)] transition-all hover:bg-[#1ebc57] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#25D366]/30"
               >
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
                 </svg>
                 Contacter sur WhatsApp
               </a>
             )}
-          </div>
 
-          {/* Stats strip */}
-          <div className="grid grid-cols-3 divide-x divide-gray-200/60 border-t border-gray-100 bg-gray-50/60">
-            <div className="py-2.5 px-2 flex flex-col items-center">
-              <span className="text-sm md:text-xl font-bold text-gray-900 leading-none">
-                {selectedStore.products?.filter((p) => p.isOnline !== false && p.image).length || 0}
-              </span>
-              <span className="text-[8px] md:text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
-                Produits
-              </span>
-            </div>
-            <div className="py-2.5 px-2 flex flex-col items-center">
-              <span className="text-sm md:text-xl font-bold text-gray-900 leading-none">
-                {formatNumber((selectedStore.views || 0) + (selectedStore.products?.filter((p) => p.isOnline !== false).reduce((sum, p) => sum + (p.views || 0), 0) || 0))}
-              </span>
-              <span className="text-[8px] md:text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
-                Visiteurs
-              </span>
-            </div>
-            <div className="py-2.5 px-2 flex flex-col items-center">
-              <span className="text-sm md:text-xl font-bold text-gray-900 leading-none">
-                {(selectedStore.rating || 0).toFixed(1)}/5
-              </span>
-              <span className="text-[8px] md:text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-1">
-                Note
-              </span>
+            {/* Stats : mêmes indicateurs qu'avant, en cartes bento */}
+            <div className="mt-4 grid grid-cols-3 gap-2 md:gap-3">
+              {[
+                {
+                  label: "Produits",
+                  icon: <ShoppingBasketIcon size={13} />,
+                  value:
+                    selectedStore.products?.filter((p) => p.isOnline !== false && p.image)
+                      .length || 0,
+                },
+                {
+                  label: "Visiteurs",
+                  icon: <Eye size={13} />,
+                  value: formatNumber(
+                    (selectedStore.views || 0) +
+                      (selectedStore.products
+                        ?.filter((p) => p.isOnline !== false)
+                        .reduce((sum, p) => sum + (p.views || 0), 0) || 0),
+                  ),
+                },
+                {
+                  label: "Note",
+                  icon: <Star size={13} className="text-yellow-400" fill="currentColor" />,
+                  value: `${(selectedStore.rating || 0).toFixed(1)}/5`,
+                },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-gray-100 bg-gray-50/80 px-2 py-3 transition active:scale-[0.98]"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-brand shadow-sm">
+                    {s.icon}
+                  </span>
+                  <span className="text-base md:text-xl font-extrabold text-gray-900 leading-none tabular-nums">
+                    {s.value}
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                    {s.label}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
+      </section>
     );
   };
 
