@@ -1127,19 +1127,20 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             le dupliquer ici affichait deux boutons pointant vers la meme
             destination sur le meme ecran. */}
         {/* ================= TOPBAR MOBILE =================
-            Purement centrale : le nom de boutique vit dans une pilule avec le
-            point de marque, au-dessus d'un espace toujours visible (safe-area
-            iOS + 12px minimum). */}
+            Nom de boutique cliquable (vitrine de la boutique), centré, sur
+            deux lignes si le nom est long (pas d'ellipse). Espace du haut
+            toujours visible : safe-area iOS + 12px minimum. */}
         <div
-          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/80 px-4 pb-3 flex items-center justify-center"
+          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/70 px-5 pb-3 flex flex-col items-center gap-1"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
         >
-          <span className="max-w-[78%] truncate flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand shrink-0" />
-            <span className="truncate min-w-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-gray-700">
-              {product.storeName}
-            </span>
-          </span>
+          <Link
+            to={`/store/${product.storeSlug || product.storeId}`}
+            className="max-w-full text-center text-[15px] font-bold leading-snug text-gray-900 break-words line-clamp-2 transition-colors hover:text-brand active:text-brand"
+          >
+            {product.storeName}
+          </Link>
+          <span className="h-[3px] w-7 rounded-full bg-brand" aria-hidden="true" />
         </div>
 
         {/* ================= PRODUIT ================= */}
