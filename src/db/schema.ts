@@ -336,6 +336,9 @@ export const boostLogs = pgTable('boost_logs', {
   detail: jsonb('detail').default({}),
   createdBy: text('created_by'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  // Vrai = journalisé mais annulé par un « Débooster » : conservé pour l'audit
+  // mais exclu du calcul du quota 24 h (`boostQuotaLeft`).
+  voided: boolean('voided').default(false).notNull(),
 }, (t) => [
   { storeIdx: { columns: [t.storeId, t.createdAt], name: 'boost_logs_store_created_idx' } as const },
 ]);

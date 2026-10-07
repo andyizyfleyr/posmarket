@@ -32,7 +32,7 @@ type RatingProfile = 'top' | 'mixed' | 'realistic';
 type Period = '7' | '30' | '90' | 'custom';
 
 type BoostState = {
-  logs: Array<{ id: string; action: string; amount: number; createdAt: string | Date }>;
+  logs: Array<{ id: string; action: string; amount: number; createdAt: string | Date; voided?: boolean }>;
   quota: { views: number; orders: number; reviews: number };
   pendingViews: number;
   schedules: Array<{ id: string; scope: string; total: number; applied: number; startDate: string | Date; endDate: string | Date }>;
@@ -338,7 +338,7 @@ export default function StoreBoostPanel({
       const r = res.removed || { orders: 0, reviews: 0, views: 0 };
       setFeedback({
         type: 'ok',
-        text: `Déboost effectué : ${r.orders} commande(s), ${r.reviews} avis et ${r.views} vue(s) retirés, agrégats recalculés.`,
+        text: `Déboost effectué : ${r.orders} commande(s), ${r.reviews} avis et ${r.views} vue(s) retirés, agrégats recalculés, quotas 24 h rendus.`,
       });
       await refresh();
     } catch {
@@ -999,7 +999,10 @@ export default function StoreBoostPanel({
           </div>
           <ul className="divide-y divide-line px-4 sm:px-5">
             {state.logs.map((log, index) => (
-              <li key={log.id} className="flex items-center justify-between gap-3 py-2">
+              <li
+                key={log.id}
+                className={`flex items-center justify-between gap-3 py-2 ${log.voided ? 'opacity-60' : ''}`}
+              >
                 <span className="flex min-w-0 items-center gap-2.5">
                   <span
                     className={`h-1.5 w-1.5 shrink-0 rounded-full ${index === 0 ? 'bg-brand' : 'bg-gray-300'}`}
@@ -1009,10 +1012,16 @@ export default function StoreBoostPanel({
                       ? 'Déboost complet'
                       : `Boost · ${ACTION_LABELS[log.action] || log.action}`}
                   </span>
-                  {log.amount > 0 && (
-                    <span className="shrink-0 rounded-md bg-brand-soft px-1.5 py-0.5 text-[9px] font-extrabold text-brand">
-                      +{log.amount.toLocaleString('fr-FR')}
+                  {log.voided ? (
+                    <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-gray-400">
+                      Annulé
                     </span>
+                  ) : (
+                    log.amount > 0 && (
+                      <span className="shrink-0 rounded-md bg-brand-soft px-1.5 py-0.5 text-[9px] font-extrabold text-brand">
+                        +{log.amount.toLocaleString('fr-FR')}
+                      </span>
+                    )
                   )}
                 </span>
                 <time
@@ -1044,7 +1053,8 @@ export default function StoreBoostPanel({
             de passage et recalculent la moyenne des produits ; en mode « JSON perso », ce sont vos propres avis
             (note, auteur, réponse, date) appliqués au produit ciblé. Un quota par 24 h limite les applications ; les
             vues étalées sont créditées progressivement au fil des visites de l&apos;admin ; « Débooster » retire tout ce
-            qui a été fabriqué et recalcule les agrégats.
+            qui a été fabriqué, recalcule les agrégats et <strong className="font-bold text-gray-500">rend les quotas
+            24 h</strong>.
           </span>
         </p>
       </div>
@@ -1089,8 +1099,8 @@ export default function StoreBoostPanel({
               Débooster cette boutique ?
             </h3>
             <p className="mb-5 text-center text-xs font-medium leading-relaxed text-gray-500">
-              Toutes les commandes, avis et vues fabriqués par ce panneau seront supprimés, les échéanciers annulés et
-              les moyennes recalculées. Les données réelles ne sont pas touchées.
+              Toutes les commandes, avis et vues fabriqués par ce panneau seront supprimés, les échéanciers annulés,
+              les moyennes recalculées et les quotas 24 h rendus. Les données réelles ne sont pas touchées.
             </p>
             <div className="flex gap-2.5">
               <button

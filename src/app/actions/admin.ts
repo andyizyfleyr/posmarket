@@ -671,7 +671,7 @@ export async function sendAllTestEmailsAction(email: string): Promise<{ success:
 // ---------------------------------------------------------------------------
 
 /** Quota journalier (24 h glissantes) par type d'action, par boutique. */
-const BOOST_DAILY_QUOTA = { views: 10_000_000, orders: 2_000, reviews: 2_000 } as const;
+const BOOST_DAILY_QUOTA = { views: 100_000_000, orders: 10_000, reviews: 10_000 } as const;
 type BoostQuotaAction = keyof typeof BOOST_DAILY_QUOTA;
 type BoostAction = BoostQuotaAction | 'unboost';
 
@@ -764,7 +764,9 @@ async function boostQuotaLeft(storeId: string, action: BoostQuotaAction): Promis
       and(
         eq(boostLogs.storeId, storeId),
         eq(boostLogs.action, action),
-        gte(boostLogs.createdAt, since)
+        gte(boostLogs.createdAt, since),
+        // Les logs annulés par un « Débooster » ne consomment plus le quota.
+        eq(boostLogs.voided, false)
       )
     );
   return Math.max(0, BOOST_DAILY_QUOTA[action] - (Number(row?.used) || 0));
@@ -917,7 +919,7 @@ async function applyAllDueViewBoosts(): Promise<void> {
 export async function getBoostStateAction(storeId: string): Promise<{
   success: boolean;
   error?: string;
-  logs?: Array<{ id: string; action: string; amount: number; createdAt: string | Date }>;
+  logs?: Array<{ id: string; action: string; amount: number; createdAt: string | Date; voided?: boolean }>;
   quota?: { views: number; orders: number; reviews: number };
   pendingViews?: number;
   schedules?: Array<{ id: string; scope: string; total: number; applied: number; startDate: string | Date; endDate: string | Date }>;
@@ -930,7 +932,7 @@ export async function getBoostStateAction(storeId: string): Promise<{
 
     const [logs, quotaRows, schedules] = await Promise.all([
       db
-        .select({ id: boostLogs.id, action: boostLogs.action, amount: boostLogs.amount, createdAt: boostLogs.createdAt })
+        .select({ id: boostLogs.id, action: boostLogs.action, amount: boostLogs.amount, createdAt: boostLogs.createdAt, voided: boostLogs.voided })
         .from(boostLogs)
         .where(eq(boostLogs.storeId, storeId))
         .orderBy(desc(boostLogs.createdAt))
@@ -1976,6 +1978,11 @@ export async function unboostStoreAction(
 
     // --- Échéanciers de vues en attente.
     await db.delete(boostSchedules).where(eq(boostSchedules.storeId, storeId));
+
+    // --- Rendre le quota 24 h : tout ce qui vient d'être retiré est annulé.
+    // Les lignes restent dans le journal (marquées « annulé ») pour l'audit,
+    // mais elles ne consomment plus le quota.
+    await db.update(boostLogs).set({ voided: true }).where(eq(boostLogs.storeId, storeId));
 
     await logBoost(storeId, 'unboost', 0, {
       orders: orderIds.length,
