@@ -23,6 +23,7 @@ interface OrderRow {
   date?: string | Date | null;
   created_at?: string | Date | null;
   buyer_email?: string | null;
+  boosted?: boolean | null;
 }
 
 interface StoreRow {
@@ -37,6 +38,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [originFilter, setOriginFilter] = useState<'ALL' | 'REAL' | 'BOOSTED'>('ALL');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
 
@@ -64,7 +66,10 @@ export default function AdminOrdersPage() {
       store?.name?.toLowerCase().includes(term) ||
       o.buyer_email?.toLowerCase().includes(term);
     const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesOrigin =
+      originFilter === 'ALL' ||
+      (originFilter === 'BOOSTED' ? !!o.boosted : !o.boosted);
+    return matchesSearch && matchesStatus && matchesOrigin;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -112,6 +117,15 @@ export default function AdminOrdersPage() {
           <option value="READY">Prête</option>
           <option value="COMPLETED">Validée</option>
         </select>
+        <select
+          value={originFilter}
+          onChange={(e) => { setOriginFilter(e.target.value as 'ALL' | 'REAL' | 'BOOSTED'); setPage(1); }}
+          className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
+        >
+          <option value="ALL">Toutes origines</option>
+          <option value="REAL">Réelles</option>
+          <option value="BOOSTED">Boostées</option>
+        </select>
       </div>
 
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -144,7 +158,12 @@ export default function AdminOrdersPage() {
                 </div>
                 <div className="text-right space-y-1">
                   <p className="text-xs font-bold text-gray-900">{formatCurrency(parseFloat(o.total ?? '') || 0)}</p>
-                  {statusBadge(o.status)}
+                  <div className="flex items-center justify-end gap-1.5">
+                    {o.boosted && (
+                      <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-bold rounded-md border border-purple-100 uppercase">Boostée</span>
+                    )}
+                    {statusBadge(o.status)}
+                  </div>
                 </div>
                 <Eye size={16} className="text-gray-300 group-hover:text-brand transition-colors" />
               </Link>

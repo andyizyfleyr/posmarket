@@ -876,6 +876,7 @@ export async function fetchProductReviewsAction(productId: string) {
         authorName: productReviews.authorName,
         avatarUrl: profiles.avatarUrl,
         authorAvatar: productReviews.authorAvatar,
+        sellerReply: productReviews.sellerReply,
       })
       .from(productReviews)
       .leftJoin(profiles, eq(productReviews.userId, profiles.id))
@@ -893,6 +894,7 @@ export async function fetchProductReviewsAction(productId: string) {
         comment: r.comment || '',
         date: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt || ''),
         productId,
+        sellerReply: r.sellerReply || null,
       })),
     };
   } catch (error) {
@@ -923,6 +925,7 @@ export async function fetchStoreReviewsAction(storeId: string) {
         productImage: products.image,
         avatarUrl: profiles.avatarUrl,
         authorAvatar: productReviews.authorAvatar,
+        sellerReply: productReviews.sellerReply,
       })
       .from(productReviews)
       .leftJoin(profiles, eq(productReviews.userId, profiles.id))
@@ -944,6 +947,7 @@ export async function fetchStoreReviewsAction(storeId: string) {
         productName: r.productName || undefined,
         productImage: normalizeImageUrl(r.productImage),
         storeId,
+        sellerReply: r.sellerReply || null,
       })),
     };
   } catch (error) {

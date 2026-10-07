@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag, updateTag } from 'next/cache'
 import { db } from '@/db'
 import { orders, orderItems, customers } from '@/db/schema'
-import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
+import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, decrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
 import { eq, inArray, desc, sql, and, or, ilike } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
 import { isWhatsAppConfigured } from '@/lib/whatsapp'
@@ -237,12 +237,15 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
         const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, orderId)).limit(1);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
 
-        // Une commande annulée (pas déjà annulée) redonne son stock.
-        // Une commande boostée n'a jamais décrémenté ce stock : la réintégrer
-        // ferait monter l'inventaire au-dessus du niveau réel.
-        if (existing && !existing.boosted && !isCancelledOrderStatus(existing.status) && isCancelledOrderStatus(status) && storeId) {
+        // Une commande annulée (pas déjà annulée) redonne son stock — sauf si
+        // elle est boostée : celle-ci n'a jamais décrémenté ce stock, la
+        // réintégrer ferait monter l'inventaire au-dessus du niveau réel.
+        // `total_sales`, lui, a bien été compté (commande réelle ou boostée) :
+        // il faut donc le décrémenter dans les deux cas.
+        if (existing && !isCancelledOrderStatus(existing.status) && isCancelledOrderStatus(status) && storeId) {
             const items = await getOrderItemsForStock(orderId);
-            await adjustProductStock(storeId, items, 'restore');
+            if (!existing.boosted) await adjustProductStock(storeId, items, 'restore');
+            await decrementProductSales(storeId, items);
             updateTag('marketplace');
         }
 
@@ -265,10 +268,12 @@ export async function deleteOrderAction(id: string) {
         const storeId = access.storeId;
         const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, id)).limit(1);
         // Voir `updateOrderStatusAction` : une commande boostée n'a jamais
-        // décrémenté le stock, on ne réintègre donc rien à sa suppression.
-        if (storeId && existing && !existing.boosted && !isCancelledOrderStatus(existing.status)) {
+        // décrémenté le stock, on ne réintègre donc rien à sa suppression —
+        // mais ses ventes comptées, elles, doivent être retirées.
+        if (storeId && existing && !isCancelledOrderStatus(existing.status)) {
             const items = await getOrderItemsForStock(id);
-            await adjustProductStock(storeId, items, 'restore');
+            if (!existing.boosted) await adjustProductStock(storeId, items, 'restore');
+            await decrementProductSales(storeId, items);
             updateTag('marketplace');
         }
         await db.delete(orders).where(eq(orders.id, id));
@@ -293,9 +298,10 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
                 const sid = await getStoreIdForOrder(id);
                 if (sid) storeIds.add(sid);
                 const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, id)).limit(1);
-                if (sid && existing && !existing.boosted && !isCancelledOrderStatus(existing.status)) {
+                if (sid && existing && !isCancelledOrderStatus(existing.status)) {
                     const items = await getOrderItemsForStock(id);
-                    await adjustProductStock(sid, items, 'restore');
+                    if (!existing.boosted) await adjustProductStock(sid, items, 'restore');
+                    await decrementProductSales(sid, items);
                     updateTag('marketplace');
                 }
             }
@@ -323,6 +329,16 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
             for (const id of orderIds) {
                 const sid = await getStoreIdForOrder(id);
                 if (sid) storeIds.add(sid);
+                // Cohérent avec `updateOrderStatusAction` : une transition vers
+                // un statut annulé réintègre le stock (sauf commande boostée)
+                // et retire les ventes comptées.
+                if (!sid || !isCancelledOrderStatus(status)) continue;
+                const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, id)).limit(1);
+                if (!existing || isCancelledOrderStatus(existing.status)) continue;
+                const items = await getOrderItemsForStock(id);
+                if (!existing.boosted) await adjustProductStock(sid, items, 'restore');
+                await decrementProductSales(sid, items);
+                updateTag('marketplace');
             }
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
             storeIds.forEach(sid => {

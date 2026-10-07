@@ -8,6 +8,8 @@ export interface Review {
   comment: string;
   date: string;
   productId?: string;
+  /** Réponse du vendeur à l'avis (optionnelle), affichée sous le commentaire. */
+  sellerReply?: string | null;
 }
 
 export type BusinessVertical = 'shopping' | 'food';

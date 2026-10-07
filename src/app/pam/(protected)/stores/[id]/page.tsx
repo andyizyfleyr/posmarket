@@ -31,7 +31,10 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
     getStoreReviews(id),
   ]);
 
-  const totalSales = orders.reduce((acc, o) => acc + (parseFloat(o.total ?? '') || 0), 0);
+  // Le « Généré » ne doit pas inclure les commandes fabriquées par le panneau
+  // de boost : sinon le CA affiché à l'admin est faux.
+  const realOrders = orders.filter((o) => !o.boosted);
+  const totalSales = realOrders.reduce((acc, o) => acc + (parseFloat(o.total ?? '') || 0), 0);
   const avgRating = reviews.length ? reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length : 0;
 
   return (
@@ -123,11 +126,16 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-          <div className="p-3 mb-3 bg-purple-50 text-purple-600 rounded-xl w-fit"><ShoppingBag size={20} /></div>
-          <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Commandes</p>
-        </div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+            <div className="p-3 mb-3 bg-purple-50 text-purple-600 rounded-xl w-fit"><ShoppingBag size={20} /></div>
+            <p className="text-2xl font-bold text-gray-900">{realOrders.length}</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+              Commandes
+              {orders.length - realOrders.length > 0 && (
+                <span className="ml-1.5 text-purple-400 normal-case">(+{orders.length - realOrders.length} boost)</span>
+              )}
+            </p>
+          </div>
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
           <div className="p-3 mb-3 bg-orange-50 text-orange-600 rounded-xl w-fit"><Package size={20} /></div>
           <p className="text-2xl font-bold text-gray-900">{products.length}</p>
@@ -145,7 +153,11 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      <StoreBoostPanel storeId={store.id} productCount={products.length} />
+      <StoreBoostPanel
+        storeId={store.id}
+        productCount={products.length}
+        products={products.map((p) => ({ id: p.id, name: p.name }))}
+      />
 
       {owner && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">

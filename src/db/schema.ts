@@ -60,6 +60,9 @@ export const stores = pgTable('stores', {
   businessType: text('business_type').default('shopping').notNull(), // 'shopping' or 'food'
   status: text('status').default('APPROVED').notNull(),
   views: integer('views').default(0).notNull(),
+  // Part des vues apportée par le panneau admin : permet de « débooster »
+  // sans jamais ramener le compteur sous la valeur réelle.
+  boostedViews: integer('boosted_views').default(0).notNull(),
   settings: jsonb('settings').default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -110,6 +113,7 @@ export const products = pgTable('products', {
   preparationTime: text('preparation_time'),
   isOnline: boolean('is_online').default(true).notNull(),
   views: integer('views').default(0).notNull(),
+  boostedViews: integer('boosted_views').default(0).notNull(),
   wholesalePrice: numeric('wholesale_price', { precision: 12, scale: 2 }),
   wholesaleMinQty: integer('wholesale_min_qty'),
   wholesaleTiers: jsonb('wholesale_tiers').default([]),
@@ -299,6 +303,8 @@ export const productReviews = pgTable('product_reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   // Vrai = avis fabriqué par le panneau admin « Booster les statistiques ».
   boosted: boolean('boosted').default(false).notNull(),
+  // Réponse du vendeur à l'avis (optionnelle, affichée sous le commentaire).
+  sellerReply: text('seller_reply'),
 });
 
 /**
@@ -312,6 +318,48 @@ export const reviewAuthors = pgTable('review_authors', {
   gender: text('gender'),
   avatarUrl: text('avatar_url').notNull(),
 });
+
+/**
+ * Journal d'audit du panneau « Booster les statistiques ».
+ *
+ * Chaque application (vues, commandes, avis, déboost) écrit une ligne : elle
+ * sert à la fois d'historique consultable et de quota journalier (cf.
+ * `boostQuotaLeftAction`).
+ */
+export const boostLogs = pgTable('boost_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  /** 'views' | 'orders' | 'reviews' | 'unboost' */
+  action: text('action').notNull(),
+  /** Quantité appliquée (vues, commandes ou avis) — 0 pour un déboost. */
+  amount: integer('amount').default(0).notNull(),
+  detail: jsonb('detail').default({}),
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  { storeIdx: { columns: [t.storeId, t.createdAt], name: 'boost_logs_store_created_idx' } as const },
+]);
+
+/**
+ * Vues programmées : un boost de vues peut être étalé sur une période au lieu
+ * d'être crédité d'un coup. L'échéancier est appliqué à chaque ouverture du
+ * panneau admin (`applyDueViewBoosts`) — il n'y a pas de cron.
+ */
+export const boostSchedules = pgTable('boost_schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  /** 'store' = boutique, 'products' = réparti sur tous les produits, 'product' = un produit. */
+  scope: text('scope').default('store').notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }),
+  total: integer('total').default(0).notNull(),
+  applied: integer('applied').default(0).notNull(),
+  startDate: timestamp('start_date').defaultNow().notNull(),
+  endDate: timestamp('end_date').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  { storeIdx: { columns: [t.storeId], name: 'boost_schedules_store_idx' } as const },
+]);
+
 
 export const systemSettings = pgTable('system_settings', {
   key: text('key').primaryKey().notNull(),

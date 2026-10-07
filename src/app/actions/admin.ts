@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings, productStats, reviewAuthors } from '@/db/schema';
-import { eq, desc, sql, inArray, and, ne } from 'drizzle-orm';
+import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings, productStats, reviewAuthors, boostLogs, boostSchedules, customers } from '@/db/schema';
+import { eq, desc, sql, inArray, and, ne, gte } from 'drizzle-orm';
 import { revalidatePath, revalidateTag, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
 import { getAdminSession } from '@/app/actions/admin-auth';
@@ -36,23 +36,32 @@ export async function getGlobalStats() {
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(stores),
       db.select({ count: sql<number>`count(*)` }).from(profiles),
-      db.select({ total: orders.total }).from(orders),
+      // Les commandes fabriquées par le panneau de boost gonfleraient le CA
+      // affiché : on les totalise à part.
+      db.select({ total: orders.total, boosted: orders.boosted }).from(orders),
       db.select({ count: sql<number>`count(*)` }).from(products),
       db.select({ count: sql<number>`count(*)` }).from(stores).where(eq(stores.status, 'PENDING')),
     ]);
 
-    const totalSales = (allOrders || []).reduce((acc: number, order) => acc + (parseFloat(order.total ?? '') || 0), 0);
+    let totalSales = 0;
+    let boostedSales = 0;
+    for (const order of allOrders || []) {
+      const amount = parseFloat(order.total ?? '') || 0;
+      if (order.boosted) boostedSales += amount;
+      else totalSales += amount;
+    }
 
     return {
       totalStores: Number(totalStores) || 0,
       totalUsers: Number(totalUsers) || 0,
       totalSales,
+      boostedSales,
       totalProducts: Number(totalProducts) || 0,
       pendingStores: Number(pendingStores) || 0
     };
   } catch (error: unknown) {
     console.error('Error fetching global stats:', error);
-    return { totalStores: 0, totalUsers: 0, totalSales: 0, totalProducts: 0, pendingStores: 0 };
+    return { totalStores: 0, totalUsers: 0, totalSales: 0, boostedSales: 0, totalProducts: 0, pendingStores: 0 };
   }
 }
 
@@ -463,7 +472,15 @@ export async function deleteStoresBulk(storeIds: string[]) {
 export async function deleteReview(reviewId: string) {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
+    const [review] = await db
+      .select({ productId: productReviews.productId, storeId: productReviews.storeId })
+      .from(productReviews)
+      .where(eq(productReviews.id, reviewId))
+      .limit(1);
     await db.delete(productReviews).where(eq(productReviews.id, reviewId));
+    // Sans ce recalcul, supprimer un avis laissait `review_count` et
+    // `average_rating` périmés dans `product_stats`.
+    if (review) await recomputeReviewAggregates(review.storeId, [review.productId]);
     revalidatePath('/pam/reviews');
     updateTag('marketplace');
     return { success: true };
@@ -644,16 +661,249 @@ export async function sendAllTestEmailsAction(email: string): Promise<{ success:
   return { success: failures.length === 0, sent, failures };
 }
 
+// ---------------------------------------------------------------------------
+// V2 — panneau « Booster les statistiques »
+// ---------------------------------------------------------------------------
+
+/** Quota journalier (24 h glissantes) par type d'action, par boutique. */
+const BOOST_DAILY_QUOTA = { views: 1_000_000, orders: 200, reviews: 200 } as const;
+type BoostQuotaAction = keyof typeof BOOST_DAILY_QUOTA;
+type BoostAction = BoostQuotaAction | 'unboost';
+
+/** Bornes de date d'une application : un plage explicite, sinon les N derniers jours. */
+type BoostRange = { from?: string | null; to?: string | null } | null | undefined;
+
+async function getBoostSession() {
+  const session = await requirePamAdmin();
+  return session || null;
+}
+
+async function logBoost(
+  storeId: string,
+  action: BoostAction,
+  amount: number,
+  detail?: Record<string, unknown>,
+  createdBy?: string
+) {
+  try {
+    await db.insert(boostLogs).values({
+      storeId,
+      action,
+      amount,
+      detail: detail ?? {},
+      createdBy: createdBy ?? null,
+    });
+  } catch (error) {
+    // Le journal ne doit jamais faire échouer le boost lui-même.
+    console.error('logBoost error:', error);
+  }
+}
+
+/** Quota restant pour `action` sur les 24 dernières heures (0 = bloqué). */
+async function boostQuotaLeft(storeId: string, action: BoostQuotaAction): Promise<number> {
+  const since = new Date(Date.now() - 24 * 3600_000);
+  const [row] = await db
+    .select({ used: sql<number>`coalesce(sum(${boostLogs.amount}), 0)::int` })
+    .from(boostLogs)
+    .where(
+      and(
+        eq(boostLogs.storeId, storeId),
+        eq(boostLogs.action, action),
+        gte(boostLogs.createdAt, since)
+      )
+    );
+  return Math.max(0, BOOST_DAILY_QUOTA[action] - (Number(row?.used) || 0));
+}
+
+/**
+ * Normalise une période de boost : plage explicite `from`/`to`, sinon les
+ * `spreadDays` derniers jours. La fin est toujours plafonnée à « maintenant ».
+ */
+function resolveBoostRange(range: BoostRange, spreadDays: number): { start: number; end: number } {
+  const day = 86_400_000;
+  const now = Date.now();
+  const from = range?.from ? Date.parse(range.from) : NaN;
+  const to = range?.to ? Date.parse(range.to) : NaN;
+  if (Number.isFinite(from) || Number.isFinite(to)) {
+    const end = Math.min(now, Number.isFinite(to) ? to + day - 1 : now);
+    const start = Math.min(end, Number.isFinite(from) ? from : end - day + 1);
+    return { start, end: Math.max(start, end) };
+  }
+  const days = Math.min(365, Math.max(1, Math.floor(Number(spreadDays) || 30)));
+  return { start: now - days * day, end: now };
+}
+
+/** Date aléatoire dans [start, end], jamais avant `earliest` ni après « maintenant ». */
+function randomDateBetween(start: number, end: number, earliest = 0): number {
+  const now = Date.now();
+  const low = Math.max(start, earliest);
+  const high = Math.max(low, end);
+  return Math.min(now, Math.max(low, low + Math.floor(Math.random() * (high - low + 1))));
+}
+
+/**
+ * Catalogue boostable d'une boutique : produits vendables (prix > 0, en ligne),
+ * sans limite artificielle de 200 lignes. `productId` restreint à un produit.
+ */
+async function getBoostCatalog(storeId: string, productId?: string | null) {
+  const rows = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      image: products.image,
+      createdAt: products.createdAt,
+      isOnline: products.isOnline,
+    })
+    .from(products)
+    .where(eq(products.storeId, storeId));
+  // Un produit masqué du storefront ou gratuit ne peut pas apparaître dans une
+  // commande ou un avis censés venir d'un client.
+  const sellable = rows.filter((p) => Number(p.price) > 0 && p.isOnline !== false);
+  if (productId) return sellable.filter((p) => p.id === productId);
+  return sellable;
+}
+
+/** Crédite des vues à un ensemble de produits (2 UPDATE groupés max). */
+async function addViewsToProducts(storeId: string, value: number, productIds?: string[] | null) {
+  if (value <= 0) return 0;
+  const ids = productIds && productIds.length
+    ? productIds
+    : (await db.select({ id: products.id }).from(products).where(eq(products.storeId, storeId))).map((r) => r.id);
+  if (ids.length === 0) return 0;
+  const base = Math.floor(value / ids.length);
+  const rest = value - base * ids.length;
+  if (base > 0) {
+    await db
+      .update(products)
+      .set({ views: sql`${products.views} + ${base}`, boostedViews: sql`${products.boostedViews} + ${base}` })
+      .where(inArray(products.id, ids));
+  }
+  if (rest > 0) {
+    await db
+      .update(products)
+      .set({ views: sql`${products.views} + 1`, boostedViews: sql`${products.boostedViews} + 1` })
+      .where(inArray(products.id, ids.slice(0, rest)));
+  }
+  return ids.length;
+}
+
+/**
+ * Applique les échéanciers de vues arrivés à échéance (pas de cron : le
+ * calcul est fait à l'ouverture du panneau et à chaque boost).
+ * Retourne le nombre de vues créditées.
+ */
+async function applyDueViewBoosts(storeId: string): Promise<number> {
+  const schedules = await db.select().from(boostSchedules).where(eq(boostSchedules.storeId, storeId));
+  if (schedules.length === 0) return 0;
+  const now = Date.now();
+  let credited = 0;
+
+  for (const s of schedules) {
+    const start = new Date(s.startDate).getTime();
+    const end = new Date(s.endDate).getTime();
+    const finished = now >= end;
+    if (end <= start) continue;
+
+    const due = finished
+      ? s.total
+      : Math.floor(s.total * Math.min(1, Math.max(0, (now - start) / (end - start))));
+    const delta = Math.max(0, due - s.applied);
+
+    if (delta > 0) {
+      if (s.scope === 'store') {
+        await db
+          .update(stores)
+          .set({ views: sql`${stores.views} + ${delta}`, boostedViews: sql`${stores.boostedViews} + ${delta}` })
+          .where(eq(stores.id, storeId));
+      } else {
+        await addViewsToProducts(storeId, delta, s.productId ? [s.productId] : null);
+      }
+      credited += delta;
+      await db.update(boostSchedules).set({ applied: sql`${boostSchedules.applied} + ${delta}` }).where(eq(boostSchedules.id, s.id));
+    }
+    if (finished && s.applied + delta >= s.total) {
+      await db.delete(boostSchedules).where(eq(boostSchedules.id, s.id));
+    }
+  }
+  return credited;
+}
+
+/** État du panneau : journal, quotas restants, vues programmées. */
+export async function getBoostStateAction(storeId: string): Promise<{
+  success: boolean;
+  error?: string;
+  logs?: Array<{ id: string; action: string; amount: number; createdAt: string | Date }>;
+  quota?: { views: number; orders: number; reviews: number };
+  pendingViews?: number;
+  schedules?: Array<{ id: string; scope: string; total: number; applied: number; startDate: string | Date; endDate: string | Date }>;
+}> {
+  if (!(await getBoostSession())) return { success: false, error: 'Session expirée.' };
+  try {
+    const credited = await applyDueViewBoosts(storeId);
+    if (credited > 0) revalidatePath('/pam/stores');
+
+    const [logs, quotaRows, schedules] = await Promise.all([
+      db
+        .select({ id: boostLogs.id, action: boostLogs.action, amount: boostLogs.amount, createdAt: boostLogs.createdAt })
+        .from(boostLogs)
+        .where(eq(boostLogs.storeId, storeId))
+        .orderBy(desc(boostLogs.createdAt))
+        .limit(8),
+      Promise.all(
+        (Object.keys(BOOST_DAILY_QUOTA) as BoostQuotaAction[]).map(async (action) => ({
+          action,
+          left: await boostQuotaLeft(storeId, action),
+        }))
+      ),
+      db.select().from(boostSchedules).where(eq(boostSchedules.storeId, storeId)).orderBy(boostSchedules.endDate),
+    ]);
+
+    const quota = { views: 0, orders: 0, reviews: 0 };
+    for (const row of quotaRows) quota[row.action] = row.left;
+
+    return {
+      success: true,
+      logs,
+      quota,
+      pendingViews: schedules.reduce((sum, s) => sum + Math.max(0, s.total - s.applied), 0),
+      schedules: schedules.map((s) => ({
+        id: s.id,
+        scope: s.scope,
+        total: s.total,
+        applied: s.applied,
+        startDate: s.startDate,
+        endDate: s.endDate,
+      })),
+    };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
 /**
  * Boost administrateur des vues : soit sur la boutique, soit réparti sur ses
- * produits. Aucune écriture sur le stock ni sur les commandes.
+ * produits (ou un seul produit ciblé). Aucune écriture sur le stock ni sur les
+ * commandes. `spread` étale le créditation sur une période au lieu d'appliquer
+ * tout immédiatement.
  */
 export async function boostStoreViewsAction(
   storeId: string,
   amount: number,
-  scope: 'store' | 'products'
-): Promise<{ success: boolean; error?: string; amount?: number; products?: number }> {
-  if (!(await requirePamAdmin())) return { success: false, error: 'Session expirée.' };
+  scope: 'store' | 'products',
+  options?: { productId?: string | null; spread?: BoostRange }
+): Promise<{
+  success: boolean;
+  error?: string;
+  amount?: number;
+  products?: number;
+  scheduled?: boolean;
+  from?: string;
+  to?: string;
+  quotaLeft?: number;
+}> {
+  const session = await getBoostSession();
+  if (!session) return { success: false, error: 'Session expirée.' };
   try {
     const value = Math.min(100000, Math.max(1, Math.floor(Number(amount) || 0)));
 
@@ -664,34 +914,68 @@ export async function boostStoreViewsAction(
       .limit(1);
     if (!store) return { success: false, error: 'Boutique introuvable.' };
 
-    let productListCount: number | undefined;
-    if (scope === 'products') {
-      const list = await db
-        .select({ id: products.id })
-        .from(products)
-        .where(eq(products.storeId, storeId));
-      if (list.length === 0) return { success: false, error: 'Aucun produit dans cette boutique.' };
-      productListCount = list.length;
-
-      // Deux UPDATE groupés plutôt qu'une mise à jour par produit : le
-      // catalogue peut être très grand, on reste en deux allers-retours SQL.
-      const base = Math.floor(value / list.length);
-      const rest = value - base * list.length;
-      const ids = list.map((row) => row.id);
-      if (base > 0) {
-        await db.update(products).set({ views: sql`${products.views} + ${base}` }).where(inArray(products.id, ids));
-      }
-      if (rest > 0) {
-        await db.update(products).set({ views: sql`${products.views} + 1` }).where(inArray(products.id, ids.slice(0, rest)));
-      }
-    } else {
-      await db.update(stores).set({ views: sql`${stores.views} + ${value}` }).where(eq(stores.id, storeId));
+    const quota = await boostQuotaLeft(storeId, 'views');
+    if (value > quota) {
+      return { success: false, error: `Quota de vues dépassé : ${quota} restante(s) sur 24 h.` };
     }
 
+    const productId = options?.productId || null;
+    if (scope === 'products') {
+      const catalog = await getBoostCatalog(storeId, productId);
+      if (catalog.length === 0) {
+        return { success: false, error: productId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
+      }
+    }
+
+    // Vues étalées : on programme un échéancier au lieu de tout créditer.
+    if (options?.spread) {
+      const from = options.spread.from ? Date.parse(options.spread.from) : NaN;
+      const to = options.spread.to ? Date.parse(options.spread.to) : NaN;
+      if (!Number.isFinite(from) || !Number.isFinite(to)) {
+        return { success: false, error: 'Période de programme incomplète (début et fin requis).' };
+      }
+      const start = Math.max(from, Date.now());
+      const end = to + 86_399_999;
+      if (end <= start) {
+        return { success: false, error: 'La fin de la période doit être postérieure au début.' };
+      }
+      await db.insert(boostSchedules).values({
+        storeId,
+        scope: scope === 'store' ? 'store' : productId ? 'product' : 'products',
+        productId,
+        total: value,
+        applied: 0,
+        startDate: new Date(start),
+        endDate: new Date(end),
+      });
+      await logBoost(storeId, 'views', value, { scheduled: true, total: value, scope, productId }, session.username);
+      revalidatePath('/pam/stores');
+      return {
+        success: true,
+        amount: value,
+        scheduled: true,
+        from: new Date(start).toISOString(),
+        to: new Date(end).toISOString(),
+        quotaLeft: quota - value,
+      };
+    }
+
+    let productListCount: number | undefined;
+    if (scope === 'products') {
+      const catalog = await getBoostCatalog(storeId, productId);
+      productListCount = await addViewsToProducts(storeId, value, catalog.map((p) => p.id));
+    } else {
+      await db
+        .update(stores)
+        .set({ views: sql`${stores.views} + ${value}`, boostedViews: sql`${stores.boostedViews} + ${value}` })
+        .where(eq(stores.id, storeId));
+    }
+
+    await logBoost(storeId, 'views', value, { scope, productId }, session.username);
     revalidatePath('/pam/stores');
     revalidatePath('/dashboard');
     updateTag('marketplace');
-    return { success: true, amount: value, products: productListCount };
+    return { success: true, amount: value, products: productListCount, quotaLeft: quota - value };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
   }
@@ -699,21 +983,41 @@ export async function boostStoreViewsAction(
 
 /**
  * Boost administrateur des ventes : génère de vraies commandes « Livrée »
- * étalées sur les `spreadDays` derniers jours, avec leurs lignes et la mise à
- * jour de `product_stats.total_sales`. Le stock du vendeur n'est jamais
- * décrémenté (pas d'appel à `adjustProductStock`) : la commande porte
- * `boosted = true` pour que son annulation / suppression ne réintègre jamais
- * de stock (voir `updateOrderStatusAction`, `deleteOrderAction`).
+ * étalées sur une période (`spreadDays` ou plage `from`/`to`), avec leurs
+ * lignes, un client de passage et la mise à jour de
+ * `product_stats.total_sales`. Le stock du vendeur n'est jamais décrémenté
+ * (pas d'appel à `adjustProductStock`) : la commande porte `boosted = true`
+ * pour que son annulation / suppression ne réintègre jamais de stock (voir
+ * `updateOrderStatusAction`, `deleteOrderAction`).
  */
+const BOOST_CUSTOMER_NAMES = [
+  'Awa Ndiaye', 'Mamadou Ba', 'Fatou Sow', 'Ousmane Diop', 'Aïssatou Fall',
+  'Ibrahima Sarr', 'Mbacké Camara', 'Ndèye Gueye', 'Cheikh Thiam', 'Mariama Diallo',
+  'Pape Ndiaye', 'Khadidiatou Ba', 'Samba Baldé', 'Astou Sarr', 'Yaya Diouf',
+  'Ndeye Mboup', 'Alioune Badara', 'Coumba Ndoye', 'Modou Kane', 'Sokhna Diagne',
+];
+
+/** Téléphone plausible pour un client de passage (jamais réellement joignable). */
+function fakeCustomerPhone(): string {
+  const n = () => Math.floor(Math.random() * 10);
+  return `+221 7${n()} ${n()}${n()} ${n()}${n()} ${n()}${n()}`;
+}
+
 export async function boostStoreOrdersAction(
   storeId: string,
   count: number,
-  spreadDays: number
-): Promise<{ success: boolean; error?: string; created?: number; revenue?: number }> {
-  if (!(await requirePamAdmin())) return { success: false, error: 'Session expirée.' };
+  spreadDays: number,
+  options?: { productId?: string | null; range?: BoostRange }
+): Promise<{ success: boolean; error?: string; created?: number; revenue?: number; quotaLeft?: number }> {
+  const session = await getBoostSession();
+  if (!session) return { success: false, error: 'Session expirée.' };
   try {
     const nb = Math.min(50, Math.max(1, Math.floor(Number(count) || 0)));
-    const days = Math.min(365, Math.max(1, Math.floor(Number(spreadDays) || 30)));
+
+    const quota = await boostQuotaLeft(storeId, 'orders');
+    if (nb > quota) {
+      return { success: false, error: `Quota de commandes dépassé : ${quota} restante(s) sur 24 h.` };
+    }
 
     const [store] = await db
       .select({ id: stores.id, createdAt: stores.createdAt })
@@ -724,27 +1028,12 @@ export async function boostStoreOrdersAction(
 
     const storeCreatedAt = store.createdAt ? new Date(store.createdAt).getTime() : 0;
 
-    const catalog = (
-      await db
-        .select({
-          id: products.id,
-          name: products.name,
-          price: products.price,
-          image: products.image,
-          createdAt: products.createdAt,
-          isOnline: products.isOnline,
-        })
-        .from(products)
-        .where(eq(products.storeId, storeId))
-        .limit(200)
-      // Un produit masqué du storefront ne peut pas apparaître dans une
-      // commande censée être passée par un client.
-    ).filter((p) => Number(p.price) > 0 && p.isOnline !== false);
+    const catalog = await getBoostCatalog(storeId, options?.productId);
+    if (catalog.length === 0) {
+      return { success: false, error: options?.productId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
+    }
 
-    if (catalog.length === 0) return { success: false, error: 'Aucun produit vendable dans cette boutique.' };
-
-    const now = Date.now();
-    const span = days * 86_400_000;
+    const { start, end } = resolveBoostRange(options?.range, spreadDays);
     const orderValues: Array<Omit<typeof orders.$inferInsert, 'id'>> = [];
     const itemsByOrder: Array<Array<{ productId: string; name: string; image: string | null; quantity: number; unit: number; lineTotal: number; createdAt: number }>> = [];
     const sales = new Map<string, number>();
@@ -777,7 +1066,7 @@ export async function boostStoreOrdersAction(
       // du produit le plus récent de la ligne — une vente antérieure au produit
       // se verrait immédiatement dans les rapports du vendeur.
       const earliest = lines.reduce((acc, line) => Math.max(acc, line.createdAt), storeCreatedAt);
-      const when = new Date(Math.min(now, Math.max(earliest, now - Math.floor(Math.random() * span))));
+      const when = new Date(randomDateBetween(start, end, earliest));
 
       orderValues.push({
         storeId,
@@ -795,7 +1084,21 @@ export async function boostStoreOrdersAction(
       revenue += subtotal;
     }
 
-    const inserted = await db.insert(orders).values(orderValues).returning();
+    // Un seul « client de passage » par lot : les commandes boostées doivent
+    // ressembler à de vraies transactions (champ client renseigné) sans
+    // inonder la fiche clients du vendeur.
+    const [customer] = await db
+      .insert(customers)
+      .values({
+        storeId,
+        name: BOOST_CUSTOMER_NAMES[Math.floor(Math.random() * BOOST_CUSTOMER_NAMES.length)],
+        phone: fakeCustomerPhone(),
+        totalSpent: '0',
+        ordersCount: 0,
+      })
+      .returning();
+
+    const inserted = await db.insert(orders).values(orderValues.map((o) => ({ ...o, customerId: customer.id }))).returning();
 
     const itemValues: Array<typeof orderItems.$inferInsert> = [];
     for (let i = 0; i < inserted.length; i += 1) {
@@ -820,6 +1123,39 @@ export async function boostStoreOrdersAction(
       [...sales].map(([productId, quantity]) => ({ productId, quantity }))
     );
 
+    // Fiche client agrégée (cohérent avec `createOrderAction`).
+    const itemQty = itemValues.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    await db
+      .update(customers)
+      .set({ totalSpent: revenue.toFixed(2), ordersCount: inserted.length })
+      .where(eq(customers.id, customer.id));
+
+    // Une seule notification récapitulative plutôt qu'une par commande.
+    try {
+      const storeInfo = await getStorePhone(storeId);
+      if (storeInfo?.ownerId) {
+        const totalStr = new Intl.NumberFormat('fr-FR').format(Math.round(revenue));
+        await notify({
+          userId: storeInfo.ownerId,
+          phone: storeInfo.phone,
+          email: storeInfo.email || '',
+          eventType: 'VENTE_POS',
+          title: 'Ventes enregistrées',
+          body: `${inserted.length} vente(s) pour ${totalStr} FCFA.`,
+          templateParams: [String(inserted.length), totalStr],
+          emailData: { total: totalStr, items: itemQty, store: storeInfo.name || '', storeSlug: storeInfo.slug || '' },
+        });
+      }
+    } catch {}
+
+    await logBoost(
+      storeId,
+      'orders',
+      inserted.length,
+      { revenue: Math.round(revenue * 100) / 100, days: spreadDays, productId: options?.productId ?? null, range: options?.range ?? null },
+      session.username
+    );
+
     invalidateOrdersCache(storeId);
     revalidateTag(`orders:${storeId}`, 'max');
     revalidatePath('/orders');
@@ -829,7 +1165,7 @@ export async function boostStoreOrdersAction(
     revalidatePath('/pam/stores');
     updateTag('marketplace');
 
-    return { success: true, created: inserted.length, revenue: Math.round(revenue * 100) / 100 };
+    return { success: true, created: inserted.length, revenue: Math.round(revenue * 100) / 100, quotaLeft: quota - inserted.length };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
   }
@@ -899,9 +1235,64 @@ const BOOST_REVIEW_COMMENTS = [
   'Super rapide et produit conforme à mes attentes.',
 ];
 
-/** Note majoritairement positive : 5 (45%), 4 (35%), 3 (15%), 2/1 (5%). */
-function pickBoostedRating(): number {
+/** Commentaires plus longs, pour varier les longueurs d'avis générés. */
+const BOOST_REVIEW_COMMENTS_EXTRA = [
+  'J\'ai commandé pour toute la famille et tout le monde est content, la livraison a été faite dans les délais annoncés.',
+  'Franchement je ne m\'attendais pas à une telle qualité à ce prix-là, le produit est à la hauteur de la description.',
+  'Le vendeur a répondu à toutes mes questions avant l\'achat, puis le colis est arrivé bien emballé. Rien à redire.',
+  'Utilise le produit depuis plusieurs jours maintenant, aucune mauvaise surprise, je recommande sans hésiter.',
+  'Un petit souci d\'emballage à la réception mais le vendeur a tout de suite proposé un échange. Service au top.',
+  'Commande passée le matin, reçue le lendemain. C\'est ce qu\'on appelle une bonne organisation.',
+  'Le rapport qualité/prix est imbattable sur ce produit, j\'ai comparé ailleurs avant d\'acheter.',
+  'Troisième achat dans cette boutique et toujours la même satisfaction, je reste fidèle.',
+  'Produit conforme aux photos, taille et couleur identiques, ça fait plaisir.',
+  'Rien à dire sur la transaction, paiement simple et retrait sans attente.',
+  'Je recommande cette boutique à mes collègues, ils ont été tout aussi satisfaits que moi.',
+  'Le produit fait exactement ce qu\'il promet, ce qui est rare de nos jours.',
+  'Emballage soigné, notice en français, tout est clair. Bon travail.',
+  'Livraison effectuée par le vendeur lui-même, accueil très courtois.',
+  'Acheté en promotion, encore mieux que prévu. Merci pour la bonne affaire.',
+];
+
+/** Réponses du vendeur, attachées à une partie des avis générés. */
+const BOOST_SELLER_REPLIES = [
+  'Merci pour votre retour, ravi que le produit vous plaise !',
+  'Merci beaucoup pour votre confiance, à bientôt chez nous.',
+  'Votre satisfaction est notre priorité, merci d\'avoir pris le temps d\'écrire.',
+  'Merci pour cette note ! N\'hésitez pas à revenir si vous avez la moindre question.',
+  'C\'est avec plaisir, toute l\'équipe vous remercie.',
+  'Merci ! On note votre retour pour améliorer nos prochaines livraisons.',
+  'Vos encouragements nous motivent, à très vite.',
+  'Merci d\'avoir choisi notre boutique, on vous remercie chaleureusement.',
+  'Super retour, merci ! On reste à votre disposition.',
+  'Merci pour votre fidélité, c\'est très apprécié.',
+];
+
+/** Profils de notes proposés dans le panneau v2. */
+export type BoostRatingProfile = 'top' | 'mixed' | 'realistic';
+
+/**
+ * Note d'un avis généré selon le profil choisi :
+ * - `top`      : 5★ à 70% (lancement d'un produit / rattrapage de moyenne),
+ * - `mixed`    : distribution historique 45/35/15/5/5,
+ * - `realistic`: mélange crédible avec quelques notes faibles.
+ */
+function pickBoostedRating(profile: BoostRatingProfile = 'mixed'): number {
   const roll = Math.random();
+  if (profile === 'top') {
+    if (roll < 0.7) return 5;
+    if (roll < 0.92) return 4;
+    if (roll < 0.98) return 3;
+    if (roll < 0.995) return 2;
+    return 1;
+  }
+  if (profile === 'realistic') {
+    if (roll < 0.3) return 5;
+    if (roll < 0.55) return 4;
+    if (roll < 0.75) return 3;
+    if (roll < 0.9) return 2;
+    return 1;
+  }
   if (roll < 0.45) return 5;
   if (roll < 0.8) return 4;
   if (roll < 0.95) return 3;
@@ -920,12 +1311,19 @@ function pickBoostedRating(): number {
 export async function boostStoreReviewsAction(
   storeId: string,
   count: number,
-  spreadDays: number
-): Promise<{ success: boolean; error?: string; created?: number; average?: number }> {
-  if (!(await requirePamAdmin())) return { success: false, error: 'Session expirée.' };
+  spreadDays: number,
+  options?: { productId?: string | null; range?: BoostRange; ratingProfile?: BoostRatingProfile }
+): Promise<{ success: boolean; error?: string; created?: number; average?: number; quotaLeft?: number }> {
+  const session = await getBoostSession();
+  if (!session) return { success: false, error: 'Session expirée.' };
   try {
     const nb = Math.min(50, Math.max(1, Math.floor(Number(count) || 0)));
-    const days = Math.min(365, Math.max(1, Math.floor(Number(spreadDays) || 30)));
+    const profile: BoostRatingProfile = options?.ratingProfile ?? 'mixed';
+
+    const quota = await boostQuotaLeft(storeId, 'reviews');
+    if (nb > quota) {
+      return { success: false, error: `Quota d'avis dépassé : ${quota} restant(s) sur 24 h.` };
+    }
 
     const [store] = await db
       .select({ id: stores.id, createdAt: stores.createdAt })
@@ -936,15 +1334,13 @@ export async function boostStoreReviewsAction(
 
     const storeCreatedAt = store.createdAt ? new Date(store.createdAt).getTime() : 0;
 
-    const catalog = await db
-      .select({ id: products.id, createdAt: products.createdAt })
-      .from(products)
-      .where(eq(products.storeId, storeId))
-      .limit(200);
-    if (catalog.length === 0) return { success: false, error: 'Aucun produit dans cette boutique.' };
+    // Même filtre que la génération de commandes : un produit hors ligne ou
+    // gratuit ne peut pas recevoir d'avis censé venir d'un client.
+    const catalog = await getBoostCatalog(storeId, options?.productId);
+    if (catalog.length === 0) {
+      return { success: false, error: options?.productId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
+    }
 
-    // Récupère `nb` auteurs aléatoires du pool (plus du pool > 10k, donc
-    // toujours assez).
     const authors = await db.select().from(reviewAuthors);
     if (authors.length === 0) return { success: false, error: 'Pool d\'auteurs vide : lancez scripts/seed-review-authors.mjs.' };
 
@@ -958,37 +1354,35 @@ export async function boostStoreReviewsAction(
     const usedAuthorNames = new Set(existingReviews.map((r) => r.authorName?.trim().toLowerCase()).filter(Boolean) as string[]);
     const usedComments = new Set(existingReviews.map((r) => r.comment?.trim().toLowerCase()).filter(Boolean) as string[]);
 
-    // Filtrer les auteurs et commentaires disponibles
-    let availableAuthors = authors.filter((a) => !usedAuthorNames.has(a.fullName.trim().toLowerCase()));
-    if (availableAuthors.length === 0) availableAuthors = authors; // Fallback si le pool de 10k était épuisé
+    const allComments = [...BOOST_REVIEW_COMMENTS, ...BOOST_REVIEW_COMMENTS_EXTRA];
 
-    let availableComments = BOOST_REVIEW_COMMENTS.filter((c) => !usedComments.has(c.trim().toLowerCase()));
-    if (availableComments.length === 0) availableComments = BOOST_REVIEW_COMMENTS;
+    let availableAuthors = authors.filter((a) => !usedAuthorNames.has(a.fullName.trim().toLowerCase()));
+    if (availableAuthors.length === 0) availableAuthors = authors; // Fallback si le pool était épuisé
+
+    let availableComments = allComments.filter((c) => !usedComments.has(c.trim().toLowerCase()));
+    if (availableComments.length === 0) availableComments = allComments;
 
     // Mélanger sans remise pour cette session
     availableAuthors = [...availableAuthors].sort(() => Math.random() - 0.5);
     availableComments = [...availableComments].sort(() => Math.random() - 0.5);
 
-    const now = Date.now();
-    const span = days * 86_400_000;
+    const { start, end } = resolveBoostRange(options?.range, spreadDays);
     const values: Array<typeof productReviews.$inferInsert> = [];
 
     for (let i = 0; i < nb; i += 1) {
       const product = catalog[Math.floor(Math.random() * catalog.length)];
 
-      // Sélection unique de l'auteur
       const authorIdx = i % availableAuthors.length;
       const author = availableAuthors[authorIdx];
       usedAuthorNames.add(author.fullName.trim().toLowerCase());
 
-      // Sélection unique du commentaire
       const commentIdx = i % availableComments.length;
       const comment = availableComments[commentIdx];
       usedComments.add(comment.trim().toLowerCase());
 
       const productCreatedAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
       const earliest = Math.max(storeCreatedAt, productCreatedAt);
-      const when = new Date(Math.min(now, Math.max(earliest, now - Math.floor(Math.random() * span))));
+      const when = new Date(randomDateBetween(start, end, earliest));
 
       values.push({
         storeId,
@@ -996,8 +1390,12 @@ export async function boostStoreReviewsAction(
         userId: null,
         authorName: author.fullName,
         authorAvatar: author.avatarUrl,
-        rating: pickBoostedRating(),
+        rating: pickBoostedRating(profile),
         comment,
+        // ~40 % des avis reçoivent une réponse du vendeur.
+        sellerReply: Math.random() < 0.4
+          ? BOOST_SELLER_REPLIES[Math.floor(Math.random() * BOOST_SELLER_REPLIES.length)]
+          : null,
         createdAt: when,
         boosted: true,
       });
@@ -1008,26 +1406,15 @@ export async function boostStoreReviewsAction(
     // Recalcul des agrégats produits (nombre d'avis + moyenne) : mêmes
     // écritures que `submitProductReviewAction` côté marketplace.
     const affectedIds = [...new Set(values.map((v) => v.productId))];
-    const aggregates = await db
-      .select({
-        productId: productReviews.productId,
-        count: sql<number>`count(*)::int`,
-        avg: sql<string>`coalesce(avg(${productReviews.rating}), 0)`,
-      })
-      .from(productReviews)
-      .where(inArray(productReviews.productId, affectedIds))
-      .groupBy(productReviews.productId);
+    await recomputeReviewAggregates(storeId, affectedIds);
 
-    for (const row of aggregates) {
-      const averageRating = Number(row.avg || 0).toFixed(2);
-      await db
-        .insert(productStats)
-        .values({ storeId, productId: row.productId, totalSales: 0, reviewCount: row.count, averageRating })
-        .onConflictDoUpdate({
-          target: productStats.productId,
-          set: { reviewCount: row.count, averageRating },
-        });
-    }
+    await logBoost(
+      storeId,
+      'reviews',
+      values.length,
+      { profile, days: spreadDays, productId: options?.productId ?? null, range: options?.range ?? null },
+      session.username
+    );
 
     revalidatePath('/pam/reviews');
     revalidatePath('/pam/stores');
@@ -1037,7 +1424,181 @@ export async function boostStoreReviewsAction(
     const average = Number(
       (values.reduce((sum, v) => sum + (v.rating || 0), 0) / Math.max(1, values.length)).toFixed(1)
     );
-    return { success: true, created: values.length, average };
+    return { success: true, created: values.length, average, quotaLeft: quota - values.length };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
+  }
+}
+
+/**
+ * Recalcule `product_stats.review_count` / `average_rating` pour une liste de
+ * produits. Utilisé par le boost, par la soumission d'avis et — depuis la v2 —
+ * par la modération (`deleteReview`), qui laissait des moyennes périmées.
+ */
+async function recomputeReviewAggregates(storeId: string, productIds: string[]) {
+  if (productIds.length === 0) return;
+  const aggregates = await db
+    .select({
+      productId: productReviews.productId,
+      count: sql<number>`count(*)::int`,
+      avg: sql<string>`coalesce(avg(${productReviews.rating}), 0)`,
+    })
+    .from(productReviews)
+    .where(inArray(productReviews.productId, productIds))
+    .groupBy(productReviews.productId);
+
+  const found = new Set(aggregates.map((row) => row.productId));
+  for (const row of aggregates) {
+    const averageRating = Number(row.avg || 0).toFixed(2);
+    await db
+      .insert(productStats)
+      .values({ storeId, productId: row.productId, totalSales: 0, reviewCount: row.count, averageRating })
+      .onConflictDoUpdate({
+        target: productStats.productId,
+        set: { reviewCount: row.count, averageRating },
+      });
+  }
+  // Un produit sans plus aucun avis : on repasse la ligne à zéro plutôt que de
+  // laisser une moyenne fantôme.
+  const emptied = productIds.filter((id) => !found.has(id));
+  if (emptied.length > 0) {
+    await db
+      .update(productStats)
+      .set({ reviewCount: 0, averageRating: '0' })
+      .where(inArray(productStats.productId, emptied));
+  }
+}
+
+/**
+ * Déboost : retire TOUT ce que le panneau a fabriqué pour cette boutique —
+ * commandes, avis, vues, échéanciers — puis recalcule les agrégats.
+ * Le stock n'est jamais touché (les commandes boostées n'en ont jamais retiré).
+ */
+export async function unboostStoreAction(
+  storeId: string
+): Promise<{ success: boolean; error?: string; removed?: { orders: number; reviews: number; views: number } }> {
+  const session = await getBoostSession();
+  if (!session) return { success: false, error: 'Session expirée.' };
+  try {
+    const [store] = await db.select({ id: stores.id }).from(stores).where(eq(stores.id, storeId)).limit(1);
+    if (!store) return { success: false, error: 'Boutique introuvable.' };
+
+    // --- Avis : suppression + recalcul des moyennes des produits touchés.
+    const boostedReviews = await db
+      .select({ productId: productReviews.productId })
+      .from(productReviews)
+      .where(and(eq(productReviews.storeId, storeId), eq(productReviews.boosted, true)));
+    await db
+      .delete(productReviews)
+      .where(and(eq(productReviews.storeId, storeId), eq(productReviews.boosted, true)));
+    const reviewProductIds = [...new Set(boostedReviews.map((r) => r.productId))];
+    await recomputeReviewAggregates(storeId, reviewProductIds);
+
+    // --- Commandes : suppression des lignes (cascade) puis décrément de
+    // `total_sales` — la vente avait bien été comptée au moment du boost.
+    const boostedOrders = await db
+      .select({ id: orders.id, customerId: orders.customerId })
+      .from(orders)
+      .where(and(eq(orders.storeId, storeId), eq(orders.boosted, true)));
+    const orderIds = boostedOrders.map((o) => o.id);
+    // Les commandes boostées pointent vers le « client de passage » créé par le
+    // panneau : sans ce nettoyage, sa fiche resterait avec un CA fantôme.
+    const boostCustomerIds = [...new Set(boostedOrders.map((o) => o.customerId).filter((id): id is string => Boolean(id)))];
+
+    if (orderIds.length > 0) {
+      const lines = await db
+        .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+        .from(orderItems)
+        .where(inArray(orderItems.orderId, orderIds));
+      const totals = new Map<string, number>();
+      for (const line of lines) {
+        if (!line.productId) continue;
+        totals.set(line.productId, (totals.get(line.productId) || 0) + (line.quantity || 0));
+      }
+      await db.delete(orders).where(inArray(orders.id, orderIds));
+      for (const [productId, qty] of totals) {
+        await db
+          .update(productStats)
+          .set({ totalSales: sql`greatest(0, ${productStats.totalSales} - ${qty})` })
+          .where(eq(productStats.productId, productId));
+      }
+      invalidateOrdersCache(storeId);
+      revalidateTag(`orders:${storeId}`, 'max');
+    }
+
+    for (const customerId of boostCustomerIds) {
+      const [agg] = await db
+        .select({
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`coalesce(sum(${orders.total}), 0)`,
+        })
+        .from(orders)
+        .where(eq(orders.customerId, customerId));
+      if (!agg || Number(agg.count) === 0) {
+        await db.delete(customers).where(eq(customers.id, customerId));
+      } else {
+        await db
+          .update(customers)
+          .set({ ordersCount: Number(agg.count), totalSpent: Number(agg.total || 0).toFixed(2) })
+          .where(eq(customers.id, customerId));
+      }
+    }
+
+    // --- Vues : retrait de la part boostée, jamais sous la valeur réelle.
+    const [storeRow] = await db
+      .select({ views: stores.views, boostedViews: stores.boostedViews })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    const storeViewsRemoved = Math.min(storeRow?.boostedViews || 0, storeRow?.views || 0);
+    if (storeViewsRemoved > 0) {
+      await db
+        .update(stores)
+        .set({
+          views: sql`greatest(0, ${stores.views} - ${storeRow!.boostedViews})`,
+          boostedViews: 0,
+        })
+        .where(eq(stores.id, storeId));
+    }
+
+    const boostedProducts = await db
+      .select({ id: products.id, views: products.views, boostedViews: products.boostedViews })
+      .from(products)
+      .where(eq(products.storeId, storeId));
+    let productViewsRemoved = 0;
+    for (const p of boostedProducts) {
+      const remove = Math.min(p.boostedViews || 0, p.views || 0);
+      if (remove <= 0) continue;
+      productViewsRemoved += remove;
+      await db
+        .update(products)
+        .set({ views: sql`greatest(0, ${products.views} - ${p.boostedViews})`, boostedViews: 0 })
+        .where(eq(products.id, p.id));
+    }
+
+    // --- Échéanciers de vues en attente.
+    await db.delete(boostSchedules).where(eq(boostSchedules.storeId, storeId));
+
+    await logBoost(storeId, 'unboost', 0, {
+      orders: orderIds.length,
+      reviews: reviewProductIds.length,
+      views: storeViewsRemoved + productViewsRemoved,
+    }, session.username);
+
+    revalidatePath('/pam/stores');
+    revalidatePath('/pam/reviews');
+    revalidatePath('/pam/orders');
+    revalidatePath('/dashboard');
+    updateTag('marketplace');
+
+    return {
+      success: true,
+      removed: {
+        orders: orderIds.length,
+        reviews: boostedReviews.length,
+        views: storeViewsRemoved + productViewsRemoved,
+      },
+    };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
   }

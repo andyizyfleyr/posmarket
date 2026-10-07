@@ -26,6 +26,8 @@ interface ReviewRow {
   rating?: number | null;
   comment?: string | null;
   created_at?: string | null;
+  boosted?: boolean | null;
+  seller_reply?: string | null;
 }
 
 interface StoreRow { id: string; name?: string | null; }
@@ -37,6 +39,7 @@ export default function AdminReviewsPage() {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [originFilter, setOriginFilter] = useState<'ALL' | 'REAL' | 'BOOSTED'>('ALL');
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<ReviewRow | null>(null);
   const [page, setPage] = useState(1);
@@ -64,11 +67,16 @@ export default function AdminReviewsPage() {
     const term = search.toLowerCase();
     const store = r.store_id ? storeMap.get(r.store_id) : undefined;
     const product = r.product_id ? productMap.get(r.product_id) : undefined;
-    return !term ||
+    const matchesOrigin =
+      originFilter === 'ALL' ||
+      (originFilter === 'BOOSTED' ? !!r.boosted : !r.boosted);
+    const matchesSearch =
+      !term ||
       r.author_name?.toLowerCase().includes(term) ||
       r.comment?.toLowerCase().includes(term) ||
       store?.name?.toLowerCase().includes(term) ||
       product?.name?.toLowerCase().includes(term);
+    return matchesOrigin && matchesSearch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -105,15 +113,26 @@ export default function AdminReviewsPage() {
         <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mt-1">Contrôle qualité du contenu client ({filtered.length})</p>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-        <input
-          type="text"
-          placeholder="Chercher par auteur, commentaire, boutique, produit..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full md:w-[480px] pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
-        />
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder="Chercher par auteur, commentaire, boutique, produit..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-full pl-12 pr-6 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 placeholder:text-gray-300 text-sm font-semibold text-gray-900 shadow-sm"
+          />
+        </div>
+        <select
+          value={originFilter}
+          onChange={(e) => { setOriginFilter(e.target.value as 'ALL' | 'REAL' | 'BOOSTED'); setPage(1); }}
+          className="px-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold uppercase tracking-widest text-gray-600 cursor-pointer shadow-sm"
+        >
+          <option value="ALL">Toutes origines</option>
+          <option value="REAL">Naturels</option>
+          <option value="BOOSTED">Boostés</option>
+        </select>
       </div>
 
       <div className="space-y-4">
@@ -155,10 +174,21 @@ export default function AdminReviewsPage() {
                         <CheckCircle2 size={10} className="text-emerald-500" />
                         <span>Avis vérifié</span>
                       </div>
+                      {r.boosted && (
+                        <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-bold rounded border border-purple-100 uppercase">
+                          Boosté
+                        </span>
+                      )}
                     </div>
                   </div>
                   {r.comment && (
                     <p className="text-sm text-gray-600 font-normal leading-relaxed bg-gray-50/50 rounded-2xl border border-gray-100 p-4">{r.comment}</p>
+                  )}
+                  {r.seller_reply && (
+                    <div className="mt-2 ml-4 pl-3 border-l-2 border-brand/40 bg-orange-50/40 rounded-r-xl px-3 py-2">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-brand mb-0.5">Réponse du vendeur</p>
+                      <p className="text-xs text-gray-600 font-normal leading-relaxed">{r.seller_reply}</p>
+                    </div>
                   )}
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-[10px] font-semibold text-gray-400">
                     {product && (

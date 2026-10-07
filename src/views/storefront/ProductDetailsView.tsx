@@ -804,6 +804,14 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           <p className="text-xs text-gray-600 leading-relaxed mt-1">
             {review.comment}
           </p>
+          {review.sellerReply && (
+            <div className="mt-2 ml-3 pl-2.5 border-l-2 border-brand/40 bg-orange-50/40 rounded-r-lg px-2.5 py-1.5">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-brand mb-0.5">
+                Réponse du vendeur
+              </p>
+              <p className="text-[11px] text-gray-600 leading-relaxed">{review.sellerReply}</p>
+            </div>
+          )}
         </div>
       </div>
     );

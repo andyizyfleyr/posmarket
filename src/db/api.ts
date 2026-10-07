@@ -126,6 +126,32 @@ export async function incrementProductSales(
   }
 }
 
+/**
+ * Annule `incrementProductSales` : à utiliser quand une commande (réelle ou
+ * boostée) est annulée ou supprimée. Sans cela `total_sales` était monotone et
+ * continuait d'alimenter les classements « best-sellers » après un retrait.
+ * Le compteur ne descend jamais sous 0.
+ */
+export async function decrementProductSales(
+  storeId: string,
+  items: Array<{ productId?: string | null; quantity?: number | null }>
+) {
+  const totals = new Map<string, number>();
+  for (const item of items || []) {
+    const pid = item?.productId;
+    if (!pid) continue;
+    const qty = Math.floor(Number(item.quantity) || 0);
+    if (qty <= 0) continue;
+    totals.set(pid, (totals.get(pid) || 0) + qty);
+  }
+  for (const [productId, qty] of totals) {
+    await db
+      .update(productStats)
+      .set({ totalSales: sql`greatest(0, ${productStats.totalSales} - ${qty})` })
+      .where(eq(productStats.productId, productId));
+  }
+}
+
 const CANCELLED_STATUSES = new Set(['CANCELLED', 'ANNULEE']);
 
 export function isCancelledOrderStatus(status?: string | null): boolean {

@@ -4,6 +4,13 @@
  * Usage :
  *   node scripts/seed-review-authors.mjs ["chemin/vers/noms_fictifs.json"]
  *
+ * Ordre de résolution de la source :
+ *   1. argument en ligne de commande,
+ *   2. `scripts/fixtures/review-authors.json` s'il existe,
+ *   3. l'ancien fichier local (conservé par compatibilité),
+ *   4. sinon : pool synthétique généré sur place (noms sénégalais + photos
+ *      DiceBear) — plus aucune dépendance à un fichier de la machine.
+ *
  * Le fichier JSON doit être un tableau de { id, prenom, nom, nom_complet,
  * sexe, photo }. Rejouable : les doublons d'id sont ignorés.
  */
@@ -16,9 +23,69 @@ import { runSqlFile } from './lib/sql.mjs';
 config({ path: '.env.local' });
 const sql = neon(process.env.DATABASE_URL);
 
-const source = process.argv[2] || 'C:/Users/JACQUES/Downloads/noms_fictifs_10000 (1).json';
-if (!fs.existsSync(source)) {
-  console.error(`❌ Fichier introuvable : ${source}`);
+const LEGACY_SOURCE = 'C:/Users/JACQUES/Downloads/noms_fictifs_10000 (1).json';
+const FIXTURE_SOURCE = path.join('scripts', 'fixtures', 'review-authors.json');
+
+const PRENOMS = [
+  'Awa', 'Mamadou', 'Fatou', 'Ousmane', 'Aïssatou', 'Ibrahima', 'Mbacké', 'Ndèye',
+  'Cheikh', 'Mariama', 'Pape', 'Khadidiatou', 'Samba', 'Astou', 'Yaya', 'Ndeye',
+  'Alioune', 'Coumba', 'Modou', 'Sokhna', 'El Hadji', 'Mame', 'Karim', 'Bineta',
+  'Souleymane', 'Aminata', 'Lamine', 'Khady', 'Boubacar', 'Seynabou', 'Djibril',
+  'Nadia', 'Moussa', 'Rokhaya', 'Abdoulaye', 'Saratou', 'Mouhamed', 'Juletta',
+];
+const NOMS = [
+  'Ndiaye', 'Ba', 'Sow', 'Diop', 'Fall', 'Sarr', 'Camara', 'Gueye', 'Thiam',
+  'Diallo', 'Diouf', 'Mboup', 'Baldé', 'Kane', 'Diagne', 'Badara', 'Ndoye',
+  'Khouma', 'Samb', 'Touré', 'Cissé', 'Kouyaté', 'Niane', 'Diamé', 'Sy',
+  'Faye', 'Dieng', 'Mbaye', 'Ngom', 'Sagna', 'Diakhate', 'Gomis', 'Sané',
+];
+
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+/** Pool autonome : noms combinés sans doublon + avatar DiceBear stable. */
+function buildSyntheticAuthors(count) {
+  const seen = new Set();
+  const out = [];
+  // Base élevée : on ne risque jamais d'écraser les ids d'un JSON importé.
+  let id = 1_000_000;
+  while (out.length < count) {
+    const prenom = pick(PRENOMS);
+    const nom = pick(NOMS);
+    const full = `${prenom} ${nom}`;
+    if (seen.has(full)) continue;
+    seen.add(full);
+    out.push({
+      id: id++,
+      prenom,
+      nom,
+      nom_complet: full,
+      sexe: Math.random() < 0.5 ? 'F' : 'M',
+      photo: `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(full)}`,
+    });
+  }
+  return out;
+}
+
+function resolveSource() {
+  const candidates = [
+    process.argv[2],
+    fs.existsSync(FIXTURE_SOURCE) ? FIXTURE_SOURCE : null,
+    fs.existsSync(LEGACY_SOURCE) ? LEGACY_SOURCE : null,
+  ].filter(Boolean);
+  return candidates.find((c) => fs.existsSync(c)) || null;
+}
+
+const source = resolveSource();
+let entries;
+if (source) {
+  entries = JSON.parse(fs.readFileSync(source, 'utf8'));
+  console.log(`Source : ${source}`);
+} else {
+  entries = buildSyntheticAuthors(5000);
+  console.log('Source : pool synthétique généré (aucun fichier trouvé)');
+}
+if (!Array.isArray(entries) || entries.length === 0) {
+  console.error('❌ JSON vide ou invalide.');
   process.exit(1);
 }
 
