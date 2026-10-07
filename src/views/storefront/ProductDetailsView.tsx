@@ -1070,12 +1070,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     const mobileGalleryRef = React.useRef<HTMLDivElement | null>(null);
 
-    const galleryScroll = (dir: 1 | -1) => {
-      const el = mobileGalleryRef.current;
-      if (!el) return;
-      el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
-    };
-
     const galleryGoTo = (idx: number) => {
       const el = mobileGalleryRef.current;
       if (!el) return;
@@ -1132,23 +1126,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             Bouton de retour uniquement. Le panier vit dans la barre du bas :
             le dupliquer ici affichait deux boutons pointant vers la meme
             destination sur le meme ecran. */}
-        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 px-3 py-2 flex items-center gap-2 -mx-4 relative" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <button
-            type="button"
-            onClick={() => safeNavigate("/")}
-            aria-label="Retour"
-            className="relative z-10 w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100 transition-colors"
-          >
-            <ChevronLeft size={18} strokeWidth={2.5} />
-          </button>
-          {/* Nom centré dans la barre entière (et non dans l'espace restant
-              après le bouton). `px-12` réserve de part et d'autre la place du
-              bouton : le nom démarre donc à gauche dès qu'il déborde et se
-              termine par « … ». */}
-          <span className="absolute inset-0 px-12 flex items-center justify-center pointer-events-none">
-            <span className="max-w-full truncate text-center text-xs font-bold tracking-[0.1em] uppercase text-gray-500">
-              {product.storeName}
-            </span>
+        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 -mx-4 px-4 py-2.5 flex items-center justify-center" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <span className="max-w-full truncate text-center text-xs font-bold tracking-[0.1em] uppercase text-gray-500">
+            {product.storeName}
           </span>
         </div>
 
@@ -1185,34 +1165,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     </div>
                   ))}
                 </div>
-
-                {/* Manual slide arrows (mobile) */}
-                {galleryImages.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        galleryScroll(-1);
-                      }}
-                      aria-label="Image précédente"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:brightness-95 transition-colors z-10"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        galleryScroll(1);
-                      }}
-                      aria-label="Image suivante"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 hover:bg-white active:brightness-95 transition-colors z-10"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </>
-                )}
 
                 {/* Slide dots (mobile) : ancrés en bas, dans une pilule translucide */}
                 {galleryImages.length > 1 && (
