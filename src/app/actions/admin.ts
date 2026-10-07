@@ -26,6 +26,9 @@ function errorMessage(error: unknown): string {
 
 export async function getGlobalStats() {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
+  // Pas de cron côté serveur : on profite du chargement du tableau de bord
+  // pour créditer les vues étalées arrivées à échéance.
+  await applyAllDueViewBoosts();
   try {
     const [
       [{ count: totalStores }],
@@ -67,6 +70,7 @@ export async function getGlobalStats() {
 
 export async function getAllStores() {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
+  await applyAllDueViewBoosts();
   try {
     const storesList = await db.select().from(stores).orderBy(desc(stores.createdAt));
     return storesList || [];
@@ -790,7 +794,8 @@ async function addViewsToProducts(storeId: string, value: number, productIds?: s
 
 /**
  * Applique les échéanciers de vues arrivés à échéance (pas de cron : le
- * calcul est fait à l'ouverture du panneau et à chaque boost).
+ * calcul est fait à l'ouverture du panneau, à chaque boost, et sur les pages
+ * admin qui listent les boutiques / le tableau de bord).
  * Retourne le nombre de vues créditées.
  */
 async function applyDueViewBoosts(storeId: string): Promise<number> {
@@ -827,6 +832,26 @@ async function applyDueViewBoosts(storeId: string): Promise<number> {
     }
   }
   return credited;
+}
+
+/**
+ * Applique les échéanciers de **toutes** les boutiques qui en ont (une seule
+ * requête de détection, écritures uniquement si du crédit est dû). Utilisé par
+ * le tableau de bord et la liste des boutiques pour que les vues étalées
+ * progressent sans intervention.
+ */
+async function applyAllDueViewBoosts(): Promise<void> {
+  try {
+    const pending = await db
+      .select({ storeId: boostSchedules.storeId })
+      .from(boostSchedules)
+      .groupBy(boostSchedules.storeId);
+    for (const row of pending) {
+      await applyDueViewBoosts(row.storeId);
+    }
+  } catch (error) {
+    console.error('Error applying due view boosts:', error);
+  }
 }
 
 /** État du panneau : journal, quotas restants, vues programmées. */

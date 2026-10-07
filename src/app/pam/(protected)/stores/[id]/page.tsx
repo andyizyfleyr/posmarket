@@ -80,7 +80,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             {store.views !== undefined && (
               <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2">
                 <Eye size={16} className="text-brand" />
-                <span className="text-xs font-bold text-gray-900">{store.views} <span className="text-gray-400 font-semibold">vues</span></span>
+                <span className="text-xs font-bold text-gray-900">{store.views} <span className="text-gray-400 font-semibold">vues</span>{store.boostedViews > 0 && <span className="ml-1.5 text-purple-400 font-bold">(+{store.boostedViews} boost)</span>}</span>
               </div>
             )}
             <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-2">

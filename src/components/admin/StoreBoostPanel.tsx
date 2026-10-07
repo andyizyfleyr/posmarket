@@ -167,7 +167,7 @@ export default function StoreBoostPanel({
       setFeedback({
         type: 'ok',
         text: res.scheduled
-          ? `${res.amount} vues programmée(s) du ${new Date(res.from!).toLocaleDateString('fr-FR')} au ${new Date(res.to!).toLocaleDateString('fr-FR')} — appliquées à chaque ouverture de ce panneau.`
+          ? `${res.amount} vues programmée(s) du ${new Date(res.from!).toLocaleDateString('fr-FR')} au ${new Date(res.to!).toLocaleDateString('fr-FR')} — créditées progressivement à chaque visite de l'admin.`
           : scope === 'store'
             ? `+${res.amount} vues ajoutées à la boutique.`
             : `+${res.amount} vues réparties sur ${res.products ?? productCount} produit(s).`,
@@ -254,13 +254,13 @@ export default function StoreBoostPanel({
     }
   };
 
-  const targetSelect = (
+  const targetSelect = (id: string) => (
     <div>
-      <label className={labelClass} htmlFor="boost-target">
+      <label className={labelClass} htmlFor={id}>
         Produit ciblé
       </label>
       <select
-        id="boost-target"
+        id={id}
         value={target}
         onChange={(e) => {
           setTarget(e.target.value);
@@ -539,7 +539,7 @@ export default function StoreBoostPanel({
             />
           </div>
 
-          {targetSelect}
+          {targetSelect('boost-order-target')}
 
           {periodSelect('boost-order-period', orderPeriod, (v) => setOrderPeriod(v), orderFrom, orderTo, setOrderFrom, setOrderTo)}
 
@@ -604,7 +604,7 @@ export default function StoreBoostPanel({
             </div>
           </div>
 
-          {targetSelect}
+          {targetSelect('boost-review-target')}
 
           {periodSelect('boost-review-period', reviewPeriod, (v) => setReviewPeriod(v), reviewFrom, reviewTo, setReviewFrom, setReviewTo)}
 
@@ -675,7 +675,8 @@ export default function StoreBoostPanel({
           période choisie, avec les prix réels des produits — jamais avant la création de la boutique ou du produit.
           Elles apparaissent dans la liste des commandes du vendeur, sans jamais décrémenter son stock, et déclenchent
           une notification récapitulative unique. Les avis générés sont attribués à des clients de passage et
-          recalculent la moyenne des produits. Un quota par 24 h limite les applications ; « Débooster » retire tout ce
+          recalculent la moyenne des produits. Un quota par 24 h limite les applications ; les vues étalées sont
+          créditées progressivement au fil des visites de l&apos;admin ; « Débooster » retire tout ce
           qui a été fabriqué et recalcule les agrégats.
         </span>
       </p>

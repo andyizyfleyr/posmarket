@@ -14,9 +14,11 @@ interface StatCardProps {
   icon: React.ReactNode;
   color: string;
   link?: string;
+  /** Sous-ligne optionnelle (ex : part du CA fabriquée par le panneau de boost). */
+  note?: React.ReactNode;
 }
 
-function StatCard({ title, value, icon, color, link }: StatCardProps) {
+function StatCard({ title, value, icon, color, link, note }: StatCardProps) {
   return (
     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
@@ -25,6 +27,7 @@ function StatCard({ title, value, icon, color, link }: StatCardProps) {
       <div className="flex flex-col">
         <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest">{title}</span>
         <span className="text-2xl font-bold text-gray-900 mt-1">{value}</span>
+        {note && <span className="text-[10px] font-bold text-purple-500 mt-1">{note}</span>}
       </div>
       {link && (
         <Link href={link} className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-brand hover:text-orange-600">
@@ -50,7 +53,14 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard title="Boutiques" value={stats.totalStores} icon={<Store size={20} />} color="bg-brand" link="/pam/stores" />
         <StatCard title="Utilisateurs" value={stats.totalUsers} icon={<Users size={20} />} color="bg-purple-600" link="/pam/users" />
-        <StatCard title="Ventes Globales" value={formatCurrency(stats.totalSales)} icon={<TrendingUp size={20} />} color="bg-green-600" link="/pam/orders" />
+        <StatCard
+          title="Ventes Globales"
+          value={formatCurrency(stats.totalSales)}
+          icon={<TrendingUp size={20} />}
+          color="bg-green-600"
+          link="/pam/orders"
+          note={stats.boostedSales > 0 ? `hors ${formatCurrency(stats.boostedSales)} de boosts` : undefined}
+        />
         <StatCard title="Produits" value={stats.totalProducts} icon={<Package size={20} />} color="bg-orange-600" link="/pam/inventory" />
       </div>
 
