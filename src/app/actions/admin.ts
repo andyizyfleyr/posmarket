@@ -9,6 +9,7 @@ import { getAdminSession, type AdminSession } from '@/app/actions/admin-auth';
 import { invalidateOrdersCache, incrementProductSales } from '@/db/api';
 import { ACCES_REFUSE } from '@/lib/authorization';
 import { rateLimit, rateLimitMessage, getClientIp } from '@/lib/rate-limit';
+import { stripJsonFences } from '@/lib/json-fences';
 
 /**
  * Garde-fou commun à toutes les actions de ce fichier : elles appartiennent à
@@ -1544,7 +1545,8 @@ function parseCustomReviews(
   }
   let data: unknown;
   try {
-    data = JSON.parse(raw);
+    // Tolère le décor Markdown des IA (```json … ```).
+    data = JSON.parse(stripJsonFences(raw));
   } catch {
     return { ok: false, error: 'JSON invalide : vérifiez la syntaxe (guillemets, virgules).' };
   }

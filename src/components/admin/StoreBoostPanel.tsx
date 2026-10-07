@@ -25,6 +25,7 @@ import {
   getBoostStateAction,
 } from '@/app/actions/admin';
 import { formatCurrency } from '@/utils';
+import { stripJsonFences } from '@/lib/json-fences';
 
 type Busy = null | 'views-store' | 'views-products' | 'orders' | 'reviews' | 'unboost';
 type Feedback = { type: 'ok' | 'err'; text: string } | null;
@@ -90,7 +91,8 @@ const previewCustomJson = (raw: string): { count: number; error: string | null }
   if (!text) return { count: 0, error: null };
   let data: unknown;
   try {
-    data = JSON.parse(text);
+    // Même tolérance que le serveur : on accepte le décor Markdown des IA.
+    data = JSON.parse(stripJsonFences(text));
   } catch {
     return { count: 0, error: 'JSON invalide : vérifiez la syntaxe (guillemets, virgules).' };
   }
