@@ -2215,7 +2215,7 @@ const WHOLESALE_FILTER = "wholesale";
         );
       }
       return (
-        <div className="mb-5 md:mb-6">
+        <div className="mb-5 md:mb-6 mx-3 md:mx-0">
           <div className="bg-white rounded-[24px] overflow-hidden ring-1 ring-gray-100">
             <div className="h-20 md:h-28 skeleton" />
             <div className="px-4 md:px-8 pb-5">
@@ -2250,7 +2250,7 @@ const WHOLESALE_FILTER = "wholesale";
       ) || 0;
     const reviewCountTotal = selectedStore.reviewCount ?? productReviewTotal;
     return (
-      <div className="mb-5 md:mb-6">
+      <div className="mb-5 md:mb-6 mx-3 md:mx-0">
         <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
           {/* Cover : lavis doux de marque, sans décor */}
           <div className="h-20 md:h-28 bg-gradient-to-b from-[#fff3ed] via-[#fffaf7] to-white" />
