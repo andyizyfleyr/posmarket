@@ -39,12 +39,27 @@ type BoostState = {
 };
 
 const inputClass =
-  'w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-900 focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all';
-const labelClass = 'block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5';
+  'w-full bg-white border border-line-strong rounded-xl px-3.5 py-3 text-sm font-bold text-ink placeholder:text-gray-300 focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all';
+const labelClass = 'block text-[10px] font-bold text-gray-400 uppercase tracking-[0.16em]';
+const hintClass = 'text-[10px] font-semibold text-gray-400 leading-snug';
 const primaryButtonClass =
-  'inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-brand hover:bg-[#d55a20] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm';
+  'inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand to-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-extrabold uppercase tracking-wider px-4 py-3 shadow-lg shadow-brand/20 transition-all hover:brightness-[1.05] active:scale-[.98]';
 const dangerButtonClass =
-  'inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95';
+  'inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed text-[11px] font-extrabold uppercase tracking-wider px-3.5 py-2.5 transition-all active:scale-[.98]';
+const secondaryButtonClass =
+  'inline-flex items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-brand-soft text-brand hover:bg-brand-tint disabled:opacity-40 disabled:cursor-not-allowed text-[11px] font-extrabold uppercase tracking-wider px-4 py-3 transition-all active:scale-[.98]';
+const ghostChipClass =
+  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-line text-[10px] font-bold uppercase tracking-wider text-gray-500';
+
+/** Tonalités d'accent par carte (icône + pastille). */
+const TONE = {
+  views: 'bg-sky-50 text-sky-600 ring-1 ring-inset ring-sky-100',
+  orders: 'bg-violet-50 text-violet-600 ring-1 ring-inset ring-violet-100',
+  reviews: 'bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-100',
+} as const;
+
+const fmtDay = (value: string) =>
+  value ? new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—';
 
 /** Bornes alignées sur les clamps serveur (100000 vues / 50 commandes / 50 avis). */
 const clampViews = (raw: string) => Math.min(100000, Math.max(1, Math.floor(Number(raw) || 1)));
@@ -270,11 +285,21 @@ export default function StoreBoostPanel({
     }
   };
 
-  const targetSelect = (id: string) => (
+  /** Libellé de champ + contrôle, espacement homogène partout. */
+  const field = (label: string, id: string, control: React.ReactNode, hint?: React.ReactNode) => (
     <div>
-      <label className={labelClass} htmlFor={id}>
-        Produit ciblé
+      <label className={`${labelClass} mb-2`} htmlFor={id}>
+        {label}
       </label>
+      {control}
+      {hint ? <div className="mt-1.5">{hint}</div> : null}
+    </div>
+  );
+
+  const targetSelect = (id: string) =>
+    field(
+      'Produit ciblé',
+      id,
       <select
         id={id}
         value={target}
@@ -291,16 +316,86 @@ export default function StoreBoostPanel({
             {p.name}
           </option>
         ))}
-      </select>
+      </select>,
+      <p className={hintClass}>
+        {target ? 'Ciblage : un seul produit.' : 'Ciblage : l’ensemble du catalogue de la boutique.'}
+      </p>
+    );
+
+  /**
+   * Champ nombre + raccourcis de valeur (presets) et affichage de la borne.
+   * `unit` est un suffixe visuel (« vues », « commandes »…).
+   */
+  const numberField = (cfg: {
+    id: string;
+    label: string;
+    unit: string;
+    value: string;
+    onChange: (v: string) => void;
+    clamp: (raw: string) => number;
+    max: number;
+    presets: number[];
+  }) => (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 mb-2">
+        <label className={labelClass} htmlFor={cfg.id}>
+          {cfg.label}
+        </label>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-300">
+          1 – {cfg.max.toLocaleString('fr-FR')}
+        </span>
+      </div>
+      <div className="relative">
+        <input
+          id={cfg.id}
+          type="number"
+          min={1}
+          max={cfg.max}
+          value={cfg.value}
+          onChange={(e) => {
+            cfg.onChange(e.target.value);
+            setFeedback(null);
+          }}
+          onBlur={() => cfg.onChange(String(cfg.clamp(cfg.value)))}
+          className={`${inputClass} pr-24 text-base font-extrabold tracking-tight`}
+          disabled={busy !== null}
+        />
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-gray-300">
+          {cfg.unit}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {cfg.presets.map((p) => {
+          const active = String(p) === cfg.value;
+          return (
+            <button
+              key={p}
+              type="button"
+              disabled={busy !== null}
+              onClick={() => {
+                cfg.onChange(String(p));
+                setFeedback(null);
+              }}
+              className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all ${
+                active
+                  ? 'bg-brand-soft border-brand/40 text-brand'
+                  : 'bg-white border-line text-gray-500 hover:border-brand/40 hover:text-brand'
+              }`}
+            >
+              {p.toLocaleString('fr-FR')}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 
   /**
-   * Sélecteur de période partagé.
-   * `past`  → « 7 derniers jours » (commandes / avis : dates dans le passé).
-   * `future`→ « Sur 7 jours » (vues : fenêtre de crédit étalée à partir d'aujourd'hui).
+   * Contrôle de période segmenté (pills) + rappel textuel de ce qu'il implique.
+   * `past`  → commandes / avis : dates reculées dans le passé.
+   * `future`→ vues : fenêtre de crédit étalée à partir d'aujourd'hui.
    */
-  const periodSelect = (
+  const periodControl = (
     id: string,
     value: Period,
     onChange: (value: Period) => void,
@@ -309,69 +404,106 @@ export default function StoreBoostPanel({
     setFrom: (v: string) => void,
     setTo: (v: string) => void,
     variant: 'past' | 'future' = 'past'
-  ) => (
-    <div className="space-y-2">
+  ) => {
+    const options: Array<{ value: Period; label: string }> = [
+      { value: '7', label: '7 j' },
+      { value: '30', label: '30 j' },
+      { value: '90', label: '90 j' },
+      { value: 'custom', label: 'Perso' },
+    ];
+    const helper =
+      value === 'custom'
+        ? `${variant === 'future' ? 'Crédit' : 'Dates'} du ${fmtDay(from)} au ${fmtDay(to)}`
+        : variant === 'future'
+          ? `Crédit étalé sur ${value} jours, à partir d’aujourd’hui`
+          : `Réparties sur les ${value} derniers jours`;
+
+    return (
       <div>
-        <label className={labelClass} htmlFor={id}>
+        <span className={`${labelClass} mb-2`} id={`${id}-label`}>
           Période
-        </label>
-        <select
-          id={id}
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value as Period);
-            setFeedback(null);
-          }}
-          className={inputClass}
-          disabled={busy !== null}
-        >
-          <option value="7">{variant === 'future' ? 'Sur 7 jours' : '7 derniers jours'}</option>
-          <option value="30">{variant === 'future' ? 'Sur 30 jours' : '30 derniers jours'}</option>
-          <option value="90">{variant === 'future' ? 'Sur 90 jours' : '90 derniers jours'}</option>
-          <option value="custom">Plage personnalisée…</option>
-        </select>
-      </div>
-      {value === 'custom' && (
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className={labelClass} htmlFor={`${id}-from`}>Du</label>
-            <input
-              id={`${id}-from`}
-              type="date"
-              value={from}
-              max={to || undefined}
-              onChange={(e) => { setFrom(e.target.value); setFeedback(null); }}
-              className={inputClass}
-              disabled={busy !== null}
-            />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor={`${id}-to`}>Au</label>
-            <input
-              id={`${id}-to`}
-              type="date"
-              value={to}
-              min={from || undefined}
-              onChange={(e) => { setTo(e.target.value); setFeedback(null); }}
-              className={inputClass}
-              disabled={busy !== null}
-            />
-          </div>
+        </span>
+        <div className="grid grid-cols-4 gap-1 rounded-2xl border border-line bg-gray-50 p-1">
+          {options.map((opt) => {
+            const active = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={busy !== null}
+                aria-pressed={active}
+                aria-labelledby={`${id}-label`}
+                onClick={() => {
+                  onChange(opt.value);
+                  setFeedback(null);
+                }}
+                className={`rounded-xl px-1 py-2 text-[11px] font-extrabold uppercase tracking-wider transition-all ${
+                  active
+                    ? 'bg-white text-ink shadow-sm ring-1 ring-black/5'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
-      )}
-    </div>
-  );
+        <p className={`${hintClass} mt-1.5`}>{helper}</p>
+        {value === 'custom' && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div>
+              <label className={`${labelClass} mb-2`} htmlFor={`${id}-from`}>
+                Du
+              </label>
+              <input
+                id={`${id}-from`}
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => {
+                  setFrom(e.target.value);
+                  setFeedback(null);
+                }}
+                className={inputClass}
+                disabled={busy !== null}
+              />
+            </div>
+            <div>
+              <label className={`${labelClass} mb-2`} htmlFor={`${id}-to`}>
+                Au
+              </label>
+              <input
+                id={`${id}-to`}
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  setFeedback(null);
+                }}
+                className={inputClass}
+                disabled={busy !== null}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-      <div className="flex items-start justify-between gap-3 mb-5">
-        <div className="flex items-start gap-3">
-          <div className="p-3 bg-orange-50 text-brand rounded-2xl">
+    <section className="bg-white rounded-[28px] border border-line shadow-sm overflow-hidden">
+      {/* ── En-tête ─────────────────────────────────────────────── */}
+      <header className="flex flex-col gap-4 border-b border-line px-5 py-5 sm:px-7 sm:py-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand to-orange-600 text-white shadow-lg shadow-brand/25">
             <Zap size={20} />
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Booster les statistiques</h2>
-            <p className="text-[11px] text-gray-400 font-medium mt-0.5">
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-extrabold uppercase tracking-tight text-ink">
+              Booster les statistiques
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-gray-400">
               Vues, ventes et avis artificiels — le stock du vendeur n&apos;est jamais modifié.
             </p>
           </div>
@@ -386,25 +518,30 @@ export default function StoreBoostPanel({
           {busy === 'unboost' ? <Loader2 size={13} className="animate-spin" /> : <Undo2 size={13} />}
           Débooster
         </button>
-      </div>
+      </header>
 
+      {/* ── Barre d'état : quotas restants + programmé ───────────── */}
       {state && (
-        <div className="flex flex-wrap items-center gap-2 mb-5">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[9px] font-bold uppercase tracking-widest text-gray-500">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-[#fbfbfc] px-5 py-3.5 sm:px-7">
+          <span className={ghostChipClass}>
             <History size={11} className="text-brand" />
-            {state.logs.length} dernier(s) passage(s)
+            {state.logs.length} passage{state.logs.length > 1 ? 's' : ''}
           </span>
-          <span className="px-2.5 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[9px] font-bold uppercase tracking-widest text-gray-500">
-            Vues 24 h : {state.quota.views.toLocaleString('fr-FR')}
+          <span className={ghostChipClass}>
+            Vues 24 h&nbsp;: <b className="text-ink">{state.quota.views.toLocaleString('fr-FR')}</b>
+            <span className="font-medium text-gray-300">restantes</span>
           </span>
-          <span className="px-2.5 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[9px] font-bold uppercase tracking-widest text-gray-500">
-            Commandes 24 h : {state.quota.orders}
+          <span className={ghostChipClass}>
+            Commandes 24 h&nbsp;: <b className="text-ink">{state.quota.orders}</b>
+            <span className="font-medium text-gray-300">restantes</span>
           </span>
-          <span className="px-2.5 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[9px] font-bold uppercase tracking-widest text-gray-500">
-            Avis 24 h : {state.quota.reviews}
+          <span className={ghostChipClass}>
+            Avis 24 h&nbsp;: <b className="text-ink">{state.quota.reviews}</b>
+            <span className="font-medium text-gray-300">restants</span>
           </span>
           {state.pendingViews > 0 && (
-            <span className="px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-lg text-[9px] font-bold uppercase tracking-widest text-blue-600">
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-600">
+              <Calendar size={11} />
               {state.pendingViews.toLocaleString('fr-FR')} vues programmées
             </span>
           )}
@@ -412,186 +549,217 @@ export default function StoreBoostPanel({
       )}
 
       {stateError && (
-        <p className="mb-4 flex items-center gap-2 text-[11px] font-semibold text-amber-600">
+        <p className="flex items-center gap-2 border-b border-line bg-amber-50/60 px-5 py-3 text-[11px] font-semibold text-amber-700 sm:px-7">
           <AlertCircle size={14} className="shrink-0" />
           {stateError}
         </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {/* Vues */}
-        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
-          <div className="flex items-center gap-2">
-            <Eye size={14} className="text-brand" />
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vues</p>
-          </div>
+      <div className="px-5 py-6 sm:px-7">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {/* ── Vues ───────────────────────────────────────────── */}
+          <article className="flex flex-col rounded-3xl border border-line p-5">
+            <div className="mb-5 flex items-center gap-3">
+              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${TONE.views}`}>
+                <Eye size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-extrabold uppercase tracking-tight text-ink">Vues</p>
+                <p className="text-[11px] font-medium text-gray-400">Boutique & fiches produit</p>
+              </div>
+            </div>
 
-          <div>
-            <label className={labelClass} htmlFor="boost-views">
-              Nombre de vues
-            </label>
-            <input
-              id="boost-views"
-              type="number"
-              min={1}
-              max={100000}
-              value={viewsText}
-              onChange={(e) => { setViewsText(e.target.value); setFeedback(null); }}
-              onBlur={() => setViewsText(String(clampViews(viewsText)))}
-              className={inputClass}
-              disabled={busy !== null}
-            />
-          </div>
+            <div className="space-y-4">
+              {numberField({
+                id: 'boost-views',
+                label: 'Nombre de vues',
+                unit: 'vues',
+                value: viewsText,
+                onChange: setViewsText,
+                clamp: clampViews,
+                max: 100000,
+                presets: [100, 1000, 10000],
+              })}
 
-          {targetSelect('boost-views-target')}
+              {targetSelect('boost-views-target')}
 
-          <div>
-            <span className={labelClass}>Créditation</span>
-            <div className="grid grid-cols-2 gap-2">
-              {[false, true].map((mode) => (
-                <button
-                  key={String(mode)}
-                  type="button"
-                  onClick={() => { setViewsSpread(mode); if (mode) syncViewsPeriod(viewsPeriod); else setFeedback(null); }}
-                  disabled={busy !== null}
-                  className={`px-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
-                    viewsSpread === mode
-                      ? 'bg-brand text-white border-brand shadow-sm'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-brand/40'
-                  }`}
-                >
-                  {mode ? <span className="inline-flex items-center gap-1"><Calendar size={11} />Étaler</span> : 'Immédiat'}
-                </button>
-              ))}
+              <div>
+                <span className={`${labelClass} mb-2`}>Créditation</span>
+                <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-gray-50 p-1">
+                  {[false, true].map((mode) => (
+                    <button
+                      key={String(mode)}
+                      type="button"
+                      onClick={() => {
+                        setViewsSpread(mode);
+                        if (mode) syncViewsPeriod(viewsPeriod);
+                        else setFeedback(null);
+                      }}
+                      disabled={busy !== null}
+                      className={`rounded-xl px-2 py-2 text-[11px] font-extrabold uppercase tracking-wider transition-all ${
+                        viewsSpread === mode
+                          ? 'bg-white text-ink shadow-sm ring-1 ring-black/5'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      {mode ? 'Étaler' : 'Immédiat'}
+                    </button>
+                  ))}
+                </div>
+                <p className={`${hintClass} mt-1.5`}>
+                  {viewsSpread
+                    ? 'Crédit progressif, jour après jour.'
+                    : 'Toutes les vues sont créditées tout de suite.'}
+                </p>
+              </div>
+
+              {viewsSpread &&
+                periodControl(
+                  'boost-views-period',
+                  viewsPeriod,
+                  syncViewsPeriod,
+                  viewsFrom,
+                  viewsTo,
+                  setViewsFrom,
+                  setViewsTo,
+                  'future'
+                )}
+            </div>
+
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
+              <button
+                type="button"
+                onClick={() =>
+                  request(
+                    `Booster les vues de la boutique`,
+                    `${views.toLocaleString('fr-FR')} vue(s) ${viewsSpread ? `étalée(s) du ${new Date(viewsFrom).toLocaleDateString('fr-FR')} au ${new Date(viewsTo).toLocaleDateString('fr-FR')}` : 'ajoutée(s) immédiatement'} sur la boutique.`,
+                    'Confirmer',
+                    async () => { setConfirming(null); await handleViews('store'); }
+                  )
+                }
+                disabled={busy !== null || !!target}
+                className={primaryButtonClass}
+                title={target ? 'Un produit ciblé est sélectionné : passez en « Tous les produits » pour booster la boutique' : 'Ajouter des vues à la boutique'}
+              >
+                {busy === 'views-store' ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
+                Boutique
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  request(
+                    'Booster les vues produits',
+                    `${views.toLocaleString('fr-FR')} vue(s) ${viewsSpread ? `étalée(s) du ${new Date(viewsFrom).toLocaleDateString('fr-FR')} au ${new Date(viewsTo).toLocaleDateString('fr-FR')}` : 'réparties immédiatement'} ${productId ? 'sur le produit ciblé' : `sur ${productCount} produit(s)`}.`,
+                    'Confirmer',
+                    async () => { setConfirming(null); await handleViews('products'); }
+                  )
+                }
+                disabled={busy !== null || noProduct}
+                className={secondaryButtonClass}
+                title={noProduct ? disabledReason : 'Répartir les vues sur les produits'}
+              >
+                {busy === 'views-products' ? <Loader2 size={13} className="animate-spin" /> : <Package size={13} />}
+                Produits
+              </button>
+            </div>
+
+            {noProduct && (
+              <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-amber-50 px-2.5 py-2 text-[10px] font-semibold text-amber-700">
+                <AlertCircle size={12} className="shrink-0" /> {disabledReason}
+              </p>
+            )}
+          </article>
+
+        {/* ── Commandes ────────────────────────────────────────── */}
+        <article className="flex flex-col rounded-3xl border border-line p-5">
+          <div className="mb-5 flex items-center gap-3">
+            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${TONE.orders}`}>
+              <ShoppingBag size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-extrabold uppercase tracking-tight text-ink">Commandes</p>
+              <p className="text-[11px] font-medium text-gray-400">Ventes livrées fictives</p>
             </div>
           </div>
 
-          {viewsSpread &&
-            periodSelect('boost-views-period', viewsPeriod, syncViewsPeriod, viewsFrom, viewsTo, setViewsFrom, setViewsTo, 'future')}
+          <div className="space-y-4">
+            {numberField({
+              id: 'boost-orders',
+              label: 'Nombre de commandes',
+              unit: 'commandes',
+              value: orderText,
+              onChange: setOrderText,
+              clamp: clampCount,
+              max: 50,
+              presets: [5, 10, 25],
+            })}
 
-          <div className="grid grid-cols-2 gap-2">
+            {targetSelect('boost-order-target')}
+
+            {periodControl('boost-order-period', orderPeriod, (v) => setOrderPeriod(v), orderFrom, orderTo, setOrderFrom, setOrderTo)}
+          </div>
+
+          <div className="mt-auto pt-5">
             <button
               type="button"
               onClick={() =>
                 request(
-                  `Booster les vues de la boutique`,
-                  `${views.toLocaleString('fr-FR')} vue(s) ${viewsSpread ? `étalée(s) du ${new Date(viewsFrom).toLocaleDateString('fr-FR')} au ${new Date(viewsTo).toLocaleDateString('fr-FR')}` : 'ajoutée(s) immédiatement'} sur la boutique.`,
-                  'Confirmer',
-                  async () => { setConfirming(null); await handleViews('store'); }
-                )
-              }
-              disabled={busy !== null || !!target}
-              className={primaryButtonClass}
-              title={target ? 'Un produit ciblé est sélectionné : passez en « Tous les produits » pour booster la boutique' : 'Ajouter des vues à la boutique'}
-            >
-              {busy === 'views-store' ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
-              Boutique
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                request(
-                  'Booster les vues produits',
-                  `${views.toLocaleString('fr-FR')} vue(s) ${viewsSpread ? `étalée(s) du ${new Date(viewsFrom).toLocaleDateString('fr-FR')} au ${new Date(viewsTo).toLocaleDateString('fr-FR')}` : 'réparties immédiatement'} ${productId ? 'sur le produit ciblé' : `sur ${productCount} produit(s)`}.`,
-                  'Confirmer',
-                  async () => { setConfirming(null); await handleViews('products'); }
+                  'Générer des commandes',
+                  `${orderCount} commande(s) « Livrée » ${productId ? 'pour le produit ciblé' : ''} étalée(s) sur ${periodDays(orderPeriod, orderFrom, orderTo)} jours. Le stock du vendeur n'est pas touché.`,
+                  'Générer',
+                  async () => { setConfirming(null); await handleOrders(); }
                 )
               }
               disabled={busy !== null || noProduct}
-              className={primaryButtonClass}
-              title={noProduct ? disabledReason : 'Répartir les vues sur les produits'}
+              className={`${primaryButtonClass} w-full py-3.5`}
+              title={noProduct ? disabledReason : 'Générer des commandes livrées'}
             >
-              {busy === 'views-products' ? <Loader2 size={13} className="animate-spin" /> : <Package size={13} />}
-              Produits
+              {busy === 'orders' ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
+              Générer {orderCount} commande{orderCount > 1 ? 's' : ''}
             </button>
           </div>
 
           {noProduct && (
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600">
+            <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-amber-50 px-2.5 py-2 text-[10px] font-semibold text-amber-700">
               <AlertCircle size={12} className="shrink-0" /> {disabledReason}
             </p>
           )}
-        </div>
+        </article>
 
-        {/* Ventes / commandes */}
-        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
-          <div className="flex items-center gap-2">
-            <ShoppingBag size={14} className="text-brand" />
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ventes / Commandes</p>
-          </div>
-
-          <div>
-            <label className={labelClass} htmlFor="boost-orders">
-              Commandes
-            </label>
-            <input
-              id="boost-orders"
-              type="number"
-              min={1}
-              max={50}
-              value={orderText}
-              onChange={(e) => { setOrderText(e.target.value); setFeedback(null); }}
-              onBlur={() => setOrderText(String(clampCount(orderText)))}
-              className={inputClass}
-              disabled={busy !== null}
-            />
-          </div>
-
-          {targetSelect('boost-order-target')}
-
-          {periodSelect('boost-order-period', orderPeriod, (v) => setOrderPeriod(v), orderFrom, orderTo, setOrderFrom, setOrderTo)}
-
-          <button
-            type="button"
-            onClick={() =>
-              request(
-                'Générer des commandes',
-                `${orderCount} commande(s) « Livrée » ${productId ? 'pour le produit ciblé' : ''} étalée(s) sur ${periodDays(orderPeriod, orderFrom, orderTo)} jours. Le stock du vendeur n'est pas touché.`,
-                'Générer',
-                async () => { setConfirming(null); await handleOrders(); }
-              )
-            }
-            disabled={busy !== null || noProduct}
-            className={`${primaryButtonClass} w-full`}
-            title={noProduct ? disabledReason : 'Générer des commandes livrées'}
-          >
-            {busy === 'orders' ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
-            Générer {orderCount} commande{orderCount > 1 ? 's' : ''}
-          </button>
-        </div>
-
-        {/* Avis */}
-        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
-          <div className="flex items-center gap-2">
-            <Star size={14} className="text-brand" />
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avis</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass} htmlFor="boost-reviews">
-                Nombre d&apos;avis
-              </label>
-              <input
-                id="boost-reviews"
-                type="number"
-                min={1}
-                max={50}
-                value={reviewText}
-                onChange={(e) => { setReviewText(e.target.value); setFeedback(null); }}
-                onBlur={() => setReviewText(String(clampCount(reviewText)))}
-                className={inputClass}
-                disabled={busy !== null}
-              />
+        {/* ── Avis ─────────────────────────────────────────────── */}
+        <article className="flex flex-col rounded-3xl border border-line p-5">
+          <div className="mb-5 flex items-center gap-3">
+            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${TONE.reviews}`}>
+              <Star size={18} />
             </div>
-            <div>
-              <label className={labelClass} htmlFor="boost-rating">
-                Notes
-              </label>
+            <div className="min-w-0">
+              <p className="text-[13px] font-extrabold uppercase tracking-tight text-ink">Avis</p>
+              <p className="text-[11px] font-medium text-gray-400">Notes & commentaires clients</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {numberField({
+              id: 'boost-reviews',
+              label: 'Nombre d’avis',
+              unit: 'avis',
+              value: reviewText,
+              onChange: setReviewText,
+              clamp: clampCount,
+              max: 50,
+              presets: [5, 10, 25],
+            })}
+
+            {field(
+              'Profil de notes',
+              'boost-rating',
               <select
                 id="boost-rating"
                 value={ratingProfile}
-                onChange={(e) => { setRatingProfile(e.target.value as RatingProfile); setFeedback(null); }}
+                onChange={(e) => {
+                  setRatingProfile(e.target.value as RatingProfile);
+                  setFeedback(null);
+                }}
                 className={inputClass}
                 disabled={busy !== null}
               >
@@ -599,106 +767,144 @@ export default function StoreBoostPanel({
                 <option value="mixed">{RATING_PROFILE_LABELS.mixed}</option>
                 <option value="realistic">{RATING_PROFILE_LABELS.realistic}</option>
               </select>
-            </div>
+            )}
+
+            {targetSelect('boost-review-target')}
+
+            {periodControl('boost-review-period', reviewPeriod, (v) => setReviewPeriod(v), reviewFrom, reviewTo, setReviewFrom, setReviewTo)}
           </div>
 
-          {targetSelect('boost-review-target')}
+          <div className="mt-auto pt-5">
+            <button
+              type="button"
+              onClick={() =>
+                request(
+                  'Générer des avis',
+                  `${reviewCount} avis ${productId ? 'pour le produit ciblé' : ''} étalé(s) sur ${periodDays(reviewPeriod, reviewFrom, reviewTo)} jours, profil « ${RATING_PROFILE_LABELS[ratingProfile]} ». ~40 % recevront une réponse du vendeur.`,
+                  'Générer',
+                  async () => { setConfirming(null); await handleReviews(); }
+                )
+              }
+              disabled={busy !== null || noProduct}
+              className={`${primaryButtonClass} w-full py-3.5`}
+              title={noProduct ? disabledReason : 'Générer des avis produits'}
+            >
+              {busy === 'reviews' ? <Loader2 size={14} className="animate-spin" /> : <Star size={14} />}
+              Générer {reviewCount} avis
+            </button>
+          </div>
 
-          {periodSelect('boost-review-period', reviewPeriod, (v) => setReviewPeriod(v), reviewFrom, reviewTo, setReviewFrom, setReviewTo)}
-
-          <button
-            type="button"
-            onClick={() =>
-              request(
-                'Générer des avis',
-                `${reviewCount} avis ${productId ? 'pour le produit ciblé' : ''} étalé(s) sur ${periodDays(reviewPeriod, reviewFrom, reviewTo)} jours, profil « ${RATING_PROFILE_LABELS[ratingProfile]} ». ~40 % recevront une réponse du vendeur.`,
-                'Générer',
-                async () => { setConfirming(null); await handleReviews(); }
-              )
-            }
-            disabled={busy !== null || noProduct}
-            className={`${primaryButtonClass} w-full`}
-            title={noProduct ? disabledReason : 'Générer des avis produits'}
-          >
-            {busy === 'reviews' ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
-            Générer {reviewCount} avis
-          </button>
+          {noProduct && (
+            <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-amber-50 px-2.5 py-2 text-[10px] font-semibold text-amber-700">
+              <AlertCircle size={12} className="shrink-0" /> {disabledReason}
+            </p>
+          )}
+        </article>
         </div>
+
+        {/* ── Retour d'action ──────────────────────────────────── */}
+        {feedback && (
+          <div
+            className={`mt-5 flex items-start gap-2.5 rounded-2xl border px-4 py-3.5 text-xs font-semibold ${
+              feedback.type === 'ok'
+                ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                : 'border-red-100 bg-red-50 text-red-600'
+            }`}
+          >
+            {feedback.type === 'ok' ? (
+              <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+            ) : (
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            )}
+            <span>{feedback.text}</span>
+          </div>
+        )}
       </div>
 
-      {feedback && (
-        <div
-          className={`mt-4 flex items-start gap-2 p-4 rounded-2xl border text-xs font-semibold ${
-            feedback.type === 'ok'
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-              : 'bg-red-50 text-red-600 border-red-100'
-          }`}
-        >
-          {feedback.type === 'ok' ? (
-            <CheckCircle2 size={15} className="shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle size={15} className="shrink-0 mt-0.5" />
-          )}
-          <span>{feedback.text}</span>
-        </div>
-      )}
-
+      {/* ── Journal ─────────────────────────────────────────────── */}
       {state && state.logs.length > 0 && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-          <p className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-            <History size={12} className="text-brand" /> Journal des boosts
-          </p>
-          <ul className="space-y-1">
-            {state.logs.map((log) => (
-              <li key={log.id} className="flex items-center justify-between gap-3 text-[11px] font-semibold text-gray-500">
-                <span className="flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[9px] font-bold uppercase tracking-wider text-gray-500">
-                    {ACTION_LABELS[log.action] || log.action}
+        <div className="border-t border-line">
+          <div className="flex items-center justify-between gap-3 border-b border-line bg-[#fbfbfc] px-5 py-3 sm:px-7">
+            <p className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-gray-500">
+              <History size={12} className="text-brand" /> Journal des boosts
+            </p>
+            <span className="text-[10px] font-semibold text-gray-300">
+              {state.logs.length} dernières actions
+            </span>
+          </div>
+          <ul className="divide-y divide-line px-5 sm:px-7">
+            {state.logs.map((log, index) => (
+              <li key={log.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${index === 0 ? 'bg-brand' : 'bg-gray-300'}`}
+                  />
+                  <span className="truncate text-xs font-semibold text-gray-600">
+                    {log.action === 'unboost'
+                      ? 'Déboost complet'
+                      : `Boost · ${ACTION_LABELS[log.action] || log.action}`}
                   </span>
-                  {log.amount > 0 && <span className="text-gray-700">+{log.amount.toLocaleString('fr-FR')}</span>}
+                  {log.amount > 0 && (
+                    <span className="shrink-0 rounded-md bg-brand-soft px-1.5 py-0.5 text-[10px] font-extrabold text-brand">
+                      +{log.amount.toLocaleString('fr-FR')}
+                    </span>
+                  )}
                 </span>
-                <span className="text-gray-400">
-                  {new Date(log.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <time
+                  className="shrink-0 text-[11px] font-medium text-gray-400"
+                  dateTime={new Date(log.createdAt).toISOString()}
+                >
+                  {new Date(log.createdAt).toLocaleString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </time>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      <p className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-gray-400 font-medium">
-        <Info size={14} className="shrink-0 mt-0.5 text-gray-300" />
-        <span>
-          Les commandes générées sont créées comme « Livrée » (client de passage), étalées aléatoirement sur la
-          période choisie, avec les prix réels des produits — jamais avant la création de la boutique ou du produit.
-          Elles apparaissent dans la liste des commandes du vendeur, sans jamais décrémenter son stock, et déclenchent
-          une notification récapitulative unique. Les avis générés sont attribués à des clients de passage et
-          recalculent la moyenne des produits. Un quota par 24 h limite les applications ; les vues étalées sont
-          créditées progressivement au fil des visites de l&apos;admin ; « Débooster » retire tout ce
-          qui a été fabriqué et recalcule les agrégats.
-        </span>
-      </p>
+      {/* ── Note de bas de panneau ──────────────────────────────── */}
+      <div className="border-t border-line bg-[#fbfbfc] px-5 py-4 sm:px-7">
+        <p className="flex items-start gap-2.5 text-[11px] font-medium leading-relaxed text-gray-400">
+          <Info size={14} className="mt-0.5 shrink-0 text-gray-300" />
+          <span>
+            Les commandes générées sont créées comme « Livrée » (client de passage), étalées aléatoirement sur la
+            période choisie, avec les prix réels des produits — jamais avant la création de la boutique ou du produit.
+            Elles apparaissent dans la liste des commandes du vendeur, sans jamais décrémenter son stock, et déclenchent
+            une notification récapitulative unique. Les avis générés sont attribués à des clients de passage et
+            recalculent la moyenne des produits. Un quota par 24 h limite les applications ; les vues étalées sont
+            créditées progressivement au fil des visites de l&apos;admin ; « Débooster » retire tout ce
+            qui a été fabriqué et recalcule les agrégats.
+          </span>
+        </p>
+      </div>
 
       {confirming && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 text-brand flex items-center justify-center mb-4 mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm animate-in zoom-in-95 rounded-[28px] bg-white p-7 shadow-2xl duration-200">
+            <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand to-orange-600 text-white shadow-lg shadow-brand/25">
               <Target size={24} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">{confirming.title}</h3>
-            <p className="text-sm text-gray-500 font-normal text-center mb-6">{confirming.detail}</p>
+            <h3 className="mb-2 text-center text-base font-extrabold uppercase tracking-tight text-ink">
+              {confirming.title}
+            </h3>
+            <p className="mb-6 text-center text-sm font-medium leading-relaxed text-gray-500">{confirming.detail}</p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setConfirming(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
+                className="flex-1 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-gray-500 transition-all hover:bg-gray-50 active:scale-[.98]"
               >
                 Annuler
               </button>
               <button
                 type="button"
                 onClick={() => void confirming.run()}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-[#d55a20] transition-all"
+                className="flex-1 rounded-2xl bg-gradient-to-r from-brand to-orange-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-105 active:scale-[.98]"
               >
                 {confirming.label}
               </button>
@@ -708,13 +914,15 @@ export default function StoreBoostPanel({
       )}
 
       {confirmingUnboost && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm animate-in zoom-in-95 rounded-[28px] bg-white p-7 shadow-2xl duration-200">
+            <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-red-50 text-red-500 ring-1 ring-inset ring-red-100">
               <Undo2 size={24} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Débooster cette boutique ?</h3>
-            <p className="text-sm text-gray-500 font-normal text-center mb-6">
+            <h3 className="mb-2 text-center text-base font-extrabold uppercase tracking-tight text-ink">
+              Débooster cette boutique ?
+            </h3>
+            <p className="mb-6 text-center text-sm font-medium leading-relaxed text-gray-500">
               Toutes les commandes, avis et vues fabriqués par ce panneau seront supprimés, les échéanciers annulés et
               les moyennes recalculées. Les données réelles ne sont pas touchées.
             </p>
@@ -722,14 +930,14 @@ export default function StoreBoostPanel({
               <button
                 type="button"
                 onClick={() => setConfirmingUnboost(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-all"
+                className="flex-1 rounded-2xl border border-line bg-white py-3 text-sm font-bold text-gray-500 transition-all hover:bg-gray-50 active:scale-[.98]"
               >
                 Annuler
               </button>
               <button
                 type="button"
                 onClick={() => void handleUnboost()}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-all"
+                className="flex-1 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-red-500/25 transition-all hover:brightness-105 active:scale-[.98]"
               >
                 Débooster
               </button>
@@ -737,6 +945,6 @@ export default function StoreBoostPanel({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
