@@ -93,6 +93,7 @@ export default function StoreBoostPanel({
 
   const [viewsText, setViewsText] = useState('100');
   const [viewsSpread, setViewsSpread] = useState(false);
+  const [viewsPeriod, setViewsPeriod] = useState<Period>('30');
   const today = isoDay(new Date());
   const [viewsFrom, setViewsFrom] = useState(today);
   const [viewsTo, setViewsTo] = useState(isoDay(addDays(new Date(), 30)));
@@ -151,6 +152,21 @@ export default function StoreBoostPanel({
 
   const request = (title: string, detail: string, label: string, run: () => Promise<void>) =>
     setConfirming({ title, detail, label, run });
+
+  /**
+   * Période des vues : fenêtre de crédit ÉTALÉE à partir d'aujourd'hui
+   * (les vues sont un compteur cumulatif, on ne peut pas les « créer » dans le
+   * passé comme les commandes/avis). Une plage personnalisée reste libre.
+   */
+  const syncViewsPeriod = (p: Period) => {
+    setViewsPeriod(p);
+    setFeedback(null);
+    if (p !== 'custom') {
+      const start = new Date();
+      setViewsFrom(isoDay(start));
+      setViewsTo(isoDay(addDays(start, Number(p))));
+    }
+  };
 
   const handleViews = async (scope: 'store' | 'products') => {
     setBusy(scope === 'store' ? 'views-store' : 'views-products');
@@ -279,6 +295,11 @@ export default function StoreBoostPanel({
     </div>
   );
 
+  /**
+   * Sélecteur de période partagé.
+   * `past`  → « 7 derniers jours » (commandes / avis : dates dans le passé).
+   * `future`→ « Sur 7 jours » (vues : fenêtre de crédit étalée à partir d'aujourd'hui).
+   */
   const periodSelect = (
     id: string,
     value: Period,
@@ -286,7 +307,8 @@ export default function StoreBoostPanel({
     from: string,
     to: string,
     setFrom: (v: string) => void,
-    setTo: (v: string) => void
+    setTo: (v: string) => void,
+    variant: 'past' | 'future' = 'past'
   ) => (
     <div className="space-y-2">
       <div>
@@ -303,9 +325,9 @@ export default function StoreBoostPanel({
           className={inputClass}
           disabled={busy !== null}
         >
-          <option value="7">7 derniers jours</option>
-          <option value="30">30 derniers jours</option>
-          <option value="90">90 derniers jours</option>
+          <option value="7">{variant === 'future' ? 'Sur 7 jours' : '7 derniers jours'}</option>
+          <option value="30">{variant === 'future' ? 'Sur 30 jours' : '30 derniers jours'}</option>
+          <option value="90">{variant === 'future' ? 'Sur 90 jours' : '90 derniers jours'}</option>
           <option value="custom">Plage personnalisée…</option>
         </select>
       </div>
@@ -421,6 +443,8 @@ export default function StoreBoostPanel({
             />
           </div>
 
+          {targetSelect('boost-views-target')}
+
           <div>
             <span className={labelClass}>Créditation</span>
             <div className="grid grid-cols-2 gap-2">
@@ -428,7 +452,7 @@ export default function StoreBoostPanel({
                 <button
                   key={String(mode)}
                   type="button"
-                  onClick={() => { setViewsSpread(mode); setFeedback(null); }}
+                  onClick={() => { setViewsSpread(mode); if (mode) syncViewsPeriod(viewsPeriod); else setFeedback(null); }}
                   disabled={busy !== null}
                   className={`px-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
                     viewsSpread === mode
@@ -442,34 +466,8 @@ export default function StoreBoostPanel({
             </div>
           </div>
 
-          {viewsSpread && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className={labelClass} htmlFor="boost-views-from">Du</label>
-                <input
-                  id="boost-views-from"
-                  type="date"
-                  value={viewsFrom}
-                  max={viewsTo || undefined}
-                  onChange={(e) => { setViewsFrom(e.target.value); setFeedback(null); }}
-                  className={inputClass}
-                  disabled={busy !== null}
-                />
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="boost-views-to">Au</label>
-                <input
-                  id="boost-views-to"
-                  type="date"
-                  value={viewsTo}
-                  min={viewsFrom || undefined}
-                  onChange={(e) => { setViewsTo(e.target.value); setFeedback(null); }}
-                  className={inputClass}
-                  disabled={busy !== null}
-                />
-              </div>
-            </div>
-          )}
+          {viewsSpread &&
+            periodSelect('boost-views-period', viewsPeriod, syncViewsPeriod, viewsFrom, viewsTo, setViewsFrom, setViewsTo, 'future')}
 
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -482,9 +480,9 @@ export default function StoreBoostPanel({
                   async () => { setConfirming(null); await handleViews('store'); }
                 )
               }
-              disabled={busy !== null}
+              disabled={busy !== null || !!target}
               className={primaryButtonClass}
-              title="Ajouter des vues à la boutique"
+              title={target ? 'Un produit ciblé est sélectionné : passez en « Tous les produits » pour booster la boutique' : 'Ajouter des vues à la boutique'}
             >
               {busy === 'views-store' ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
               Boutique
