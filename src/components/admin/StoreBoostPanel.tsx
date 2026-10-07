@@ -81,6 +81,55 @@ const RATING_PROFILE_LABELS: Record<RatingProfile, string> = {
   realistic: 'Réaliste (notes mélangées)',
 };
 
+/**
+ * Contrôle client du JSON d'avis personnalisés (le serveur refait la même
+ * validation, plus stricte). Renvoie le nombre d'avis détectés ou l'erreur.
+ */
+const previewCustomJson = (raw: string): { count: number; error: string | null } => {
+  const text = raw.trim();
+  if (!text) return { count: 0, error: null };
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { count: 0, error: 'JSON invalide : vérifiez la syntaxe (guillemets, virgules).' };
+  }
+  if (!Array.isArray(data)) return { count: 0, error: 'Le JSON doit être un tableau : [ { … }, { … } ].' };
+  if (data.length === 0) return { count: 0, error: 'Le tableau d’avis est vide.' };
+  if (data.length > 500) return { count: 0, error: `${data.length} avis : maximum 500 par envoi.` };
+
+  for (let i = 0; i < data.length; i += 1) {
+    const n = i + 1;
+    const item = data[i] as Record<string, unknown> | null;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      return { count: 0, error: `Avis n°${n} : objet { … } attendu.` };
+    }
+    const comment = typeof item.comment === 'string' ? item.comment.trim() : '';
+    if (!comment) return { count: 0, error: `Avis n°${n} : champ "comment" obligatoire.` };
+    if (comment.length > 2000) return { count: 0, error: `Avis n°${n} : commentaire trop long (2000 max).` };
+    if (item.rating !== undefined && item.rating !== null) {
+      const rating = Number(item.rating);
+      if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+        return { count: 0, error: `Avis n°${n} : "rating" doit être un nombre entre 1 et 5.` };
+      }
+    }
+    const date = item.date ?? item.createdAt;
+    if (typeof date === 'string' && date.trim() && Number.isNaN(Date.parse(date))) {
+      return { count: 0, error: `Avis n°${n} : "date" invalide (ISO attendu, ex. 2025-08-12).` };
+    }
+    const avatar = item.avatar ?? item.authorAvatar;
+    if (typeof avatar === 'string' && avatar.trim() && !/^https?:\/\//i.test(avatar.trim())) {
+      return { count: 0, error: `Avis n°${n} : "avatar" doit être une URL http(s).` };
+    }
+  }
+  return { count: data.length, error: null };
+};
+
+const JSON_EXAMPLE = `[
+  { "rating": 5, "comment": "Produit impeccable, livraison en 2 jours.", "author": "Awa D.", "reply": "Merci pour votre retour !" },
+  { "rating": 4, "comment": "Très bon rapport qualité/prix, je recommande.", "author": "Moussa B.", "date": "2025-09-12" }
+]`;
+
 const periodDays = (period: Period, from: string, to: string) => {
   if (period !== 'custom') return Number(period);
   const start = Date.parse(from);
@@ -122,6 +171,8 @@ export default function StoreBoostPanel({
   const [reviewFrom, setReviewFrom] = useState(isoDay(addDays(new Date(), -30)));
   const [reviewTo, setReviewTo] = useState(today);
   const [ratingProfile, setRatingProfile] = useState<RatingProfile>('mixed');
+  const [reviewMode, setReviewMode] = useState<'auto' | 'custom'>('auto');
+  const [customJson, setCustomJson] = useState('');
 
   const [target, setTarget] = useState<string>(''); // '' = tous les produits
   const [busy, setBusy] = useState<Busy>(null);
@@ -132,6 +183,10 @@ export default function StoreBoostPanel({
   const views = clampViews(viewsText);
   const orderCount = clampCount(orderText);
   const reviewCount = clampCount(reviewText);
+  const isCustomReview = reviewMode === 'custom';
+  const jsonPreview = isCustomReview ? previewCustomJson(customJson) : { count: 0, error: null as string | null };
+  /** En mode JSON : tableau non vide, valide, et produit ciblé obligatoire. */
+  const customReady = isCustomReview && jsonPreview.count > 0 && !jsonPreview.error && !!target;
   const noProduct = productCount === 0;
   const disabledReason = 'Aucun produit vendable dans cette boutique';
   const productId = target || null;
@@ -241,18 +296,26 @@ export default function StoreBoostPanel({
     setFeedback(null);
     try {
       const days = periodDays(reviewPeriod, reviewFrom, reviewTo);
-      const res = await boostStoreReviewsAction(storeId, reviewCount, days, {
-        productId,
-        range: rangeOf(reviewPeriod, reviewFrom, reviewTo),
-        ratingProfile,
-      });
+      const res = await boostStoreReviewsAction(
+        storeId,
+        isCustomReview ? jsonPreview.count : reviewCount,
+        days,
+        {
+          productId,
+          range: rangeOf(reviewPeriod, reviewFrom, reviewTo),
+          ratingProfile,
+          ...(isCustomReview ? { customJson } : {}),
+        }
+      );
       if (!res.success) {
         setFeedback({ type: 'err', text: res.error || 'Erreur lors de la génération des avis.' });
         return;
       }
       setFeedback({
         type: 'ok',
-        text: `${res.created} avis générés sur ${days} jours (moyenne ${res.average}/5 sur les avis créés).`,
+        text: isCustomReview
+          ? `${res.created} avis personnalisés importés sur ${days} jours (moyenne ${res.average}/5).`
+          : `${res.created} avis générés sur ${days} jours (moyenne ${res.average}/5 sur les avis créés).`,
       });
       await refresh();
     } catch {
@@ -296,8 +359,9 @@ export default function StoreBoostPanel({
     </div>
   );
 
-  const targetSelect = (id: string) =>
-    field(
+  const targetSelect = (id: string, opts?: { required?: boolean }) => {
+    const missing = !!opts?.required && !target;
+    return field(
       'Produit ciblé',
       id,
       <select
@@ -317,10 +381,15 @@ export default function StoreBoostPanel({
           </option>
         ))}
       </select>,
-      <p className={hintClass}>
-        {target ? 'Ciblage : un seul produit.' : 'Ciblage : l’ensemble du catalogue de la boutique.'}
+      <p className={`${hintClass} ${missing ? 'text-amber-600' : ''}`}>
+        {missing
+          ? 'Produit obligatoire : un avis personnalisé porte sur un produit précis.'
+          : target
+            ? 'Ciblage : un seul produit.'
+            : 'Ciblage : l’ensemble du catalogue de la boutique.'}
       </p>
     );
+  };
 
   /**
    * Champ nombre + raccourcis de valeur (presets) et affichage de la borne.
@@ -739,37 +808,121 @@ export default function StoreBoostPanel({
           </div>
 
           <div className="space-y-3">
-            {numberField({
-              id: 'boost-reviews',
-              label: 'Nombre d’avis',
-              unit: 'avis',
-              value: reviewText,
-              onChange: setReviewText,
-              clamp: clampCount,
-              max: 500,
-              presets: [10, 50, 100, 500],
-            })}
-
             {field(
-              'Profil de notes',
-              'boost-rating',
-              <select
-                id="boost-rating"
-                value={ratingProfile}
-                onChange={(e) => {
-                  setRatingProfile(e.target.value as RatingProfile);
-                  setFeedback(null);
-                }}
-                className={inputClass}
-                disabled={busy !== null}
-              >
-                <option value="top">{RATING_PROFILE_LABELS.top}</option>
-                <option value="mixed">{RATING_PROFILE_LABELS.mixed}</option>
-                <option value="realistic">{RATING_PROFILE_LABELS.realistic}</option>
-              </select>
+              'Source des avis',
+              'boost-review-mode',
+              <div className="grid grid-cols-2 gap-0.5 rounded-lg border border-line bg-gray-50 p-0.5">
+                {([
+                  ['auto', 'Générés'],
+                  ['custom', 'JSON perso'],
+                ] as const).map(([value, label]) => {
+                  const active = reviewMode === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={busy !== null}
+                      aria-pressed={active}
+                      onClick={() => {
+                        setReviewMode(value);
+                        setFeedback(null);
+                      }}
+                      className={`rounded-md px-1 py-1.5 text-[10px] font-extrabold uppercase tracking-wider transition-all ${
+                        active ? 'bg-white text-ink shadow-sm ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>,
+              <p className={hintClass}>
+                {isCustomReview
+                  ? 'Vos propres avis collés en JSON, appliqués au produit ciblé.'
+                  : 'Avis fabriqués : auteur, commentaire et note tirés au sort.'}
+              </p>
             )}
 
-            {targetSelect('boost-review-target')}
+            {isCustomReview ? (
+              <>
+                {field(
+                  'Avis JSON',
+                  'boost-reviews-json',
+                  <textarea
+                    id="boost-reviews-json"
+                    rows={7}
+                    value={customJson}
+                    spellCheck={false}
+                    placeholder={JSON_EXAMPLE}
+                    onChange={(e) => {
+                      setCustomJson(e.target.value);
+                      setFeedback(null);
+                    }}
+                    disabled={busy !== null}
+                    className={`${inputClass} min-h-[7.5rem] resize-y font-mono text-[10px] leading-relaxed`}
+                  />,
+                  jsonPreview.error ? (
+                    <p className="flex items-start gap-1.5 text-[9px] font-semibold text-red-500">
+                      <AlertCircle size={11} className="mt-px shrink-0" /> {jsonPreview.error}
+                    </p>
+                  ) : jsonPreview.count > 0 ? (
+                    <p className="flex items-center gap-1.5 text-[9px] font-semibold text-emerald-600">
+                      <CheckCircle2 size={11} className="shrink-0" /> {jsonPreview.count} avis détecté(s) — prêt à
+                      importer.
+                    </p>
+                  ) : (
+                    <p className={hintClass}>
+                      Champs possibles : rating (1-5, défaut 5), comment (obligatoire), author, avatar, reply, date.
+                    </p>
+                  )
+                )}
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => {
+                    setCustomJson(JSON_EXAMPLE);
+                    setFeedback(null);
+                  }}
+                  className={ghostChipClass}
+                >
+                  Insérer un exemple
+                </button>
+              </>
+            ) : (
+              <>
+                {numberField({
+                  id: 'boost-reviews',
+                  label: 'Nombre d’avis',
+                  unit: 'avis',
+                  value: reviewText,
+                  onChange: setReviewText,
+                  clamp: clampCount,
+                  max: 500,
+                  presets: [10, 50, 100, 500],
+                })}
+
+                {field(
+                  'Profil de notes',
+                  'boost-rating',
+                  <select
+                    id="boost-rating"
+                    value={ratingProfile}
+                    onChange={(e) => {
+                      setRatingProfile(e.target.value as RatingProfile);
+                      setFeedback(null);
+                    }}
+                    className={inputClass}
+                    disabled={busy !== null}
+                  >
+                    <option value="top">{RATING_PROFILE_LABELS.top}</option>
+                    <option value="mixed">{RATING_PROFILE_LABELS.mixed}</option>
+                    <option value="realistic">{RATING_PROFILE_LABELS.realistic}</option>
+                  </select>
+                )}
+              </>
+            )}
+
+            {targetSelect('boost-review-target', { required: isCustomReview })}
 
             {periodControl('boost-review-period', reviewPeriod, (v) => setReviewPeriod(v), reviewFrom, reviewTo, setReviewFrom, setReviewTo)}
           </div>
@@ -779,18 +932,30 @@ export default function StoreBoostPanel({
               type="button"
               onClick={() =>
                 request(
-                  'Générer des avis',
-                  `${reviewCount} avis ${productId ? 'pour le produit ciblé' : ''} étalé(s) sur ${periodDays(reviewPeriod, reviewFrom, reviewTo)} jours, profil « ${RATING_PROFILE_LABELS[ratingProfile]} ». ~40 % recevront une réponse du vendeur.`,
-                  'Générer',
+                  isCustomReview ? 'Importer des avis JSON' : 'Générer des avis',
+                  isCustomReview
+                    ? `${jsonPreview.count} avis personnalisés appliqués au produit ciblé, étalé(s) sur ${periodDays(reviewPeriod, reviewFrom, reviewTo)} jours — notes, auteurs et dates de votre JSON sont conservés.`
+                    : `${reviewCount} avis ${productId ? 'pour le produit ciblé' : ''} étalé(s) sur ${periodDays(reviewPeriod, reviewFrom, reviewTo)} jours, profil « ${RATING_PROFILE_LABELS[ratingProfile]} ». ~40 % recevront une réponse du vendeur.`,
+                  isCustomReview ? 'Importer' : 'Générer',
                   async () => { setConfirming(null); await handleReviews(); }
                 )
               }
-              disabled={busy !== null || noProduct}
+              disabled={busy !== null || noProduct || (isCustomReview && !customReady)}
               className={`${primaryButtonClass} w-full py-2.5`}
-              title={noProduct ? disabledReason : 'Générer des avis produits'}
+              title={
+                noProduct
+                  ? disabledReason
+                  : isCustomReview && !customReady
+                    ? !target
+                      ? 'Sélectionnez le produit ciblé'
+                      : jsonPreview.error || jsonPreview.count === 0
+                        ? 'Collez un tableau JSON d’avis valide'
+                        : 'Avis JSON non valide'
+                    : 'Générer des avis produits'
+              }
             >
               {busy === 'reviews' ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
-              Générer {reviewCount} avis
+              {isCustomReview ? `Importer ${jsonPreview.count} avis` : `Générer ${reviewCount} avis`}
             </button>
           </div>
 
@@ -875,9 +1040,10 @@ export default function StoreBoostPanel({
             Les commandes générées sont créées comme « Livrée » (client de passage), étalées aléatoirement sur la
             période choisie, avec les prix réels des produits — jamais avant la création de la boutique ou du produit.
             Elles apparaissent dans la liste des commandes du vendeur, sans jamais décrémenter son stock, et déclenchent
-            une notification récapitulative unique. Les avis générés sont attribués à des clients de passage et
-            recalculent la moyenne des produits. Un quota par 24 h limite les applications ; les vues étalées sont
-            créditées progressivement au fil des visites de l&apos;admin ; « Débooster » retire tout ce
+            une notification WhatsApp récapitulative — jamais d&apos;email. Les avis générés sont attribués à des clients
+            de passage et recalculent la moyenne des produits ; en mode « JSON perso », ce sont vos propres avis
+            (note, auteur, réponse, date) appliqués au produit ciblé. Un quota par 24 h limite les applications ; les
+            vues étalées sont créditées progressivement au fil des visites de l&apos;admin ; « Débooster » retire tout ce
             qui a été fabriqué et recalcule les agrégats.
           </span>
         </p>

@@ -1176,6 +1176,8 @@ export async function boostStoreOrdersAction(
     }
 
     // Une seule notification récapitulative plutôt qu'une par commande.
+    // Jamais d'email : un boost fabrique des données, il ne doit pas déclencher
+    // d'envoi de mail au vendeur (WhatsApp uniquement, s'il est configuré).
     const itemQty = itemValues.reduce((sum, item) => sum + (item.quantity || 0), 0);
     try {
       const storeInfo = await getStorePhone(storeId);
@@ -1184,7 +1186,6 @@ export async function boostStoreOrdersAction(
         await notify({
           userId: storeInfo.ownerId,
           phone: storeInfo.phone,
-          email: storeInfo.email || '',
           eventType: 'VENTE_POS',
           title: 'Ventes enregistrées',
           body: `${inserted.length} vente(s) pour ${totalStr} FCFA.`,
@@ -1429,6 +1430,99 @@ function pickBoostedRating(profile: BoostRatingProfile = 'mixed'): number {
   return 1;
 }
 
+/** Un avis fourni par l'admin en JSON personnalisé, déjà validé et nettoyé. */
+type CustomBoostReview = {
+  rating: number;
+  comment: string;
+  author: string | null;
+  avatar: string | null;
+  reply: string | null;
+  date: Date | null;
+};
+
+/**
+ * Valide le JSON d'avis personnalisés saisi dans le panneau.
+ *
+ * Format attendu : un tableau d'objets —
+ * `[{ "rating": 5, "comment": "…", "author": "…", "avatar": "https://…",
+ *     "reply": "…", "date": "2025-08-12" }, …]`
+ * Seul `comment` est obligatoire ; `rating` vaut 5 s'il est omis. Les alias
+ * `authorName` / `authorAvatar` / `sellerReply` / `createdAt` sont acceptés.
+ */
+function parseCustomReviews(
+  raw: string
+): { ok: true; reviews: CustomBoostReview[] } | { ok: false; error: string } {
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return { ok: false, error: 'JSON invalide : vérifiez la syntaxe (guillemets, virgules).' };
+  }
+  if (!Array.isArray(data)) {
+    return { ok: false, error: 'Le JSON doit être un tableau d\'avis : [{ … }, { … }].' };
+  }
+  if (data.length === 0) return { ok: false, error: 'Le tableau d\'avis est vide.' };
+  if (data.length > 500) return { ok: false, error: `${data.length} avis fournis : 500 maximum par envoi.` };
+
+  const str = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+  const reviews: CustomBoostReview[] = [];
+
+  for (let i = 0; i < data.length; i += 1) {
+    const n = i + 1;
+    const item = data[i] as Record<string, unknown> | null;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      return { ok: false, error: `Avis n°${n} : ce doit être un objet { … }.` };
+    }
+
+    const comment = str(item.comment);
+    if (!comment) return { ok: false, error: `Avis n°${n} : le champ "comment" est obligatoire.` };
+    if (comment.length > 2000) {
+      return { ok: false, error: `Avis n°${n} : commentaire trop long (2000 caractères max).` };
+    }
+
+    let rating = 5;
+    if (item.rating !== undefined && item.rating !== null) {
+      const parsed = Number(item.rating);
+      if (!Number.isFinite(parsed) || parsed < 1 || parsed > 5) {
+        return { ok: false, error: `Avis n°${n} : "rating" doit être un nombre entre 1 et 5.` };
+      }
+      rating = Math.round(parsed);
+    }
+
+    const author = str(item.author) ?? str(item.authorName);
+    if (author && author.length > 80) {
+      return { ok: false, error: `Avis n°${n} : nom d'auteur trop long (80 caractères max).` };
+    }
+
+    const avatar = str(item.avatar) ?? str(item.authorAvatar);
+    if (avatar && avatar.length > 500) {
+      return { ok: false, error: `Avis n°${n} : "avatar" trop long (500 caractères max).` };
+    }
+    if (avatar && !/^https?:\/\//i.test(avatar)) {
+      return { ok: false, error: `Avis n°${n} : "avatar" doit être une URL http(s).` };
+    }
+
+    const reply = str(item.reply) ?? str(item.sellerReply);
+    if (reply && reply.length > 500) {
+      return { ok: false, error: `Avis n°${n} : réponse du vendeur trop longue (500 caractères max).` };
+    }
+
+    let date: Date | null = null;
+    const rawDate = str(item.date) ?? str(item.createdAt);
+    if (rawDate) {
+      const parsedDate = new Date(rawDate);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return { ok: false, error: `Avis n°${n} : "date" invalide (ISO attendu, ex. 2025-08-12).` };
+      }
+      date = parsedDate;
+    }
+
+    reviews.push({ rating, comment, author, avatar, reply, date });
+  }
+
+  return { ok: true, reviews };
+}
+
 /**
  * Boost administrateur des avis : fabrique de vrais avis (`product_reviews`)
  * attribués à des produits de la boutique, notés majoritairement 4-5, étalés
@@ -1436,18 +1530,41 @@ function pickBoostedRating(profile: BoostRatingProfile = 'mixed'): number {
  * `product_stats.review_count` / `average_rating` des produits touchés.
  * Les auteurs (nom + photo) sont tirés du pool `review_authors` peuplé par
  * `scripts/seed-review-authors.mjs`.
+ *
+ * Variante `options.customJson` : avis fournis par l'admin (tableau JSON),
+ * réservés à un produit ciblé, avec notes / auteur / réponse / date propres.
  */
 export async function boostStoreReviewsAction(
   storeId: string,
   count: number,
   spreadDays: number,
-  options?: { productId?: string | null; range?: BoostRange; ratingProfile?: BoostRatingProfile }
+  options?: {
+    productId?: string | null;
+    range?: BoostRange;
+    ratingProfile?: BoostRatingProfile;
+    /** Avis JSON fournis par l'admin : remplace la génération automatique. */
+    customJson?: string;
+  }
 ): Promise<{ success: boolean; error?: string; created?: number; average?: number; quotaLeft?: number }> {
   const session = await getBoostSession();
   if (!session) return { success: false, error: 'Session expirée.' };
   try {
-    const nb = Math.min(500, Math.max(1, Math.floor(Number(count) || 0)));
     const profile: BoostRatingProfile = options?.ratingProfile ?? 'mixed';
+
+    // ── Mode personnalisé : tableau d'avis saisi par l'admin ─────────────
+    let custom: CustomBoostReview[] | null = null;
+    if (options?.customJson?.trim()) {
+      const parsed = parseCustomReviews(options.customJson);
+      if (!parsed.ok) return { success: false, error: parsed.error };
+      if (!options.productId) {
+        return { success: false, error: 'Les avis personnalisés doivent cibler un produit précis.' };
+      }
+      custom = parsed.reviews;
+    }
+
+    const nb = custom
+      ? custom.length
+      : Math.min(500, Math.max(1, Math.floor(Number(count) || 0)));
 
     const quota = await boostQuotaLeft(storeId, 'reviews');
     if (nb > quota) {
@@ -1470,15 +1587,20 @@ export async function boostStoreReviewsAction(
       return { success: false, error: options?.productId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
     }
 
-    const authors = await db.select().from(reviewAuthors);
-    if (authors.length === 0) return { success: false, error: 'Pool d\'auteurs vide : lancez scripts/seed-review-authors.mjs.' };
+    // Le pool d'auteurs n'est nécessaire que pour les avis sans nom fourni.
+    const needsAuthors = !custom || custom.some((r) => !r.author);
+    const authors = needsAuthors ? await db.select().from(reviewAuthors) : [];
+    if (needsAuthors && authors.length === 0) return { success: false, error: 'Pool d\'auteurs vide : lancez scripts/seed-review-authors.mjs.' };
 
     // Anti-doublons : lire les avis existants de la boutique pour ne JAMAIS
     // réutiliser un nom d'auteur ni un texte de commentaire déjà présent.
-    const existingReviews = await db
-      .select({ authorName: productReviews.authorName, comment: productReviews.comment })
-      .from(productReviews)
-      .where(eq(productReviews.storeId, storeId));
+    // En mode personnalisé, l'admin choisit lui-même les textes : pas de filtre.
+    const existingReviews = custom
+      ? []
+      : await db
+          .select({ authorName: productReviews.authorName, comment: productReviews.comment })
+          .from(productReviews)
+          .where(eq(productReviews.storeId, storeId));
 
     const usedAuthorNames = new Set(existingReviews.map((r) => r.authorName?.trim().toLowerCase()).filter(Boolean) as string[]);
     const usedComments = new Set(existingReviews.map((r) => r.comment?.trim().toLowerCase()).filter(Boolean) as string[]);
@@ -1506,31 +1628,53 @@ export async function boostStoreReviewsAction(
     const values: Array<typeof productReviews.$inferInsert> = [];
 
     for (let i = 0; i < nb; i += 1) {
+      const item = custom ? custom[i] : null;
       const product = catalog[Math.floor(Math.random() * catalog.length)];
 
-      const authorIdx = i % availableAuthors.length;
-      const author = availableAuthors[authorIdx];
-      usedAuthorNames.add(author.fullName.trim().toLowerCase());
+      let authorName: string;
+      let authorAvatar: string | null;
+      if (item?.author) {
+        authorName = item.author;
+        authorAvatar = item.avatar;
+      } else {
+        const author = availableAuthors[i % availableAuthors.length];
+        authorName = author.fullName;
+        authorAvatar = author.avatarUrl;
+        usedAuthorNames.add(author.fullName.trim().toLowerCase());
+      }
 
-      const commentIdx = i % availableComments.length;
-      const comment = availableComments[commentIdx];
-      usedComments.add(comment.trim().toLowerCase());
+      let comment: string;
+      if (item) {
+        comment = item.comment;
+      } else {
+        const generated = availableComments[i % availableComments.length];
+        comment = generated;
+        usedComments.add(generated.trim().toLowerCase());
+      }
 
       const productCreatedAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
       const earliest = Math.max(storeCreatedAt, productCreatedAt);
-      const when = new Date(randomDateBetween(start, end, earliest));
+      const when = new Date(
+        item?.date
+          ? Math.min(Date.now(), Math.max(earliest, item.date.getTime()))
+          : randomDateBetween(start, end, earliest)
+      );
 
       values.push({
         storeId,
         productId: product.id,
         userId: null,
-        authorName: author.fullName,
-        authorAvatar: author.avatarUrl,
-        rating: pickBoostedRating(profile),
+        authorName,
+        authorAvatar,
+        rating: item ? item.rating : pickBoostedRating(profile),
         comment,
-        // ~40 % des avis reçoivent une réponse du vendeur.
-        sellerReply:
-          Math.random() < 0.4 ? allReplies[i % allReplies.length] : null,
+        // Mode auto : ~40 % des avis reçoivent une réponse du vendeur.
+        // Mode perso : seule la réponse fournie dans le JSON est retenue.
+        sellerReply: item
+          ? item.reply
+          : Math.random() < 0.4
+            ? allReplies[i % allReplies.length]
+            : null,
         createdAt: when,
         boosted: true,
       });
@@ -1547,7 +1691,13 @@ export async function boostStoreReviewsAction(
       storeId,
       'reviews',
       values.length,
-      { profile, days: spreadDays, productId: options?.productId ?? null, range: options?.range ?? null },
+      {
+        profile,
+        days: spreadDays,
+        productId: options?.productId ?? null,
+        range: options?.range ?? null,
+        mode: custom ? 'custom' : 'auto',
+      },
       session.username
     );
 
