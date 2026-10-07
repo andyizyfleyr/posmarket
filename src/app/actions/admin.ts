@@ -670,7 +670,7 @@ export async function sendAllTestEmailsAction(email: string): Promise<{ success:
 // ---------------------------------------------------------------------------
 
 /** Quota journalier (24 h glissantes) par type d'action, par boutique. */
-const BOOST_DAILY_QUOTA = { views: 1_000_000, orders: 200, reviews: 200 } as const;
+const BOOST_DAILY_QUOTA = { views: 10_000_000, orders: 2_000, reviews: 2_000 } as const;
 type BoostQuotaAction = keyof typeof BOOST_DAILY_QUOTA;
 type BoostAction = BoostQuotaAction | 'unboost';
 
@@ -930,7 +930,7 @@ export async function boostStoreViewsAction(
   const session = await getBoostSession();
   if (!session) return { success: false, error: 'Session expirée.' };
   try {
-    const value = Math.min(100000, Math.max(1, Math.floor(Number(amount) || 0)));
+    const value = Math.min(1_000_000, Math.max(1, Math.floor(Number(amount) || 0)));
 
     const [store] = await db
       .select({ id: stores.id })
@@ -1037,7 +1037,7 @@ export async function boostStoreOrdersAction(
   const session = await getBoostSession();
   if (!session) return { success: false, error: 'Session expirée.' };
   try {
-    const nb = Math.min(50, Math.max(1, Math.floor(Number(count) || 0)));
+    const nb = Math.min(500, Math.max(1, Math.floor(Number(count) || 0)));
 
     const quota = await boostQuotaLeft(storeId, 'orders');
     if (nb > quota) {
@@ -1109,21 +1109,32 @@ export async function boostStoreOrdersAction(
       revenue += subtotal;
     }
 
-    // Un seul « client de passage » par lot : les commandes boostées doivent
-    // ressembler à de vraies transactions (champ client renseigné) sans
-    // inonder la fiche clients du vendeur.
-    const [customer] = await db
+    // Un « client de passage » par tranche de 20 commandes : les commandes
+    // boostées doivent ressembler à de vraies transactions (champ client
+    // renseigné) sans inonder la fiche clients du vendeur, et sans qu'un seul
+    // faux client cumule des centaines d'achats.
+    const CHUNK_SIZE = 20;
+    const customerRows = await db
       .insert(customers)
-      .values({
-        storeId,
-        name: BOOST_CUSTOMER_NAMES[Math.floor(Math.random() * BOOST_CUSTOMER_NAMES.length)],
-        phone: fakeCustomerPhone(),
-        totalSpent: '0',
-        ordersCount: 0,
-      })
+      .values(
+        Array.from({ length: Math.max(1, Math.ceil(orderValues.length / CHUNK_SIZE)) }, () => ({
+          storeId,
+          name: BOOST_CUSTOMER_NAMES[Math.floor(Math.random() * BOOST_CUSTOMER_NAMES.length)],
+          phone: fakeCustomerPhone(),
+          totalSpent: '0',
+          ordersCount: 0,
+        }))
+      )
       .returning();
 
-    const inserted = await db.insert(orders).values(orderValues.map((o) => ({ ...o, customerId: customer.id }))).returning();
+    const customerIds = orderValues.map(
+      (_, i) => customerRows[Math.min(customerRows.length - 1, Math.floor(i / CHUNK_SIZE))].id
+    );
+
+    const inserted = await db
+      .insert(orders)
+      .values(orderValues.map((o, i) => ({ ...o, customerId: customerIds[i] })))
+      .returning();
 
     const itemValues: Array<typeof orderItems.$inferInsert> = [];
     for (let i = 0; i < inserted.length; i += 1) {
@@ -1148,14 +1159,24 @@ export async function boostStoreOrdersAction(
       [...sales].map(([productId, quantity]) => ({ productId, quantity }))
     );
 
-    // Fiche client agrégée (cohérent avec `createOrderAction`).
-    const itemQty = itemValues.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    await db
-      .update(customers)
-      .set({ totalSpent: revenue.toFixed(2), ordersCount: inserted.length })
-      .where(eq(customers.id, customer.id));
+    // Fiches client agrégés (cohérent avec `createOrderAction`) : un total par
+    // client de passage plutôt que pour l'ensemble du lot.
+    const totalsByCustomer = new Map<string, { count: number; spent: number }>();
+    customerIds.forEach((customerId, i) => {
+      const current = totalsByCustomer.get(customerId) || { count: 0, spent: 0 };
+      current.count += 1;
+      current.spent += Number(orderValues[i].total) || 0;
+      totalsByCustomer.set(customerId, current);
+    });
+    for (const [customerId, totals] of totalsByCustomer) {
+      await db
+        .update(customers)
+        .set({ totalSpent: totals.spent.toFixed(2), ordersCount: totals.count })
+        .where(eq(customers.id, customerId));
+    }
 
     // Une seule notification récapitulative plutôt qu'une par commande.
+    const itemQty = itemValues.reduce((sum, item) => sum + (item.quantity || 0), 0);
     try {
       const storeInfo = await getStorePhone(storeId);
       if (storeInfo?.ownerId) {
@@ -1293,6 +1314,89 @@ const BOOST_SELLER_REPLIES = [
   'Merci pour votre fidélité, c\'est très apprécié.',
 ];
 
+/**
+ * Pools combinatoires : les listes manuelles ci-dessus ne couvrent qu'une
+ * centaine de textes, alors que le panneau autorise désormais des centaines
+ * d'avis et de réponses d'un coup (jusqu'à 500). On compose des phrases à
+ * partir de trois morceaux pour rester crédible au-delà de cette centaine.
+ */
+const COMMENT_OPENERS = [
+  'Très satisfait de cet achat.',
+  'Excellent rapport qualité/prix.',
+  'Le produit est conforme à la description.',
+  'Rien à signaler sur cette commande.',
+  'Bonne surprise au déballage.',
+  'Je suis pleinement satisfait.',
+  'Achat réussi, je n\'hésiterai pas à revenir.',
+  'La qualité est au rendez-vous.',
+  'Commande passée sans accroc.',
+  'Rien à redire de cette expérience.',
+  'Le produit tient toutes ses promesses.',
+  'Boutique que je recommande.',
+];
+
+const COMMENT_MIDDLES = [
+  'Ma commande est arrivée dans les délais',
+  'L\'emballage était impeccable',
+  'Le vendeur a été très réactif',
+  'Le colis est arrivé en parfait état',
+  'La finition est soignée et le matériau de qualité',
+  'Le rapport qualité/prix est vraiment imbattable',
+  'Le suivi de commande était clair du début à la fin',
+  'Conforme aux photos affichées sur la fiche',
+  'La livraison a été plus rapide que prévu',
+  'Le service client a répondu en quelques minutes',
+  'L\'usage quotidien ne révèle aucun défaut',
+  'La taille et la couleur correspondent exactement à la commande',
+  'Le prix est très juste pour ce niveau de qualité',
+  'Aucun souci de montage ni d\'installation',
+];
+
+const COMMENT_ENDINGS = [
+  ', je recommande sans réserve.',
+  ', je reviendrai commander.',
+  ', ça fait plaisir d\'acheter ici.',
+  ', merci au vendeur.',
+  ', à refaire les yeux fermés.',
+  ', je suis ravi de mon achat.',
+  ', parfait du début à la fin.',
+  ', rien à ajouter.',
+  ', je partage mon expérience autour de moi.',
+  ', sans aucun regret.',
+];
+
+/** 12 × 14 × 10 = 1 680 variantes de commentaires uniques. */
+const BOOST_REVIEW_COMMENTS_COMPOSED: string[] = COMMENT_OPENERS.flatMap((a) =>
+  COMMENT_MIDDLES.flatMap((b) => COMMENT_ENDINGS.map((c) => `${a} ${b}${c}`))
+);
+
+const REPLY_OPENERS = [
+  'Merci pour votre retour.',
+  'Merci beaucoup pour votre confiance.',
+  'Merci d\'avoir pris le temps d\'écrire.',
+  'Merci pour cette note.',
+  'Merci de nous avoir choisis.',
+  'Merci pour votre fidélité.',
+  'Un grand merci à vous.',
+  'Merci pour votre encouragement.',
+];
+
+const REPLY_CLOSERS = [
+  ' Ravi que le produit vous plaise !',
+  ' À bientôt chez nous.',
+  ' Toute l\'équipe vous remercie.',
+  ' N\'hésitez pas à revenir si vous avez une question.',
+  ' On reste à votre disposition.',
+  ' Votre satisfaction est notre priorité.',
+  ' On note votre retour pour nous améliorer.',
+  ' À très vite pour la prochaine commande.',
+];
+
+/** 8 × 8 = 64 variantes de réponses du vendeur. */
+const BOOST_SELLER_REPLIES_COMPOSED: string[] = REPLY_OPENERS.flatMap((a) =>
+  REPLY_CLOSERS.map((b) => `${a}${b}`)
+);
+
 /** Profils de notes proposés dans le panneau v2. */
 export type BoostRatingProfile = 'top' | 'mixed' | 'realistic';
 
@@ -1342,7 +1446,7 @@ export async function boostStoreReviewsAction(
   const session = await getBoostSession();
   if (!session) return { success: false, error: 'Session expirée.' };
   try {
-    const nb = Math.min(50, Math.max(1, Math.floor(Number(count) || 0)));
+    const nb = Math.min(500, Math.max(1, Math.floor(Number(count) || 0)));
     const profile: BoostRatingProfile = options?.ratingProfile ?? 'mixed';
 
     const quota = await boostQuotaLeft(storeId, 'reviews');
@@ -1379,7 +1483,14 @@ export async function boostStoreReviewsAction(
     const usedAuthorNames = new Set(existingReviews.map((r) => r.authorName?.trim().toLowerCase()).filter(Boolean) as string[]);
     const usedComments = new Set(existingReviews.map((r) => r.comment?.trim().toLowerCase()).filter(Boolean) as string[]);
 
-    const allComments = [...BOOST_REVIEW_COMMENTS, ...BOOST_REVIEW_COMMENTS_EXTRA];
+    const allComments = [
+      ...BOOST_REVIEW_COMMENTS,
+      ...BOOST_REVIEW_COMMENTS_EXTRA,
+      ...BOOST_REVIEW_COMMENTS_COMPOSED,
+    ];
+    const allReplies = [...BOOST_SELLER_REPLIES, ...BOOST_SELLER_REPLIES_COMPOSED].sort(
+      () => Math.random() - 0.5
+    );
 
     let availableAuthors = authors.filter((a) => !usedAuthorNames.has(a.fullName.trim().toLowerCase()));
     if (availableAuthors.length === 0) availableAuthors = authors; // Fallback si le pool était épuisé
@@ -1418,9 +1529,8 @@ export async function boostStoreReviewsAction(
         rating: pickBoostedRating(profile),
         comment,
         // ~40 % des avis reçoivent une réponse du vendeur.
-        sellerReply: Math.random() < 0.4
-          ? BOOST_SELLER_REPLIES[Math.floor(Math.random() * BOOST_SELLER_REPLIES.length)]
-          : null,
+        sellerReply:
+          Math.random() < 0.4 ? allReplies[i % allReplies.length] : null,
         createdAt: when,
         boosted: true,
       });

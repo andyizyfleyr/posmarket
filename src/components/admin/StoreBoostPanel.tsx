@@ -61,9 +61,9 @@ const TONE = {
 const fmtDay = (value: string) =>
   value ? new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—';
 
-/** Bornes alignées sur les clamps serveur (100000 vues / 50 commandes / 50 avis). */
-const clampViews = (raw: string) => Math.min(100000, Math.max(1, Math.floor(Number(raw) || 1)));
-const clampCount = (raw: string) => Math.min(50, Math.max(1, Math.floor(Number(raw) || 1)));
+/** Bornes alignées sur les clamps serveur (1 000 000 vues / 500 commandes / 500 avis). */
+const clampViews = (raw: string) => Math.min(1_000_000, Math.max(1, Math.floor(Number(raw) || 1)));
+const clampCount = (raw: string) => Math.min(500, Math.max(1, Math.floor(Number(raw) || 1)));
 
 const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 const addDays = (date: Date, days: number) => new Date(date.getTime() + days * 86_400_000);
@@ -577,8 +577,8 @@ export default function StoreBoostPanel({
                 value: viewsText,
                 onChange: setViewsText,
                 clamp: clampViews,
-                max: 100000,
-                presets: [100, 1000, 10000],
+                max: 1000000,
+                presets: [1000, 10000, 100000, 1000000],
               })}
 
               {targetSelect('boost-views-target')}
@@ -690,8 +690,8 @@ export default function StoreBoostPanel({
               value: orderText,
               onChange: setOrderText,
               clamp: clampCount,
-              max: 50,
-              presets: [5, 10, 25],
+              max: 500,
+              presets: [10, 50, 100, 500],
             })}
 
             {targetSelect('boost-order-target')}
@@ -746,8 +746,8 @@ export default function StoreBoostPanel({
               value: reviewText,
               onChange: setReviewText,
               clamp: clampCount,
-              max: 50,
-              presets: [5, 10, 25],
+              max: 500,
+              presets: [10, 50, 100, 500],
             })}
 
             {field(
