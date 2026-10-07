@@ -674,7 +674,7 @@ export function ProductDetailsView(props: ProductDetailsProps) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-6 pb-28 lg:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="aspect-square rounded-[24px] skeleton" />
+          <div className="aspect-square -mx-4 lg:mx-auto rounded-none lg:rounded-[24px] skeleton" />
           <div className="space-y-4">
             <div className="h-4 w-1/3 skeleton rounded" />
             <div className="h-7 w-3/4 skeleton rounded" />
@@ -1157,8 +1157,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr] gap-6 lg:gap-8 items-start">
             {/* ---------- Colonne Gauche: Galerie + Description (Desktop) ---------- */}
             <div className="space-y-4">
-              {/* Mobile: Swipeable Carousel inside an M3 Card */}
-              <div className="lg:hidden relative bg-white overflow-hidden rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] mb-3.5 aspect-square">
+              {/* Mobile: Swipeable Carousel inside an M3 Card
+                  Full-bleed : `-mx-4` annule le px-4 du conteneur, l'image
+                  touche donc les bords de l'écran (pas de marge gauche/droite). */}
+              <div className="lg:hidden relative bg-white overflow-hidden -mx-4 border-b border-gray-100 mb-3.5 aspect-square">
                 <div
                   ref={mobileGalleryRef}
                   className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory h-full"
@@ -1212,9 +1214,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   </>
                 )}
 
-                {/* Slide dots (mobile) */}
+                {/* Slide dots (mobile) : ancrés en bas, dans une pilule translucide */}
                 {galleryImages.length > 1 && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur-md border border-gray-100 px-2 py-1.5 shadow-sm z-10">
                     {galleryImages.map((_, idx) => (
                       <button
                         key={idx}
@@ -1224,39 +1226,37 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                           galleryGoTo(idx);
                         }}
                         aria-label={`Aller à l'image ${idx + 1}`}
+                        aria-current={idx === productSwipeIdx}
                         className={`h-1.5 rounded-full transition-all duration-300 ${
                           idx === productSwipeIdx
                             ? "w-4 bg-brand"
-                            : "w-1.5 bg-gray-400/60"
+                            : "w-1.5 bg-gray-400/70 active:bg-gray-400"
                         }`}
                       />
                     ))}
                   </div>
                 )}
 
-                {/* Expand overlay button */}
-                <button
-                  onClick={() => openZoom(currentImage)}
-                  aria-label="Agrandir l'image"
-                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md border border-gray-100 shadow-md flex items-center justify-center text-gray-700 active:brightness-95 transition-colors z-10"
-                >
-                  <Maximize2 size={14} />
-                </button>
+                {/* Top-left badges : remontés en haut pour laisser toute la
+                    ligne du bas aux dots (évite le chevauchement sur food). */}
+                <div className="absolute top-3 left-3 flex flex-col items-start gap-2 z-10 max-w-[calc(100%-24px)]">
+                  {/* Discount badge */}
+                  {discountPct > 0 && (
+                    <div className="bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-0.5">
+                      <Zap size={10} fill="currentColor" /> -{discountPct}%
+                    </div>
+                  )}
 
-                {/* Discount badge */}
-                {discountPct > 0 && (
-                  <div className="absolute top-3 left-3 bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-lg shadow-red-500/30 flex items-center gap-0.5 z-10">
-                    <Zap size={10} fill="currentColor" /> -{discountPct}%
-                  </div>
-                )}
-
-                {/* Freshness strip (food) */}
-                {isFood && (
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-50 text-green-700 text-[8px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-sm z-10">
-                    <Clock size={10} className="flex-shrink-0" />
-                    Fraîchement préparé · {product.preparationTime || product.deliveryTime || "Délai non précisé"}
-                  </div>
-                )}
+                  {/* Freshness strip (food) */}
+                  {isFood && (
+                    <div className="max-w-full flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-green-50 text-green-700 text-[8px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-full shadow-sm">
+                      <Clock size={10} className="flex-shrink-0" />
+                      <span className="truncate">
+                        Fraîchement préparé · {product.preparationTime || product.deliveryTime || "Délai non précisé"}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Counter badge */}
                 {galleryImages.length > 1 && (
