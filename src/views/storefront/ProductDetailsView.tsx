@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingBag, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown, Eye } from "lucide-react";
 import Button from "@/components/Button";
 import ProductCard from "@/components/ProductCard";
-import { formatCurrency, formatNumber } from "@/utils";
+import { formatCurrency, formatNumber, maskName } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
 import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
 import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
@@ -770,33 +770,37 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           )}
         </div>
         <div className="flex-grow min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <h4 className="text-xs font-bold text-gray-900 truncate">
-              {review.author?.split(' ')[0] || review.author}
-            </h4>
-            <span className="text-[10px] font-medium text-gray-400 flex-shrink-0">
-              {new Date(review.date).toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div>
+              <h4 className="text-xs font-bold text-gray-900 truncate">
+                {maskName(review.author)}
+              </h4>
+              <div className="flex items-center gap-0.5 mt-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={11}
+                    className="text-amber-400"
+                    fill={s <= review.rating ? "currentColor" : "none"}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
+              <span className="text-[10px] font-medium text-gray-400">
+                {new Date(review.date).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+                <CheckCircle2 size={10} className="text-emerald-500" />
+                <span>Avis vérifié</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium mb-1.5">
-            <CheckCircle2 size={10} className="text-emerald-500" />
-            <span>Avis vérifié</span>
-          </div>
-          <div className="flex items-center gap-0.5 mb-1.5">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star
-                key={s}
-                size={11}
-                className="text-amber-400"
-                fill={s <= review.rating ? "currentColor" : "none"}
-              />
-            ))}
-          </div>
-          <p className="text-xs text-gray-600 leading-relaxed">
+          <p className="text-xs text-gray-600 leading-relaxed mt-1">
             {review.comment}
           </p>
         </div>

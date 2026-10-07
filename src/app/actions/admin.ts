@@ -835,7 +835,7 @@ export async function boostStoreOrdersAction(
   }
 }
 
-/** Commentaires courts et neutres, adaptés aux boutiques sénégalaises. */
+/** Commentaires courts et variés, adaptés aux boutiques sénégalaises. */
 const BOOST_REVIEW_COMMENTS = [
   'Produit conforme, très satisfait de ma commande.',
   'Livraison rapide et service au rendez-vous. Je recommande.',
@@ -849,6 +849,54 @@ const BOOST_REVIEW_COMMENTS = [
   'Satisfait de mon achat, délai respecté.',
   'Facile à commander, produit en règle.',
   'Bonne expérience, je reviendrai.',
+  'Super qualité, dépasse mes attentes !',
+  'Transaction fluide et vendeur très réactif.',
+  'Colis reçu en parfait état, très bien emballé.',
+  'Produit au top, conforme en tout point.',
+  'Rien à signaler, service irréprochable.',
+  'Très content de cet achat, je recommande les yeux fermés.',
+  'Livré plus vite que prévu, merci beaucoup !',
+  'Excellent produit, fonctionne à merveille.',
+  'Prix très correct pour une telle qualité.',
+  'Vendeur sérieux et professionnel, 5 étoiles.',
+  'Tout est conforme, merci pour la réactivité.',
+  'Article de très bonne facture, ravi de ma commande.',
+  'Service client au top et produit parfait.',
+  'Jamais déçu par cette boutique, toujours au niveau.',
+  'Envoi soigné et produit 100% conforme.',
+  'Excellente qualité, exactement ce qu\'il me fallait.',
+  'Très satisfait, commande arrivée rapidement.',
+  'Achat validé, produit de qualité supérieure.',
+  'Parfait du début à la fin, merci !',
+  'Super rapport qualité prix, rien à ajouter.',
+  'Service rapide, efficace et courtois.',
+  'Au top ! Je repasserai commande sans hésiter.',
+  'Produit reçu très rapidement, conforme aux photos.',
+  'Très bonne finition, matière de qualité.',
+  'Boutique sérieuse, emballage très soigné.',
+  'Fonctionne parfaitement, très satisfait.',
+  'Expérience d\'achat parfaite, je recommande vivement.',
+  'Commande traitée très vite, merci pour le professionnalisme.',
+  'Très bonne surprise, la qualité est bien là.',
+  'Article impeccable, livré rapidement.',
+  'Conforme à 100%, je recommande sans réserves.',
+  'Excellente communication et envoi rapide.',
+  'Produit impeccable et bien emballé.',
+  'Super achat, je suis très content du résultat.',
+  'Délais respectés et produit en parfait état.',
+  'Très bon article, rapport qualité prix imbattable.',
+  'Achat au top, vendeur très recommandable.',
+  'Livraison nickel, produit super bien protégé.',
+  'Rien à redire, qualité au rendez-vous.',
+  'Tout est parfait, merci au vendeur !',
+  'Produit d\'excellente qualité, je repasserai par vous.',
+  'Très satisfait du produit et du délai de livraison.',
+  'Envoi hyper rapide, produit parfaitement conforme.',
+  'Super expérience, je recommande à 100%.',
+  'Colis bien reçu, article conforme et fonctionnel.',
+  'Service impeccable, marchandise de première qualité.',
+  'Vraiment très satisfait de cette commande !',
+  'Super rapide et produit conforme à mes attentes.',
 ];
 
 /** Note majoritairement positive : 5 (45%), 4 (35%), 3 (15%), 2/1 (5%). */
@@ -896,10 +944,30 @@ export async function boostStoreReviewsAction(
     if (catalog.length === 0) return { success: false, error: 'Aucun produit dans cette boutique.' };
 
     // Récupère `nb` auteurs aléatoires du pool (plus du pool > 10k, donc
-    // toujours assez). On récupère tout et on mélange en JS pour éviter
-    // le coût d'un ORDER BY RANDOM() sur 10k lignes (négligeable mais bon).
+    // toujours assez).
     const authors = await db.select().from(reviewAuthors);
     if (authors.length === 0) return { success: false, error: 'Pool d\'auteurs vide : lancez scripts/seed-review-authors.mjs.' };
+
+    // Anti-doublons : lire les avis existants de la boutique pour ne JAMAIS
+    // réutiliser un nom d'auteur ni un texte de commentaire déjà présent.
+    const existingReviews = await db
+      .select({ authorName: productReviews.authorName, comment: productReviews.comment })
+      .from(productReviews)
+      .where(eq(productReviews.storeId, storeId));
+
+    const usedAuthorNames = new Set(existingReviews.map((r) => r.authorName?.trim().toLowerCase()).filter(Boolean) as string[]);
+    const usedComments = new Set(existingReviews.map((r) => r.comment?.trim().toLowerCase()).filter(Boolean) as string[]);
+
+    // Filtrer les auteurs et commentaires disponibles
+    let availableAuthors = authors.filter((a) => !usedAuthorNames.has(a.fullName.trim().toLowerCase()));
+    if (availableAuthors.length === 0) availableAuthors = authors; // Fallback si le pool de 10k était épuisé
+
+    let availableComments = BOOST_REVIEW_COMMENTS.filter((c) => !usedComments.has(c.trim().toLowerCase()));
+    if (availableComments.length === 0) availableComments = BOOST_REVIEW_COMMENTS;
+
+    // Mélanger sans remise pour cette session
+    availableAuthors = [...availableAuthors].sort(() => Math.random() - 0.5);
+    availableComments = [...availableComments].sort(() => Math.random() - 0.5);
 
     const now = Date.now();
     const span = days * 86_400_000;
@@ -907,7 +975,17 @@ export async function boostStoreReviewsAction(
 
     for (let i = 0; i < nb; i += 1) {
       const product = catalog[Math.floor(Math.random() * catalog.length)];
-      const author = authors[Math.floor(Math.random() * authors.length)];
+
+      // Sélection unique de l'auteur
+      const authorIdx = i % availableAuthors.length;
+      const author = availableAuthors[authorIdx];
+      usedAuthorNames.add(author.fullName.trim().toLowerCase());
+
+      // Sélection unique du commentaire
+      const commentIdx = i % availableComments.length;
+      const comment = availableComments[commentIdx];
+      usedComments.add(comment.trim().toLowerCase());
+
       const productCreatedAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
       const earliest = Math.max(storeCreatedAt, productCreatedAt);
       const when = new Date(Math.min(now, Math.max(earliest, now - Math.floor(Math.random() * span))));
@@ -919,7 +997,7 @@ export async function boostStoreReviewsAction(
         authorName: author.fullName,
         authorAvatar: author.avatarUrl,
         rating: pickBoostedRating(),
-        comment: BOOST_REVIEW_COMMENTS[Math.floor(Math.random() * BOOST_REVIEW_COMMENTS.length)],
+        comment,
         createdAt: when,
         boosted: true,
       });

@@ -22,7 +22,7 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
-import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound } from "@/utils";
+import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
@@ -4040,7 +4040,7 @@ const WHOLESALE_FILTER = "wholesale";
                                   </div>
                                   <div className="min-w-0 overflow-hidden">
                                     <p className="font-bold text-gray-900 text-xs leading-none mb-1 truncate max-w-[120px]">
-                                      {review.author?.split(' ')[0] || review.author}
+                                      {maskName(review.author)}
                                     </p>
                                     <div className="flex gap-0.5">
                                       {[...Array(5)].map((_, i) => (
@@ -4062,9 +4062,14 @@ const WHOLESALE_FILTER = "wholesale";
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-medium">
-                                  <CheckCircle2 size={9} className="text-emerald-500" />
-                                  <span>Avis vérifié</span>
+                                <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
+                                  <span className="text-[9px] font-semibold text-gray-400">
+                                    {new Date(review.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-medium">
+                                    <CheckCircle2 size={9} className="text-emerald-500" />
+                                    <span>Avis vérifié</span>
+                                  </div>
                                 </div>
                               </div>
                               <p className="text-gray-500 text-[11px] leading-relaxed mb-3 line-clamp-3">

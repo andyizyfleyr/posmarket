@@ -8,11 +8,13 @@ import {
   Trash2,
   RefreshCcw,
   Package,
-  Store
+  Store,
+  CheckCircle2
 } from 'lucide-react';
 import { getGlobalReviews, getAllStores, getGlobalProducts, deleteReview } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
 import Pagination from '@/components/Pagination';
+import { maskName } from '@/utils';
 
 interface ReviewRow {
   id: string;
@@ -125,23 +127,33 @@ export default function AdminReviewsPage() {
             <div key={r.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold flex-shrink-0 overflow-hidden">
-                      {r.author_avatar ? (
-                        <img
-                          src={r.author_avatar}
-                          alt=""
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                      ) : (
-                        r.author_name?.[0]?.toUpperCase() || 'A'
-                      )}
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold flex-shrink-0 overflow-hidden">
+                        {r.author_avatar ? (
+                          <img
+                            src={r.author_avatar}
+                            alt=""
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        ) : (
+                          r.author_name?.[0]?.toUpperCase() || 'A'
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">{maskName(r.author_name)}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {renderStars(r.rating)}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">{r.author_name || 'Anonyme'}</p>
-                      <div className="flex items-center gap-2">
-                        {renderStars(r.rating)}
-                        <span className="text-[10px] font-semibold text-gray-400">{r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : ''}</span>
+                    <div className="text-right flex flex-col items-end gap-0.5">
+                      <span className="text-[10px] font-semibold text-gray-400">
+                        {r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                      </span>
+                      <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-medium">
+                        <CheckCircle2 size={10} className="text-emerald-500" />
+                        <span>Avis vérifié</span>
                       </div>
                     </div>
                   </div>

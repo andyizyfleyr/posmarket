@@ -20,6 +20,21 @@ export const formatCurrency = (amount: number): string => {
   return Math.floor(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
 };
 
+/**
+ * Masque le nom complet pour préserver la vie privée des clients dans les avis.
+ * Exemple : "Poppy Roberts" -> "P**** R*****"
+ */
+export const maskName = (name?: string | null): string => {
+  if (!name || !name.trim()) return 'Client vérifié';
+  const parts = name.trim().split(/\s+/);
+  return parts
+    .map((part) => {
+      if (part.length <= 1) return part + '***';
+      return part[0] + '*'.repeat(Math.min(part.length - 1, 5));
+    })
+    .join(' ');
+};
+
 export * from '@/constants/countries';
 import { formatPhoneNumber, isValidPhoneNumber } from '@/constants/countries';
 
