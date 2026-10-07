@@ -5,9 +5,10 @@ import { stores, profiles, orders, products, productReviews, orderItems, invoice
 import { eq, desc, sql, inArray, and, ne, gte } from 'drizzle-orm';
 import { revalidatePath, revalidateTag, updateTag } from 'next/cache';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
-import { getAdminSession } from '@/app/actions/admin-auth';
+import { getAdminSession, type AdminSession } from '@/app/actions/admin-auth';
 import { invalidateOrdersCache, incrementProductSales } from '@/db/api';
 import { ACCES_REFUSE } from '@/lib/authorization';
+import { rateLimit, rateLimitMessage, getClientIp } from '@/lib/rate-limit';
 
 /**
  * Garde-fou commun à toutes les actions de ce fichier : elles appartiennent à
@@ -682,6 +683,56 @@ async function getBoostSession() {
   return session || null;
 }
 
+/** UUID Postgres (4 blocs hex) : rejette tout identifiant hors format. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_RE.test(value);
+}
+
+/**
+ * Garde commune à toutes les actions d'écriture du panneau « Booster les
+ * statistiques » : session PAM valide, `storeId` en UUID et limitation de
+ * débit par admin + IP — un script ne peut donc pas consommer les quotas 24 h
+ * en boucle, ni écrire n'importe quoi dans `boost_logs`.
+ *
+ * `limit` appels/montre : l'UI n'émet jamais plus d'une action à la fois.
+ */
+async function guardBoost(
+  storeId: unknown,
+  opts: { action: 'views' | 'orders' | 'reviews' | 'unboost' | 'state'; limit?: number }
+): Promise<{ ok: true; session: AdminSession; ip: string } | { ok: false; error: string }> {
+  const session = await getBoostSession();
+  if (!session) return { ok: false, error: 'Session expirée.' };
+  if (!isUuid(storeId)) return { ok: false, error: 'Identifiant de boutique invalide.' };
+
+  const ip = await getClientIp();
+  const rl = rateLimit(`pam-boost:${opts.action}:${session.id}:${ip}`, opts.limit ?? 15, 60_000);
+  if (!rl.ok) return { ok: false, error: rateLimitMessage(rl.retryAfterSeconds) };
+
+  return { ok: true, session, ip };
+}
+
+/**
+ * Un seul boost à la fois par boutique : deux requêtes simultanées ne peuvent
+ * pas lire le même quota restant, l'écrire, puis toutes les deux l'épuiser
+ * (la vérification du quota n'est pas transactionnelle).
+ */
+const boostLocks = new Set<string>();
+function acquireBoostLock(storeId: string): boolean {
+  if (boostLocks.has(storeId)) return false;
+  boostLocks.add(storeId);
+  return true;
+}
+function releaseBoostLock(storeId: string): void {
+  boostLocks.delete(storeId);
+}
+
+/** Erreur renvoyée au client : jamais le détail interne (SQL, driver, stack). */
+function boostFailure(error: unknown): string {
+  console.error('boost action error:', error);
+  return 'Erreur serveur pendant le boost. Réessayez ou consultez les logs.';
+}
+
 async function logBoost(
   storeId: string,
   action: BoostAction,
@@ -799,39 +850,47 @@ async function addViewsToProducts(storeId: string, value: number, productIds?: s
  * Retourne le nombre de vues créditées.
  */
 async function applyDueViewBoosts(storeId: string): Promise<number> {
-  const schedules = await db.select().from(boostSchedules).where(eq(boostSchedules.storeId, storeId));
-  if (schedules.length === 0) return 0;
-  const now = Date.now();
-  let credited = 0;
+  // Verrou identique à celui des actions de boost : deux passages simultanés
+  // (panneau + tableau de bord) liraient le même `applied` et crediteraient
+  // les mêmes vues deux fois. Si un boost tourne, on reprend au prochain appel.
+  if (!acquireBoostLock(storeId)) return 0;
+  try {
+    const schedules = await db.select().from(boostSchedules).where(eq(boostSchedules.storeId, storeId));
+    if (schedules.length === 0) return 0;
+    const now = Date.now();
+    let credited = 0;
 
-  for (const s of schedules) {
-    const start = new Date(s.startDate).getTime();
-    const end = new Date(s.endDate).getTime();
-    const finished = now >= end;
-    if (end <= start) continue;
+    for (const s of schedules) {
+      const start = new Date(s.startDate).getTime();
+      const end = new Date(s.endDate).getTime();
+      const finished = now >= end;
+      if (end <= start) continue;
 
-    const due = finished
-      ? s.total
-      : Math.floor(s.total * Math.min(1, Math.max(0, (now - start) / (end - start))));
-    const delta = Math.max(0, due - s.applied);
+      const due = finished
+        ? s.total
+        : Math.floor(s.total * Math.min(1, Math.max(0, (now - start) / (end - start))));
+      const delta = Math.max(0, due - s.applied);
 
-    if (delta > 0) {
-      if (s.scope === 'store') {
-        await db
-          .update(stores)
-          .set({ views: sql`${stores.views} + ${delta}`, boostedViews: sql`${stores.boostedViews} + ${delta}` })
-          .where(eq(stores.id, storeId));
-      } else {
-        await addViewsToProducts(storeId, delta, s.productId ? [s.productId] : null);
+      if (delta > 0) {
+        if (s.scope === 'store') {
+          await db
+            .update(stores)
+            .set({ views: sql`${stores.views} + ${delta}`, boostedViews: sql`${stores.boostedViews} + ${delta}` })
+            .where(eq(stores.id, storeId));
+        } else {
+          await addViewsToProducts(storeId, delta, s.productId ? [s.productId] : null);
+        }
+        credited += delta;
+        await db.update(boostSchedules).set({ applied: sql`${boostSchedules.applied} + ${delta}` }).where(eq(boostSchedules.id, s.id));
       }
-      credited += delta;
-      await db.update(boostSchedules).set({ applied: sql`${boostSchedules.applied} + ${delta}` }).where(eq(boostSchedules.id, s.id));
+      if (finished && s.applied + delta >= s.total) {
+        await db.delete(boostSchedules).where(eq(boostSchedules.id, s.id));
+      }
     }
-    if (finished && s.applied + delta >= s.total) {
-      await db.delete(boostSchedules).where(eq(boostSchedules.id, s.id));
-    }
+    return credited;
+  } finally {
+    releaseBoostLock(storeId);
   }
-  return credited;
 }
 
 /**
@@ -863,7 +922,8 @@ export async function getBoostStateAction(storeId: string): Promise<{
   pendingViews?: number;
   schedules?: Array<{ id: string; scope: string; total: number; applied: number; startDate: string | Date; endDate: string | Date }>;
 }> {
-  if (!(await getBoostSession())) return { success: false, error: 'Session expirée.' };
+  const guard = await guardBoost(storeId, { action: 'state', limit: 60 });
+  if (!guard.ok) return { success: false, error: guard.error };
   try {
     const credited = await applyDueViewBoosts(storeId);
     if (credited > 0) revalidatePath('/pam/stores');
@@ -902,7 +962,7 @@ export async function getBoostStateAction(storeId: string): Promise<{
       })),
     };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error) };
+    return { success: false, error: boostFailure(error) };
   }
 }
 
@@ -927,8 +987,19 @@ export async function boostStoreViewsAction(
   to?: string;
   quotaLeft?: number;
 }> {
-  const session = await getBoostSession();
-  if (!session) return { success: false, error: 'Session expirée.' };
+  const guard = await guardBoost(storeId, { action: 'views', limit: 20 });
+  if (!guard.ok) return { success: false, error: guard.error };
+  const { session, ip } = guard;
+  if (scope !== 'store' && scope !== 'products') {
+    return { success: false, error: 'Portée de boost invalide.' };
+  }
+  const requestedProductId = options?.productId || null;
+  if (requestedProductId !== null && !isUuid(requestedProductId)) {
+    return { success: false, error: 'Identifiant de produit invalide.' };
+  }
+  if (!acquireBoostLock(storeId)) {
+    return { success: false, error: 'Un boost est déjà en cours pour cette boutique.' };
+  }
   try {
     const value = Math.min(1_000_000, Math.max(1, Math.floor(Number(amount) || 0)));
 
@@ -944,7 +1015,7 @@ export async function boostStoreViewsAction(
       return { success: false, error: `Quota de vues dépassé : ${quota} restante(s) sur 24 h.` };
     }
 
-    const productId = options?.productId || null;
+    const productId = requestedProductId;
     if (scope === 'products') {
       const catalog = await getBoostCatalog(storeId, productId);
       if (catalog.length === 0) {
@@ -973,7 +1044,7 @@ export async function boostStoreViewsAction(
         startDate: new Date(start),
         endDate: new Date(end),
       });
-      await logBoost(storeId, 'views', value, { scheduled: true, total: value, scope, productId }, session.username);
+      await logBoost(storeId, 'views', value, { scheduled: true, total: value, scope, productId, ip }, session.username);
       revalidatePath('/pam/stores');
       return {
         success: true,
@@ -996,13 +1067,15 @@ export async function boostStoreViewsAction(
         .where(eq(stores.id, storeId));
     }
 
-    await logBoost(storeId, 'views', value, { scope, productId }, session.username);
+    await logBoost(storeId, 'views', value, { scope, productId, ip }, session.username);
     revalidatePath('/pam/stores');
     revalidatePath('/dashboard');
     updateTag('marketplace');
     return { success: true, amount: value, products: productListCount, quotaLeft: quota - value };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error) };
+    return { success: false, error: boostFailure(error) };
+  } finally {
+    releaseBoostLock(storeId);
   }
 }
 
@@ -1034,8 +1107,16 @@ export async function boostStoreOrdersAction(
   spreadDays: number,
   options?: { productId?: string | null; range?: BoostRange }
 ): Promise<{ success: boolean; error?: string; created?: number; revenue?: number; quotaLeft?: number }> {
-  const session = await getBoostSession();
-  if (!session) return { success: false, error: 'Session expirée.' };
+  const guard = await guardBoost(storeId, { action: 'orders', limit: 15 });
+  if (!guard.ok) return { success: false, error: guard.error };
+  const { session, ip } = guard;
+  const requestedProductId = options?.productId || null;
+  if (requestedProductId !== null && !isUuid(requestedProductId)) {
+    return { success: false, error: 'Identifiant de produit invalide.' };
+  }
+  if (!acquireBoostLock(storeId)) {
+    return { success: false, error: 'Un boost est déjà en cours pour cette boutique.' };
+  }
   try {
     const nb = Math.min(500, Math.max(1, Math.floor(Number(count) || 0)));
 
@@ -1053,9 +1134,9 @@ export async function boostStoreOrdersAction(
 
     const storeCreatedAt = store.createdAt ? new Date(store.createdAt).getTime() : 0;
 
-    const catalog = await getBoostCatalog(storeId, options?.productId);
+    const catalog = await getBoostCatalog(storeId, requestedProductId);
     if (catalog.length === 0) {
-      return { success: false, error: options?.productId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
+      return { success: false, error: requestedProductId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
     }
 
     const { start, end } = resolveBoostRange(options?.range, spreadDays);
@@ -1199,7 +1280,7 @@ export async function boostStoreOrdersAction(
       storeId,
       'orders',
       inserted.length,
-      { revenue: Math.round(revenue * 100) / 100, days: spreadDays, productId: options?.productId ?? null, range: options?.range ?? null },
+      { revenue: Math.round(revenue * 100) / 100, days: spreadDays, productId: requestedProductId, range: options?.range ?? null, ip },
       session.username
     );
 
@@ -1214,7 +1295,9 @@ export async function boostStoreOrdersAction(
 
     return { success: true, created: inserted.length, revenue: Math.round(revenue * 100) / 100, quotaLeft: quota - inserted.length };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error) };
+    return { success: false, error: boostFailure(error) };
+  } finally {
+    releaseBoostLock(storeId);
   }
 }
 
@@ -1452,6 +1535,11 @@ type CustomBoostReview = {
 function parseCustomReviews(
   raw: string
 ): { ok: true; reviews: CustomBoostReview[] } | { ok: false; error: string } {
+  // Garde-fou : au-delà, le parseur + la boucle de validation servent à rien
+  // (500 avis × 2000 caractères = 1 Mo utile, on tolère 4× la taille réelle).
+  if (raw.length > 400_000) {
+    return { ok: false, error: 'JSON trop volumineux (400 000 caractères maximum).' };
+  }
   let data: unknown;
   try {
     data = JSON.parse(raw);
@@ -1464,7 +1552,13 @@ function parseCustomReviews(
   if (data.length === 0) return { ok: false, error: 'Le tableau d\'avis est vide.' };
   if (data.length > 500) return { ok: false, error: `${data.length} avis fournis : 500 maximum par envoi.` };
 
-  const str = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+  /** Nettoie les caractères de contrôle invisibles (jamais affichables). */
+  const clean = (value: string) => value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+  const str = (value: unknown) => {
+    if (typeof value !== 'string') return null;
+    const cleaned = clean(value).trim();
+    return cleaned ? cleaned : null;
+  };
   const reviews: CustomBoostReview[] = [];
 
   for (let i = 0; i < data.length; i += 1) {
@@ -1546,17 +1640,29 @@ export async function boostStoreReviewsAction(
     customJson?: string;
   }
 ): Promise<{ success: boolean; error?: string; created?: number; average?: number; quotaLeft?: number }> {
-  const session = await getBoostSession();
-  if (!session) return { success: false, error: 'Session expirée.' };
+  const guard = await guardBoost(storeId, { action: 'reviews', limit: 15 });
+  if (!guard.ok) return { success: false, error: guard.error };
+  const { session, ip } = guard;
+  const requestedProductId = options?.productId || null;
+  if (requestedProductId !== null && !isUuid(requestedProductId)) {
+    return { success: false, error: 'Identifiant de produit invalide.' };
+  }
+  if (!acquireBoostLock(storeId)) {
+    return { success: false, error: 'Un boost est déjà en cours pour cette boutique.' };
+  }
   try {
-    const profile: BoostRatingProfile = options?.ratingProfile ?? 'mixed';
+    const profile: BoostRatingProfile =
+      options?.ratingProfile && ['top', 'mixed', 'realistic'].includes(options.ratingProfile)
+        ? options.ratingProfile
+        : 'mixed';
 
     // ── Mode personnalisé : tableau d'avis saisi par l'admin ─────────────
     let custom: CustomBoostReview[] | null = null;
-    if (options?.customJson?.trim()) {
-      const parsed = parseCustomReviews(options.customJson);
+    const customJson = typeof options?.customJson === 'string' ? options.customJson : '';
+    if (customJson.trim()) {
+      const parsed = parseCustomReviews(customJson);
       if (!parsed.ok) return { success: false, error: parsed.error };
-      if (!options.productId) {
+      if (!requestedProductId) {
         return { success: false, error: 'Les avis personnalisés doivent cibler un produit précis.' };
       }
       custom = parsed.reviews;
@@ -1582,9 +1688,9 @@ export async function boostStoreReviewsAction(
 
     // Même filtre que la génération de commandes : un produit hors ligne ou
     // gratuit ne peut pas recevoir d'avis censé venir d'un client.
-    const catalog = await getBoostCatalog(storeId, options?.productId);
+    const catalog = await getBoostCatalog(storeId, requestedProductId);
     if (catalog.length === 0) {
-      return { success: false, error: options?.productId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
+      return { success: false, error: requestedProductId ? 'Ce produit n\'est pas vendable.' : 'Aucun produit vendable dans cette boutique.' };
     }
 
     // Le pool d'auteurs n'est nécessaire que pour les avis sans nom fourni.
@@ -1694,9 +1800,10 @@ export async function boostStoreReviewsAction(
       {
         profile,
         days: spreadDays,
-        productId: options?.productId ?? null,
+        productId: requestedProductId,
         range: options?.range ?? null,
         mode: custom ? 'custom' : 'auto',
+        ip,
       },
       session.username
     );
@@ -1711,7 +1818,9 @@ export async function boostStoreReviewsAction(
     );
     return { success: true, created: values.length, average, quotaLeft: quota - values.length };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error) };
+    return { success: false, error: boostFailure(error) };
+  } finally {
+    releaseBoostLock(storeId);
   }
 }
 
@@ -1762,8 +1871,12 @@ async function recomputeReviewAggregates(storeId: string, productIds: string[]) 
 export async function unboostStoreAction(
   storeId: string
 ): Promise<{ success: boolean; error?: string; removed?: { orders: number; reviews: number; views: number } }> {
-  const session = await getBoostSession();
-  if (!session) return { success: false, error: 'Session expirée.' };
+  const guard = await guardBoost(storeId, { action: 'unboost', limit: 5 });
+  if (!guard.ok) return { success: false, error: guard.error };
+  const { session, ip } = guard;
+  if (!acquireBoostLock(storeId)) {
+    return { success: false, error: 'Un boost est déjà en cours pour cette boutique.' };
+  }
   try {
     const [store] = await db.select({ id: stores.id }).from(stores).where(eq(stores.id, storeId)).limit(1);
     if (!store) return { success: false, error: 'Boutique introuvable.' };
@@ -1868,6 +1981,7 @@ export async function unboostStoreAction(
       orders: orderIds.length,
       reviews: reviewProductIds.length,
       views: storeViewsRemoved + productViewsRemoved,
+      ip,
     }, session.username);
 
     revalidatePath('/pam/stores');
@@ -1885,6 +1999,8 @@ export async function unboostStoreAction(
       },
     };
   } catch (error: unknown) {
-    return { success: false, error: errorMessage(error) };
+    return { success: false, error: boostFailure(error) };
+  } finally {
+    releaseBoostLock(storeId);
   }
 }
