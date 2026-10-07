@@ -1126,9 +1126,19 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             Bouton de retour uniquement. Le panier vit dans la barre du bas :
             le dupliquer ici affichait deux boutons pointant vers la meme
             destination sur le meme ecran. */}
-        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-100/80 -mx-4 px-4 py-2.5 flex items-center justify-center" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <span className="max-w-full truncate text-center text-xs font-bold tracking-[0.1em] uppercase text-gray-500">
-            {product.storeName}
+        {/* ================= TOPBAR MOBILE =================
+            Purement centrale : le nom de boutique vit dans une pilule avec le
+            point de marque, au-dessus d'un espace toujours visible (safe-area
+            iOS + 12px minimum). */}
+        <div
+          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/80 px-4 pb-3 flex items-center justify-center"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+        >
+          <span className="max-w-[78%] truncate flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand shrink-0" />
+            <span className="truncate min-w-0 text-[11px] font-extrabold uppercase tracking-[0.12em] text-gray-700">
+              {product.storeName}
+            </span>
           </span>
         </div>
 
