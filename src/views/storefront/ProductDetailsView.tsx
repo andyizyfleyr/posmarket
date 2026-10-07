@@ -164,10 +164,11 @@ function ProductSeller({
   category: string;
   onCategoryClick: () => void;
 }) {
-  // Le bloc est centré : un nom long déborde des deux côtés du bloc, la ligne se
-  // remplit donc de gauche à droite et se termine par « … » (truncate).
+  // Aligné à gauche pour démarrer au même point que le nom du produit. Un nom
+  // long déborde donc du bord droit du bloc : la ligne se remplit de gauche à
+  // droite et se termine par « … » (truncate).
   return (
-    <div className="flex items-center justify-center gap-2.5 min-w-0">
+    <div className="flex items-center gap-2.5 min-w-0">
       <Link
         to={`/store/${product.storeSlug || product.storeId}`}
         tabIndex={-1}
@@ -193,7 +194,7 @@ function ProductSeller({
       <div className="min-w-0 max-w-full">
         <Link
           to={`/store/${product.storeSlug || product.storeId}`}
-          className="flex items-center gap-1 min-w-0 justify-center group/vendor"
+          className="flex items-center gap-1 min-w-0 group/vendor"
         >
           <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">
             Vendu par
@@ -212,7 +213,7 @@ function ProductSeller({
           <button
             type="button"
             onClick={onCategoryClick}
-            className="mt-0.5 flex items-center justify-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
+            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
           >
             <span className="truncate">{category}</span>
             <ChevronRight size={11} className="flex-shrink-0" />
