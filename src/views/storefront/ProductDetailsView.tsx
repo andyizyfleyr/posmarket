@@ -721,13 +721,19 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 } = props;
   const product = selectedProductDetails;
   const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
+    // Similaires = STRICTEMENT les autres produits de la même boutique :
+    // jamais de produit d'une autre boutique en bas de page. À l'intérieur de
+    // la boutique, les produits de la même catégorie passent en premier.
     const relatedProducts = safeAllProducts
       .filter(
         (p: StorefrontProduct) =>
-          ((p.category && p.category === product.category) ||
-            p.storeId === product.storeId) &&
+          p.storeId === product.storeId &&
           p.id !== product.id &&
           p.isOnline !== false,
+      )
+      .sort(
+        (a, b) =>
+          Number(b.category === product.category) - Number(a.category === product.category),
       )
       .slice(0, 10);
 
@@ -2049,7 +2055,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             <div className="flex items-center gap-2.5 mb-4 lg:mb-6 px-1">
               <div className="hidden md:block w-1 h-5 bg-brand rounded-full" />
               <h3 className="text-[9px] md:text-sm font-bold text-gray-900 uppercase tracking-[0.12em]">
-                {isFood ? 'Vous aimerez aussi' : 'Recommandations similaires'}
+                Dans la même boutique
               </h3>
             </div>
             <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-4 lg:grid-cols-4 md:gap-5">
