@@ -18,7 +18,7 @@ interface SubscriptionClientWrapperProps {
   kkiapayEnv?: 'sandbox' | 'live';
   fedapayPublicKey?: string;
   fedapayEnv?: 'sandbox' | 'live';
-  paymentProvider?: 'kkiapay' | 'fedapay';
+  paymentProvider?: 'kkiapay' | 'fedapay' | 'feexpay';
   userName?: string;
   userEmail?: string;
   userAvatarUrl?: string | null;

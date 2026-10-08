@@ -3,9 +3,10 @@ import { systemSettings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { initFedapayConfig } from './fedapay';
 import { initKkiapayConfig } from './kkiapay';
+import { initFeexpayConfig } from './feexpay';
 
 export interface PaymentConfig {
-  provider: 'kkiapay' | 'fedapay';
+  provider: 'kkiapay' | 'fedapay' | 'feexpay';
   kkiapayPublicKey?: string;
   kkiapayPrivateKey?: string;
   kkiapaySecretKey?: string;
@@ -14,6 +15,11 @@ export interface PaymentConfig {
   fedapaySecretKey?: string;
   fedapayWebhookSecret?: string;
   fedapayEnv?: 'sandbox' | 'live';
+  feexpayShopId?: string;
+  feexpayApiKey?: string;
+  feexpaySecretKey?: string;
+  feexpayWebhookSecret?: string;
+  feexpayEnv?: 'sandbox' | 'live';
 }
 
 export async function loadPaymentConfig(): Promise<PaymentConfig> {
@@ -22,7 +28,7 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
   for (const r of rows) {
     map.set(r.key, r.value);
   }
-  const provider = (map.get('payment_provider') as 'kkiapay' | 'fedapay') || 'kkiapay';
+  const provider = (map.get('payment_provider') as 'kkiapay' | 'fedapay' | 'feexpay') || 'kkiapay';
 
   const config: PaymentConfig = {
     provider,
@@ -34,6 +40,11 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
     fedapaySecretKey: map.get('fedapay_secret_key') || '',
     fedapayWebhookSecret: map.get('fedapay_webhook_secret') || '',
     fedapayEnv: (map.get('fedapay_env') as 'sandbox' | 'live') || 'sandbox',
+    feexpayShopId: map.get('feexpay_shop_id') || '',
+    feexpayApiKey: map.get('feexpay_api_key') || '',
+    feexpaySecretKey: map.get('feexpay_secret_key') || '',
+    feexpayWebhookSecret: map.get('feexpay_webhook_secret') || '',
+    feexpayEnv: (map.get('feexpay_env') as 'sandbox' | 'live') || 'sandbox',
   };
 
   // Init fedapay et kkiapay avec la config DB
@@ -49,11 +60,18 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
     secretKey: config.kkiapaySecretKey,
     env: config.kkiapayEnv,
   });
+  initFeexpayConfig({
+    shopId: config.feexpayShopId,
+    apiKey: config.feexpayApiKey,
+    secretKey: config.feexpaySecretKey,
+    webhookSecret: config.feexpayWebhookSecret,
+    env: config.feexpayEnv,
+  });
 
   return config;
 }
 
-export async function getPaymentProvider(): Promise<'kkiapay' | 'fedapay'> {
+export async function getPaymentProvider(): Promise<'kkiapay' | 'fedapay' | 'feexpay'> {
   const [row] = await db.select({ value: systemSettings.value }).from(systemSettings).where(eq(systemSettings.key, 'payment_provider')).limit(1);
-  return (row?.value as 'kkiapay' | 'fedapay') || 'kkiapay';
+  return (row?.value as 'kkiapay' | 'fedapay' | 'feexpay') || 'kkiapay';
 }
