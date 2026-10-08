@@ -10,6 +10,8 @@ interface ProductImageProps {
     alt: string;
     className?: string;
     containerClassName?: string;
+    /** Fond de la zone image (par défaut gris clair pour le placeholder de chargement). */
+    bgClassName?: string;
     showZoomEffect?: boolean;
     objectFit?: 'cover' | 'contain';
     shouldApplyAspectSquare?: boolean;
@@ -25,6 +27,7 @@ const ProductImage: React.FC<ProductImageProps> = ({
     alt,
     className = "",
     containerClassName = "",
+    bgClassName = "bg-gray-50",
     showZoomEffect = true,
     objectFit = 'cover',
     shouldApplyAspectSquare = true,
@@ -35,7 +38,7 @@ const ProductImage: React.FC<ProductImageProps> = ({
     const isImageValid = src && src.trim() !== "" && !error;
 
     return (
-        <div className={`relative overflow-hidden bg-gray-50 flex items-center justify-center w-full h-full ${shouldApplyAspectSquare ? 'aspect-square' : ''} ${containerClassName}`}>
+        <div className={`relative overflow-hidden ${bgClassName} flex items-center justify-center w-full h-full ${shouldApplyAspectSquare ? 'aspect-square' : ''} ${containerClassName}`}>
             {isImageValid ? (
                 <Image
                     src={src!}

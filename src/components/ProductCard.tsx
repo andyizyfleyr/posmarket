@@ -73,14 +73,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         className="flex-grow flex flex-col cursor-pointer"
       >
         <div className="px-1 pt-1 md:px-2 md:pt-2">
-          <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-gray-50 p-2 md:p-3">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-white p-1.5 md:p-2">
             <ProductImage
               src={product.image}
               alt={product.name}
               containerClassName="w-full h-full"
+              bgClassName="bg-white"
               objectFit="contain"
               shouldApplyAspectSquare={false}
-              className="mix-blend-multiply"
             />
 
             {/* Badges on Image Content */}
