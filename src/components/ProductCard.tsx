@@ -73,12 +73,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         className="flex-grow flex flex-col cursor-pointer"
       >
         <div className="px-1 pt-1 md:px-2 md:pt-2">
-          <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-gray-50">
+          <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-gray-50 border border-gray-100">
             <ProductImage
               src={product.image}
               alt={product.name}
               containerClassName="w-full h-full"
-              objectFit="cover"
+              objectFit="contain"
               shouldApplyAspectSquare={false}
             />
 
