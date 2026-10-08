@@ -72,29 +72,31 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         }}
         className="flex-grow flex flex-col cursor-pointer"
       >
-        <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden bg-white">
-          <ProductImage
-            src={product.image}
-            alt={product.name}
-            containerClassName="w-full h-full"
-            objectFit="cover"
-            shouldApplyAspectSquare={false}
-          />
+        <div className="px-1 pt-1 md:px-2 md:pt-2">
+          <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-gray-50">
+            <ProductImage
+              src={product.image}
+              alt={product.name}
+              containerClassName="w-full h-full"
+              objectFit="cover"
+              shouldApplyAspectSquare={false}
+            />
 
-          {/* Badges on Image Content */}
-          <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
-            {product.originalPrice && product.originalPrice > product.price && (
-              <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest shadow-md">
-                -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-              </div>
-            )}
+            {/* Badges on Image Content */}
+            <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
+              {product.originalPrice && product.originalPrice > product.price && (
+                <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest shadow-md">
+                  -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                </div>
+              )}
+            </div>
+
+            {/* Hover Gradient Overlay */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none will-change-opacity" />
           </div>
-
-          {/* Hover Gradient Overlay */}
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none will-change-opacity" />
         </div>
 
-        <div className="p-1 md:p-2 flex flex-col flex-grow bg-white">
+        <div className="px-1 md:px-2 pt-1.5 md:pt-2 pb-1 md:pb-2 flex flex-col flex-grow bg-white">
           <div className="mb-0.5">
             <h3 className="text-[9px] md:text-[11px] font-semibold text-gray-800 line-clamp-1 leading-tight will-change-contents">
               {product.name}
