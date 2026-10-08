@@ -17,7 +17,7 @@ export interface TransactionModalData {
   duration?: SubscriptionDuration;
   transactionId?: string;
   reference?: string;
-  provider?: 'fedapay' | 'kkiapay';
+  provider?: 'fedapay' | 'kkiapay' | 'feexpay';
   date?: Date | string;
 }
 

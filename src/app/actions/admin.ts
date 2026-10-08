@@ -516,7 +516,7 @@ export interface SystemSettingsData {
   maintenance: boolean;
   auto_indexing: boolean;
   weekly_reports: boolean;
-  payment_provider?: 'kkiapay' | 'fedapay';
+  payment_provider?: 'kkiapay' | 'fedapay' | 'feexpay';
   kkiapay_public_key?: string;
   kkiapay_private_key?: string;
   kkiapay_secret_key?: string;
@@ -525,6 +525,11 @@ export interface SystemSettingsData {
   fedapay_secret_key?: string;
   fedapay_webhook_secret?: string;
   fedapay_env?: 'sandbox' | 'live';
+  feexpay_shop_id?: string;
+  feexpay_api_key?: string;
+  feexpay_secret_key?: string;
+  feexpay_webhook_secret?: string;
+  feexpay_env?: 'sandbox' | 'live';
   smtp_host?: string;
   smtp_port?: string;
   smtp_user?: string;
@@ -550,12 +555,14 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
       if (r.key === 'maintenance' || r.key === 'auto_indexing' || r.key === 'weekly_reports') {
         settings[r.key] = r.value === 'true';
       } else if (r.key === 'payment_provider') {
-        settings.payment_provider = r.value === 'fedapay' ? 'fedapay' : 'kkiapay';
+        settings.payment_provider = r.value === 'fedapay' ? 'fedapay' : r.value === 'feexpay' ? 'feexpay' : 'kkiapay';
       } else if (r.key === 'kkiapay_env') {
         settings.kkiapay_env = r.value === 'live' ? 'live' : 'sandbox';
       } else if (r.key === 'fedapay_env') {
         settings.fedapay_env = r.value === 'live' ? 'live' : 'sandbox';
-      } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key' || r.key === 'fedapay_webhook_secret') {
+      } else if (r.key === 'feexpay_env') {
+        settings.feexpay_env = r.value === 'live' ? 'live' : 'sandbox';
+      } else if (r.key === 'kkiapay_public_key' || r.key === 'kkiapay_private_key' || r.key === 'kkiapay_secret_key' || r.key === 'fedapay_public_key' || r.key === 'fedapay_secret_key' || r.key === 'fedapay_webhook_secret' || r.key === 'feexpay_shop_id' || r.key === 'feexpay_api_key' || r.key === 'feexpay_secret_key' || r.key === 'feexpay_webhook_secret') {
         settings[r.key] = r.value;
       } else if (r.key === 'smtp_host' || r.key === 'smtp_port' || r.key === 'smtp_user' || r.key === 'smtp_from' || r.key === 'smtp_from_name' || r.key === 'mail_reply_to' || r.key === 'mail_brand_name' || r.key === 'mail_tagline' || r.key === 'mail_logo_url' || r.key === 'mail_footer' || r.key === 'admin_emails') {
         settings[r.key] = r.value;
@@ -572,8 +579,8 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
 export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
-    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'smtp_from_name', 'mail_reply_to', 'mail_brand_name', 'mail_tagline', 'mail_logo_url', 'mail_footer', 'admin_emails'];
-    const allowedEnvKeys = ['kkiapay_env', 'fedapay_env'];
+    const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'feexpay_shop_id', 'feexpay_api_key', 'feexpay_secret_key', 'feexpay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'smtp_from_name', 'mail_reply_to', 'mail_brand_name', 'mail_tagline', 'mail_logo_url', 'mail_footer', 'admin_emails'];
+    const allowedEnvKeys = ['kkiapay_env', 'fedapay_env', 'feexpay_env'];
     const booleanKeys = ['maintenance', 'auto_indexing', 'weekly_reports'];
 
     for (const [key, value] of Object.entries(settings)) {

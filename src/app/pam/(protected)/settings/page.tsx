@@ -18,7 +18,7 @@ interface SystemSettings {
   maintenance: boolean;
   auto_indexing: boolean;
   weekly_reports: boolean;
-  payment_provider?: 'kkiapay' | 'fedapay';
+  payment_provider?: 'kkiapay' | 'fedapay' | 'feexpay';
   kkiapay_public_key?: string;
   kkiapay_private_key?: string;
   kkiapay_secret_key?: string;
@@ -27,6 +27,11 @@ interface SystemSettings {
   fedapay_secret_key?: string;
   fedapay_webhook_secret?: string;
   fedapay_env?: 'sandbox' | 'live';
+  feexpay_shop_id?: string;
+  feexpay_api_key?: string;
+  feexpay_secret_key?: string;
+  feexpay_webhook_secret?: string;
+  feexpay_env?: 'sandbox' | 'live';
   smtp_host?: string;
   smtp_port?: string;
   smtp_user?: string;
@@ -146,6 +151,11 @@ export default function AdminSettingsPage() {
     settings.fedapay_secret_key !== initial.fedapay_secret_key ||
     settings.fedapay_webhook_secret !== initial.fedapay_webhook_secret ||
     settings.fedapay_env !== initial.fedapay_env ||
+    settings.feexpay_shop_id !== initial.feexpay_shop_id ||
+    settings.feexpay_api_key !== initial.feexpay_api_key ||
+    settings.feexpay_secret_key !== initial.feexpay_secret_key ||
+    settings.feexpay_webhook_secret !== initial.feexpay_webhook_secret ||
+    settings.feexpay_env !== initial.feexpay_env ||
     settings.smtp_host !== initial.smtp_host ||
     settings.smtp_port !== initial.smtp_port ||
     settings.smtp_user !== initial.smtp_user ||
@@ -168,7 +178,7 @@ export default function AdminSettingsPage() {
     setSettings(prev => prev ? { ...prev, [key]: !prev[key] } : prev);
   };
 
-  const updateField = (key: keyof SystemSettings, value: string | boolean | 'kkiapay' | 'fedapay' | 'sandbox' | 'live') => {
+  const updateField = (key: keyof SystemSettings, value: string | boolean | 'kkiapay' | 'fedapay' | 'feexpay' | 'sandbox' | 'live') => {
     setSettings(prev => prev ? { ...prev, [key]: value } : prev);
   };
 
@@ -225,7 +235,7 @@ export default function AdminSettingsPage() {
 
         <div className="space-y-6">
           {/* Provider selection */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => updateField('payment_provider', 'kkiapay')}
@@ -245,6 +255,17 @@ export default function AdminSettingsPage() {
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard size={16} />
                 FedaPay
+              </div>
+              <span className="text-[10px] font-normal normal-case">Active</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateField('payment_provider', 'feexpay')}
+              className={`p-5 rounded-2xl border text-xs font-bold uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'feexpay' ? 'bg-emerald-600/10 border-emerald-600 text-emerald-600' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <CreditCard size={16} />
+                FeexPay
               </div>
               <span className="text-[10px] font-normal normal-case">Active</span>
             </button>
@@ -348,6 +369,73 @@ export default function AdminSettingsPage() {
                   <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-tight mb-1">Endpoint API</p>
                   <p className="text-xs text-gray-600 font-mono">{settings.fedapay_env === 'live' ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1'}</p>
                 </div>
+              </div>
+            </div>
+          </div>
+          {/* Feexpay config */}
+          <div className={`rounded-2xl border p-5 transition-colors ${settings.payment_provider === 'feexpay' ? 'bg-emerald-50/30 border-emerald-200' : 'bg-gray-50/50 border-gray-100'}`}>
+            <h4 className="text-xs font-bold text-gray-900 uppercase tracking-tight mb-4 flex items-center gap-2">FeexPay</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Shop ID</label>
+                <input
+                  type="text"
+                  value={settings.feexpay_shop_id || ''}
+                  onChange={e => updateField('feexpay_shop_id', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  placeholder="Identifiant boutique FeexPay"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Clé API (token)</label>
+                <input
+                  type="text"
+                  value={settings.feexpay_api_key || ''}
+                  onChange={e => updateField('feexpay_api_key', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+                  placeholder="fp_..."
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Secret Key</label>
+                <input
+                  type="text"
+                  value={settings.feexpay_secret_key || ''}
+                  onChange={e => updateField('feexpay_secret_key', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+                  placeholder="Secret key serveur"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Webhook Secret</label>
+                <input
+                  type="text"
+                  value={settings.feexpay_webhook_secret || ''}
+                  onChange={e => updateField('feexpay_webhook_secret', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+                  placeholder="Secret de signature des webhooks"
+                />
+              </div>
+              <div className="md:col-span-2 flex gap-3">
+                <div className="flex-1">
+                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Environnement</label>
+                  <select
+                    value={settings.feexpay_env || 'sandbox'}
+                    onChange={e => updateField('feexpay_env', e.target.value as 'sandbox' | 'live')}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  >
+                    <option value="sandbox">Sandbox</option>
+                    <option value="live">Live</option>
+                  </select>
+                </div>
+                <div className="flex-1 bg-emerald-50/40 rounded-xl p-3 border border-emerald-100">
+                  <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-tight mb-1">Endpoint API</p>
+                  <p className="text-xs text-gray-600 font-mono">https://api-v2.feexpay.me</p>
+                </div>
+              </div>
+              <div className="md:col-span-2 bg-white rounded-xl p-3 border border-gray-100">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-tight mb-1">Webhook</p>
+                <p className="text-xs text-gray-600 font-mono break-all">https://votre-domaine.com/api/feexpay/webhook</p>
               </div>
             </div>
           </div>

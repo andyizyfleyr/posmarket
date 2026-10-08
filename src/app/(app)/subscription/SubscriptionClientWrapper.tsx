@@ -5,6 +5,7 @@ import { SubscriptionView } from '@/views/SubscriptionView';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
+import { useFeexpay } from '@/hooks/useFeexpay';
 import { TransactionResultModal, TransactionModalData } from '@/components/TransactionResultModal';
 import { UserSubscription, SubscriptionDuration, SubscriptionTier, StaffRole } from '@/types';
 import { confirmKkiapayPaymentAction } from '@/app/actions/subscription';
@@ -18,6 +19,9 @@ interface SubscriptionClientWrapperProps {
   kkiapayEnv?: 'sandbox' | 'live';
   fedapayPublicKey?: string;
   fedapayEnv?: 'sandbox' | 'live';
+  feexpayShopId?: string;
+  feexpayApiKey?: string;
+  feexpayEnv?: 'sandbox' | 'live';
   paymentProvider?: 'kkiapay' | 'fedapay' | 'feexpay';
   userName?: string;
   userEmail?: string;
@@ -36,6 +40,9 @@ export default function SubscriptionClientWrapper({
   kkiapayEnv = 'sandbox',
   fedapayPublicKey,
   fedapayEnv = 'sandbox',
+  feexpayShopId = '',
+  feexpayApiKey = '',
+  feexpayEnv = 'sandbox',
   paymentProvider = 'kkiapay',
   userName = '',
   userEmail = '',
@@ -46,6 +53,7 @@ export default function SubscriptionClientWrapper({
   const router = useRouter();
   const { ready: kkiapayReady, openWidget: openKkiapay } = useKkiapay();
   const { ready: fedapayReady, openWidget: openFedapay } = useFedapay();
+  const { ready: feexpayReady, openWidget: openFeexpay } = useFeexpay();
 
   const [modalData, setModalData] = useState<TransactionModalData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -127,7 +135,128 @@ export default function SubscriptionClientWrapper({
       return { success: false };
     }
 
-    if (paymentProvider === 'fedapay') {
+    if (paymentProvider === 'feexpay') {
+      if (!feexpayShopId || !feexpayApiKey) {
+        setModalData({
+          status: 'error',
+          title: 'Configuration Manquante',
+          message: 'Le paiement FeexPay n\'est pas configuré par l\'administrateur.',
+          tier,
+          duration,
+          amount: res.amount,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
+        return { success: false };
+      }
+      if (!feexpayReady) {
+        setModalData({
+          status: 'error',
+          title: 'Module en Chargement',
+          message: 'Le module de paiement FeexPay est encore en cours de chargement. Veuillez patienter un instant et réessayer.',
+          tier,
+          duration,
+          amount: res.amount,
+          date: new Date(),
+        });
+        setIsModalOpen(true);
+        return { success: false };
+      }
+
+      openFeexpay({
+        shopId: feexpayShopId,
+        token: feexpayApiKey,
+        amount: res.amount,
+        mode: feexpayEnv === 'live' ? 'LIVE' : 'SANDBOX',
+        description: `Abonnement ${tier} - ${duration}`,
+        callbackInfo: res.transactionId!,
+        onSuccess: async (r) => {
+          try {
+            const fRef = String(r.reference || r.transaction_id || '').trim();
+            if (!fRef) {
+              setModalData({
+                status: 'error',
+                title: 'Référence Introuvable',
+                message: 'Impossible de récupérer l\'identifiant de transaction FeexPay.',
+                amount: res.amount,
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                provider: 'feexpay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
+              return;
+            }
+
+            const confirm = await onConfirmPayment(res.transactionId!, fRef);
+            if (confirm.success) {
+              setModalData({
+                status: 'success',
+                title: 'Paiement Réussi !',
+                message: `Votre abonnement ${tier} (${duration === 'annual' ? 'Annuel' : duration === 'quarterly' ? 'Trimestriel' : 'Mensuel'}) est désormais actif.`,
+                amount: res.amount,
+                currency: 'FCFA',
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                reference: fRef,
+                provider: 'feexpay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
+              router.refresh();
+            } else {
+              setModalData({
+                status: 'error',
+                title: 'Paiement Non Confirmé',
+                message: confirm.error || 'Le paiement n\'a pas pu être validé par FeexPay.',
+                amount: res.amount,
+                currency: 'FCFA',
+                tier,
+                duration,
+                transactionId: res.transactionId,
+                reference: fRef,
+                provider: 'feexpay',
+                date: new Date(),
+              });
+              setIsModalOpen(true);
+              router.refresh();
+            }
+          } catch (err) {
+            console.error('[FeexPay onConfirmPayment] Error:', err);
+            setModalData({
+              status: 'error',
+              title: 'Erreur de Confirmation',
+              message: 'Une erreur est survenue lors de la validation de votre paiement.',
+              amount: res.amount,
+              tier,
+              duration,
+              transactionId: res.transactionId,
+              provider: 'feexpay',
+              date: new Date(),
+            });
+            setIsModalOpen(true);
+          }
+        },
+        onFailed: (err?: unknown) => {
+          const e = err as { reason?: string; message?: string } | undefined;
+          const dismissed = e?.reason === 'dismissed';
+          setModalData({
+            status: dismissed ? 'cancelled' : 'error',
+            title: dismissed ? 'Paiement Annulé' : 'Paiement Non Abouti',
+            message: e?.message || (dismissed ? 'Vous avez fermé le guichet de paiement sans finaliser la transaction.' : 'La transaction a été refusée ou interrompue.'),
+            amount: res.amount,
+            tier,
+            duration,
+            transactionId: res.transactionId,
+            provider: 'feexpay',
+            date: new Date(),
+          });
+          setIsModalOpen(true);
+        },
+      });
+    } else if (paymentProvider === 'fedapay') {
       if (!fedapayPublicKey) {
         setModalData({
           status: 'error',
@@ -374,7 +503,7 @@ export default function SubscriptionClientWrapper({
     }
 
     return { success: true };
-  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router]);
+  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, feexpayShopId, feexpayApiKey, feexpayEnv, feexpayReady, openFeexpay, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router]);
 
   return (
     <>

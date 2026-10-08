@@ -1,7 +1,11 @@
 import crypto from 'node:crypto';
 
-export const FEEXPAY_ENV: 'sandbox' | 'live' = 'sandbox';
-export let FEEXPAY_API_BASE = 'https://api-sandbox-v2.feexpay.me';
+export type FeexpayEnv = 'sandbox' | 'live';
+
+export let FEEXPAY_ENV: FeexpayEnv = 'sandbox';
+// Le SDK officiel (JS + PHP) pointe toujours vers api-v2.feexpay.me :
+// le mode (LIVE / SANDBOX) est transmis dans la requête, pas dans l'hôte.
+export const FEEXPAY_API_BASE = 'https://api-v2.feexpay.me';
 
 export let FEEXPAY_SHOP_ID = '';
 export let FEEXPAY_API_KEY = '';
@@ -13,31 +17,51 @@ export function initFeexpayConfig(config: {
   apiKey?: string;
   secretKey?: string;
   webhookSecret?: string;
-  env?: 'sandbox' | 'live';
+  env?: FeexpayEnv;
 }) {
   FEEXPAY_SHOP_ID = config.shopId?.trim() || '';
   FEEXPAY_API_KEY = config.apiKey?.trim() || '';
   FEEXPAY_SECRET_KEY = config.secretKey?.trim() || '';
   FEEXPAY_WEBHOOK_SECRET = config.webhookSecret?.trim() || '';
-  FEEXPAY_API_BASE = FEEXPAY_ENV === 'live' ? 'https://api-v2.feexpay.me' : 'https://api-sandbox-v2.feexpay.me';
+  FEEXPAY_ENV = config.env === 'live' ? 'live' : 'sandbox';
 }
 
 export function feexpayConfigured(): boolean {
   return Boolean(FEEXPAY_SHOP_ID && FEEXPAY_API_KEY);
 }
 
+/** Reconnu comme « paiement abouti » quel que soit le libellé renvoyé par FeexPay. */
+export function isFeexpayApprovedStatus(status: string): boolean {
+  const s = String(status || '').trim().toLowerCase();
+  return ['successful', 'success', 'approved', 'completed', 'paid', 'transferred', 'accepted'].includes(s);
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+/**
+ * FeexPay n'expose pas (doc REST) de format de signature unique : on accepte
+ * le HMAC SHA-256 de la clé secrète webhooks ainsi que le hash SHA-256 brut
+ * du payload, schémas employés par leurs SDKs.
+ */
 export function verifyFeexpayWebhookSignature(payloadRaw: string, signatureHeader: string | null): boolean {
-  if (!FEEXPAY_WEBHOOK_SECRET) return false;
   if (!signatureHeader) return false;
-  try {
+  const header = String(signatureHeader).trim();
+  if (!header) return false;
+
+  const sha256 = crypto.createHash('sha256').update(payloadRaw).digest('hex');
+  if (safeEqual(header, sha256)) return true;
+
+  if (FEEXPAY_WEBHOOK_SECRET) {
     const hmac = crypto.createHmac('sha256', FEEXPAY_WEBHOOK_SECRET).update(payloadRaw).digest('hex');
-    const expected = Buffer.from(hmac);
-    const received = Buffer.from(String(signatureHeader));
-    if (expected.length !== received.length) return false;
-    return crypto.timingSafeEqual(expected, received);
-  } catch {
-    return false;
+    if (safeEqual(header, hmac)) return true;
+    if (safeEqual(header, FEEXPAY_WEBHOOK_SECRET)) return true;
   }
+  return false;
 }
 
 export interface FeexpayTransactionStatus {
@@ -46,52 +70,59 @@ export interface FeexpayTransactionStatus {
   status: string;
   amount: number;
   currency?: string;
-  partnerId?: string;
+  phoneNumber?: string;
   [key: string]: unknown;
 }
 
-export async function verifyFeexpayTransaction(transactionId: string): Promise<FeexpayTransactionStatus> {
+/**
+ * Statut d'une transaction via l'endpoint public v2 :
+ * GET /api/transactions/public/single/status/{reference} (auth Bearer).
+ */
+export async function verifyFeexpayTransaction(reference: string): Promise<FeexpayTransactionStatus> {
   if (!feexpayConfigured()) {
     throw new Error('Clés API FeexPay non configurées');
   }
-  const id = String(transactionId || '').trim();
-  if (!id) {
-    throw new Error('Identifiant de transaction FeexPay manquant');
+  const ref = String(reference || '').trim();
+  if (!ref) {
+    throw new Error('Référence de transaction FeexPay manquante');
   }
 
-  const res = await fetch(`${FEEXPAY_API_BASE}/transactions/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${FEEXPAY_API_BASE}/api/transactions/public/single/status/${encodeURIComponent(ref)}`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': FEEXPAY_API_KEY,
-      ...(FEEXPAY_SECRET_KEY ? { 'X-SECRET-KEY': FEEXPAY_SECRET_KEY } : {}),
-      ...(FEEXPAY_SHOP_ID ? { 'X-SHOP-ID': FEEXPAY_SHOP_ID } : {}),
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${FEEXPAY_API_KEY}`,
     },
+    cache: 'no-store',
   });
 
   const text = await res.text();
-  let body: unknown = null;
+  let body: Record<string, unknown> | null = null;
   try {
-    body = text ? JSON.parse(text) : null;
+    body = text ? (JSON.parse(text) as Record<string, unknown>) : null;
   } catch {
     body = null;
   }
+
   if (!res.ok) {
-    const reason = (body as { message?: string; reason?: string })?.message || (body as { message?: string; reason?: string })?.reason || text || `HTTP ${res.status}`;
+    const reason =
+      (body as { message?: string; reason?: string } | null)?.message ||
+      (body as { message?: string; reason?: string } | null)?.reason ||
+      text ||
+      `HTTP ${res.status}`;
     throw new Error(`FeexPay API ${res.status} : ${reason}`);
   }
 
-  const raw = (body as Record<string, unknown>) || {};
-  const txObj = (raw['transaction'] || raw['data'] || raw) as Record<string, unknown>;
-  const status = String(txObj?.status || raw?.status || '').toLowerCase();
+  const raw = body || {};
+  const data = (raw.transaction || raw.data || raw) as Record<string, unknown>;
 
   return {
-    transactionId: String(txObj?.transactionId || txObj?.reference || id),
-    reference: String(txObj?.reference || txObj?.externalId || id),
-    status,
-    amount: Number(txObj?.amount ?? raw?.amount ?? 0),
-    currency: String(txObj?.currency || raw?.currency || 'XOF'),
-    partnerId: String(txObj?.partnerId || txObj?.callbackInfo || txObj?.orderId || ''),
-    ...(txObj),
+    transactionId: String(data.transactionId || data.id || ref),
+    reference: String(data.reference || ref),
+    status: String(data.status || raw.status || '').toLowerCase(),
+    amount: Number(data.amount ?? raw.amount ?? 0),
+    currency: String(data.currency || raw.currency || 'XOF'),
+    phoneNumber: String(data.phoneNumber || data.phone_number || ''),
+    ...(data),
   } as FeexpayTransactionStatus;
 }

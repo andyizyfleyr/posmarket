@@ -1,6 +1,6 @@
 import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
-import { updateSubscriptionAction, createSubscriptionPaymentAction, confirmKkiapayPaymentAction, confirmFedapayPaymentAction } from '@/app/actions/subscription';
+import { updateSubscriptionAction, createSubscriptionPaymentAction, confirmKkiapayPaymentAction, confirmFedapayPaymentAction, confirmFeexpayPaymentAction } from '@/app/actions/subscription';
 import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
@@ -45,11 +45,20 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       userRole={profile?.is_super_admin ? 'SUPER_ADMIN' : 'OWNER'}
       onUpdateSubscription={updateSubscriptionAction}
       onCreatePayment={createSubscriptionPaymentAction}
-      onConfirmPayment={config.provider === 'fedapay' ? confirmFedapayPaymentAction : confirmKkiapayPaymentAction}
+      onConfirmPayment={
+        config.provider === 'feexpay'
+          ? confirmFeexpayPaymentAction
+          : config.provider === 'fedapay'
+            ? confirmFedapayPaymentAction
+            : confirmKkiapayPaymentAction
+      }
       kkiapayPublicKey={config.kkiapayPublicKey || ''}
       kkiapayEnv={config.kkiapayEnv || 'sandbox'}
       fedapayPublicKey={config.fedapayPublicKey || ''}
       fedapayEnv={config.fedapayEnv || 'sandbox'}
+      feexpayShopId={config.feexpayShopId || ''}
+      feexpayApiKey={config.feexpayApiKey || ''}
+      feexpayEnv={config.feexpayEnv || 'sandbox'}
       paymentProvider={config.provider}
       userName={profile?.full_name ? String(profile.full_name) : ''}
       userEmail={String(profile?.email ?? session.user.email ?? '')}

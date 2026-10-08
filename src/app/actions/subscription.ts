@@ -12,6 +12,7 @@ import { eq, and } from 'drizzle-orm';
 import { activateSubscription, subscriptionAmount, isPayableTier } from '@/lib/subscription';
 import { kkiapayConfigured, verifyKkiapayTransaction } from '@/lib/kkiapay';
 import { fedapayConfigured, verifyFedapayTransaction } from '@/lib/fedapay';
+import { feexpayConfigured, verifyFeexpayTransaction, isFeexpayApprovedStatus } from '@/lib/feexpay';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 
 function durationLabel(d: string): string {
@@ -59,6 +60,10 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
           if (!fedapayConfigured()) {
             return { success: false, code: 'NOT_CONFIGURED', error: 'Le paiement FedaPay n\'est pas encore configuré.' };
           }
+        } else if (config.provider === 'feexpay') {
+          if (!feexpayConfigured()) {
+            return { success: false, code: 'NOT_CONFIGURED', error: 'Le paiement FeexPay n\'est pas encore configuré.' };
+          }
         } else {
           if (!kkiapayConfigured()) {
             return { success: false, code: 'NOT_CONFIGURED', error: 'Le paiement en ligne n\'est pas encore configuré.' };
@@ -98,7 +103,7 @@ export async function confirmKkiapayPaymentAction(
     try {
         const config = await loadPaymentConfig();
         if (config.provider !== 'kkiapay') {
-            return { success: false, error: 'Le fournisseur de paiement actif est FedaPay, non Kkiapay.' };
+            return { success: false, error: 'Le fournisseur de paiement actif n\'est pas Kkiapay.' };
         }
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -172,7 +177,7 @@ export async function confirmFedapayPaymentAction(
     try {
         const config = await loadPaymentConfig();
         if (config.provider !== 'fedapay') {
-            return { success: false, error: 'Le fournisseur de paiement actif est Kkiapay, non FedaPay.' };
+            return { success: false, error: 'Le fournisseur de paiement actif n\'est pas FedaPay.' };
         }
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -250,6 +255,91 @@ export async function confirmFedapayPaymentAction(
         return { success: true, message: 'Paiement FedaPay vérifié. Abonnement activé.' };
     } catch (error: unknown) {
         console.error('Error confirming FedaPay payment:', error);
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+}
+
+export async function confirmFeexpayPaymentAction(
+    transactionId: string,
+    feexpayReference: string,
+) {
+    try {
+        const config = await loadPaymentConfig();
+        if (config.provider !== 'feexpay') {
+            return { success: false, error: 'Le fournisseur de paiement actif n\'est pas FeexPay.' };
+        }
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return { success: false, code: 'Unauthorized', error: 'Utilisateur non authentifié' };
+        }
+        if (!feexpayConfigured()) {
+            return { success: false, error: 'Le paiement FeexPay n\'est pas encore configuré.' };
+        }
+
+        const fRef = String(feexpayReference || '').trim();
+        if (!fRef) {
+            return { success: false, error: 'Référence de transaction FeexPay manquante.' };
+        }
+
+        const rows = await db
+            .select()
+            .from(subscriptionPayments)
+            .where(
+                and(
+                    eq(subscriptionPayments.transactionId, String(transactionId).trim()),
+                    eq(subscriptionPayments.userId, user.id),
+                ),
+            )
+            .limit(1);
+        const payment = rows[0];
+        if (!payment || payment.status !== 'PENDING') {
+            return { success: false, error: 'Facture introuvable ou déjà traitée.' };
+        }
+
+        const tx = await verifyFeexpayTransaction(fRef);
+        if (!isFeexpayApprovedStatus(tx.status)) {
+            return { success: false, error: `Le paiement n'a pas abouti (statut FeexPay : ${tx.status || 'inconnu'}).` };
+        }
+
+        const paidAmount = Number(tx.amount);
+        const expectedAmount = Number(payment.amount);
+        if (paidAmount && expectedAmount && Math.abs(paidAmount - expectedAmount) > 1) {
+            return { success: false, error: `Le montant payé (${paidAmount}) ne correspond pas à la facture (${expectedAmount}).` };
+        }
+
+        await db
+            .update(subscriptionPayments)
+            .set({ status: 'APPROVED', reference: fRef, updatedAt: new Date() })
+            .where(
+                and(
+                    eq(subscriptionPayments.transactionId, transactionId),
+                    eq(subscriptionPayments.status, 'PENDING'),
+                ),
+            );
+
+        await activateSubscription(
+            payment.userId,
+            payment.tier as SubscriptionTier,
+            payment.duration as SubscriptionDuration,
+        );
+
+        await notify({
+            userId: user.id,
+            phone: await getProfilePhone(user.id),
+            email: await getProfileEmail(user.id),
+            eventType: 'ABONNEMENT_ACTIVE',
+            title: 'Abonnement activé',
+            body: `Votre abonnement ${payment.tier} (${payment.duration}) a été validé avec succès via FeexPay.`,
+            templateParams: [String(payment.tier), durationLabel(payment.duration)],
+            emailData: { tier: payment.tier, duration: durationLabel(payment.duration) },
+        });
+
+        revalidatePath('/subscription');
+
+        return { success: true, message: 'Paiement FeexPay vérifié. Abonnement activé.' };
+    } catch (error: unknown) {
+        console.error('Error confirming FeexPay payment:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }
