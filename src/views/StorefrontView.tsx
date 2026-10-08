@@ -2216,7 +2216,7 @@ const WHOLESALE_FILTER = "wholesale";
       }
       return (
         <div className="mb-5 md:mb-6 -mx-4 md:mx-0">
-          <div className="bg-white rounded-[24px] overflow-hidden ring-1 ring-gray-100">
+          <div className="bg-white rounded-none md:rounded-[32px] overflow-hidden ring-1 ring-gray-100">
             <div className="h-14 md:h-24 skeleton" />
             <div className="px-4 md:px-8 pb-4">
               <div className="flex items-end gap-3 -mt-6 md:-mt-8">
@@ -2255,7 +2255,7 @@ const WHOLESALE_FILTER = "wholesale";
       selectedStore.address || selectedStore.settings?.address || "";
     return (
       <div className="mb-5 md:mb-6 -mx-4 md:mx-0">
-        <div className="bg-white rounded-[24px] md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
+        <div className="bg-white rounded-none md:rounded-[32px] overflow-hidden shadow-sm ring-1 ring-gray-100">
           {/* Cover : bandeau de couleur de la marque, sans décor */}
           <div className="h-14 md:h-24 bg-gradient-to-r from-brand via-[#ff8a50] to-[#ffb26b]" />
 
