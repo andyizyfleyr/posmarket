@@ -72,25 +72,27 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         }}
         className="flex-grow flex flex-col cursor-pointer"
       >
-        <div className="relative aspect-square w-full overflow-hidden bg-white">
-          <ProductImage
-            src={product.image}
-            alt={product.name}
-            containerClassName="w-full h-full"
-            objectFit="cover"
-          />
+        <div className="px-1 pt-1 md:px-2 md:pt-2">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-white">
+            <ProductImage
+              src={product.image}
+              alt={product.name}
+              containerClassName="w-full h-full"
+              objectFit="cover"
+            />
 
-          {/* Badges on Image Content */}
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
-            {product.originalPrice && product.originalPrice > product.price && (
-              <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest shadow-md">
-                -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-              </div>
-            )}
+            {/* Badges on Image Content */}
+            <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5 pointer-events-none">
+              {product.originalPrice && product.originalPrice > product.price && (
+                <div className="bg-red-500 text-white px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest shadow-md">
+                  -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                </div>
+              )}
+            </div>
+
+            {/* Hover Gradient Overlay */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none will-change-opacity" />
           </div>
-
-          {/* Hover Gradient Overlay */}
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none will-change-opacity" />
         </div>
 
         <div className="p-1.5 md:p-2 flex flex-col flex-grow bg-white">
