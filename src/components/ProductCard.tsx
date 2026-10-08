@@ -73,13 +73,14 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         className="flex-grow flex flex-col cursor-pointer"
       >
         <div className="px-1 pt-1 md:px-2 md:pt-2">
-          <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-gray-50 border border-gray-100">
+          <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden rounded-lg md:rounded-xl bg-gray-50 p-2 md:p-3">
             <ProductImage
               src={product.image}
               alt={product.name}
               containerClassName="w-full h-full"
               objectFit="contain"
               shouldApplyAspectSquare={false}
+              className="mix-blend-multiply"
             />
 
             {/* Badges on Image Content */}
@@ -90,9 +91,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
                 </div>
               )}
             </div>
-
-            {/* Hover Gradient Overlay */}
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 pointer-events-none will-change-opacity" />
           </div>
         </div>
 
