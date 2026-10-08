@@ -3605,7 +3605,7 @@ const WHOLESALE_FILTER = "wholesale";
                               )}
                               {/* 6 produits par defaut, 2 par ligne ; « Voir tout »
                                   deploye le reste de la section sur place. */}
-                              <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                              <div className="grid grid-cols-2 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                                 {sectionItems.map(renderCard)}
                               </div>
                             </div>
@@ -3769,7 +3769,7 @@ const WHOLESALE_FILTER = "wholesale";
                       {pagedProducts.length > 0 ? (
                         activeStoreCategory ? (
                           /* Full category grid */
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                             {pagedProducts.map((product) => (
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
@@ -3877,7 +3877,7 @@ const WHOLESALE_FILTER = "wholesale";
                                     </button>
                                   </div>
                                 )}
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5 md:gap-6">
                                   {sectionItems.map(renderCard)}
                                 </div>
                               </div>
