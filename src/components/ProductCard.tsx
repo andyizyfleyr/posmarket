@@ -72,7 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, on
         }}
         className="flex-grow flex flex-col cursor-pointer"
       >
-        <div className="relative aspect-[4/3] md:aspect-square w-full overflow-hidden bg-white">
+        <div className="relative aspect-[16/10] md:aspect-square w-full overflow-hidden bg-white">
           <ProductImage
             src={product.image}
             alt={product.name}
