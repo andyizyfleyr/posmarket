@@ -1126,10 +1126,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       const files = Array.from(e.target.files || []) as File[];
       let added = 0;
       for (const file of files) {
-        if (formData.images.length >= 4) {
-          setSubmitError("Vous ne pouvez pas ajouter plus de 4 images.");
-          break;
-        }
+if (formData.images.length >= 8) {
+  setSubmitError("Vous ne pouvez pas ajouter plus de 8 images.");
+  break;
+}
         try {
           const optimizedFile = await optimizeImage(file);
           const base64 = await fileToBase64(optimizedFile);
