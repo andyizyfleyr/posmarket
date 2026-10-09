@@ -74,6 +74,14 @@ async function requireStoreAccess(storeId: string): Promise<{ ok: true; userId: 
 }
 
 export async function saveProductAction(product: ProductInput, storeId: string) {
+  // Validate inputs
+  if (!storeId || typeof storeId !== 'string') {
+    return { success: false, error: 'Invalid store ID' };
+  }
+  if (!product || typeof product !== 'object') {
+    return { success: false, error: 'Invalid product data' };
+  }
+
   try {
     const access = await requireStoreAccess(storeId);
     if (!access.ok) return { success: false, error: access.error };
@@ -282,7 +290,19 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     return { success: true, product: safe, warnings };
   } catch (error: unknown) {
     console.error('Error saving product with Drizzle:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else {
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        errorMessage = String(error);
+      }
+    }
+    return { success: false, error: errorMessage };
   }
 }
 
