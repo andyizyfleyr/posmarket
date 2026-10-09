@@ -39,6 +39,86 @@ export type VariantLimits = {
 };
 
 /**
+ * Sanitize a value to prevent deeply nested arrays that can cause
+ * "Maximum array nesting exceeded" React errors.
+ * Ensures arrays are flat (depth 1) and objects have string values.
+ */
+export function sanitizeJsonbValue<T>(value: unknown, defaultValue: T): T {
+  if (value === null || value === undefined) return defaultValue;
+
+  if (Array.isArray(value)) {
+    const sanitized: unknown[] = [];
+    for (const item of value) {
+      if (Array.isArray(item)) {
+        sanitized.push(String(item));
+      } else if (item && typeof item === 'object') {
+        const cleanObj: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(item)) {
+          cleanObj[k] = Array.isArray(v) ? String(v) : v;
+        }
+        sanitized.push(cleanObj);
+      } else {
+        sanitized.push(item);
+      }
+    }
+    return sanitized as T;
+  }
+
+  if (value && typeof value === 'object') {
+    const cleanObj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      cleanObj[k] = Array.isArray(v) ? String(v) : v;
+    }
+    return cleanObj as T;
+  }
+
+  return value as T;
+}
+
+/**
+ * Sanitize product options to ensure flat structure.
+ */
+export function sanitizeOptions(raw: unknown): ProductOptionDef[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((opt): opt is ProductOptionDef => {
+      return opt && typeof opt === 'object' && typeof opt.name === 'string' && Array.isArray(opt.values);
+    })
+    .map((opt) => ({
+      id: String(opt.id ?? ''),
+      name: String(opt.name ?? ''),
+      values: opt.values.map((v) => String(v)).filter((v) => v.length > 0),
+    }))
+    .filter((opt) => opt.name.length > 0 && opt.values.length > 0);
+}
+
+/**
+ * Sanitize product variants to ensure flat structure.
+ */
+export function sanitizeVariants(raw: unknown): ProductVariantDef[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((var_): var_ is ProductVariantDef => {
+      return var_ && typeof var_ === 'object' && typeof var_.id === 'string' && typeof var_.name === 'string';
+    })
+    .map((var_) => ({
+      id: String(var_.id ?? ''),
+      name: String(var_.name ?? ''),
+      optionValues: var_.optionValues && typeof var_.optionValues === 'object'
+        ? Object.fromEntries(
+            Object.entries(var_.optionValues).map(([k, v]) => [k, String(v)])
+          )
+        : {},
+      price: Number(var_.price) || 0,
+      stock: Math.max(0, Math.round(Number(var_.stock) || 0)),
+      sku: var_.sku ? String(var_.sku) : undefined,
+      image: var_.image ? String(var_.image) : undefined,
+      nameCustom: Boolean(var_.nameCustom),
+      enabled: var_.enabled !== false,
+    }));
+}
+
+/**
  * Bornes par défaut. Raisonnables en perf : la génération de combinaisons est
  * bornée par `maxVariants`, donc même avec le maximum d'options le produit
  * reste exploitable.

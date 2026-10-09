@@ -6,7 +6,7 @@ import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
-import { normalizeOptions, normalizeVariants, buildVariantMatrix } from '@/utils/variants'
+import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants } from '@/utils/variants'
 import { syncProductVariants } from '@/db/variants'
 import type { ProductImportItem } from '@/utils/product-import-export'
 
@@ -274,8 +274,8 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       wholesaleMinQty: savedProduct.wholesaleMinQty,
       wholesaleTiers: (savedProduct.wholesaleTiers as Array<{ minQty: number; price: number }>) || [],
       businessType: savedProduct.businessType,
-      options: savedProduct.options || [],
-      variants: savedProduct.variants || [],
+      options: sanitizeOptions(savedProduct.options),
+      variants: sanitizeVariants(savedProduct.variants),
       createdAt: savedProduct.createdAt?.toISOString?.() || null,
     };
 
