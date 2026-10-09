@@ -1117,31 +1117,40 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             <Plus size={18} strokeWidth={2.5} />
                           </div>
                           <span className="text-[9px] font-bold text-orange-950 mt-1.5 uppercase tracking-tight">Ajouter</span>
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const files = Array.from(e.target.files || []) as File[];
-                              for (const file of files) {
-                                try {
-                                  const optimizedFile = await optimizeImage(file);
-                                  const base64 = await fileToBase64(optimizedFile);
-                                  setFormData(prev => {
-                                    const newImages = [...prev.images, base64];
-                                    return {
-                                      ...prev,
-                                      images: newImages,
-                                      image: prev.image || newImages[0]
-                                    };
-                                  });
-                                } catch (err) {
-                                  console.error("Erreur lors de l'optimisation:", err);
-                                }
-                              }
-                            }}
-                          />
+<input
+    type="file"
+    multiple
+    accept="image/*"
+    className="hidden"
+    onChange={async (e) => {
+      const files = Array.from(e.target.files || []) as File[];
+      let added = 0;
+      for (const file of files) {
+        if (formData.images.length >= 4) {
+          setSubmitError("Vous ne pouvez pas ajouter plus de 4 images.");
+          break;
+        }
+        try {
+          const optimizedFile = await optimizeImage(file);
+          const base64 = await fileToBase64(optimizedFile);
+          setFormData(prev => {
+            const newImages = [...prev.images, base64];
+            return {
+              ...prev,
+              images: newImages,
+              image: prev.image || newImages[0]
+            };
+          });
+          added++;
+        } catch (err) {
+          console.error("Erreur lors de l'optimisation:", err);
+        }
+      }
+      if (added > 0) {
+        setSubmitError(null);
+      }
+    }}
+  />
                         </label>
                       </div>
                       <p className="text-[10px] text-gray-500 font-medium flex items-center gap-1.5 pt-1">
