@@ -119,6 +119,38 @@ export function sanitizeVariants(raw: unknown): ProductVariantDef[] {
 }
 
 /**
+ * Sanitize a string array to ensure it's flat and contains only strings.
+ */
+export function sanitizeStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+/**
+ * Sanitize wholesale tiers to ensure it's flat array of objects with minQty:number and price:number.
+ */
+export function sanitizeWholesaleTiers(raw: unknown): Array<{ minQty: number; price: number }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((tier): tier is { minQty: number; price: number } => {
+      return (
+        tier &&
+        typeof tier === 'object' &&
+        typeof tier.minQty === 'number' &&
+        typeof tier.price === 'number'
+      );
+    })
+    .map((tier) => ({
+      minQty: Number(tier.minQty),
+      price: Number(tier.price),
+    }))
+    .filter((tier) => tier.minQty >= 0 && tier.price >= 0);
+}
+
+/**
  * Bornes par défaut. Raisonnables en perf : la génération de combinaisons est
  * bornée par `maxVariants`, donc même avec le maximum d'options le produit
  * reste exploitable.

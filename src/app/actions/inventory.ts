@@ -6,7 +6,7 @@ import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
-import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants } from '@/utils/variants'
+import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants, sanitizeStringArray, sanitizeWholesaleTiers } from '@/utils/variants'
 import { syncProductVariants } from '@/db/variants'
 import type { ProductImportItem } from '@/utils/product-import-export'
 
@@ -263,7 +263,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       category: savedProduct.category,
       mainCategory: savedProduct.mainCategory,
       image: savedProduct.image,
-      images: (savedProduct.images as string[]) || [],
+      images: sanitizeStringArray(savedProduct.images),
       unit: savedProduct.unit || undefined,
       deliveryTime: savedProduct.deliveryTime || undefined,
       preparationTime: savedProduct.preparationTime || undefined,
@@ -272,7 +272,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       views: Number(savedProduct.views) || 0,
       wholesalePrice: savedProduct.wholesalePrice ? Number(savedProduct.wholesalePrice) : null,
       wholesaleMinQty: savedProduct.wholesaleMinQty,
-      wholesaleTiers: (savedProduct.wholesaleTiers as Array<{ minQty: number; price: number }>) || [],
+      wholesaleTiers: sanitizeWholesaleTiers(savedProduct.wholesaleTiers),
       businessType: savedProduct.businessType,
       options: sanitizeOptions(savedProduct.options),
       variants: sanitizeVariants(savedProduct.variants),
@@ -403,8 +403,10 @@ export async function getProductsAction(
           wholesaleMinQty: p.wholesaleMinQty,
           mainCategory: p.mainCategory,
           businessType: p.businessType,
-          options,
-          variants: options.length > 0 ? normalizeVariants(p.variants, options) : []
+          options: sanitizeOptions(options),
+          variants: options.length > 0 ? sanitizeVariants(normalizeVariants(p.variants, options)) : [],
+          images: sanitizeStringArray(p.images),
+          wholesaleTiers: sanitizeWholesaleTiers(p.wholesaleTiers)
         };
       }),
       hasMore: total > (offset + productsList.length),
