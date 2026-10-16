@@ -2113,6 +2113,8 @@ const WHOLESALE_FILTER = "wholesale";
     });
   };
 
+  const handleCardAddToCart = (p: Product) => addToCart(p as StorefrontProduct);
+
   const handleCardBuyNow = (p: Product) => buyNow(p as StorefrontProduct);
 
   const addWholesaleToCart = (
@@ -2854,6 +2856,7 @@ const WHOLESALE_FILTER = "wholesale";
       selectedProductId={product?.id || null}
       showAllProductReviews={showAllProductReviews}
       setShowAllProductReviews={setShowAllProductReviews}
+      handleCardAddToCart={handleCardAddToCart}
       handleCardBuyNow={handleCardBuyNow}
       warmProduct={warmProduct}
       safeNavigate={safeNavigate}
@@ -3450,6 +3453,7 @@ const WHOLESALE_FILTER = "wholesale";
                                 )
                               }
                               onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                              onAddToCart={handleCardAddToCart}
                             />
                           </div>
                         ))
@@ -3904,6 +3908,7 @@ const WHOLESALE_FILTER = "wholesale";
                                     )
                                   }
                                   onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                                  onAddToCart={handleCardAddToCart}
                                   className="w-full"
                                 />
                             ))}
@@ -3959,6 +3964,7 @@ const WHOLESALE_FILTER = "wholesale";
                                 )
                               }
                               onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                              onAddToCart={handleCardAddToCart}
                               className="w-full"
                             />
                           );
@@ -4216,6 +4222,7 @@ const WHOLESALE_FILTER = "wholesale";
                                   )
                                 }
                                 onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                                onAddToCart={handleCardAddToCart}
                                 className="w-full"
                               />
                             ))}
@@ -4254,6 +4261,7 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
+                                onAddToCart={handleCardAddToCart}
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,
@@ -4942,6 +4950,7 @@ const WHOLESALE_FILTER = "wholesale";
                 <ProductCard
                   key={`${product.storeId}-${product.id}`}
                   product={product}
+                  onAddToCart={handleCardAddToCart}
                   onClick={() =>
                     safeNavigate(
                       `/product/${generateProductSlug(product)}`,

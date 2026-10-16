@@ -64,6 +64,7 @@ type ProductDetailsProps = {
   selectedProductId: string | null;
   showAllProductReviews: boolean;
   setShowAllProductReviews: React.Dispatch<React.SetStateAction<boolean>>;
+  handleCardAddToCart: (product: Product) => void;
   handleCardBuyNow: (product: Product) => void;
   warmProduct: (product: { id: string; image?: string }) => void;
   safeNavigate: (path: string, options?: { action?: () => void }) => void;
@@ -708,6 +709,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     selectedProductId,
     showAllProductReviews,
     setShowAllProductReviews,
+    handleCardAddToCart,
     warmProduct,
     safeNavigate,
     setSelectedCategory,
@@ -2061,6 +2063,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 <ProductCard
                   key={`${relProduct.storeId}-${relProduct.id}`}
                   product={relProduct}
+                  onAddToCart={handleCardAddToCart}
                   onClick={() =>
                     safeNavigate(`/product/${generateProductSlug(relProduct)}`)
                   }

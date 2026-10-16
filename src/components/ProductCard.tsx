@@ -1,20 +1,59 @@
 'use client';
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Product } from '@/types';
-import { Eye } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils';
 import ProductImage from './ProductImage';
+import Loader from './Loader';
 import { generateProductSlug } from '@/utils/slug';
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart: (product: Product) => void;
   onClick?: () => void;
   onPrefetch?: () => void;
   className?: string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo(({ product, onClick, onPrefetch, className = "" }) => {
+// Champs optionnels utilisés par la carte côté marketplace
+interface CardProductExtras {
+  stock?: number | null;
+  options?: unknown[];
+}
+
+const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onClick, onPrefetch, className = "" }) => {
+  const extras = product as CardProductExtras;
+  const hasOptions = Array.isArray(extras.options) && extras.options.length > 0;
+  const isOutOfStock = extras.stock === 0;
+  const [adding, setAdding] = useState(false);
+  const addingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (addingTimerRef.current) clearTimeout(addingTimerRef.current);
+    };
+  }, []);
+
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const current = product as CardProductExtras;
+    // Produit en rupture : on n'ajoute rien
+    if (current.stock === 0) return;
+    // Produit à options obligatoires : la fiche produit permet de choisir
+    if (Array.isArray(current.options) && current.options.length > 0) {
+      onClick?.();
+      return;
+    }
+    setAdding(true);
+    // Le panier se met à jour de façon synchrone ; le bref spinner confirme
+    // que le tap a bien été pris en compte (latence réseau perçue).
+    if (addingTimerRef.current) clearTimeout(addingTimerRef.current);
+    addingTimerRef.current = setTimeout(() => setAdding(false), 600);
+    onAddToCart(product);
+  }, [product, onAddToCart, onClick]);
+
   const handleClick = useCallback(() => {
     onClick?.();
   }, [onClick]);
@@ -91,6 +130,23 @@ const ProductCard: React.FC<ProductCardProps> = memo(({ product, onClick, onPref
           </div>
         </div>
       </a>
+
+      <div className="px-1.5 md:px-2 pb-1.5 md:pb-2 bg-white">
+        <button
+          onClick={handleAddToCart}
+          disabled={isOutOfStock || adding}
+          aria-label={isOutOfStock ? "Rupture de stock" : hasOptions ? "Choisir les options" : `Ajouter ${product.name} au panier`}
+          className={`w-full min-h-[36px] py-2.5 rounded-lg flex items-center justify-center gap-1.5 text-[9px] md:text-[10px] font-bold transition-all duration-200 border active:scale-95 whitespace-nowrap tracking-tight ${
+            isOutOfStock
+              ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+              : "bg-gray-50 text-gray-900 hover:bg-brand hover:text-white hover:border-brand border-gray-100"
+          }`}
+        >
+          {adding ? (
+            <Loader size="sm" color="text-brand" className="!w-4 !h-4" />
+          ) : isOutOfStock ? "Rupture" : hasOptions ? "Choisir" : <><Plus size={12} /> Ajouter</>}
+        </button>
+      </div>
     </div >
   );
 });
