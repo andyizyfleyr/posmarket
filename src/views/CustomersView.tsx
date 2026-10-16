@@ -34,12 +34,13 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   const [offset, setOffset] = useState(initialCustomers?.length || 0);
   const [hasMore, setHasMore] = useState((initialCustomers?.length || 0) === 10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [activeSegment, setActiveSegment] = useState<'all' | 'vip' | 'inactive'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Customer; direction: 'asc' | 'desc' }>({
     key: 'totalSpent',
     direction: 'desc'
@@ -63,11 +64,19 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
         if (currentStoreId) {
-            const res = await getCustomersAction(currentStoreId, 0, 10, searchTerm);
-            if (res.success && res.customers) {
-                setLocalCustomers(res.customers as unknown as Customer[]);
-                setOffset(res.customers.length);
-                setHasMore(res.hasMore || false);
+            setIsSearching(true);
+            try {
+                const res = await getCustomersAction(currentStoreId, 0, 10, searchTerm);
+                if (res.success && res.customers) {
+                    setLocalCustomers(res.customers as unknown as Customer[]);
+                    setOffset(res.customers.length);
+                    setHasMore(res.hasMore || false);
+                }
+            } catch (err) {
+                console.error('Error searching customers:', err);
+                showToast('Erreur lors de la recherche', 'error');
+            } finally {
+                setIsSearching(false);
             }
         }
     }, 500);
@@ -85,13 +94,19 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore || !currentStoreId) return;
     setIsLoadingMore(true);
-    const res = await getCustomersAction(currentStoreId, offset, 10, searchTerm);
-    if (res.success && res.customers) {
-        setLocalCustomers(prev => [...prev, ...(res.customers as unknown as Customer[])]);
-        setOffset(prev => prev + (res.customers?.length || 0));
-        setHasMore(res.hasMore || false);
+    try {
+      const res = await getCustomersAction(currentStoreId, offset, 10, searchTerm);
+      if (res.success && res.customers) {
+          setLocalCustomers(prev => [...prev, ...(res.customers as unknown as Customer[])]);
+          setOffset(prev => prev + (res.customers?.length || 0));
+          setHasMore(res.hasMore || false);
+      }
+    } catch (err) {
+      console.error('Error loading more customers:', err);
+      showToast('Erreur lors du chargement', 'error');
+    } finally {
+      setIsLoadingMore(false);
     }
-    setIsLoadingMore(false);
   };
 
   const isSeller = userRole === 'SELLER';
@@ -267,6 +282,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const customerData = editingCustomer ? { ...editingCustomer, ...formData } : formData;
       const dbCustomer = {
@@ -376,6 +392,9 @@ const CustomersView: React.FC<CustomersViewProps> = ({
         <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between gap-4">
           <div className="relative max-w-md flex-grow">
             <Search size={16} className="absolute left-3 top-2.5 md:top-3 text-gray-400 md:w-[18px] md:h-[18px]" />
+            {isSearching && (
+              <Loader2 size={16} className="absolute right-3 top-2.5 md:top-3 animate-spin text-brand" />
+            )}
             <input
               type="text"
               value={searchTerm}
@@ -569,8 +588,17 @@ const CustomersView: React.FC<CustomersViewProps> = ({
           )}
           {filteredCustomers.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
-              <Users size={64} className="opacity-10" />
-              <p className="font-normal">Aucun client trouvé</p>
+              {isSearching ? (
+                <>
+                  <Loader2 size={48} className="animate-spin text-brand opacity-70" />
+                  <p className="font-normal">Recherche en cours…</p>
+                </>
+              ) : (
+                <>
+                  <Users size={64} className="opacity-10" />
+                  <p className="font-normal">Aucun client trouvé</p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -619,9 +647,11 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow py-2.5 md:py-4 bg-brand text-white font-bold rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap"
+                  disabled={isSubmitting}
+                  className="flex-grow py-2.5 md:py-4 bg-brand text-white font-bold rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2"
                 >
-                  {editingCustomer ? 'Actualiser' : 'Enregistrer'}
+                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                  {isSubmitting ? 'Enregistrement...' : (editingCustomer ? 'Actualiser' : 'Enregistrer')}
                 </button>
               </div>
             </form>

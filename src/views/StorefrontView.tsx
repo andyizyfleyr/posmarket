@@ -264,6 +264,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }>({ allowed: true, countryCode: null, countryName: null });
   const [ftsResults, setFtsResults] = useState<StorefrontProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  // Vrai dès la frappe (debounce inclus) jusqu'à la réponse serveur : sert à
+  // afficher des squelettes au lieu d'un écran vide ou d'un faux « aucun résultat ».
+  const [isSearchPending, setIsSearchPending] = useState(false);
   const [cachedStores, setCachedStores] = useState<StoreData[]>([]);
   const [productSwipeIdx, setProductSwipeIdx] = useState(0);
 
@@ -382,8 +385,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
     if (!normalized || normalized.length < 2) {
       setFtsResults([]);
+      setIsSearching(false);
+      setIsSearchPending(false);
+      setShowSuggestions(false);
       return;
     }
+
+    // La recherche est « en cours » dès la frappe : on affiche des squelettes
+    // au lieu de laisser l'écran vide (ou d'afficher un faux « aucun résultat »)
+    // pendant le debounce + l'aller-retour serveur.
+    setIsSearchPending(true);
+    setFtsResults([]);
 
     // Clear the client-side cache so results come exclusively from the server.
     // This prevents stale cached products from leaking into the search display.
@@ -420,6 +432,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       } finally {
         if (!aborted) {
           setIsSearching(false);
+          setIsSearchPending(false);
         }
       }
     }, 150);
@@ -1487,6 +1500,10 @@ const WHOLESALE_FILTER = "wholesale";
     selectedStoreId,
   ]);
 
+  // Un terme de recherche « actif » est un terme d'au moins 2 caractères :
+  // c'est la condition utilisée par le moteur de recherche serveur.
+  const searchActive = searchTerm.trim().replace(/\s+/g, ' ').length >= 2;
+
   // First batch computed synchronously on server AND client (identical output
   // => products are present in the SSR HTML, hydration-safe).
   const [pagedProducts, setPagedProducts] = useState<StorefrontProduct[]>(() =>
@@ -1574,6 +1591,16 @@ const WHOLESALE_FILTER = "wholesale";
     location.pathname,
     loadPagedProducts,
   ]);
+
+  // Synchronisation des résultats de recherche : la pagination ne se recalcule
+  // qu'au changement de filtre, or la réponse serveur arrive après coup. Sans
+  // cet effet, l'écran restait vide (ou affichait les résultats de la recherche
+  // précédente) une fois les données reçues.
+  useEffect(() => {
+    if (ftsResults && searchTerm.trim().replace(/\s+/g, ' ').length >= 2) {
+      loadPagedProducts(true);
+    }
+  }, [ftsResults, searchTerm, loadPagedProducts]);
 
   // Rattrapage : si la liste vient d'arriver alors que la page affichée est
   // vide (ex: premier chargement sans cache), on charge le premier lot.
@@ -3444,7 +3471,20 @@ const WHOLESALE_FILTER = "wholesale";
                 )}
 
                 {/* Grid (Grouped by Category if no search) */}
-                {pagedProducts.length > 0 ? (
+                {searchActive && pagedProducts.length === 0 && (isSearchPending || filteredProducts.length > 0) ? (
+                  /* Recherche en cours : on montre des squelettes pour ne pas
+                     laisser un écran vide ni afficher un faux « aucun produit ». */
+                  <div
+                    className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
+                    role="status"
+                    aria-live="polite"
+                    aria-label="Recherche en cours"
+                  >
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <ProductSkeleton key={`search-skeleton-${i}`} />
+                    ))}
+                  </div>
+                ) : pagedProducts.length > 0 ? (
                   <>
                     {/* Home category page header */}
                     {!searchTerm && activeHomeCategory && (
@@ -3766,7 +3806,19 @@ const WHOLESALE_FILTER = "wholesale";
                     )}
 
                     <div className="relative space-y-7 md:space-y-12">
-                      {pagedProducts.length > 0 ? (
+                      {searchActive && pagedProducts.length === 0 && (isSearchPending || filteredProducts.length > 0) ? (
+                        /* Recherche en cours dans la boutique : squelettes. */
+                        <div
+                          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
+                          role="status"
+                          aria-live="polite"
+                          aria-label="Recherche en cours"
+                        >
+                          {Array.from({ length: 10 }).map((_, i) => (
+                            <ProductSkeleton key={`store-search-skeleton-${i}`} />
+                          ))}
+                        </div>
+                      ) : pagedProducts.length > 0 ? (
                         activeStoreCategory ? (
                           /* Full category grid */
                           <div className="grid grid-cols-2 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5 md:gap-6">

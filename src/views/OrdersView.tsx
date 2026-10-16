@@ -41,6 +41,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [isDeletingBulk, setIsDeletingBulk] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
     const [isDeletingSingle, setIsDeletingSingle] = useState(false);
+    const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+    const [bulkUpdatingStatus, setBulkUpdatingStatus] = useState<string | null>(null);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ message, type });
@@ -164,7 +166,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     const handleUpdateStatus = async (orderId: string, status?: Order['status']) => {
-        if (!status) return;
+        if (!status || updatingOrderId) return;
+        setUpdatingOrderId(orderId);
         try {
             const result = await updateOrderStatusAction(orderId, status);
             if (result.success) {
@@ -179,6 +182,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         } catch (err) {
             console.error('Error updating order status:', err);
             showToast("Erreur de mise à jour du statut", 'error');
+        } finally {
+            setUpdatingOrderId(null);
         }
     };
 
@@ -204,6 +209,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     const handleBulkUpdateStatus = async (status: string) => {
+        if (bulkUpdatingStatus) return;
+        setBulkUpdatingStatus(status);
         try {
             const result = await bulkUpdateOrderStatusAction(selectedOrderIds, status);
             if (result.success) {
@@ -216,6 +223,8 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         } catch (err) {
             console.error('Error bulk updating order status:', err);
             showToast("Erreur lors de la mise à jour groupée", 'error');
+        } finally {
+            setBulkUpdatingStatus(null);
         }
     };
 
@@ -334,25 +343,32 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         <div className="flex items-center gap-1.5 md:gap-2">
                             <button 
                                 onClick={() => handleBulkUpdateStatus('PENDING')}
-                                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap"
+                                disabled={!!bulkUpdatingStatus}
+                                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
                             >
+                                {bulkUpdatingStatus === 'PENDING' && <Loader2 size={12} className="animate-spin" />}
                                 Commandées
                             </button>
                             <button 
                                 onClick={() => handleBulkUpdateStatus('READY')}
-                                className="px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap"
+                                disabled={!!bulkUpdatingStatus}
+                                className="px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
                             >
+                                {bulkUpdatingStatus === 'READY' && <Loader2 size={12} className="animate-spin" />}
                                 En cours
                             </button>
                             <button 
                                 onClick={() => handleBulkUpdateStatus('COMPLETED')}
-                                className="px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap"
+                                disabled={!!bulkUpdatingStatus}
+                                className="px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
                             >
+                                {bulkUpdatingStatus === 'COMPLETED' && <Loader2 size={12} className="animate-spin" />}
                                 Livrées
                             </button>
                             <button 
                                 onClick={handleBulkDelete}
-                                className="px-2.5 py-1.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap flex items-center gap-1"
+                                disabled={!!bulkUpdatingStatus}
+                                className="px-2.5 py-1.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 <Trash2 size={12} /> Supprimer
                             </button>
@@ -453,13 +469,25 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         </>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center p-20 text-center gap-4">
-                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
-                                <ShoppingBag size={40} className="text-gray-200" />
-                            </div>
-                            <div>
-                                <p className="text-lg font-bold text-gray-900 leading-tight">Aucune commande trouvée</p>
-                                <p className="text-xs text-gray-500 mt-1">Ajustez vos filtres ou effectuez une nouvelle recherche.</p>
-                            </div>
+                            {isSearching ? (
+                                <>
+                                    <Loader2 size={40} className="animate-spin text-brand/70" />
+                                    <div>
+                                        <p className="text-lg font-bold text-gray-900 leading-tight">Recherche en cours…</p>
+                                        <p className="text-xs text-gray-500 mt-1">Chargement de vos commandes.</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
+                                        <ShoppingBag size={40} className="text-gray-200" />
+                                    </div>
+                                    <div>
+                                        <p className="text-lg font-bold text-gray-900 leading-tight">Aucune commande trouvée</p>
+                                        <p className="text-xs text-gray-500 mt-1">Ajustez vos filtres ou effectuez une nouvelle recherche.</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -607,7 +635,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 <AlertCircle size={16} className="md:w-[18px] md:h-[18px]" /> Fermer
                             </button>
                             <button
-                                disabled={selectedOrder.status === 'COMPLETED'}
+                                disabled={selectedOrder.status === 'COMPLETED' || updatingOrderId === selectedOrder.id}
                                 onClick={() => {
                                     const nextStatus = selectedOrder.status === 'PENDING' ? 'READY' : 'COMPLETED';
                                     handleUpdateStatus(selectedOrder.id, nextStatus as Order['status']);
@@ -621,8 +649,14 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                         : 'bg-gray-100 text-gray-400'
                                 }`}
                             >
-                                <CheckCircle2 size={16} className="md:w-[18px] md:h-[18px]" />
-                                {selectedOrder.status === 'PENDING'
+                                {updatingOrderId === selectedOrder.id ? (
+                                    <Loader2 size={16} className="animate-spin md:w-[18px] md:h-[18px]" />
+                                ) : (
+                                    <CheckCircle2 size={16} className="md:w-[18px] md:h-[18px]" />
+                                )}
+                                {updatingOrderId === selectedOrder.id
+                                    ? 'Mise à jour...'
+                                    : selectedOrder.status === 'PENDING'
                                     ? 'Passer en cours'
                                     : selectedOrder.status === 'READY'
                                     ? 'Marquer livrée'

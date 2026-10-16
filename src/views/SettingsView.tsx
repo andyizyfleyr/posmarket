@@ -311,13 +311,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     };
 
     const [staffToDelete, setStaffToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [isDeletingStaff, setIsDeletingStaff] = useState(false);
 
     const handleDeleteStaffLocal = (id: string, name?: string) => {
         setStaffToDelete({ id, name: name || "ce membre de l'équipe" });
     };
 
     const confirmDeleteStaff = async () => {
-        if (!staffToDelete) return;
+        if (!staffToDelete || isDeletingStaff) return;
+        setIsDeletingStaff(true);
         try {
             const result = await deleteStaffAction(staffToDelete.id);
             if (result.success) {
@@ -327,6 +329,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         } catch (err: unknown) {
             if (notify) notify(err instanceof Error ? err.message : 'Erreur', 'error');
         } finally {
+            setIsDeletingStaff(false);
             setStaffToDelete(null);
         }
     };
@@ -814,6 +817,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 confirmText="Supprimer"
                 cancelText="Annuler"
                 type="danger"
+                isLoading={isDeletingStaff}
             />
         </div>
     );

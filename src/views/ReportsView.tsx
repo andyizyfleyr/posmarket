@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { FileText, Calendar, Filter, ChevronRight, Printer, Download, X, CreditCard, User, CheckCircle2 } from 'lucide-react';
+import { FileText, Calendar, Filter, ChevronRight, Printer, Download, X, CreditCard, User, CheckCircle2, Loader2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Order, Customer, StoreSettings, StaffPermissions, StaffRole } from '@/types';
@@ -18,6 +18,7 @@ interface ReportsViewProps {
 
 const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -28,26 +29,33 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!receiptRef.current) return;
-    const canvas = await html2canvas(receiptRef.current, { 
-      scale: 2, 
-      logging: false,
-      useCORS: true, 
-      allowTaint: true,
-      backgroundColor: '#ffffff'
-    });
-    const imgData = canvas.toDataURL('image/png');
-    
-    const imgProps = {
-      width: canvas.width,
-      height: canvas.height
-    };
-    const pdfWidth = 80;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Recu-${selectedOrder?.id}.pdf`);
+    if (!receiptRef.current || isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const canvas = await html2canvas(receiptRef.current, { 
+        scale: 2, 
+        logging: false,
+        useCORS: true, 
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const imgProps = {
+        width: canvas.width,
+        height: canvas.height
+      };
+      const pdfWidth = 80;
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Recu-${selectedOrder?.id}.pdf`);
+    } catch (err) {
+      console.error('Error generating receipt PDF:', err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -297,9 +305,15 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                   </button>
                   <button
                     onClick={handleDownloadPDF}
-                    className="w-full py-3 md:py-4 bg-brand text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-base flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-xl shadow-orange-100 active:scale-95 transition-all whitespace-nowrap"
+                    disabled={isDownloadingPdf}
+                    className="w-full py-3 md:py-4 bg-brand text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-base flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-xl shadow-orange-100 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Download size={16} className="md:w-[18px] md:h-[18px]" /> Télécharger PDF
+                    {isDownloadingPdf ? (
+                      <Loader2 size={16} className="animate-spin md:w-[18px] md:h-[18px]" />
+                    ) : (
+                      <Download size={16} className="md:w-[18px] md:h-[18px]" />
+                    )}
+                    {isDownloadingPdf ? 'Génération...' : 'Télécharger PDF'}
                   </button>
                 </div>
               </div>

@@ -43,16 +43,32 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
     const [selectedInvoiceItems, setSelectedInvoiceItems] = useState<InvoiceItem[]>([]);
     const [loadingInvoiceItems, setLoadingInvoiceItems] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+    const [isSavingInvoice, setIsSavingInvoice] = useState(false);
     const invoiceRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (selectedInvoice) {
+            let cancelled = false;
             setLoadingInvoiceItems(true);
             setSelectedInvoiceItems(selectedInvoice.items || []);
-            fetchInvoiceItems(selectedInvoice.id).then(items => {
-                setSelectedInvoiceItems(items as unknown as InvoiceItem[]);
-                setLoadingInvoiceItems(false);
-            });
+            fetchInvoiceItems(selectedInvoice.id)
+                .then(items => {
+                    if (cancelled) return;
+                    setSelectedInvoiceItems(items as unknown as InvoiceItem[]);
+                })
+                .catch((err) => {
+                    if (cancelled) return;
+                    console.error('Error loading invoice items:', err);
+                })
+                .finally(() => {
+                    if (cancelled) return;
+                    setLoadingInvoiceItems(false);
+                });
+            return () => {
+                cancelled = true;
+                setSelectedInvoiceItems([]);
+            };
         }
         return () => setSelectedInvoiceItems([]);
     }, [selectedInvoice?.id]);
@@ -105,8 +121,9 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
     };
 
     const handleDownloadPDF = async () => {
-        if (!invoiceRef.current) return;
-        
+        if (!invoiceRef.current || isDownloadingPdf) return;
+        setIsDownloadingPdf(true);
+        try {
         // Force the element to have A4-proportional width during capture
         const canvas = await html2canvas(invoiceRef.current, { 
             scale: 2, 
@@ -147,6 +164,12 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
         }
 
         pdf.save(`Facture-${selectedInvoice?.invoiceNumber || selectedInvoice?.id}.pdf`);
+        } catch (err) {
+            console.error('Error generating invoice PDF:', err);
+            if (notify) notify("Erreur lors de la génération du PDF", 'error');
+        } finally {
+            setIsDownloadingPdf(false);
+        }
     };
 
     const handleAddItem = () => {
@@ -186,6 +209,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
     };
 
     const handleSaveInvoice = async () => {
+        if (isSavingInvoice) return;
         const items = newInvoice.items || [];
         if (!newInvoice.customerName) {
             if (notify) notify("Entrez le nom du client.", 'warning');
@@ -219,6 +243,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
         };
 
         try {
+            setIsSavingInvoice(true);
             if (onSaveInvoice) {
                 await onSaveInvoice(invoice);
             } else {
@@ -241,6 +266,8 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
         } catch (err) {
             console.error(err);
             if (notify) notify("Erreur lors de l'enregistrement de la facture", 'error');
+        } finally {
+            setIsSavingInvoice(false);
         }
     };
 
@@ -642,9 +669,11 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                             ) : (
                                 <button
                                     onClick={handleSaveInvoice}
-                                    className="flex-grow md:flex-none px-12 py-4 bg-brand text-white font-bold rounded-2xl shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 text-sm"
+                                    disabled={isSavingInvoice}
+                                    className="flex-grow md:flex-none px-12 py-4 bg-brand text-white font-bold rounded-2xl shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 text-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    Enregistrer la Facture
+                                    {isSavingInvoice && <Loader2 size={16} className="animate-spin" />}
+                                    {isSavingInvoice ? 'Enregistrement...' : 'Enregistrer la Facture'}
                                 </button>
                             )}
                         </div>
@@ -805,9 +834,15 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                     </button>
                                     <button
                                         onClick={handleDownloadPDF}
-                                        className="flex-grow md:w-full py-2.5 md:py-3.5 bg-brand text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all text-[11px] md:text-sm"
+                                        disabled={isDownloadingPdf}
+                                        className="flex-grow md:w-full py-2.5 md:py-3.5 bg-brand text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all text-[11px] md:text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
-                                        <Download size={16} className="md:size-[18px]" /> PDF
+                                        {isDownloadingPdf ? (
+                                            <Loader2 size={16} className="animate-spin md:size-[18px]" />
+                                        ) : (
+                                            <Download size={16} className="md:size-[18px]" />
+                                        )}
+                                        {isDownloadingPdf ? 'Génération...' : 'PDF'}
                                     </button>
                                     <button
                                         className="hidden md:flex w-full py-3.5 bg-gray-900 text-white rounded-xl font-bold items-center justify-center gap-2 hover:bg-black shadow-lg shadow-gray-200 active:scale-95 transition-all text-sm"

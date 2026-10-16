@@ -113,6 +113,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [hasMore, setHasMore] = useState(initialProducts?.length === 10); // Assume more if we got a full first page
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState<string | null>(null);
+  const [showErrorToast, setShowErrorToast] = useState<string | null>(null);
 
   // Modals state for export, import, transfer
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -201,23 +202,36 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     });
   }, [localProducts, productType, selectedVertical]);
 
+  const notifyError = useCallback((message: string) => {
+    setShowErrorToast(message);
+    setTimeout(() => setShowErrorToast(null), 4000);
+  }, []);
+
   const refreshProducts = useCallback(async () => {
     if (!currentStoreId) return;
     setIsLoadingMore(true);
-    const res = await getProductsAction(currentStoreId, 0, 10, searchTerm, {
-      productType,
-      businessType: selectedVertical as 'all' | 'shopping' | 'food'
-    });
-    if (res.success && res.products) {
-      setLocalProducts(res.products as unknown as Product[]);
-      setOffset(res.products.length);
-      setHasMore(res.hasMore || false);
-      if (typeof res.total === 'number') {
-        setTotalProductsCount(res.total);
+    try {
+      const res = await getProductsAction(currentStoreId, 0, 10, searchTerm, {
+        productType,
+        businessType: selectedVertical as 'all' | 'shopping' | 'food'
+      });
+      if (res.success && res.products) {
+        setLocalProducts(res.products as unknown as Product[]);
+        setOffset(res.products.length);
+        setHasMore(res.hasMore || false);
+        if (typeof res.total === 'number') {
+          setTotalProductsCount(res.total);
+        }
+      } else if (res.error) {
+        notifyError(res.error);
       }
+    } catch (err) {
+      console.error('Error refreshing products:', err);
+      notifyError('Erreur lors du chargement des produits');
+    } finally {
+      setIsLoadingMore(false);
     }
-    setIsLoadingMore(false);
-  }, [currentStoreId, searchTerm, productType, selectedVertical]);
+  }, [currentStoreId, searchTerm, productType, selectedVertical, notifyError]);
 
   const handleImportSuccess = (summary: { createdCount: number; updatedCount: number; skippedCount: number }) => {
     setShowSuccessToast(`Import terminé : ${summary.createdCount} crés, ${summary.updatedCount} mis à jour, ${summary.skippedCount} ignorés.`);
@@ -234,37 +248,53 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       setIsLoadingMore(true);
-      const res = await getProductsAction(currentStoreId || '', 0, 10, searchTerm, { 
-        productType,
-        businessType: selectedVertical as 'all' | 'shopping' | 'food'
-      });
-      if (res.success) {
-        setLocalProducts(res.products as unknown as Product[]);
-        setOffset(res.products?.length || 0);
-        setHasMore(res.hasMore || false);
-        if (typeof res.total === 'number') {
-          setTotalProductsCount(res.total);
+      try {
+        const res = await getProductsAction(currentStoreId || '', 0, 10, searchTerm, { 
+          productType,
+          businessType: selectedVertical as 'all' | 'shopping' | 'food'
+        });
+        if (res.success) {
+          setLocalProducts(res.products as unknown as Product[]);
+          setOffset(res.products?.length || 0);
+          setHasMore(res.hasMore || false);
+          if (typeof res.total === 'number') {
+            setTotalProductsCount(res.total);
+          }
+        } else if (res.error) {
+          notifyError(res.error);
         }
+      } catch (err) {
+        console.error('Error searching products:', err);
+        notifyError('Erreur lors de la recherche');
+      } finally {
+        setIsLoadingMore(false);
       }
-      setIsLoadingMore(false);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentStoreId, productType, selectedVertical]);
+  }, [searchTerm, currentStoreId, productType, selectedVertical, notifyError]);
 
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
-    const res = await getProductsAction(currentStoreId || '', offset, 10, searchTerm, { 
-      productType,
-      businessType: selectedVertical as 'all' | 'shopping' | 'food'
-    });
-    if (res.success && res.products) {
-      setLocalProducts(prev => [...prev, ...(res.products as unknown as Product[])]);
-      setOffset(prev => prev + (res.products?.length || 0));
-      setHasMore(res.hasMore || false);
+    try {
+      const res = await getProductsAction(currentStoreId || '', offset, 10, searchTerm, { 
+        productType,
+        businessType: selectedVertical as 'all' | 'shopping' | 'food'
+      });
+      if (res.success && res.products) {
+        setLocalProducts(prev => [...prev, ...(res.products as unknown as Product[])]);
+        setOffset(prev => prev + (res.products?.length || 0));
+        setHasMore(res.hasMore || false);
+      } else if (res.error) {
+        notifyError(res.error);
+      }
+    } catch (err) {
+      console.error('Error loading more products:', err);
+      notifyError('Erreur lors du chargement');
+    } finally {
+      setIsLoadingMore(false);
     }
-    setIsLoadingMore(false);
   };
 
   const handleOpenModal = (product?: Product, type?: 'pos' | 'store') => {
@@ -376,7 +406,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             });
             setShowSuccessToast('Produit supprimé avec succès.');
             setTimeout(() => setShowSuccessToast(null), 3000);
+          } else {
+            notifyError(result.error || 'Erreur lors de la suppression');
           }
+        } catch (err) {
+          console.error('Error deleting product:', err);
+          notifyError('Erreur lors de la suppression');
         } finally {
           setIsSubmitting(false);
           setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
@@ -401,7 +436,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             setSelectedIds(new Set());
             setShowSuccessToast(`${count} produit${count > 1 ? 's' : ''} supprimé${count > 1 ? 's' : ''} avec succès.`);
             setTimeout(() => setShowSuccessToast(null), 3000);
+          } else {
+            notifyError(result.error || 'Erreur lors de la suppression');
           }
+        } catch (err) {
+          console.error('Error bulk deleting products:', err);
+          notifyError('Erreur lors de la suppression');
         } finally {
           setIsSubmitting(false);
           setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
@@ -468,6 +508,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <Check size={20} />
           </div>
           <span className="font-bold text-sm">{showSuccessToast}</span>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {showErrorToast && (
+        <div className="fixed top-4 right-4 z-[200] bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-white/20 p-1 rounded-full">
+            <AlertCircle size={20} />
+          </div>
+          <span className="font-bold text-sm">{showErrorToast}</span>
         </div>
       )}
 
@@ -658,6 +708,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between gap-3 md:gap-4">
           <div className="relative flex-grow max-w-md">
             <Search size={16} className="absolute left-3 top-2.5 md:top-3 text-gray-400 md:w-[18px] md:h-[18px]" />
+            {isLoadingMore && (
+              <Loader2 size={16} className="absolute right-3 top-2.5 md:top-3 animate-spin text-brand" />
+            )}
             <input
               type="text"
               value={searchTerm}
@@ -718,6 +771,14 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       <div className="table-cell px-4 py-3 text-right"><Skeleton className="h-8 w-16 ml-auto" /></div>
                     </div>
                   ))
+                ) : filteredProducts.length === 0 ? (
+                  <div className="block w-full p-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 text-gray-400">
+                      <Package size={40} className="opacity-20" />
+                      <p className="text-sm font-semibold text-gray-500">Aucun produit trouvé</p>
+                      <p className="text-xs">Essayez un autre terme ou élargissez vos filtres.</p>
+                    </div>
+                  </div>
                 ) : filteredProducts.map(product => (
                   <div key={product.id} className={`block md:table-row transition-colors group ${selectedIds.has(product.id) ? 'bg-orange-50/60' : 'hover:bg-orange-50/10'}`}>
                     <div className="hidden md:table-cell px-4 py-2.5 w-10">
@@ -857,6 +918,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 p-2">
               {isLoadingMore && localProducts.length === 0 ? (
                 Array.from({ length: 12 }).map((_, i) => <ProductSkeleton key={`skel-grid-${i}`} />)
+              ) : filteredProducts.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center gap-2 py-16 text-gray-400">
+                  <Package size={40} className="opacity-20" />
+                  <p className="text-sm font-semibold text-gray-500">Aucun produit trouvé</p>
+                  <p className="text-xs">Essayez un autre terme ou élargissez vos filtres.</p>
+                </div>
               ) : filteredProducts.map(product => (
                 <div
                   key={product.id}
