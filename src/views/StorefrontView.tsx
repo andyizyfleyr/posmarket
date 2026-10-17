@@ -11,7 +11,7 @@ import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
-import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, Heart, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle } from "lucide-react";
 import {
   StoreData,
   Product,
@@ -732,21 +732,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     setStockNotice({ message });
     setTimeout(() => setStockNotice(null), 4000);
   }, []);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-
-  // Carousel auto-play - uniquement sur l'accueil, en pause au survol et
-  // quand l'onglet est masqué (la slide ne saute plus sous les yeux de
-  // l'utilisateur pendant qu'il interagit).
-  const [heroPaused, setHeroPaused] = useState(false);
-  React.useEffect(() => {
-    if (location.pathname !== "/" || heroPaused || document.hidden) return;
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 3);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [location.pathname, heroPaused]);
 
   // Header compact au scroll (mobile) : recherche + catégories se replient
   // pour rendre le contenu accessible plus vite sur petits écrans.
@@ -3144,134 +3131,31 @@ const WHOLESALE_FILTER = "wholesale";
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
                 {!searchTerm && selectedCategory === "all" && (
-                  <div
-                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden rounded-[24px] md:rounded-[32px]"
-                    onMouseEnter={() => setHeroPaused(true)}
-                    onMouseLeave={() => setHeroPaused(false)}
-                  >
-                    <div
-                      className="relative w-full flex transition-transform duration-700 ease-in-out"
-                      style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                  <div className="mb-6 mt-1 md:mb-10 md:mt-6">
+                    <button
+                      type="button"
+                      onClick={() => safeNavigate("/login")}
+                      aria-label="Commencer maintenant — offre commerçant"
+                      className="block w-full cursor-pointer"
                     >
-                      {/* Slide 1 - Vendre */}
-                      <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff7f3] via-white to-[#fff1eb]" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-brand/8 rounded-full blur-3xl" />
-                        <div className="absolute -left-10 bottom-0 w-40 h-40 bg-blue-100/40 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
-                          <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-brand/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-brand uppercase tracking-widest">
-                              <Zap size={12} fill="currentColor" /> Offre Commerçant
-                            </div>
-                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
-                              C&apos;est le moment <br className="hidden md:block" />
-                              <span className="text-brand">de vendre</span>
-                            </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
-                              Boostez votre visibilité et attirez plus de clients
-                              dès aujourd&apos;hui.
-                            </p>
-                            <Button
-                              onClick={() => safeNavigate("/login")}
-                              loading={isNavigating}
-                              variant="secondary"
-                              size="lg"
-                            >
-                              Commencer maintenant
-                            </Button>
-                          </div>
-                          <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-brand/10 rounded-3xl flex items-center justify-center">
-                              <Zap size={40} className="text-brand" fill="currentColor" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Slide 2 - Gestion */}
-                      <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#f0f9ff] via-white to-[#e0f2fe]/40" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-blue-400/8 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
-                          <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-blue-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-blue-600 uppercase tracking-widest">
-                              <ShieldCheck size={12} /> Gestion Pro
-                            </div>
-                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
-                              Gérez votre <br className="hidden md:block" />
-                              <span className="text-blue-500">stock facilement</span>
-                            </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
-                              Un inventaire synchronisé et des alertes
-                              automatiques pour ne jamais manquer une vente.
-                            </p>
-                            <Button
-                              onClick={() => safeNavigate("/login")}
-                              loading={isNavigating}
-                              variant="secondary"
-                              size="lg"
-                            >
-                              Commencer maintenant
-                            </Button>
-                          </div>
-                          <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center">
-                              <ShieldCheck size={40} className="text-blue-500" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Slide 3 - Communauté */}
-                      <div className="min-w-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#fff5f5] via-white to-[#fef2f2]" />
-                        <div className="absolute -right-16 -top-16 w-64 h-64 md:w-80 md:h-80 bg-red-400/8 rounded-full blur-3xl" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-12 px-6 md:px-12 py-8 md:py-10 min-h-[240px] md:min-h-[280px]">
-                          <div className="flex-1 text-center md:text-left">
-                            <div className="inline-flex items-center gap-1.5 bg-red-500/10 px-3 py-1 rounded-full mb-4 font-bold text-[10px] text-red-500 uppercase tracking-widest">
-                              <Heart size={12} fill="currentColor" /> Communauté
-                            </div>
-                            <h2 className="text-[26px] md:text-[38px] font-bold text-gray-900 mb-3 tracking-tight leading-[1.1]">
-                              Rejoignez <br className="hidden md:block" />
-                              <span className="text-red-500">le succès</span>
-                            </h2>
-                            <p className="text-gray-500 text-[13px] md:text-[15px] font-medium mb-5 max-w-md mx-auto md:mx-0 leading-relaxed">
-                              Ouvrez votre boutique en ligne, encaissez vos ventes
-                              et suivez votre activité depuis le tableau de bord.
-                            </p>
-                            <Button
-                              onClick={() => safeNavigate("/login")}
-                              loading={isNavigating}
-                              variant="secondary"
-                              size="lg"
-                            >
-                              Commencer maintenant
-                            </Button>
-                          </div>
-                          <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                            <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center">
-                              <Heart size={40} className="text-red-500" fill="currentColor" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Pagination Dots */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-                      {[0, 1, 2].map((idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setCurrentSlide(idx)}
-                          aria-label={`Slide ${idx + 1}`}
-                          className="p-2 -m-1 flex items-center cursor-pointer"
-                        >
-                          <span
-                            className={`h-[6px] rounded-full transition-all duration-300 ${currentSlide === idx ? "w-6 bg-gray-900" : "w-[6px] bg-gray-300"}`}
-                          />
-                        </button>
-                      ))}
-                    </div>
+                      {/* Affiches livrées par le graphiste (public/affiches) :
+                          version 1x/2x par breakpoint, WebP optimisé. */}
+                      <picture>
+                        <source
+                          media="(min-width: 768px)"
+                          srcSet="/affiches/affiche_desktop_1x.webp 1x, /affiches/affiche_desktop_2x.webp 2x"
+                        />
+                        <img
+                          src="/affiches/affiche_mobile_1x.webp"
+                          srcSet="/affiches/affiche_mobile_1x.webp 1x, /affiches/affiche_mobile_2x.webp 2x"
+                          alt="Offre commerçant — C'est le moment de vendre : boostez votre visibilité et attirez plus de clients dès aujourd'hui."
+                          width={720}
+                          height={560}
+                          fetchPriority="high"
+                          className="block w-full h-auto rounded-[24px] md:rounded-[32px] aspect-[720/560] md:aspect-[1504/340] object-cover"
+                        />
+                      </picture>
+                    </button>
                   </div>
                 )}
 
