@@ -15,7 +15,7 @@ export const MarketplaceFooter: React.FC<{ reserveCartBar?: boolean }> = ({
   reserveCartBar = true,
 }) => {
   return (
-    <footer className="bg-white border-t border-gray-100 mt-12">
+    <footer className="bg-white border-t border-gray-100">
       <div
         className={`container mx-auto px-4 py-8 md:py-12 md:pb-12 ${
           reserveCartBar
