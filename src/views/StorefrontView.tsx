@@ -747,6 +747,69 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return () => clearInterval(timer);
   }, [location.pathname, heroPaused]);
 
+  // Swipe tactile du bandeau d'affiches : on suit le premier contact pour
+  // distinguer un glissement horizontal d'un simple tap (qui doit continuer
+  // à ouvrir le lien de l'affiche). Aucun indicateur n'est affiché.
+  const HERO_SLIDES = 3;
+  const heroTouchRef = React.useRef({
+    x: 0,
+    y: 0,
+    active: false,
+    horizontal: false,
+  });
+  const heroSwipedRef = React.useRef(false);
+
+  const onHeroTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    heroTouchRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      active: true,
+      horizontal: false,
+    };
+    heroSwipedRef.current = false;
+  };
+
+  const onHeroTouchMove = (e: React.TouchEvent) => {
+    const s = heroTouchRef.current;
+    if (!s.active) return;
+    const t = e.touches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    // Le glissement est horizontale : on met l'auto-play en pause le temps
+    // du geste (et on n'agit pas sur un scroll vertical de la page).
+    if (!s.horizontal && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+      s.horizontal = true;
+      setHeroPaused(true);
+    }
+  };
+
+  const onHeroTouchEnd = (e: React.TouchEvent) => {
+    const s = heroTouchRef.current;
+    s.active = false;
+    if (!s.horizontal) return;
+    const dx = e.changedTouches[0].clientX - s.x;
+    const SWIPE_THRESHOLD = 40;
+    if (dx <= -SWIPE_THRESHOLD) {
+      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES);
+      heroSwipedRef.current = true;
+    } else if (dx >= SWIPE_THRESHOLD) {
+      setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES) % HERO_SLIDES);
+      heroSwipedRef.current = true;
+    }
+    setHeroPaused(false);
+  };
+
+  // Après un swipe, le navigateur émet quand même un clic sur l'affiche :
+  // on l'annule pour ne pas déclencher la navigation.
+  const onHeroClickCapture = (e: React.MouseEvent) => {
+    if (heroSwipedRef.current) {
+      heroSwipedRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   // Header compact au scroll (mobile) : recherche + catégories se replient
   // pour rendre le contenu accessible plus vite sur petits écrans.
   const [headerCompact, setHeaderCompact] = useState(false);
@@ -3143,8 +3206,13 @@ const WHOLESALE_FILTER = "wholesale";
                 {!searchTerm && selectedCategory === "all" && (
                   <div
                     className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden border border-brand-tint rounded-[24px] md:rounded-[32px]"
+                    style={{ touchAction: "pan-y" }}
                     onMouseEnter={() => setHeroPaused(true)}
                     onMouseLeave={() => setHeroPaused(false)}
+                    onTouchStart={onHeroTouchStart}
+                    onTouchMove={onHeroTouchMove}
+                    onTouchEnd={onHeroTouchEnd}
+                    onClickCapture={onHeroClickCapture}
                   >
                     <div
                       className="relative w-full flex transition-transform duration-700 ease-in-out"
@@ -3219,24 +3287,6 @@ const WHOLESALE_FILTER = "wholesale";
                           />
                         </picture>
                       </button>
-                    </div>
-
-                    {/* Pagination dots */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm border border-gray-100 pointer-events-auto">
-                      {[0, 1, 2].map((idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setCurrentSlide(idx)}
-                          aria-label={`Slide ${idx + 1}`}
-                          className="p-1.5 -m-0.5 flex items-center cursor-pointer"
-                        >
-                          <span
-                            className={`h-[6px] rounded-full transition-all duration-300 ${
-                              currentSlide === idx ? "w-6 bg-gray-900" : "w-[6px] bg-gray-300"
-                            }`}
-                          />
-                        </button>
-                      ))}
                     </div>
                   </div>
                 )}
