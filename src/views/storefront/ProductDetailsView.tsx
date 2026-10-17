@@ -82,6 +82,12 @@ type ProductDetailsProps = {
     options?: Record<string, string>,
   ) => boolean;
   cartTotal: number;
+  /**
+   * Ouvre une autre fiche produit depuis la fiche courante (produits
+   * similaires). Sur mobile, `StorefrontView` fournit un rappel qui remplace le
+   * contenu du bottom sheet au lieu de naviguer vers une nouvelle page.
+   */
+  onOpenProduct?: (product: StorefrontProduct) => void;
 };
 
 function OptionSelectionHint({
@@ -716,6 +722,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     setIsDescriptionExpanded,
   cartItemsCount,
   isVariantInCart,
+  onOpenProduct,
 } = props;
   const product = selectedProductDetails;
   const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
@@ -2062,7 +2069,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   key={`${relProduct.storeId}-${relProduct.id}`}
                   product={relProduct}
                   onClick={() =>
-                    safeNavigate(`/product/${generateProductSlug(relProduct)}`)
+                    onOpenProduct
+                      ? onOpenProduct(relProduct)
+                      : safeNavigate(`/product/${generateProductSlug(relProduct)}`)
                   }
                   onPrefetch={() => warmProduct({ id: relProduct.id, image: relProduct.image })}
                   className="w-[145px] xs:w-[160px] md:w-auto flex-shrink-0 md:flex-shrink snap-start"

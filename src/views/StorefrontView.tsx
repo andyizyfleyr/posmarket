@@ -31,6 +31,7 @@ import { needsNoOptimization } from "@/lib/imageOptimizer";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
+import { BottomSheet } from "../components/BottomSheet";
 const MarketplaceFooter = dynamic(
   () => import("@/components/MarketplaceFooter").then((m) => m.MarketplaceFooter),
   { ssr: true },
@@ -1291,97 +1292,183 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     {},
   );
 
-  const selectedProductDetails = useMemo(() => {
-    if (!rawUrlProductId) return null;
+  // ===== Bottom sheets mobiles =====
+  // Sur mobile, la fiche produit et le dépliage d'une catégorie s'ouvrent
+  // par-dessus le catalogue (feuille glissante) au lieu de changer de page.
+  const [sheetProduct, setSheetProduct] = useState<StorefrontProduct | null>(
+    null,
+  );
+  const [sheetCategory, setSheetCategory] = useState<{
+    cat: string;
+    vertical: string;
+  } | null>(null);
 
-    const list = Array.isArray(allProducts) ? allProducts : [];
-    const targetSlug = decodeURIComponent(rawUrlProductId);
-    const shortPrefix = targetSlug.split("-").pop() || "";
+  // Résout une fiche produit à partir d'un identifiant/slug, qu'il vienne de
+  // l'URL ou du bottom sheet mobile (mêmes règles de correspondance).
+  const resolveProductDetails = useCallback(
+    (rawId: string | null): StorefrontProduct | null => {
+      if (!rawId) return null;
 
-    const matched = list.find((p) => {
-      if (!p || !p.id) return false;
-      const pid = String(p.id);
-      if (pid === targetSlug || pid === rawUrlProductId) return true;
-      if (generateProductSlug(p) === targetSlug || generateProductSlug(p) === rawUrlProductId) return true;
-      if (shortPrefix && shortPrefix.length >= 4 && pid.startsWith(shortPrefix)) return true;
-      return false;
-    });
-    if (!matched) return null;
+      const list = Array.isArray(allProducts) ? allProducts : [];
+      const targetSlug = decodeURIComponent(rawId);
+      const shortPrefix = targetSlug.split("-").pop() || "";
 
-    const product = matched;
-    const resolvedId = product.id;
+      const matched = list.find((p) => {
+        if (!p || !p.id) return false;
+        const pid = String(p.id);
+        if (pid === targetSlug || pid === rawId) return true;
+        if (generateProductSlug(p) === targetSlug || generateProductSlug(p) === rawId) return true;
+        if (shortPrefix && shortPrefix.length >= 4 && pid.startsWith(shortPrefix)) return true;
+        return false;
+      });
+      if (!matched) return null;
 
-    if (productReviews[resolvedId]) {
-      const reviews = productReviews[resolvedId];
-      const avgRating =
-        reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-          : 0;
-      return {
-        ...product,
-        reviews,
-        rating: avgRating,
-        reviewCount: reviews.length,
-      };
-    }
-    return product;
-  }, [allProducts, rawUrlProductId, productReviews]);
+      const product = matched;
+      const resolvedId = product.id;
 
+      if (productReviews[resolvedId]) {
+        const reviews = productReviews[resolvedId];
+        const avgRating =
+          reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            : 0;
+        return {
+          ...product,
+          reviews,
+          rating: avgRating,
+          reviewCount: reviews.length,
+        };
+      }
+      return product;
+    },
+    [allProducts, productReviews],
+  );
 
+  const selectedProductDetails = useMemo(
+    () => resolveProductDetails(rawUrlProductId),
+    [resolveProductDetails, rawUrlProductId],
+  );
+
+  // Fiche affichée dans le bottom sheet. On la résout depuis le catalogue
+  // quand c'est possible (avis en cache attachés au produit) ; sinon on garde
+  // l'objet reçu tel quel — les résultats de recherche viennent du serveur et
+  // ne sont pas forcément encore dans `allProducts`.
+  const sheetProductDetails = useMemo(
+    () =>
+      sheetProduct
+        ? resolveProductDetails(String(sheetProduct.id)) || sheetProduct
+        : null,
+    [resolveProductDetails, sheetProduct],
+  );
 
   const selectedProductId = selectedProductDetails?.id || null;
 
-  // 💾 Product reviews (React Query) - deduped + cached across navigation
-  const productReviewsQuery = useProductReviews(selectedProductId);
+  // Produit dont la fiche est réellement à l'écran : page produit, ou fiche
+  // ouverte dans le bottom sheet mobile.
+  const displayedProduct = sheetProductDetails || selectedProductDetails;
+  const displayedProductId = displayedProduct?.id || null;
+
+  // Ferme les feuilles dès qu'une navigation change la page sous-jacente
+  // (lien boutique, retour navigateur, changement de catégorie…).
+  useEffect(() => {
+    setSheetProduct(null);
+    setSheetCategory(null);
+  }, [location.pathname]);
+
+  // Les bottom sheets ne servent que sous le breakpoint `md` (768px).
+  const isMobileSheetViewport = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 767px)").matches;
+
+  /**
+   * Ouvre une fiche produit : bottom sheet sur mobile (sans changer d'URL),
+   * navigation classique ailleurs.
+   */
+  const openProduct = useCallback(
+    (product: StorefrontProduct, navigateOptions?: { action?: () => void }) => {
+      if (isMobileSheetViewport()) {
+        navigateOptions?.action?.();
+        setSheetCategory(null);
+        setSheetProduct(product);
+        return;
+      }
+      safeNavigate(
+        `/product/${generateProductSlug(product)}`,
+        navigateOptions ? { action: navigateOptions.action } : undefined,
+      );
+    },
+    [safeNavigate],
+  );
+
+  /** Produits de la catégorie affichée dans le bottom sheet « Voir tout ». */
+  const sheetCategoryProducts = useMemo(() => {
+    if (!sheetCategory) return [];
+    return (Array.isArray(allProducts) ? allProducts : []).filter((p) => {
+      const category = p.category || "";
+      const mCategory = p.mainCategory || "";
+      const matchesCategory =
+        category === sheetCategory.cat || mCategory === sheetCategory.cat;
+      const matchesVertical =
+        sheetCategory.vertical === "all" ||
+        verticalOfProduct(p) === sheetCategory.vertical;
+      const isFromStore = !selectedStoreParam || p.storeId === selectedStoreId;
+      return isFromStore && matchesCategory && matchesVertical;
+    });
+  }, [allProducts, sheetCategory, selectedStoreParam, selectedStoreId]);
+
+  // 💾 Product reviews (React Query) - deduped + cached across navigation.
+  // On suit le produit réellement affiché (page ou bottom sheet mobile) pour
+  // que les avis se chargent aussi dans la feuille.
+  const productReviewsQuery = useProductReviews(displayedProductId);
 
   React.useEffect(() => {
-    if (!selectedProductId) return;
+    if (!displayedProductId) return;
     if (productReviewsQuery.data) {
       setProductReviews((prev) => {
-        if (prev[selectedProductId]) return prev;
+        if (prev[displayedProductId]) return prev;
         return {
           ...prev,
-          [selectedProductId]: productReviewsQuery.data as unknown as Review[],
+          [displayedProductId]: productReviewsQuery.data as unknown as Review[],
         };
       });
     }
-  }, [selectedProductId, productReviewsQuery.data]);
+  }, [displayedProductId, productReviewsQuery.data]);
 
   React.useEffect(() => {
-    if (!selectedProductId) return;
+    if (!displayedProductId) return;
     if (productReviewsQuery.isFetching) {
-      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: true }));
+      setLoadingReviews((prev) => ({ ...prev, [displayedProductId]: true }));
     } else {
-      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: false }));
+      setLoadingReviews((prev) => ({ ...prev, [displayedProductId]: false }));
     }
-  }, [selectedProductId, productReviewsQuery.isFetching]);
+  }, [displayedProductId, productReviewsQuery.isFetching]);
 
-  // Track product views - only increment once per product per session
+  // Reset des états liés au produit effectivement affiché (page ou sheet).
   useEffect(() => {
     if (
-      selectedProductId &&
-      selectedProductDetails &&
-      productViewTracked.current !== selectedProductId
+      displayedProductId &&
+      displayedProduct &&
+      productViewTracked.current !== displayedProductId
     ) {
-      productViewTracked.current = selectedProductId;
-      incrementProductViews(selectedProductId);
+      productViewTracked.current = displayedProductId;
+      incrementProductViews(displayedProductId);
       setIsDescriptionExpanded(false); // Reset expansion on new product
       setSelectedDetailImage(null); // Reset selected image on new product
       setProductSwipeIdx(0);
     }
-  }, [selectedProductId, selectedProductDetails]);
+  }, [displayedProductId, displayedProduct]);
 
-  // Update selectedOptions when selectedProductDetails changes
+  // Update selectedOptions when the displayed product changes
   React.useEffect(() => {
-    if (selectedProductDetails) {
+    if (displayedProduct) {
       setSelectedDetailImage(
-        selectedProductDetails.image ||
-          (selectedProductDetails.images && selectedProductDetails.images[0]) ||
+        displayedProduct.image ||
+          (displayedProduct.images && displayedProduct.images[0]) ||
           null,
       );
       setSelectedOptions({}); // Reset selections
     }
-  }, [selectedProductDetails]);
+  }, [displayedProduct]);
 
   // 🔮 Predictive Cache Utility
   const prefetchProduct = useCallback(async (productId: string) => {
@@ -1441,7 +1528,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   useEffect(() => {
     setShowAllProductReviews(false); // Reset see more on product change
-  }, [selectedProductId]);
+  }, [displayedProductId]);
 
   // 💾 Store-wide reviews (React Query) - deduped + cached across navigation
   const storeReviewsQuery = useStoreReviews(
@@ -2526,6 +2613,74 @@ const WHOLESALE_FILTER = "wholesale";
       location.pathname === "" ||
       location.pathname.startsWith("/store/"));
 
+  /**
+   * Accueil : la seule page qui porte le footer. Sa réserve d'espace bas
+   * (`reserveCartBar`) suffit à dégager la barre panier fixe ; ajouter en plus
+   * le rembourrage de `main` laissait une bande grise vide sous la dernière
+   * catégorie, juste avant le footer.
+   */
+  const isMarketplaceHomePath =
+    location.pathname === "/" || location.pathname === "";
+
+  /**
+   * Fiche produit : rendue soit par la route `/product/…` (desktop et accès
+   * direct), soit dans le bottom sheet mobile. `surface` permet d'adapter le
+   * rappel d'ouverture des produits similaires (swap dans le sheet).
+   */
+  const renderProductDetailsView = (
+    product: StorefrontProduct | null,
+    surface: "page" | "sheet",
+  ) => (
+    <ProductDetailsView
+      selectedProductDetails={product}
+      isInitialLoading={isInitialLoading}
+      allProducts={allProducts}
+      isNavigating={isNavigating}
+      selectedOptions={selectedOptions}
+      setSelectedOptions={setSelectedOptions}
+      sameSelectedOptions={sameSelectedOptions}
+      selectedDetailImage={selectedDetailImage}
+      setSelectedDetailImage={setSelectedDetailImage}
+      setProductSwipeIdx={setProductSwipeIdx}
+      productSwipeIdx={productSwipeIdx}
+      setCurrentZoomImage={setCurrentZoomImage}
+      setZoomGallery={setZoomGallery}
+      setIsImageModalOpen={setIsImageModalOpen}
+      lastVisitedStoreRef={lastVisitedStoreRef}
+      handleGoBack={handleGoBack}
+      addToCart={addToCart}
+      buyNow={buyNow}
+      localNotify={localNotify}
+      user={user}
+      setAuthMode={setAuthMode}
+      setShowAuthModal={setShowAuthModal}
+      loadingReviews={loadingReviews}
+      selectedProductId={product?.id || null}
+      showAllProductReviews={showAllProductReviews}
+      setShowAllProductReviews={setShowAllProductReviews}
+      handleCardBuyNow={handleCardBuyNow}
+      warmProduct={warmProduct}
+      safeNavigate={safeNavigate}
+      setSelectedCategory={setSelectedCategory}
+      addWholesaleToCart={addWholesaleToCart}
+      isDescriptionExpanded={isDescriptionExpanded}
+      setIsDescriptionExpanded={setIsDescriptionExpanded}
+      stores={stores}
+      cartItemsCount={cartItemsCount}
+      cartTotal={cartTotal}
+      onOpenProduct={surface === "sheet" ? openProduct : undefined}
+      isVariantInCart={(variantId, options) =>
+        cart.some(
+          (item) =>
+            item.product.id === product?.id &&
+            item.product.storeId === product?.storeId &&
+            (item.variantId ?? null) === (variantId ?? null) &&
+            sameSelectedOptions(item.selectedOptions, options),
+        )
+      }
+    />
+  );
+
   return (
     <div className="flex flex-col bg-gray-50 font-sans md:min-h-screen md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
       {/* Global Connectivity Banner */}
@@ -3074,15 +3229,12 @@ const WHOLESALE_FILTER = "wholesale";
                             onClick={() => {
                               if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
                               setShowSuggestions(false);
-                              safeNavigate(
-                                `/product/${generateProductSlug(product)}`,
-                                {
-                                  action: () => {
-                                    setIsSearchOpen(false);
-                                    setSearchTerm("");
-                                  },
+                              openProduct(product, {
+                                action: () => {
+                                  setIsSearchOpen(false);
+                                  setSearchTerm("");
                                 },
-                              );
+                              });
                             }}
                             className="cursor-pointer"
                           >
@@ -3194,7 +3346,7 @@ const WHOLESALE_FILTER = "wholesale";
       )}
 
       <main
-        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar ? "pb-28 md:pb-8" : ""}`}
+        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar && !isMarketplaceHomePath ? "pb-28 md:pb-8" : ""}`}
       >
         <Routes>
           <Route
@@ -3551,11 +3703,7 @@ const WHOLESALE_FILTER = "wholesale";
                                 <ProductCard
                                   key={`${product.storeId}-${product.id}`}
                                   product={product}
-                                  onClick={() =>
-                                    safeNavigate(
-                                      `/product/${generateProductSlug(product)}`,
-                                    )
-                                  }
+                                  onClick={() => openProduct(product)}
                                   onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                   className="w-full"
                                 />
@@ -3606,11 +3754,7 @@ const WHOLESALE_FILTER = "wholesale";
                             <ProductCard
                               key={`${product.storeId}-${product.id}`}
                               product={product}
-                              onClick={() =>
-                                safeNavigate(
-                                  `/product/${generateProductSlug(product)}`,
-                                )
-                              }
+                              onClick={() => openProduct(product)}
                               onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                               className="w-full"
                             />
@@ -3645,6 +3789,12 @@ const WHOLESALE_FILTER = "wholesale";
                                     </h3>
                                   <button
                                     onClick={() => {
+                                      // Mobile : on déplie la catégorie dans un
+                                      // bottom sheet plutôt que de changer de page.
+                                      if (isMobileSheetViewport()) {
+                                        setSheetCategory({ cat, vertical });
+                                        return;
+                                      }
                                       if (selectedStoreParam) {
                                         setSelectedCategory(cat);
                                         window.history.pushState(null, "", `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`);
@@ -3688,7 +3838,7 @@ const WHOLESALE_FILTER = "wholesale";
                     <div
                       ref={loadMoreRef}
                       className={`${
-                        isLoadingMore ? "py-16" : "py-5"
+                        isLoadingMore ? "py-16" : "pt-3 pb-0"
                       } flex flex-col items-center justify-center`}
                     >
                       {isLoadingMore && (
@@ -3857,11 +4007,7 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onClick={() =>
-                                  safeNavigate(
-                                    `/product/${generateProductSlug(product)}`,
-                                  )
-                                }
+                                onClick={() => openProduct(product)}
                                 onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                 className="w-full"
                               />
@@ -3901,11 +4047,7 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onClick={() =>
-                                  safeNavigate(
-                                    `/product/${generateProductSlug(product)}`,
-                                  )
-                                }
+                                onClick={() => openProduct(product)}
                                 onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                 className="w-full"
                               />
@@ -3940,6 +4082,10 @@ const WHOLESALE_FILTER = "wholesale";
                                       </h3>
                                     <button
                                       onClick={() => {
+                                        if (isMobileSheetViewport()) {
+                                          setSheetCategory({ cat, vertical });
+                                          return;
+                                        }
                                         setSelectedCategory(cat);
                                         window.history.pushState(null, "", `${location.pathname}?cat=${encodeURIComponent(cat)}`);
                                         window.scrollTo({ top: 0 });
@@ -3979,7 +4125,9 @@ const WHOLESALE_FILTER = "wholesale";
                     {/* Load More Trigger */}
                     <div
                       ref={loadMoreRef}
-                      className="py-10 flex flex-col items-center justify-center"
+                      className={`${
+                        isLoadingMore ? "py-10" : "py-4"
+                      } flex flex-col items-center justify-center`}
                     >
                       {isLoadingMore && (
                         <div className="flex flex-col items-center gap-3">
@@ -4215,55 +4363,7 @@ const WHOLESALE_FILTER = "wholesale";
               </>
             }
           />
-          <Route path="product/:productId" element={
-            <ProductDetailsView 
-              selectedProductDetails={selectedProductDetails}
-              isInitialLoading={isInitialLoading}
-              allProducts={allProducts}
-              isNavigating={isNavigating}
-              selectedOptions={selectedOptions}
-              setSelectedOptions={setSelectedOptions}
-              sameSelectedOptions={sameSelectedOptions}
-              selectedDetailImage={selectedDetailImage}
-              setSelectedDetailImage={setSelectedDetailImage}
-              setProductSwipeIdx={setProductSwipeIdx}
-              productSwipeIdx={productSwipeIdx}
-              setCurrentZoomImage={setCurrentZoomImage}
-              setZoomGallery={setZoomGallery}
-              setIsImageModalOpen={setIsImageModalOpen}
-              lastVisitedStoreRef={lastVisitedStoreRef}
-              handleGoBack={handleGoBack}
-              addToCart={addToCart}
-              buyNow={buyNow}
-              localNotify={localNotify}
-              user={user}
-              setAuthMode={setAuthMode}
-              setShowAuthModal={setShowAuthModal}
-              loadingReviews={loadingReviews}
-              selectedProductId={selectedProductId}
-              showAllProductReviews={showAllProductReviews}
-              setShowAllProductReviews={setShowAllProductReviews}
-              handleCardBuyNow={handleCardBuyNow}
-              warmProduct={warmProduct}
-              safeNavigate={safeNavigate}
-              setSelectedCategory={setSelectedCategory}
-              addWholesaleToCart={addWholesaleToCart}
-              isDescriptionExpanded={isDescriptionExpanded}
-              setIsDescriptionExpanded={setIsDescriptionExpanded}
-              stores={stores}
-              cartItemsCount={cartItemsCount}
-              cartTotal={cartTotal}
-              isVariantInCart={(variantId, options) =>
-                cart.some(
-                  (item) =>
-                    item.product.id === selectedProductDetails?.id &&
-                    item.product.storeId === selectedProductDetails?.storeId &&
-                    (item.variantId ?? null) === (variantId ?? null) &&
-                    sameSelectedOptions(item.selectedOptions, options),
-                )
-              }
-            />
-          } />
+          <Route path="product/:productId" element={renderProductDetailsView(selectedProductDetails, "page")} />
           <Route path="cart" element={renderCart()} />
         </Routes>
       </main>
@@ -4607,6 +4707,59 @@ const WHOLESALE_FILTER = "wholesale";
           formatCurrency={formatCurrency}
         />
       )}
+
+      {/* Fiche produit en bottom sheet (mobile). Ouverte depuis une carte
+          produit, sans changer d'URL ni quitter le catalogue. */}
+      <BottomSheet
+        open={Boolean(sheetProductDetails)}
+        onClose={() => setSheetProduct(null)}
+        size="full"
+        resetScrollKey={sheetProduct?.id || "none"}
+      >
+        {sheetProductDetails ? (
+          <div className="px-4">
+            {renderProductDetailsView(sheetProductDetails, "sheet")}
+          </div>
+        ) : null}
+      </BottomSheet>
+
+      {/* Liste complète d'une catégorie en bottom sheet (mobile), ouverte par
+          les boutons « Voir tout » des sections de l'accueil et des boutiques. */}
+      <BottomSheet
+        open={Boolean(sheetCategory)}
+        onClose={() => setSheetCategory(null)}
+        title={sheetCategory?.cat}
+        subtitle={
+          sheetCategory
+            ? `${formatNumber(sheetCategoryProducts.length)} produit${
+                sheetCategoryProducts.length > 1 ? "s" : ""
+              }`
+            : undefined
+        }
+      >
+        <div className="px-4 pt-4 pb-8">
+          {sheetCategoryProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-x-2 gap-y-4">
+              {sheetCategoryProducts.map((product) => (
+                <ProductCard
+                  key={`${product.storeId}-${product.id}`}
+                  product={product}
+                  onClick={() => openProduct(product)}
+                  onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                  className="w-full"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16">
+              <ShoppingBasketIcon size={44} className="text-gray-200 mb-3" aria-hidden="true" />
+              <p className="text-sm font-semibold text-gray-600 text-center">
+                Aucun produit dans cette catégorie pour le moment.
+              </p>
+            </div>
+          )}
+        </div>
+      </BottomSheet>
 
     </div>
   );
