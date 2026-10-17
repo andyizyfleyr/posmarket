@@ -3174,7 +3174,7 @@ const WHOLESALE_FILTER = "wholesale";
                         </picture>
                       </button>
 
-                      {/* Slide 2 : Acheteurs / offre achats */}
+                      {/* Slide 3 : Vente en gros */}
                       <button
                         type="button"
                         onClick={() => safeNavigate("/products/wholesale")}
@@ -3199,13 +3199,13 @@ const WHOLESALE_FILTER = "wholesale";
                     </div>
 
                     {/* Pagination dots */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm border border-gray-100">
                       {[0, 1, 2].map((idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
                           aria-label={`Slide ${idx + 1}`}
-                          className="p-2 -m-1 flex items-center cursor-pointer"
+                          className="p-1.5 -m-0.5 flex items-center cursor-pointer"
                         >
                           <span
                             className={`h-[6px] rounded-full transition-all duration-300 ${
