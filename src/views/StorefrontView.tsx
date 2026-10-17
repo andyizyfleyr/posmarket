@@ -825,9 +825,37 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     useState<StorefrontProduct | null>(null);
   const [cartNotif, setCartNotif] = useState(false);
   const [stockNotice, setStockNotice] = useState<{ message: string } | null>(null);
+  /** Timers des notifications éphémères : un seul actif à la fois. */
+  const cartNotifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stockNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fermeture automatique des notifications : le timer précédent est remplacé.
+  // Sans cela, trois ajouts rapprochés créaient trois timers et la notification
+  // s'effaçait au bout du timer du PREMIER ajout (durée perçue aléatoire).
+  const showCartNotif = useCallback(() => {
+    setCartNotif(true);
+    if (cartNotifTimerRef.current) clearTimeout(cartNotifTimerRef.current);
+    cartNotifTimerRef.current = setTimeout(() => {
+      cartNotifTimerRef.current = null;
+      setCartNotif(false);
+    }, 4000);
+  }, []);
+
   const showStockNotice = useCallback((message: string) => {
     setStockNotice({ message });
-    setTimeout(() => setStockNotice(null), 4000);
+    if (stockNoticeTimerRef.current) clearTimeout(stockNoticeTimerRef.current);
+    stockNoticeTimerRef.current = setTimeout(() => {
+      stockNoticeTimerRef.current = null;
+      setStockNotice(null);
+    }, 4000);
+  }, []);
+
+  // Aucun timer de notification ne doit survivre au démontage du composant.
+  useEffect(() => {
+    return () => {
+      if (cartNotifTimerRef.current) clearTimeout(cartNotifTimerRef.current);
+      if (stockNoticeTimerRef.current) clearTimeout(stockNoticeTimerRef.current);
+    };
   }, []);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -2054,9 +2082,8 @@ const WHOLESALE_FILTER = "wholesale";
       addedVariant ? { ...product, price: addedVariant.price } : product,
     );
     buzz();
-    setCartNotif(true);
+    showCartNotif();
     onNotifyCartInterest(product.storeId, product.name);
-    setTimeout(() => setCartNotif(false), 4000);
   };
 
   const buyNow = (
@@ -2132,11 +2159,10 @@ const WHOLESALE_FILTER = "wholesale";
     });
     setLastAddedProduct(product);
     buzz();
-    setCartNotif(true);
+    showCartNotif();
     setCheckoutStage("cart"); // Go straight to cart to see savings
     // Alert the store owner
     onNotifyCartInterest(product.storeId, product.name);
-    setTimeout(() => setCartNotif(false), 4000);
   };
 
   const handleBulkAddToCart = useCallback(
@@ -2183,11 +2209,10 @@ const WHOLESALE_FILTER = "wholesale";
       if (items.length > 0) {
         setLastAddedProduct(items[0].product as StorefrontProduct);
         buzz();
-        setCartNotif(true);
-        setTimeout(() => setCartNotif(false), 4000);
+        showCartNotif();
       }
     },
-    [buzz],
+    [buzz, showCartNotif],
   );
 
   const removeFromCart = (
