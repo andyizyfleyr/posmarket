@@ -3495,21 +3495,33 @@ const WHOLESALE_FILTER = "wholesale";
                       )}
                       {searchTerm || activeHomeCategory || selectedCategory === WHOLESALE_FILTER ? (
                         /* Simple grid for search results / category page */
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                          {pagedProducts.map((product) => (
-                              <ProductCard
-                                key={`${product.storeId}-${product.id}`}
-                                product={product}
-                                onClick={() =>
-                                  safeNavigate(
-                                    `/product/${generateProductSlug(product)}`,
-                                  )
-                                }
-                                onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
-                                className="w-full"
-                              />
-                          ))}
-                        </div>
+                        <>
+                          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                            {pagedProducts.map((product) => (
+                                <ProductCard
+                                  key={`${product.storeId}-${product.id}`}
+                                  product={product}
+                                  onClick={() =>
+                                    safeNavigate(
+                                      `/product/${generateProductSlug(product)}`,
+                                    )
+                                  }
+                                  onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
+                                  className="w-full"
+                                />
+                            ))}
+                          </div>
+                          {!isInitialLoading && pagedProducts.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                              <ShoppingBasketIcon size={48} className="text-gray-200 mb-4" aria-hidden="true" />
+                              <p className="text-base font-semibold text-gray-600 text-center">
+                                {selectedCategory === WHOLESALE_FILTER
+                                  ? "Aucun produit disponible en vente en gros pour le moment."
+                                  : "Aucun produit à afficher pour le moment."}
+                              </p>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         /* Grouped sections for browsing - 4 products per category on mobile */
                         (() => {

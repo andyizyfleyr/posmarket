@@ -81,8 +81,8 @@ export const Routes = ({ children }: { children: React.ReactNode }) => {
         if (React.isValidElement(child)) {
             const { path, index } = child.props as { path?: string; index?: boolean };
             
-            // index matches "/" OR "/category/*" pages
-            if (index && (pathname === '/' || pathname.startsWith('/category/'))) return <>{child}</>;
+            // index matches "/" OR "/category/*" pages OR the wholesale page
+            if (index && (pathname === '/' || pathname.startsWith('/category/') || pathname === '/products/wholesale')) return <>{child}</>;
             
             if (path) {
                 // simple /store/:param matching
