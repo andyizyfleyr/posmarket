@@ -4680,7 +4680,7 @@ const WHOLESALE_FILTER = "wholesale";
             : undefined
         }
       >
-        <div className="px-4 pt-4 pb-8">
+        <div className="px-4 pt-4 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
           {sheetCategoryProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-2 gap-y-4">
               {sheetCategoryProducts.map((product) => (

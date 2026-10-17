@@ -116,7 +116,10 @@ export function BottomSheet({
   if (!mounted) return null;
 
   return (
-    <div className="md:hidden fixed inset-0 z-[2500] flex items-end justify-center">
+    // z-index volontairement au-dessus de la barre panier fixe du storefront
+    // (z-[3000]) : sinon le bouton « Voir mon panier » recouvrait le bas de la
+    // feuille (derniers produits de la liste).
+    <div className="md:hidden fixed inset-0 z-[4000] flex items-end justify-center">
       {/* Fond assombri : cliquer dessus ferme le sheet. */}
       <button
         type="button"
