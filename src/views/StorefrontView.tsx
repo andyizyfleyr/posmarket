@@ -1232,6 +1232,10 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  /** Déverrouillage différé de la pagination (annulé si un nouveau lot part). */
+  const paginationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Identifie le lot courant : un ancien timer ne peut plus relâcher le verrou. */
+  const paginationTokenRef = useRef(0);
   const PAGE_LIMIT = 20;
 
   // ⚡ Navigation Transition Orchestrator - Feedback Visuel Immédiat
@@ -1799,6 +1803,15 @@ const WHOLESALE_FILTER = "wholesale";
   const loadPagedProducts = useCallback(async (reset: boolean = false) => {
     if (loadingRef.current && !reset) return;
 
+    // Toute nouvelle pagination invalide la précédente : on annule son
+    // déverrouillage différé, sinon un ancien timer relâchait le verrou du
+    // chargement en cours et laissait repartir un lot en double.
+    if (paginationTimerRef.current !== null) {
+      clearTimeout(paginationTimerRef.current);
+      paginationTimerRef.current = null;
+    }
+    const token = (paginationTokenRef.current += 1);
+
     loadingRef.current = true;
     setIsLoadingMore(true);
 
@@ -1811,16 +1824,35 @@ const WHOLESALE_FILTER = "wholesale";
     const end = start + PAGE_LIMIT;
     const nextBatch = source.slice(start, end);
 
-    setPagedProducts((prev) => (reset ? nextBatch : [...prev, ...nextBatch]));
+    setPagedProducts((prev) => {
+      if (reset) return nextBatch;
+      // Si la source a changé entre deux lots (rafraîchissement de données),
+      // les index peuvent se recouvrir : on ne montre jamais deux fois le
+      // même produit.
+      const known = new Set(prev.map((p) => p.id));
+      return [...prev, ...nextBatch.filter((p) => !known.has(p.id))];
+    });
     setHasMore(end < source.length);
 
     currentPageRef.current += 1;
 
     // Small delay to allow DOM to update and avoid instant double-trigger
-    setTimeout(() => {
+    paginationTimerRef.current = setTimeout(() => {
+      paginationTimerRef.current = null;
+      if (token !== paginationTokenRef.current) return; // lot dépassé
       setIsLoadingMore(false);
       loadingRef.current = false;
     }, 100);
+  }, []);
+
+  // Un déverrouillage différé ne doit pas survivre au démontage du composant.
+  useEffect(() => {
+    return () => {
+      if (paginationTimerRef.current !== null) {
+        clearTimeout(paginationTimerRef.current);
+        paginationTimerRef.current = null;
+      }
+    };
   }, []);
 
   // Reset pagination ONLY when a real filter changes (pas sur refresh data)
