@@ -256,7 +256,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                                 <button 
                                     onClick={async () => {
                                         await handleUpdateStoreInfo();
-                                        setTimeout(() => { window.location.reload(); }, 1500);
+                                        // router.refresh() already updates the data; no need to reload.
                                     }}
                                     disabled={isSavingForm}
                                     className={`flex-1 h-12 rounded-xl font-semibold text-[13px] transition-all flex items-center justify-center gap-2 ${isSavingForm ? 'bg-brand/50' : 'bg-brand text-white hover:bg-[#d55a20] shadow-lg shadow-orange-100'}`}
@@ -361,3 +361,4 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 };
 
 export default MainLayout;
+

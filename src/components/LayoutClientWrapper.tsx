@@ -92,7 +92,13 @@ export default function LayoutClientWrapper({
   React.useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
-        window.location.reload();
+        // Avoid reload if an overlay is open (to prevent closing pop-ups)
+        const hasOpenOverlay = !!document.querySelector(
+          '[data-no-pull-refresh], [role="dialog"], [aria-modal="true"]'
+        );
+        if (!hasOpenOverlay) {
+          window.location.reload();
+        }
       }
     };
 
