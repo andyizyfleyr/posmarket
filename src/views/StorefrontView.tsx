@@ -294,6 +294,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // ⚡ Helpers defined early for use in effects
 
   const [cart, setCart] = useState<CartItem[]>([]);
+  /**
+   * Dernière valeur connue du panier. Un effet de sauvegarde en attente peut
+   * être nettoyé (navigation, démontage) alors que sa fermeture porte encore
+   * l'ancienne valeur : on écrit toujours la valeur courante, jamais une copie
+   * périmée qui écraserait un panier plus récent.
+   */
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     phone: "",
@@ -610,22 +618,50 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 3. Save cart to localStorage when it changes (throttled, only after mounting)
   React.useEffect(() => {
     if (!isMounted) return;
-    if (cartSaveTimeoutRef.current) clearTimeout(cartSaveTimeoutRef.current);
-    cartSaveTimeoutRef.current = setTimeout(() => {
+
+    const persist = () => {
       try {
         localStorage.setItem(
           "storefront_cart",
           JSON.stringify({
-            data: cart,
+            data: cartRef.current,
             timestamp: Date.now(),
           }),
         );
       } catch (e) {
         console.warn("Could not save cart to localStorage (Quota exceeded?)", e);
       }
+    };
+
+    if (cartSaveTimeoutRef.current) clearTimeout(cartSaveTimeoutRef.current);
+    cartSaveTimeoutRef.current = setTimeout(() => {
+      cartSaveTimeoutRef.current = null;
+      persist();
     }, 500);
+
+    // Une écriture différée ne doit jamais être perdue : si l'onglet part en
+    // arrière-plan ou est fermé pendant les 500 ms, on écrit tout de suite.
+    const flushIfHidden = () => {
+      if (document.visibilityState !== "hidden") return;
+      if (cartSaveTimeoutRef.current) {
+        clearTimeout(cartSaveTimeoutRef.current);
+        cartSaveTimeoutRef.current = null;
+      }
+      persist();
+    };
+    document.addEventListener("visibilitychange", flushIfHidden);
+    window.addEventListener("pagehide", flushIfHidden);
+
     return () => {
-      if (cartSaveTimeoutRef.current) clearTimeout(cartSaveTimeoutRef.current);
+      document.removeEventListener("visibilitychange", flushIfHidden);
+      window.removeEventListener("pagehide", flushIfHidden);
+      // Écriture encore en attente au démontage (changement de page juste
+      // après un ajout au panier) : on l'écrit au lieu de la perdre.
+      if (cartSaveTimeoutRef.current) {
+        clearTimeout(cartSaveTimeoutRef.current);
+        cartSaveTimeoutRef.current = null;
+        persist();
+      }
     };
   }, [cart, isMounted]);
 
@@ -2331,6 +2367,9 @@ const WHOLESALE_FILTER = "wholesale";
 
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Double appui / double envoi : on ignore tout envoi déjà en cours (le
+    // serveur déduplique aussi, mais mieux vaut ne rien renvoyer du tout).
+    if (isCheckoutSubmitting) return;
     if (checkoutStage === "shipping") {
       if (!countryGate.allowed) {
         setCheckoutStage("blocked");
@@ -2354,6 +2393,15 @@ const WHOLESALE_FILTER = "wholesale";
     } else if (checkoutStage === "payment") {
       if (!countryGate.allowed) {
         setCheckoutStage("blocked");
+        return;
+      }
+      // Inutile de construire puis d'envoyer la commande hors connexion :
+      // l'échec serait générique et le client ne saurait pas quoi faire.
+      if (!isOnline) {
+        localNotify(
+          "Pas de connexion Internet : la commande n'a pas été envoyée. Votre panier est conservé, réessayez une fois reconnecté.",
+          "error",
+        );
         return;
       }
       const ordersData: Record<string, CheckoutStoreOrderDraft> = {};
@@ -2473,7 +2521,9 @@ const WHOLESALE_FILTER = "wholesale";
           } catch (error) {
             console.error("Checkout error:", error);
             localNotify(
-              "Une erreur est survenue lors de la validation.",
+              isOnline
+                ? "Une erreur est survenue lors de la validation. Votre panier est conservé : vous pouvez réessayer sans risque de doublon."
+                : "Connexion perdue pendant l'envoi. Votre panier est conservé : réessayez une fois reconnecté (aucun doublon ne sera créé).",
               "error",
             );
           } finally {
