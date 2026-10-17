@@ -1763,7 +1763,6 @@ const WHOLESALE_FILTER = "wholesale";
     });
   };
 
-  const handleCardAddToCart = (p: Product) => addToCart(p as StorefrontProduct);
   const handleCardBuyNow = (p: Product) => buyNow(p as StorefrontProduct);
 
   const addWholesaleToCart = (
@@ -3014,7 +3013,6 @@ const WHOLESALE_FILTER = "wholesale";
                           >
                             <ProductCard
                               product={product}
-                              onAddToCart={handleCardAddToCart}
                               onClick={() =>
                                 safeNavigate(
                                   `/store/${product.storeSlug || product.storeId}`,
@@ -3418,7 +3416,6 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onAddToCart={handleCardAddToCart}
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,
@@ -3463,7 +3460,6 @@ const WHOLESALE_FILTER = "wholesale";
                             <ProductCard
                               key={`${product.storeId}-${product.id}`}
                               product={product}
-                              onAddToCart={handleCardAddToCart}
                               onClick={() =>
                                 safeNavigate(
                                   `/product/${generateProductSlug(product)}`,
@@ -3710,7 +3706,6 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onAddToCart={handleCardAddToCart}
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,
@@ -3755,7 +3750,6 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onAddToCart={handleCardAddToCart}
                                 onClick={() =>
                                   safeNavigate(
                                     `/product/${generateProductSlug(product)}`,
@@ -4098,7 +4092,6 @@ const WHOLESALE_FILTER = "wholesale";
               selectedProductId={selectedProductId}
               showAllProductReviews={showAllProductReviews}
               setShowAllProductReviews={setShowAllProductReviews}
-              handleCardAddToCart={handleCardAddToCart}
               handleCardBuyNow={handleCardBuyNow}
               warmProduct={warmProduct}
               safeNavigate={safeNavigate}
