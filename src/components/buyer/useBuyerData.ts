@@ -27,30 +27,59 @@ interface BuyerCache {
   addresses: BuyerAddress[];
   reviews: BuyerReview[];
   totalOrders: number;
+  /**
+   * Propriétaire du cache (id ou e-mail) : empêche d'afficher les commandes,
+   * adresses ou avis d'un autre compte connecté sur le même appareil.
+   */
+  owner?: string;
   timestamp: number;
 }
 
-function readCache(): BuyerCache | null {
+/**
+ * Durée maximale de conservation du cache acheteur. Au-delà, l'entrée est
+ * considérée comme dangereuse (commandes/avis obsolètes) et supprimée.
+ */
+const CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+function readCache(owner?: string | null): BuyerCache | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Partial<BuyerCache> | null;
     if (!parsed || !Array.isArray(parsed.orders)) return null;
+
+    const writtenAt = typeof parsed.timestamp === 'number' ? parsed.timestamp : 0;
+    if (Date.now() - writtenAt > CACHE_MAX_AGE_MS) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
+    // Cache d'un autre compte : on l'ignore au lieu de le montrer.
+    if (parsed.owner && owner && parsed.owner !== owner) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
     return parsed as BuyerCache;
   } catch {
     return null;
   }
 }
 
-function patchCache(patch: Partial<BuyerCache>) {
+function patchCache(patch: Partial<BuyerCache>, owner?: string | null) {
   if (typeof window === 'undefined') return;
   try {
     const current =
-      readCache() || { orders: [], addresses: [], reviews: [], totalOrders: 0, timestamp: 0 };
+      readCache(owner) || { orders: [], addresses: [], reviews: [], totalOrders: 0, timestamp: 0 };
     localStorage.setItem(
       CACHE_KEY,
-      JSON.stringify({ ...current, ...patch, timestamp: Date.now() }),
+      JSON.stringify({
+        ...current,
+        owner: owner || current.owner,
+        ...patch,
+        timestamp: Date.now(),
+      }),
     );
   } catch {
     // stockage indisponible (quota / vie privée) : on ignore silencieusement
@@ -63,8 +92,10 @@ export function useBuyerData(
 ) {
   const user = typeof userOrNotify === 'object' ? userOrNotify : null;
   const notify = typeof userOrNotify === 'function' ? userOrNotify : maybeNotify;
+  /** Identité du compte : sert de propriétaire du cache local. */
+  const owner = user?.id || user?.email || null;
 
-  const initialCache = typeof window !== 'undefined' ? readCache() : null;
+  const initialCache = typeof window !== 'undefined' ? readCache(owner) : null;
 
   const [orders, setOrders] = useState<BuyerOrder[]>(() => initialCache?.orders || []);
   const [addresses, setAddresses] = useState<BuyerAddress[]>(() => initialCache?.addresses || []);
@@ -95,13 +126,13 @@ export function useBuyerData(
       setTotalOrders(res.totalCount || 0);
       setHasMoreOrders(rows.length < (res.totalCount || 0));
       if (resetPage) setOrderPage(1);
-      patchCache({ orders: rows, totalOrders: res.totalCount || 0 });
+      patchCache({ orders: rows, totalOrders: res.totalCount || 0 }, owner);
     } else if (res?.error === 'Unauthorized') {
       notifyRef.current?.('Session expirée, veuillez vous reconnecter.', 'info', 'Connexion');
     } else {
       setError(res?.error || 'Impossible de charger vos commandes.');
     }
-  }, []);
+  }, [owner]);
 
   const reloadTab = useCallback(
     async (tab: BuyerTabId) => {
@@ -116,7 +147,7 @@ export function useBuyerData(
         if (cancelledRef.current) return;
         if (res?.success && 'addresses' in res) {
           setAddresses(res.addresses || []);
-          patchCache({ addresses: res.addresses || [] });
+          patchCache({ addresses: res.addresses || [] }, owner);
         } else if (res?.error === 'Unauthorized') {
           notifyRef.current?.('Session expirée, veuillez vous reconnecter.', 'info', 'Connexion');
         } else {
@@ -127,7 +158,7 @@ export function useBuyerData(
         if (cancelledRef.current) return;
         if (res?.success && 'reviews' in res) {
           setReviews(res.reviews || []);
-          patchCache({ reviews: res.reviews || [] });
+          patchCache({ reviews: res.reviews || [] }, owner);
         } else if (res?.error === 'Unauthorized') {
           notifyRef.current?.('Session expirée, veuillez vous reconnecter.', 'info', 'Connexion');
         } else {
@@ -135,7 +166,7 @@ export function useBuyerData(
         }
       }
     },
-    [applyOrders],
+    [applyOrders, owner],
   );
 
   const refreshAll = useCallback(async () => {
@@ -158,7 +189,7 @@ export function useBuyerData(
   // Montage : affichage instantané du cache puis rafraîchissement silencieux en arrière-plan si expiré
   useEffect(() => {
     cancelledRef.current = false;
-    const cache = readCache();
+    const cache = readCache(owner);
     const isStale = !cache || !cache.timestamp || Date.now() - cache.timestamp > 20000;
     if (isStale) {
       refreshAll();
@@ -166,7 +197,7 @@ export function useBuyerData(
     return () => {
       cancelledRef.current = true;
     };
-  }, [refreshAll]);
+  }, [refreshAll, owner]);
 
   const loadMoreOrders = useCallback(async () => {
     if (loadingMore || !hasMoreOrders) return;
@@ -179,7 +210,7 @@ export function useBuyerData(
         setOrders((prev) => {
           const existingIds = new Set(prev.map((o) => o.id));
           const merged = [...prev, ...res.orders.filter((o) => !existingIds.has(o.id))];
-          patchCache({ orders: merged });
+          patchCache({ orders: merged }, owner);
           return merged;
         });
         setOrderPage(next);
@@ -193,7 +224,7 @@ export function useBuyerData(
     } finally {
       if (!cancelledRef.current) setLoadingMore(false);
     }
-  }, [loadingMore, hasMoreOrders, orderPage, orders.length]);
+  }, [loadingMore, hasMoreOrders, orderPage, orders.length, owner]);
 
   const saveAddress = useCallback(
     async (addr: SaveAddressPayload) => {

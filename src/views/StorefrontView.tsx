@@ -28,6 +28,11 @@ import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
+import {
+  clearLocalCache,
+  readLocalCache,
+  writeLocalCache,
+} from "@/lib/localCache";
 import ProductCard from "../components/ProductCard";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
@@ -105,6 +110,15 @@ const VIEWED_STORES_KEY = "storefront_viewed_stores_v1";
 const VIEWED_PRODUCTS_KEY = "storefront_viewed_products_v1";
 /** Nombre maximum d'identifiants mémorisés par liste (mémoire bornée). */
 const VIEWED_MAX_ENTRIES = 300;
+
+/**
+ * Cache du catalogue (localStorage) : versionné et périmé au bout de 12 h.
+ * Il ne sert que de secours instantané quand les données serveur n'arrivent
+ * pas (réseau lent, hors-ligne) — il ne doit donc jamais être trop vieux.
+ */
+const MARKETPLACE_CACHE_KEY = "marketplace_data_cache";
+const MARKETPLACE_CACHE_VERSION = 2;
+const MARKETPLACE_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 /**
  * `true` si `id` n'a pas encore été compté pendant cette session d'onglet.
@@ -436,7 +450,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
     // Clear the client-side cache so results come exclusively from the server.
     // This prevents stale cached products from leaking into the search display.
-    try { localStorage.removeItem('marketplace_data_cache'); } catch {}
+    clearLocalCache(MARKETPLACE_CACHE_KEY);
 
     const delayDebounceFn = setTimeout(async () => {
       if (ftsRequestRef.current) {
@@ -491,14 +505,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
     // Defer localStorage reads to next tick (non-blocking)
     const timer = setTimeout(() => {
+      // Catalogue : cache versionné, périmé au bout de 12 h (et purgé s'il est
+      // d'une ancienne version ou corrompu).
       try {
-        const cached = localStorage.getItem("marketplace_data_cache");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.stores && parsed.stores.length > 0) {
-            setCachedStores(parsed.stores);
-            setIsInitialLoading(false);
-          }
+        const cached = readLocalCache<{ stores?: StoreData[] }>(
+          MARKETPLACE_CACHE_KEY,
+          MARKETPLACE_CACHE_VERSION,
+          MARKETPLACE_CACHE_MAX_AGE_MS,
+          (data) =>
+            !!data && Array.isArray((data as { stores?: unknown }).stores),
+        );
+        if (cached?.stores && cached.stores.length > 0) {
+          setCachedStores(cached.stores);
+          setIsInitialLoading(false);
         }
       } catch {}
 
@@ -579,23 +598,14 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   // 2. Update Data Cache when fresh props arrive (Data Cache)
   React.useEffect(() => {
     if (!isMounted) return;
-    if (
-      (!stores || stores.length === 0) &&
-      (!allProducts || allProducts.length === 0)
-    )
-      return;
+    // On ne mémorise que des données serveur réellement présentes : écrire un
+    // tableau vide écraserait un cache valide (et le lecteur l'ignorerait).
+    if (!stores || stores.length === 0) return;
 
-    try {
-      localStorage.setItem(
-        "marketplace_data_cache",
-        JSON.stringify({
-          stores: stores || [],
-          products: allProducts || [],
-          timestamp: Date.now(),
-        }),
-      );
-    } catch {}
-  }, [stores, allProducts, isMounted]);
+    writeLocalCache(MARKETPLACE_CACHE_KEY, MARKETPLACE_CACHE_VERSION, {
+      stores,
+    });
+  }, [stores, isMounted]);
 
   // 3. Save cart to localStorage when it changes (throttled, only after mounting)
   React.useEffect(() => {
