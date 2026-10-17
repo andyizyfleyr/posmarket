@@ -24,8 +24,17 @@ export function usePullToRefresh(
     const atTop = () =>
       (document.scrollingElement?.scrollTop ?? window.scrollY) <= 0;
 
+    // Un geste qui démarre dans une surcouche (bottom sheet, modale) ne doit
+    // jamais déclencher le pull-to-refresh : c'était la cause des rechargements
+    // surprises qui refermaient le pop-up pendant qu'on le faisait glisser.
+    const insideOverlay = (target: EventTarget | null) =>
+      target instanceof Element &&
+      !!target.closest(
+        '[data-no-pull-refresh], [role="dialog"], [aria-modal="true"]',
+      );
+
     const onTouchStart = (e: TouchEvent) => {
-      if (refreshing || !atTop()) return;
+      if (refreshing || !atTop() || insideOverlay(e.target)) return;
       startY.current = e.touches[0].clientY;
       startX.current = e.touches[0].clientX;
       gesture.current = true;

@@ -1146,7 +1146,8 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     (location.pathname === "/" || location.pathname.startsWith("/store/")) &&
       !isSearchOpen &&
       !showAuthModal &&
-      !isImageModalOpen,
+      !isImageModalOpen &&
+      !isBulkOrderOpen,
     handlePtrRefresh,
   );
   const [currentZoomImage, setCurrentZoomImage] = useState<string | null>(null);
@@ -1299,6 +1300,28 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     cat: string;
     vertical: string;
   } | null>(null);
+
+  // Barre panier fixe : on mesure sa hauteur réelle à l'ouverture de la feuille
+  // pour que celle-ci s'arrête juste au-dessus (la barre reste visible et
+  // cliquable, et aucun produit n'est masqué par le bouton).
+  const cartBarRef = useRef<HTMLDivElement>(null);
+  const [cartBarInset, setCartBarInset] = useState(0);
+
+  /** Ouvre la feuille d'une catégorie en réservant la place de la barre panier. */
+  const openCategorySheet = useCallback((cat: string, vertical: string) => {
+    setCartBarInset(cartBarRef.current?.getBoundingClientRect().height || 0);
+    setSheetCategory({ cat, vertical });
+  }, []);
+
+  // Redimensionnement / rotation pendant que la feuille est ouverte : on
+  // remesure la barre pour garder l'alignement.
+  useEffect(() => {
+    if (!sheetCategory) return;
+    const measure = () =>
+      setCartBarInset(cartBarRef.current?.getBoundingClientRect().height || 0);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [sheetCategory]);
 
   const selectedProductDetails = useMemo(() => {
     if (!rawUrlProductId) return null;
@@ -3742,7 +3765,7 @@ const WHOLESALE_FILTER = "wholesale";
                                       // Mobile : on déplie la catégorie dans un
                                       // bottom sheet plutôt que de changer de page.
                                       if (isMobileSheetViewport()) {
-                                        setSheetCategory({ cat, vertical });
+                                        openCategorySheet(cat, vertical);
                                         return;
                                       }
                                       if (selectedStoreParam) {
@@ -4041,7 +4064,7 @@ const WHOLESALE_FILTER = "wholesale";
                                     <button
                                       onClick={() => {
                                         if (isMobileSheetViewport()) {
-                                          setSheetCategory({ cat, vertical });
+                                          openCategorySheet(cat, vertical);
                                           return;
                                         }
                                         setSelectedCategory(cat);
@@ -4344,6 +4367,7 @@ const WHOLESALE_FILTER = "wholesale";
           champs de la page panier). */}
       {showStickyCartBar && (
         <div
+          ref={cartBarRef}
           className="fixed left-0 right-0 z-[3000] bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.07)] px-3 pt-2.5"
           style={{
             bottom: keyboardOffset || 0,
@@ -4671,6 +4695,7 @@ const WHOLESALE_FILTER = "wholesale";
       <BottomSheet
         open={Boolean(sheetCategory)}
         onClose={() => setSheetCategory(null)}
+        bottomInset={cartBarInset}
         title={sheetCategory?.cat}
         subtitle={
           sheetCategory
@@ -4680,7 +4705,7 @@ const WHOLESALE_FILTER = "wholesale";
             : undefined
         }
       >
-        <div className="px-4 pt-4 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
+        <div className="px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
           {sheetCategoryProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-2 gap-y-4">
               {sheetCategoryProducts.map((product) => (

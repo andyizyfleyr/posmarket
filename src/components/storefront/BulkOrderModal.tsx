@@ -137,7 +137,10 @@ export function BulkOrderModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center">
+    <div
+      data-no-pull-refresh
+      className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"

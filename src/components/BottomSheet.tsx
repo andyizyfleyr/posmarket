@@ -16,6 +16,8 @@ import { X } from 'lucide-react';
  * - fermeture par le fond, le bouton, la touche Échap ou un glissement vers le
  *   bas depuis l'en-tête ;
  * - verrouillage du scroll de la page tant que le sheet est ouvert ;
+ * - réserve basse optionnelle (`bottomInset`) pour laisser visible et cliquable
+ *   une barre fixe du bas de page (barre panier) ;
  * - le corps du sheet est son propre conteneur de scroll (les `sticky top-0`
  *   internes, comme la barre produit, restent collés en haut du sheet).
  */
@@ -26,6 +28,12 @@ type BottomSheetProps = {
   subtitle?: React.ReactNode;
   /** `full` : feuille presque plein écran ; `auto` : hauteur libre (max 85vh). */
   size?: 'auto' | 'full';
+  /**
+   * Hauteur (px) de la barre fixe du bas de page (ex : « Voir mon panier »).
+   * La feuille s'arrête juste au-dessus : la barre reste visible et cliquable,
+   * et les derniers éléments de la liste ne passent jamais dessous.
+   */
+  bottomInset?: number;
   /** Contenu collé en bas, hors zone de scroll. */
   footer?: React.ReactNode;
   /** Quand cette valeur change, le corps du sheet revient en haut. */
@@ -41,6 +49,7 @@ export function BottomSheet({
   title,
   subtitle,
   size = 'auto',
+  bottomInset = 0,
   footer,
   resetScrollKey,
   children,
@@ -115,11 +124,23 @@ export function BottomSheet({
 
   if (!mounted) return null;
 
+  // La feuille s'arrête au-dessus de la barre fixe du bas (barre panier) :
+  // la barre garde son z-index supérieur et reste visible/cliquable.
+  const hasInset = bottomInset > 0;
+  const panelMaxHeight = hasInset
+    ? `min(${size === 'full' ? '94vh' : '85vh'}, calc(100dvh - ${
+        bottomInset + 8
+      }px))`
+    : undefined;
+
   return (
-    // z-index volontairement au-dessus de la barre panier fixe du storefront
-    // (z-[3000]) : sinon le bouton « Voir mon panier » recouvrait le bas de la
-    // feuille (derniers produits de la liste).
-    <div className="md:hidden fixed inset-0 z-[4000] flex items-end justify-center">
+    <div
+      // Marqueur lu par `usePullToRefresh` : aucune glissade démarrée ici ne
+      // doit recharger la page (sinon le sheet se referme "tout seul").
+      data-no-pull-refresh
+      className="md:hidden fixed inset-0 z-[2500] flex items-end justify-center"
+      style={hasInset ? { paddingBottom: `${bottomInset}px` } : undefined}
+    >
       {/* Fond assombri : cliquer dessus ferme le sheet. */}
       <button
         type="button"
@@ -140,6 +161,7 @@ export function BottomSheet({
         style={{
           transform: shown ? `translateY(${dragOffset}px)` : 'translateY(100%)',
           transition: dragOffset > 0 ? 'none' : 'transform 300ms cubic-bezier(0.2, 0, 0, 1)',
+          ...(panelMaxHeight ? { maxHeight: panelMaxHeight } : {}),
         }}
       >
         {/* En-tête : poignée de glissement + titre + fermeture. */}
