@@ -11,10 +11,18 @@ const footerNav = [
   { label: 'Politique de confidentialité', href: '/confidentialite' },
 ];
 
-export const MarketplaceFooter: React.FC = () => {
+export const MarketplaceFooter: React.FC<{ reserveCartBar?: boolean }> = ({
+  reserveCartBar = true,
+}) => {
   return (
     <footer className="bg-white border-t border-gray-100 mt-12">
-      <div className="container mx-auto px-4 py-8 md:py-12 pb-[calc(80px+env(safe-area-inset-bottom,0px))] md:pb-12">
+      <div
+        className={`container mx-auto px-4 py-8 md:py-12 md:pb-12 ${
+          reserveCartBar
+            ? "pb-[calc(80px+env(safe-area-inset-bottom,0px))]"
+            : "pb-[calc(24px+env(safe-area-inset-bottom,0px))]"
+        }`}
+      >
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           {/* Marque */}
           <div className="max-w-xs">

@@ -3631,10 +3631,15 @@ const WHOLESALE_FILTER = "wholesale";
                       )}
                     </div>
 
-                    {/* Load More Trigger */}
+                    {/* Load More Trigger
+                        Le rembourrage est réduit une fois le catalogue épuisé :
+                        sinon `py-20` laissait un grand vide sous la dernière
+                        catégorie. Réduit aussi pendant le scroll (sentinel). */}
                     <div
                       ref={loadMoreRef}
-                      className="py-20 flex flex-col items-center justify-center"
+                      className={`${
+                        isLoadingMore ? "py-16" : "py-5"
+                      } flex flex-col items-center justify-center`}
                     >
                       {isLoadingMore && (
                         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
@@ -3645,7 +3650,7 @@ const WHOLESALE_FILTER = "wholesale";
                         </div>
                       )}
                       {!hasMore && pagedProducts.length > 0 && (
-                        <p className="text-sm font-medium text-gray-500">
+                        <p className="text-xs font-medium text-gray-400">
                           Vous avez vu tous les produits de cette sélection.
                         </p>
                       )}
@@ -4216,7 +4221,9 @@ const WHOLESALE_FILTER = "wholesale";
       {/* Footer - Home only */}
       {(location.pathname === "/" ||
         !location.pathname ||
-        location.pathname === "") && <MarketplaceFooter />}
+        location.pathname === "") && (
+        <MarketplaceFooter reserveCartBar={showStickyCartBar} />
+      )}
 
       {/* Barre panier fixe : visible sur les pages de decouverte uniquement.
           La fiche produit a sa propre barre d'action. La condition est
