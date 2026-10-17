@@ -3449,9 +3449,6 @@ const WHOLESALE_FILTER = "wholesale";
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
                       <h2 className="text-[15px] md:text-xl font-bold text-gray-900 mb-3 md:mb-5 tracking-tight flex items-center gap-2.5">
-                        <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand to-orange-500 flex items-center justify-center shadow-sm shadow-orange-500/25">
-                          <Store size={14} className="text-white" />
-                        </span>
                         Boutiques partenaires
                         <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full ml-1">
                           {Math.min(partnerStores.length, 6)}
