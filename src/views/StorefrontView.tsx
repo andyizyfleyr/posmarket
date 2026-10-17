@@ -3174,6 +3174,29 @@ const WHOLESALE_FILTER = "wholesale";
                         </picture>
                       </button>
 
+                      {/* Slide 2 : Acheteurs / offre achats */}
+                      <button
+                        type="button"
+                        onClick={() => safeNavigate("/login")}
+                        aria-label="Commencer maintenant — pour les acheteurs"
+                        className="min-w-full cursor-pointer"
+                      >
+                        <picture>
+                          <source
+                            media="(min-width: 768px)"
+                            srcSet="/affiches/affiche_acheteurs_desktop_1x.webp 1x, /affiches/affiche_acheteurs_desktop_2x.webp 2x"
+                          />
+                          <img
+                            src="/affiches/affiche_acheteurs_mobile_1x.webp"
+                            srcSet="/affiches/affiche_acheteurs_mobile_1x.webp 1x, /affiches/affiche_acheteurs_mobile_2x.webp 2x"
+                            alt="Offre acheteurs — C'est le moment d'acheter : trouvez vos produits au meilleur prix."
+                            width={720}
+                            height={560}
+                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
+                          />
+                        </picture>
+                      </button>
+
                       {/* Slide 3 : Vente en gros */}
                       <button
                         type="button"
@@ -3199,7 +3222,7 @@ const WHOLESALE_FILTER = "wholesale";
                     </div>
 
                     {/* Pagination dots */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm border border-gray-100">
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm border border-gray-100 pointer-events-auto">
                       {[0, 1, 2].map((idx) => (
                         <button
                           key={idx}
