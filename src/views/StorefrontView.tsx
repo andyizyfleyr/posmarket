@@ -735,6 +735,18 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
+  // Carousel auto-play du bandeau d'affiches (accueil) : défile toutes les
+  // 5 s, en pause au survol et quand l'onglet est masqué.
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
+  React.useEffect(() => {
+    if (location.pathname !== "/" || heroPaused || document.hidden) return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 2);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [location.pathname, heroPaused]);
+
   // Header compact au scroll (mobile) : recherche + catégories se replient
   // pour rendre le contenu accessible plus vite sur petits écrans.
   const [headerCompact, setHeaderCompact] = useState(false);
@@ -3129,31 +3141,80 @@ const WHOLESALE_FILTER = "wholesale";
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
                 {!searchTerm && selectedCategory === "all" && (
-                  <div className="mb-6 mt-1 md:mb-10 md:mt-6 border border-brand-tint rounded-[24px] md:rounded-[32px]">
-                    <button
-                      type="button"
-                      onClick={() => safeNavigate("/login")}
-                      aria-label="Commencer maintenant — offre commerçant"
-                      className="block w-full cursor-pointer"
+                  <div
+                    className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden border border-brand-tint rounded-[24px] md:rounded-[32px]"
+                    onMouseEnter={() => setHeroPaused(true)}
+                    onMouseLeave={() => setHeroPaused(false)}
+                  >
+                    <div
+                      className="relative w-full flex transition-transform duration-700 ease-in-out"
+                      style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                     >
-                      {/* Affiches livrées par le graphiste (public/affiches) :
-                          version 1x/2x par breakpoint, WebP optimisé. */}
-                      <picture>
-                        <source
-                          media="(min-width: 768px)"
-                          srcSet="/affiches/affiche_desktop_1x.webp 1x, /affiches/affiche_desktop_2x.webp 2x"
-                        />
-                        <img
-                          src="/affiches/affiche_mobile_1x.webp"
-                          srcSet="/affiches/affiche_mobile_1x.webp 1x, /affiches/affiche_mobile_2x.webp 2x"
-                          alt="Offre commerçant — C'est le moment de vendre : boostez votre visibilité et attirez plus de clients dès aujourd'hui."
-                          width={720}
-                          height={560}
-                          fetchPriority="high"
-                          className="block w-full h-auto rounded-[24px] md:rounded-[32px] aspect-[720/560] md:aspect-[1504/340] object-cover"
-                        />
-                      </picture>
-                    </button>
+                      {/* Slide 1 : Offre commerçant */}
+                      <button
+                        type="button"
+                        onClick={() => safeNavigate("/login")}
+                        aria-label="Commencer maintenant — offre commerçant"
+                        className="min-w-full cursor-pointer"
+                      >
+                        <picture>
+                          <source
+                            media="(min-width: 768px)"
+                            srcSet="/affiches/affiche_desktop_1x.webp 1x, /affiches/affiche_desktop_2x.webp 2x"
+                          />
+                          <img
+                            src="/affiches/affiche_mobile_1x.webp"
+                            srcSet="/affiches/affiche_mobile_1x.webp 1x, /affiches/affiche_mobile_2x.webp 2x"
+                            alt="Offre commerçant — C'est le moment de vendre : boostez votre visibilité et attirez plus de clients dès aujourd'hui."
+                            width={720}
+                            height={560}
+                            fetchPriority="high"
+                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
+                          />
+                        </picture>
+                      </button>
+
+                      {/* Slide 2 : Acheteurs / offre achats */}
+                      <button
+                        type="button"
+                        onClick={() => safeNavigate("/login")}
+                        aria-label="Commencer maintenant — pour les acheteurs"
+                        className="min-w-full cursor-pointer"
+                      >
+                        <picture>
+                          <source
+                            media="(min-width: 768px)"
+                            srcSet="/affiches/affiche_acheteurs_desktop_1x.webp 1x, /affiches/affiche_acheteurs_desktop_2x.webp 2x"
+                          />
+                          <img
+                            src="/affiches/affiche_acheteurs_mobile_1x.webp"
+                            srcSet="/affiches/affiche_acheteurs_mobile_1x.webp 1x, /affiches/affiche_acheteurs_mobile_2x.webp 2x"
+                            alt="Offre acheteurs — C'est le moment d'acheter : trouvez vos produits au meilleur prix."
+                            width={720}
+                            height={560}
+                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
+                          />
+                        </picture>
+                      </button>
+                    </div>
+
+                    {/* Pagination dots */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                      {[0, 1].map((idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentSlide(idx)}
+                          aria-label={`Slide ${idx + 1}`}
+                          className="p-2 -m-1 flex items-center cursor-pointer"
+                        >
+                          <span
+                            className={`h-[6px] rounded-full transition-all duration-300 ${
+                              currentSlide === idx ? "w-6 bg-gray-900" : "w-[6px] bg-gray-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
