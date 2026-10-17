@@ -742,7 +742,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   React.useEffect(() => {
     if (location.pathname !== "/" || heroPaused || document.hidden) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 2);
+      setCurrentSlide((prev) => (prev + 1) % 3);
     }, 5000);
     return () => clearInterval(timer);
   }, [location.pathname, heroPaused]);
@@ -3177,19 +3177,19 @@ const WHOLESALE_FILTER = "wholesale";
                       {/* Slide 2 : Acheteurs / offre achats */}
                       <button
                         type="button"
-                        onClick={() => safeNavigate("/login")}
-                        aria-label="Commencer maintenant — pour les acheteurs"
+                        onClick={() => safeNavigate("/products/wholesale")}
+                        aria-label="Voir les produits disponibles à la vente en gros"
                         className="min-w-full cursor-pointer"
                       >
                         <picture>
                           <source
                             media="(min-width: 768px)"
-                            srcSet="/affiches/affiche_acheteurs_desktop_1x.webp 1x, /affiches/affiche_acheteurs_desktop_2x.webp 2x"
+                            srcSet="/affiches/affiche_vente_gros_desktop_1x.webp 1x, /affiches/affiche_vente_gros_desktop_2x.webp 2x"
                           />
                           <img
-                            src="/affiches/affiche_acheteurs_mobile_1x.webp"
-                            srcSet="/affiches/affiche_acheteurs_mobile_1x.webp 1x, /affiches/affiche_acheteurs_mobile_2x.webp 2x"
-                            alt="Offre acheteurs — C'est le moment d'acheter : trouvez vos produits au meilleur prix."
+                            src="/affiches/affiche_vente_gros_mobile_1x.webp"
+                            srcSet="/affiches/affiche_vente_gros_mobile_1x.webp 1x, /affiches/affiche_vente_gros_mobile_2x.webp 2x"
+                            alt="Vente en gros — produits à acheter directement aux commerçants"
                             width={720}
                             height={560}
                             className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
@@ -3200,7 +3200,7 @@ const WHOLESALE_FILTER = "wholesale";
 
                     {/* Pagination dots */}
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-                      {[0, 1].map((idx) => (
+                      {[0, 1, 2].map((idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
