@@ -7,9 +7,9 @@ import { X } from 'lucide-react';
  * Bottom sheet mobile.
  *
  * Panneau qui monte du bas de l'écran, par-dessus le contenu courant, sans
- * changer d'URL. Utilisé pour la fiche produit et le dépliage d'une catégorie
- * sur mobile (voir `StorefrontView`). Masqué à partir de `md` : la navigation
- * classique reprend la main sur grand écran.
+ * changer d'URL. Utilisé par la marketplace mobile (dépliage d'une catégorie
+ * via « Voir tout »). Masqué à partir de `md` : la navigation classique reprend
+ * la main sur grand écran.
  *
  * Caractéristiques :
  * - animation d'entrée/sortie (glissement + fondu du fond) ;
@@ -24,7 +24,7 @@ type BottomSheetProps = {
   onClose: () => void;
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
-  /** `full` : feuille presque plein écran (fiche produit) ; `auto` : hauteur libre (max 85vh). */
+  /** `full` : feuille presque plein écran ; `auto` : hauteur libre (max 85vh). */
   size?: 'auto' | 'full';
   /** Contenu collé en bas, hors zone de scroll. */
   footer?: React.ReactNode;

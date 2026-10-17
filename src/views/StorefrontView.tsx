@@ -1292,113 +1292,62 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     {},
   );
 
-  // ===== Bottom sheets mobiles =====
-  // Sur mobile, la fiche produit et le dépliage d'une catégorie s'ouvrent
-  // par-dessus le catalogue (feuille glissante) au lieu de changer de page.
-  const [sheetProduct, setSheetProduct] = useState<StorefrontProduct | null>(
-    null,
-  );
+  // ===== Bottom sheet mobile : « Voir tout » d'une catégorie =====
+  // Sur mobile, le dépliage d'une catégorie s'ouvre par-dessus le catalogue
+  // au lieu de changer de page. La fiche produit, elle, reste une vraie page.
   const [sheetCategory, setSheetCategory] = useState<{
     cat: string;
     vertical: string;
   } | null>(null);
 
-  // Résout une fiche produit à partir d'un identifiant/slug, qu'il vienne de
-  // l'URL ou du bottom sheet mobile (mêmes règles de correspondance).
-  const resolveProductDetails = useCallback(
-    (rawId: string | null): StorefrontProduct | null => {
-      if (!rawId) return null;
+  const selectedProductDetails = useMemo(() => {
+    if (!rawUrlProductId) return null;
 
-      const list = Array.isArray(allProducts) ? allProducts : [];
-      const targetSlug = decodeURIComponent(rawId);
-      const shortPrefix = targetSlug.split("-").pop() || "";
+    const list = Array.isArray(allProducts) ? allProducts : [];
+    const targetSlug = decodeURIComponent(rawUrlProductId);
+    const shortPrefix = targetSlug.split("-").pop() || "";
 
-      const matched = list.find((p) => {
-        if (!p || !p.id) return false;
-        const pid = String(p.id);
-        if (pid === targetSlug || pid === rawId) return true;
-        if (generateProductSlug(p) === targetSlug || generateProductSlug(p) === rawId) return true;
-        if (shortPrefix && shortPrefix.length >= 4 && pid.startsWith(shortPrefix)) return true;
-        return false;
-      });
-      if (!matched) return null;
+    const matched = list.find((p) => {
+      if (!p || !p.id) return false;
+      const pid = String(p.id);
+      if (pid === targetSlug || pid === rawUrlProductId) return true;
+      if (generateProductSlug(p) === targetSlug || generateProductSlug(p) === rawUrlProductId) return true;
+      if (shortPrefix && shortPrefix.length >= 4 && pid.startsWith(shortPrefix)) return true;
+      return false;
+    });
+    if (!matched) return null;
 
-      const product = matched;
-      const resolvedId = product.id;
+    const product = matched;
+    const resolvedId = product.id;
 
-      if (productReviews[resolvedId]) {
-        const reviews = productReviews[resolvedId];
-        const avgRating =
-          reviews.length > 0
-            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-            : 0;
-        return {
-          ...product,
-          reviews,
-          rating: avgRating,
-          reviewCount: reviews.length,
-        };
-      }
-      return product;
-    },
-    [allProducts, productReviews],
-  );
-
-  const selectedProductDetails = useMemo(
-    () => resolveProductDetails(rawUrlProductId),
-    [resolveProductDetails, rawUrlProductId],
-  );
-
-  // Fiche affichée dans le bottom sheet. On la résout depuis le catalogue
-  // quand c'est possible (avis en cache attachés au produit) ; sinon on garde
-  // l'objet reçu tel quel — les résultats de recherche viennent du serveur et
-  // ne sont pas forcément encore dans `allProducts`.
-  const sheetProductDetails = useMemo(
-    () =>
-      sheetProduct
-        ? resolveProductDetails(String(sheetProduct.id)) || sheetProduct
-        : null,
-    [resolveProductDetails, sheetProduct],
-  );
+    if (productReviews[resolvedId]) {
+      const reviews = productReviews[resolvedId];
+      const avgRating =
+        reviews.length > 0
+          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+          : 0;
+      return {
+        ...product,
+        reviews,
+        rating: avgRating,
+        reviewCount: reviews.length,
+      };
+    }
+    return product;
+  }, [allProducts, rawUrlProductId, productReviews]);
 
   const selectedProductId = selectedProductDetails?.id || null;
 
-  // Produit dont la fiche est réellement à l'écran : page produit, ou fiche
-  // ouverte dans le bottom sheet mobile.
-  const displayedProduct = sheetProductDetails || selectedProductDetails;
-  const displayedProductId = displayedProduct?.id || null;
-
-  // Ferme les feuilles dès qu'une navigation change la page sous-jacente
+  // Ferme la feuille dès qu'une navigation change la page sous-jacente
   // (lien boutique, retour navigateur, changement de catégorie…).
   useEffect(() => {
-    setSheetProduct(null);
     setSheetCategory(null);
   }, [location.pathname]);
 
-  // Les bottom sheets ne servent que sous le breakpoint `md` (768px).
+  // La feuille ne sert que sous le breakpoint `md` (768px).
   const isMobileSheetViewport = () =>
     typeof window !== "undefined" &&
     window.matchMedia("(max-width: 767px)").matches;
-
-  /**
-   * Ouvre une fiche produit : bottom sheet sur mobile (sans changer d'URL),
-   * navigation classique ailleurs.
-   */
-  const openProduct = useCallback(
-    (product: StorefrontProduct, navigateOptions?: { action?: () => void }) => {
-      if (isMobileSheetViewport()) {
-        navigateOptions?.action?.();
-        setSheetCategory(null);
-        setSheetProduct(product);
-        return;
-      }
-      safeNavigate(
-        `/product/${generateProductSlug(product)}`,
-        navigateOptions ? { action: navigateOptions.action } : undefined,
-      );
-    },
-    [safeNavigate],
-  );
 
   /** Produits de la catégorie affichée dans le bottom sheet « Voir tout ». */
   const sheetCategoryProducts = useMemo(() => {
@@ -1416,59 +1365,57 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
     });
   }, [allProducts, sheetCategory, selectedStoreParam, selectedStoreId]);
 
-  // 💾 Product reviews (React Query) - deduped + cached across navigation.
-  // On suit le produit réellement affiché (page ou bottom sheet mobile) pour
-  // que les avis se chargent aussi dans la feuille.
-  const productReviewsQuery = useProductReviews(displayedProductId);
+  // 💾 Product reviews (React Query) - deduped + cached across navigation
+  const productReviewsQuery = useProductReviews(selectedProductId);
 
   React.useEffect(() => {
-    if (!displayedProductId) return;
+    if (!selectedProductId) return;
     if (productReviewsQuery.data) {
       setProductReviews((prev) => {
-        if (prev[displayedProductId]) return prev;
+        if (prev[selectedProductId]) return prev;
         return {
           ...prev,
-          [displayedProductId]: productReviewsQuery.data as unknown as Review[],
+          [selectedProductId]: productReviewsQuery.data as unknown as Review[],
         };
       });
     }
-  }, [displayedProductId, productReviewsQuery.data]);
+  }, [selectedProductId, productReviewsQuery.data]);
 
   React.useEffect(() => {
-    if (!displayedProductId) return;
+    if (!selectedProductId) return;
     if (productReviewsQuery.isFetching) {
-      setLoadingReviews((prev) => ({ ...prev, [displayedProductId]: true }));
+      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: true }));
     } else {
-      setLoadingReviews((prev) => ({ ...prev, [displayedProductId]: false }));
+      setLoadingReviews((prev) => ({ ...prev, [selectedProductId]: false }));
     }
-  }, [displayedProductId, productReviewsQuery.isFetching]);
+  }, [selectedProductId, productReviewsQuery.isFetching]);
 
-  // Reset des états liés au produit effectivement affiché (page ou sheet).
-  useEffect(() => {
+  // Track product views - only increment once per product per session
+  React.useEffect(() => {
     if (
-      displayedProductId &&
-      displayedProduct &&
-      productViewTracked.current !== displayedProductId
+      selectedProductId &&
+      selectedProductDetails &&
+      productViewTracked.current !== selectedProductId
     ) {
-      productViewTracked.current = displayedProductId;
-      incrementProductViews(displayedProductId);
+      productViewTracked.current = selectedProductId;
+      incrementProductViews(selectedProductId);
       setIsDescriptionExpanded(false); // Reset expansion on new product
       setSelectedDetailImage(null); // Reset selected image on new product
       setProductSwipeIdx(0);
     }
-  }, [displayedProductId, displayedProduct]);
+  }, [selectedProductId, selectedProductDetails]);
 
-  // Update selectedOptions when the displayed product changes
+  // Update selectedOptions when selectedProductDetails changes
   React.useEffect(() => {
-    if (displayedProduct) {
+    if (selectedProductDetails) {
       setSelectedDetailImage(
-        displayedProduct.image ||
-          (displayedProduct.images && displayedProduct.images[0]) ||
+        selectedProductDetails.image ||
+          (selectedProductDetails.images && selectedProductDetails.images[0]) ||
           null,
       );
       setSelectedOptions({}); // Reset selections
     }
-  }, [displayedProduct]);
+  }, [selectedProductDetails]);
 
   // 🔮 Predictive Cache Utility
   const prefetchProduct = useCallback(async (productId: string) => {
@@ -1528,7 +1475,7 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   useEffect(() => {
     setShowAllProductReviews(false); // Reset see more on product change
-  }, [displayedProductId]);
+  }, [selectedProductId]);
 
   // 💾 Store-wide reviews (React Query) - deduped + cached across navigation
   const storeReviewsQuery = useStoreReviews(
@@ -2623,14 +2570,10 @@ const WHOLESALE_FILTER = "wholesale";
     location.pathname === "/" || location.pathname === "";
 
   /**
-   * Fiche produit : rendue soit par la route `/product/…` (desktop et accès
-   * direct), soit dans le bottom sheet mobile. `surface` permet d'adapter le
-   * rappel d'ouverture des produits similaires (swap dans le sheet).
+   * Fiche produit : rendue par la route `/product/…` (toujours une vraie page,
+   * sur mobile comme sur desktop).
    */
-  const renderProductDetailsView = (
-    product: StorefrontProduct | null,
-    surface: "page" | "sheet",
-  ) => (
+  const renderProductDetailsView = (product: StorefrontProduct | null) => (
     <ProductDetailsView
       selectedProductDetails={product}
       isInitialLoading={isInitialLoading}
@@ -2668,7 +2611,6 @@ const WHOLESALE_FILTER = "wholesale";
       stores={stores}
       cartItemsCount={cartItemsCount}
       cartTotal={cartTotal}
-      onOpenProduct={surface === "sheet" ? openProduct : undefined}
       isVariantInCart={(variantId, options) =>
         cart.some(
           (item) =>
@@ -3229,12 +3171,15 @@ const WHOLESALE_FILTER = "wholesale";
                             onClick={() => {
                               if (searchTerm.trim().length >= 2) setRecentSearches(saveRecentSearch(searchTerm));
                               setShowSuggestions(false);
-                              openProduct(product, {
-                                action: () => {
-                                  setIsSearchOpen(false);
-                                  setSearchTerm("");
+                              safeNavigate(
+                                `/product/${generateProductSlug(product)}`,
+                                {
+                                  action: () => {
+                                    setIsSearchOpen(false);
+                                    setSearchTerm("");
+                                  },
                                 },
-                              });
+                              );
                             }}
                             className="cursor-pointer"
                           >
@@ -3700,7 +3645,11 @@ const WHOLESALE_FILTER = "wholesale";
                                 <ProductCard
                                   key={`${product.storeId}-${product.id}`}
                                   product={product}
-                                  onClick={() => openProduct(product)}
+                                  onClick={() =>
+                                    safeNavigate(
+                                      `/product/${generateProductSlug(product)}`,
+                                    )
+                                  }
                                   onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                   className="w-full"
                                 />
@@ -3751,7 +3700,11 @@ const WHOLESALE_FILTER = "wholesale";
                             <ProductCard
                               key={`${product.storeId}-${product.id}`}
                               product={product}
-                              onClick={() => openProduct(product)}
+                              onClick={() =>
+                                safeNavigate(
+                                  `/product/${generateProductSlug(product)}`,
+                                )
+                              }
                               onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                               className="w-full"
                             />
@@ -4004,7 +3957,11 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onClick={() => openProduct(product)}
+                                onClick={() =>
+                                  safeNavigate(
+                                    `/product/${generateProductSlug(product)}`,
+                                  )
+                                }
                                 onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                 className="w-full"
                               />
@@ -4044,7 +4001,11 @@ const WHOLESALE_FILTER = "wholesale";
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
                                 product={product}
-                                onClick={() => openProduct(product)}
+                                onClick={() =>
+                                  safeNavigate(
+                                    `/product/${generateProductSlug(product)}`,
+                                  )
+                                }
                                 onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                                 className="w-full"
                               />
@@ -4360,7 +4321,7 @@ const WHOLESALE_FILTER = "wholesale";
               </>
             }
           />
-          <Route path="product/:productId" element={renderProductDetailsView(selectedProductDetails, "page")} />
+          <Route path="product/:productId" element={renderProductDetailsView(selectedProductDetails)} />
           <Route path="cart" element={renderCart()} />
         </Routes>
       </main>
@@ -4705,21 +4666,6 @@ const WHOLESALE_FILTER = "wholesale";
         />
       )}
 
-      {/* Fiche produit en bottom sheet (mobile). Ouverte depuis une carte
-          produit, sans changer d'URL ni quitter le catalogue. */}
-      <BottomSheet
-        open={Boolean(sheetProductDetails)}
-        onClose={() => setSheetProduct(null)}
-        size="full"
-        resetScrollKey={sheetProduct?.id || "none"}
-      >
-        {sheetProductDetails ? (
-          <div className="px-4">
-            {renderProductDetailsView(sheetProductDetails, "sheet")}
-          </div>
-        ) : null}
-      </BottomSheet>
-
       {/* Liste complète d'une catégorie en bottom sheet (mobile), ouverte par
           les boutons « Voir tout » des sections de l'accueil et des boutiques. */}
       <BottomSheet
@@ -4741,7 +4687,11 @@ const WHOLESALE_FILTER = "wholesale";
                 <ProductCard
                   key={`${product.storeId}-${product.id}`}
                   product={product}
-                  onClick={() => openProduct(product)}
+                  onClick={() =>
+                    safeNavigate(
+                      `/product/${generateProductSlug(product)}`,
+                    )
+                  }
                   onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                   className="w-full"
                 />
