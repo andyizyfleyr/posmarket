@@ -2463,8 +2463,16 @@ const WHOLESALE_FILTER = "wholesale";
       location.pathname === "" ||
       location.pathname.startsWith("/store/"));
 
+  // L'accueil reprend le fond blanc du header (au lieu du gris translucide) :
+  // la page et l'en-tête forment ainsi un seul bloc visuel continu.
+  const isHomePath = !location.pathname || location.pathname === "/";
+
   return (
-    <div className="flex flex-col bg-gray-50/50 font-sans md:min-h-screen md:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+    <div
+      className={`flex flex-col ${
+        isHomePath ? "bg-white" : "bg-gray-50/50"
+      } font-sans md:min-h-screen md:pb-0 overflow-x-hidden w-full max-w-[100vw]`}
+    >
       {/* Global Connectivity Banner */}
       {!isOnline && (
         <div className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest py-2 text-center   duration-300 z-[10001]">
