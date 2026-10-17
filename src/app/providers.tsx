@@ -35,11 +35,16 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!('serviceWorker' in navigator) || window.location.hostname === 'localhost') return;
 
-    // Auto-reload unique quand un NOUVEAU Service Worker prend le contrôle :
-    // garantit que tout le monde exécute le dernier bundle après un
-    // déploiement (fini les vieilles UI restées en cache).
+    // Un NOUVEAU Service Worker prend le contrôle quelques secondes après le
+    // chargement (skipWaiting + clients.claim). Recharger la page à ce
+    // moment-là fermait brutalement les pop-up / modales / formulaires en cours
+    // d'utilisation. On diffère donc le rechargement tant que l'app est au
+    // premier plan : il se fait dès qu'elle passe en arrière-plan (écran
+    // verrouillé, app quittée, onglet changé) sans rien interrompre.
     let refreshing = false;
-    const onControllerChange = () => {
+    let reloadPending = false;
+
+    const performReload = () => {
       if (refreshing) return;
       const last = Number(sessionStorage.getItem('sw_cc_ts') || 0);
       if (Date.now() - last < 30_000) return; // anti-boucle
@@ -47,7 +52,24 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem('sw_cc_ts', String(Date.now()));
       window.location.reload();
     };
+
+    const onVisibilityChange = () => {
+      if (reloadPending && document.visibilityState === 'hidden') {
+        performReload();
+      }
+    };
+
+    const onControllerChange = () => {
+      // Jamais pendant que l'utilisateur utilise l'app.
+      if (document.visibilityState === 'visible') {
+        reloadPending = true;
+        return;
+      }
+      performReload();
+    };
+
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     const onLoad = () => {
       navigator.serviceWorker.register('/sw.js').then(
@@ -65,6 +87,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('load', onLoad);
     };
   }, []);
