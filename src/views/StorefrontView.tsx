@@ -94,6 +94,13 @@ type FtsRow = {
   isOnline: boolean | null;
 };
 
+/** Clé de mémorisation de la feuille « Voir tout » ouverte (par onglet). */
+const SHEET_STATE_KEY = "storefront_sheet_v1";
+/** Durée pendant laquelle une feuille s'ouvre à nouveau après un rechargement subi. */
+const SHEET_RESTORE_WINDOW_MS = 20_000;
+/** Sécurité : un loader de navigation ne doit jamais rester bloqué plus longtemps. */
+const NAV_LOADER_MAX_MS = 8_000;
+
 export type CheckoutStoreOrderDraft = {
   items: Array<{
     product: StorefrontProduct;
@@ -708,6 +715,20 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     return () => clearTimeout(timer);
   }, [location.pathname, isNavigating]);
 
+  // 🛡️ Sécurité : une navigation qui n'aboutit pas (réseau coupé, route
+  // inattendue, redirection) ne doit jamais laisser l'écran de chargement
+  // blanc affiché indéfiniment.
+  useEffect(() => {
+    if (!isNavigating) return;
+    const timer = setTimeout(() => {
+      if (!navCompletedRef.current) {
+        navCompletedRef.current = true;
+        setIsNavigating(false);
+      }
+    }, NAV_LOADER_MAX_MS);
+    return () => clearTimeout(timer);
+  }, [isNavigating]);
+
   // 🔄 Smooth Checkout Stage Transitions
   const handleStageChange = useCallback(
     (newStage: typeof checkoutStage) => {
@@ -1307,20 +1328,78 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const cartBarRef = useRef<HTMLDivElement>(null);
   const [cartBarInset, setCartBarInset] = useState(0);
 
-  /** Ouvre la feuille d'une catégorie en réservant la place de la barre panier. */
-  const openCategorySheet = useCallback((cat: string, vertical: string) => {
-    setCartBarInset(cartBarRef.current?.getBoundingClientRect().height || 0);
-    setSheetCategory({ cat, vertical });
+  /** Ferme la feuille « Voir tout » et oublie l'état mémorisé. */
+  const closeCategorySheet = useCallback(() => {
+    setSheetCategory(null);
+    try {
+      sessionStorage.removeItem(SHEET_STATE_KEY);
+    } catch {}
   }, []);
 
+  /** Ouvre la feuille d'une catégorie en réservant la place de la barre panier. */
+  const openCategorySheet = useCallback(
+    (cat: string, vertical: string) => {
+      setCartBarInset(cartBarRef.current?.getBoundingClientRect().height || 0);
+      setSheetCategory({ cat, vertical });
+      // Mémorisé pour l'onglet courant : si la page se recharge malgré tout
+      // (mise à jour navigateur, geste système, panne réseau…), la feuille se
+      // rouvre au lieu de disparaître « toute seule ».
+      try {
+        sessionStorage.setItem(
+          SHEET_STATE_KEY,
+          JSON.stringify({
+            cat,
+            vertical,
+            path: location.pathname,
+            at: Date.now(),
+          }),
+        );
+      } catch {}
+    },
+    [location.pathname],
+  );
+
+  // Réouverture d'une feuille après un rechargement subi : uniquement sur la
+  // même page, sur mobile, et si le rechargement vient d'avoir lieu.
+  const sheetRestoredRef = useRef(false);
+  useEffect(() => {
+    if (sheetRestoredRef.current) return;
+    sheetRestoredRef.current = true;
+    if (!isMobileSheetViewport()) return;
+    try {
+      const raw = sessionStorage.getItem(SHEET_STATE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        cat?: string;
+        vertical?: string;
+        path?: string;
+        at?: number;
+      };
+      const fresh =
+        typeof saved?.at === "number" &&
+        Date.now() - saved.at < SHEET_RESTORE_WINDOW_MS;
+      if (!saved?.cat || !fresh || saved.path !== location.pathname) {
+        sessionStorage.removeItem(SHEET_STATE_KEY);
+        return;
+      }
+      setSheetCategory({ cat: saved.cat, vertical: saved.vertical || "all" });
+    } catch {}
+  }, [location.pathname]);
+
   // Redimensionnement / rotation pendant que la feuille est ouverte : on
-  // remesure la barre pour garder l'alignement.
+  // remesure la barre pour garder l'alignement (une fois après montage aussi,
+  // le temps que la barre panier soit rendue avec le panier restauré).
   useEffect(() => {
     if (!sheetCategory) return;
     const measure = () =>
       setCartBarInset(cartBarRef.current?.getBoundingClientRect().height || 0);
+    measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const timer = window.setTimeout(measure, 400);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.clearTimeout(timer);
+    };
   }, [sheetCategory]);
 
   const selectedProductDetails = useMemo(() => {
@@ -1361,11 +1440,16 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   const selectedProductId = selectedProductDetails?.id || null;
 
-  // Ferme la feuille dès qu'une navigation change la page sous-jacente
-  // (lien boutique, retour navigateur, changement de catégorie…).
+  // Ferme la feuille dès qu'une navigation change réellement la page
+  // sous-jacente (lien boutique, retour navigateur, changement de catégorie…).
+  // Le garde-fou sur le pathname précédent évite de refermer la feuille que
+  // l'on vient de rouvrir après un rechargement (montage initial).
+  const previousPathRef = useRef(location.pathname);
   useEffect(() => {
-    setSheetCategory(null);
-  }, [location.pathname]);
+    if (previousPathRef.current === location.pathname) return;
+    previousPathRef.current = location.pathname;
+    closeCategorySheet();
+  }, [location.pathname, closeCategorySheet]);
 
   // La feuille ne sert que sous le breakpoint `md` (768px).
   const isMobileSheetViewport = () =>
@@ -4694,7 +4778,7 @@ const WHOLESALE_FILTER = "wholesale";
           les boutons « Voir tout » des sections de l'accueil et des boutiques. */}
       <BottomSheet
         open={Boolean(sheetCategory)}
-        onClose={() => setSheetCategory(null)}
+        onClose={closeCategorySheet}
         bottomInset={cartBarInset}
         title={sheetCategory?.cat}
         subtitle={
