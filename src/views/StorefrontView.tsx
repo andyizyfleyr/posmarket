@@ -100,6 +100,37 @@ const SHEET_STATE_KEY = "storefront_sheet_v1";
 const SHEET_RESTORE_WINDOW_MS = 20_000;
 /** Sécurité : un loader de navigation ne doit jamais rester bloqué plus longtemps. */
 const NAV_LOADER_MAX_MS = 8_000;
+/** Identifiants déjà comptés (vues) pour la session en cours. */
+const VIEWED_STORES_KEY = "storefront_viewed_stores_v1";
+const VIEWED_PRODUCTS_KEY = "storefront_viewed_products_v1";
+/** Nombre maximum d'identifiants mémorisés par liste (mémoire bornée). */
+const VIEWED_MAX_ENTRIES = 300;
+
+/**
+ * `true` si `id` n'a pas encore été compté pendant cette session d'onglet.
+ *
+ * Le storefront est remonté à chaque navigation : un simple `useRef` était
+ * réinitialisé au retour sur une page, ce qui recomptait les vues. On garde donc
+ * la mémoire dans `sessionStorage` (par onglet, survit à un rechargement).
+ */
+function trackOnceForSession(storageKey: string, id: string): boolean {
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    const seen: string[] = Array.isArray(parsed) ? (parsed as string[]) : [];
+    if (seen.includes(id)) return false;
+    seen.push(id);
+    const trimmed =
+      seen.length > VIEWED_MAX_ENTRIES
+        ? seen.slice(seen.length - VIEWED_MAX_ENTRIES)
+        : seen;
+    sessionStorage.setItem(storageKey, JSON.stringify(trimmed));
+    return true;
+  } catch {
+    // sessionStorage indisponible (mode privé strict) : on ne bloque pas.
+    return true;
+  }
+}
 
 export type CheckoutStoreOrderDraft = {
   items: Array<{
@@ -224,8 +255,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { isOnline, isSlow } = useNetworkStatus();
-  const storeViewTracked = React.useRef<string | null>(null);
-  const productViewTracked = React.useRef<string | null>(null);
 
   // 🏛️ Notification State
   const [toastNotifications, setToastNotifications] = useState<
@@ -1499,16 +1528,14 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 
   // Track product views - only increment once per product per session
   React.useEffect(() => {
-    if (
-      selectedProductId &&
-      selectedProductDetails &&
-      productViewTracked.current !== selectedProductId
-    ) {
-      productViewTracked.current = selectedProductId;
+    if (!selectedProductId || !selectedProductDetails) return;
+    setIsDescriptionExpanded(false); // Reset expansion on new product
+    setSelectedDetailImage(null); // Reset selected image on new product
+    setProductSwipeIdx(0);
+    // Compté une seule fois par session : le composant est remonté à chaque
+    // navigation, un simple ref se réinitialisait et regonflait les vues.
+    if (trackOnceForSession(VIEWED_PRODUCTS_KEY, selectedProductId)) {
       incrementProductViews(selectedProductId);
-      setIsDescriptionExpanded(false); // Reset expansion on new product
-      setSelectedDetailImage(null); // Reset selected image on new product
-      setProductSwipeIdx(0);
     }
   }, [selectedProductId, selectedProductDetails]);
 
@@ -1568,15 +1595,17 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // Track store views - only increment once per store per session
   const lastVisitedStoreRef = useRef<string | null>(null);
   useEffect(() => {
-    if (selectedStoreId && storeViewTracked.current !== selectedStoreId) {
-      storeViewTracked.current = selectedStoreId;
+    if (!selectedStoreId) return;
+    // Mémorise la boutique pour un retour intelligent depuis une fiche produit
+    if (selectedStoreParam) {
+      lastVisitedStoreRef.current = selectedStoreParam;
+    }
+    setStoreTab("products"); // Reset to products tab on navigation
+    setShowAllStoreReviews(false); // Reset see more
+    // Compté une seule fois par session (voir `trackOnceForSession`) : sinon
+    // revenir sur la boutique regonflait le compteur de visiteurs.
+    if (trackOnceForSession(VIEWED_STORES_KEY, selectedStoreId)) {
       incrementStoreViews(selectedStoreId);
-      // Mémorise la boutique pour un retour intelligent depuis une fiche produit
-      if (selectedStoreParam) {
-        lastVisitedStoreRef.current = selectedStoreParam;
-      }
-      setStoreTab("products"); // Reset to products tab on navigation
-      setShowAllStoreReviews(false); // Reset see more
     }
   }, [selectedStoreId, selectedStoreParam]);
 
