@@ -3131,7 +3131,7 @@ const WHOLESALE_FILTER = "wholesale";
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
                 {!searchTerm && selectedCategory === "all" && (
-                  <div className="mb-6 mt-1 md:mb-10 md:mt-6">
+                  <div className="mb-6 mt-1 md:mb-10 md:mt-6 border-2 border-brand rounded-[24px] md:rounded-[32px]">
                     <button
                       type="button"
                       onClick={() => safeNavigate("/login")}
