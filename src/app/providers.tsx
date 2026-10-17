@@ -44,8 +44,19 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     let refreshing = false;
     let reloadPending = false;
 
+    // Un pop-up / une feuille ouverte ? Alors on ne recharge jamais, même si
+    // l'app est passée en arrière-plan entre-temps.
+    const hasOpenOverlay = () =>
+      !!document.querySelector(
+        '[data-no-pull-refresh], [role="dialog"], [aria-modal="true"]',
+      );
+
     const performReload = () => {
       if (refreshing) return;
+      if (document.visibilityState === 'visible' || hasOpenOverlay()) {
+        reloadPending = true; // on retentera plus tard
+        return;
+      }
       const last = Number(sessionStorage.getItem('sw_cc_ts') || 0);
       if (Date.now() - last < 30_000) return; // anti-boucle
       refreshing = true;
@@ -61,7 +72,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     const onControllerChange = () => {
       // Jamais pendant que l'utilisateur utilise l'app.
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' || hasOpenOverlay()) {
         reloadPending = true;
         return;
       }

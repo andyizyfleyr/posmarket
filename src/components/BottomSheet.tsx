@@ -82,6 +82,11 @@ export function BottomSheet({
     window.addEventListener('keydown', onKeyDown);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // Coupe aussi le pull-to-refresh natif du navigateur : un glissement vers
+    // le bas depuis la feuille pouvait déclencher un vrai rechargement de page
+    // (flash blanc + retour en haut) et donc fermer la feuille.
+    const previousOverscroll = document.documentElement.style.overscrollBehaviorY;
+    document.documentElement.style.overscrollBehaviorY = 'none';
 
     // Le sheet est masqué en CSS à partir de `md` : si l'écran s'élargit
     // pendant qu'il est ouvert (rotation, redimensionnement), on le referme
@@ -95,6 +100,7 @@ export function BottomSheet({
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overscrollBehaviorY = previousOverscroll;
       desktopQuery.removeEventListener('change', onBreakpointChange);
     };
   }, [open, onClose]);
