@@ -28,7 +28,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
         name: 'Commandes',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#059669',
+        lightColor: '#F56B2A',
       });
     }
 
@@ -56,7 +56,7 @@ export async function notifyOrderConfirmed(orderIds: string[]): Promise<void> {
         title: 'Commande confirmée ! 🎉',
         body: `Votre commande (Réf: ${ref}) est en cours de préparation.`,
         sound: true,
-        color: '#059669',
+        color: '#F56B2A',
       },
       trigger: null, // déclenchement immédiat
     });

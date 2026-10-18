@@ -271,7 +271,7 @@ export default function CheckoutScreen() {
             ]}
             onPress={() => setPaymentMethod('cod')}
           >
-            <Banknote size={20} color={paymentMethod === 'cod' ? '#059669' : '#6b7280'} />
+            <Banknote size={20} color={paymentMethod === 'cod' ? '#F56B2A' : '#6b7280'} />
             <View style={styles.paymentCol}>
               <Text style={styles.paymentName}>Paiement à la livraison</Text>
               <Text style={styles.paymentSub}>Payez en espèces à réception du colis</Text>
@@ -285,7 +285,7 @@ export default function CheckoutScreen() {
             ]}
             onPress={() => setPaymentMethod('wave')}
           >
-            <CreditCard size={20} color={paymentMethod === 'wave' ? '#059669' : '#6b7280'} />
+            <CreditCard size={20} color={paymentMethod === 'wave' ? '#F56B2A' : '#6b7280'} />
             <View style={styles.paymentCol}>
               <Text style={styles.paymentName}>Wave Mobile Money</Text>
               <Text style={styles.paymentSub}>Paiement direct via Wave</Text>
@@ -299,7 +299,7 @@ export default function CheckoutScreen() {
             ]}
             onPress={() => setPaymentMethod('om')}
           >
-            <CreditCard size={20} color={paymentMethod === 'om' ? '#059669' : '#6b7280'} />
+            <CreditCard size={20} color={paymentMethod === 'om' ? '#F56B2A' : '#6b7280'} />
             <View style={styles.paymentCol}>
               <Text style={styles.paymentName}>Orange Money</Text>
               <Text style={styles.paymentSub}>Paiement sécurisé via Orange Money</Text>
@@ -325,7 +325,7 @@ export default function CheckoutScreen() {
         </View>
 
         <View style={styles.guaranteeRow}>
-          <ShieldCheck size={16} color="#059669" />
+          <ShieldCheck size={16} color="#F56B2A" />
           <Text style={styles.guaranteeText}>
             Commande sécurisée avec notification directe au vendeur
           </Text>
@@ -479,8 +479,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   paymentOptionActive: {
-    borderColor: '#059669',
-    backgroundColor: '#ecfdf5',
+    borderColor: '#F56B2A',
+    backgroundColor: '#FFF3ED',
   },
   paymentCol: {
     flex: 1,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   summaryValueFree: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#059669',
+    color: '#F56B2A',
   },
   summaryTotalRow: {
     paddingTop: 10,
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#059669',
+    color: '#F56B2A',
   },
   guaranteeRow: {
     flexDirection: 'row',
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   submitBtn: {
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   backHomeBtn: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     borderRadius: 8,
   },
   backHomeText: {
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
   modalBtn: {
     marginTop: 12,
     width: '100%',
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',

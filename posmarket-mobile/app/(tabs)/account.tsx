@@ -230,13 +230,13 @@ export default function AccountScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F56B2A']} />
         }
       >
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <User size={28} color="#059669" />
+            <User size={28} color="#F56B2A" />
           </View>
           <View style={styles.profileDetails}>
             <Text style={styles.profileName}>
@@ -298,7 +298,7 @@ export default function AccountScreen() {
           >
             <Package
               size={18}
-              color={activeTab === 'orders' ? '#059669' : '#6b7280'}
+              color={activeTab === 'orders' ? '#F56B2A' : '#6b7280'}
             />
             <Text
               style={[
@@ -316,7 +316,7 @@ export default function AccountScreen() {
           >
             <MapPin
               size={18}
-              color={activeTab === 'addresses' ? '#059669' : '#6b7280'}
+              color={activeTab === 'addresses' ? '#F56B2A' : '#6b7280'}
             />
             <Text
               style={[
@@ -332,7 +332,7 @@ export default function AccountScreen() {
         {/* Tab Content */}
         {isLoading && !refreshing ? (
           <View style={styles.loaderBox}>
-            <ActivityIndicator color="#059669" size="small" />
+            <ActivityIndicator color="#F56B2A" size="small" />
             <Text style={styles.loaderText}>Chargement des données...</Text>
           </View>
         ) : activeTab === 'orders' ? (
@@ -418,7 +418,7 @@ export default function AccountScreen() {
               style={styles.addAddressBtn}
               onPress={() => setShowAddressModal(true)}
             >
-              <Plus size={18} color="#059669" />
+              <Plus size={18} color="#F56B2A" />
               <Text style={styles.addAddressText}>Ajouter une adresse de livraison</Text>
             </Pressable>
 
@@ -435,7 +435,7 @@ export default function AccountScreen() {
                 <View key={addr.id} style={styles.addressCard}>
                   <View style={styles.addressHeader}>
                     <View style={styles.addressNameRow}>
-                      <Home size={16} color="#059669" />
+                      <Home size={16} color="#F56B2A" />
                       <Text style={styles.addressName}>{addr.name}</Text>
                       {addr.is_default && (
                         <View style={styles.defaultBadge}>
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabBtnActive: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
   },
   tabBtnText: {
     fontSize: 13,
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   tabBtnTextActive: {
-    color: '#059669',
+    color: '#F56B2A',
   },
   sectionContainer: {
     gap: 12,
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef3c7',
   },
   statusDelivered: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
   },
   statusText: {
     fontSize: 11,
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
     color: '#d97706',
   },
   statusTextDelivered: {
-    color: '#059669',
+    color: '#F56B2A',
   },
   orderItemsList: {
     paddingVertical: 8,
@@ -811,23 +811,23 @@ const styles = StyleSheet.create({
   orderTotalValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#059669',
+    color: '#F56B2A',
   },
   addAddressBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
     borderWidth: 1,
-    borderColor: '#a7f3d0',
+    borderColor: '#FDE4D7',
     borderRadius: 10,
     paddingVertical: 12,
   },
   addAddressText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#059669',
+    color: '#F56B2A',
   },
   addressCard: {
     backgroundColor: '#ffffff',
@@ -854,14 +854,14 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   defaultBadge: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   defaultBadgeText: {
     fontSize: 10,
-    color: '#059669',
+    color: '#F56B2A',
     fontWeight: '600',
   },
   deleteIconBtn: {
@@ -895,7 +895,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   saveAuthBtn: {
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
@@ -949,8 +949,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#059669',
-    borderColor: '#059669',
+    backgroundColor: '#F56B2A',
+    borderColor: '#F56B2A',
   },
   checkboxLabel: {
     fontSize: 13,
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     alignItems: 'center',
   },
   saveBtnText: {

@@ -16,7 +16,7 @@
       "package": "com.posmarket.app",
       "permissions": ["INTERNET"],
       "adaptiveIcon": {
-        "backgroundColor": "#059669",
+        "backgroundColor": "#F56B2A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
@@ -33,7 +33,7 @@
       [
         "expo-notifications",
         {
-          "color": "#059669",
+          "color": "#F56B2A",
           "defaultChannel": "orders"
         }
       ]

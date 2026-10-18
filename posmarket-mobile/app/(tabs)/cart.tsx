@@ -262,13 +262,13 @@ const styles = StyleSheet.create({
   },
   itemVariant: {
     fontSize: 11,
-    color: '#7C3AED',
+    color: '#F56B2A',
     marginTop: 2,
   },
   itemPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#F56B2A',
     marginTop: 4,
   },
   quantityRow: {
@@ -330,13 +330,13 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   checkoutButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#F56B2A',
     borderRadius: 12,
     paddingHorizontal: 28,
     paddingVertical: 14,
   },
   checkoutButtonPressed: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#E55A1B',
     transform: [{ scale: 0.97 }],
   },
   checkoutText: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   browseButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#F56B2A',
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,

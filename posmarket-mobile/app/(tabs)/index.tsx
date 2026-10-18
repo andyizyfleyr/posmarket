@@ -139,7 +139,7 @@ export default function HomeScreen() {
             </Text>
           </View>
           <View style={styles.headerBadge}>
-            <Store size={18} color="#2563EB" />
+            <Store size={18} color="#F56B2A" />
             <Text style={styles.headerBadgeText}>
               {catalogData?.stores?.length || 0}
             </Text>
@@ -232,8 +232,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#2563EB"
-            colors={['#2563EB']}
+            tintColor="#F56B2A"
+            colors={['#F56B2A']}
           />
         }
         ListEmptyComponent={
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FFF3ED',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   headerBadgeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#F56B2A',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   categoryChipActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#F56B2A',
   },
   categoryChipText: {
     fontSize: 12,

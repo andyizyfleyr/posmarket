@@ -1,7 +1,7 @@
 /**
- * ProductCard — Phase 3.1 du plan.
- * Transposition native du composant web ProductCard.
- * 3 états du bouton : « + Ajouter », « Choisir » (options), « Rupture ».
+ * ProductCard — transposition native fidèle du composant web
+ * (src/components/ProductCard.tsx) : carte blanche à bord fin, badge remise
+ * rouge, nom discret, prix en noir, bouton neutre qui devient orange à l'appui.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -13,9 +13,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Star, ShoppingCart } from 'lucide-react-native';
+import { Plus, Star, ShoppingCart } from 'lucide-react-native';
 import { resolveImageUrl } from '@/api/client';
 import { formatCurrency } from '@/utils';
+import { COLORS, RADIUS } from '@/theme';
 import type { StorefrontProduct } from '@/types';
 import { useCart } from '@/context/CartContext';
 
@@ -58,30 +59,32 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
       onPress={handlePress}
     >
       {/* Image */}
-      <View style={styles.imageContainer}>
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.image}
-            contentFit="cover"
-            transition={200}
-            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
-          />
-        ) : (
-          <View style={[styles.image, styles.imagePlaceholder]}>
-            <ShoppingCart size={24} color="#9CA3AF" />
-          </View>
-        )}
-        {discount > 0 && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>-{discount}%</Text>
-          </View>
-        )}
-        {isOutOfStock && (
-          <View style={styles.outOfStockOverlay}>
-            <Text style={styles.outOfStockText}>Rupture</Text>
-          </View>
-        )}
+      <View style={styles.imageWrap}>
+        <View style={styles.imageContainer}>
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              contentFit="cover"
+              transition={200}
+              placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+            />
+          ) : (
+            <View style={[styles.image, styles.imagePlaceholder]}>
+              <ShoppingCart size={22} color={COLORS.textFaint} />
+            </View>
+          )}
+          {discount > 0 && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>-{discount}%</Text>
+            </View>
+          )}
+          {isOutOfStock && (
+            <View style={styles.outOfStockOverlay}>
+              <Text style={styles.outOfStockText}>Rupture</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Info */}
@@ -93,22 +96,18 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
           {product.name}
         </Text>
 
-        {/* Rating */}
         {(product.rating ?? 0) > 0 && (
           <View style={styles.ratingRow}>
-            <Star size={12} color="#F59E0B" fill="#F59E0B" />
+            <Star size={10} color={COLORS.warning} fill={COLORS.warning} />
             <Text style={styles.ratingText}>
               {(product.rating ?? 0).toFixed(1)}
             </Text>
             {(product.reviewCount ?? 0) > 0 && (
-              <Text style={styles.reviewCount}>
-                ({product.reviewCount})
-              </Text>
+              <Text style={styles.reviewCount}>({product.reviewCount})</Text>
             )}
           </View>
         )}
 
-        {/* Price */}
         <View style={styles.priceRow}>
           <Text style={styles.price}>{formatCurrency(product.price)}</Text>
           {product.originalPrice && product.originalPrice > product.price && (
@@ -117,34 +116,47 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
             </Text>
           )}
         </View>
+      </View>
 
-        {/* Add button */}
+      {/* Bouton — style web : neutre au repos, orange à l'appui */}
+      <View style={styles.buttonWrap}>
         <Pressable
           style={({ pressed }) => [
             styles.addButton,
             isOutOfStock && styles.addButtonDisabled,
-            hasRequiredOptions && !isOutOfStock && styles.addButtonOptions,
             pressed && !isOutOfStock && styles.addButtonPressed,
           ]}
           onPress={hasRequiredOptions ? handlePress : handleAdd}
-          disabled={isOutOfStock}
+          disabled={isOutOfStock || adding}
         >
-          {adding ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Text
-              style={[
-                styles.addButtonText,
-                isOutOfStock && styles.addButtonTextDisabled,
-              ]}
-            >
-              {isOutOfStock
-                ? 'Rupture'
-                : hasRequiredOptions
-                  ? 'Choisir'
-                  : '+ Ajouter'}
-            </Text>
-          )}
+          {({ pressed }) =>
+            adding ? (
+              <ActivityIndicator size="small" color={COLORS.brand} />
+            ) : (
+              <View style={styles.addButtonRow}>
+                {!isOutOfStock && !hasRequiredOptions && (
+                  <Plus
+                    size={13}
+                    strokeWidth={2.5}
+                    color={pressed ? '#FFFFFF' : COLORS.text}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.addButtonText,
+                    isOutOfStock && styles.addButtonTextDisabled,
+                    pressed && !isOutOfStock && styles.addButtonTextPressed,
+                  ]}
+                >
+                  {isOutOfStock
+                    ? 'Rupture'
+                    : hasRequiredOptions
+                      ? 'Choisir'
+                      : 'Ajouter'}
+                </Text>
+              </View>
+            )
+          }
         </Pressable>
       </View>
     </Pressable>
@@ -154,24 +166,30 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: COLORS.line,
     overflow: 'hidden',
     margin: 4,
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
   },
   cardPressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.9,
+    opacity: 0.92,
+  },
+  imageWrap: {
+    padding: 4,
   },
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: COLORS.surfaceMuted,
   },
   image: {
     width: '100%',
@@ -180,102 +198,117 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: COLORS.surfaceMuted,
   },
   discountBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: '#EF4444',
+    top: 6,
+    left: 6,
+    backgroundColor: COLORS.danger,
     borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
   },
   discountText: {
     color: '#FFF',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   outOfStockOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.40)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   outOfStockText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   info: {
-    padding: 10,
-    gap: 3,
+    paddingHorizontal: 8,
+    paddingTop: 2,
+    gap: 2,
+    flexGrow: 1,
   },
   storeName: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 9,
+    color: COLORS.textFaint,
     fontWeight: '500',
   },
   productName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#111827',
-    lineHeight: 18,
+    color: '#1F2937',
+    lineHeight: 16,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginTop: 2,
+    marginTop: 1,
   },
   ratingText: {
-    fontSize: 11,
-    color: '#F59E0B',
+    fontSize: 10,
+    color: COLORS.warning,
     fontWeight: '600',
   },
   reviewCount: {
-    fontSize: 10,
-    color: '#9CA3AF',
+    fontSize: 9,
+    color: COLORS.textFaint,
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    alignItems: 'baseline',
+    gap: 5,
+    marginTop: 1,
   },
   price: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#2563EB',
+    color: COLORS.price,
   },
   originalPrice: {
-    fontSize: 11,
-    color: '#9CA3AF',
+    fontSize: 10,
+    color: COLORS.textFaint,
     textDecorationLine: 'line-through',
   },
+  buttonWrap: {
+    padding: 6,
+  },
   addButton: {
-    backgroundColor: '#2563EB',
+    minHeight: 32,
     borderRadius: 8,
-    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
-    marginTop: 6,
+    justifyContent: 'center',
   },
   addButtonPressed: {
-    backgroundColor: '#1D4ED8',
-    transform: [{ scale: 0.95 }],
+    backgroundColor: COLORS.brand,
+    borderColor: COLORS.brand,
   },
   addButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: COLORS.surfaceMuted,
+    borderColor: COLORS.line,
   },
-  addButtonOptions: {
-    backgroundColor: '#7C3AED',
+  addButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   addButtonText: {
-    color: '#FFF',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  addButtonTextPressed: {
+    color: '#FFFFFF',
   },
   addButtonTextDisabled: {
-    color: '#FFF',
+    color: '#D1D5DB',
+    fontWeight: '600',
   },
 });

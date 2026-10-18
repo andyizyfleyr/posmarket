@@ -147,7 +147,7 @@ export default function StoreScreen() {
                   />
                 ) : (
                   <View style={styles.storeLogoFallback}>
-                    <Store size={28} color="#059669" />
+                    <Store size={28} color="#F56B2A" />
                   </View>
                 )}
                 <View style={styles.storeInfoCol}>
@@ -175,7 +175,7 @@ export default function StoreScreen() {
 
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Package size={14} color="#059669" />
+                  <Package size={14} color="#F56B2A" />
                   <Text style={styles.statText}>
                     {storeProducts.length} produits
                   </Text>
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#059669',
+    color: '#F56B2A',
   },
   categoryScroll: {
     gap: 8,
@@ -358,8 +358,8 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   catChipActive: {
-    backgroundColor: '#059669',
-    borderColor: '#059669',
+    backgroundColor: '#F56B2A',
+    borderColor: '#F56B2A',
   },
   catChipText: {
     fontSize: 12,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     borderRadius: 8,
   },
   backBtnText: {

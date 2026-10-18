@@ -239,7 +239,7 @@ export default function ProductDetailScreen() {
               style={styles.storeRow}
               onPress={() => router.push(`/store/${store.slug || store.id}` as never)}
             >
-              <Store size={16} color="#059669" />
+              <Store size={16} color="#F56B2A" />
               <Text style={styles.storeName}>{product.storeName}</Text>
               <ChevronRight size={14} color="#9ca3af" />
             </Pressable>
@@ -407,17 +407,17 @@ export default function ProductDetailScreen() {
           {/* Trust badges */}
           <View style={styles.trustBadges}>
             <View style={styles.trustItem}>
-              <ShieldCheck size={18} color="#059669" />
+              <ShieldCheck size={18} color="#F56B2A" />
               <Text style={styles.trustText}>Paiement sécurisé</Text>
             </View>
             <View style={styles.trustItem}>
-              <Truck size={18} color="#059669" />
+              <Truck size={18} color="#F56B2A" />
               <Text style={styles.trustText}>
                 {product.deliveryTime ? `Livraison ${product.deliveryTime}` : 'Livraison rapide'}
               </Text>
             </View>
             <View style={styles.trustItem}>
-              <Clock size={18} color="#059669" />
+              <Clock size={18} color="#F56B2A" />
               <Text style={styles.trustText}>
                 {product.preparationTime ? `Prêt en ${product.preparationTime}` : 'Disponibilité immédiate'}
               </Text>
@@ -494,7 +494,7 @@ export default function ProductDetailScreen() {
               onPress={handleAddToCart}
               disabled={isOutOfStock}
             >
-              <ShoppingBag size={18} color="#059669" />
+              <ShoppingBag size={18} color="#F56B2A" />
               <Text style={styles.addToCartText}>Ajouter</Text>
             </Pressable>
 
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.2)',
   },
   activeDot: {
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     width: 18,
   },
   infoCard: {
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#059669',
+    color: '#F56B2A',
   },
   productName: {
     fontSize: 20,
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   stockPillIn: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#FFF3ED',
   },
   stockPillOut: {
     backgroundColor: '#fef2f2',
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stockPillTextIn: {
-    color: '#059669',
+    color: '#F56B2A',
   },
   stockPillTextOut: {
     color: '#dc2626',
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#059669',
+    color: '#F56B2A',
   },
   originalPriceText: {
     fontSize: 16,
@@ -694,8 +694,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   wholesaleTierActive: {
-    borderColor: '#059669',
-    backgroundColor: '#ecfdf5',
+    borderColor: '#F56B2A',
+    backgroundColor: '#FFF3ED',
   },
   wholesaleQty: {
     fontSize: 11,
@@ -726,8 +726,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   variantChipSelected: {
-    borderColor: '#059669',
-    backgroundColor: '#ecfdf5',
+    borderColor: '#F56B2A',
+    backgroundColor: '#FFF3ED',
   },
   variantChipText: {
     fontSize: 13,
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   variantChipTextSelected: {
-    color: '#059669',
+    color: '#F56B2A',
     fontWeight: '700',
   },
   variantPriceText: {
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   variantPriceTextSelected: {
-    color: '#059669',
+    color: '#F56B2A',
   },
   quantitySection: {
     marginTop: 12,
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
   bottomPriceValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#059669',
+    color: '#F56B2A',
   },
   bottomActions: {
     flexDirection: 'row',
@@ -895,19 +895,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#059669',
-    backgroundColor: '#ecfdf5',
+    borderColor: '#F56B2A',
+    backgroundColor: '#FFF3ED',
   },
   addToCartText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#059669',
+    color: '#F56B2A',
   },
   buyNowBtn: {
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
   },
   buyNowText: {
     fontSize: 13,
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#059669',
+    backgroundColor: '#F56B2A',
     borderRadius: 8,
   },
   backBtnText: {

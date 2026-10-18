@@ -19,7 +19,7 @@ export function Loader({
 }: LoaderProps) {
   const content = (
     <View style={styles.container}>
-      <ActivityIndicator size={size} color="#2563EB" />
+      <ActivityIndicator size={size} color="#F56B2A" />
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
