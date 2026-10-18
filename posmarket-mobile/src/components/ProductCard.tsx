@@ -1,247 +1,281 @@
-import React, { memo, useCallback, useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+/**
+ * ProductCard — Phase 3.1 du plan.
+ * Transposition native du composant web ProductCard.
+ * 3 états du bouton : « + Ajouter », « Choisir » (options), « Rupture ».
+ */
+
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Image } from 'expo-image';
-import { Plus, Eye } from 'lucide-react-native';
-import { Product } from '../types';
-import { formatCurrency, formatNumber } from '../utils/format';
+import { Star, ShoppingCart } from 'lucide-react-native';
+import { resolveImageUrl } from '@/api/client';
+import { formatCurrency } from '@/utils';
+import type { StorefrontProduct } from '@/types';
+import { useCart } from '@/context/CartContext';
 
 interface ProductCardProps {
-  product: Product;
-  onAddToCart: (product: Product) => void;
-  onClick?: () => void;
+  product: StorefrontProduct;
+  onPress?: (product: StorefrontProduct) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = memo(({ product, onAddToCart, onClick }) => {
-  const hasOptions = Array.isArray(product.options) && product.options.length > 0;
-  const isOutOfStock = product.stock === 0;
+export function ProductCard({ product, onPress }: ProductCardProps) {
+  const { addToCart } = useCart();
   const [adding, setAdding] = useState(false);
-  const addingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imageUrl = resolveImageUrl(product.image);
+  const isOutOfStock = product.stock <= 0;
+  const hasRequiredOptions =
+    (product.options && product.options.length > 0) ||
+    (product.variants && product.variants.length > 0);
 
-  useEffect(() => {
-    return () => {
-      if (addingTimerRef.current) clearTimeout(addingTimerRef.current);
-    };
-  }, []);
-
-  const handleAddToCart = useCallback(() => {
-    if (isOutOfStock) return;
-    if (hasOptions) {
-      onClick?.();
-      return;
-    }
+  const handleAdd = useCallback(() => {
+    if (isOutOfStock || hasRequiredOptions) return;
     setAdding(true);
-    if (addingTimerRef.current) clearTimeout(addingTimerRef.current);
-    addingTimerRef.current = setTimeout(() => setAdding(false), 600);
-    onAddToCart(product);
-  }, [product, onAddToCart, onClick, isOutOfStock, hasOptions]);
+    addToCart(product, 1);
+    setTimeout(() => setAdding(false), 600);
+  }, [addToCart, product, isOutOfStock, hasRequiredOptions]);
 
-  const discount = product.originalPrice && product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
+  const handlePress = useCallback(() => {
+    onPress?.(product);
+  }, [onPress, product]);
+
+  const discount =
+    product.originalPrice && product.originalPrice > product.price
+      ? Math.round(
+          ((product.originalPrice - product.price) / product.originalPrice) *
+            100,
+        )
+      : 0;
 
   return (
-    <View style={styles.card}>
-      <Pressable onPress={onClick} style={styles.clickableArea}>
-        {/* Product Image */}
-        <View style={styles.imageContainer}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={handlePress}
+    >
+      {/* Image */}
+      <View style={styles.imageContainer}>
+        {imageUrl ? (
           <Image
-            source={{ uri: product.image || 'https://via.placeholder.com/300' }}
+            source={{ uri: imageUrl }}
             style={styles.image}
             contentFit="cover"
             transition={200}
+            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
           />
-          {discount !== null && (
-            <View style={styles.badgeContainer}>
-              <Text style={styles.badgeText}>-{discount}%</Text>
-            </View>
+        ) : (
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <ShoppingCart size={24} color="#9CA3AF" />
+          </View>
+        )}
+        {discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>-{discount}%</Text>
+          </View>
+        )}
+        {isOutOfStock && (
+          <View style={styles.outOfStockOverlay}>
+            <Text style={styles.outOfStockText}>Rupture</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Info */}
+      <View style={styles.info}>
+        <Text style={styles.storeName} numberOfLines={1}>
+          {product.storeName}
+        </Text>
+        <Text style={styles.productName} numberOfLines={2}>
+          {product.name}
+        </Text>
+
+        {/* Rating */}
+        {(product.rating ?? 0) > 0 && (
+          <View style={styles.ratingRow}>
+            <Star size={12} color="#F59E0B" fill="#F59E0B" />
+            <Text style={styles.ratingText}>
+              {(product.rating ?? 0).toFixed(1)}
+            </Text>
+            {(product.reviewCount ?? 0) > 0 && (
+              <Text style={styles.reviewCount}>
+                ({product.reviewCount})
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Price */}
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>{formatCurrency(product.price)}</Text>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <Text style={styles.originalPrice}>
+              {formatCurrency(product.originalPrice)}
+            </Text>
           )}
         </View>
 
-        {/* Content */}
-        <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={1}>
-            {product.name}
-          </Text>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>{formatCurrency(product.price)}</Text>
-            {product.originalPrice && product.originalPrice > product.price ? (
-              <Text style={styles.originalPrice}>{formatCurrency(product.originalPrice)}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.metaRow}>
-            {product.salesCount !== undefined && product.salesCount > 0 ? (
-              <Text style={styles.metaText}>
-                {formatNumber(product.salesCount)} {product.salesCount > 1 ? 'ventes' : 'vente'}
-              </Text>
-            ) : <View />}
-
-            {product.views !== undefined && product.views > 0 ? (
-              <View style={styles.viewBadge}>
-                <Text style={styles.metaText}>{formatNumber(product.views)} </Text>
-                <Eye size={11} color="#6B7280" />
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </Pressable>
-
-      {/* Action Button: + Ajouter / Choisir / Rupture */}
-      <View style={styles.buttonWrapper}>
+        {/* Add button */}
         <Pressable
-          onPress={handleAddToCart}
-          disabled={isOutOfStock || adding}
           style={({ pressed }) => [
-            styles.button,
-            isOutOfStock ? styles.buttonDisabled : styles.buttonActive,
-            pressed && styles.buttonPressed,
+            styles.addButton,
+            isOutOfStock && styles.addButtonDisabled,
+            hasRequiredOptions && !isOutOfStock && styles.addButtonOptions,
+            pressed && !isOutOfStock && styles.addButtonPressed,
           ]}
+          onPress={hasRequiredOptions ? handlePress : handleAdd}
+          disabled={isOutOfStock}
         >
           {adding ? (
-            <ActivityIndicator size="small" color="#EA580C" />
-          ) : isOutOfStock ? (
-            <Text style={styles.buttonTextDisabled}>Rupture</Text>
-          ) : hasOptions ? (
-            <Text style={styles.buttonTextActive}>Choisir</Text>
+            <ActivityIndicator size="small" color="#FFF" />
           ) : (
-            <View style={styles.buttonContent}>
-              <Plus size={13} color="#111827" />
-              <Text style={styles.buttonTextActive}>Ajouter</Text>
-            </View>
+            <Text
+              style={[
+                styles.addButtonText,
+                isOutOfStock && styles.addButtonTextDisabled,
+              ]}
+            >
+              {isOutOfStock
+                ? 'Rupture'
+                : hasRequiredOptions
+                  ? 'Choisir'
+                  : '+ Ajouter'}
+            </Text>
           )}
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
-});
-
-ProductCard.displayName = 'ProductCard';
+}
 
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    margin: 6,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
     overflow: 'hidden',
+    margin: 4,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  clickableArea: {
-    flex: 1,
+  cardPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#F9FAFB',
-    position: 'relative',
+    backgroundColor: '#F3F4F6',
   },
   image: {
     width: '100%',
     height: '100%',
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
   },
-  badgeContainer: {
+  imagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+  },
+  discountBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
     backgroundColor: '#EF4444',
+    borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  content: {
-    padding: 10,
-    flexGrow: 1,
-  },
-  title: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-    marginBottom: 4,
-  },
-  price: {
-    fontSize: 13,
+  discountText: {
+    color: '#FFF',
+    fontSize: 11,
     fontWeight: '700',
-    color: '#111827',
   },
-  originalPrice: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  viewBadge: {
-    flexDirection: 'row',
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  metaText: {
-    fontSize: 10,
+  outOfStockText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  info: {
+    padding: 10,
+    gap: 3,
+  },
+  storeName: {
+    fontSize: 11,
     color: '#6B7280',
     fontWeight: '500',
   },
-  buttonWrapper: {
-    paddingHorizontal: 8,
-    paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
+  productName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+    lineHeight: 18,
   },
-  button: {
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  buttonActive: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
-  },
-  buttonDisabled: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#E5E7EB',
-  },
-  buttonPressed: {
-    transform: [{ scale: 0.97 }],
-    backgroundColor: '#FFF7ED',
-    borderColor: '#FDBA74',
-  },
-  buttonContent: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
+    marginTop: 2,
   },
-  buttonTextActive: {
+  ratingText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#111827',
+    color: '#F59E0B',
+    fontWeight: '600',
   },
-  buttonTextDisabled: {
-    fontSize: 11,
-    fontWeight: '700',
+  reviewCount: {
+    fontSize: 10,
     color: '#9CA3AF',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  originalPrice: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  addButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  addButtonPressed: {
+    backgroundColor: '#1D4ED8',
+    transform: [{ scale: 0.95 }],
+  },
+  addButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  addButtonOptions: {
+    backgroundColor: '#7C3AED',
+  },
+  addButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  addButtonTextDisabled: {
+    color: '#FFF',
   },
 });
