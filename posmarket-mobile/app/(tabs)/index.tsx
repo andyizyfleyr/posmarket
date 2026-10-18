@@ -334,31 +334,12 @@ export default function HomeScreen() {
   const {
     data: catalogData,
     isLoading,
-    isError,
-    error,
     refetch,
   } = useQuery({
     queryKey: ['catalog'],
     queryFn: fetchCatalog,
     staleTime: 60_000,
   });
-
-  // DEBUG TEMPORAIRE
-  React.useEffect(() => {
-    console.log(
-      '[HOME]',
-      JSON.stringify({
-        isLoading,
-        isError,
-        err: error instanceof Error ? error.message : String(error ?? ''),
-        stores: catalogData?.stores?.length ?? null,
-        products: catalogData?.stores?.reduce(
-          (n, s) => n + (s.products?.length || 0),
-          0,
-        ) ?? null,
-      }),
-    );
-  }, [isLoading, isError, error, catalogData]);
 
   // ── Search query ──
   const debouncedSearch = searchTerm.trim();
