@@ -113,7 +113,7 @@ export default function CategoriesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     backgroundColor: '#FFF',
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   categoryRowPressed: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F3F4F6',
     transform: [{ scale: 0.98 }],
   },
   categoryIcon: {

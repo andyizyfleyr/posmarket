@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { Search, X, Store, MapPin } from 'lucide-react-native';
 import { fetchCatalog, searchProducts } from '@/api/client';
 import { ProductCard } from '@/components/ProductCard';
@@ -132,12 +133,11 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>PosMarket</Text>
-            <Text style={styles.headerSubtitle}>
-              {allProducts.length} produit{allProducts.length > 1 ? 's' : ''} disponible{allProducts.length > 1 ? 's' : ''}
-            </Text>
-          </View>
+          <Image
+            source={require('../../assets/logo-trimmed.png')}
+            style={styles.logo}
+            contentFit="contain"
+          />
           <View style={styles.headerBadge}>
             <Store size={18} color="#F56B2A" />
             <Text style={styles.headerBadgeText}>
@@ -259,10 +259,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F3F4F6',
   },
   header: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#F9FAFB',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
@@ -280,6 +280,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#111827',
     letterSpacing: -0.5,
+  },
+  logo: {
+    height: 30,
+    width: 132,
   },
   headerSubtitle: {
     fontSize: 12,
@@ -303,10 +307,12 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#EEF0F2',
     paddingHorizontal: 12,
-    height: 44,
+    height: 46,
     gap: 8,
   },
   searchInput: {
