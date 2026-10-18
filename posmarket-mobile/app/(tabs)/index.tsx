@@ -1,8 +1,9 @@
 /**
  * Écran Accueil — fidèle à la home web (StorefrontView) :
- * header (logo + recherche + catégories), hero 3 affiches, boutiques
- * partenaires, produits groupés par catégorie (6 par section + « Voir tout »),
- * footer. Recherche et filtre catégorie → grille simple 2 colonnes.
+ * header (logo + recherche + catégories), hero 3 affiches cliquables,
+ * boutiques partenaires, produits groupés par catégorie (6 par section +
+ * « Voir tout »), footer. Recherche → boutiques trouvées + produits ;
+ * filtre catégorie → grille + en-tête avec retour.
  */
 
 import React, {
@@ -39,6 +40,7 @@ import {
   ChevronLeft,
   ShieldCheck,
   MapPin,
+  ShoppingCart,
 } from 'lucide-react-native';
 import {
   fetchCatalog,
@@ -58,10 +60,20 @@ import type { StorefrontProduct, StoreData } from '@/types';
 
 const SECTION_PREVIEW_COUNT = 6;
 
+/** Slides du hero — mêmes affiches et mêmes cibles que le web. */
 const HERO_SLIDES = [
-  `${API_BASE_URL}/affiches/affiche_mobile_1x.webp`,
-  `${API_BASE_URL}/affiches/affiche_acheteurs_mobile_1x.webp`,
-  `${API_BASE_URL}/affiches/affiche_vente_gros_mobile_1x.webp`,
+  {
+    image: `${API_BASE_URL}/affiches/affiche_mobile_1x.webp`,
+    link: '/login',
+  },
+  {
+    image: `${API_BASE_URL}/affiches/affiche_acheteurs_mobile_1x.webp`,
+    link: '/login',
+  },
+  {
+    image: `${API_BASE_URL}/affiches/affiche_vente_gros_mobile_1x.webp`,
+    link: '/products/wholesale',
+  },
 ];
 
 const LEGAL_LINKS = [
@@ -82,6 +94,8 @@ type HomeItem =
       vertical: 'shopping' | 'food';
     }
   | { key: string; type: 'catHeader'; category: string; count: number }
+  | { key: string; type: 'listHeader'; icon: 'store' | 'cart'; label: string }
+  | { key: string; type: 'storeRow'; entries: PartnerEntry[] }
   | { key: string; type: 'row'; products: StorefrontProduct[] }
   | { key: string; type: 'empty'; mode: 'search' | 'category' | 'none'; label: string }
   | { key: string; type: 'footer' };
@@ -95,7 +109,9 @@ interface PartnerEntry {
 
 function HeroCarousel() {
   const { width } = useWindowDimensions();
-  const slideWidth = width - 32;
+  // Le cadre a un filet de 1 px : largeur utile = largeur - 2×16 (marges)
+  // - 2×1 (bordures), sinon le snap dérive de 2 px.
+  const slideWidth = width - 34;
   const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
   const pausedRef = useRef(false);
@@ -135,20 +151,26 @@ function HeroCarousel() {
           )
         }
       >
-        {HERO_SLIDES.map((uri) => (
-          <Image
-            key={uri}
-            source={{ uri }}
-            style={{ width: slideWidth, aspectRatio: 720 / 560 }}
-            contentFit="cover"
-            transition={200}
-          />
+        {HERO_SLIDES.map((slide) => (
+          <Pressable
+            key={slide.image}
+            onPress={() =>
+              Linking.openURL(`${API_BASE_URL}${slide.link}`).catch(() => {})
+            }
+          >
+            <Image
+              source={{ uri: slide.image }}
+              style={{ width: slideWidth, aspectRatio: 720 / 560 }}
+              contentFit="cover"
+              transition={200}
+            />
+          </Pressable>
         ))}
       </ScrollView>
       <View style={styles.heroDots}>
-        {HERO_SLIDES.map((uri, i) => (
+        {HERO_SLIDES.map((slide, i) => (
           <View
-            key={uri}
+            key={slide.image}
             style={[styles.heroDot, i === index && styles.heroDotActive]}
           />
         ))}
@@ -247,6 +269,50 @@ function resolveStoreLogo(store: StoreData): string {
   return raw;
 }
 
+// ── Boutique trouvée (mode recherche) ─────────────────────────────
+
+function SearchStoreCard({
+  entry,
+  onOpen,
+}: {
+  entry: PartnerEntry;
+  onOpen: (store: StoreData) => void;
+}) {
+  const { store, productCount } = entry;
+  const name = store.settings?.name || store.name || 'Boutique';
+  const logo = resolveStoreLogo(store);
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.searchStoreCard,
+        pressed && styles.searchStoreCardPressed,
+      ]}
+      onPress={() => onOpen(store)}
+    >
+      <View style={styles.searchStoreLogo}>
+        {logo ? (
+          <Image
+            source={{ uri: logo }}
+            style={styles.searchStoreLogoImg}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <Store size={24} color={COLORS.brand} />
+        )}
+      </View>
+      <Text style={styles.searchStoreName} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={styles.searchStoreCount}>{productCount} prod.</Text>
+      <Text style={styles.searchStoreSlug} numberOfLines={1}>
+        @{(store.slug || 'boutique').toLowerCase()}
+      </Text>
+    </Pressable>
+  );
+}
+
 // ── En-tête de section catégorie ──────────────────────────────────
 
 function SectionHeader({
@@ -260,12 +326,14 @@ function SectionHeader({
 }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle} numberOfLines={1}>
-        {category}
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.sectionTitle} numberOfLines={1}>
+          {category}
+        </Text>
         {vertical === 'food' && (
-          <Text style={styles.sectionFoodTag}>  Restauration</Text>
+          <Text style={styles.sectionFoodTag}>Restauration</Text>
         )}
-      </Text>
+      </View>
       <Pressable
         onPress={() => onSeeAll(category)}
         style={styles.sectionSeeAll}
@@ -408,13 +476,14 @@ export default function HomeScreen() {
       });
   }, [allProducts]);
 
-  // ── Boutiques partenaires (max 6, avec produits en ligne) ──
-  const partnerStores = useMemo<PartnerEntry[]>(() => {
+  // ── Boutiques : partenaires (max 6) + résultats de recherche ──
+  // Compteur identique au web : produits en ligne ET avec image.
+  const allPartnerEntries = useMemo<PartnerEntry[]>(() => {
     const stores = catalogData?.stores || [];
     return stores
       .map((store) => {
         const productCount = (store.products || []).filter(
-          (p) => p.isOnline !== false,
+          (p) => p.isOnline !== false && p.image,
         ).length;
         return { store, productCount };
       })
@@ -423,9 +492,25 @@ export default function HomeScreen() {
         (a, b) =>
           (b.store.rating ?? 0) - (a.store.rating ?? 0) ||
           b.productCount - a.productCount,
-      )
-      .slice(0, 6);
+      );
   }, [catalogData]);
+
+  const partnerStores = useMemo(
+    () => allPartnerEntries.slice(0, 6),
+    [allPartnerEntries],
+  );
+
+  const searchMatchingStores = useMemo<PartnerEntry[]>(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return allPartnerEntries
+      .filter(({ store }) => {
+        const name = (store.settings?.name || store.name || '').toLowerCase();
+        const slug = (store.slug || '').toLowerCase();
+        return name.includes(q) || slug.includes(q);
+      })
+      .slice(0, 12);
+  }, [allPartnerEntries, debouncedSearch]);
 
   // ── Construction des éléments de la liste ──
   const listItems = useMemo<HomeItem[]>(() => {
@@ -447,7 +532,32 @@ export default function HomeScreen() {
     };
 
     if (filtered) {
-      if (selectedCategory !== 'all' && !searching) {
+      if (searching) {
+        // Parité web : « Boutiques trouvées » puis « Résultats produits ».
+        if (searchMatchingStores.length > 0) {
+          items.push({
+            key: 'header-stores',
+            type: 'listHeader',
+            icon: 'store',
+            label: `Boutiques trouvées (${searchMatchingStores.length})`,
+          });
+          for (let i = 0; i < searchMatchingStores.length; i += 2) {
+            items.push({
+              key: `store-row-${i}`,
+              type: 'storeRow',
+              entries: searchMatchingStores.slice(i, i + 2),
+            });
+          }
+        }
+        if (displayProducts.length > 0 || isSearching) {
+          items.push({
+            key: 'header-products',
+            type: 'listHeader',
+            icon: 'cart',
+            label: 'Résultats produits',
+          });
+        }
+      } else if (selectedCategory !== 'all') {
         items.push({
           key: 'cat-header',
           type: 'catHeader',
@@ -456,7 +566,11 @@ export default function HomeScreen() {
         });
       }
       pushRows(displayProducts, 'flat');
-      if (displayProducts.length === 0 && !isLoading) {
+      if (
+        displayProducts.length === 0 &&
+        !isLoading &&
+        !(searching && isSearching)
+      ) {
         items.push({
           key: 'empty',
           type: 'empty',
@@ -493,10 +607,12 @@ export default function HomeScreen() {
     allProducts,
     sections,
     partnerStores,
+    searchMatchingStores,
     selectedCategory,
     debouncedSearch,
     displayProducts,
     isLoading,
+    isSearching,
   ]);
 
   const onRefresh = useCallback(async () => {
@@ -517,13 +633,6 @@ export default function HomeScreen() {
     (store: StoreData) => {
       const slug = store.slug || store.id;
       router.push(`/store/${slug}` as never);
-    },
-    [router],
-  );
-
-  const navigateToSlug = useCallback(
-    (slug: string | undefined) => {
-      if (slug) router.push(`/store/${slug}` as never);
     },
     [router],
   );
@@ -580,6 +689,30 @@ export default function HomeScreen() {
             </View>
           );
 
+        case 'listHeader':
+          return (
+            <View style={styles.listHeader}>
+              {item.icon === 'store' ? (
+                <Store size={18} color={COLORS.brand} />
+              ) : (
+                <ShoppingCart size={18} color={COLORS.brand} />
+              )}
+              <Text style={styles.listHeaderText}>{item.label}</Text>
+            </View>
+          );
+
+        case 'storeRow':
+          return (
+            <View style={styles.gridRow}>
+              {item.entries.map((entry) => (
+                <View key={entry.store.id} style={styles.gridCell}>
+                  <SearchStoreCard entry={entry} onOpen={openStore} />
+                </View>
+              ))}
+              {item.entries.length === 1 && <View style={styles.gridCell} />}
+            </View>
+          );
+
         case 'row':
           return (
             <View style={styles.gridRow}>
@@ -630,7 +763,7 @@ export default function HomeScreen() {
           return null;
       }
     },
-    [partnerStores, openStore, navigateToProduct, navigateToSlug],
+    [partnerStores, openStore, navigateToProduct],
   );
 
   if (isLoading && allProducts.length === 0) {
@@ -823,7 +956,6 @@ const styles = StyleSheet.create({
     borderColor: '#EEF0F2',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginRight: 6,
   },
   categoryChipActive: {
     backgroundColor: COLORS.brand,
@@ -846,8 +978,8 @@ const styles = StyleSheet.create({
   // Hero
   heroWrap: {
     marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 24,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: COLORS.brandTint,
@@ -902,6 +1034,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   partnerCard: {
+    height: 120,
     backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1,
@@ -909,6 +1042,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -920,9 +1054,9 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   partnerLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: COLORS.brand,
     backgroundColor: '#FFF',
@@ -987,6 +1121,79 @@ const styles = StyleSheet.create({
     color: COLORS.textFaint,
     flexShrink: 1,
   },
+  // Boutique trouvée (recherche)
+  searchStoreCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    margin: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+  },
+  searchStoreCardPressed: {
+    borderColor: COLORS.brandTint,
+    opacity: 0.92,
+  },
+  searchStoreLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 2,
+    borderColor: '#FFF3ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  searchStoreLogoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  searchStoreName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+  },
+  searchStoreCount: {
+    marginTop: 4,
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#4B5563',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  searchStoreSlug: {
+    marginTop: 2,
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.brand,
+    letterSpacing: 0.5,
+  },
+  // En-tête de liste (boutiques trouvées / résultats produits)
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  listHeaderText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: -0.3,
+  },
   // Sections catégorie
   sectionHeader: {
     flexDirection: 'row',
@@ -994,21 +1201,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
     paddingHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 16,
     marginTop: 4,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    flexShrink: 1,
   },
   sectionTitle: {
     flexShrink: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   sectionFoodTag: {
     fontSize: 10,
     fontWeight: '700',
     color: COLORS.brand,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   sectionSeeAll: {
     flexDirection: 'row',
