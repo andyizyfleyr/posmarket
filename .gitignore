@@ -54,6 +54,7 @@ dev-diag.log
 # Mobile app build & dependencies
 posmarket-mobile/node_modules/
 posmarket-mobile/.expo/
+posmarket-mobile/dist-export/
 posmarket-mobile/android/app/build/
 posmarket-mobile/android/.gradle/
 posmarket-mobile/android/build/

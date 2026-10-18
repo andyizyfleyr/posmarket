@@ -13,6 +13,9 @@
     "react-native-svg": "15.16.0"
   },
   "devDependencies": {
+    "@react-native-community/cli": "^20.2.0",
+    "@react-native-community/cli-platform-android": "^20.2.0",
+    "@react-native/metro-config": "^0.88.0",
     "@types/react": "~19.3.0",
     "typescript": "~6.0.3"
   },
