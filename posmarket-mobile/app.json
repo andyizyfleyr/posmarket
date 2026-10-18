@@ -30,7 +30,13 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
-      "expo-image"
+      [
+        "expo-notifications",
+        {
+          "color": "#059669",
+          "defaultChannel": "orders"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

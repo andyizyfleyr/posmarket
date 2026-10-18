@@ -3,7 +3,7 @@
  * Formulaire adresse client, mode de paiement, récapitulatif et confirmation.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,12 +30,22 @@ import {
 } from 'lucide-react-native';
 import { useCart } from '@/context/CartContext';
 import { submitCheckout } from '@/api/client';
-import { formatCurrency } from '@/utils';
-import { notifyOrderConfirmed } from '@/utils/notifications';
+import { formatCurrency, getEffectiveItemPrice } from '@/utils';
+import {
+  notifyOrderConfirmed,
+  requestNotificationPermissions,
+} from '@/utils/notifications';
+
+/** Codes de paiement attendus côté serveur/rapports (mêmes valeurs que le storefront web). */
+const PAYMENT_METHOD_CODES: Record<'cod' | 'wave' | 'om', string> = {
+  cod: 'ESPECES',
+  wave: 'MOBILE_MONEY',
+  om: 'MOBILE_MONEY',
+};
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { items, itemsByStore, totalAmount, clearCart } = useCart();
+  const { cart, cartTotal, clearCart } = useCart();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -46,32 +56,63 @@ export default function CheckoutScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successOrderIds, setSuccessOrderIds] = useState<string[] | null>(null);
 
-  // Group items by store for the API
-  const ordersPayload = useMemo(() => {
-    const payload: Record<string, any> = {};
+  // Demande l'autorisation de notification (crée aussi le canal Android « Commandes »).
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
 
-    Object.entries(itemsByStore).forEach(([storeId, storeItems]) => {
-      const subtotal = storeItems.reduce((sum, item) => sum + item.totalPrice, 0);
-      payload[storeId] = {
-        items: storeItems.map((item) => ({
-          product: { id: item.productId, price: item.unitPrice },
-          price: item.unitPrice,
-          quantity: item.quantity,
-          variantId: item.variant?.id || null,
-          variantLabel: item.variant?.name || null,
-          variantSku: item.variant?.sku || null,
-          selectedOptions: item.selectedOptions || null,
-        })),
-        subtotal,
-        discountAmount: 0,
-        shippingCost: 0,
-        total: subtotal,
-        paymentMethod: paymentMethod === 'cod' ? 'CASH' : paymentMethod.toUpperCase(),
-      };
+  // Regroupe les lignes du panier par boutique pour l'API.
+  // Le serveur relit les prix en base : ces montants servent de récapitulatif client.
+  const ordersPayload = useMemo(() => {
+    const payload: Record<
+      string,
+      {
+        items: Array<{
+          product: { id: string; price: number };
+          quantity: number;
+          variantId: string | null;
+        }>;
+        subtotal: number;
+        discountAmount: number;
+        shippingCost: number;
+        total: number;
+        paymentMethod: string;
+      }
+    > = {};
+
+    cart.forEach((item) => {
+      const storeId = item.product.storeId;
+      if (!storeId) return;
+
+      if (!payload[storeId]) {
+        payload[storeId] = {
+          items: [],
+          subtotal: 0,
+          discountAmount: 0,
+          shippingCost: 0,
+          total: 0,
+          paymentMethod: PAYMENT_METHOD_CODES.cod,
+        };
+      }
+
+      const unitPrice = getEffectiveItemPrice(item);
+      payload[storeId].items.push({
+        product: { id: item.product.id, price: unitPrice },
+        quantity: item.quantity,
+        variantId: item.variantId || null,
+      });
+    });
+
+    Object.values(payload).forEach((storeOrder) => {
+      storeOrder.subtotal = storeOrder.items.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0,
+      );
+      storeOrder.total = storeOrder.subtotal;
     });
 
     return payload;
-  }, [itemsByStore, paymentMethod]);
+  }, [cart]);
 
   const handleConfirmOrder = useCallback(async () => {
     if (!fullName.trim()) {
@@ -92,8 +133,16 @@ export default function CheckoutScreen() {
 
     try {
       const idempotencyKey = `mobile_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      // Le code paiement choisi s'applique à toutes les commandes du panier.
+      const orders = Object.fromEntries(
+        Object.entries(ordersPayload).map(([storeId, storeOrder]) => [
+          storeId,
+          { ...storeOrder, paymentMethod: PAYMENT_METHOD_CODES[paymentMethod] },
+        ]),
+      );
+
       const res = await submitCheckout({
-        orders: ordersPayload,
+        orders,
         customer: {
           name: fullName.trim(),
           phone: phone.trim(),
@@ -120,9 +169,9 @@ export default function CheckoutScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [fullName, phone, address, city, ordersPayload, clearCart]);
+  }, [fullName, phone, address, city, paymentMethod, ordersPayload, clearCart]);
 
-  if (items.length === 0 && !successOrderIds) {
+  if (cart.length === 0 && !successOrderIds) {
     return (
       <SafeAreaView style={styles.emptySafe}>
         <Text style={styles.emptyTitle}>Votre panier est vide</Text>
@@ -262,8 +311,8 @@ export default function CheckoutScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>3. Récapitulatif</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Articles ({items.length})</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(totalAmount)}</Text>
+            <Text style={styles.summaryLabel}>Articles ({cart.length})</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(cartTotal)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Frais de livraison</Text>
@@ -271,7 +320,7 @@ export default function CheckoutScreen() {
           </View>
           <View style={[styles.summaryRow, styles.summaryTotalRow]}>
             <Text style={styles.totalLabel}>Total à payer</Text>
-            <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(cartTotal)}</Text>
           </View>
         </View>
 
@@ -294,7 +343,7 @@ export default function CheckoutScreen() {
             <ActivityIndicator color="#ffffff" />
           ) : (
             <Text style={styles.submitBtnText}>
-              Confirmer la commande • {formatCurrency(totalAmount)}
+              Confirmer la commande • {formatCurrency(cartTotal)}
             </Text>
           )}
         </Pressable>

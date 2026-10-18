@@ -36,7 +36,7 @@ import { fetchCatalog, fetchProductReviews, resolveImageUrl } from '@/api/client
 import { useCart } from '@/context/CartContext';
 import { Loader } from '@/components/Loader';
 import { ProductCard } from '@/components/ProductCard';
-import { formatCurrency, generateProductSlug, extractIdFromSlug } from '@/utils';
+import { formatCurrency, generateProductSlug, getEffectiveWholesaleUnitPrice, getTierUnitPrice } from '@/utils';
 import type { StorefrontProduct, StoreData, ProductVariant, WholesaleTier } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -44,7 +44,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function ProductDetailScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { addItem, getItemQuantity } = useCart();
+  const { addToCart } = useCart();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
@@ -59,13 +59,7 @@ export default function ProductDetailScreen() {
     staleTime: 60_000,
   });
 
-  // Extract ID from slug or fallback
-  const productId = useMemo(() => {
-    if (!slug) return '';
-    return extractIdFromSlug(slug);
-  }, [slug]);
-
-  // Find product and store
+  // Find product and store by slug (le slug est toujours construit par generateProductSlug)
   const { product, store, relatedProducts } = useMemo(() => {
     const stores = catalogData?.stores || [];
     let foundProduct: StorefrontProduct | null = null;
@@ -74,7 +68,7 @@ export default function ProductDetailScreen() {
 
     for (const s of stores) {
       const p = (s.products || []).find(
-        (item) => item.id === productId || generateProductSlug({ id: item.id, name: item.name }) === slug,
+        (item) => generateProductSlug({ id: item.id, name: item.name }) === slug,
       );
       if (p) {
         foundProduct = {
@@ -98,7 +92,7 @@ export default function ProductDetailScreen() {
     }
 
     return { product: foundProduct, store: foundStore, relatedProducts: related };
-  }, [catalogData, productId, slug]);
+  }, [catalogData, slug]);
 
   // ── Load reviews ──
   const { data: reviewsData } = useQuery({
@@ -128,19 +122,11 @@ export default function ProductDetailScreen() {
 
   const unitPrice = useMemo(() => {
     if (!product) return 0;
-    if (selectedVariant && selectedVariant.price !== undefined) {
-      return Number(selectedVariant.price);
-    }
-    // Check wholesale tier
-    if (Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0) {
-      const sortedTiers = [...product.wholesaleTiers].sort((a, b) => b.minQty - a.minQty);
-      const tier = sortedTiers.find((t) => quantity >= t.minQty);
-      if (tier) return Number(tier.price);
-    }
-    if (product.wholesalePrice && product.wholesaleMinQty && quantity >= product.wholesaleMinQty) {
-      return Number(product.wholesalePrice);
-    }
-    return Number(product.price) || 0;
+    const basePrice = selectedVariant
+      ? Number(selectedVariant.price)
+      : Number(product.price) || 0;
+    // Même règle que le panier web : paliers de gros appliqués au prix (variante incluse).
+    return getEffectiveWholesaleUnitPrice(product, quantity, basePrice);
   }, [product, selectedVariant, quantity]);
 
   const totalPrice = unitPrice * quantity;
@@ -148,22 +134,26 @@ export default function ProductDetailScreen() {
 
   const handleAddToCart = useCallback(() => {
     if (!product || isOutOfStock) return;
-    addItem(product, quantity, {
-      variant: selectedVariant || undefined,
-      selectedOptions: Object.keys(selectedOptions).length > 0 ? selectedOptions : undefined,
-    });
+    addToCart(
+      product,
+      quantity,
+      selectedVariant?.id,
+      Object.keys(selectedOptions).length > 0 ? selectedOptions : undefined,
+    );
     setAddedToast(true);
     setTimeout(() => setAddedToast(false), 2000);
-  }, [product, isOutOfStock, addItem, quantity, selectedVariant, selectedOptions]);
+  }, [product, isOutOfStock, addToCart, quantity, selectedVariant, selectedOptions]);
 
   const handleBuyNow = useCallback(() => {
     if (!product || isOutOfStock) return;
-    addItem(product, quantity, {
-      variant: selectedVariant || undefined,
-      selectedOptions: Object.keys(selectedOptions).length > 0 ? selectedOptions : undefined,
-    });
+    addToCart(
+      product,
+      quantity,
+      selectedVariant?.id,
+      Object.keys(selectedOptions).length > 0 ? selectedOptions : undefined,
+    );
     router.push('/checkout' as never);
-  }, [product, isOutOfStock, addItem, quantity, selectedVariant, selectedOptions, router]);
+  }, [product, isOutOfStock, addToCart, quantity, selectedVariant, selectedOptions, router]);
 
   if (isCatalogLoading) {
     return <Loader message="Chargement du produit..." fullScreen />;
@@ -320,7 +310,7 @@ export default function ProductDetailScreen() {
                     >
                       <Text style={styles.wholesaleQty}>Dès {tier.minQty} unités</Text>
                       <Text style={styles.wholesalePrice}>
-                        {formatCurrency(tier.price)}
+                        {formatCurrency(getTierUnitPrice(tier, Number(product.price)))}
                       </Text>
                     </View>
                   );

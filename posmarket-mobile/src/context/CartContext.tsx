@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getEffectiveItemPrice } from '@/utils';
 import type { CartItem, StorefrontProduct } from '@/types';
 
 const CART_STORAGE_KEY = 'storefront_cart';
@@ -117,7 +118,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + getEffectiveItemPrice(item) * item.quantity,
     0,
   );
 

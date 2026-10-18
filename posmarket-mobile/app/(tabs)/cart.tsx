@@ -18,7 +18,7 @@ import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
 import { resolveImageUrl } from '@/api/client';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, getEffectiveItemPrice } from '@/utils';
 import type { CartItem } from '@/types';
 
 export default function CartScreen() {
@@ -59,7 +59,7 @@ export default function CartScreen() {
   const renderCartItem = useCallback(
     ({ item }: { item: CartItem }) => {
       const imageUrl = resolveImageUrl(item.product.image);
-      const lineTotal = item.product.price * item.quantity;
+      const lineTotal = getEffectiveItemPrice(item) * item.quantity;
 
       return (
         <View style={styles.cartItem}>
