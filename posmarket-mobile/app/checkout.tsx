@@ -31,6 +31,7 @@ import {
 import { useCart } from '@/context/CartContext';
 import { submitCheckout } from '@/api/client';
 import { formatCurrency } from '@/utils';
+import { notifyOrderConfirmed } from '@/utils/notifications';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -106,6 +107,7 @@ export default function CheckoutScreen() {
         clearCart();
         const ids = res.orderIds || (res.orderId ? [res.orderId] : ['OK']);
         setSuccessOrderIds(ids);
+        notifyOrderConfirmed(ids);
       } else {
         setErrorMessage(res.error || 'Erreur lors de la validation de la commande.');
       }
