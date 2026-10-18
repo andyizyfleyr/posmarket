@@ -12,8 +12,13 @@ const BAD_BOT_RE =
 
 export function proxy(request: NextRequest) {
   try {
+    // L'application mobile (React Native/OkHttp) envoie un User-Agent qui
+    // ressemble à celui de bots ; elle s'identifie avec cet en-tête dédié
+    // pour ne pas être bloquée par le filtre ci-dessous.
+    const isMobileApp =
+      request.headers.get('x-posmarket-client') === 'mobile-app';
     const ua = request.headers.get('user-agent') || '';
-    if (!ua || BAD_BOT_RE.test(ua)) {
+    if (!isMobileApp && (!ua || BAD_BOT_RE.test(ua))) {
       return new Response('Forbidden', {
         status: 403,
         headers: { 'content-type': 'text/plain' },

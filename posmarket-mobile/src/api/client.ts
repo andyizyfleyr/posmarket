@@ -36,6 +36,10 @@ async function apiFetch<T>(
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        // Sans en-tête dédié, le proxy du serveur bloque l'UA des requêtes
+        // React Native (okhttp) comme un bot (403 Forbidden).
+        'X-PosMarket-Client': 'mobile-app',
+        'User-Agent': 'PosMarket-Mobile/1.0 (Android)',
         ...fetchOpts.headers,
       },
     });
