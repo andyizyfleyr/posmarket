@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { AlertTriangle, CheckCircle, Info, Trash2, X } from 'lucide-react-native';
+import { ToastViewport } from '@/components/ToastProvider';
 
 export type ConfirmationType = 'danger' | 'warning' | 'info' | 'success';
 
@@ -144,6 +145,9 @@ export default function ConfirmationModal({
             </Pressable>
           </View>
         </View>
+
+        {/* Les messages (déconnexion, suppression…) restent visibles au-dessus. */}
+        <ToastViewport />
       </View>
     </Modal>
   );

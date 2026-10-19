@@ -23,6 +23,8 @@ import type { NotificationType, ToastNotification } from '@/types';
 
 interface ToastContextValue {
   notify: (message: string, type?: NotificationType, title?: string) => void;
+  toasts: ToastNotification[];
+  removeToast: (id: string) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -39,7 +41,6 @@ const TOAST_STYLES: Record<
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const insets = useSafeAreaInsets();
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
   const removeToast = useCallback((id: string) => {
@@ -55,17 +56,35 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ToastContext.Provider value={{ notify }}>
+    <ToastContext.Provider value={{ notify, toasts, removeToast }}>
       {children}
-      <View
-        pointerEvents="box-none"
-        style={[styles.container, { top: insets.top + 14 }]}
-      >
-        {toasts.map((toast) => (
-          <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
-        ))}
-      </View>
+      <ToastViewport />
     </ToastContext.Provider>
+  );
+}
+
+/**
+ * Pile de toasts, positionnée sous l'encoche.
+ *
+ * Rendue par `ToastProvider` **et** à l'intérieur des modales natives
+ * (`AuthModal`, `SheetModal`, `ConfirmationModal`) : une modale React Native
+ * est une fenêtre séparée qui passe au-dessus de la pile normale, où le
+ * web superpose ses toasts (z-99999 > modale z-10000). Sans cette copie, un
+ * message affiché pendant qu'une feuille est ouverte resterait invisible.
+ */
+export function ToastViewport() {
+  const ctx = useContext(ToastContext);
+  const insets = useSafeAreaInsets();
+  if (!ctx) return null;
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[styles.container, { top: insets.top + 14 }]}
+    >
+      {ctx.toasts.map((toast) => (
+        <ToastItem key={toast.id} toast={toast} onRemove={ctx.removeToast} />
+      ))}
+    </View>
   );
 }
 
@@ -146,6 +165,8 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     zIndex: 99999,
+    // Passe au-dessus des feuilles modales (elevation 20) sur Android.
+    elevation: 32,
     gap: 12,
   },
   toast: {

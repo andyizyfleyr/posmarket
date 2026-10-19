@@ -20,6 +20,14 @@ let cached: StoredSession | null = null;
 let loaded = false;
 let inflight: Promise<StoredSession | null> | null = null;
 
+/**
+ * Incrémenté à chaque changement de session (connexion, déconnexion,
+ * expiration). Une requête partie avant le changement et refusée « Unauthorized »
+ * à son retour est une réponse obsolète : elle ne doit pas purger la session
+ * courante (voir `patchStaleAuth` dans `client.ts`).
+ */
+let version = 0;
+
 /** Charge la session depuis le stockage (une seule fois, puis mémoïsée). */
 export async function loadSession(): Promise<StoredSession | null> {
   if (loaded) return cached;
@@ -49,9 +57,15 @@ export function getSessionSync(): StoredSession | null {
   return cached;
 }
 
+/** Version de la session courante (voir le commentaire de `version`). */
+export function sessionVersion(): number {
+  return version;
+}
+
 export async function saveSession(session: StoredSession | null): Promise<void> {
   cached = session;
   loaded = true;
+  version += 1;
   try {
     if (session) await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
     else await AsyncStorage.removeItem(SESSION_KEY);

@@ -20,7 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Mail, MailCheck, User, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
-import { useToast } from '@/components/ToastProvider';
+import { ToastViewport, useToast } from '@/components/ToastProvider';
 import { COLORS } from '@/theme';
 
 type AuthMode = 'login' | 'register';
@@ -259,6 +259,9 @@ export function AuthModal({
             )}
           </ScrollView>
         </View>
+
+        {/* Les messages d'erreur/succès s'affichent au-dessus de la feuille. */}
+        <ToastViewport />
       </KeyboardAvoidingView>
     </Modal>
   );

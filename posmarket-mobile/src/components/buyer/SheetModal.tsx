@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { X } from 'lucide-react-native';
+import { ToastViewport } from '@/components/ToastProvider';
 import { COLORS } from '@/theme';
 
 interface SheetModalProps {
@@ -82,6 +83,9 @@ export function SheetModal({
           {children}
           {footer}
         </View>
+
+        {/* Les messages (erreurs, succès) restent visibles au-dessus de la feuille. */}
+        <ToastViewport />
       </View>
     </Modal>
   );

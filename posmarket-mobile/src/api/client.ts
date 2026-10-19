@@ -7,7 +7,7 @@
  */
 
 import Constants from 'expo-constants';
-import { sessionCookieHeader } from '@/api/session';
+import { sessionCookieHeader, sessionVersion } from '@/api/session';
 
 const API_BASE_URL =
   Constants.expoConfig?.extra?.API_BASE_URL ||
@@ -34,6 +34,7 @@ async function apiFetch<T>(
   const timer = setTimeout(() => controller.abort(), timeout);
 
   const cookie = await sessionCookieHeader().catch(() => null);
+  const versionAtRequest = sessionVersion();
 
   try {
     const response = await fetch(url, {
@@ -58,10 +59,25 @@ async function apiFetch<T>(
       );
     }
 
-    return (await response.json()) as T;
+    return patchStaleAuth((await response.json()) as T, versionAtRequest);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Une réponse « Unauthorized » arrivée après un changement de session (connexion
+ * ou déconnexion survenue pendant la requête) est obsolète : elle ne doit ni
+ * déconnecter l'utilisateur ni déclencher « Session expirée ». On la marque
+ * `UnauthorizedStale` pour que les écrans l'ignorent en silence.
+ */
+function patchStaleAuth<T>(data: T, versionAtRequest: number): T {
+  if (versionAtRequest === sessionVersion()) return data;
+  const record = data as unknown as { error?: unknown } | null;
+  if (record && record.error === 'Unauthorized') {
+    return Object.assign({}, record, { error: 'UnauthorizedStale' }) as unknown as T;
+  }
+  return data;
 }
 
 // ── Marketplace endpoints ─────────────────────────────────────────

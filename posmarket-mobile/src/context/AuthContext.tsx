@@ -16,7 +16,7 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchBuyerProfile, loginBuyer } from '@/api/client';
-import { loadSession, saveSession } from '@/api/session';
+import { getSessionSync, loadSession, saveSession } from '@/api/session';
 import { useToast } from '@/components/ToastProvider';
 import { AuthModal } from '@/components/buyer/AuthModal';
 
@@ -178,6 +178,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sessionExpired = useCallback(() => {
+    // Réponse refusée alors qu'aucune session n'est stockée : l'appel était
+    // anonyme (écran compte ouvert sans connexion, requête partie avant la
+    // connexion…). Il n'y a rien à expirer : on n'affiche rien et on ne purge
+    // surtout pas la session qu'une connexion vient éventuellement de créer.
+    if (!getSessionSync()) return;
     void saveSession(null);
     persistUser(null);
     AsyncStorage.multiRemove(['buyer_data_cache_v2', 'buyer_profile_cache']).catch(() => {});

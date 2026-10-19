@@ -98,7 +98,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
         void AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ phone: phone.trim() }));
       } else if (res?.error === 'Unauthorized') {
         sessionExpired();
-      } else {
+      } else if (res?.error !== 'UnauthorizedStale') {
         notify(res?.error || 'Erreur lors de la mise à jour du profil.', 'error');
       }
     } catch {

@@ -158,7 +158,7 @@ export const NotificationsTab: React.FC = () => {
           );
         } else if (res?.error === 'Unauthorized') {
           sessionExpired();
-        } else {
+        } else if (res?.error !== 'UnauthorizedStale') {
           notify(res?.error || 'Mise à jour impossible.', 'error');
         }
       } catch {

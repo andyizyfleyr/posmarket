@@ -125,6 +125,8 @@ export function useBuyerData() {
         sessionExpired();
         return true;
       }
+      // Réponse obsolète (requête partie avant une connexion) : ignorée.
+      if (message === 'UnauthorizedStale') return true;
       return false;
     },
     [sessionExpired],
@@ -183,8 +185,15 @@ export function useBuyerData() {
   }, [reloadTab]);
 
   // Montage : cache affiché instantanément puis rafraîchissement en arrière-plan.
+  // Sans compte connecté, aucune requête n'est tentée : le serveur répondrait
+  // « Unauthorized » et l'écran invité n'a de toute façon pas besoin de données.
   useEffect(() => {
     cancelledRef.current = false;
+    if (!owner) {
+      return () => {
+        cancelledRef.current = true;
+      };
+    }
     let active = true;
     (async () => {
       const cache = await readCache(owner);
