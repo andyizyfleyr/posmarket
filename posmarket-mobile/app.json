@@ -16,7 +16,7 @@
       "package": "com.posmarket.app",
       "permissions": ["INTERNET"],
       "adaptiveIcon": {
-        "backgroundColor": "#F56B2A",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
@@ -36,8 +36,26 @@
           "color": "#F56B2A",
           "defaultChannel": "orders"
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#FFFFFF",
+            "image": "./assets/splash-icon.png"
+          }
+        }
       ]
     ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
     "experiments": {
       "typedRoutes": true
     },
