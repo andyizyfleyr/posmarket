@@ -5,8 +5,10 @@
  * de période, et les cartes Plus Visités / Meilleures Ventes / Alertes.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Animated,
+  Easing,
   Modal,
   Pressable,
   RefreshControl,
@@ -20,6 +22,7 @@ import { router } from 'expo-router';
 import Svg, {
   ClipPath,
   Defs,
+  G,
   LinearGradient as SvgLinearGradient,
   Path,
   Rect,
@@ -78,6 +81,75 @@ function getVertical(
   const mc = product.mainCategory || product.main_category;
   if (mc === 'Restauration & Livraison Rapide') return 'food';
   return 'shopping';
+}
+
+// Composant SVG animé (déclaré hors rendu : le clip « rideau » du graphique).
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+
+/**
+ * Apparition décalée (fondu + montée) : équivalent des animations d'entrée du
+ * web (`animate-shopify-reveal`), appliquées à chaque bloc du tableau de bord.
+ */
+function Reveal({
+  delay = 0,
+  children,
+}: {
+  delay?: number;
+  children: React.ReactNode;
+}) {
+  const [progress] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const animation = Animated.timing(progress, {
+      toValue: 1,
+      duration: 420,
+      delay,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [delay, progress]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: progress,
+        transform: [
+          { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+/** Léger retour tactile sur les lignes cliquables. */
+function TapScale({
+  onPress,
+  children,
+  style,
+}: {
+  onPress: () => void;
+  children: React.ReactNode;
+  style?: object;
+}) {
+  const [pressed, setPressed] = useState(false);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[
+        style,
+        { transform: [{ scale: pressed ? 0.985 : 1 }], opacity: pressed ? 0.9 : 1 },
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
 }
 
 export function SellerDashboardView({
@@ -293,7 +365,8 @@ export function SellerDashboardView({
       }
     >
       {/* En-tête */}
-      <View style={styles.header}>
+      <Reveal>
+        <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarBox}>
             <Image source={{ uri: avatarUrl }} style={styles.avatarImg} contentFit="cover" />
@@ -353,54 +426,66 @@ export function SellerDashboardView({
           </View>
         </View>
       </View>
+      </Reveal>
 
       {/* Statistiques */}
       <View style={styles.statsGrid}>
-        <StatCard
-          title={store?.business_type === 'food' ? 'Ventes Resto' : 'Ventes effectuées'}
-          value={formatCurrency(filteredMetrics.revenue.current)}
-          icon={<DollarSign size={14} color="#FFFFFF" />}
-          trend={filteredMetrics.revenue.trend as 'up' | 'down'}
-          trendValue={`${filteredMetrics.revenue.pct}%`}
-          color={COLORS.brand}
-        />
-        <StatCard
-          title={store?.business_type === 'food' ? 'Plats servis' : 'Commandes'}
-          value={String(filteredMetrics.orders.current)}
-          icon={<ShoppingBag size={14} color="#FFFFFF" />}
-          trend={filteredMetrics.orders.trend as 'up' | 'down'}
-          trendValue={`${filteredMetrics.orders.pct}%`}
-          color="#9333EA"
-        />
-        <StatCard
-          title="Panier Moyen"
-          value={formatCurrency(filteredMetrics.basket.current)}
-          icon={<Zap size={14} color="#FFFFFF" />}
-          trend={filteredMetrics.basket.trend as 'up' | 'down'}
-          trendValue={`${filteredMetrics.basket.pct}%`}
-          color="#2563EB"
-        />
-        <StatCard
-          title="Trafic Boutique"
-          value={formatNumber(filteredMetrics.traffic.current)}
-          icon={<Eye size={14} color="#FFFFFF" />}
-          color="#EA580C"
-        />
+        <Reveal delay={60}>
+          <StatCard
+            title={store?.business_type === 'food' ? 'Ventes Resto' : 'Ventes effectuées'}
+            value={formatCurrency(filteredMetrics.revenue.current)}
+            icon={<DollarSign size={14} color="#FFFFFF" />}
+            trend={filteredMetrics.revenue.trend as 'up' | 'down'}
+            trendValue={`${filteredMetrics.revenue.pct}%`}
+            color={COLORS.brand}
+          />
+        </Reveal>
+        <Reveal delay={120}>
+          <StatCard
+            title={store?.business_type === 'food' ? 'Plats servis' : 'Commandes'}
+            value={String(filteredMetrics.orders.current)}
+            icon={<ShoppingBag size={14} color="#FFFFFF" />}
+            trend={filteredMetrics.orders.trend as 'up' | 'down'}
+            trendValue={`${filteredMetrics.orders.pct}%`}
+            color="#9333EA"
+          />
+        </Reveal>
+        <Reveal delay={180}>
+          <StatCard
+            title="Panier Moyen"
+            value={formatCurrency(filteredMetrics.basket.current)}
+            icon={<Zap size={14} color="#FFFFFF" />}
+            trend={filteredMetrics.basket.trend as 'up' | 'down'}
+            trendValue={`${filteredMetrics.basket.pct}%`}
+            color="#2563EB"
+          />
+        </Reveal>
+        <Reveal delay={240}>
+          <StatCard
+            title="Trafic Boutique"
+            value={formatNumber(filteredMetrics.traffic.current)}
+            icon={<Eye size={14} color="#FFFFFF" />}
+            color="#EA580C"
+          />
+        </Reveal>
       </View>
 
       {/* Comparaison des Performances */}
       {canViewReports ? (
-        <PerformanceChart
-          startDate={startDate}
-          endDate={endDate}
-          setStartDate={setStartDate}
-          setEndDate={setEndDate}
-          data={currentData}
-        />
+        <Reveal delay={300}>
+          <PerformanceChart
+            startDate={startDate}
+            endDate={endDate}
+            setStartDate={setStartDate}
+            setEndDate={setEndDate}
+            data={currentData}
+          />
+        </Reveal>
       ) : null}
 
       {/* Plus Visités */}
-      <View style={styles.card}>
+      <Reveal delay={380}>
+        <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleRow}>
             <Eye size={16} color="#3B82F6" />
@@ -410,7 +495,7 @@ export function SellerDashboardView({
         </View>
         {mostVisited.length > 0 ? (
           mostVisited.map((product) => (
-            <Pressable
+            <TapScale
               key={product.id}
               onPress={() => router.push(`/product/${product.id}`)}
               style={styles.rankRow}
@@ -432,15 +517,17 @@ export function SellerDashboardView({
                 <Text style={styles.rankValueBlue}>{formatNumber(product.views || 0)}</Text>
                 <Text style={styles.rankUnit}>Vues</Text>
               </View>
-            </Pressable>
+            </TapScale>
           ))
         ) : (
           <Text style={styles.emptyText}>Aucune visite enregistrée</Text>
         )}
-      </View>
+        </View>
+      </Reveal>
 
       {/* Meilleures Ventes */}
-      <View style={styles.card}>
+      <Reveal delay={440}>
+        <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleRow}>
             <Flame size={16} color="#F97316" />
@@ -450,7 +537,7 @@ export function SellerDashboardView({
         </View>
         {topSelling.length > 0 ? (
           topSelling.map((product) => (
-            <Pressable
+            <TapScale
               key={product.id}
               onPress={() => router.push(`/product/${product.id}`)}
               style={styles.rankRow}
@@ -472,15 +559,17 @@ export function SellerDashboardView({
                 <Text style={styles.rankValueOrange}>x{formatNumber(product.salesCount || 0)}</Text>
                 <Text style={styles.rankUnit}>Vendus</Text>
               </View>
-            </Pressable>
+            </TapScale>
           ))
         ) : (
           <Text style={styles.emptyText}>Aucune vente enregistrée</Text>
         )}
-      </View>
+        </View>
+      </Reveal>
 
       {/* Alertes stock */}
-      <View style={styles.card}>
+      <Reveal delay={500}>
+        <View style={styles.card}>
         <Text style={styles.stockTitle}>
           {store?.business_type === 'food' ? 'Plats en Pause' : 'Alertes Stock'}
         </Text>
@@ -546,7 +635,8 @@ export function SellerDashboardView({
         ) : (
           <Text style={styles.stockEmpty}>Tous les stocks sont corrects</Text>
         )}
-      </View>
+        </View>
+      </Reveal>
     </ScrollView>
   );
 }
@@ -627,6 +717,61 @@ function PerformanceChart({
   const [viewDate, setViewDate] = useState<Date>(() => parseLocalDate(startDate));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [chartSize, setChartSize] = useState({ width: 0, height: 0 });
+
+  // Animations « Shopify » du web : rideau qui s'ouvre (clipPath 0 → 100 en
+  // 1,2 s), apparition décalée des points et des libellés d'axe.
+  const [revealAnim] = useState(() => new Animated.Value(0));
+  const [curtainAnim] = useState(() => new Animated.Value(0));
+  const [dotsAnim] = useState(() => new Animated.Value(0));
+  const [labelsAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    revealAnim.setValue(0);
+    curtainAnim.setValue(0);
+    dotsAnim.setValue(0);
+    labelsAnim.setValue(0);
+    const animation = Animated.parallel([
+      Animated.timing(revealAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(curtainAnim, {
+        toValue: 1,
+        duration: 1200,
+        delay: 100,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+        // Les attributs SVG ne sont pas animables par le driver natif.
+        useNativeDriver: false,
+      }),
+      Animated.timing(dotsAnim, {
+        toValue: 1,
+        duration: 1600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(labelsAnim, {
+        toValue: 1,
+        duration: 1600,
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [curtainAnim, data, dotsAnim, labelsAnim, revealAnim, startDate, endDate]);
+
+  /** Progression décalée d'un élément (équivalent du `animationDelay` web). */
+  const staggered = useCallback(
+    (progress: Animated.Value, index: number, startMs: number, stepMs: number) =>
+      progress.interpolate({
+        inputRange: [
+          Math.max(0, startMs / 1600),
+          Math.min(1, (startMs + 350) / 1600),
+        ],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    [],
+  );
 
   const diffDays = Math.round(
     (parseLocalDate(draftEnd).getTime() - parseLocalDate(draftStart).getTime()) /
@@ -804,7 +949,23 @@ function PerformanceChart({
           ))}
         </View>
 
-        <View style={styles.chartCanvas} onLayout={handleChartLayout}>
+        <Animated.View
+          style={[
+            styles.chartCanvas,
+            {
+              opacity: revealAnim,
+              transform: [
+                {
+                  translateY: revealAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [12, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          onLayout={handleChartLayout}
+        >
           {chartSize.width > 0 && pointCount > 1 ? (
             <>
               <Svg
@@ -819,26 +980,38 @@ function PerformanceChart({
                     <Stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
                     <Stop offset="100%" stopColor="#10B981" stopOpacity="0" />
                   </SvgLinearGradient>
+                  {/* « Rideau » qui s'ouvre de gauche à droite (0 → 100) */}
                   <ClipPath id="chartReveal">
-                    <Rect x="0" y="0" width="100" height="100" />
+                    <AnimatedRect
+                      x="0"
+                      y="0"
+                      height="100"
+                      width={curtainAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 100],
+                      })}
+                    />
                   </ClipPath>
                 </Defs>
-                <Path d={`M ${linePath} L 100,100 L 0,100 Z`} fill="url(#shopifyGradient)" />
-                <Path
-                  d={`M ${linePath}`}
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth={2.5}
-                  vectorEffect="non-scaling-stroke"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <G clipPath="url(#chartReveal)">
+                  <Path d={`M ${linePath} L 100,100 L 0,100 Z`} fill="url(#shopifyGradient)" />
+                  <Path
+                    d={`M ${linePath}`}
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth={2.5}
+                    vectorEffect="non-scaling-stroke"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </G>
               </Svg>
 
               {data.map((item, index) => {
                 const xPos = (index * (100 / (pointCount - 1)) / 100) * chartSize.width;
                 const yPos = ((100 - item.normalized) / 100) * chartSize.height;
                 const active = activeIndex === index;
+                const dotProgress = staggered(dotsAnim, index, 300, 80);
                 return (
                   <View
                     key={`${item.label}-${index}`}
@@ -856,14 +1029,34 @@ function PerformanceChart({
                       hitSlop={10}
                       style={styles.pointHit}
                     >
-                      <View style={[styles.dot, active && styles.dotActive]} />
+                      <Animated.View
+                        style={{
+                          opacity: dotProgress,
+                          transform: [
+                            {
+                              scale: dotProgress.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.5, 1],
+                              }),
+                            },
+                            {
+                              translateY: dotProgress.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [10, 0],
+                              }),
+                            },
+                          ],
+                        }}
+                      >
+                        <View style={[styles.dot, active && styles.dotActive]} />
+                      </Animated.View>
                     </Pressable>
                   </View>
                 );
               })}
             </>
           ) : null}
-        </View>
+        </Animated.View>
 
         {/* Étiquettes X (mobile : 1re, dernière et index pairs) */}
         <View style={styles.labelsRow} pointerEvents="none">
@@ -872,9 +1065,10 @@ function PerformanceChart({
             const isLast = index === pointCount - 1;
             const hidden = !isFirst && !isLast && index % 2 !== 0;
             if (hidden) return null;
-            const xPct = (index * (100 / (pointCount - 1 || 1)));
+            const xPct = index * (100 / (pointCount - 1 || 1));
+            const labelProgress = staggered(labelsAnim, index, 700, 40);
             return (
-              <Text
+              <Animated.Text
                 key={`label-${item.label}-${index}`}
                 numberOfLines={1}
                 style={[
@@ -885,10 +1079,11 @@ function PerformanceChart({
                     : isLast
                       ? { right: 0 }
                       : { left: `${xPct}%`, marginLeft: -20 },
+                  { opacity: labelProgress, transform: [{ translateY: labelProgress.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] },
                 ]}
               >
                 {item.label}
-              </Text>
+              </Animated.Text>
             );
           })}
         </View>
