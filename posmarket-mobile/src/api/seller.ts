@@ -217,6 +217,10 @@ export interface SellerCustomer {
   address?: string | null;
   totalSpent?: string | number;
   ordersCount?: number;
+  /** Présent dans le type du web mais jamais fourni par la requête (segment
+   * « Inactifs » toujours vide, comme là-bas). */
+  lastOrderDate?: string | null;
+  createdAt?: string;
 }
 
 export interface SellerPosResponse {
@@ -286,5 +290,207 @@ export async function submitSellerPosOrder(
     method: 'POST',
     body: JSON.stringify({ storeId, order }),
     extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+// ── Commandes ─────────────────────────────────────────────────────
+
+/** Commande renvoyée par `getOrdersAction` (liste paginée). */
+export interface SellerOrderRow {
+  id: string;
+  date: string;
+  status?: string | null;
+  type?: string | null;
+  paymentMethod?: string | null;
+  subtotal?: number;
+  total?: number;
+  discountAmount?: number | null;
+  promoCode?: string | null;
+  /** Lignes déjà chargées avec la commande (repli du détail, comme le web). */
+  items?: SellerOrderItemRow[];
+  customer?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    address?: string;
+    totalSpent?: string | number;
+    ordersCount?: number;
+  };
+}
+
+export interface SellerOrdersPage {
+  success: boolean;
+  error?: string;
+  orders?: SellerOrderRow[];
+  hasMore?: boolean;
+  total?: number;
+}
+
+/** Liste paginée des commandes (recherche + filtre de statut). */
+export async function fetchSellerOrders(
+  storeId: string,
+  offset: number,
+  limit: number,
+  search: string,
+  filterStatus: string,
+): Promise<SellerOrdersPage> {
+  const params = new URLSearchParams({
+    storeId,
+    offset: String(offset),
+    limit: String(limit),
+    search,
+    filterStatus,
+  });
+  return apiFetch(`/api/marketplace/seller/orders?${params.toString()}`, {
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Article de commande (route `/orders/items`, équivalent `fetchOrderItems`). */
+export interface SellerOrderItemRow {
+  id?: string;
+  orderId?: string;
+  productId?: string | null;
+  quantity: number;
+  unitPrice?: string | number | null;
+  total?: string | number | null;
+  variantId?: string | null;
+  variantLabel?: string | null;
+  variantSku?: string | null;
+  variantOptionValues?: Record<string, string> | null;
+  product?: {
+    id?: string;
+    name?: string;
+    price?: number;
+    image?: string;
+    unit?: string;
+    businessType?: string;
+    mainCategory?: string;
+    wholesalePrice?: number;
+    wholesaleMinQty?: number;
+    wholesaleTiers?: Array<{ minQty: number; price: number }>;
+  };
+}
+
+/** Articles d'une commande (détail de commande). */
+export async function fetchSellerOrderItems(
+  orderId: string,
+): Promise<{ success: boolean; items?: SellerOrderItemRow[]; error?: string }> {
+  return apiFetch(
+    `/api/marketplace/seller/orders/items?orderId=${encodeURIComponent(orderId)}`,
+  );
+}
+
+/** Change le statut d'une commande. */
+export async function updateSellerOrderStatus(
+  orderId: string,
+  status: string,
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/orders/status', {
+    method: 'POST',
+    body: JSON.stringify({ orderId, status }),
+  });
+}
+
+/** Change le statut de plusieurs commandes. */
+export async function bulkUpdateSellerOrderStatus(
+  orderIds: string[],
+  status: string,
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/orders/bulk-status', {
+    method: 'POST',
+    body: JSON.stringify({ orderIds, status }),
+  });
+}
+
+/** Supprime une commande. */
+export async function deleteSellerOrder(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/orders/delete', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  });
+}
+
+/** Supprime plusieurs commandes. */
+export async function bulkDeleteSellerOrders(
+  ids: string[],
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/orders/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
+// ── Clients ───────────────────────────────────────────────────────
+
+export interface SellerCustomersPage {
+  success: boolean;
+  error?: string;
+  customers?: SellerCustomer[];
+  hasMore?: boolean;
+  total?: number;
+}
+
+/** Liste paginée des clients (recherche nom/téléphone). */
+export async function fetchSellerCustomers(
+  storeId: string,
+  offset: number,
+  limit: number,
+  search: string,
+): Promise<SellerCustomersPage> {
+  const params = new URLSearchParams({
+    storeId,
+    offset: String(offset),
+    limit: String(limit),
+    search,
+  });
+  return apiFetch(`/api/marketplace/seller/customers?${params.toString()}`, {
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Client envoyé au formulaire « Nouveau Client » / « Modifier Client ». */
+export interface SellerCustomerInput {
+  id?: string;
+  name?: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  totalSpent?: number;
+  ordersCount?: number;
+}
+
+/** Crée ou met à jour un client. */
+export async function saveSellerCustomer(
+  storeId: string,
+  customer: SellerCustomerInput,
+): Promise<{ success: boolean; customer?: SellerCustomer; error?: string }> {
+  return apiFetch('/api/marketplace/seller/customers/save', {
+    method: 'POST',
+    body: JSON.stringify({ ...customer, storeId }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Supprime un client. */
+export async function deleteSellerCustomer(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/customers/delete', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  });
+}
+
+/** Supprime plusieurs clients. */
+export async function bulkDeleteSellerCustomers(
+  ids: string[],
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/customers/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
   });
 }

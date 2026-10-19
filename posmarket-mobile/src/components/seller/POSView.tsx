@@ -66,6 +66,7 @@ import {
   getNormalizedWholesaleTiers,
 } from '@/utils';
 import { printPosReceipt, downloadPosReceiptPdf } from '@/utils/pos-receipt';
+import { resolveImageUrl } from '@/api/client';
 import type { Coupon, Product, StoreSettings } from '@/types';
 import type { SellerCustomer } from '@/api/seller';
 
@@ -118,28 +119,16 @@ const lineKeyOf = (productId: string, variantId?: string | null) =>
   `${productId}::${variantId ?? 'base'}`;
 
 /** Image produit avec repli icône, comme `ProductImage` du web. */
-function ProductThumb({
-  uri,
-  size,
-  radius = 12,
-  iconSize = 32,
-  fill = false,
-}: {
-  uri?: string | null;
-  size?: number;
-  radius?: number;
-  iconSize?: number;
-  fill?: boolean;
-}) {
+function ProductThumb({ uri, iconSize = 32 }: { uri?: string | null; iconSize?: number }) {
   const [failed, setFailed] = useState(false);
-  const boxStyle = fill
-    ? styles.thumbFill
-    : { width: size, height: size, borderRadius: radius };
+  // Les images produit peuvent être relatives (`/api/image/...`) : même
+  // résolution d'URL que les composants acheteur.
+  const image = resolveImageUrl(uri);
   return (
-    <View style={[styles.thumbBox, boxStyle]}>
-      {uri && !failed ? (
+    <View style={styles.thumbBox}>
+      {image && !failed ? (
         <Image
-          source={{ uri }}
+          source={{ uri: image }}
           style={styles.thumbImg}
           contentFit="cover"
           alt=""
@@ -217,7 +206,7 @@ const PosProductCard = React.memo(function PosProductCard({
     >
       {/* Image */}
       <View style={styles.cardImageWrap}>
-        <ProductThumb uri={product.image} fill iconSize={32} />
+        <ProductThumb uri={product.image} iconSize={32} />
 
         {/* Voile de retour au tap */}
         {tapped ? <View pointerEvents="none" style={styles.cardTapOverlay} /> : null}
@@ -340,8 +329,6 @@ const PosCartItem = React.memo(function PosCartItem({
       <View style={styles.cartLineThumb}>
         <ProductThumb
           uri={variant?.image || item.product.image}
-          size={40}
-          radius={12}
           iconSize={18}
         />
       </View>
@@ -1466,7 +1453,7 @@ export function SellerPosView({
                     <>
                       <View style={styles.dialogHeader}>
                         <View style={styles.dialogThumb}>
-                          <ProductThumb uri={p.image} size={36} radius={12} iconSize={16} />
+                          <ProductThumb uri={p.image} iconSize={16} />
                         </View>
                         <View style={styles.dialogHeaderBody}>
                           <Text style={styles.dialogTitle} numberOfLines={1}>
@@ -1626,8 +1613,6 @@ export function SellerPosView({
                         <View style={styles.dialogThumb}>
                           <ProductThumb
                             uri={selected?.image || p.image}
-                            size={36}
-                            radius={12}
                             iconSize={16}
                           />
                         </View>
@@ -1758,14 +1743,12 @@ const styles = StyleSheet.create({
   },
 
   thumbBox: {
+    flex: 1,
+    alignSelf: 'stretch',
     backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  thumbFill: {
-    flex: 1,
-    alignSelf: 'stretch',
   },
   thumbImg: {
     width: '100%',
