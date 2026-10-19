@@ -2319,6 +2319,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17,24,39,0.5)',
   },
   sheet: {
+    flex: 1,
+    flexDirection: 'column',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -2584,6 +2586,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     paddingHorizontal: 16,
     paddingTop: 12,
+    paddingBottom: 12,
+    flexShrink: 0,
   },
   sheetFooterRow: {
     flexDirection: 'row',
@@ -2638,6 +2642,17 @@ const styles = StyleSheet.create({
   sheetCta: {
     width: '100%',
     height: 48,
+    borderRadius: 999,
+    backgroundColor: BRAND,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: BRAND,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   // ── Feuille avis ──
   reviewsSheetHeader: {
