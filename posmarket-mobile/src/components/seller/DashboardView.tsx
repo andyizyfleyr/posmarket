@@ -20,12 +20,9 @@ import {
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import Svg, {
-  ClipPath,
   Defs,
-  G,
   LinearGradient as SvgLinearGradient,
   Path,
-  Rect,
   Stop,
 } from 'react-native-svg';
 import {
@@ -82,9 +79,6 @@ function getVertical(
   if (mc === 'Restauration & Livraison Rapide') return 'food';
   return 'shopping';
 }
-
-// Composant SVG animé (déclaré hors rendu : le clip « rideau » du graphique).
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 /**
  * Apparition décalée (fondu + montée) : équivalent des animations d'entrée du
@@ -980,31 +974,17 @@ function PerformanceChart({
                     <Stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
                     <Stop offset="100%" stopColor="#10B981" stopOpacity="0" />
                   </SvgLinearGradient>
-                  {/* « Rideau » qui s'ouvre de gauche à droite (0 → 100) */}
-                  <ClipPath id="chartReveal">
-                    <AnimatedRect
-                      x="0"
-                      y="0"
-                      height="100"
-                      width={curtainAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 100],
-                      })}
-                    />
-                  </ClipPath>
                 </Defs>
-                <G clipPath="url(#chartReveal)">
-                  <Path d={`M ${linePath} L 100,100 L 0,100 Z`} fill="url(#shopifyGradient)" />
-                  <Path
-                    d={`M ${linePath}`}
-                    fill="none"
-                    stroke="#10B981"
-                    strokeWidth={2.5}
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </G>
+                <Path d={`M ${linePath} L 100,100 L 0,100 Z`} fill="url(#shopifyGradient)" />
+                <Path
+                  d={`M ${linePath}`}
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth={2.5}
+                  vectorEffect="non-scaling-stroke"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </Svg>
 
               {data.map((item, index) => {
@@ -1055,6 +1035,23 @@ function PerformanceChart({
                 );
               })}
             </>
+          ) : null}
+
+          {/* Rideau : masque blanc qui se rétracte de gauche à droite pour
+              révéler la courbe (équivalent du clipPath animé du web). */}
+          {chartSize.width > 0 && pointCount > 1 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.chartCurtain,
+                {
+                  width: curtainAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [chartSize.width, 0],
+                  }),
+                },
+              ]}
+            />
           ) : null}
         </Animated.View>
 
@@ -1602,6 +1599,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 24,
     position: 'relative',
+  },
+  chartCurtain: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    zIndex: 20,
   },
   pointWrap: {
     position: 'absolute',
