@@ -26,6 +26,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  Check,
+  ChevronDown,
   Loader2,
   Phone,
   Plus,
@@ -98,6 +100,10 @@ export function SellerCustomersView({
     key: 'totalSpent' | 'ordersCount' | 'name';
     direction: 'asc' | 'desc';
   }>({ key: 'totalSpent', direction: 'desc' });
+
+  // Menus déroulants (segments de clients / tri), ouverts un par un.
+  const [segmentMenuOpen, setSegmentMenuOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<SellerCustomer | null>(null);
@@ -362,25 +368,6 @@ export function SellerCustomersView({
     });
   };
 
-  const renderSortButton = (
-    key: 'totalSpent' | 'ordersCount' | 'name',
-    label: string,
-  ) => {
-    const active = sortConfig.key === key;
-    return (
-      <Pressable
-        onPress={() => handleSort(key)}
-        style={[styles.sortBtn, active ? styles.sortBtnActive : null]}
-        accessibilityRole="button"
-        accessibilityState={{ selected: active }}
-      >
-        <Text style={[styles.sortBtnText, active ? styles.sortBtnTextActive : null]}>
-          {label}
-        </Text>
-      </Pressable>
-    );
-  };
-
 return (
     <View style={styles.root}>
       {/* ── Action principale (fixe en haut) ── */}
@@ -391,8 +378,8 @@ return (
         </Pressable>
       ) : null}
 
-      {/* ── Barre de recherche + segments + tri ── */}
-      <View style={styles.stickyWrap}>
+      {/* ── Barre de recherche + menus déroulants ── */}
+      <View style={[styles.stickyWrap, { zIndex: segmentMenuOpen || sortMenuOpen ? 40 : 0 }]}>
         <View>
           {/* Recherche */}
           <View style={styles.searchWrap}>
@@ -420,60 +407,141 @@ return (
             ) : null}
           </View>
 
-          {/* Segments */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.segments}
-          >
-            {(
-              [
-                { id: 'all' as const, label: 'Tous', count: localCustomers.length },
-                {
-                  id: 'vip' as const,
-                  label: 'VIP',
-                  count: localCustomers.filter((customer) => getSegment(customer).isVIP).length,
-                },
-                {
-                  id: 'inactive' as const,
-                  label: 'Inactifs',
-                  count: localCustomers.filter((customer) => getSegment(customer).isInactive)
-                    .length,
-                },
-              ] as const
-            ).map((segment) => {
-              const active = activeSegment === segment.id;
-              return (
-                <Pressable
-                  key={segment.id}
-                  onPress={() => {
-                    setActiveSegment(segment.id);
-                    setSelectedIds([]);
-                  }}
-                  style={[
-                    styles.segment,
-                    active ? styles.segmentActive : styles.segmentIdle,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                >
-                  <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
-                    {segment.label} ({segment.count})
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {/* Segments + tri : deux menus déroulants côte à côte */}
+          <View style={styles.menuRow}>
+            <View style={styles.menuSlot}>
+              <Pressable
+                onPress={() => {
+                  setSortMenuOpen(false);
+                  setSegmentMenuOpen((open) => !open);
+                }}
+                style={[styles.menuBtn, segmentMenuOpen ? styles.menuBtnOpen : null]}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: segmentMenuOpen }}
+                accessibilityLabel="Filtrer les clients"
+              >
+                <Text style={styles.menuBtnText} numberOfLines={1}>
+                  Clients · {activeSegment === 'all' ? 'Tous' : activeSegment === 'vip' ? 'VIP' : 'Inactifs'}
+                </Text>
+                <ChevronDown size={14} color={segmentMenuOpen ? COLORS.brand : '#6B7280'} />
+              </Pressable>
 
-          {/* Tri */}
-          <View style={styles.sortRow}>
-            <Text style={styles.sortLabel}>Trier</Text>
-            {renderSortButton('totalSpent', 'Dépensé')}
-            {renderSortButton('ordersCount', 'Commandes')}
-            {renderSortButton('name', 'Nom')}
+              {segmentMenuOpen ? (
+                <View style={styles.menuPanel}>
+                  {(
+                    [
+                      { id: 'all' as const, label: 'Tous', count: localCustomers.length },
+                      {
+                        id: 'vip' as const,
+                        label: 'VIP',
+                        count: localCustomers.filter((customer) => getSegment(customer).isVIP)
+                          .length,
+                      },
+                      {
+                        id: 'inactive' as const,
+                        label: 'Inactifs',
+                        count: localCustomers.filter((customer) => getSegment(customer).isInactive)
+                          .length,
+                      },
+                    ] as const
+                  ).map((segment) => {
+                    const active = activeSegment === segment.id;
+                    return (
+                      <Pressable
+                        key={segment.id}
+                        onPress={() => {
+                          setActiveSegment(segment.id);
+                          setSelectedIds([]);
+                          setSegmentMenuOpen(false);
+                        }}
+                        style={styles.menuOption}
+                        accessibilityRole="menuitem"
+                        accessibilityState={{ selected: active }}
+                      >
+                        <Text style={[styles.menuOptionText, active ? styles.menuOptionActive : null]}>
+                          {segment.label}
+                        </Text>
+                        <Text style={styles.menuOptionCount}>{segment.count}</Text>
+                        {active ? <Check size={14} color={COLORS.brand} /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.menuSlot}>
+              <Pressable
+                onPress={() => {
+                  setSegmentMenuOpen(false);
+                  setSortMenuOpen((open) => !open);
+                }}
+                style={[styles.menuBtn, sortMenuOpen ? styles.menuBtnOpen : null]}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: sortMenuOpen }}
+                accessibilityLabel="Trier les clients"
+              >
+                <Text style={styles.menuBtnText} numberOfLines={1}>
+                  Tri ·{' '}
+                  {sortConfig.key === 'totalSpent'
+                    ? 'Dépensé'
+                    : sortConfig.key === 'ordersCount'
+                      ? 'Commandes'
+                      : 'Nom'}
+                </Text>
+                <ChevronDown size={14} color={sortMenuOpen ? COLORS.brand : '#6B7280'} />
+              </Pressable>
+
+              {sortMenuOpen ? (
+                <View style={styles.menuPanel}>
+                  {(
+                    [
+                      { id: 'totalSpent' as const, label: 'Dépensé' },
+                      { id: 'ordersCount' as const, label: 'Commandes' },
+                      { id: 'name' as const, label: 'Nom' },
+                    ] as const
+                  ).map((option) => {
+                    const active = sortConfig.key === option.id;
+                    return (
+                      <Pressable
+                        key={option.id}
+                        onPress={() => {
+                          handleSort(option.id);
+                          setSortMenuOpen(false);
+                        }}
+                        style={styles.menuOption}
+                        accessibilityRole="menuitem"
+                        accessibilityState={{ selected: active }}
+                      >
+                        <Text style={[styles.menuOptionText, active ? styles.menuOptionActive : null]}>
+                          {option.label}
+                        </Text>
+                        {active ? (
+                          <Text style={styles.menuOptionDirection}>
+                            {sortConfig.direction === 'asc' ? 'croissant' : 'décroissant'}
+                          </Text>
+                        ) : null}
+                        {active ? <Check size={14} color={COLORS.brand} /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
       </View>
+
+      {(segmentMenuOpen || sortMenuOpen) ? (
+        <Pressable
+          style={styles.menuCloser}
+          onPress={() => {
+            setSegmentMenuOpen(false);
+            setSortMenuOpen(false);
+          }}
+          accessibilityLabel="Fermer les menus"
+        />
+      ) : null}
 
       {/* ── Carte liste ── */}
       <View style={styles.card}>
@@ -817,66 +885,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segments: {
+  /* Menus déroulants (segments / tri) côte à côte */
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  menuSlot: {
+    flex: 1,
+    minWidth: 0,
+  },
+  menuBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingTop: 10,
-  },
-  segment: {
+    height: 36,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
+    borderRadius: 10,
     borderWidth: 1,
-  },
-  segmentActive: {
-    backgroundColor: COLORS.brand,
-    borderColor: COLORS.brand,
-  },
-  segmentIdle: {
-    backgroundColor: '#FFFFFF',
     borderColor: '#F3F4F6',
-  },
-  segmentText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  segmentTextActive: {
-    color: '#FFFFFF',
-  },
-  sortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 10,
-  },
-  sortLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  sortBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
     backgroundColor: '#FFFFFF',
-    borderColor: '#F3F4F6',
   },
-  sortBtnActive: {
+  menuBtnOpen: {
     backgroundColor: '#FFF7ED',
     borderColor: '#FED7AA',
   },
-  sortBtnText: {
-    fontSize: 10,
+  menuBtnText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#374151',
   },
-  sortBtnTextActive: {
+  menuPanel: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    zIndex: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  menuCloser: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 35,
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 12,
+  },
+  menuOptionText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  menuOptionActive: {
     color: COLORS.brand,
+    fontWeight: '700',
+  },
+  menuOptionCount: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  menuOptionDirection: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
 
   /* Carte liste */
