@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 import { WhatsAppIcon } from '@/components/seller/WhatsAppIcon';
 import { useToast } from '@/components/ToastProvider';
+import { DataTable, MD3LightTheme, PaperProvider } from 'react-native-paper';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PhoneField } from '@/components/PhoneField';
 import { SellerCheckbox } from '@/components/seller/ui';
@@ -62,6 +63,19 @@ const GRID = {
   cmd: 34,
   action: 68,
 } as const;
+
+/** Thème Paper limité à la page Clients : accent de marque sur l'ondulation
+ * des lignes, surfaces blanches. */
+const paperCustomersTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: COLORS.brand,
+    onPrimary: '#FFFFFF',
+    surface: '#FFFFFF',
+    surfaceVariant: '#FCFCFD',
+  },
+};
 
 interface SellerCustomersViewProps {
   storeId: string;
@@ -552,7 +566,8 @@ return (
         />
       ) : null}
 
-      {/* ── Carte liste ── */}
+      {/* ── Carte liste (composants Paper) ── */}
+      <PaperProvider theme={paperCustomersTheme}>
       <View style={styles.card}>
         <ScrollView
           style={styles.list}
@@ -578,39 +593,35 @@ return (
               </View>
 
               {/* En-tête de tableau : Nom | Dépensé | N Cmd | Action */}
-              <View style={styles.tableHeader}>
-                <View style={styles.cellName}>
-                  <Text style={styles.tableHeadLeft}>Nom</Text>
-                </View>
-                <View style={styles.cellSpent}>
-                  <Text style={styles.tableHeadRight}>Dépensé</Text>
-                </View>
-                <View style={styles.cellCmd}>
-                  <Text style={styles.tableHeadRight}>N Cmd</Text>
-                </View>
-                <View style={styles.customerActions}>
-                  <Text style={styles.tableHeadAction}>Action</Text>
-                </View>
-              </View>
+              <DataTable.Header style={styles.paperHeader}>
+                <DataTable.Title style={styles.cellName} textStyle={styles.tableHeadLeft}>
+                  Nom
+                </DataTable.Title>
+                <DataTable.Title style={styles.cellSpent} textStyle={styles.tableHeadRight}>
+                  Dépensé
+                </DataTable.Title>
+                <DataTable.Title style={styles.cellCmd} textStyle={styles.tableHeadRight}>
+                  N Cmd
+                </DataTable.Title>
+                <DataTable.Title style={styles.cellAction} textStyle={styles.tableHeadAction}>
+                  Action
+                </DataTable.Title>
+              </DataTable.Header>
 
-              {filteredCustomers.map((customer, index) => {
-                return (
-                  <Pressable
+              <DataTable>
+                {filteredCustomers.map((customer) => (
+                  <DataTable.Row
                     key={customer.id}
                     onPress={() => handleOpenModal(customer)}
-                    style={({ pressed }) => [
-                      styles.customerRow,
-                      index < filteredCustomers.length - 1 ? styles.customerRowBorder : null,
-                      pressed ? styles.customerRowPressed : null,
-                    ]}
+                    style={styles.paperRow}
                   >
-                    <View style={styles.cellName}>
+                    <DataTable.Cell style={styles.cellName}>
                       <Text style={styles.customerName} numberOfLines={1}>
                         {customer.name}
                       </Text>
-                    </View>
+                    </DataTable.Cell>
 
-                    <View style={styles.cellSpent}>
+                    <DataTable.Cell style={styles.cellSpent}>
                       <Text
                         style={styles.customerTotal}
                         numberOfLines={1}
@@ -620,18 +631,18 @@ return (
                       >
                         {formatCurrency(Number(customer.totalSpent) || 0)}
                       </Text>
-                    </View>
+                    </DataTable.Cell>
 
-                    <View style={styles.cellCmd}>
+                    <DataTable.Cell style={styles.cellCmd}>
                       <Text
                         style={styles.customerOrders}
                         accessibilityLabel={`${customer.ordersCount || 0} commandes`}
                       >
                         {customer.ordersCount || 0}
                       </Text>
-                    </View>
+                    </DataTable.Cell>
 
-                    <View style={styles.customerActions}>
+                    <DataTable.Cell style={styles.cellAction}>
                       <Pressable
                         onPress={() => openWhatsApp(customer.phone, customer.name)}
                         style={styles.whatsappBtn}
@@ -652,10 +663,10 @@ return (
                       >
                         <Phone size={13} color={customer.phone ? '#111827' : '#D1D5DB'} />
                       </Pressable>
-                    </View>
-                  </Pressable>
-                );
-              })}
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                ))}
+              </DataTable>
             </>
           ) : isSearching ? (
             Array.from({ length: 6 }).map((_, i) => (
@@ -719,6 +730,7 @@ return (
           ) : null}
         </ScrollView>
       </View>
+      </PaperProvider>
       {/* Modale client */}
       <Modal
         visible={isModalOpen}
@@ -1025,13 +1037,10 @@ const styles = StyleSheet.create({
   },
   listHeaderText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
 
-  /* En-tête de tableau : Nom | Dépensé | N Cmd | Action */
-  tableHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: GRID.gap,
+  /* Tableau Paper : en-tête + lignes */
+  paperHeader: {
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    height: 34,
     backgroundColor: '#FCFCFD',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -1041,7 +1050,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   tableHeadRight: {
     fontSize: 8,
@@ -1055,8 +1063,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    paddingRight: 28,
-    textAlign: 'left',
+    textAlign: 'right',
+  },
+  paperRow: {
+    paddingHorizontal: 10,
+    minHeight: 42,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
   },
 
   /* Cellules de la grille (communes en-tête / lignes) */
@@ -1066,26 +1080,23 @@ const styles = StyleSheet.create({
   },
   cellSpent: {
     width: GRID.spent,
+    flexGrow: 0,
     flexShrink: 0,
+    justifyContent: 'flex-end',
   },
   cellCmd: {
     width: GRID.cmd,
+    flexGrow: 0,
     flexShrink: 0,
+    justifyContent: 'flex-end',
   },
-
-  /* Lignes clients */
-  customerRow: {
-    flexDirection: 'row',
+  cellAction: {
+    width: GRID.action,
+    flexGrow: 0,
+    flexShrink: 0,
     alignItems: 'center',
-    gap: GRID.gap,
-    padding: 10,
-  },
-  customerRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
-  },
-  customerRowPressed: {
-    backgroundColor: '#F9FAFB',
+    justifyContent: 'flex-end',
+    gap: 5,
   },
   customerName: {
     fontSize: 11,
@@ -1105,14 +1116,6 @@ const styles = StyleSheet.create({
     color: '#111827',
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
-  },
-  customerActions: {
-    width: GRID.action,
-    flexShrink: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 5,
   },
   callBtn: {
     width: 28,
