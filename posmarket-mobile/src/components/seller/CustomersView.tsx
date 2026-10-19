@@ -592,35 +592,38 @@ return (
                 </Text>
               </View>
 
-              {/* En-tête de tableau : Nom | Dépensé | N Cmd | Action */}
-              <DataTable.Header style={styles.paperHeader}>
-                <DataTable.Title
-                  style={[styles.cellName, styles.titleHead]}
-                  textStyle={styles.tableHeadLeft}
-                >
-                  Nom
-                </DataTable.Title>
-                <DataTable.Title
-                  style={[styles.cellSpent, styles.titleHead]}
-                  textStyle={styles.tableHeadRight}
-                >
-                  Dépensé
-                </DataTable.Title>
-                <DataTable.Title
-                  style={[styles.cellCmd, styles.titleHead]}
-                  textStyle={styles.tableHeadRight}
-                >
-                  N Cmd
-                </DataTable.Title>
-                <DataTable.Title
-                  style={[styles.cellAction, styles.titleHead]}
-                  textStyle={styles.tableHeadAction}
-                >
-                  Action
-                </DataTable.Title>
-              </DataTable.Header>
-
               <DataTable>
+                {/* En-tête : mêmes cellules (cellName/cellSpent/cellCmd/cellAction)
+                    que les lignes, avec le contrat `numeric` de Paper à droite. */}
+                <DataTable.Header style={styles.paperHeader}>
+                  <DataTable.Title
+                    style={[styles.cellName, styles.titleHead]}
+                    textStyle={styles.tableHeadLeft}
+                  >
+                    Nom
+                  </DataTable.Title>
+                  <DataTable.Title
+                    numeric
+                    style={[styles.cellSpent, styles.titleHead]}
+                    textStyle={styles.tableHeadRight}
+                  >
+                    Dépensé
+                  </DataTable.Title>
+                  <DataTable.Title
+                    numeric
+                    style={[styles.cellCmd, styles.titleHead]}
+                    textStyle={styles.tableHeadRight}
+                  >
+                    N Cmd
+                  </DataTable.Title>
+                  <DataTable.Title
+                    style={[styles.cellAction, styles.titleHead]}
+                    textStyle={styles.tableHeadAction}
+                  >
+                    Action
+                  </DataTable.Title>
+                </DataTable.Header>
+
                 {filteredCustomers.map((customer) => (
                   <DataTable.Row
                     key={customer.id}
@@ -633,7 +636,7 @@ return (
                       </Text>
                     </DataTable.Cell>
 
-                    <DataTable.Cell style={styles.cellSpent}>
+                    <DataTable.Cell style={styles.cellSpent} numeric>
                       <Text
                         style={styles.customerTotal}
                         numberOfLines={1}
@@ -645,7 +648,7 @@ return (
                       </Text>
                     </DataTable.Cell>
 
-                    <DataTable.Cell style={styles.cellCmd}>
+                    <DataTable.Cell style={styles.cellCmd} numeric>
                       <Text
                         style={styles.customerOrders}
                         accessibilityLabel={`${customer.ordersCount || 0} commandes`}
