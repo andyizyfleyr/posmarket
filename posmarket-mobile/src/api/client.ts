@@ -7,7 +7,11 @@
  */
 
 import Constants from 'expo-constants';
-import { sessionCookieHeader, sessionVersion } from '@/api/session';
+import {
+  sessionBearerToken,
+  sessionCookieHeader,
+  sessionVersion,
+} from '@/api/session';
 
 const API_BASE_URL =
   Constants.expoConfig?.extra?.API_BASE_URL ||
@@ -39,7 +43,10 @@ export async function apiFetch<T>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
-  const cookie = await sessionCookieHeader().catch(() => null);
+  const [cookie, token] = await Promise.all([
+    sessionCookieHeader().catch(() => null),
+    sessionBearerToken().catch(() => null),
+  ]);
   const versionAtRequest = sessionVersion();
   const cookieHeader = [cookie, ...(extraCookies || [])].filter(Boolean).join('; ');
 
@@ -54,7 +61,11 @@ export async function apiFetch<T>(
         // React Native (okhttp) comme un bot (403 Forbidden).
         'X-PosMarket-Client': 'mobile-app',
         'User-Agent': 'PosMarket-Mobile/1.0 (Android)',
+        // Le cookie est la voie du web ; sur Android, OkHttp peut le remplacer
+        // par son propre pot à cookies — l'en-tête `Authorization` ci-dessous
+        // porte alors la session de façon fiable (voir `mobile-session.ts`).
         ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...fetchOpts.headers,
       },
     });

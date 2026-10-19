@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 import { auth, signIn, signOut } from '@/auth';
+import { getMobileSessionUserId } from '@/lib/mobile-session';
 import {
   serializeProfile,
   setAuthIntentCookie,
@@ -23,9 +24,13 @@ export async function getCurrentSession() {
   try {
     session = await auth();
   } catch {
-    return { user: null };
+    session = null;
   }
-  const uid = session?.user?.id;
+  // L'application mobile ne peut pas compter sur l'en-tête `Cookie` (React
+  // Native/OkHttp le remplace par son pot à cookies) : elle envoie le même
+  // jeton de session dans `Authorization: Bearer …` (voir `mobile-session`).
+  let uid: string | undefined | null = session?.user?.id;
+  if (!uid) uid = await getMobileSessionUserId();
   if (!uid) return { user: null };
 
   const [profile] = await db

@@ -77,3 +77,15 @@ export async function sessionCookieHeader(): Promise<string | null> {
   const session = await loadSession();
   return session ? `${session.name}=${session.value}` : null;
 }
+
+/**
+ * Jeton brut de la session, porté par `Authorization: Bearer …`.
+ *
+ * React Native (OkHttp) ne transmet pas de façon fiable un en-tête `Cookie`
+ * posé à la main : le serveur accepte donc le même jeton de session dans
+ * l'en-tête d'autorisation (voir `src/lib/mobile-session.ts` côté web).
+ */
+export async function sessionBearerToken(): Promise<string | null> {
+  const session = await loadSession();
+  return session?.value ?? null;
+}
