@@ -467,19 +467,14 @@ export function SellerPosView({
       // Un produit à matrice n'est vendable que si au moins une variante l'est :
       // le stock global peut être positif alors que tout est épuisé.
       if (Array.isArray(p.variants) && p.variants.length > 0) {
-        const total = p.variants.reduce(
+        // Variantes : le stock réel est celui des variantes (c'est ce qui est
+        // débité au panier). Le stock global de la fiche produit peut être
+        // obsolète : l'afficher ici créerait un écart incompréhensible avec la
+        // liste des variantes.
+        return p.variants.reduce(
           (sum, v) => sum + Math.max(0, Number(v.stock) || 0),
           0,
         );
-        const live = stockMap[p.id];
-        if (total <= 0) {
-          if (live != null) return live;
-          // Variantes sans stock renseigné : on retombe sur le stock produit
-          // (la table produit reste la référence côté PDV).
-          const base = Number(p.stock ?? 0);
-          if (base > 0) return base;
-        }
-        return total;
       }
       return stockMap[p.id] ?? Number(p.stock ?? 0);
     },
@@ -1650,6 +1645,16 @@ export function SellerPosView({
                         keyboardShouldPersistTaps="handled"
                       >
                         <Text style={styles.dialogSectionLabel}>Choisir la variante</Text>
+                        {list.length > 1 ? (
+                          <Text style={styles.dialogTotalText}>
+                            Total disponible :{' '}
+                            {list.reduce(
+                              (sum, v) => sum + Math.max(0, Number(v.stock) || 0),
+                              0,
+                            )}{' '}
+                            unité(s)
+                          </Text>
+                        ) : null}
                         {list.map((v) => {
                           const vStock = Math.max(0, Number(v.stock) || 0);
                           const out = vStock === 0;
@@ -2971,6 +2976,12 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: 10,
+  },
+  dialogTotalText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.brand,
     marginBottom: 10,
   },
   dialogOption: {
