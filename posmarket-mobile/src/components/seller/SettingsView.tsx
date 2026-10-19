@@ -729,40 +729,32 @@ export function SellerSettingsView({
                   contentFit="cover"
                 />
                 <View style={styles.avatarCamera}>
-                  <Camera size={18} color={COLORS.brand} />
+                  <Camera size={14} color={COLORS.brand} />
                 </View>
               </Pressable>
 
               <View style={styles.profileIdentity}>
                 <Text style={styles.profileName}>{profileName || 'Gérant'}</Text>
                 <View style={styles.profileEmailRow}>
-                  <Mail size={14} color="rgba(255,255,255,0.8)" />
+                  <Mail size={12} color="rgba(255,255,255,0.8)" />
                   <Text style={styles.profileEmail}>{userEmail}</Text>
                 </View>
               </View>
             </LinearGradient>
 
-            <View style={styles.identityBlock}>
-              <View style={styles.identityHeader}>
-                <View style={styles.identityIcon}>
-                  <User size={20} color={COLORS.brand} />
-                </View>
-                <Text style={styles.identityTitle}>Identité Personnelle</Text>
-              </View>
-
-              <View style={styles.identityCard}>
-                <View>
-                  <Text style={styles.identityLabel}>Nom Complet</Text>
-                  <View style={styles.inputWrap}>
-                    <User size={20} color="#D1D5DB" />
-                    <TextInput
-                      value={profileName}
-                      onChangeText={setProfileName}
-                      placeholder="Votre nom"
-                      placeholderTextColor="#9CA3AF"
-                      style={[styles.input, styles.identityInput]}
-                    />
-                  </View>
+            <View>
+              <SectionHeader title="Identité Personnelle" Icon={User} />
+              <View style={styles.field}>
+                <Text style={styles.label}>Nom Complet</Text>
+                <View style={styles.inputWrap}>
+                  <User size={14} color="#D1D5DB" />
+                  <TextInput
+                    value={profileName}
+                    onChangeText={setProfileName}
+                    placeholder="Votre nom"
+                    placeholderTextColor="#9CA3AF"
+                    style={styles.input}
+                  />
                 </View>
               </View>
             </View>
@@ -1303,10 +1295,10 @@ const styles = StyleSheet.create({
   b2bHelp: { fontSize: 9, color: '#6B7280' },
 
   profileCard: {
-    borderRadius: 32,
-    padding: 24,
+    borderRadius: 24,
+    padding: 18,
     alignItems: 'center',
-    gap: 24,
+    gap: 14,
     overflow: 'hidden',
   },
   profileHaloTop: {
@@ -1329,71 +1321,31 @@ const styles = StyleSheet.create({
   },
   avatarWrap: { position: 'relative' },
   avatar: {
-    width: 112,
-    height: 112,
-    borderRadius: 32,
-    borderWidth: 4,
+    width: 88,
+    height: 88,
+    borderRadius: 24,
+    borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.3)',
     backgroundColor: '#FFFFFF',
   },
   avatarCamera: {
     position: 'absolute',
-    bottom: -8,
-    right: -8,
+    bottom: -6,
+    right: -6,
     backgroundColor: '#FFFFFF',
-    padding: 10,
-    borderRadius: 16,
+    padding: 7,
+    borderRadius: 12,
     shadowColor: '#000000',
     shadowOpacity: 0.15,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  profileIdentity: { alignItems: 'center', gap: 4 },
-  profileName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.4 },
-  profileEmailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  profileEmail: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  profileIdentity: { alignItems: 'center', gap: 3 },
+  profileName: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.4 },
+  profileEmailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  profileEmail: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
 
-  identityBlock: { gap: 32, alignSelf: 'center', width: '100%', maxWidth: 672 },
-  identityHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
-  identityIcon: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: '#FFF7ED',
-  },
-  identityTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#111827',
-    textTransform: 'uppercase',
-    letterSpacing: 1.6,
-  },
-  identityCard: {
-    backgroundColor: 'rgba(249,250,251,0.5)',
-    padding: 24,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    gap: 32,
-  },
-  identityLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 1.6,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  identityInput: {
-    fontSize: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
   staffList: { gap: 12 },
   staffEmpty: {
     paddingVertical: 48,
