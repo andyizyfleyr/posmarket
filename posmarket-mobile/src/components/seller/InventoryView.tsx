@@ -366,6 +366,10 @@ export function SellerInventoryView({
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  /** Toutes les lignes affichées sont-elles sélectionnées ? */
+  const allSelected =
+    filteredProducts.length > 0 && selectedIds.length === filteredProducts.length;
+
   const handleSavedProduct = (saved: Product, isEdit: boolean, warnings?: string[]) => {
     setLocalProducts((prev) => {
       if (isEdit) {
@@ -383,22 +387,7 @@ export function SellerInventoryView({
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={COLORS.brand}
-            colors={[COLORS.brand]}
-          />
-        }
-      >
-{/* ── Actions : création puis outils ── */}
+      {/* ── Actions : création puis outils (fixes en haut) ── */}
         <View style={styles.actionsBlock}>
           {canManageInventory ? (
             <View style={styles.createRow}>
@@ -549,6 +538,20 @@ export function SellerInventoryView({
         </View>
         {/* ── Liste ── */}
         <View style={styles.listCard}>
+          <ScrollView
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={COLORS.brand}
+                colors={[COLORS.brand]}
+              />
+            }
+          >
           {isSearching && localProducts.length === 0 ? (
             Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={`skel-${i}`} />)
           ) : filteredProducts.length === 0 ? (
@@ -601,6 +604,24 @@ export function SellerInventoryView({
                     ? ` sur ${totalProductsCount}`
                     : ''}
                 </Text>
+                <Pressable
+                  onPress={() => setSelectedIds(allSelected ? [] : filteredProducts.map((p) => p.id))}
+                  style={styles.selectAllBtn}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: allSelected }}
+                  accessibilityLabel={allSelected ? 'Tout désélectionner' : 'Tout choisir'}
+                >
+                  <SellerCheckbox
+                    checked={allSelected}
+                    onToggle={() =>
+                      setSelectedIds(allSelected ? [] : filteredProducts.map((p) => p.id))
+                    }
+                    size={18}
+                  />
+                  <Text style={styles.selectAllText}>
+                    {allSelected ? 'Tout désélectionner' : 'Tout choisir'}
+                  </Text>
+                </Pressable>
               </View>
 
               {filteredProducts.map((product) => (
@@ -644,8 +665,8 @@ export function SellerInventoryView({
               </Text>
             </View>
           ) : null}
+          </ScrollView>
         </View>
-      </ScrollView>
 
       {/* Modale produit */}
       <ProductFormModal
@@ -860,19 +881,22 @@ function SkeletonRow() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FDFDFE' },
+  root: { flex: 1, backgroundColor: '#FDFDFE', paddingHorizontal: 12, paddingTop: 12 },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
+  list: { flex: 1 },
+  listContent: { flexGrow: 1, paddingBottom: 24 },
 
   /* Barre collante (tailles alignées sur la page Commandes) */
   stickyWrap: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+    borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    zIndex: 20,
-    elevation: 3,
+    marginTop: 10,
+    marginBottom: 10,
   },
   filterBlock: { gap: 8 },
   searchWrap: {
@@ -973,7 +997,7 @@ const styles = StyleSheet.create({
   selectionBtnDanger: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FEE2E2' },
 
   /* Actions */
-  actionsBlock: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, gap: 8 },
+  actionsBlock: { paddingTop: 2, gap: 8 },
   toolRow: { flexDirection: 'row', gap: 6 },
   toolBtn: {
     flex: 1,
@@ -1018,7 +1042,7 @@ const styles = StyleSheet.create({
 
   /* Liste */
   listCard: {
-    marginHorizontal: 12,
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
@@ -1038,6 +1062,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F9FAFB',
   },
   listHeaderText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+  selectAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  selectAllText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
 
   row: {
     flexDirection: 'row',

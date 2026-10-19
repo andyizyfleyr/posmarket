@@ -349,114 +349,128 @@ export function SellerCustomersView({
     );
   };
 
-  return (
+return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View style={styles.headerTitleBlock}>
-            <Text style={styles.title}>Clients</Text>
-            <Text style={styles.subtitle}>{localCustomers.length} clients enregistrés.</Text>
-          </View>
-          {selectedIds.length > 0 && canManageCustomers && !isSeller ? (
+      {/* ── Action principale (fixe en haut) ── */}
+      {canManageCustomers ? (
+        <Pressable onPress={() => handleOpenModal()} style={styles.newCustomerBtn}>
+          <Plus size={16} color="#FFFFFF" />
+          <Text style={styles.newCustomerText}>Nouveau Client</Text>
+        </Pressable>
+      ) : null}
+
+      {/* ── Barre de recherche + segments + tri ── */}
+      <View style={styles.stickyWrap}>
+        {selectedIds.length > 0 && canManageCustomers && !isSeller ? (
+          <View style={styles.selectionBar}>
+            <View style={styles.selectionCount}>
+              <Pressable
+                onPress={() => setSelectedIds([])}
+                style={styles.selectionClear}
+                accessibilityLabel="Annuler la sélection"
+              >
+                <X size={14} color="#6B7280" />
+              </Pressable>
+              <Text style={styles.selectionText}>
+                {selectedIds.length} sélectionné{selectedIds.length > 1 ? 's' : ''}
+              </Text>
+            </View>
             <Pressable
               onPress={() =>
                 setDeleteConfirm({ isOpen: true, count: selectedIds.length, isBulk: true })
               }
-              style={styles.bulkDeleteBtn}
+              style={styles.selectionBtnDanger}
             >
               <Trash2 size={14} color="#DC2626" />
-              <Text style={styles.bulkDeleteText}>Supprimer ({selectedIds.length})</Text>
+              <Text style={styles.selectionBtnDangerText}>Supprimer</Text>
             </Pressable>
-          ) : null}
-        </View>
-        {canManageCustomers ? (
-          <Pressable onPress={() => handleOpenModal()} style={styles.newCustomerBtn}>
-            <Plus size={16} color="#FFFFFF" />
-            <Text style={styles.newCustomerText}>Nouveau Client</Text>
-          </Pressable>
-        ) : null}
+          </View>
+        ) : (
+          <>
+            {/* Recherche */}
+            <View style={styles.searchWrap}>
+              <Search size={16} color="#9CA3AF" style={styles.searchIcon} />
+              <TextInput
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Rechercher un client..."
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                style={styles.searchInput}
+              />
+              {isSearching || isLoadingMore ? (
+                <Loader2 size={16} color={COLORS.brand} style={styles.searchAccessory} />
+              ) : searchTerm.length > 0 ? (
+                <Pressable
+                  onPress={() => setSearchTerm('')}
+                  style={styles.searchClear}
+                  accessibilityLabel="Effacer la recherche"
+                >
+                  <X size={14} color="#6B7280" />
+                </Pressable>
+              ) : null}
+            </View>
+
+            {/* Segments */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.segments}
+            >
+              {(
+                [
+                  { id: 'all' as const, label: 'Tous', count: localCustomers.length },
+                  {
+                    id: 'vip' as const,
+                    label: 'VIP',
+                    count: localCustomers.filter((customer) => getSegment(customer).isVIP).length,
+                  },
+                  {
+                    id: 'inactive' as const,
+                    label: 'Inactifs',
+                    count: localCustomers.filter((customer) => getSegment(customer).isInactive)
+                      .length,
+                  },
+                ] as const
+              ).map((segment) => {
+                const active = activeSegment === segment.id;
+                return (
+                  <Pressable
+                    key={segment.id}
+                    onPress={() => {
+                      setActiveSegment(segment.id);
+                      setSelectedIds([]);
+                    }}
+                    style={[
+                      styles.segment,
+                      active ? styles.segmentActive : styles.segmentIdle,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
+                      {segment.label} ({segment.count})
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Tri */}
+            <View style={styles.sortRow}>
+              <Text style={styles.sortLabel}>Trier</Text>
+              {renderSortButton('totalSpent', 'Dépensé')}
+              {renderSortButton('ordersCount', 'Commandes')}
+              {renderSortButton('name', 'Nom')}
+            </View>
+          </>
+        )}
       </View>
 
-      {/* Segments */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.segmentsScroll}
-        contentContainerStyle={styles.segments}
-      >
-        {(
-          [
-            { id: 'all' as const, label: 'Tous', count: localCustomers.length },
-            {
-              id: 'vip' as const,
-              label: 'VIP',
-              count: localCustomers.filter((customer) => getSegment(customer).isVIP).length,
-            },
-            {
-              id: 'inactive' as const,
-              label: 'Inactifs',
-              count: localCustomers.filter((customer) => getSegment(customer).isInactive).length,
-            },
-          ] as const
-        ).map((segment) => {
-          const active = activeSegment === segment.id;
-          return (
-            <Pressable
-              key={segment.id}
-              onPress={() => {
-                setActiveSegment(segment.id);
-                setSelectedIds([]);
-              }}
-              style={[styles.segment, active ? styles.segmentActive : styles.segmentIdle]}
-            >
-              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
-                {segment.label} ({segment.count})
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* Tri mobile */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.sortRowScroll}
-        contentContainerStyle={styles.sortRow}
-      >
-        <Text style={styles.sortLabel}>Trier par:</Text>
-        {renderSortButton('totalSpent', 'Dépensé')}
-        {renderSortButton('ordersCount', 'Commandes')}
-        {renderSortButton('name', 'Nom')}
-      </ScrollView>
-
-      {/* Carte liste */}
+      {/* ── Carte liste ── */}
       <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.searchWrap}>
-            <View pointerEvents="none" style={styles.searchIcon}>
-              <Search size={16} color="#9CA3AF" />
-            </View>
-            {isSearching ? (
-              <View pointerEvents="none" style={styles.searchSpinner}>
-                <Loader2 size={16} color={COLORS.brand} />
-              </View>
-            ) : null}
-            <TextInput
-              value={searchTerm}
-              onChangeText={setSearchTerm}
-              placeholder="Rechercher..."
-              placeholderTextColor="#C4C9D1"
-              autoCapitalize="none"
-              style={styles.searchInput}
-            />
-          </View>
-          <View style={styles.selectAllWrap}>
-            <SellerCheckbox checked={allSelected} onToggle={toggleSelectAll} size={16} />
-            <Text style={styles.selectAllText}>Tout</Text>
-          </View>
-        </View>
-
         <ScrollView
           style={styles.list}
           contentContainerStyle={styles.listContent}
@@ -471,36 +485,74 @@ export function SellerCustomersView({
             />
           }
         >
-          {filteredCustomers.map((customer, index) => {
-            const { isVIP, isInactive } = getSegment(customer);
-            const initials = customer.name
-              .split(' ')
-              .map((part) => part[0])
-              .join('');
-            return (
-              <View
-                key={customer.id}
-                style={[
-                  styles.customerRow,
-                  index < filteredCustomers.length - 1 ? styles.customerRowBorder : null,
-                  selectedIds.includes(customer.id) ? styles.customerRowSelected : null,
-                ]}
-              >
-                <View style={styles.customerRowTop}>
-                  <View style={styles.customerRowLeft}>
-                    <SellerCheckbox
-                      checked={selectedIds.includes(customer.id)}
-                      onToggle={() => toggleSelect(customer.id)}
-                    />
+          {filteredCustomers.length > 0 ? (
+            <>
+              <View style={styles.listHeader}>
+                <Text style={styles.listHeaderText}>
+                  {filteredCustomers.length} client{filteredCustomers.length > 1 ? 's' : ''}
+                  {hasMore ? ' chargés' : ''}
+                </Text>
+                <Pressable
+                  onPress={toggleSelectAll}
+                  style={styles.selectAllBtn}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: allSelected }}
+                  accessibilityLabel={allSelected ? 'Tout désélectionner' : 'Tout choisir'}
+                >
+                  <SellerCheckbox
+                    checked={allSelected}
+                    onToggle={toggleSelectAll}
+                    size={18}
+                  />
+                  <Text style={styles.selectAllText}>
+                    {allSelected ? 'Tout désélectionner' : 'Tout choisir'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {filteredCustomers.map((customer, index) => {
+                const { isVIP, isInactive } = getSegment(customer);
+                const initials = customer.name
+                  .split(' ')
+                  .map((part) => part[0])
+                  .join('');
+                const selected = selectedIds.includes(customer.id);
+                return (
+                  <Pressable
+                    key={customer.id}
+                    onPress={() => handleOpenModal(customer)}
+                    style={({ pressed }) => [
+                      styles.customerRow,
+                      index < filteredCustomers.length - 1 ? styles.customerRowBorder : null,
+                      selected ? styles.customerRowSelected : null,
+                      pressed ? styles.customerRowPressed : null,
+                    ]}
+                  >
+                    <Pressable
+                      onPress={() => toggleSelect(customer.id)}
+                      style={styles.checkboxHit}
+                      hitSlop={8}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={`Sélectionner ${customer.name}`}
+                    >
+                      <SellerCheckbox
+                        checked={selected}
+                        onToggle={() => toggleSelect(customer.id)}
+                        size={20}
+                      />
+                    </Pressable>
+
                     <View style={styles.customerAvatar}>
                       <Text style={styles.customerAvatarText}>{initials}</Text>
                     </View>
+
                     <View style={styles.customerBody}>
                       <View style={styles.customerNameRow}>
                         <Text style={styles.customerName} numberOfLines={1}>
                           {customer.name}
                         </Text>
-                        {isVIP ? <Star size={10} color="#EAB308" fill="#EAB308" /> : null}
+                        {isVIP ? <Star size={11} color="#EAB308" fill="#EAB308" /> : null}
                         {isInactive ? (
                           <View style={styles.inactiveBadge}>
                             <Text style={styles.inactiveBadgeText}>Inactif</Text>
@@ -511,35 +563,79 @@ export function SellerCustomersView({
                         <Text style={styles.customerMeta} numberOfLines={1}>
                           {formatPhoneNumber(customer.phone || '')}
                         </Text>
-                        <Text style={styles.customerMetaDivider}>|</Text>
-                        <Text style={styles.customerTotal}>
-                          {formatCurrency(Number(customer.totalSpent) || 0)}
+                        <View style={styles.metaDot} />
+                        <Text style={styles.customerMeta}>
+                          {customer.ordersCount || 0} commande
+                          {(customer.ordersCount || 0) > 1 ? 's' : ''}
                         </Text>
                       </View>
                     </View>
-                  </View>
 
-                  <View style={styles.customerActions}>
-                    <Pressable style={styles.callBtn} accessibilityLabel="Appeler">
-                      <Phone size={12} color="#16A34A" />
-                    </Pressable>
-                    {canManageCustomers && !isSeller ? (
+                    <View style={styles.customerActions}>
+                      <View style={styles.customerRightText}>
+                        <Text style={styles.customerTotal}>
+                          {formatCurrency(Number(customer.totalSpent) || 0)}
+                        </Text>
+                        <Text style={styles.customerTotalLabel}>dépensé</Text>
+                      </View>
                       <Pressable
-                        onPress={() => handleOpenModal(customer)}
-                        style={styles.editBtn}
-                        accessibilityLabel="Modifier"
+                        style={styles.callBtn}
+                        accessibilityLabel={`Appeler ${customer.name}`}
                       >
-                        <Edit size={12} color={COLORS.brand} />
+                        <Phone size={12} color="#16A34A" />
                       </Pressable>
-                    ) : null}
-                    <ChevronRight size={12} color="#D1D5DB" />
-                  </View>
+                      {canManageCustomers && !isSeller ? (
+                        <Pressable
+                          onPress={() => handleOpenModal(customer)}
+                          style={styles.editBtn}
+                          accessibilityLabel={`Modifier ${customer.name}`}
+                        >
+                          <Edit size={13} color={COLORS.brand} />
+                        </Pressable>
+                      ) : null}
+                      <ChevronRight size={13} color="#D1D5DB" />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </>
+          ) : isSearching ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <View key={`skel-${i}`} style={styles.skeletonRow}>
+                <View style={styles.skeletonBox} />
+                <View style={styles.skeletonAvatar} />
+                <View style={styles.skeletonBody}>
+                  <View style={styles.skeletonLineWide} />
+                  <View style={styles.skeletonLineShort} />
                 </View>
               </View>
-            );
-          })}
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyStateIcon}>
+                {searchTerm ? (
+                  <Search size={24} color="#9CA3AF" />
+                ) : (
+                  <Users size={26} color="#9CA3AF" />
+                )}
+              </View>
+              <Text style={styles.emptyStateTitle}>
+                {searchTerm ? 'Aucun client trouvé' : 'Aucun client'}
+              </Text>
+              <Text style={styles.emptyStateHint}>
+                {searchTerm
+                  ? `Aucun client ne correspond à « ${searchTerm} ».`
+                  : 'Vos clients enregistrés apparaîtront ici.'}
+              </Text>
+              {searchTerm ? (
+                <Pressable onPress={() => setSearchTerm('')} style={styles.emptyCta}>
+                  <Text style={styles.emptyCtaText}>Effacer la recherche</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          )}
 
-          {hasMore ? (
+          {filteredCustomers.length > 0 && hasMore ? (
             <View style={styles.loadMoreWrap}>
               <Pressable
                 onPress={handleLoadMore}
@@ -558,30 +654,13 @@ export function SellerCustomersView({
             </View>
           ) : null}
 
-          {!hasMore && localCustomers.length > 5 ? (
+          {filteredCustomers.length > 0 && !hasMore && localCustomers.length > 5 ? (
             <View style={styles.endOfList}>
               <Text style={styles.endOfListText}>Fin de liste</Text>
             </View>
           ) : null}
-
-          {filteredCustomers.length === 0 ? (
-            <View style={styles.emptyState}>
-              {isSearching ? (
-                <>
-                  <Loader2 size={48} color={COLORS.brand} />
-                  <Text style={styles.emptyStateText}>Recherche en cours…</Text>
-                </>
-              ) : (
-                <>
-                  <Users size={64} color="#E5E7EB" />
-                  <Text style={styles.emptyStateText}>Aucun client trouvé</Text>
-                </>
-              )}
-            </View>
-          ) : null}
         </ScrollView>
       </View>
-
       {/* Modale client */}
       <Modal
         visible={isModalOpen}
@@ -686,63 +765,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 12,
   },
-  header: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  headerTitleBlock: {
-    flexShrink: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    fontSize: 10,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  bulkDeleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  bulkDeleteText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
+
+  /* Action principale */
   newCustomerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    height: 44,
     backgroundColor: COLORS.brand,
-    borderRadius: 12,
-    shadowColor: '#FFEDD5',
+    borderRadius: 14,
+    shadowColor: COLORS.brand,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
     elevation: 3,
   },
   newCustomerText: {
@@ -750,28 +786,66 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  segmentsScroll: {
-    flexGrow: 0,
-    marginBottom: 16,
+
+  /* Barre de recherche + segments + tri */
+  stickyWrap: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 38,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#111827',
+    paddingVertical: 0,
+  },
+  searchAccessory: { marginLeft: 8 },
+  searchClear: {
+    marginLeft: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   segments: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 10,
   },
   segment: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
     borderWidth: 1,
   },
   segmentActive: {
     backgroundColor: COLORS.brand,
     borderColor: COLORS.brand,
-    shadowColor: '#FFEDD5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
   },
   segmentIdle: {
     backgroundColor: '#FFFFFF',
@@ -785,26 +859,23 @@ const styles = StyleSheet.create({
   segmentTextActive: {
     color: '#FFFFFF',
   },
-  sortRowScroll: {
-    flexGrow: 0,
-    marginBottom: 16,
-  },
   sortRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    paddingTop: 10,
   },
   sortLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 1.6,
+    letterSpacing: 1.2,
   },
   sortBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
     borderWidth: 1,
     backgroundColor: '#FFFFFF',
     borderColor: '#F3F4F6',
@@ -814,13 +885,53 @@ const styles = StyleSheet.create({
     borderColor: '#FED7AA',
   },
   sortBtnText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
     color: '#6B7280',
   },
   sortBtnTextActive: {
     color: COLORS.brand,
   },
+
+  /* Barre de sélection */
+  selectionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  selectionCount: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  selectionClear: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectionText: { color: '#6B7280', fontSize: 10, fontWeight: '600' },
+  selectionBtnDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  selectionBtnDangerText: { fontSize: 10, fontWeight: '700', color: '#DC2626' },
+
+  /* Carte liste */
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -834,105 +945,64 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 1,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  searchWrap: {
-    flex: 1,
-    maxWidth: 448,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 12,
-    zIndex: 1,
-  },
-  searchSpinner: {
-    position: 'absolute',
-    right: 12,
-    zIndex: 1,
-  },
-  searchInput: {
-    paddingLeft: 36,
-    paddingRight: 34,
-    paddingVertical: 8,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    borderRadius: 10,
-    fontSize: 12,
-    color: '#111827',
-  },
-  selectAllWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  selectAllText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 1.6,
-  },
   list: {
     flex: 1,
   },
   listContent: {
     flexGrow: 1,
+    paddingBottom: 24,
   },
-  customerRow: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  customerRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  customerRowSelected: {
-    backgroundColor: 'rgba(255,247,237,0.6)',
-  },
-  customerRowTop: {
+  listHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
   },
-  customerRowLeft: {
+  listHeaderText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+  selectAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  selectAllText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+
+  /* Lignes clients */
+  customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flex: 1,
-    minWidth: 0,
+    padding: 10,
   },
+  customerRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  customerRowSelected: {
+    backgroundColor: 'rgba(255,247,237,0.3)',
+  },
+  customerRowPressed: {
+    backgroundColor: '#F9FAFB',
+  },
+  checkboxHit: { width: 26, alignItems: 'center' },
   customerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: COLORS.brand,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
   },
   customerAvatarText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#111827',
   },
   customerBody: {
+    flex: 1,
     minWidth: 0,
-    flexShrink: 1,
+    gap: 3,
   },
   customerNameRow: {
     flexDirection: 'row',
@@ -940,19 +1010,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   customerName: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#111827',
     flexShrink: 1,
   },
   inactiveBadge: {
     backgroundColor: '#FEF2F2',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: 4,
   },
   inactiveBadgeText: {
-    fontSize: 6,
+    fontSize: 7,
     fontWeight: '700',
     color: '#DC2626',
     textTransform: 'uppercase',
@@ -960,8 +1030,7 @@ const styles = StyleSheet.create({
   customerMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: 4,
   },
   customerMeta: {
     fontSize: 9,
@@ -969,15 +1038,24 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     flexShrink: 1,
   },
-  customerMetaDivider: {
-    fontSize: 9,
-    color: '#E5E7EB',
+  metaDot: {
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#D1D5DB',
+    marginHorizontal: 2,
   },
   customerTotal: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#16A34A',
+    color: COLORS.brand,
   },
+  customerTotalLabel: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  customerRightText: { alignItems: 'flex-end' },
   customerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -985,66 +1063,106 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   callBtn: {
-    padding: 8,
-    backgroundColor: '#F0FDF4',
+    width: 28,
+    height: 28,
     borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editBtn: {
-    padding: 8,
-    backgroundColor: '#FFF7ED',
+    width: 28,
+    height: 28,
     borderRadius: 8,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
+  /* Squelettes */
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  skeletonBox: { width: 20, height: 20, borderRadius: 5, backgroundColor: '#F3F4F6' },
+  skeletonAvatar: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F3F4F6' },
+  skeletonBody: { flex: 1, gap: 6 },
+  skeletonLineWide: { width: '50%', height: 10, borderRadius: 5, backgroundColor: '#F3F4F6' },
+  skeletonLineShort: { width: '30%', height: 8, borderRadius: 4, backgroundColor: '#F9FAFB' },
+
+  /* États vides */
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 40,
+    paddingHorizontal: 32,
+  },
+  emptyStateIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyStateTitle: { fontSize: 13, fontWeight: '700', color: '#4B5563' },
+  emptyStateHint: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  emptyCta: {
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  emptyCtaText: { fontSize: 11, fontWeight: '700', color: COLORS.brand },
+
+  /* Pagination */
   loadMoreWrap: {
     padding: 16,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: '#F9FAFB',
   },
   loadMoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#F3F4F6',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
   },
-  loadMoreText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#9CA3AF',
-  },
+  loadMoreText: { fontSize: 11, fontWeight: '700', color: '#4B5563' },
   endOfList: {
-    padding: 24,
+    paddingVertical: 16,
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#F9FAFB',
   },
   endOfListText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 2,
-    opacity: 0.5,
+    letterSpacing: 1,
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingVertical: 80,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
+
+  /* Modale client */
   modalOverlay: {
     flex: 1,
     alignItems: 'center',
