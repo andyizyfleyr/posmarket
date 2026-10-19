@@ -88,6 +88,60 @@ export function getTierUnitPrice(tier: WholesaleTier | undefined, productPrice: 
 }
 
 /**
+ * Calcule le prix total du lot pour un palier de gros
+ * (ex: 400 000 FCFA pour le lot de 100 pièces).
+ */
+export function getTierPackagePrice(tier: WholesaleTier | undefined, productPrice: number): number {
+  if (!tier) return 0;
+  const numPrice = Number(tier.price) || 0;
+  const basePrice = Number(productPrice) || 0;
+  const minQty = Math.max(1, Number(tier.minQty) || 1);
+
+  if (numPrice <= 0) return basePrice * minQty;
+
+  if (numPrice >= basePrice && minQty > 1) {
+    return numPrice;
+  }
+
+  return Math.round(numPrice * minQty);
+}
+
+/**
+ * Liste normalisée des paliers de gros triés par quantité croissante
+ * (copie fidèle de src/utils/wholesale.ts du web).
+ */
+export function getNormalizedWholesaleTiers(product: Product): Array<{
+  minQty: number;
+  packagePrice: number;
+  unitPrice: number;
+  savings: number;
+  discountPct: number;
+}> {
+  const tiers: WholesaleTier[] = [];
+  if (Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0) {
+    tiers.push(...product.wholesaleTiers);
+  } else if (product.wholesalePrice && product.wholesaleMinQty) {
+    tiers.push({ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) });
+  }
+
+  if (tiers.length === 0) return [];
+
+  const basePrice = Number(product.price) || 0;
+  const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty);
+
+  return sorted.map((t) => {
+    const minQty = Math.max(1, Number(t.minQty) || 1);
+    const unitPrice = getTierUnitPrice(t, basePrice);
+    const packagePrice = getTierPackagePrice(t, basePrice);
+    const normalTotal = basePrice * minQty;
+    const savings = Math.max(0, normalTotal - packagePrice);
+    const discountPct = normalTotal > 0 && savings > 0 ? Math.round((savings / normalTotal) * 100) : 0;
+
+    return { minQty, packagePrice, unitPrice, savings, discountPct };
+  });
+}
+
+/**
  * Retourne le prix unitaire effectif à appliquer en fonction de la quantité commandée
  * (paliers de gros multiples ou ancien palier unique).
  */
