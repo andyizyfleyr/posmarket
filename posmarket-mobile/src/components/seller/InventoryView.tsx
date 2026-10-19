@@ -44,7 +44,6 @@ import {
   Trash2,
   Upload,
   X,
-  Zap,
 } from 'lucide-react-native';
 import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -399,36 +398,62 @@ export function SellerInventoryView({
           />
         }
       >
-        {/* ── En-tête ── */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={styles.headerTitles}>
-              <Text style={styles.headerTitle}>Inventaire</Text>
-              <Text style={styles.headerSubtitle} numberOfLines={1}>
-                {totalProductsCount > 0
-                  ? `${totalProductsCount} produit${totalProductsCount > 1 ? 's' : ''} · ${storeName}`
-                  : storeName}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.flowBadge,
-                businessType === 'food' ? styles.flowBadgeFood : styles.flowBadgeShopping,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.flowBadgeText,
-                  { color: businessType === 'food' ? '#92400E' : COLORS.brand },
-                ]}
+{/* ── Actions : création puis outils ── */}
+        <View style={styles.actionsBlock}>
+          {canManageInventory ? (
+            <View style={styles.createRow}>
+              <Pressable
+                onPress={() => handleOpenModal(undefined, 'pos')}
+                style={styles.posBtn}
+                accessibilityLabel="Ajouter un produit Point de Vente uniquement"
               >
-                {businessType === 'food' ? 'Resto' : 'Shop'}
-              </Text>
+                <Monitor size={18} color="#FFFFFF" />
+                <Text style={styles.createText}>+ POS</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleOpenModal(undefined, 'store')}
+                style={styles.storeBtn}
+                accessibilityLabel="Ajouter un produit en ligne (Marketplace + Point de Vente)"
+              >
+                <ShoppingBag size={18} color="#FFFFFF" />
+                <Text style={styles.createText}>+ Store & POS</Text>
+              </Pressable>
             </View>
+          ) : null}
+
+          <View style={styles.toolRow}>
+            <Pressable
+              onPress={() => setIsExportModalOpen(true)}
+              style={styles.toolBtn}
+              accessibilityLabel="Exporter vos produits"
+            >
+              <Download size={16} color="#4B5563" />
+              <Text style={styles.toolText}>Exporter</Text>
+            </Pressable>
+            {canManageInventory ? (
+              <>
+                <Pressable
+                  onPress={() => setIsImportModalOpen(true)}
+                  style={styles.toolBtn}
+                  accessibilityLabel="Importer des produits"
+                >
+                  <Upload size={16} color="#4B5563" />
+                  <Text style={styles.toolText}>Importer</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setIsTransferModalOpen(true)}
+                  style={styles.toolBtn}
+                  accessibilityLabel="Transférer des produits"
+                >
+                  <ArrowRightLeft size={16} color="#2563EB" />
+                  <Text style={[styles.toolText, { color: '#1D4ED8' }]}>Transférer</Text>
+                </Pressable>
+              </>
+            ) : null}
           </View>
         </View>
 
-        {/* ── Barre collante : sélection multiple ou recherche + filtres ── */}
+        {/* ── Barre collante : sélection multiple ou recherche + filtre de canal ── */}
         <View style={styles.stickyWrap}>
           {selectedIds.length > 0 && canManageInventory ? (
             <View style={styles.selectionBar}>
@@ -496,41 +521,6 @@ export function SellerInventoryView({
                 ) : null}
               </View>
 
-              {/* Filtre de flux */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsRow}
-                style={styles.chipsScroll}
-              >
-                {[
-                  { id: 'all' as const, label: 'Tous les flux', Icon: Package, border: '#6B7280', text: '#4B5563' },
-                  { id: 'shopping' as const, label: 'Shop', Icon: ShoppingBag, border: '#F97316', text: '#EA580C' },
-                  { id: 'food' as const, label: 'Resto', Icon: Zap, border: '#EAB308', text: '#CA8A04' },
-                ]
-                  .filter((v) => v.id === 'all' || v.id === businessType)
-                  .map((v) => {
-                    const active = selectedVertical === v.id;
-                    return (
-                      <Pressable
-                        key={v.id}
-                        onPress={() => setSelectedVertical(v.id)}
-                        style={[
-                          styles.chip,
-                          active && { backgroundColor: v.border, borderColor: v.border },
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                      >
-                        <v.Icon size={14} color={active ? '#FFFFFF' : '#6B7280'} />
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {v.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-              </ScrollView>
-
               {/* Filtre de canal */}
               <View style={styles.segmented}>
                 {[
@@ -557,62 +547,6 @@ export function SellerInventoryView({
             </View>
           )}
         </View>
-
-        {/* ── Actions ── */}
-        <View style={styles.actionsBlock}>
-          <View style={styles.toolRow}>
-            <Pressable
-              onPress={() => setIsExportModalOpen(true)}
-              style={styles.toolBtn}
-              accessibilityLabel="Exporter vos produits"
-            >
-              <Download size={16} color="#4B5563" />
-              <Text style={styles.toolText}>Exporter</Text>
-            </Pressable>
-            {canManageInventory ? (
-              <>
-                <Pressable
-                  onPress={() => setIsImportModalOpen(true)}
-                  style={styles.toolBtn}
-                  accessibilityLabel="Importer des produits"
-                >
-                  <Upload size={16} color="#4B5563" />
-                  <Text style={styles.toolText}>Importer</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setIsTransferModalOpen(true)}
-                  style={styles.toolBtn}
-                  accessibilityLabel="Transférer des produits"
-                >
-                  <ArrowRightLeft size={16} color="#2563EB" />
-                  <Text style={[styles.toolText, { color: '#1D4ED8' }]}>Transférer</Text>
-                </Pressable>
-              </>
-            ) : null}
-          </View>
-
-          {canManageInventory ? (
-            <View style={styles.createRow}>
-              <Pressable
-                onPress={() => handleOpenModal(undefined, 'pos')}
-                style={styles.posBtn}
-                accessibilityLabel="Ajouter un produit Point de Vente uniquement"
-              >
-                <Monitor size={18} color="#FFFFFF" />
-                <Text style={styles.createText}>+ POS</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleOpenModal(undefined, 'store')}
-                style={styles.storeBtn}
-                accessibilityLabel="Ajouter un produit en ligne (Marketplace + Point de Vente)"
-              >
-                <ShoppingBag size={18} color="#FFFFFF" />
-                <Text style={styles.createText}>+ Store & POS</Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </View>
-
         {/* ── Liste ── */}
         <View style={styles.listCard}>
           {isSearching && localProducts.length === 0 ? (
@@ -930,17 +864,6 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  /* En-tête */
-  header: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 },
-  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerTitles: { flex: 1 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#111827', letterSpacing: -0.4 },
-  headerSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  flowBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  flowBadgeShopping: { backgroundColor: '#FFEDD5' },
-  flowBadgeFood: { backgroundColor: '#FEF3C7' },
-  flowBadgeText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 },
-
   /* Barre collante */
   stickyWrap: {
     backgroundColor: '#FFFFFF',
@@ -980,22 +903,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  chipsScroll: { marginHorizontal: -16 },
-  chipsRow: { gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  chipText: { fontSize: 12, fontWeight: '700', color: '#6B7280' },
-  chipTextActive: { color: '#FFFFFF' },
 
   segmented: {
     flexDirection: 'row',
