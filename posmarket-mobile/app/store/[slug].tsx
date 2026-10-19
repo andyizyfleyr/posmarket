@@ -40,6 +40,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingBasket,
+  ShoppingCart,
   Star,
   Store,
   X,
@@ -53,8 +54,14 @@ import {
 import { Loader } from '@/components/Loader';
 import { ProductCard } from '@/components/ProductCard';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
-import { formatNumber, generateProductSlug, maskName } from '@/utils';
+import {
+  formatCurrency,
+  formatNumber,
+  generateProductSlug,
+  maskName,
+} from '@/utils';
 import { COLORS } from '@/theme';
+import { useCart } from '@/context/CartContext';
 import type { Review, StoreData, StorefrontProduct } from '@/types';
 
 type StoreVertical = 'shopping' | 'food';
@@ -71,6 +78,7 @@ export default function StoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { cartCount, cartTotal } = useCart();
 
   const [activeTab, setActiveTab] = useState<'products' | 'reviews'>(
     'products',
@@ -83,7 +91,10 @@ export default function StoreScreen() {
     null,
   );
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
+  const [tabsHidden, setTabsHidden] = useState(false);
   const loadMoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollYRef = useRef(0);
+  const tabsHiddenRef = useRef(false);
 
   // ── Catalogue ──
   const { data: catalogData, isLoading } = useQuery({
@@ -187,6 +198,21 @@ export default function StoreScreen() {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
+
+      // Onglets : se replient quand on scrolle vers le bas, réapparaissent
+      // au premier mouvement inverse (même règle que le web : ±10 px).
+      const y = contentOffset.y;
+      const prevY = lastScrollYRef.current;
+      lastScrollYRef.current = y;
+      let nextHidden = tabsHiddenRef.current;
+      if (y < 120) nextHidden = false;
+      else if (y - prevY > 10) nextHidden = true;
+      else if (prevY - y > 10) nextHidden = false;
+      if (nextHidden !== tabsHiddenRef.current) {
+        tabsHiddenRef.current = nextHidden;
+        setTabsHidden(nextHidden);
+      }
+
       if (
         layoutMeasurement.height + contentOffset.y >=
         contentSize.height - 240
@@ -269,10 +295,6 @@ export default function StoreScreen() {
           >
             <ArrowLeft size={20} color="#111827" />
           </Pressable>
-          <Text style={styles.topBarTitle} numberOfLines={1}>
-            Boutique
-          </Text>
-          <View style={{ width: 36 }} />
         </SafeAreaView>
         <View style={styles.notFound}>
           <View style={styles.notFoundIcon}>
@@ -452,7 +474,7 @@ export default function StoreScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Barre de navigation (application) ── */}
+      {/* ── Barre de navigation (retour uniquement — le nom est dans le hero) ── */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
         <Pressable
           style={styles.iconBtn}
@@ -462,10 +484,6 @@ export default function StoreScreen() {
         >
           <ArrowLeft size={20} color="#111827" />
         </Pressable>
-        <Text style={styles.topBarTitle} numberOfLines={1}>
-          {storeName}
-        </Text>
-        <View style={{ width: 36 }} />
       </SafeAreaView>
 
       <ScrollView
@@ -473,6 +491,7 @@ export default function StoreScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         stickyHeaderIndices={[1]}
+        contentContainerStyle={cartCount > 0 ? styles.scrollContentWithBar : undefined}
       >
         {/* ── Carte boutique (bord à bord, comme le web mobile) ── */}
         <View style={styles.heroCard}>
@@ -563,8 +582,8 @@ export default function StoreScreen() {
           </View>
         </View>
 
-        {/* ── Onglets Produits / Avis (collants) ── */}
-        <View style={styles.tabsWrap}>
+        {/* ── Onglets Produits / Avis (collants, repliés au scroll bas) ── */}
+        <View style={[styles.tabsWrap, tabsHidden && styles.tabsWrapHidden]}>
           <View style={styles.tabsBar}>
             <Pressable
               style={[styles.tabButton, activeTab === 'products' && styles.tabButtonActive]}
@@ -659,11 +678,19 @@ export default function StoreScreen() {
             {/* États vides / chargement */}
             {sections.length === 0 && !isLoadingMore ? (
               searchActive && isSearching ? (
-                <View style={styles.searchPending}>
-                  <ActivityIndicator size="large" color={COLORS.brand} />
-                  <Text style={styles.loadMoreText}>
-                    Recherche en cours...
-                  </Text>
+                <View
+                  style={styles.grid}
+                  accessibilityRole="progressbar"
+                  accessibilityLabel="Recherche en cours"
+                >
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <View
+                      key={`store-search-skeleton-${i}`}
+                      style={styles.gridCell}
+                    >
+                      <ProductSkeleton />
+                    </View>
+                  ))}
                 </View>
               ) : (
                 <View style={styles.emptyCard}>
@@ -853,12 +880,53 @@ export default function StoreScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Barre panier fixe — visible sur les pages de découverte
+          (accueil, boutique), comme le web. */}
+      {cartCount > 0 && (
+        <View style={[styles.cartBar, { paddingBottom: insets.bottom + 10 }]}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.cartBarButton,
+              pressed && styles.cartBarButtonPressed,
+            ]}
+            onPress={() => router.push('/cart' as never)}
+          >
+            <View style={styles.cartBarIconWrap}>
+              <ShoppingCart size={15} strokeWidth={2.5} color="#FFF" />
+              <View style={styles.cartBarBadge}>
+                <Text style={styles.cartBarBadgeText}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.cartBarText} numberOfLines={1}>
+              Voir mon panier <Text style={styles.cartBarBullet}>•</Text>{' '}
+              {formatCurrency(cartTotal)}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+/** Squelette de carte produit affiché pendant une recherche boutique. */
+function ProductSkeleton() {
+  return (
+    <View style={styles.skeletonCard}>
+      <View style={styles.skeletonImage} />
+      <View style={[styles.skeletonLine, styles.skeletonLineWide]} />
+      <View style={[styles.skeletonLine, styles.skeletonLineHalf]} />
+      <View style={styles.skeletonFooter}>
+        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+        <View style={styles.skeletonCircle} />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({  container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
@@ -880,13 +948,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
   },
-  topBarTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    textAlign: 'center',
-    paddingHorizontal: 8,
+  scrollContentWithBar: {
+    paddingBottom: 104,
   },
 
   // ── Carte boutique ──
@@ -1051,6 +1114,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
   },
+  tabsWrapHidden: {
+    opacity: 0,
+    transform: [{ translateY: -80 }],
+  },
   tabsBar: {
     flexDirection: 'row',
     gap: 4,
@@ -1172,10 +1239,49 @@ const styles = StyleSheet.create({
   },
 
   // ── États vides / chargements ──
-  searchPending: {
-    paddingVertical: 60,
+  skeletonCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    padding: 16,
+    gap: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+  },
+  skeletonImage: {
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  skeletonLine: {
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: '#F3F4F6',
+  },
+  skeletonLineWide: {
+    width: '75%',
+  },
+  skeletonLineHalf: {
+    width: '50%',
+  },
+  skeletonLineShort: {
+    width: 80,
+  },
+  skeletonFooter: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
+    paddingTop: 8,
+  },
+  skeletonCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
   },
   loadMoreWrap: {
     paddingVertical: 16,
@@ -1506,6 +1612,67 @@ const styles = StyleSheet.create({
   },
   showMoreChevron: {
     transform: [{ rotate: '90deg' }],
+  },
+
+  // ── Barre panier fixe (bandeau blanc + pilule orange 48 px) ──
+  cartBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+  },
+  cartBarButton: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.brand,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+  },
+  cartBarButtonPressed: {
+    backgroundColor: '#E04E0F',
+  },
+  cartBarIconWrap: {
+    position: 'relative',
+  },
+  cartBarBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: '#111827',
+    borderWidth: 2,
+    borderColor: COLORS.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBarBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  cartBarText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  cartBarBullet: {
+    opacity: 0.4,
   },
 
   // ── Boutique introuvable ──
