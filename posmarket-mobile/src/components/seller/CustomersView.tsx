@@ -54,6 +54,15 @@ import {
 
 const PAGE_SIZE = 10;
 
+/** Grille du tableau clients : une seule source de vérité pour l'en-tête
+ * ET les lignes — impossible que les colonnes se désalignent. */
+const GRID = {
+  gap: 6,
+  spent: 92,
+  cmd: 34,
+  action: 68,
+} as const;
+
 interface SellerCustomersViewProps {
   storeId: string;
   canManageCustomers: boolean;
@@ -570,10 +579,18 @@ return (
 
               {/* En-tête de tableau : Nom | Dépensé | N Cmd | Action */}
               <View style={styles.tableHeader}>
-                <Text style={styles.tableHeadNom}>Nom</Text>
-                <Text style={styles.tableHeadSpent}>Dépensé</Text>
-                <Text style={styles.tableHeadCmd}>N Cmd</Text>
-                <Text style={styles.tableHeadAction}>Action</Text>
+                <View style={styles.cellName}>
+                  <Text style={styles.tableHeadLeft}>Nom</Text>
+                </View>
+                <View style={styles.cellSpent}>
+                  <Text style={styles.tableHeadRight}>Dépensé</Text>
+                </View>
+                <View style={styles.cellCmd}>
+                  <Text style={styles.tableHeadRight}>N Cmd</Text>
+                </View>
+                <View style={styles.customerActions}>
+                  <Text style={styles.tableHeadAction}>Action</Text>
+                </View>
               </View>
 
               {filteredCustomers.map((customer, index) => {
@@ -587,51 +604,54 @@ return (
                       pressed ? styles.customerRowPressed : null,
                     ]}
                   >
-                    <Text style={styles.customerName} numberOfLines={1}>
-                      {customer.name}
-                    </Text>
+                    <View style={styles.cellName}>
+                      <Text style={styles.customerName} numberOfLines={1}>
+                        {customer.name}
+                      </Text>
+                    </View>
 
-                    <Text
-                      style={styles.customerTotal}
-                      numberOfLines={1}
-                      accessibilityLabel={`${customer.name} a dépensé ${formatCurrency(
-                        Number(customer.totalSpent) || 0,
-                      )}`}
-                    >
-                      {formatCurrency(Number(customer.totalSpent) || 0)}
-                    </Text>
+                    <View style={styles.cellSpent}>
+                      <Text
+                        style={styles.customerTotal}
+                        numberOfLines={1}
+                        accessibilityLabel={`${customer.name} a dépensé ${formatCurrency(
+                          Number(customer.totalSpent) || 0,
+                        )}`}
+                      >
+                        {formatCurrency(Number(customer.totalSpent) || 0)}
+                      </Text>
+                    </View>
 
-                    <Text
-                      style={styles.customerOrders}
-                      accessibilityLabel={`${customer.ordersCount || 0} commandes`}
-                    >
-                      {customer.ordersCount || 0}
-                    </Text>
+                    <View style={styles.cellCmd}>
+                      <Text
+                        style={styles.customerOrders}
+                        accessibilityLabel={`${customer.ordersCount || 0} commandes`}
+                      >
+                        {customer.ordersCount || 0}
+                      </Text>
+                    </View>
 
                     <View style={styles.customerActions}>
-                      {whatsappLink(customer.phone) ? (
-                        <Pressable
-                          onPress={() => openWhatsApp(customer.phone, customer.name)}
-                          style={styles.whatsappBtn}
-                          hitSlop={4}
-                          accessibilityLabel={`Envoyer un message WhatsApp à ${customer.name}`}
-                        >
+                      <Pressable
+                        onPress={() => openWhatsApp(customer.phone, customer.name)}
+                        style={styles.whatsappBtn}
+                        hitSlop={4}
+                        accessibilityLabel={`Envoyer un message WhatsApp à ${customer.name}`}
+                      >
+                        {whatsappLink(customer.phone) ? (
                           <WhatsAppIcon size={15} />
-                        </Pressable>
-                      ) : null}
-                      {customer.phone ? (
-                        <Pressable
-                          onPress={() => callCustomer(customer.phone)}
-                          style={styles.callBtn}
-                          hitSlop={4}
-                          accessibilityLabel={`Appeler ${customer.name}`}
-                        >
-                          <Phone size={13} color="#111827" />
-                        </Pressable>
-                      ) : null}
-                      {!customer.phone ? (
-                        <Text style={styles.actionDash}>—</Text>
-                      ) : null}
+                        ) : (
+                          <WhatsAppIcon size={15} color="#D1D5DB" />
+                        )}
+                      </Pressable>
+                      <Pressable
+                        onPress={() => callCustomer(customer.phone)}
+                        style={styles.callBtn}
+                        hitSlop={4}
+                        accessibilityLabel={`Appeler ${customer.name}`}
+                      >
+                        <Phone size={13} color={customer.phone ? '#111827' : '#D1D5DB'} />
+                      </Pressable>
                     </View>
                   </Pressable>
                 );
@@ -1009,58 +1029,55 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: GRID.gap,
     paddingHorizontal: 10,
     paddingVertical: 7,
     backgroundColor: '#FCFCFD',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  tableHeadNom: {
-    flex: 1,
-    minWidth: 0,
+  tableHeadLeft: {
     fontSize: 8,
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
   },
-  tableHeadSpent: {
-    width: 92,
-    flexShrink: 0,
+  tableHeadRight: {
     fontSize: 8,
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    textAlign: 'right',
-  },
-  tableHeadCmd: {
-    width: 34,
-    flexShrink: 0,
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
     textAlign: 'right',
   },
   tableHeadAction: {
-    width: 68,
-    flexShrink: 0,
     fontSize: 8,
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    textAlign: 'center',
+    paddingRight: 28,
+    textAlign: 'left',
+  },
+
+  /* Cellules de la grille (communes en-tête / lignes) */
+  cellName: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cellSpent: {
+    width: GRID.spent,
+    flexShrink: 0,
+  },
+  cellCmd: {
+    width: GRID.cmd,
+    flexShrink: 0,
   },
 
   /* Lignes clients */
   customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: GRID.gap,
     padding: 10,
   },
   customerRowBorder: {
@@ -1071,15 +1088,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   customerName: {
-    flex: 1,
-    minWidth: 0,
     fontSize: 11,
     fontWeight: '700',
     color: '#111827',
   },
   customerTotal: {
-    width: 92,
-    flexShrink: 0,
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.brand,
@@ -1087,8 +1100,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   customerOrders: {
-    width: 34,
-    flexShrink: 0,
     fontSize: 11,
     fontWeight: '700',
     color: '#111827',
@@ -1096,18 +1107,12 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   customerActions: {
-    width: 68,
+    width: GRID.action,
     flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 5,
-  },
-  actionDash: {
-    flex: 1,
-    fontSize: 10,
-    color: '#E5E7EB',
-    textAlign: 'center',
   },
   callBtn: {
     width: 28,
