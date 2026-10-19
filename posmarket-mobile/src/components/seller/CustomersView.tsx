@@ -594,16 +594,28 @@ return (
 
               {/* En-tête de tableau : Nom | Dépensé | N Cmd | Action */}
               <DataTable.Header style={styles.paperHeader}>
-                <DataTable.Title style={styles.cellName} textStyle={styles.tableHeadLeft}>
+                <DataTable.Title
+                  style={[styles.cellName, styles.titleHead]}
+                  textStyle={styles.tableHeadLeft}
+                >
                   Nom
                 </DataTable.Title>
-                <DataTable.Title style={styles.cellSpent} textStyle={styles.tableHeadRight}>
+                <DataTable.Title
+                  style={[styles.cellSpent, styles.titleHead]}
+                  textStyle={styles.tableHeadRight}
+                >
                   Dépensé
                 </DataTable.Title>
-                <DataTable.Title style={styles.cellCmd} textStyle={styles.tableHeadRight}>
+                <DataTable.Title
+                  style={[styles.cellCmd, styles.titleHead]}
+                  textStyle={styles.tableHeadRight}
+                >
                   N Cmd
                 </DataTable.Title>
-                <DataTable.Title style={styles.cellAction} textStyle={styles.tableHeadAction}>
+                <DataTable.Title
+                  style={[styles.cellAction, styles.titleHead]}
+                  textStyle={styles.tableHeadAction}
+                >
                   Action
                 </DataTable.Title>
               </DataTable.Header>
@@ -1045,15 +1057,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  /* Neutralise le paddingVertical 12 + lineHeight 24 internes des Title. */
+  titleHead: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
   tableHeadLeft: {
     fontSize: 8,
     fontWeight: '700',
+    lineHeight: 10,
     color: '#9CA3AF',
     textTransform: 'uppercase',
   },
   tableHeadRight: {
     fontSize: 8,
     fontWeight: '700',
+    lineHeight: 10,
     color: '#9CA3AF',
     textTransform: 'uppercase',
     textAlign: 'right',
@@ -1061,6 +1080,7 @@ const styles = StyleSheet.create({
   tableHeadAction: {
     fontSize: 8,
     fontWeight: '700',
+    lineHeight: 10,
     color: '#9CA3AF',
     textTransform: 'uppercase',
     textAlign: 'right',
