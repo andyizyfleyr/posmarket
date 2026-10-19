@@ -1,13 +1,11 @@
 /**
- * Icône WhatsApp officielle (glyphe en SVG) — `lucide-react-native` ne
- * propose que des icônes génériques, la marque a son propre pictogramme.
+ * Icône WhatsApp officielle — glyphe de la police FontAwesome5 Brands
+ * (`@expo/vector-icons`, incluse dans Expo Go). On évite un SVG dessiné à la
+ * main : le parseur natif de `react-native-svg` refuse certains paths de la
+ * marque (« Invalid number format, character 'z' »).
  */
 
-import React from 'react';
-import Svg, { Path } from 'react-native-svg';
-
-const WHATSAPP_PATH =
-  'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198.005-.52.074-.818.371-1.411 1.443-1.891 1.441-2.605.047-.502.003-.869-.012-1.171-.015-.3-.054-.72-.489-1.311-.44-.6-1.268-1.32-1.933-1.72-.53-.315-1.1-.505-1.7-.505-.576 0-1.153.202-1.657.585-.57.435-.964.994-1.274 1.685-.29.66-.435 1.29-.435 1.953 0 .668.145 1.301.435 1.89.29.574.704 1.062 1.253 1.44.494.337 1.04.64 1.73.64.748 0 1.458-.152 2.11-.44.665-.302 1.2-.83 1.441-1.568.24-.74.24-1.44.17-1.58-.07-.14-.27-.22-.57-.32zM12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.99 9.99 0 0012 20c5.523 0 10-4.477 10-10S17.523 2 12 2z';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 
 export function WhatsAppIcon({
   size = 16,
@@ -16,9 +14,5 @@ export function WhatsAppIcon({
   size?: number;
   color?: string;
 }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d={WHATSAPP_PATH} fill={color} />
-    </Svg>
-  );
+  return <FontAwesome5 name="whatsapp" size={size} color={color} />;
 }
