@@ -205,3 +205,86 @@ export async function fetchSellerDashboard(
     extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
   });
 }
+
+// ── Point de vente (POS) ──────────────────────────────────────────
+
+/** Client de la boutique (ligne Drizzle `customers`). */
+export interface SellerCustomer {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  totalSpent?: string | number;
+  ordersCount?: number;
+}
+
+export interface SellerPosResponse {
+  success: boolean;
+  error?: string;
+  products?: import('@/types').Product[];
+  customers?: SellerCustomer[];
+  store?: SellerStoreRow | null;
+}
+
+/** Produits + clients + boutique du point de vente. */
+export async function fetchSellerPos(
+  storeId?: string | null,
+): Promise<SellerPosResponse> {
+  return apiFetch<SellerPosResponse>('/api/marketplace/seller/pos', {
+    extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
+  });
+}
+
+/** Compteurs de stock live des badges produit (sondés toutes les 5 s). */
+export async function fetchSellerPosStock(
+  storeId: string,
+): Promise<{ success: boolean; stock?: Record<string, number>; error?: string }> {
+  return apiFetch('/api/marketplace/seller/pos/stock', {
+    method: 'POST',
+    body: JSON.stringify({ storeId }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Codes promo actifs de la boutique. */
+export async function fetchSellerPosCoupons(
+  storeId: string,
+): Promise<{ success: boolean; coupons?: import('@/types').Coupon[]; error?: string }> {
+  return apiFetch('/api/marketplace/seller/pos/coupons', {
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Ligne de commande envoyée à l'encaissement (recopiée par `createOrderAction`). */
+export interface SellerPosOrderInput {
+  customer?: { id?: string } | null;
+  date?: string;
+  status?: string;
+  type?: 'IN_STORE' | 'PICKUP';
+  paymentMethod?: string;
+  subtotal?: number;
+  total?: number;
+  discountAmount?: number;
+  promoCode?: string;
+  items?: Array<{
+    product?: { id?: string; price?: number } | null;
+    quantity?: number;
+    variantId?: string | null;
+    variantLabel?: string | null;
+    variantSku?: string | null;
+    variantOptionValues?: Record<string, string> | null;
+  }>;
+}
+
+/** Encaissement : enregistre la vente (commande + lignes + stock). */
+export async function submitSellerPosOrder(
+  storeId: string,
+  order: SellerPosOrderInput,
+): Promise<{ success: boolean; order?: { id?: string; status?: string; total?: number }; error?: string }> {
+  return apiFetch('/api/marketplace/seller/pos/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, order }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
