@@ -59,7 +59,7 @@ async function apiFetch<T>(
 
 // ── Marketplace endpoints ─────────────────────────────────────────
 
-import type { StoreData, StorefrontProduct, Review } from '@/types';
+import type { StoreData, StorefrontProduct, Review, Coupon } from '@/types';
 
 interface CatalogResponse {
   success: boolean;
@@ -111,6 +111,20 @@ export async function fetchStoreReviews(
   return apiFetch<ReviewsResponse>(
     `/api/marketplace/store-reviews/${encodeURIComponent(storeId)}`,
   );
+}
+
+interface CouponsResponse {
+  success: boolean;
+  coupons: Coupon[];
+  error?: string;
+}
+
+/** Codes promo actifs des boutiques demandées (panier acheteur). */
+export async function fetchCoupons(
+  storeIds: string[],
+): Promise<CouponsResponse> {
+  const ids = encodeURIComponent(storeIds.filter(Boolean).join(','));
+  return apiFetch<CouponsResponse>(`/api/marketplace/coupons?storeIds=${ids}`);
 }
 
 interface CheckoutResponse {

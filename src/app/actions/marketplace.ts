@@ -957,6 +957,46 @@ export async function fetchStoreReviewsAction(storeId: string) {
   }
 }
 
+/**
+ * Codes promo actifs des boutiques demandées.
+ *
+ * Même requête que le chargement des coupons du web (`useCoupons`) : seuls les
+ * coupons actifs des boutiques du panier sont renvoyés. Les noms de colonnes
+ * restent en snake_case, comme les lignes Supabase lues par le web, pour que
+ * la logique d'application du panier soit identique des deux côtés.
+ */
+export async function fetchActiveCouponsAction(storeIds: string[]) {
+  const ids = Array.isArray(storeIds) ? storeIds.filter(Boolean) : [];
+  if (ids.length === 0) return { success: true, error: undefined, coupons: [] };
+
+  try {
+    const rows = await db
+      .select()
+      .from(coupons)
+      .where(and(inArray(coupons.storeId, ids), eq(coupons.active, true)));
+
+    return {
+      success: true,
+      error: undefined,
+      coupons: rows.map((c) => ({
+        id: c.id,
+        code: c.code,
+        discount_pct: Number(c.discountPct) || 0,
+        active: c.active,
+        store_id: c.storeId,
+        created_at:
+          c.createdAt instanceof Date
+            ? c.createdAt.toISOString()
+            : String(c.createdAt || ''),
+      })),
+    };
+  } catch (error) {
+    console.error('Error fetching coupons:', error);
+    const message = error instanceof Error ? error.message : 'Erreur lors du chargement des codes promo';
+    return { success: false, error: message, coupons: [] };
+  }
+}
+
 export async function notifyCartInterestAction(data: unknown) {
   const payload = (data || {}) as {
     phone?: string;

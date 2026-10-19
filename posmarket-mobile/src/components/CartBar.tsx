@@ -12,8 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ShoppingCart } from 'lucide-react-native';
 import { COLORS } from '@/theme';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, getEffectiveItemPrice } from '@/utils';
 import { useCart } from '@/context/CartContext';
+import { usePromo } from '@/context/PromoContext';
 
 /**
  * Hauteur de la barre sans la zone de sécurité basse :
@@ -29,9 +30,26 @@ interface CartBarProps {
 export function CartBar({ onPress }: CartBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { cartCount, cartTotal } = useCart();
+  const { cart, cartCount } = useCart();
+  const { promoApplied } = usePromo();
 
   if (cartCount <= 0) return null;
+
+  // Total affiché = même calcul que le web (prix de gros − coupon).
+  const baseTotal = cart.reduce(
+    (sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1),
+    0,
+  );
+  const discount = promoApplied
+    ? cart
+        .filter((item) => item.product.storeId === promoApplied.store_id)
+        .reduce(
+          (sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1),
+          0,
+        ) *
+      (promoApplied.discount_pct / 100)
+    : 0;
+  const cartTotal = Math.max(0, baseTotal - discount);
 
   const handlePress = () => {
     onPress?.();

@@ -124,3 +124,13 @@ export interface ToastNotification {
   type: NotificationType;
   title?: string;
 }
+
+/** Code promo — mêmes colonnes que la table `coupons` lue par le web. */
+export interface Coupon {
+  id?: string;
+  code: string;
+  discount_pct: number;
+  active: boolean;
+  store_id: string;
+  created_at?: string;
+}

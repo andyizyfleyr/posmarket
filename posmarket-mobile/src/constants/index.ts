@@ -42,6 +42,18 @@ export function verticalOfProduct(product: {
   return verticalOfCategory(product.mainCategory || product.category || '');
 }
 
+/**
+ * Libellés dépendant de la verticale (copie web) : un resto parle de
+ * « commande », un shop de « panier ».
+ */
+export function cartNoun(vertical: 'shopping' | 'food'): string {
+  return vertical === 'food' ? 'Commande' : 'Panier';
+}
+
+export function cartNounLower(vertical: 'shopping' | 'food'): string {
+  return vertical === 'food' ? 'commande' : 'panier';
+}
+
 /** Catégories par icône pour affichage dans les filtres mobile. */
 export const CATEGORY_ICONS: Record<string, string> = {
   'Cosmétique & Emballage': '💄',
