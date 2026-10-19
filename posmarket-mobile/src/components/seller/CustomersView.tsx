@@ -26,13 +26,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ChevronRight,
-  Edit,
   Loader2,
   Phone,
   Plus,
   Search,
-  Star,
   Trash2,
   Users,
   X,
@@ -503,6 +500,14 @@ return (
                 </Text>
               </View>
 
+              {/* En-tête de tableau : Nom | Dépensé | N Cmd | Action */}
+              <View style={styles.tableHeader}>
+                <Text style={styles.tableHeadNom}>Nom</Text>
+                <Text style={[styles.tableHeadCol, styles.tableHeadRight]}>Dépensé</Text>
+                <Text style={styles.tableHeadCmd}>N Cmd</Text>
+                <Text style={styles.tableHeadAction}>Action</Text>
+              </View>
+
               {filteredCustomers.map((customer, index) => {
                 return (
                   <Pressable
@@ -518,23 +523,27 @@ return (
                       <Text style={styles.customerName} numberOfLines={1}>
                         {customer.name}
                       </Text>
-                      <View style={styles.customerPriceRow}>
-                        <Text style={styles.customerTotal}>
-                          {formatCurrency(Number(customer.totalSpent) || 0)}
-                        </Text>
-                        <Text style={styles.customerTotalLabel}>dépensé</Text>
-                      </View>
-                      <View style={styles.customerMetaRow}>
-                        <Text style={styles.customerMeta} numberOfLines={1}>
-                          {formatPhoneNumber(customer.phone || '')}
-                        </Text>
-                        <View style={styles.metaDot} />
-                        <Text style={styles.customerMeta}>
-                          {customer.ordersCount || 0} commande
-                          {(customer.ordersCount || 0) > 1 ? 's' : ''}
-                        </Text>
-                      </View>
+                      <Text style={styles.customerMeta} numberOfLines={1}>
+                        {formatPhoneNumber(customer.phone || '')}
+                      </Text>
                     </View>
+
+                    <Text
+                      style={styles.customerTotal}
+                      numberOfLines={1}
+                      accessibilityLabel={`${customer.name} a dépensé ${formatCurrency(
+                        Number(customer.totalSpent) || 0,
+                      )}`}
+                    >
+                      {formatCurrency(Number(customer.totalSpent) || 0)}
+                    </Text>
+
+                    <Text
+                      style={styles.customerOrders}
+                      accessibilityLabel={`${customer.ordersCount || 0} commandes`}
+                    >
+                      {customer.ordersCount || 0}
+                    </Text>
 
                     <View style={styles.customerActions}>
                       {whatsappLink(customer.phone) ? (
@@ -555,7 +564,6 @@ return (
                           <Phone size={13} color="#111827" />
                         </Pressable>
                       ) : null}
-                      <ChevronRight size={13} color="#D1D5DB" />
                     </View>
                   </Pressable>
                 );
@@ -871,44 +879,6 @@ const styles = StyleSheet.create({
     color: COLORS.brand,
   },
 
-  /* Barre de sélection */
-  selectionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  selectionCount: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  selectionClear: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectionText: { color: '#6B7280', fontSize: 10, fontWeight: '600' },
-  selectionBtnDanger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  selectionBtnDangerText: { fontSize: 10, fontWeight: '700', color: '#DC2626' },
-
   /* Carte liste */
   card: {
     flex: 1,
@@ -941,51 +911,78 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F9FAFB',
   },
   listHeaderText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
-  selectAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  selectAllText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+
+  /* En-tête de tableau : Nom | Dépensé | N Cmd | Action */
+  tableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#FCFCFD',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  tableHeadNom: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  tableHeadCol: {
+    width: 88,
+    flexShrink: 0,
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  tableHeadRight: {
+    textAlign: 'right',
+  },
+  tableHeadCmd: {
+    width: 34,
+    flexShrink: 0,
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    textAlign: 'right',
+  },
+  tableHeadAction: {
+    width: 62,
+    flexShrink: 0,
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    textAlign: 'center',
+  },
 
   /* Lignes clients */
   customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     padding: 10,
   },
   customerRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#F9FAFB',
   },
-  customerRowSelected: {
-    backgroundColor: 'rgba(255,247,237,0.3)',
-  },
   customerRowPressed: {
     backgroundColor: '#F9FAFB',
-  },
-  checkboxHit: { width: 26, alignItems: 'center' },
-  customerAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  customerAvatarText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#111827',
   },
   customerBody: {
     flex: 1,
     minWidth: 0,
     gap: 3,
-  },
-  customerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
   customerName: {
     fontSize: 11,
@@ -993,52 +990,28 @@ const styles = StyleSheet.create({
     color: '#111827',
     flexShrink: 1,
   },
-  inactiveBadge: {
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  inactiveBadgeText: {
-    fontSize: 7,
-    fontWeight: '700',
-    color: '#DC2626',
-    textTransform: 'uppercase',
-  },
-  customerMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
   customerMeta: {
     fontSize: 9,
     fontWeight: '600',
     color: '#9CA3AF',
     flexShrink: 1,
   },
-  metaDot: {
-    width: 2,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#D1D5DB',
-    marginHorizontal: 2,
-  },
-  customerPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
   customerTotal: {
-    fontSize: 12,
+    width: 88,
+    flexShrink: 0,
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.brand,
+    textAlign: 'right',
   },
-  customerTotalLabel: {
-    fontSize: 8,
-    fontWeight: '600',
-    color: '#9CA3AF',
+  customerOrders: {
+    width: 34,
+    flexShrink: 0,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'right',
   },
-  customerRightText: { alignItems: 'flex-end' },
   customerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1061,15 +1034,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FFF7ED',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
   /* Squelettes */
   skeletonRow: {
     flexDirection: 'row',
