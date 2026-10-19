@@ -574,17 +574,19 @@ return (
                       />
                     </Pressable>
 
-                    <View style={styles.orderIconBox}>
-                      <ShoppingBag size={14} color={COLORS.brand} />
+                    <View
+                      style={[
+                        styles.orderIconBox,
+                        getStatusColor(order.status || 'READY'),
+                      ]}
+                    >
+                      <ShoppingBag size={15} color="#FFFFFF" />
                     </View>
 
                     <View style={styles.orderBody}>
                       <View style={styles.orderBodyLeft}>
                         <View style={styles.orderIdRow}>
                           <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-                          <Text style={styles.orderCustomer} numberOfLines={1}>
-                            {order.customer?.name || 'Passage'}
-                          </Text>
                           <View
                             style={[
                               styles.orderTypeBadge,
@@ -601,31 +603,6 @@ return (
                               {order.type === 'PICKUP' ? 'WEB' : 'POS'}
                             </Text>
                           </View>
-                        </View>
-                        <View style={styles.orderMetaRow}>
-                          <View style={styles.orderMetaItem}>
-                            <Calendar size={10} color={COLORS.brand} />
-                            <Text style={styles.orderMetaText}>
-                              {new Date(order.date).toLocaleDateString('fr-FR')}
-                            </Text>
-                          </View>
-                          <View style={styles.orderMetaItem}>
-                            <Clock size={10} color="#9CA3AF" />
-                            <Text style={styles.orderMetaText}>
-                              {new Date(order.date).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-
-                      <View style={styles.orderRight}>
-                        <View style={styles.orderRightText}>
-                          <Text style={styles.orderTotal}>
-                            {formatCurrency(order.total || 0)}
-                          </Text>
                           <View
                             style={[styles.statusPill, getStatusColor(order.status || 'READY')]}
                           >
@@ -634,6 +611,32 @@ return (
                             </Text>
                           </View>
                         </View>
+                        <Text style={styles.orderCustomer} numberOfLines={1}>
+                          {order.customer?.name || 'Client de passage'}
+                        </Text>
+                        <View style={styles.orderMetaRow}>
+                          <Calendar size={10} color={COLORS.brand} />
+                          <Text style={styles.orderMetaText}>
+                            {new Date(order.date).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}
+                          </Text>
+                          <View style={styles.metaDot} />
+                          <Clock size={10} color="#9CA3AF" />
+                          <Text style={styles.orderMetaText}>
+                            {new Date(order.date).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.orderRight}>
+                        <Text style={styles.orderTotal}>
+                          {formatCurrency(order.total || 0)}
+                        </Text>
                         <ChevronRight size={14} color="#D1D5DB" />
                       </View>
                     </View>
@@ -1153,10 +1156,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   orderIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FFF7ED',
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1171,7 +1173,7 @@ const styles = StyleSheet.create({
   orderBodyLeft: {
     flexShrink: 1,
     minWidth: 0,
-    gap: 6,
+    gap: 3,
   },
   orderIdRow: {
     flexDirection: 'row',
@@ -1187,7 +1189,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
     color: '#6B7280',
-    maxWidth: 120,
+    maxWidth: 180,
   },
   orderTypeBadge: {
     paddingHorizontal: 6,
@@ -1215,7 +1217,14 @@ const styles = StyleSheet.create({
   orderMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 4,
+  },
+  metaDot: {
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#D1D5DB',
+    marginHorizontal: 2,
   },
   orderMetaItem: {
     flexDirection: 'row',
@@ -1237,13 +1246,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   orderTotal: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.brand,
   },
   statusPill: {
-    marginTop: 2,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
   },
@@ -1723,7 +1731,7 @@ const styles = StyleSheet.create({
   statusTabs: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12 },
   statusTab: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#F3F4F6',
