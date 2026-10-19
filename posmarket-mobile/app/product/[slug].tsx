@@ -908,9 +908,8 @@ export default function ProductDetailScreen() {
           style={[styles.card, styles.cardSpacing]}
           onLayout={(e) => setReviewsY(e.nativeEvent.layout.y)}
         >
-          <View style={styles.cardHeaderRow}>
-            <View style={[styles.cardTick, styles.cardTickAmber]} />
-            <Text style={styles.cardHeaderText}>
+          <View style={[styles.cardHeaderRow, styles.cardHeaderRowAvis]}>
+            <Text style={[styles.cardHeaderText, styles.cardHeaderTextSm]}>
               Avis {isFood ? 'sur le repas' : 'sur le produit'}
             </Text>
           </View>
@@ -985,12 +984,14 @@ export default function ProductDetailScreen() {
         {relatedProducts.length > 0 && (
           <View style={styles.relatedSection}>
             <View style={styles.relatedHeader}>
-              <View style={styles.cardTick} />
-              <Text style={styles.cardHeaderText}>Dans la même boutique</Text>
+              <Text style={[styles.cardHeaderText, styles.cardHeaderTextSm]}>
+                Dans la même boutique
+              </Text>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              style={styles.relatedScrollView}
               contentContainerStyle={styles.relatedScroll}
             >
               {relatedProducts.map((p) => (
@@ -1026,7 +1027,7 @@ export default function ProductDetailScreen() {
             onPress={goToCart}
             accessibilityLabel={`Voir le panier, ${cartCount} article(s)`}
           >
-            <ShoppingCart size={15} color="#ffffff" />
+            <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
             <Text style={styles.cartWideText}>Voir mon panier</Text>
             <View style={styles.cartWideBadge}>
               <Text style={styles.cartWideBadgeText}>
@@ -1041,7 +1042,7 @@ export default function ProductDetailScreen() {
               onPress={handlePrimaryAdd}
               disabled={isBuyDisabled}
             >
-              <ShoppingCart size={14} color="#ffffff" />
+              <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
               <Text style={styles.primaryBtnText} numberOfLines={1}>
                 {primaryActionLabel}
               </Text>
@@ -1052,7 +1053,7 @@ export default function ProductDetailScreen() {
                 onPress={goToCart}
                 accessibilityLabel={`Voir le panier, ${cartCount} article(s)`}
               >
-                <ShoppingCart size={16} color="#ffffff" />
+                <ShoppingCart size={18} color="#ffffff" strokeWidth={2.5} />
                 <View style={styles.cartCircleBadge}>
                   <Text style={styles.cartCircleBadgeText}>
                     {cartCount > 99 ? '99+' : cartCount}
@@ -1294,7 +1295,7 @@ export default function ProductDetailScreen() {
                 onPress={handleSheetAdd}
                 disabled={isBuyDisabled}
               >
-                <ShoppingCart size={15} color="#ffffff" />
+                <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
                 <Text style={styles.primaryBtnText} numberOfLines={1}>
                   {isOutOfStock || isSelectedOutOfStock
                     ? 'Rupture'
@@ -1322,7 +1323,7 @@ export default function ProductDetailScreen() {
           />
           <View style={[styles.sheet, styles.reviewsSheet]}>
             <View style={styles.reviewsSheetHeader}>
-              <View style={styles.sheetHandle} />
+              <View style={[styles.sheetHandle, styles.reviewsSheetHandle]} />
               <View style={styles.reviewsSheetHeaderRow}>
                 <View style={styles.reviewsSheetTitleRow}>
                   <View style={styles.reviewsSheetIcon}>
@@ -1396,7 +1397,7 @@ const styles = StyleSheet.create({
   topBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingTop: 12,
     gap: 8,
   },
@@ -1436,7 +1437,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   scrollContent: {
-    paddingBottom: 140,
+    paddingBottom: 160,
   },
   // ── Galerie ──
   gallery: {
@@ -1538,11 +1539,11 @@ const styles = StyleSheet.create({
   // ── Cartes ──
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#f3f4f6',
-    padding: 12,
-    marginHorizontal: 10,
+    padding: 16,
+    marginHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
@@ -1558,14 +1559,14 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
+  cardHeaderRowAvis: {
+    marginBottom: 16,
+  },
   cardTick: {
     width: 4,
     height: 14,
     borderRadius: 2,
     backgroundColor: BRAND,
-  },
-  cardTickAmber: {
-    backgroundColor: '#fbbf24',
   },
   cardHeaderText: {
     fontSize: 11,
@@ -1573,6 +1574,11 @@ const styles = StyleSheet.create({
     color: '#111827',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  cardHeaderTextSm: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.2,
   },
   // ── Vendeur ──
   sellerRow: {
@@ -2134,7 +2140,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   seeAllText: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '700',
     color: '#111827',
     textTransform: 'uppercase',
@@ -2147,12 +2153,16 @@ const styles = StyleSheet.create({
   relatedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 13,
-    marginBottom: 12,
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  relatedScrollView: {
+    marginRight: -16,
   },
   relatedScroll: {
-    paddingHorizontal: 12,
+    paddingLeft: 16,
+    paddingRight: 16,
     gap: 12,
   },
   relatedCardWrap: {
@@ -2204,14 +2214,14 @@ const styles = StyleSheet.create({
   primaryBtn: {
     flex: 1,
     minWidth: 0,
-    height: 44,
+    height: 48,
     borderRadius: 999,
     backgroundColor: BRAND,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
+    gap: 6,
+    paddingHorizontal: 16,
   },
   primaryBtnText: {
     fontSize: 13,
@@ -2224,14 +2234,14 @@ const styles = StyleSheet.create({
   },
   cartWideBtn: {
     flex: 1,
-    height: 44,
+    height: 48,
     borderRadius: 999,
     backgroundColor: '#111827',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
+    gap: 6,
+    paddingHorizontal: 16,
   },
   cartWideText: {
     fontSize: 13,
@@ -2253,9 +2263,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cartCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2305,16 +2315,16 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   sheetHandle: {
-    width: 36,
+    width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#d1d5db',
+    backgroundColor: '#e5e7eb',
   },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
   },
@@ -2335,8 +2345,8 @@ const styles = StyleSheet.create({
     maxHeight: '100%',
   },
   sheetScrollContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   selectionBox: {
     flexDirection: 'row',
@@ -2552,7 +2562,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 12,
   },
   sheetFooterRow: {
@@ -2611,12 +2621,16 @@ const styles = StyleSheet.create({
   },
   // ── Feuille avis ──
   reviewsSheetHeader: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
     gap: 12,
+  },
+  reviewsSheetHandle: {
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   reviewsSheetHeaderRow: {
     flexDirection: 'row',
@@ -2650,7 +2664,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   reviewsSheetList: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 24,
   },
