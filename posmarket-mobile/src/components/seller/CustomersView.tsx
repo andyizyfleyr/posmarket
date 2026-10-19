@@ -1073,27 +1073,26 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F9FAFB',
   },
 
-  /* Cellules de la grille (communes en-tête / lignes) */
+  /* Cellules de la grille (communes en-tête / lignes).
+   ⚠ flex: 0 tue le flexBasis 0% interne de Paper (Cell/Title) qui sinon
+   écrase la largeur fixe GRID.* et détruit l'alignement de la grille. */
   cellName: {
     flex: 1,
     minWidth: 0,
   },
   cellSpent: {
+    flex: 0,
     width: GRID.spent,
-    flexGrow: 0,
-    flexShrink: 0,
     justifyContent: 'flex-end',
   },
   cellCmd: {
+    flex: 0,
     width: GRID.cmd,
-    flexGrow: 0,
-    flexShrink: 0,
     justifyContent: 'flex-end',
   },
   cellAction: {
+    flex: 0,
     width: GRID.action,
-    flexGrow: 0,
-    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 5,
