@@ -369,7 +369,7 @@ export default function CheckoutScreen() {
               style={styles.modalBtn}
               onPress={() => {
                 setSuccessOrderIds(null);
-                router.replace('/(tabs)/account');
+                router.replace('/account' as never);
               }}
             >
               <Text style={styles.modalBtnText}>Voir mes commandes</Text>

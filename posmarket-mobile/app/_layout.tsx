@@ -27,7 +27,21 @@ export default function RootLayout() {
         <StatusBar style="dark" />
         <OfflineBanner />
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="index" />
+          <Stack.Screen
+            name="cart"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="account"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
           <Stack.Screen
             name="product/[slug]"
             options={{

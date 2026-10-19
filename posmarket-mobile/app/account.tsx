@@ -4,7 +4,7 @@
  * cache local avec la clé `buyer_data_cache_v2` et modales de confirmation.
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,27 +13,23 @@ import {
   StyleSheet,
   ScrollView,
   Modal,
-  FlatList,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   User,
   Package,
   MapPin,
-  Clock,
   Plus,
   Trash2,
-  CheckCircle,
   AlertCircle,
   X,
-  Phone,
   Home,
   Check,
-  ChevronRight,
-  LogOut,
+  ArrowLeft,
 } from 'lucide-react-native';
 import {
   fetchBuyerOrders,
@@ -79,6 +75,11 @@ interface Order {
 }
 
 export default function AccountScreen() {
+  const router = useRouter();
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/' as never);
+  }, [router]);
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses'>('orders');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerPhone, setBuyerPhone] = useState<string>('');
@@ -220,9 +221,19 @@ export default function AccountScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Mon Compte</Text>
-          <Text style={styles.headerSubtitle}>Espace Acheteur PosMarket</Text>
+        <View style={styles.headerLeft}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={goBack}
+            hitSlop={8}
+            accessibilityLabel="Retour"
+          >
+            <ArrowLeft size={22} color="#111827" />
+          </Pressable>
+          <View>
+            <Text style={styles.headerTitle}>Mon Compte</Text>
+            <Text style={styles.headerSubtitle}>Espace Acheteur PosMarket</Text>
+          </View>
         </View>
       </View>
 
@@ -564,7 +575,7 @@ export default function AccountScreen() {
             <AlertCircle size={44} color="#dc2626" />
             <Text style={styles.confirmTitle}>Supprimer cette adresse ?</Text>
             <Text style={styles.confirmSub}>
-              Cette action est irréversible. L'adresse sera définitivement retirée de votre compte.
+              {"Cette action est irréversible. L'adresse sera définitivement retirée de votre compte."}
             </Text>
             <View style={styles.confirmActions}>
               <Pressable
@@ -595,6 +606,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,

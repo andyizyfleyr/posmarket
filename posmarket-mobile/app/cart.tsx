@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react-native';
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingCart } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
 import { resolveImageUrl } from '@/api/client';
@@ -25,6 +25,11 @@ export default function CartScreen() {
   const router = useRouter();
   const { cart, updateQuantity, removeFromCart, clearCart, cartTotal } =
     useCart();
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/' as never);
+  }, [router]);
 
   const handleRemove = useCallback(
     (item: CartItem) => {
@@ -129,7 +134,17 @@ export default function CartScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Panier</Text>
+          <View style={styles.headerLeft}>
+            <Pressable
+              style={styles.backBtn}
+              onPress={goBack}
+              hitSlop={8}
+              accessibilityLabel="Retour"
+            >
+              <ArrowLeft size={22} color="#111827" />
+            </Pressable>
+            <Text style={styles.headerTitle}>Panier</Text>
+          </View>
         </View>
         <View style={styles.emptyContainer}>
           <ShoppingCart size={48} color="#D1D5DB" />
@@ -139,7 +154,7 @@ export default function CartScreen() {
           </Text>
           <Pressable
             style={styles.browseButton}
-            onPress={() => router.push('/(tabs)' as never)}
+            onPress={() => router.push('/' as never)}
           >
             <Text style={styles.browseButtonText}>Explorer</Text>
           </Pressable>
@@ -151,11 +166,21 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Panier</Text>
-          <Text style={styles.headerSubtitle}>
-            {cart.length} article{cart.length > 1 ? 's' : ''}
-          </Text>
+        <View style={styles.headerLeft}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={goBack}
+            hitSlop={8}
+            accessibilityLabel="Retour"
+          >
+            <ArrowLeft size={22} color="#111827" />
+          </Pressable>
+          <View>
+            <Text style={styles.headerTitle}>Panier</Text>
+            <Text style={styles.headerSubtitle}>
+              {cart.length} article{cart.length > 1 ? 's' : ''}
+            </Text>
+          </View>
         </View>
         <Pressable onPress={handleClearCart}>
           <Text style={styles.clearText}>Vider</Text>
@@ -207,6 +232,22 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 1,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 22,

@@ -29,13 +29,21 @@
 - Pas de barre panier fixe sur la home. Pas de toast d'ajout global.
 - Onglet **Catégories = page inventée** (liste avec emojis, tap = `router.push('/(tabs)')` → ne filtre même pas).
 
-### À faire / arbitrer
-1. Header home = logo + **Panier (badge) + Compte** (boutons 44×44), supprimer le badge boutiques.
-2. Recherche « Je cherche... » compacte, repliable au scroll.
-3. **Décision** : garder les 4 onglets bas, ou retirer la barre d'onglets pour coller au web (header panier/compte + barre « Voir mon panier ») ?
-4. **Décision** : onglet Catégories (n'existe pas côté web) — supprimer, ou le transformer en liste de catégories cliquable qui filtre la home ?
-5. Ajouter la **barre « Voir mon panier • total »** sur la home (et espacer le footer en conséquence).
-6. Ajouter le **toast d'ajout au panier** (style web) partagé.
+### Décisions (validées avec l'utilisateur)
+- **Barre d'onglets supprimée** : navigation 100 % web mobile (header panier/compte, retours dans les pages, barre « Voir mon panier »). Routes : `app/index.tsx`, `app/cart.tsx`, `app/account.tsx`.
+- **Onglet Catégories supprimé** (n'existe pas sur le web mobile).
+
+### Fait ✅
+1. **Header home** = logo + **Panier (badge)** + **Compte** (boutons 44×44) ; badge boutiques supprimé.
+2. **Chips catégories supprimées** ; « Voir tout » ouvre la **feuille bas d'écran** avec tous les produits de la catégorie.
+3. **Barre « Voir mon panier • total »** sur la home (bandeau blanc + pilule orange 48 px + badge sombre).
+4. Boutons **retour** ajoutés sur Panier et Compte (écrans poussés).
+5. Recherche compacte « Je cherche... » (38 px, radius 12, texte 11).
+
+### À faire
+1. Recherche : **overlay plein écran** (§6) + repli au scroll.
+2. **Toast d'ajout au panier** (style web) partagé.
+3. Vérifier la barre panier au clavier / safe-area basse.
 
 ---
 
@@ -178,7 +186,7 @@ Refaire la mise en page (identité + stats, tuiles Commandes/Avis/Profil, titre 
 
 ### Correctifs
 - Créer l'**overlay de recherche** (écran ou modale) conforme : récentes (AsyncStorage), populaires, suggestions, résultats.
-- Catégories : voir §0 (décision onglet) ; l'en-tête catégorie filtrée existe déjà (conforme).
+- Catégories : **onglet supprimé** ✅ (décision §0) ; l'accueil garde les sections + « Voir tout » en feuille ✅ ; garder la vue catégorie (en-tête + grille) pour le lien catégorie de la fiche produit.
 
 ---
 

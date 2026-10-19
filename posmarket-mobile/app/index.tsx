@@ -1,9 +1,13 @@
 /**
  * Écran Accueil — fidèle à la home web (StorefrontView) :
- * header (logo + recherche + catégories), hero 3 affiches cliquables,
- * boutiques partenaires, produits groupés par catégorie (6 par section +
- * « Voir tout »), footer. Recherche → boutiques trouvées + produits ;
- * filtre catégorie → grille + en-tête avec retour.
+ * header (logo + panier + compte + recherche « Je cherche... »), hero
+ * 3 affiches cliquables, boutiques partenaires, produits groupés par
+ * catégorie (6 par section + « Voir tout » → feuille bas d'écran), footer,
+ * barre panier fixe « Voir mon panier ». Recherche → boutiques trouvées +
+ * produits.
+ *
+ * Navigation 100 % web mobile : plus d'onglets, le panier et le compte
+ * s'ouvrent depuis les boutons du header (comme la vitrine web).
  */
 
 import React, {
@@ -22,11 +26,14 @@ import {
   StyleSheet,
   RefreshControl,
   ScrollView,
-  Platform,
+  Modal,
   useWindowDimensions,
   Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -41,6 +48,7 @@ import {
   ShieldCheck,
   MapPin,
   ShoppingCart,
+  User,
 } from 'lucide-react-native';
 import {
   fetchCatalog,
@@ -49,13 +57,11 @@ import {
 } from '@/api/client';
 import { ProductCard } from '@/components/ProductCard';
 import { Loader } from '@/components/Loader';
-import {
-  MAIN_CATEGORIES,
-  CATEGORY_ICONS,
-  verticalOfProduct,
-} from '@/constants';
-import { generateProductSlug } from '@/utils';
+import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
+import { formatCurrency, generateProductSlug } from '@/utils';
+import { useCart } from '@/context/CartContext';
 import { COLORS } from '@/theme';
+import logoTrimmed from '../assets/logo-trimmed.png';
 import type { StorefrontProduct, StoreData } from '@/types';
 
 const SECTION_PREVIEW_COUNT = 6;
@@ -356,7 +362,7 @@ function HomeFooter() {
   return (
     <View style={styles.footer}>
       <Image
-        source={require('../../assets/logo-trimmed.png')}
+        source={logoTrimmed}
         style={styles.footerLogo}
         contentFit="contain"
       />
@@ -394,9 +400,13 @@ function HomeFooter() {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { cartCount, cartTotal } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
+  // Feuille « Voir tout » : catégorie dépliée avec tous ses produits.
+  const [sheetCategory, setSheetCategory] = useState<string | null>(null);
 
   // ── Catalog query ──
   const {
@@ -475,6 +485,12 @@ export default function HomeScreen() {
         };
       });
   }, [allProducts]);
+
+  // ── Catégorie dépliée depuis « Voir tout » (feuille bas d'écran) ──
+  const sheetSection = useMemo(
+    () => sections.find((s) => s.category === sheetCategory) ?? null,
+    [sections, sheetCategory],
+  );
 
   // ── Boutiques : partenaires (max 6) + résultats de recherche ──
   // Compteur identique au web : produits en ligne ET avec image.
@@ -604,7 +620,6 @@ export default function HomeScreen() {
     items.push({ key: 'footer', type: 'footer' });
     return items;
   }, [
-    allProducts,
     sections,
     partnerStores,
     searchMatchingStores,
@@ -637,21 +652,11 @@ export default function HomeScreen() {
     [router],
   );
 
-  // ── Catégories avec compteurs (chips) ──
-  const categoriesWithCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allProducts.forEach((p) => {
-      const cat = p.mainCategory || p.category || 'Divers';
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-    return MAIN_CATEGORIES.filter((cat) => (counts[cat] || 0) > 0).map(
-      (cat) => ({
-        name: cat,
-        count: counts[cat] || 0,
-        icon: CATEGORY_ICONS[cat] || '📦',
-      }),
-    );
-  }, [allProducts]);
+  // « Voir tout » : ouvre la feuille de la catégorie (comportement web
+  // mobile) au lieu de filtrer la page.
+  const openCategorySheet = useCallback((category: string) => {
+    setSheetCategory(category);
+  }, []);
 
   // ── Rendu des éléments ──
   const renderItem = useCallback(
@@ -668,7 +673,7 @@ export default function HomeScreen() {
             <SectionHeader
               category={item.category}
               vertical={item.vertical}
-              onSeeAll={setSelectedCategory}
+              onSeeAll={openCategorySheet}
             />
           );
 
@@ -763,7 +768,7 @@ export default function HomeScreen() {
           return null;
       }
     },
-    [partnerStores, openStore, navigateToProduct],
+    [partnerStores, openStore, navigateToProduct, openCategorySheet],
   );
 
   if (isLoading && allProducts.length === 0) {
@@ -772,87 +777,78 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {/* Header — même structure que le web mobile : logo, panier, compte,
+          puis la barre de recherche « Je cherche... » */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Image
-            source={require('../../assets/logo-trimmed.png')}
+            source={logoTrimmed}
             style={styles.logo}
             contentFit="contain"
           />
-          <View style={styles.headerBadge}>
-            <Store size={16} color={COLORS.brand} />
-            <Text style={styles.headerBadgeText}>
-              {catalogData?.stores?.length || 0}
-            </Text>
+          <View style={styles.headerActions}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.headerCartBtn,
+                pressed && styles.headerBtnPressed,
+              ]}
+              onPress={() => router.push('/cart' as never)}
+              accessibilityLabel={
+                cartCount > 0 ? `Panier (${cartCount} articles)` : 'Panier'
+              }
+            >
+              <ShoppingCart size={20} strokeWidth={2.5} color="#111827" />
+              {cartCount > 0 && (
+                <View style={styles.headerCartBadge}>
+                  <Text style={styles.headerCartBadgeText}>
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.headerProfileBtn,
+                pressed && styles.headerBtnPressed,
+              ]}
+              onPress={() => router.push('/account' as never)}
+              accessibilityLabel="Mon compte"
+            >
+              <View style={styles.headerProfileAvatar}>
+                <User size={18} strokeWidth={3} color={COLORS.textFaint} />
+              </View>
+            </Pressable>
           </View>
         </View>
 
         {/* Search bar */}
         <View style={styles.searchContainer}>
-          <Search size={18} color={COLORS.textMuted} />
+          <Search
+            size={16}
+            strokeWidth={2.5}
+            color="#4B5563"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
-            placeholder="Chercher un produit, une boutique..."
-            placeholderTextColor={COLORS.textFaint}
+            placeholder="Je cherche..."
+            placeholderTextColor="#9CA3AF"
             value={searchTerm}
             onChangeText={setSearchTerm}
             returnKeyType="search"
             autoCorrect={false}
           />
           {searchTerm.length > 0 && (
-            <Pressable onPress={() => setSearchTerm('')} hitSlop={8}>
-              <X size={18} color={COLORS.textFaint} />
+            <Pressable
+              onPress={() => setSearchTerm('')}
+              hitSlop={8}
+              style={styles.searchClear}
+            >
+              <X size={16} color={COLORS.textFaint} />
             </Pressable>
           )}
         </View>
       </View>
-
-      {/* Category filter chips */}
-      {debouncedSearch.length < 2 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          <Pressable
-            style={[
-              styles.categoryChip,
-              selectedCategory === 'all' && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory('all')}
-          >
-            <Text
-              style={[
-                styles.categoryChipText,
-                selectedCategory === 'all' && styles.categoryChipTextActive,
-              ]}
-            >
-              Tout ({allProducts.length})
-            </Text>
-          </Pressable>
-          {categoriesWithCounts.map((cat) => (
-            <Pressable
-              key={cat.name}
-              style={[
-                styles.categoryChip,
-                selectedCategory === cat.name && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(cat.name)}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  selectedCategory === cat.name &&
-                    styles.categoryChipTextActive,
-                ]}
-              >
-                {cat.icon} {cat.name.split(' ')[0]} ({cat.count})
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
 
       {/* Search indicator */}
       {isSearching && debouncedSearch.length >= 2 && (
@@ -866,7 +862,10 @@ export default function HomeScreen() {
         data={listItems}
         renderItem={renderItem}
         keyExtractor={(item) => item.key}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          cartCount > 0 && styles.listContentWithCartBar,
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         removeClippedSubviews={false}
@@ -882,6 +881,92 @@ export default function HomeScreen() {
           />
         }
       />
+
+      {/* Barre panier fixe — identique au web (visible dès que le panier
+          contient un article) : bandeau blanc + pilule orange 48 px. */}
+      {cartCount > 0 && (
+        <View style={[styles.cartBar, { paddingBottom: insets.bottom + 10 }]}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.cartBarButton,
+              pressed && styles.cartBarButtonPressed,
+            ]}
+            onPress={() => router.push('/cart' as never)}
+          >
+            <View style={styles.cartBarIconWrap}>
+              <ShoppingCart size={15} strokeWidth={2.5} color="#FFF" />
+              <View style={styles.cartBarBadge}>
+                <Text style={styles.cartBarBadgeText}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.cartBarText} numberOfLines={1}>
+              Voir mon panier <Text style={styles.cartBarBullet}>•</Text>{' '}
+              {formatCurrency(cartTotal)}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Feuille « Voir tout » — tous les produits de la catégorie
+          (même comportement que la BottomSheet du web mobile). */}
+      <Modal
+        visible={sheetCategory !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSheetCategory(null)}
+      >
+        <View style={styles.sheetOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSheetCategory(null)}
+          />
+          {sheetSection && (
+            <View
+              style={[
+                styles.sheetContainer,
+                { paddingBottom: Math.max(insets.bottom, 12) + 12 },
+              ]}
+            >
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>{sheetSection.category}</Text>
+              <Text style={styles.sheetSubtitle}>
+                {sheetSection.products.length} produits
+              </Text>
+              <Pressable
+                style={styles.sheetClose}
+                onPress={() => setSheetCategory(null)}
+                hitSlop={8}
+                accessibilityLabel="Fermer"
+              >
+                <X size={16} color={COLORS.textMuted} />
+              </Pressable>
+              <FlatList
+                data={sheetSection.products}
+                keyExtractor={(p) => `${p.storeId}-${p.id}`}
+                numColumns={2}
+                columnWrapperStyle={styles.sheetRow}
+                contentContainerStyle={styles.sheetList}
+                style={styles.sheetListView}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={6}
+                renderItem={({ item }) => (
+                  <View style={styles.sheetCell}>
+                    <ProductCard
+                      product={item}
+                      onPress={(p) => {
+                        setSheetCategory(null);
+                        navigateToProduct(p);
+                      }}
+                    />
+                  </View>
+                )}
+              />
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -911,69 +996,209 @@ const styles = StyleSheet.create({
     height: 30,
     width: 132,
   },
-  headerBadge: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.brandSoft,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    gap: 8,
   },
-  headerBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.brand,
+  headerCartBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerProfileBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerProfileAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBtnPressed: {
+    opacity: 0.85,
+  },
+  headerCartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    backgroundColor: COLORS.brand,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCartBadgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#EEF0F2',
-    paddingHorizontal: 12,
-    height: 46,
-    gap: 8,
+    borderColor: COLORS.line,
+    height: 38,
+  },
+  searchIcon: {
+    marginLeft: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    color: COLORS.text,
-    ...Platform.select({
-      android: { paddingVertical: 0 },
-    }),
-  },
-  categoriesContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 6,
-  },
-  categoryChip: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EEF0F2',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  categoryChipActive: {
-    backgroundColor: COLORS.brand,
-    borderColor: COLORS.brand,
-  },
-  categoryChipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#1F2937',
+    paddingHorizontal: 10,
+    paddingVertical: 0,
   },
-  categoryChipTextActive: {
-    color: '#FFF',
+  searchClear: {
+    paddingRight: 12,
   },
   searchIndicator: {
     paddingVertical: 8,
   },
   listContent: {
     paddingBottom: 24,
+  },
+  listContentWithCartBar: {
+    paddingBottom: 104,
+  },
+  // Barre panier fixe (bandeau blanc + pilule orange 48 px)
+  cartBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+  },
+  cartBarButton: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.brand,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+  },
+  cartBarButtonPressed: {
+    backgroundColor: '#E04E0F',
+  },
+  cartBarIconWrap: {
+    position: 'relative',
+  },
+  cartBarBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: '#111827',
+    borderWidth: 2,
+    borderColor: COLORS.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBarBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  cartBarText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  cartBarBullet: {
+    opacity: 0.4,
+  },
+  // Feuille « Voir tout » (bas d'écran)
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,47,52,0.6)',
+    justifyContent: 'flex-end',
+  },
+  sheetContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '88%',
+    paddingTop: 8,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+  },
+  sheetTitle: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+    textAlign: 'center',
+    paddingHorizontal: 56,
+  },
+  sheetSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+  sheetClose: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetListView: {
+    flexShrink: 1,
+  },
+  sheetList: {
+    paddingHorizontal: 4,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  sheetRow: {
+    paddingHorizontal: 4,
+  },
+  sheetCell: {
+    flex: 1,
   },
   // Hero
   heroWrap: {
@@ -1313,14 +1538,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   footerLogo: {
-    height: 26,
-    width: 114,
+    height: 32,
+    width: 141,
     marginBottom: 10,
   },
   footerTagline: {
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textMuted,
-    lineHeight: 19,
+    lineHeight: 20,
     marginBottom: 20,
   },
   footerHeading: {
