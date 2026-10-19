@@ -33,7 +33,6 @@ import {
   DollarSign,
   Eye,
   Flame,
-  Hand,
   Package,
   ShoppingBag,
   Zap,
@@ -370,14 +369,6 @@ export function SellerDashboardView({
               <Text style={styles.title} numberOfLines={1}>
                 Salut, {userName || 'Utilisateur'}
               </Text>
-              <Hand size={20} color="#111827" style={styles.handIcon} />
-              {store?.business_type ? (
-                <View style={styles.verticalBadge}>
-                  <Text style={styles.verticalBadgeText}>
-                    {store.business_type === 'food' ? 'Resto' : 'Shop'}
-                  </Text>
-                </View>
-              ) : null}
             </View>
 
             {!store?.business_type ? (
@@ -428,28 +419,30 @@ export function SellerDashboardView({
         <View style={styles.statsGrid}>
           <StatCard
             title={store?.business_type === 'food' ? 'Ventes Resto' : 'Ventes effectuées'}
-            value={formatCurrency(filteredMetrics.revenue.current)}
+            value={filteredMetrics.revenue.current}
+            isCurrency
             icon={<DollarSign size={14} color="#111827" />}
             trend={filteredMetrics.revenue.trend as 'up' | 'down'}
             trendValue={`${filteredMetrics.revenue.pct}%`}
           />
           <StatCard
             title={store?.business_type === 'food' ? 'Plats servis' : 'Commandes'}
-            value={String(filteredMetrics.orders.current)}
+            value={filteredMetrics.orders.current}
             icon={<ShoppingBag size={14} color="#111827" />}
             trend={filteredMetrics.orders.trend as 'up' | 'down'}
             trendValue={`${filteredMetrics.orders.pct}%`}
           />
           <StatCard
             title="Panier Moyen"
-            value={formatCurrency(filteredMetrics.basket.current)}
+            value={filteredMetrics.basket.current}
+            isCurrency
             icon={<Zap size={14} color="#111827" />}
             trend={filteredMetrics.basket.trend as 'up' | 'down'}
             trendValue={`${filteredMetrics.basket.pct}%`}
           />
           <StatCard
             title="Trafic Boutique"
-            value={formatNumber(filteredMetrics.traffic.current)}
+            value={filteredMetrics.traffic.current}
             icon={<Eye size={14} color="#111827" />}
           />
         </View>
@@ -630,13 +623,48 @@ export function SellerDashboardView({
 
 interface StatCardProps {
   title: string;
-  value: string;
+  /** Valeur numérique affichée (animée de 0 à la valeur). */
+  value: number;
+  /** Montants formatés en FCFA (sinon nombre simple). */
+  isCurrency?: boolean;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   trendValue?: string;
 }
 
-function StatCard({ title, value, icon, trend, trendValue }: StatCardProps) {
+/** Compteur animé des statistiques (montée de 0 à la valeur). */
+function AnimatedStatValue({ value, isCurrency }: { value: number; isCurrency?: boolean }) {
+  const [progress] = useState(() => new Animated.Value(0));
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const target = Number(value) || 0;
+    progress.setValue(0);
+    const listener = progress.addListener(({ value: p }) => {
+      setDisplay(p * target);
+    });
+    const animation = Animated.timing(progress, {
+      toValue: 1,
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+      // Le texte est recalculé à chaque frame : pas de driver natif possible.
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => {
+      progress.removeListener(listener);
+      animation.stop();
+    };
+  }, [progress, value]);
+
+  return (
+    <Text style={styles.statValue} numberOfLines={1}>
+      {isCurrency ? formatCurrency(display) : formatNumber(Math.round(display))}
+    </Text>
+  );
+}
+
+function StatCard({ title, value, isCurrency, icon, trend, trendValue }: StatCardProps) {
   return (
     <View style={styles.statCard}>
       <View style={styles.statTop}>
@@ -662,9 +690,7 @@ function StatCard({ title, value, icon, trend, trendValue }: StatCardProps) {
       <Text style={styles.statLabel} numberOfLines={1}>
         {title}
       </Text>
-      <Text style={styles.statValue} numberOfLines={1}>
-        {value}
-      </Text>
+      <AnimatedStatValue value={value} isCurrency={isCurrency} />
     </View>
   );
 }
@@ -1375,23 +1401,6 @@ const styles = StyleSheet.create({
     color: '#111827',
     letterSpacing: -0.3,
     flexShrink: 1,
-  },
-  handIcon: {
-    marginTop: -4,
-    marginLeft: -8,
-  },
-  verticalBadge: {
-    backgroundColor: '#FFEDD5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  verticalBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#C2410C',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
   },
   verticalScroll: {
     marginTop: 8,
