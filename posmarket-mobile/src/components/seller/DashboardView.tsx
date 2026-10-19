@@ -422,47 +422,38 @@ export function SellerDashboardView({
       </View>
       </Reveal>
 
-      {/* Statistiques */}
-      <View style={styles.statsGrid}>
-        <Reveal delay={60}>
+      {/* Statistiques (grille 2 colonnes : un seul bloc animé, la mise en page
+          interne reste celle du web) */}
+      <Reveal delay={60}>
+        <View style={styles.statsGrid}>
           <StatCard
             title={store?.business_type === 'food' ? 'Ventes Resto' : 'Ventes effectuées'}
             value={formatCurrency(filteredMetrics.revenue.current)}
-            icon={<DollarSign size={14} color="#FFFFFF" />}
+            icon={<DollarSign size={14} color="#111827" />}
             trend={filteredMetrics.revenue.trend as 'up' | 'down'}
             trendValue={`${filteredMetrics.revenue.pct}%`}
-            color={COLORS.brand}
           />
-        </Reveal>
-        <Reveal delay={120}>
           <StatCard
             title={store?.business_type === 'food' ? 'Plats servis' : 'Commandes'}
             value={String(filteredMetrics.orders.current)}
-            icon={<ShoppingBag size={14} color="#FFFFFF" />}
+            icon={<ShoppingBag size={14} color="#111827" />}
             trend={filteredMetrics.orders.trend as 'up' | 'down'}
             trendValue={`${filteredMetrics.orders.pct}%`}
-            color="#9333EA"
           />
-        </Reveal>
-        <Reveal delay={180}>
           <StatCard
             title="Panier Moyen"
             value={formatCurrency(filteredMetrics.basket.current)}
-            icon={<Zap size={14} color="#FFFFFF" />}
+            icon={<Zap size={14} color="#111827" />}
             trend={filteredMetrics.basket.trend as 'up' | 'down'}
             trendValue={`${filteredMetrics.basket.pct}%`}
-            color="#2563EB"
           />
-        </Reveal>
-        <Reveal delay={240}>
           <StatCard
             title="Trafic Boutique"
             value={formatNumber(filteredMetrics.traffic.current)}
-            icon={<Eye size={14} color="#FFFFFF" />}
-            color="#EA580C"
+            icon={<Eye size={14} color="#111827" />}
           />
-        </Reveal>
-      </View>
+        </View>
+      </Reveal>
 
       {/* Comparaison des Performances */}
       {canViewReports ? (
@@ -643,14 +634,13 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   trendValue?: string;
-  color: string;
 }
 
-function StatCard({ title, value, icon, trend, trendValue, color }: StatCardProps) {
+function StatCard({ title, value, icon, trend, trendValue }: StatCardProps) {
   return (
     <View style={styles.statCard}>
       <View style={styles.statTop}>
-        <View style={[styles.statIcon, { backgroundColor: color }]}>{icon}</View>
+        <View style={styles.statIcon}>{icon}</View>
         {trend ? (
           <View
             style={[
@@ -1463,6 +1453,9 @@ const styles = StyleSheet.create({
   statIcon: {
     padding: 6,
     borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   trendBadge: {
     flexDirection: 'row',
