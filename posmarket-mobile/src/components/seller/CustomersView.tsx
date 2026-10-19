@@ -344,7 +344,8 @@ export function SellerCustomersView({
       notify('Numéro de téléphone manquant', 'error');
       return;
     }
-    void Linking.openURL(`tel:${e164}`).catch(() => {
+    // Le « + » est obligatoire sinon le composeur lance un appel local invalide.
+    void Linking.openURL(`tel:+${e164}`).catch(() => {
       notify("Impossible d'ouvrir le téléphone", 'error');
     });
   };
