@@ -43,7 +43,7 @@ import { PhoneField } from '@/components/PhoneField';
 import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
 import { formatCurrency } from '@/utils';
-import { parsePhoneNumber } from '@/constants/countries';
+import { formatPhoneNumber, parsePhoneNumber } from '@/constants/countries';
 import {
   bulkDeleteSellerCustomers,
   deleteSellerCustomer,
@@ -59,7 +59,7 @@ const PAGE_SIZE = 10;
 const GRID = {
   gap: 6,
   spent: 92,
-  cmd: 34,
+  cmd: 50,
   action: 68,
 } as const;
 
@@ -584,11 +584,11 @@ return (
                 <View style={[styles.gridCol, styles.colName]}>
                   <Text style={styles.tableHeadLeft}>Nom</Text>
                 </View>
-                <View style={[styles.gridCol, styles.colSpent]}>
-                  <Text style={styles.tableHeadRight}>Dépensé</Text>
-                </View>
                 <View style={[styles.gridCol, styles.colCmd]}>
-                  <Text style={styles.tableHeadRight}>N Cmd</Text>
+                  <Text style={styles.tableHeadRight}>Commande</Text>
+                </View>
+                <View style={[styles.gridCol, styles.colSpent]}>
+                  <Text style={styles.tableHeadRight}>Achat total</Text>
                 </View>
                 <View style={[styles.gridCol, styles.colAction]}>
                   <Text style={styles.tableHeadAction}>Action</Text>
@@ -608,6 +608,20 @@ return (
                     <Text style={styles.customerName} numberOfLines={1}>
                       {customer.name}
                     </Text>
+                    {customer.phone ? (
+                      <Text style={styles.customerPhone} numberOfLines={1}>
+                        {formatPhoneNumber(customer.phone)}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <View style={[styles.gridCol, styles.colCmd]}>
+                    <Text
+                      style={styles.customerOrders}
+                      accessibilityLabel={`${customer.ordersCount || 0} commandes`}
+                    >
+                      {customer.ordersCount || 0}
+                    </Text>
                   </View>
 
                   <View style={[styles.gridCol, styles.colSpent]}>
@@ -619,15 +633,6 @@ return (
                       )}`}
                     >
                       {formatCurrency(Number(customer.totalSpent) || 0)}
-                    </Text>
-                  </View>
-
-                  <View style={[styles.gridCol, styles.colCmd]}>
-                    <Text
-                      style={styles.customerOrders}
-                      accessibilityLabel={`${customer.ordersCount || 0} commandes`}
-                    >
-                      {customer.ordersCount || 0}
                     </Text>
                   </View>
 
@@ -1097,6 +1102,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#111827',
+  },
+  customerPhone: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginTop: 1,
   },
   customerTotal: {
     fontSize: 11,
