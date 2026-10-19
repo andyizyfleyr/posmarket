@@ -4,6 +4,7 @@ import {
   saveBuyerAddressAction,
   deleteBuyerAddressAction,
 } from '@/app/actions/marketplace';
+import { requireBuyerSpace } from '@/lib/mobile-space';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const { searchParams } = new URL(req.url);
     const email = searchParams.get('email') || undefined;
     const userId = searchParams.get('userId') || undefined;
@@ -33,6 +36,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const body = await req.json();
     const result = await saveBuyerAddressAction(body);
     return NextResponse.json(result);
@@ -50,6 +55,8 @@ export async function POST(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const email = searchParams.get('email') || undefined;

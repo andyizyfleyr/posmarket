@@ -5,6 +5,7 @@ import {
   setNotificationPreferenceAction,
 } from '@/lib/notification-actions';
 import type { NotificationEvent } from '@/types';
+import { requireBuyerSpace } from '@/lib/mobile-space';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const { searchParams } = new URL(req.url);
     const wantsOutbox = searchParams.get('outbox') === '1';
     const limit = Number(searchParams.get('limit')) || 30;
@@ -37,6 +40,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const eventType = String(body?.eventType || '') as NotificationEvent;
     const channel = body?.channel === 'email' ? 'email' : 'whatsapp';

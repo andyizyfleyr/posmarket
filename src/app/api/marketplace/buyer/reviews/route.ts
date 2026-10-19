@@ -3,6 +3,7 @@ import {
   fetchBuyerReviewsAction,
   saveProductReviewAction,
 } from '@/app/actions/marketplace';
+import { requireBuyerSpace } from '@/lib/mobile-space';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const result = await fetchBuyerReviewsAction();
     return NextResponse.json(result);
   } catch (error) {
@@ -29,6 +32,8 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const storeId = String(body?.storeId || '').trim();
     const productId = String(body?.productId || '').trim();

@@ -18,16 +18,22 @@ const DEFAULT_TIMEOUT = 15_000;
 
 interface FetchOptions extends RequestInit {
   timeout?: number;
+  /**
+   * Cookies supplémentaires joints à celui de session (ex. `currentStoreId`
+   * pour l'espace vendeur) : le serveur lit la boutique courante dans ce
+   * cookie, exactement comme le fait le web.
+   */
+  extraCookies?: string[];
 }
 
 /**
  * Wrapper fetch avec timeout, cookie de session et gestion d'erreur uniforme.
  */
-async function apiFetch<T>(
+export async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const { timeout = DEFAULT_TIMEOUT, ...fetchOpts } = options;
+  const { timeout = DEFAULT_TIMEOUT, extraCookies, ...fetchOpts } = options;
   const url = `${API_BASE_URL}${path}`;
 
   const controller = new AbortController();
@@ -35,6 +41,7 @@ async function apiFetch<T>(
 
   const cookie = await sessionCookieHeader().catch(() => null);
   const versionAtRequest = sessionVersion();
+  const cookieHeader = [cookie, ...(extraCookies || [])].filter(Boolean).join('; ');
 
   try {
     const response = await fetch(url, {
@@ -47,7 +54,7 @@ async function apiFetch<T>(
         // React Native (okhttp) comme un bot (403 Forbidden).
         'X-PosMarket-Client': 'mobile-app',
         'User-Agent': 'PosMarket-Mobile/1.0 (Android)',
-        ...(cookie ? { Cookie: cookie } : {}),
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         ...fetchOpts.headers,
       },
     });

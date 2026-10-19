@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  fetchBuyerOrdersAction,
-  fetchBuyerAddressesAction,
-  saveBuyerAddressAction,
-  deleteBuyerAddressAction,
-} from '@/app/actions/marketplace';
+import { fetchBuyerOrdersAction } from '@/app/actions/marketplace';
+import { requireBuyerSpace } from '@/lib/mobile-space';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +9,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
   try {
+    const guard = await requireBuyerSpace();
+    if (!guard.ok) return guard.response;
     const { searchParams } = new URL(req.url);
     const email = searchParams.get('email') || undefined;
     const userId = searchParams.get('userId') || undefined;

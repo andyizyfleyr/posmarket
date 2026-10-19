@@ -3,40 +3,8 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { signIn, signOut } from '@/auth';
-import { setAuthIntentCookie, googleErrorToMessage, findProfileForAuth } from '@/lib/auth-signin';
-
-async function sendMagicLinkForSeller(opts: {
-  email?: string;
-  name?: string;
-  target: string;
-  register: boolean;
-}) {
-  const email = String(opts.email || '').trim().toLowerCase();
-  if (!email || !email.includes('@')) {
-    return { error: 'Adresse email invalide.' };
-  }
-  const account = await findProfileForAuth(email).catch(() => null);
-  if (!opts.register && !account) {
-    return { error: 'Aucun compte commerçant n’est associé à cet email. Créez votre compte.' };
-  }
-  if (opts.register && account) {
-    return { error: 'Un compte existe déjà avec cet email. Connectez-vous.' };
-  }
-  if (!opts.register && account && account.accountType !== 'seller') {
-    const isAdmin = account.accountType === 'admin' || account.isSuperAdmin;
-    return {
-      error: isAdmin
-        ? 'Cet email est associé à un compte administrateur. Connectez-vous depuis l’espace admin.'
-        : 'Cet email est associé à un compte acheteur. Connectez-vous depuis l’espace client.',
-    };
-  }
-  await setAuthIntentCookie({ intent: 'seller', name: opts.name?.trim() || undefined });
-  const result = await signIn('email', { email, redirect: false, callbackUrl: opts.target });
-  if (result?.error) {
-    return { error: String(result.error) };
-  }
-  return { success: true, email };
-}
+import { setAuthIntentCookie, googleErrorToMessage } from '@/lib/auth-signin';
+import { sendMagicLinkForSeller } from '@/lib/seller-magic-link';
 
 export async function loginAction(formData: FormData) {
   const email = String((formData.get('email') as string) || '').trim().toLowerCase();
