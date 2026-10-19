@@ -3,15 +3,17 @@
  * Providers globaux : React Query, CartProvider.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CartProvider } from '@/context/CartContext';
 import { PromoProvider } from '@/context/PromoContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/components/ToastProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { SplashScreen as SplashScreenComponent } from '@/components/SplashScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +25,35 @@ const queryClient = new QueryClient({
   },
 });
 
+// Empêcher l'écran de lancement natif de se cacher automatiquement
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    // Préparer l'application (chargement polices, auth, etc.)
+    const prepare = async () => {
+      try {
+        // Attendre un minimum pour afficher le splash custom (ex: 1.5s)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Ici vous pouvez ajouter d'autres initialisations asynchrones
+      } catch (e) {
+        console.warn('Erreur pendant le chargement initial', e);
+      } finally {
+        // Cacher l'écran de lancement natif
+        await SplashScreen.hideAsync();
+        setAppReady(true);
+      }
+    };
+
+    prepare();
+  }, []);
+
+  if (!appReady) {
+    return <SplashScreenComponent />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
