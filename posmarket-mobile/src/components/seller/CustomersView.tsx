@@ -14,6 +14,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -28,6 +29,7 @@ import {
   ChevronRight,
   Edit,
   Loader2,
+  MessageCircle,
   Phone,
   Plus,
   Search,
@@ -42,7 +44,7 @@ import { PhoneField } from '@/components/PhoneField';
 import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
 import { formatCurrency } from '@/utils';
-import { formatPhoneNumber } from '@/constants/countries';
+import { formatPhoneNumber, parsePhoneNumber } from '@/constants/countries';
 import {
   bulkDeleteSellerCustomers,
   deleteSellerCustomer,
@@ -323,14 +325,34 @@ export function SellerCustomersView({
     else setSelectedIds(filteredCustomers.map((customer) => customer.id));
   };
 
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((customerId) => customerId !== id) : [...prev, id],
     );
   };
 
-  const allSelected =
-    filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length;
+  /** Lien WhatsApp du client (numéro international sans « + »). */
+  const whatsappLink = (phone?: string | null): string | null => {
+    const e164 = parsePhoneNumber(phone || '').e164.replace(/\D/g, '');
+    if (!e164) return null;
+    return `https://wa.me/${e164}`;
+  };
+
+  /** Ouvre WhatsApp avec un message pré-rempli pour le client. */
+  const openWhatsApp = (phone?: string | null, name?: string) => {
+    const link = whatsappLink(phone);
+    if (!link) {
+      notify('Numéro de téléphone manquant', 'error');
+      return;
+    }
+    const message = encodeURIComponent(
+      `Bonjour ${(name || '').split(' ')[0]} ! Merci pour votre visite. Comment pouvons-nous vous aider ?`,
+    );
+    void Linking.openURL(`${link}?text=${message}`).catch(() => {
+      notify("Impossible d'ouvrir WhatsApp", 'error');
+    });
+  };
 
   const renderSortButton = (
     key: 'totalSpent' | 'ordersCount' | 'name',
@@ -361,112 +383,86 @@ return (
 
       {/* ── Barre de recherche + segments + tri ── */}
       <View style={styles.stickyWrap}>
-        {selectedIds.length > 0 && canManageCustomers && !isSeller ? (
-          <View style={styles.selectionBar}>
-            <View style={styles.selectionCount}>
+        <View>
+          {/* Recherche */}
+          <View style={styles.searchWrap}>
+            <Search size={16} color="#9CA3AF" style={styles.searchIcon} />
+            <TextInput
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder="Rechercher un client..."
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              style={styles.searchInput}
+            />
+            {isSearching || isLoadingMore ? (
+              <Loader2 size={16} color={COLORS.brand} style={styles.searchAccessory} />
+            ) : searchTerm.length > 0 ? (
               <Pressable
-                onPress={() => setSelectedIds([])}
-                style={styles.selectionClear}
-                accessibilityLabel="Annuler la sélection"
+                onPress={() => setSearchTerm('')}
+                style={styles.searchClear}
+                accessibilityLabel="Effacer la recherche"
               >
                 <X size={14} color="#6B7280" />
               </Pressable>
-              <Text style={styles.selectionText}>
-                {selectedIds.length} sélectionné{selectedIds.length > 1 ? 's' : ''}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() =>
-                setDeleteConfirm({ isOpen: true, count: selectedIds.length, isBulk: true })
-              }
-              style={styles.selectionBtnDanger}
-            >
-              <Trash2 size={14} color="#DC2626" />
-              <Text style={styles.selectionBtnDangerText}>Supprimer</Text>
-            </Pressable>
+            ) : null}
           </View>
-        ) : (
-          <>
-            {/* Recherche */}
-            <View style={styles.searchWrap}>
-              <Search size={16} color="#9CA3AF" style={styles.searchIcon} />
-              <TextInput
-                value={searchTerm}
-                onChangeText={setSearchTerm}
-                placeholder="Rechercher un client..."
-                placeholderTextColor="#9CA3AF"
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                style={styles.searchInput}
-              />
-              {isSearching || isLoadingMore ? (
-                <Loader2 size={16} color={COLORS.brand} style={styles.searchAccessory} />
-              ) : searchTerm.length > 0 ? (
+
+          {/* Segments */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.segments}
+          >
+            {(
+              [
+                { id: 'all' as const, label: 'Tous', count: localCustomers.length },
+                {
+                  id: 'vip' as const,
+                  label: 'VIP',
+                  count: localCustomers.filter((customer) => getSegment(customer).isVIP).length,
+                },
+                {
+                  id: 'inactive' as const,
+                  label: 'Inactifs',
+                  count: localCustomers.filter((customer) => getSegment(customer).isInactive)
+                    .length,
+                },
+              ] as const
+            ).map((segment) => {
+              const active = activeSegment === segment.id;
+              return (
                 <Pressable
-                  onPress={() => setSearchTerm('')}
-                  style={styles.searchClear}
-                  accessibilityLabel="Effacer la recherche"
+                  key={segment.id}
+                  onPress={() => {
+                    setActiveSegment(segment.id);
+                    setSelectedIds([]);
+                  }}
+                  style={[
+                    styles.segment,
+                    active ? styles.segmentActive : styles.segmentIdle,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                 >
-                  <X size={14} color="#6B7280" />
+                  <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
+                    {segment.label} ({segment.count})
+                  </Text>
                 </Pressable>
-              ) : null}
-            </View>
+              );
+            })}
+          </ScrollView>
 
-            {/* Segments */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.segments}
-            >
-              {(
-                [
-                  { id: 'all' as const, label: 'Tous', count: localCustomers.length },
-                  {
-                    id: 'vip' as const,
-                    label: 'VIP',
-                    count: localCustomers.filter((customer) => getSegment(customer).isVIP).length,
-                  },
-                  {
-                    id: 'inactive' as const,
-                    label: 'Inactifs',
-                    count: localCustomers.filter((customer) => getSegment(customer).isInactive)
-                      .length,
-                  },
-                ] as const
-              ).map((segment) => {
-                const active = activeSegment === segment.id;
-                return (
-                  <Pressable
-                    key={segment.id}
-                    onPress={() => {
-                      setActiveSegment(segment.id);
-                      setSelectedIds([]);
-                    }}
-                    style={[
-                      styles.segment,
-                      active ? styles.segmentActive : styles.segmentIdle,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                  >
-                    <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
-                      {segment.label} ({segment.count})
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {/* Tri */}
-            <View style={styles.sortRow}>
-              <Text style={styles.sortLabel}>Trier</Text>
-              {renderSortButton('totalSpent', 'Dépensé')}
-              {renderSortButton('ordersCount', 'Commandes')}
-              {renderSortButton('name', 'Nom')}
-            </View>
-          </>
-        )}
+          {/* Tri */}
+          <View style={styles.sortRow}>
+            <Text style={styles.sortLabel}>Trier</Text>
+            {renderSortButton('totalSpent', 'Dépensé')}
+            {renderSortButton('ordersCount', 'Commandes')}
+            {renderSortButton('name', 'Nom')}
+          </View>
+        </View>
       </View>
 
       {/* ── Carte liste ── */}
@@ -492,31 +488,10 @@ return (
                   {filteredCustomers.length} client{filteredCustomers.length > 1 ? 's' : ''}
                   {hasMore ? ' chargés' : ''}
                 </Text>
-                <Pressable
-                  onPress={toggleSelectAll}
-                  style={styles.selectAllBtn}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: allSelected }}
-                  accessibilityLabel={allSelected ? 'Tout désélectionner' : 'Tout choisir'}
-                >
-                  <SellerCheckbox
-                    checked={allSelected}
-                    onToggle={toggleSelectAll}
-                    size={18}
-                  />
-                  <Text style={styles.selectAllText}>
-                    {allSelected ? 'Tout désélectionner' : 'Tout choisir'}
-                  </Text>
-                </Pressable>
               </View>
 
               {filteredCustomers.map((customer, index) => {
                 const { isVIP, isInactive } = getSegment(customer);
-                const initials = customer.name
-                  .split(' ')
-                  .map((part) => part[0])
-                  .join('');
-                const selected = selectedIds.includes(customer.id);
                 return (
                   <Pressable
                     key={customer.id}
@@ -524,29 +499,9 @@ return (
                     style={({ pressed }) => [
                       styles.customerRow,
                       index < filteredCustomers.length - 1 ? styles.customerRowBorder : null,
-                      selected ? styles.customerRowSelected : null,
                       pressed ? styles.customerRowPressed : null,
                     ]}
                   >
-                    <Pressable
-                      onPress={() => toggleSelect(customer.id)}
-                      style={styles.checkboxHit}
-                      hitSlop={8}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: selected }}
-                      accessibilityLabel={`Sélectionner ${customer.name}`}
-                    >
-                      <SellerCheckbox
-                        checked={selected}
-                        onToggle={() => toggleSelect(customer.id)}
-                        size={20}
-                      />
-                    </Pressable>
-
-                    <View style={styles.customerAvatar}>
-                      <Text style={styles.customerAvatarText}>{initials}</Text>
-                    </View>
-
                     <View style={styles.customerBody}>
                       <View style={styles.customerNameRow}>
                         <Text style={styles.customerName} numberOfLines={1}>
@@ -578,12 +533,15 @@ return (
                         </Text>
                         <Text style={styles.customerTotalLabel}>dépensé</Text>
                       </View>
-                      <Pressable
-                        style={styles.callBtn}
-                        accessibilityLabel={`Appeler ${customer.name}`}
-                      >
-                        <Phone size={12} color="#16A34A" />
-                      </Pressable>
+                      {whatsappLink(customer.phone) ? (
+                        <Pressable
+                          onPress={() => openWhatsApp(customer.phone, customer.name)}
+                          style={styles.whatsappBtn}
+                          accessibilityLabel={`Envoyer un message WhatsApp à ${customer.name}`}
+                        >
+                          <MessageCircle size={14} color="#16A34A" />
+                        </Pressable>
+                      ) : null}
                       {canManageCustomers && !isSeller ? (
                         <Pressable
                           onPress={() => handleOpenModal(customer)}
@@ -704,6 +662,22 @@ return (
               </View>
 
               <View style={styles.modalActions}>
+                {editingCustomer && canManageCustomers && !isSeller ? (
+                  <Pressable
+                    onPress={() =>
+                      setDeleteConfirm({
+                        isOpen: true,
+                        id: editingCustomer.id,
+                        name: editingCustomer.name,
+                      })
+                    }
+                    disabled={isSubmitting}
+                    style={[styles.deleteBtn, isSubmitting ? styles.disabled : null]}
+                    accessibilityLabel="Supprimer ce client"
+                  >
+                    <Trash2 size={14} color="#DC2626" />
+                  </Pressable>
+                ) : null}
                 <Pressable
                   onPress={() => setIsModalOpen(false)}
                   disabled={isSubmitting}
@@ -1070,6 +1044,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  whatsappBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   editBtn: {
     width: 28,
     height: 28,
@@ -1235,6 +1217,16 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
     borderRadius: 12,
     alignItems: 'center',
+  },
+  deleteBtn: {
+    width: 40,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
   },
   cancelText: {
     fontSize: 10,
