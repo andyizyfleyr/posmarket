@@ -2323,6 +2323,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17,24,39,0.5)',
   },
   sheet: {
+    flex: 1,
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
