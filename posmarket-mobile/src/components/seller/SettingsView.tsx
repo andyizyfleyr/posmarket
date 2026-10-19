@@ -32,7 +32,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Building,
   Camera,
-  CheckSquare,
   FileText,
   Info,
   Loader2,
@@ -40,7 +39,6 @@ import {
   Plus,
   Save,
   ShieldCheck,
-  Square,
   Store,
   Tag,
   Trash2,
@@ -52,6 +50,7 @@ import {
 import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PhoneField } from '@/components/PhoneField';
+import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
 import type { Coupon, StoreData, StoreSettings } from '@/types';
 import {
@@ -827,26 +826,22 @@ export function SellerSettingsView({
         {/* ── Onglet Promos ── */}
         {activeTab === 'promos' ? (
           <View style={styles.tabBody}>
-            <SectionHeader title="Campagnes Promotionnelles" Icon={Tag} />
-            <Text style={styles.promosIntro}>
-              Créez des codes promo uniques pour fidéliser vos clients et booster vos ventes
-              en ligne.
-            </Text>
-
+            {/* Formulaire de création */}
             <View style={styles.promoFormCard}>
               <View style={styles.promoFormTitle}>
-                <Plus size={16} color={COLORS.brand} />
-                <Text style={styles.promoFormTitleText}>Nouveau Code</Text>
+                <Tag size={12} color={COLORS.brand} />
+                <Text style={styles.promoFormTitleText}>Nouveau code promo</Text>
               </View>
-              <View style={styles.promoInputs}>
-                <TextInput
-                  value={newCouponCode}
-                  onChangeText={setNewCouponCode}
-                  placeholder="Code (ex: BIENVENUE20)"
-                  placeholderTextColor="#9CA3AF"
-                  autoCapitalize="characters"
-                  style={styles.promoCodeInput}
-                />
+              <TextInput
+                ref={couponCodeRef}
+                value={newCouponCode}
+                onChangeText={setNewCouponCode}
+                placeholder="Code (ex: BIENVENUE20)"
+                placeholderTextColor="#C4C9D1"
+                autoCapitalize="characters"
+                style={styles.promoCodeInput}
+              />
+              <View style={styles.promoDiscountRow}>
                 <View style={styles.promoDiscountWrap}>
                   <TextInput
                     value={String(newCouponDiscount)}
@@ -865,69 +860,74 @@ export function SellerSettingsView({
                   disabled={!newCouponCode.trim() || loadingCoupons}
                   style={[
                     styles.promoAddBtn,
-                    (!newCouponCode.trim() || loadingCoupons) && { opacity: 0.5 },
+                    (!newCouponCode.trim() || loadingCoupons) && styles.disabled,
                   ]}
                 >
                   {loadingCoupons ? (
-                    <Loader2 size={16} color="#FFFFFF" />
+                    <Loader2 size={15} color="#FFFFFF" />
                   ) : (
-                    <Save size={16} color="#FFFFFF" />
+                    <Plus size={15} color="#FFFFFF" />
                   )}
                   <Text style={styles.promoAddText}>
                     {loadingCoupons ? 'Action...' : 'Ajouter'}
                   </Text>
                 </Pressable>
               </View>
+              <Text style={styles.promoHelp}>
+                Remise en % appliquée automatiquement au panier du client.
+              </Text>
             </View>
 
-            <View style={styles.couponList}>
-              {localCoupons.length === 0 ? (
-                <View style={styles.couponEmpty}>
-                  <Tag size={48} color="#9CA3AF" style={styles.couponEmptyIcon} />
-                  <Text style={styles.couponEmptyText}>
-                    Aucune promotion active actuellement.
-                  </Text>
+            {localCoupons.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  <Tag size={24} color="#9CA3AF" />
                 </View>
-              ) : (
-                localCoupons.map((coupon) => (
-                  <View key={coupon.id || coupon.code} style={styles.couponCard}>
-                    <Pressable
-                      onPress={() => coupon.id && void handleToggleCoupon(coupon.id)}
-                      style={styles.couponToggle}
-                    >
-                      {coupon.active ? (
-                        <CheckSquare size={22} color={COLORS.brand} />
-                      ) : (
-                        <Square size={22} color="#D1D5DB" />
-                      )}
-                    </Pressable>
+                <Text style={styles.emptyTitle}>Aucune promotion active</Text>
+                <Text style={styles.emptyHint}>
+                  Créez un code promo pour fidéliser vos clients et booster vos ventes en
+                  ligne.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.couponList}>
+                {localCoupons.map((coupon) => (
+                  <View key={coupon.id || coupon.code} style={styles.couponRow}>
+                    <SellerCheckbox
+                      checked={!!coupon.active}
+                      onToggle={() => coupon.id && void handleToggleCoupon(coupon.id)}
+                      size={16}
+                    />
                     <View style={styles.flex1}>
-                      <Text style={styles.couponCode}>{coupon.code}</Text>
+                      <Text style={styles.couponCode} numberOfLines={1}>
+                        {coupon.code}
+                      </Text>
                       <View style={styles.couponMetaRow}>
                         <View style={styles.couponBadge}>
-                          <Text style={styles.couponBadgeText}>
-                            -{coupon.discount_pct}%
-                          </Text>
+                          <Text style={styles.couponBadgeText}>-{coupon.discount_pct}%</Text>
                         </View>
-                        <Text style={styles.couponValid}>Valide en ligne</Text>
+                        <Text style={styles.couponState}>
+                          {coupon.active ? 'Valide en ligne' : 'Désactivé'}
+                        </Text>
                       </View>
                     </View>
                     <Pressable
                       onPress={() => coupon.id && void handleDeleteCouponLocal(coupon.id)}
                       style={styles.couponDelete}
+                      hitSlop={6}
                       accessibilityLabel="Supprimer le code promo"
                     >
-                      <Trash2 size={18} color="#D1D5DB" />
+                      <Trash2 size={15} color="#F87171" />
                     </Pressable>
                   </View>
-                ))
-              )}
-            </View>
+                ))}
+              </View>
+            )}
 
             <View style={styles.adviceCard}>
-              <ShieldCheck size={18} color={COLORS.brand} />
+              <ShieldCheck size={16} color={COLORS.brand} />
               <Text style={styles.adviceText}>
-                <Text style={styles.adviceStrong}>Conseil :</Text> Les codes promo sont
+                <Text style={styles.adviceStrong}>Conseil :</Text> les codes promo sont
                 sensibles à la casse. Vos clients verront ces remises s&apos;appliquer
                 automatiquement s&apos;ils saisissent le code correspondant dans leur panier.
               </Text>
@@ -1410,51 +1410,51 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 13, fontWeight: '700', color: '#4B5563' },
   emptyHint: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', lineHeight: 16 },
 
-  promosIntro: { fontSize: 12, color: '#6B7280', lineHeight: 18, marginBottom: 24 },
+  /* Promos : formulaire compact */
   promoFormCard: {
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    padding: 16,
-    marginBottom: 32,
-    gap: 12,
+    padding: 12,
+    gap: 10,
   },
-  promoFormTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  promoFormTitle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   promoFormTitleText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#111827',
+    color: '#6B7280',
     textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
-  promoInputs: { gap: 12 },
   promoCodeInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
     fontSize: 12,
     fontWeight: '700',
     color: '#111827',
   },
-  promoDiscountWrap: { justifyContent: 'center' },
+  promoDiscountRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  promoDiscountWrap: { flex: 1, justifyContent: 'center' },
   promoDiscountInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
     fontSize: 12,
     fontWeight: '700',
     color: '#111827',
-    paddingRight: 32,
+    paddingRight: 28,
   },
   promoPercent: {
     position: 'absolute',
-    right: 32,
+    right: 12,
     fontSize: 12,
     fontWeight: '700',
     color: '#9CA3AF',
@@ -1463,37 +1463,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 16,
     backgroundColor: COLORS.brand,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   promoAddText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  promoHelp: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', fontStyle: 'italic' },
 
-  couponList: { gap: 12 },
-  couponEmpty: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#F9FAFB',
-    borderRadius: 24,
-  },
-  couponEmptyIcon: { opacity: 0.1, marginBottom: 16 },
-  couponEmptyText: { fontSize: 14, fontWeight: '600', color: '#9CA3AF', fontStyle: 'italic' },
-  couponCard: {
+  /* Liste des codes promo : lignes compactes séparées par des filets */
+  couponList: {},
+  couponRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    gap: 10,
+    paddingHorizontal: 2,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
   },
-  couponToggle: { padding: 2 },
   couponCode: {
     fontSize: 12,
     fontWeight: '700',
@@ -1501,24 +1490,30 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: -0.2,
   },
-  couponMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  couponMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
   couponBadge: {
     backgroundColor: '#FFF7ED',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   couponBadgeText: { fontSize: 9, fontWeight: '700', color: COLORS.brand },
-  couponValid: { fontSize: 10, color: '#9CA3AF' },
-  couponDelete: { padding: 8 },
+  couponState: { fontSize: 9, fontWeight: '600', color: '#9CA3AF' },
+  couponDelete: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   adviceCard: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 32,
-    padding: 16,
+    gap: 8,
+    padding: 12,
     backgroundColor: 'rgba(255,247,237,0.5)',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#FFEDD5',
   },
