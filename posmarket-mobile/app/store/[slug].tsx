@@ -22,16 +22,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   ChevronRight,
@@ -285,17 +281,7 @@ export default function StoreScreen() {
 
   if (!store) {
     return (
-      <View style={styles.container}>
-        <SafeAreaView edges={['top']} style={styles.topBar}>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.back()}
-            hitSlop={8}
-            accessibilityLabel="Retour"
-          >
-            <ArrowLeft size={20} color="#111827" />
-          </Pressable>
-        </SafeAreaView>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.notFound}>
           <View style={styles.notFoundIcon}>
             <Store size={30} color="#9CA3AF" />
@@ -473,19 +459,7 @@ export default function StoreScreen() {
   }));
 
   return (
-    <View style={styles.container}>
-      {/* ── Barre de navigation (retour uniquement — le nom est dans le hero) ── */}
-      <SafeAreaView edges={['top']} style={styles.topBar}>
-        <Pressable
-          style={styles.iconBtn}
-          onPress={() => router.back()}
-          hitSlop={8}
-          accessibilityLabel="Retour"
-        >
-          <ArrowLeft size={20} color="#111827" />
-        </Pressable>
-      </SafeAreaView>
-
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
@@ -929,24 +903,6 @@ function ProductSkeleton() {
 const styles = StyleSheet.create({  container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
   },
   scrollContentWithBar: {
     paddingBottom: 104,
