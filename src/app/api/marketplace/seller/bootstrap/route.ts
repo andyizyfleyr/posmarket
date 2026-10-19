@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * Reproduit exactement la logique de `src/app/(app)/layout.tsx` et
  * `src/components/LayoutClientWrapper.tsx`.
  */
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
     const { user } = await getCurrentSession();
     if (!user) {
@@ -67,7 +67,17 @@ export async function GET(_req: NextRequest) {
       };
     });
 
-    let currentStoreId = await getStoreCookie();
+    // Boutique demandée explicitement par l'app mobile (`?storeId=…`) : l'en-tête
+    // `Cookie` posé à la main n'est pas transmis de façon fiable par OkHttp (voir
+    // `src/lib/mobile-session.ts`), le cookie `currentStoreId` seul ne permet donc
+    // pas de changer de boutique. On ne retient le paramètre que s'il correspond à
+    // une boutique accessible, puis on retombe sur le cookie, puis sur la plus
+    // ancienne boutique.
+    const requested = req.nextUrl.searchParams.get('storeId');
+    let currentStoreId =
+      requested && stores.some((store) => store.id === requested)
+        ? requested
+        : await getStoreCookie();
     if (!stores.some((store) => store.id === currentStoreId)) {
       currentStoreId = stores[0]?.id || null;
     }

@@ -82,7 +82,8 @@ export interface SellerReportsResponse {
 export async function fetchSellerReports(
   storeId?: string | null,
 ): Promise<SellerReportsResponse> {
-  return apiFetch<SellerReportsResponse>('/api/marketplace/seller/reports', {
+  const query = storeId ? `?storeId=${encodeURIComponent(storeId)}` : '';
+  return apiFetch<SellerReportsResponse>(`/api/marketplace/seller/reports${query}`, {
     extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
   });
 }

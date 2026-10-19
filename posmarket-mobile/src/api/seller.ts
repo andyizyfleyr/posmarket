@@ -3,7 +3,9 @@
  *
  * Toutes les requêtes passent par `apiFetch` : le cookie de session Auth.js
  * donne accès aux routes `/api/marketplace/seller/*`, et la boutique courante
- * est transmise dans le cookie `currentStoreId` (même mécanisme que le web).
+ * est transmise en paramètre explicite (`?storeId=` / corps JSON) — l'en-tête
+ * `Cookie` posé à la main n'étant pas transmis de façon fiable par OkHttp, le
+ * cookie `currentStoreId` seul ne suffit pas (il reste envoyé pour le web).
  */
 
 import { apiFetch } from '@/api/client';
@@ -110,7 +112,8 @@ export async function loginSeller(
 export async function fetchSellerBootstrap(
   storeId?: string | null,
 ): Promise<SellerBootstrapResponse> {
-  return apiFetch<SellerBootstrapResponse>('/api/marketplace/seller/bootstrap', {
+  const query = storeId ? `?storeId=${encodeURIComponent(storeId)}` : '';
+  return apiFetch<SellerBootstrapResponse>(`/api/marketplace/seller/bootstrap${query}`, {
     extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
   });
 }
@@ -201,7 +204,8 @@ export interface SellerDashboardResponse {
 export async function fetchSellerDashboard(
   storeId?: string | null,
 ): Promise<SellerDashboardResponse> {
-  return apiFetch<SellerDashboardResponse>('/api/marketplace/seller/dashboard', {
+  const query = storeId ? `?storeId=${encodeURIComponent(storeId)}` : '';
+  return apiFetch<SellerDashboardResponse>(`/api/marketplace/seller/dashboard${query}`, {
     extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
   });
 }
@@ -235,7 +239,8 @@ export interface SellerPosResponse {
 export async function fetchSellerPos(
   storeId?: string | null,
 ): Promise<SellerPosResponse> {
-  return apiFetch<SellerPosResponse>('/api/marketplace/seller/pos', {
+  const query = storeId ? `?storeId=${encodeURIComponent(storeId)}` : '';
+  return apiFetch<SellerPosResponse>(`/api/marketplace/seller/pos${query}`, {
     extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
   });
 }
@@ -255,9 +260,12 @@ export async function fetchSellerPosStock(
 export async function fetchSellerPosCoupons(
   storeId: string,
 ): Promise<{ success: boolean; coupons?: import('@/types').Coupon[]; error?: string }> {
-  return apiFetch('/api/marketplace/seller/pos/coupons', {
-    extraCookies: [`currentStoreId=${storeId}`],
-  });
+  return apiFetch(
+    `/api/marketplace/seller/pos/coupons?storeId=${encodeURIComponent(storeId)}`,
+    {
+      extraCookies: [`currentStoreId=${storeId}`],
+    },
+  );
 }
 
 /** Ligne de commande envoyée à l'encaissement (recopiée par `createOrderAction`). */

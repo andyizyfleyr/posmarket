@@ -122,7 +122,8 @@ export interface SellerInvoiceStatusResponse {
 export async function fetchSellerInvoices(
   storeId?: string | null,
 ): Promise<SellerInvoicesResponse> {
-  return apiFetch<SellerInvoicesResponse>('/api/marketplace/seller/invoices', {
+  const query = storeId ? `?storeId=${encodeURIComponent(storeId)}` : '';
+  return apiFetch<SellerInvoicesResponse>(`/api/marketplace/seller/invoices${query}`, {
     extraCookies: storeId ? [`currentStoreId=${storeId}`] : undefined,
   });
 }
