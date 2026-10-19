@@ -29,7 +29,6 @@ import {
   ChevronRight,
   Edit,
   Loader2,
-  MessageCircle,
   Phone,
   Plus,
   Search,
@@ -38,6 +37,7 @@ import {
   Users,
   X,
 } from 'lucide-react-native';
+import { WhatsAppIcon } from '@/components/seller/WhatsAppIcon';
 import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PhoneField } from '@/components/PhoneField';
@@ -233,8 +233,6 @@ export function SellerCustomersView({
     }));
   };
 
-  const gameSortArrow = (key: 'totalSpent' | 'ordersCount' | 'name') =>
-    sortConfig.key === key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '';
 
   const handleOpenModal = (customer?: SellerCustomer) => {
     if (customer) {
@@ -339,6 +337,18 @@ export function SellerCustomersView({
     return `https://wa.me/${e164}`;
   };
 
+  /** Ouvre l'application d'appel du système. */
+  const callCustomer = (phone?: string | null) => {
+    const e164 = parsePhoneNumber(phone || '').e164.replace(/\D/g, '');
+    if (!e164) {
+      notify('Numéro de téléphone manquant', 'error');
+      return;
+    }
+    void Linking.openURL(`tel:${e164}`).catch(() => {
+      notify("Impossible d'ouvrir le téléphone", 'error');
+    });
+  };
+
   /** Ouvre WhatsApp avec un message pré-rempli pour le client. */
   const openWhatsApp = (phone?: string | null, name?: string) => {
     const link = whatsappLink(phone);
@@ -363,9 +373,11 @@ export function SellerCustomersView({
       <Pressable
         onPress={() => handleSort(key)}
         style={[styles.sortBtn, active ? styles.sortBtnActive : null]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
       >
         <Text style={[styles.sortBtnText, active ? styles.sortBtnTextActive : null]}>
-          {label} {gameSortArrow(key)}
+          {label}
         </Text>
       </Pressable>
     );
@@ -491,7 +503,6 @@ return (
               </View>
 
               {filteredCustomers.map((customer, index) => {
-                const { isVIP, isInactive } = getSegment(customer);
                 return (
                   <Pressable
                     key={customer.id}
@@ -503,16 +514,14 @@ return (
                     ]}
                   >
                     <View style={styles.customerBody}>
-                      <View style={styles.customerNameRow}>
-                        <Text style={styles.customerName} numberOfLines={1}>
-                          {customer.name}
+                      <Text style={styles.customerName} numberOfLines={1}>
+                        {customer.name}
+                      </Text>
+                      <View style={styles.customerPriceRow}>
+                        <Text style={styles.customerTotal}>
+                          {formatCurrency(Number(customer.totalSpent) || 0)}
                         </Text>
-                        {isVIP ? <Star size={11} color="#EAB308" fill="#EAB308" /> : null}
-                        {isInactive ? (
-                          <View style={styles.inactiveBadge}>
-                            <Text style={styles.inactiveBadgeText}>Inactif</Text>
-                          </View>
-                        ) : null}
+                        <Text style={styles.customerTotalLabel}>dépensé</Text>
                       </View>
                       <View style={styles.customerMetaRow}>
                         <Text style={styles.customerMeta} numberOfLines={1}>
@@ -527,28 +536,22 @@ return (
                     </View>
 
                     <View style={styles.customerActions}>
-                      <View style={styles.customerRightText}>
-                        <Text style={styles.customerTotal}>
-                          {formatCurrency(Number(customer.totalSpent) || 0)}
-                        </Text>
-                        <Text style={styles.customerTotalLabel}>dépensé</Text>
-                      </View>
                       {whatsappLink(customer.phone) ? (
                         <Pressable
                           onPress={() => openWhatsApp(customer.phone, customer.name)}
                           style={styles.whatsappBtn}
                           accessibilityLabel={`Envoyer un message WhatsApp à ${customer.name}`}
                         >
-                          <MessageCircle size={14} color="#16A34A" />
+                          <WhatsAppIcon size={16} />
                         </Pressable>
                       ) : null}
-                      {canManageCustomers && !isSeller ? (
+                      {customer.phone ? (
                         <Pressable
-                          onPress={() => handleOpenModal(customer)}
-                          style={styles.editBtn}
-                          accessibilityLabel={`Modifier ${customer.name}`}
+                          onPress={() => callCustomer(customer.phone)}
+                          style={styles.callBtn}
+                          accessibilityLabel={`Appeler ${customer.name}`}
                         >
-                          <Edit size={13} color={COLORS.brand} />
+                          <Phone size={13} color="#111827" />
                         </Pressable>
                       ) : null}
                       <ChevronRight size={13} color="#D1D5DB" />
@@ -1019,8 +1022,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1D5DB',
     marginHorizontal: 2,
   },
+  customerPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
   customerTotal: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.brand,
   },
