@@ -764,25 +764,23 @@ export function SellerSettingsView({
         {/* ── Onglet Équipe ── */}
         {activeTab === 'staff' && permissions?.canManageStaff ? (
           <View style={styles.tabBody}>
-            <View style={styles.staffList}>
-              {staff.length === 0 ? (
-                <View style={styles.staffEmpty}>
-                  <Text style={styles.staffEmptyText}>
-                    Aucun membre d&apos;équipe enregistré.
-                  </Text>
+            {staff.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  <Users size={24} color="#9CA3AF" />
                 </View>
-              ) : (
-                staff.map((member) => (
-                  <View key={member.id} style={styles.staffCard}>
-                    <Pressable
-                      onPress={() => setStaffToDelete(member.id)}
-                      style={styles.staffDelete}
-                      accessibilityLabel="Supprimer ce membre"
-                    >
-                      <Trash2 size={12} color="#F87171" />
-                    </Pressable>
+                <Text style={styles.emptyTitle}>Aucun membre d&apos;équipe</Text>
+                <Text style={styles.emptyHint}>
+                  Ajoutez un membre pour lui donner accès au POS, aux commandes et à
+                  l&apos;inventaire.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.staffList}>
+                {staff.map((member) => (
+                  <View key={member.id} style={styles.staffRow}>
                     <View style={styles.staffAvatar}>
-                      <User size={20} color={COLORS.brand} />
+                      <User size={16} color={COLORS.brand} />
                     </View>
                     <View style={styles.flex1}>
                       <Text style={styles.staffName} numberOfLines={1}>
@@ -807,15 +805,22 @@ export function SellerSettingsView({
                           </Text>
                         </View>
                         <Text style={styles.staffStore} numberOfLines={1}>
-                          <Store size={8} color="#9CA3AF" />{' '}
                           {stores.find((s) => s.id === member.storeId)?.name || 'Boutique'}
                         </Text>
                       </View>
                     </View>
+                    <Pressable
+                      onPress={() => setStaffToDelete(member.id)}
+                      style={styles.staffDelete}
+                      hitSlop={6}
+                      accessibilityLabel="Supprimer ce membre"
+                    >
+                      <Trash2 size={15} color="#F87171" />
+                    </Pressable>
                   </View>
-                ))
-              )}
-            </View>
+                ))}
+              </View>
+            )}
           </View>
         ) : null}
 
@@ -1346,51 +1351,64 @@ const styles = StyleSheet.create({
   profileEmailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   profileEmail: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
 
-  staffList: { gap: 12 },
-  staffEmpty: {
-    paddingVertical: 48,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#F3F4F6',
-    borderRadius: 24,
-  },
-  staffEmptyText: { fontSize: 12, fontWeight: '600', color: '#9CA3AF' },
-  staffCard: {
+  /* Liste Équipe : lignes compactes séparées par des filets */
+  staffList: {},
+  staffRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    borderRadius: 12,
-  },
-  staffDelete: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    padding: 6,
-    opacity: 0.6,
-    zIndex: 2,
+    gap: 10,
+    paddingHorizontal: 2,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
   },
   staffAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  staffName: { fontSize: 12, fontWeight: '700', color: '#111827', paddingRight: 24 },
-  staffMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  staffName: { fontSize: 12, fontWeight: '700', color: '#111827' },
+  staffMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
   roleBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
   roleOwner: { backgroundColor: '#F3E8FF' },
   roleSeller: { backgroundColor: '#FFEDD5' },
   roleText: { fontSize: 8, fontWeight: '700' },
   staffStore: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', flexShrink: 1 },
+  staffDelete: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* États vides (Équipe / Promos) */
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#F3F4F6',
+    borderRadius: 16,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyTitle: { fontSize: 13, fontWeight: '700', color: '#4B5563' },
+  emptyHint: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', lineHeight: 16 },
 
   promosIntro: { fontSize: 12, color: '#6B7280', lineHeight: 18, marginBottom: 24 },
   promoFormCard: {
