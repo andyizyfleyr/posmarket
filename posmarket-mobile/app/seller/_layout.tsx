@@ -156,7 +156,7 @@ function SellerShell() {
     return (
       <View style={styles.shell}>
         <SubscriptionRequired
-          onSeeOffers={() => router.replace('/seller/subscription' as Href)}
+          onSeeOffers={() => router.replace('/seller/subscription')}
         />
         <ToastViewport />
       </View>
@@ -183,7 +183,7 @@ function SellerShell() {
           )}
           saving={savingVerification}
           onSave={handleSaveVerification}
-          onOpenSettings={() => router.replace('/seller/settings' as Href)}
+          onOpenSettings={() => router.replace('/seller/settings')}
         />
         <ToastViewport />
       </View>
@@ -207,7 +207,7 @@ function SellerShell() {
         userRole={seller.role}
         onStoreChange={handleStoreChange}
         onDeleteStore={handleDeleteStore}
-        onCreateStore={() => router.push('/seller/new-store' as Href)}
+        onCreateStore={() => router.push('/seller/new-store')}
         onViewChange={(view) => router.push(`/seller/${view}` as Href)}
         onOpenStorefront={() => {
           const slug = seller.currentStore?.slug || seller.currentStore?.id;

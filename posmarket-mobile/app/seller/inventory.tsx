@@ -17,7 +17,7 @@ export default function SellerInventoryScreen() {
 
   const openSubscription = useCallback(() => {
     // Cast temporaire : route créée juste après (même patron que _layout.tsx).
-    router.push('/seller/subscription' as Href);
+    router.push('/seller/subscription');
   }, [router]);
 
   if (!currentStoreId) return null;
