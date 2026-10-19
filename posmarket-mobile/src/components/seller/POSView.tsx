@@ -164,12 +164,15 @@ const PosProductCard = React.memo(function PosProductCard({
 }: PosProductCardProps) {
   const [tapped, setTapped] = useState(false);
   const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
-  // Une variante en rupture ne doit pas laisser la carte « disponible » : le
-  // produit est epitaphe des qu'aucune variante n'a de stock.
-  const allVariantsOut =
-    hasVariants &&
-    (product.variants || []).every((variant) => Math.max(0, Number(variant.stock) || 0) <= 0);
-  const isOutOfStock = stock === 0 || allVariantsOut;
+  // Rupture = plus aucun stock disponible (toutes les variantes épuisées et
+  // stock global nul). Un produit qui a du stock n'est jamais « en rupture »,
+  // même si l'une de ses variantes est épuisée : on le signale à part.
+  const isOutOfStock = stock <= 0;
+  const outVariantCount = hasVariants
+    ? (product.variants || []).filter(
+        (variant) => Math.max(0, Number(variant.stock) || 0) <= 0,
+      ).length
+    : 0;
   const isLowStock = !isOutOfStock && stock > 0 && stock <= 5;
   const wholesaleTiers = getNormalizedWholesaleTiers(product);
   const hasWholesale = wholesaleTiers.length > 0;
@@ -274,6 +277,14 @@ const PosProductCard = React.memo(function PosProductCard({
             {product.variants?.length ?? 0} variante
             {(product.variants?.length ?? 0) > 1 ? 's' : ''}
           </Text>
+        ) : null}
+        {outVariantCount > 0 && !isOutOfStock ? (
+          <View style={styles.cardVariantOutRow}>
+            <AlertTriangle size={8} color="#EF4444" />
+            <Text style={styles.cardVariantOutText}>
+              dont {outVariantCount} en rupture
+            </Text>
+          </View>
         ) : null}
         {hasWholesale && firstWholesaleTier ? (
           <View style={styles.cardWholesaleRow}>
@@ -461,7 +472,13 @@ export function SellerPosView({
           0,
         );
         const live = stockMap[p.id];
-        if (live != null && total <= 0) return live;
+        if (total <= 0) {
+          if (live != null) return live;
+          // Variantes sans stock renseigné : on retombe sur le stock produit
+          // (la table produit reste la référence côté PDV).
+          const base = Number(p.stock ?? 0);
+          if (base > 0) return base;
+        }
         return total;
       }
       return stockMap[p.id] ?? Number(p.stock ?? 0);
@@ -2096,6 +2113,17 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+  },
+  cardVariantOutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 1,
+  },
+  cardVariantOutText: {
+    fontSize: 7,
+    fontWeight: '700',
+    color: '#EF4444',
   },
   cardVariants: {
     fontSize: 7,
