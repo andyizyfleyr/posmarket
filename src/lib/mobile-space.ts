@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { storeStaff, stores } from '@/db/schema';
 import { getCurrentSession } from '@/app/actions/session';
+import { getStoreCookie } from '@/utils/store-cookie';
 import {
   canAccessBuyerSpace,
   canAccessSellerSpace,
@@ -63,4 +67,34 @@ export async function requireBuyerSpace(): Promise<SpaceGuard> {
     };
   }
   return { ok: true, userId: user.id };
+}
+
+/**
+ * Boutique courante d'une route mobile : identifiant demandé, sinon cookie
+ * `currentStoreId`, sinon première boutique possédée puis de l'équipe.
+ *
+ * Même logique que `getEffectiveStoreId` du web ; l'autorisation réelle sur la
+ * boutique est de toute façon revérifiée par `requireStoreAccess` dans les
+ * actions serveur appelées ensuite.
+ */
+export async function resolveMobileStoreId(
+  userId: string,
+  requested?: string | null,
+): Promise<string | null> {
+  const candidate = requested || (await getStoreCookie());
+  if (candidate) return candidate;
+
+  const [owned] = await db
+    .select({ id: stores.id })
+    .from(stores)
+    .where(eq(stores.userId, userId))
+    .limit(1);
+  if (owned?.id) return owned.id;
+
+  const [staff] = await db
+    .select({ storeId: storeStaff.storeId })
+    .from(storeStaff)
+    .where(eq(storeStaff.userId, userId))
+    .limit(1);
+  return staff?.storeId || null;
 }

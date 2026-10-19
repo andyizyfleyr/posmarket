@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { stores } from '@/db/schema';
 import { fetchStoreData } from '@/app/actions/store';
 import { loadOrdersForStore } from '@/lib/load-store-data';
-import { requireSellerSpace } from '@/lib/mobile-space';
+import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
 import { getStoreCookie } from '@/utils/store-cookie';
 
 export const dynamic = 'force-dynamic';
@@ -22,16 +19,10 @@ export async function GET(req: NextRequest) {
     if (!guard.ok) return guard.response;
 
     const { searchParams } = new URL(req.url);
-    let storeId = searchParams.get('storeId') || (await getStoreCookie()) || '';
-
-    if (!storeId) {
-      const [first] = await db
-        .select({ id: stores.id })
-        .from(stores)
-        .where(eq(stores.userId, guard.userId))
-        .limit(1);
-      storeId = first?.id || '';
-    }
+    const storeId = await resolveMobileStoreId(
+      guard.userId,
+      searchParams.get('storeId') || (await getStoreCookie()),
+    );
 
     if (!storeId) {
       return NextResponse.json({ success: false, error: 'NoStore' });
