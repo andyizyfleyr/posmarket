@@ -28,6 +28,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Building,
   Camera,
@@ -111,6 +112,7 @@ export function SellerSettingsView({
   onSaved,
 }: SellerSettingsViewProps) {
   const { notify } = useToast();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<TabId>('store');
   const [localSettings, setLocalSettings] = useState<StoreSettings>(EMPTY_SETTINGS);
@@ -122,6 +124,8 @@ export function SellerSettingsView({
   const [isSaving, setIsSaving] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState(false);
   const saveFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Champ « code » de l'onglet Promos (action principale « Nouveau code »). */
+  const couponCodeRef = useRef<TextInput>(null);
 
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isSubmittingStaff, setIsSubmittingStaff] = useState(false);
@@ -279,6 +283,9 @@ export function SellerSettingsView({
       }
       if (res.success) {
         notify('Profil mis à jour !', 'success');
+        setSaveFeedback(true);
+        if (saveFeedbackTimer.current) clearTimeout(saveFeedbackTimer.current);
+        saveFeedbackTimer.current = setTimeout(() => setSaveFeedback(false), 2500);
         await onSaved?.();
         void reload({ silent: true });
       } else {
@@ -435,22 +442,16 @@ export function SellerSettingsView({
   const tabs = TABS.filter((tab) => tab.id !== 'staff' || permissions?.canManageStaff);
 
   return (
-    <View style={styles.screen}>
-      {/* En-tête */}
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Réglages</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            Gérez vos préférences.
-          </Text>
-        </View>
+    <View style={styles.root}>
+      {/* ── Action principale (dépend de l'onglet actif) ── */}
+      {activeTab === 'store' ? (
         <Pressable
           onPress={() => void handleSave()}
           disabled={isSaving}
           style={[
-            styles.saveBtn,
-            isSaving && { opacity: 0.7 },
-            saveFeedback && { backgroundColor: '#22C55E' },
+            styles.primaryBtn,
+            isSaving && styles.disabled,
+            saveFeedback && styles.primaryBtnDone,
           ]}
         >
           {isSaving ? (
@@ -460,35 +461,73 @@ export function SellerSettingsView({
           ) : (
             <Save size={16} color="#FFFFFF" />
           )}
-          <Text style={styles.saveBtnText}>
+          <Text style={styles.primaryBtnText}>
             {isSaving ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
           </Text>
         </Pressable>
+      ) : activeTab === 'user' ? (
+        <Pressable
+          onPress={() => void handleUpdateProfileLocal()}
+          disabled={isUpdatingProfile}
+          style={[
+            styles.primaryBtn,
+            isUpdatingProfile && styles.disabled,
+            saveFeedback && styles.primaryBtnDone,
+          ]}
+        >
+          {isUpdatingProfile ? (
+            <Loader2 size={16} color="#FFFFFF" />
+          ) : saveFeedback ? (
+            <ShieldCheck size={16} color="#FFFFFF" />
+          ) : (
+            <Save size={16} color="#FFFFFF" />
+          )}
+          <Text style={styles.primaryBtnText}>
+            {isUpdatingProfile ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
+          </Text>
+        </Pressable>
+      ) : activeTab === 'staff' ? (
+        <Pressable onPress={() => setIsStaffModalOpen(true)} style={styles.primaryBtn}>
+          <Plus size={16} color="#FFFFFF" />
+          <Text style={styles.primaryBtnText}>Ajouter un membre</Text>
+        </Pressable>
+      ) : (
+        <Pressable onPress={() => couponCodeRef.current?.focus()} style={styles.primaryBtn}>
+          <Plus size={16} color="#FFFFFF" />
+          <Text style={styles.primaryBtnText}>Nouveau code</Text>
+        </Pressable>
+      )}
+
+      {/* ── Barre blanche : onglets ── */}
+      <View style={styles.tabsWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+          style={styles.tabsScroll}
+        >
+          {tabs.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <Pressable
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
+                style={[styles.tabBtn, active && styles.tabBtnActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <tab.Icon size={14} color={active ? '#FFFFFF' : '#6B7280'} />
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {/* Onglets */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabsRow}
-        style={styles.tabsScroll}
-      >
-        {tabs.map((tab) => {
-          const active = activeTab === tab.id;
-          return (
-            <Pressable
-              key={tab.id}
-              onPress={() => setActiveTab(tab.id)}
-              style={[styles.tabBtn, active && styles.tabBtnActive]}
-            >
-              <tab.Icon size={18} color={active ? COLORS.brand : '#6B7280'} />
-              <Text style={[styles.tabText, active && { color: COLORS.brand }]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {/* ── Carte plein écran ── */}
+      <View style={styles.card}>
 
       {/* Contenu */}
       <ScrollView
@@ -725,23 +764,6 @@ export function SellerSettingsView({
                     />
                   </View>
                 </View>
-
-                <Pressable
-                  onPress={() => void handleUpdateProfileLocal()}
-                  disabled={isUpdatingProfile}
-                  style={[styles.profileSave, isUpdatingProfile && { opacity: 0.5 }]}
-                >
-                  {isUpdatingProfile ? (
-                    <Loader2 size={18} color="#FFFFFF" />
-                  ) : (
-                    <Save size={18} color="#FFFFFF" />
-                  )}
-                  <Text style={styles.profileSaveText}>
-                    {isUpdatingProfile
-                      ? 'Mise à jour...'
-                      : 'Sauvegarder les modifications'}
-                  </Text>
-                </Pressable>
               </View>
             </View>
           </View>
@@ -750,16 +772,6 @@ export function SellerSettingsView({
         {/* ── Onglet Équipe ── */}
         {activeTab === 'staff' && permissions?.canManageStaff ? (
           <View style={styles.tabBody}>
-            <View style={styles.staffHeaderRow}>
-              <View style={styles.flex1}>
-                <SectionHeader title="Gestion de l'Équipe" Icon={Users} />
-              </View>
-              <Pressable onPress={() => setIsStaffModalOpen(true)} style={styles.addStaffBtn}>
-                <Plus size={14} color="#FFFFFF" />
-                <Text style={styles.addStaffText}>Ajouter un membre</Text>
-              </Pressable>
-            </View>
-
             <View style={styles.staffList}>
               {staff.length === 0 ? (
                 <View style={styles.staffEmpty}>
@@ -925,7 +937,11 @@ export function SellerSettingsView({
             </View>
           </View>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+      </View>
+
+      {/* Marge basse sûre (barre de navigation de la coquille). */}
+      <View style={{ height: insets.bottom }} />
 
       {/* Modale « Nouvel Employé » */}
       <Modal
@@ -1064,91 +1080,98 @@ function SectionHeader({
 }) {
   return (
     <View style={styles.sectionHeader}>
-      <View style={styles.sectionIcon}>
-        <Icon size={14} color="#FFFFFF" />
-      </View>
+      <Icon size={12} color={COLORS.brand} />
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: 'rgba(249,250,251,0.3)' },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+  root: {
+    flex: 1,
+    backgroundColor: '#FDFDFE',
     paddingHorizontal: 12,
     paddingTop: 12,
-    paddingBottom: 16,
   },
-  headerText: { flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827', letterSpacing: -0.3 },
-  headerSubtitle: { fontSize: 10, color: '#6B7280', marginTop: 2 },
-  saveBtn: {
+
+  /* Action principale (s'adapte à l'onglet actif) */
+  primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    height: 44,
     backgroundColor: COLORS.brand,
+    borderRadius: 14,
+    shadowColor: COLORS.brand,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
-  saveBtnText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
+  primaryBtnDone: { backgroundColor: '#22C55E', shadowColor: '#22C55E' },
+  primaryBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  disabled: { opacity: 0.6 },
 
+  /* Barre blanche : onglets (même modèle que la barre de filtres des listes) */
+  tabsWrap: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 6,
+    marginTop: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
   tabsScroll: { flexGrow: 0 },
-  tabsRow: { gap: 6, paddingHorizontal: 12, paddingBottom: 12 },
+  tabsRow: { gap: 6 },
   tabBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    height: 36,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  tabBtnActive: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  tabText: { fontSize: 10, fontWeight: '700', color: '#6B7280' },
+  tabBtnActive: { backgroundColor: COLORS.brand },
+  tabText: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
+  tabTextActive: { color: '#FFFFFF' },
 
-  contentScroll: { flex: 1 },
-  content: {
+  /* Carte plein écran */
+  card: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    padding: 14,
-    paddingBottom: 40,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
+  contentScroll: { flex: 1 },
+  content: { padding: 14, paddingBottom: 32 },
   loadingBox: { alignItems: 'center', paddingVertical: 12 },
-  tabBody: { gap: 24 },
+  tabBody: { gap: 18 },
   flex1: { flex: 1 },
 
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  sectionIcon: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: COLORS.brand,
-  },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    color: '#111827',
+    color: '#6B7280',
     textTransform: 'uppercase',
-    letterSpacing: 1.6,
+    letterSpacing: 1.4,
   },
 
-  logoWrap: { alignItems: 'center', marginBottom: 24 },
+  logoWrap: { alignItems: 'center', marginBottom: 8 },
   logoBox: {
     width: 80,
     height: 80,
@@ -1217,23 +1240,23 @@ const styles = StyleSheet.create({
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, paddingHorizontal: 4 },
   note: { fontSize: 8, color: '#9CA3AF', fontWeight: '600', fontStyle: 'italic' },
 
-  b2bBlock: { paddingTop: 24, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  b2bBlock: { paddingTop: 18, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
   b2bCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    padding: 16,
+    padding: 12,
     backgroundColor: 'rgba(255,247,237,0.6)',
     borderWidth: 1,
     borderColor: '#FFEDD5',
-    borderRadius: 16,
+    borderRadius: 14,
   },
-  b2bLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  b2bLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   b2bIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: 'rgba(245,107,42,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1242,13 +1265,13 @@ const styles = StyleSheet.create({
   b2bTitle: { fontSize: 12, fontWeight: '700', color: '#111827' },
   b2bDesc: { fontSize: 10, color: '#6B7280', marginTop: 2 },
   b2bMinCard: {
-    padding: 16,
+    padding: 12,
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 16,
+    borderRadius: 14,
     gap: 8,
-    marginTop: 16,
+    marginTop: 12,
   },
   b2bMinLabel: {
     fontSize: 10,
@@ -1371,28 +1394,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
   },
-  profileSave: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 18,
-    borderRadius: 16,
-    backgroundColor: COLORS.brand,
-  },
-  profileSaveText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
-
-  staffHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  addStaffBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: COLORS.brand,
-    borderRadius: 8,
-  },
-  addStaffText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
   staffList: { gap: 12 },
   staffEmpty: {
     paddingVertical: 48,
