@@ -6,6 +6,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   ChevronDown,
@@ -64,6 +65,7 @@ export function SellerNavbar({
   onLogout,
 }: SellerNavbarProps) {
   const isSeller = userRole === 'SELLER';
+  const insets = useSafeAreaInsets();
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
@@ -123,7 +125,7 @@ export function SellerNavbar({
 
   return (
     <>
-      <View style={styles.nav}>
+      <View style={[styles.nav, { paddingTop: insets.top, height: 56 + insets.top }]}>
         {/* Sélecteur de boutique */}
         {stores.length > 0 && currentStore ? (
           isSeller && stores.length === 1 ? (
@@ -195,7 +197,7 @@ export function SellerNavbar({
           onPress={() => setShowStoreDropdown(false)}
           accessibilityLabel="Fermer le menu"
         >
-          <Pressable style={styles.dropdown} onPress={() => {}}>
+          <Pressable style={[styles.dropdown, { top: insets.top + 80 }]} onPress={() => {}}>
             <View style={styles.storeDropdownHeader}>
               <Text style={styles.dropdownLabel}>
                 Boutiques ({stores.length}/{currentPlan?.features?.maxStores || 3})
@@ -281,7 +283,7 @@ export function SellerNavbar({
           onPress={() => setShowProfileDropdown(false)}
           accessibilityLabel="Fermer le menu"
         >
-          <Pressable style={styles.dropdown} onPress={() => {}}>
+          <Pressable style={[styles.dropdown, { top: insets.top + 80 }]} onPress={() => {}}>
             <View style={styles.profileHeader}>
               <View style={styles.profileTop}>
                 <View style={styles.profileAvatarBox}>
