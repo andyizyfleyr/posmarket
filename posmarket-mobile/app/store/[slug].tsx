@@ -36,7 +36,6 @@ import {
   Search,
   ShieldCheck,
   ShoppingBasket,
-  ShoppingCart,
   Star,
   Store,
   X,
@@ -48,14 +47,10 @@ import {
   searchProducts,
 } from '@/api/client';
 import { Loader } from '@/components/Loader';
+import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { ProductCard } from '@/components/ProductCard';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
-import {
-  formatCurrency,
-  formatNumber,
-  generateProductSlug,
-  maskName,
-} from '@/utils';
+import { formatNumber, generateProductSlug, maskName } from '@/utils';
 import { COLORS } from '@/theme';
 import { useCart } from '@/context/CartContext';
 import type { Review, StoreData, StorefrontProduct } from '@/types';
@@ -74,7 +69,7 @@ export default function StoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { cartCount, cartTotal } = useCart();
+  const { cartCount } = useCart();
 
   const [activeTab, setActiveTab] = useState<'products' | 'reviews'>(
     'products',
@@ -87,10 +82,7 @@ export default function StoreScreen() {
     null,
   );
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
-  const [tabsHidden, setTabsHidden] = useState(false);
   const loadMoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastScrollYRef = useRef(0);
-  const tabsHiddenRef = useRef(false);
 
   // ── Catalogue ──
   const { data: catalogData, isLoading } = useQuery({
@@ -194,20 +186,6 @@ export default function StoreScreen() {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
-
-      // Onglets : se replient quand on scrolle vers le bas, réapparaissent
-      // au premier mouvement inverse (même règle que le web : ±10 px).
-      const y = contentOffset.y;
-      const prevY = lastScrollYRef.current;
-      lastScrollYRef.current = y;
-      let nextHidden = tabsHiddenRef.current;
-      if (y < 120) nextHidden = false;
-      else if (y - prevY > 10) nextHidden = true;
-      else if (prevY - y > 10) nextHidden = false;
-      if (nextHidden !== tabsHiddenRef.current) {
-        tabsHiddenRef.current = nextHidden;
-        setTabsHidden(nextHidden);
-      }
 
       if (
         layoutMeasurement.height + contentOffset.y >=
@@ -556,8 +534,8 @@ export default function StoreScreen() {
           </View>
         </View>
 
-        {/* ── Onglets Produits / Avis (collants, repliés au scroll bas) ── */}
-        <View style={[styles.tabsWrap, tabsHidden && styles.tabsWrapHidden]}>
+        {/* ── Onglets Produits / Avis (collés en haut au défilement) ── */}
+        <View style={styles.tabsWrap}>
           <View style={styles.tabsBar}>
             <Pressable
               style={[styles.tabButton, activeTab === 'products' && styles.tabButtonActive]}
@@ -814,6 +792,9 @@ export default function StoreScreen() {
             style={[
               styles.sheetContainer,
               { paddingBottom: Math.max(insets.bottom, 12) + 12 },
+              cartCount > 0 && {
+                marginBottom: CART_BAR_CONTENT_HEIGHT + insets.bottom,
+              },
             ]}
           >
             <View style={styles.sheetHandle} />
@@ -852,35 +833,15 @@ export default function StoreScreen() {
               )}
             />
           </View>
+
+          {/* La barre panier reste visible sous la feuille (comme le web). */}
+          <CartBar onPress={() => setSheetCategory(null)} />
         </View>
       </Modal>
 
       {/* Barre panier fixe — visible sur les pages de découverte
           (accueil, boutique), comme le web. */}
-      {cartCount > 0 && (
-        <View style={[styles.cartBar, { paddingBottom: insets.bottom + 10 }]}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.cartBarButton,
-              pressed && styles.cartBarButtonPressed,
-            ]}
-            onPress={() => router.push('/cart' as never)}
-          >
-            <View style={styles.cartBarIconWrap}>
-              <ShoppingCart size={15} strokeWidth={2.5} color="#FFF" />
-              <View style={styles.cartBarBadge}>
-                <Text style={styles.cartBarBadgeText}>
-                  {cartCount > 99 ? '99+' : cartCount}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.cartBarText} numberOfLines={1}>
-              Voir mon panier <Text style={styles.cartBarBullet}>•</Text>{' '}
-              {formatCurrency(cartTotal)}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      <CartBar />
     </View>
   );
 }
@@ -900,7 +861,8 @@ function ProductSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({  container: {
+const styles = StyleSheet.create({
+  container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
@@ -1069,10 +1031,6 @@ const styles = StyleSheet.create({  container: {
   tabsWrap: {
     marginHorizontal: 16,
     marginBottom: 20,
-  },
-  tabsWrapHidden: {
-    opacity: 0,
-    transform: [{ translateY: -80 }],
   },
   tabsBar: {
     flexDirection: 'row',
@@ -1568,67 +1526,6 @@ const styles = StyleSheet.create({  container: {
   },
   showMoreChevron: {
     transform: [{ rotate: '90deg' }],
-  },
-
-  // ── Barre panier fixe (bandeau blanc + pilule orange 48 px) ──
-  cartBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-  },
-  cartBarButton: {
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-  },
-  cartBarButtonPressed: {
-    backgroundColor: '#E04E0F',
-  },
-  cartBarIconWrap: {
-    position: 'relative',
-  },
-  cartBarBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -10,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: '#111827',
-    borderWidth: 2,
-    borderColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBarBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  cartBarText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  cartBarBullet: {
-    opacity: 0.4,
   },
 
   // ── Boutique introuvable ──

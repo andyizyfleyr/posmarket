@@ -56,9 +56,10 @@ import {
   API_BASE_URL,
 } from '@/api/client';
 import { ProductCard } from '@/components/ProductCard';
+import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { Loader } from '@/components/Loader';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
-import { formatCurrency, generateProductSlug } from '@/utils';
+import { generateProductSlug } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { COLORS } from '@/theme';
 import logoTrimmed from '../assets/logo-trimmed.png';
@@ -401,7 +402,7 @@ function HomeFooter() {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { cartCount, cartTotal } = useCart();
+  const { cartCount } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -882,32 +883,9 @@ export default function HomeScreen() {
         }
       />
 
-      {/* Barre panier fixe — identique au web (visible dès que le panier
-          contient un article) : bandeau blanc + pilule orange 48 px. */}
-      {cartCount > 0 && (
-        <View style={[styles.cartBar, { paddingBottom: insets.bottom + 10 }]}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.cartBarButton,
-              pressed && styles.cartBarButtonPressed,
-            ]}
-            onPress={() => router.push('/cart' as never)}
-          >
-            <View style={styles.cartBarIconWrap}>
-              <ShoppingCart size={15} strokeWidth={2.5} color="#FFF" />
-              <View style={styles.cartBarBadge}>
-                <Text style={styles.cartBarBadgeText}>
-                  {cartCount > 99 ? '99+' : cartCount}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.cartBarText} numberOfLines={1}>
-              Voir mon panier <Text style={styles.cartBarBullet}>•</Text>{' '}
-              {formatCurrency(cartTotal)}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      {/* Barre panier fixe — visible sur les pages de découverte,
+          sous la feuille « Voir tout » incluse (comme le web). */}
+      <CartBar />
 
       {/* Feuille « Voir tout » — tous les produits de la catégorie
           (même comportement que la BottomSheet du web mobile). */}
@@ -927,6 +905,9 @@ export default function HomeScreen() {
               style={[
                 styles.sheetContainer,
                 { paddingBottom: Math.max(insets.bottom, 12) + 12 },
+                cartCount > 0 && {
+                  marginBottom: CART_BAR_CONTENT_HEIGHT + insets.bottom,
+                },
               ]}
             >
               <View style={styles.sheetHandle} />
@@ -965,6 +946,9 @@ export default function HomeScreen() {
               />
             </View>
           )}
+
+          {/* La barre panier reste visible sous la feuille (comme le web). */}
+          <CartBar onPress={() => setSheetCategory(null)} />
         </View>
       </Modal>
     </SafeAreaView>
@@ -1080,66 +1064,6 @@ const styles = StyleSheet.create({
   },
   listContentWithCartBar: {
     paddingBottom: 104,
-  },
-  // Barre panier fixe (bandeau blanc + pilule orange 48 px)
-  cartBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-  },
-  cartBarButton: {
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-  },
-  cartBarButtonPressed: {
-    backgroundColor: '#E04E0F',
-  },
-  cartBarIconWrap: {
-    position: 'relative',
-  },
-  cartBarBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -10,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: '#111827',
-    borderWidth: 2,
-    borderColor: COLORS.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBarBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  cartBarText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  cartBarBullet: {
-    opacity: 0.4,
   },
   // Feuille « Voir tout » (bas d'écran)
   sheetOverlay: {
