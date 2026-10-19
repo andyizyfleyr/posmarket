@@ -1163,6 +1163,8 @@ export default function ProductDetailScreen() {
                               key={val}
                               disabled={isDisabled}
                               onPress={() => selectValue(option.id, val)}
+                              onPressIn={() => !isDisabled && val}
+                              onPressOut={() => {}}
                               style={[
                                 styles.swatch,
                                 { backgroundColor: hex },
@@ -1189,6 +1191,8 @@ export default function ProductDetailScreen() {
                             key={val}
                             disabled={isDisabled}
                             onPress={() => selectValue(option.id, val)}
+                            onPressIn={() => !isDisabled && val}
+                            onPressOut={() => {}}
                             style={[
                               styles.chip,
                               isDisabled
@@ -1223,7 +1227,7 @@ export default function ProductDetailScreen() {
                 );
               })}
 
-              {/* Indice de disponibilité */}
+              {/* Indice de disponibilité — identique au web (OptionSelectionHint) */}
               {!allSelected ? (
                 <View style={styles.hintAmber}>
                   <AlertCircle size={11} color="#b45309" />
@@ -2453,6 +2457,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   chipDisabled: {
     backgroundColor: '#f9fafb',
@@ -2461,6 +2470,11 @@ const styles = StyleSheet.create({
   chipSelected: {
     backgroundColor: BRAND,
     borderColor: BRAND,
+    shadowColor: BRAND,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chipText: {
     fontSize: 10.5,
@@ -2495,9 +2509,21 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   swatchSelected: {
     borderColor: BRAND,
+    borderWidth: 2,
+    shadowColor: BRAND,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+    transform: [{ scale: 1.05 }],
   },
   swatchDisabled: {
     opacity: 0.35,
@@ -2560,16 +2586,16 @@ const styles = StyleSheet.create({
     gap: 6,
     flexShrink: 1,
   },
+  hintGreenRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   hintGreenName: {
     fontSize: 10,
     fontWeight: '600',
     color: '#065f46',
     flexShrink: 1,
-  },
-  hintGreenRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   hintGreenPrice: {
     fontSize: 10,
