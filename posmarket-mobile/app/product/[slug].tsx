@@ -2319,16 +2319,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17,24,39,0.5)',
   },
   sheet: {
-    flex: 1,
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '88%',
+    maxHeight: '80%', // réduit de 88% à 80% pour ne pas cacher trop d'écran
     overflow: 'hidden',
   },
   reviewsSheet: {
-    maxHeight: '85%',
+    maxHeight: '80%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -2349,6 +2348,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
+    flexShrink: 0, // header fixe en haut
   },
   sheetTitle: {
     fontSize: 14,
@@ -2364,6 +2364,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheetScroll: {
+    flex: 1, // prend l'espace restant entre header et footer
     maxHeight: '100%',
   },
   sheetScrollContent: {
