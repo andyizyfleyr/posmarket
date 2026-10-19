@@ -632,7 +632,17 @@ export function SellerInventoryView({
             ) : (
               filteredProducts.map((product) => {
                 const selected = selectedIds.includes(product.id);
-                const lowStock = Number(product.stock) < 10;
+                // Même règle que le POS : un produit à variantes est stocké par
+                // variante, la liste affiche donc la somme de ses variantes.
+                const variants = Array.isArray(product.variants) ? product.variants : [];
+                const displayStock =
+                  variants.length > 0
+                    ? variants.reduce(
+                        (sum, v) => sum + Math.max(0, Number(v.stock) || 0),
+                        0,
+                      )
+                    : Number(product.stock) || 0;
+                const lowStock = displayStock < 10;
                 return (
                   <View
                     key={product.id}
@@ -689,8 +699,14 @@ export function SellerInventoryView({
                               lowStock && styles.productStockLow,
                             ]}
                           >
-                            {product.stock} {product.unit}
+                            {displayStock} {product.unit}
                           </Text>
+                          {variants.length > 0 ? (
+                            <Text style={styles.productVariants}>
+                              · {variants.length} variante
+                              {variants.length > 1 ? 's' : ''}
+                            </Text>
+                          ) : null}
                           {lowStock ? <AlertCircle size={9} color="#EF4444" /> : null}
                         </View>
                       </View>
@@ -1057,6 +1073,7 @@ const styles = StyleSheet.create({
   productStockRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   productStock: { fontSize: 9, fontWeight: '700', color: '#6B7280' },
   productStockLow: { color: '#EF4444' },
+  productVariants: { fontSize: 9, color: '#9CA3AF' },
   productActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   editBtn: {
     padding: 10,

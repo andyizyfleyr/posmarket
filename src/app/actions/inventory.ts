@@ -443,10 +443,33 @@ export async function getStockCountsAction(storeId: string): Promise<{ ok: boole
       const access = await requireStoreAccess(storeId);
       if (!access.ok) return { ok: false, error: access.error };
 
-      const rows = await db.select({ id: products.id, stock: products.stock }).from(products).where(eq(products.storeId, storeId));
-    const stock: Record<string, number> = {};
-    for (const r of rows) stock[r.id] = Number(r.stock ?? 0);
-    return { ok: true, stock };
+      // Un produit à variantes est stocké par variante : le compteur doit
+        // refléter la somme des variantes (comme le POS et la liste Stocks),
+        // sinon la colonne `products.stock` peut être en retard d'une édition.
+        const rows = await db
+            .select({
+                id: products.id,
+                stock: products.stock,
+                options: products.options,
+                variants: products.variants,
+            })
+            .from(products)
+            .where(eq(products.storeId, storeId));
+        const stock: Record<string, number> = {};
+        for (const r of rows) {
+            const options = normalizeOptions(r.options);
+            if (options.length > 0) {
+                const variants = normalizeVariants(r.variants, options);
+                stock[r.id] = variants.reduce(
+                    (total, variant) =>
+                        total + Math.max(0, Math.round(Number(variant.stock) || 0)),
+                    0,
+                );
+                continue;
+            }
+            stock[r.id] = Number(r.stock ?? 0);
+        }
+        return { ok: true, stock };
   } catch (error: unknown) {
     console.error('Error fetching stock counts with Drizzle:', error);
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
