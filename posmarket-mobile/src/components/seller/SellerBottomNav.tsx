@@ -1,17 +1,18 @@
 /**
- * Barre de navigation basse — copie fidèle de `src/components/BottomNav.tsx`
- * du web (rendu mobile) : 5 onglets (Accueil, Vente, Commandes, Stocks,
- * Clients), bascule « Plus » → Rapports pour les non-vendeurs, pastille
- * active orange.
+ * Barre de navigation basse — copie de `src/components/BottomNav.tsx` du web
+ * (rendu mobile) : 5 onglets (Accueil, Vente, Commandes, Stocks, Clients),
+ * pastille active orange.
+ *
+ * Le bouton « Plus » du web n'est pas repris : il masquait l'onglet « Clients »
+ * (4 onglets + menu). Les 5 onglets restent donc visibles en permanence et
+ * « Rapports » reste accessible depuis le menu profil de la navbar.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  BarChart3,
   LayoutDashboard,
-  MoreHorizontal,
   Package,
   ShoppingBag,
   ShoppingBasket,
@@ -67,10 +68,8 @@ interface SellerBottomNavProps {
   userRole?: SellerRole;
 }
 
-export function SellerBottomNav({ currentView, onViewChange, userRole }: SellerBottomNavProps) {
+export function SellerBottomNav({ currentView, onViewChange }: SellerBottomNavProps) {
   const insets = useSafeAreaInsets();
-  const isSeller = userRole === 'SELLER';
-  const [showOverflow, setShowOverflow] = useState(false);
 
   const primaryItems: Array<{
     icon: React.ReactNode;
@@ -84,92 +83,20 @@ export function SellerBottomNav({ currentView, onViewChange, userRole }: SellerB
     { icon: <Users />, label: 'Clients', view: 'customers' },
   ];
 
-  const overflowItems: Array<{ icon: React.ReactNode; label: string; view: SellerView }> = [];
-  if (!isSeller) {
-    overflowItems.push({ icon: <BarChart3 size={18} />, label: 'Rapports', view: 'reports' });
-  }
-
-  const showOverflowButton = overflowItems.length > 0;
-  const visiblePrimary = showOverflowButton ? primaryItems.slice(0, 4) : primaryItems;
-  const isOverflowActive = overflowItems.some((item) => item.view === currentView);
-
   return (
-    <>
-      <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
-        <View style={styles.barRow}>
-          {visiblePrimary.map((item) => (
-            <BottomNavItem
-              key={item.view}
-              icon={item.icon}
-              label={item.label}
-              active={currentView === item.view}
-              onPress={() => onViewChange(item.view)}
-            />
-          ))}
-          {showOverflowButton ? (
-            <Pressable
-              onPress={() => setShowOverflow((prev) => !prev)}
-              accessibilityRole="button"
-              accessibilityLabel="Plus d'options"
-              style={styles.item}
-            >
-              <View
-                style={[
-                  styles.iconWrap,
-                  showOverflow && styles.iconWrapOpen,
-                  isOverflowActive && styles.iconWrapActive,
-                ]}
-              >
-                <MoreHorizontal
-                  size={20}
-                  strokeWidth={isOverflowActive ? 2.5 : 1.8}
-                  color={isOverflowActive ? COLORS.brand : '#9CA3AF'}
-                />
-              </View>
-              <Text style={[styles.label, isOverflowActive && styles.labelActive]}>Plus</Text>
-              {isOverflowActive ? <View style={styles.activePill} /> : null}
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-
-      {showOverflow ? (
-        <View style={styles.overlayWrap} pointerEvents="box-none">
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setShowOverflow(false)}
-            accessibilityLabel="Fermer le menu"
+    <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
+      <View style={styles.barRow}>
+        {primaryItems.map((item) => (
+          <BottomNavItem
+            key={item.view}
+            icon={item.icon}
+            label={item.label}
+            active={currentView === item.view}
+            onPress={() => onViewChange(item.view)}
           />
-          <View style={[styles.overflowMenu, { bottom: 72 + insets.bottom }]}>
-            {overflowItems.map((item) => {
-              const active = currentView === item.view;
-              return (
-                <Pressable
-                  key={item.view}
-                  onPress={() => {
-                    onViewChange(item.view);
-                    setShowOverflow(false);
-                  }}
-                  style={[styles.overflowItem, active && styles.overflowItemActive]}
-                >
-                  {React.isValidElement(item.icon)
-                    ? React.cloneElement(
-                        item.icon as React.ReactElement<{ color?: string }>,
-                        { color: active ? COLORS.brand : '#4B5563' },
-                      )
-                    : item.icon}
-                  <Text
-                    style={[styles.overflowLabel, active && styles.overflowLabelActive]}
-                  >
-                    {item.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
-    </>
+        ))}
+      </View>
+    </View>
   );
 }
 

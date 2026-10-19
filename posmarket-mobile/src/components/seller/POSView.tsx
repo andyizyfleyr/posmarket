@@ -205,36 +205,19 @@ const PosProductCard = React.memo(function PosProductCard({
       ]}
     >
       {/* Image */}
-      <View style={styles.cardImageWrap}>
+      <View style={[styles.cardImageWrap, isOutOfStock && styles.cardImageWrapOut]}>
         <ProductThumb uri={product.image} iconSize={32} />
 
         {/* Voile de retour au tap */}
         {tapped ? <View pointerEvents="none" style={styles.cardTapOverlay} /> : null}
 
-        {/* Pastille d'ajout */}
-        {!isOutOfStock ? (
-          <View
-            style={[
-              styles.addPill,
-              tapped
-                ? styles.addPillTapped
-                : bulkAdd
-                  ? styles.addPillBulk
-                  : styles.addPillIdle,
-            ]}
-          >
-            {bulkAdd ? (
-              <View style={styles.addPillBulkRow}>
-                <BadgePercent
-                  size={11}
-                  color="#FFFFFF"
-                  strokeWidth={2.5}
-                />
-                <Text style={styles.addPillBulkText}>{firstWholesaleTier?.minQty}</Text>
-              </View>
-            ) : (
-              <Plus size={14} color="#4B5563" strokeWidth={3} />
-            )}
+        {/* Pastille « Gros » (mode gros uniquement) */}
+        {bulkAdd && !isOutOfStock ? (
+          <View style={[styles.addPill, tapped ? styles.addPillTapped : styles.addPillBulk]}>
+            <View style={styles.addPillBulkRow}>
+              <BadgePercent size={11} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={styles.addPillBulkText}>{firstWholesaleTier?.minQty}</Text>
+            </View>
           </View>
         ) : null}
 
@@ -262,11 +245,11 @@ const PosProductCard = React.memo(function PosProductCard({
           <Text style={styles.stockBadgeText}>{stock}</Text>
         </View>
 
-        {/* Rupture */}
+        {/* Rupture : bandeau rouge en travers de la photo */}
         {isOutOfStock ? (
-          <View style={styles.outOfStockOverlay}>
-            <View style={styles.outOfStockPill}>
-              <Text style={styles.outOfStockText}>Rupture</Text>
+          <View style={styles.outOfStockOverlay} pointerEvents="none">
+            <View style={styles.outOfStockBand}>
+              <Text style={styles.outOfStockText}>Rupture de stock</Text>
             </View>
           </View>
         ) : null}
@@ -277,7 +260,10 @@ const PosProductCard = React.memo(function PosProductCard({
         <Text style={styles.cardName} numberOfLines={1}>
           {product.name}
         </Text>
-        <Text style={styles.cardPrice}>{formatCurrency(product.price)}</Text>
+        <Text style={[styles.cardPrice, isOutOfStock && styles.cardPriceOut]}>
+          {formatCurrency(product.price)}
+        </Text>
+        {isOutOfStock ? <Text style={styles.cardOutLabel}>Épuisé</Text> : null}
         {hasVariants ? (
           <Text style={styles.cardVariants}>
             {product.variants?.length ?? 0} variante
@@ -1959,7 +1945,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cardDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#FECACA',
+  },
+  cardImageWrapOut: {
+    opacity: 0.45,
   },
   cardImageWrap: {
     width: '100%',
@@ -2057,19 +2047,19 @@ const styles = StyleSheet.create({
   },
   outOfStockOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  outOfStockPill: {
-    backgroundColor: 'rgba(17,24,39,0.8)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  outOfStockBand: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
+    transform: [{ rotate: '-8deg' }],
   },
   outOfStockText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -2090,6 +2080,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#111827',
+  },
+  cardPriceOut: {
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  cardOutLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#EF4444',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   cardVariants: {
     fontSize: 7,

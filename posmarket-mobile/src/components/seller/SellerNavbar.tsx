@@ -9,6 +9,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
+  BarChart3,
   ChevronDown,
   Clock,
   Globe,
@@ -43,7 +44,7 @@ interface SellerNavbarProps {
   onStoreChange: (id: string) => void;
   onDeleteStore?: (id: string) => void;
   onCreateStore: () => void;
-  onViewChange: (view: 'dashboard' | 'settings' | 'subscription') => void;
+  onViewChange: (view: 'dashboard' | 'reports' | 'settings' | 'subscription') => void;
   onOpenStorefront: () => void;
   onLogout: () => void;
 }
@@ -337,6 +338,19 @@ export function SellerNavbar({
                 <Monitor size={18} color="#9CA3AF" />
                 <Text style={styles.profileMenuText}>Tableau de bord</Text>
               </Pressable>
+
+              {!isSeller ? (
+                <Pressable
+                  onPress={() => {
+                    setShowProfileDropdown(false);
+                    onViewChange('reports');
+                  }}
+                  style={styles.profileMenuItem}
+                >
+                  <BarChart3 size={18} color="#9CA3AF" />
+                  <Text style={styles.profileMenuText}>Rapports</Text>
+                </Pressable>
+              ) : null}
 
               {!isSeller ? (
                 <Pressable

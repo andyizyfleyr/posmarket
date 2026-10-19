@@ -62,6 +62,7 @@ import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
 import { generateProductSlug } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { fetchSellerBootstrap } from '@/api/seller';
 import { COLORS } from '@/theme';
 import logoTrimmed from '../assets/logo-trimmed.png';
 import type { StorefrontProduct, StoreData } from '@/types';
@@ -164,10 +165,18 @@ function HeroCarousel() {
           <Pressable
             key={slide.image}
             onPress={() => {
-              // La page `/login` vendeur existe dans l'app : navigation interne
-              // (le web renvoie vers AuthView).
               if (slide.link === '/login') {
-                router.push('/login');
+                // Session vendeur déjà active : on saute la page de connexion
+                // et on va directement au tableau de bord (le web renvoie vers
+                // `AuthView`, qui redirige quand la session existe).
+                void (async () => {
+                  const res = await fetchSellerBootstrap().catch(() => null);
+                  if (res?.success) {
+                    router.replace('/seller/dashboard');
+                    return;
+                  }
+                  router.push('/login');
+                })();
                 return;
               }
               Linking.openURL(`${API_BASE_URL}${slide.link}`).catch(() => {});
