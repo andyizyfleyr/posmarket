@@ -17,6 +17,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -95,6 +96,7 @@ export function SellerInventoryView({
     useState<SellerProductVerticalFilter>('all');
 
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [totalProductsCount, setTotalProductsCount] = useState(0);
@@ -229,6 +231,16 @@ export function SellerInventoryView({
     notifyError,
     handleUnauthorized,
   ]);
+
+  /** Tirer vers le bas pour recharger la 1re page de l'inventaire. */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshProducts();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshProducts]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
@@ -411,6 +423,14 @@ export function SellerInventoryView({
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.brand}
+            colors={[COLORS.brand]}
+          />
+        }
       >
         {/* En-tête */}
         <View style={styles.header}>

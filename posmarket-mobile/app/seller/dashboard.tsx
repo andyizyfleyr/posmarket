@@ -7,7 +7,7 @@
  * via `fetchSellerDashboard`.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSeller } from '@/context/SellerContext';
 import { fetchSellerDashboard, type SellerOrder, type SellerStoreRow } from '@/api/seller';
@@ -24,29 +24,31 @@ export default function SellerDashboardScreen() {
   /** Évite une double purge/toast si le contexte se met à jour avant le démontage. */
   const expiredRef = useRef(false);
 
-  useEffect(() => {
-    let active = true;
-    expiredRef.current = false;
-    (async () => {
-      const res = await fetchSellerDashboard(currentStoreId).catch(() => null);
-      if (!active) return;
-      if (res?.success) {
-        setOrders(res.orders || []);
-        setProducts(res.products || []);
-        setStore(res.store || null);
-      } else if (res?.error === 'Unauthorized') {
-        if (!expiredRef.current) {
-          expiredRef.current = true;
-          sessionExpired();
-        }
-        return;
+  const reload = useCallback(async () => {
+    const res = await fetchSellerDashboard(currentStoreId).catch(() => null);
+    if (res?.success) {
+      setOrders(res.orders || []);
+      setProducts(res.products || []);
+      setStore(res.store || null);
+    } else if (res?.error === 'Unauthorized') {
+      if (!expiredRef.current) {
+        expiredRef.current = true;
+        sessionExpired();
       }
-      setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
+      return;
+    }
+    setLoading(false);
   }, [currentStoreId, sessionExpired]);
+
+  useEffect(() => {
+    expiredRef.current = false;
+    // Chargement initial différé d'un tick (même motif que les effets de
+    // recherche des vues) : évite un setState synchrone dans l'effet.
+    const timer = setTimeout(() => {
+      void reload();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [reload]);
 
   if (loading) {
     return (
@@ -64,6 +66,7 @@ export default function SellerDashboardScreen() {
       userName={store?.name || user?.email?.split('@')[0]}
       userAvatarUrl={user?.avatarUrl}
       canViewReports={Boolean(permissions?.canViewReports)}
+      onRefresh={reload}
     />
   );
 }

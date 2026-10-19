@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -115,6 +116,7 @@ export function SellerSettingsView({
   const [localSettings, setLocalSettings] = useState<StoreSettings>(EMPTY_SETTINGS);
   const [staff, setStaff] = useState<SellerSettingsStaff[]>([]);
   const [localCoupons, setLocalCoupons] = useState<Coupon[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -181,6 +183,16 @@ export function SellerSettingsView({
     },
     [handleUnauthorized, notifyError, storeId],
   );
+
+  /** Tirer vers le bas pour recharger les réglages, l'équipe et les promos. */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reload({ silent: true });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reload]);
 
   useEffect(() => {
     void reload();
@@ -484,6 +496,14 @@ export function SellerSettingsView({
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.brand}
+            colors={[COLORS.brand]}
+          />
+        }
       >
         {isLoading ? (
           <View style={styles.loadingBox}>

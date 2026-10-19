@@ -17,6 +17,7 @@ import {
   Linking,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -104,6 +105,7 @@ export function SellerSubscriptionView({
   const [duration, setDuration] = useState<SubscriptionDuration>(
     (subscription.duration as SubscriptionDuration) || 'monthly',
   );
+  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [modalData, setModalData] = useState<TransactionModalData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,6 +137,18 @@ export function SellerSubscriptionView({
       active = false;
     };
   }, [handleUnauthorized]);
+
+  /** Tirer vers le bas : recharge l'état d'abonnement et la config de paiement. */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetchSubscriptionPaymentConfig().catch(() => null);
+      if (res?.success) setConfig(res);
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onRefresh]);
 
   const plans = useMemo(
     () => [
@@ -553,6 +567,14 @@ export function SellerSubscriptionView({
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.brand}
+            colors={[COLORS.brand]}
+          />
+        }
       >
         {/* Abonnement actuel */}
         <View style={styles.statusCardWrap}>

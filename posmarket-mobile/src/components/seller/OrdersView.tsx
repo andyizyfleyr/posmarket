@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -96,6 +97,7 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
 
   const [searchTerm, setSearchTerm] = useState('');
   const [localOrders, setLocalOrders] = useState<SellerOrderRow[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -186,6 +188,26 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
     notify,
     handleUnauthorized,
   ]);
+
+  /** Tirer vers le bas pour recharger la 1re page (comme le web qui recharge). */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetchSellerOrders(storeId, 0, PAGE_SIZE, searchTerm, filterStatus);
+      if (res.success && res.orders) {
+        setLocalOrders(res.orders);
+        setOffset(res.orders.length);
+        setHasMore(Boolean(res.hasMore));
+        setSelectedOrderIds([]);
+      } else if (res.error === 'Unauthorized') {
+        handleUnauthorized();
+      }
+    } catch {
+      notify('Erreur lors du rechargement', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [storeId, searchTerm, filterStatus, handleUnauthorized, notify]);
 
   // Articles du détail : repli sur les lignes déjà chargées, puis version
   // enrichie de la route `/orders/items` (comme `fetchOrderItems` au web).
@@ -510,6 +532,14 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={COLORS.brand}
+              colors={[COLORS.brand]}
+            />
+          }
         >
           {filteredOrders.length > 0 ? (
             <>

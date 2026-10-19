@@ -16,6 +16,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -85,11 +86,22 @@ export default function StoreScreen() {
   const loadMoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Catalogue ──
-  const { data: catalogData, isLoading } = useQuery({
+  const { data: catalogData, isLoading, refetch: refetchCatalog } = useQuery({
     queryKey: ['catalog'],
     queryFn: fetchCatalog,
     staleTime: 60_000,
   });
+
+  /** Tirer vers le bas : recharge le catalogue (donc la boutique affichée). */
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchCatalog();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchCatalog]);
 
   const store = useMemo(() => {
     const stores = catalogData?.stores || [];
@@ -444,6 +456,14 @@ export default function StoreScreen() {
         scrollEventThrottle={16}
         stickyHeaderIndices={[1]}
         contentContainerStyle={cartCount > 0 ? styles.scrollContentWithBar : undefined}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.brand}
+            colors={[COLORS.brand]}
+          />
+        }
       >
         {/* ── Carte boutique (bord à bord, comme le web mobile) ── */}
         <View style={styles.heroCard}>

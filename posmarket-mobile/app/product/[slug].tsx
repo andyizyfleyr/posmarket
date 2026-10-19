@@ -14,6 +14,7 @@ import {
   Text,
   ScrollView,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Dimensions,
   Modal,
@@ -126,11 +127,22 @@ export default function ProductDetailScreen() {
   }, []);
 
   // ── Catalogue : produit + boutique + produits de la même boutique ──
-  const { data: catalogData, isLoading: isCatalogLoading } = useQuery({
+  const { data: catalogData, isLoading: isCatalogLoading, refetch: refetchCatalog } = useQuery({
     queryKey: ['catalog'],
     queryFn: fetchCatalog,
     staleTime: 60_000,
   });
+
+  /** Tirer vers le bas : recharge le catalogue (fiche produit + boutique). */
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchCatalog();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchCatalog]);
 
   const { product, store, relatedProducts } = useMemo(() => {
     const stores = catalogData?.stores || [];
@@ -558,6 +570,14 @@ export default function ProductDetailScreen() {
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={BRAND}
+            colors={[BRAND]}
+          />
+        }
       >
         {/* ── Galerie plein-écran ── */}
         <View style={styles.gallery}>

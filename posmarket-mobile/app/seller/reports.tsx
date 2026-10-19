@@ -8,7 +8,7 @@
  * layout, comme `MainLayout` au web).
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSeller } from '@/context/SellerContext';
 import {
@@ -27,28 +27,30 @@ export default function SellerReportsScreen() {
   /** Évite une double purge si le contexte se met à jour avant le démontage. */
   const expiredRef = useRef(false);
 
-  useEffect(() => {
-    let active = true;
-    expiredRef.current = false;
-    (async () => {
-      const res = await fetchSellerReports(currentStoreId).catch(() => null);
-      if (!active) return;
-      if (res?.success) {
-        setOrders(res.orders || []);
-        setStoreSettings(res.store?.settings || null);
-      } else if (res?.error === 'Unauthorized') {
-        if (!expiredRef.current) {
-          expiredRef.current = true;
-          sessionExpired();
-        }
-        return;
+  const reload = useCallback(async () => {
+    const res = await fetchSellerReports(currentStoreId).catch(() => null);
+    if (res?.success) {
+      setOrders(res.orders || []);
+      setStoreSettings(res.store?.settings || null);
+    } else if (res?.error === 'Unauthorized') {
+      if (!expiredRef.current) {
+        expiredRef.current = true;
+        sessionExpired();
       }
-      setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
+      return;
+    }
+    setLoading(false);
   }, [currentStoreId, sessionExpired]);
+
+  useEffect(() => {
+    expiredRef.current = false;
+    // Chargement initial différé d'un tick : évite un setState synchrone
+    // dans le corps de l'effet.
+    const timer = setTimeout(() => {
+      void reload();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [reload]);
 
   if (loading) {
     return (
@@ -58,7 +60,13 @@ export default function SellerReportsScreen() {
     );
   }
 
-  return <SellerReportsView orders={orders} storeSettings={storeSettings} />;
+  return (
+    <SellerReportsView
+      orders={orders}
+      storeSettings={storeSettings}
+      onRefresh={reload}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

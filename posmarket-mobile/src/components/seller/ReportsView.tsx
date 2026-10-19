@@ -15,12 +15,13 @@
  * - « Période » et « Filtrer » restent décoratifs : le web n'a aucun onClick.
  */
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -172,9 +173,20 @@ function buildReceiptHtml(
 interface SellerReportsViewProps {
   orders: ReportsOrder[];
   storeSettings?: ReportsStoreSettings | null;
+  /** Tirer vers le bas : recharge les données de l'écran (route parente). */
+  onRefresh?: () => Promise<void> | void;
 }
 
-export function SellerReportsView({ orders, storeSettings }: SellerReportsViewProps) {
+export function SellerReportsView({ orders, storeSettings, onRefresh }: SellerReportsViewProps) {
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await onRefresh?.();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onRefresh]);
   const { notify } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<ReportsOrder | null>(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -246,6 +258,14 @@ export function SellerReportsView({ orders, storeSettings }: SellerReportsViewPr
             style={styles.list}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={COLORS.brand}
+                colors={[COLORS.brand]}
+              />
+            }
           >
             {orders.map((order, index) => (
               <Pressable

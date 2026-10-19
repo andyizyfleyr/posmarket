@@ -9,6 +9,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -51,6 +52,8 @@ interface SellerDashboardViewProps {
   userName?: string;
   userAvatarUrl?: string | null;
   canViewReports?: boolean;
+  /** Tirer vers le bas : recharge les données de l'écran (route parente). */
+  onRefresh?: () => Promise<void> | void;
 }
 
 function getLocalYMD(d: Date): string {
@@ -84,7 +87,17 @@ export function SellerDashboardView({
   userName,
   userAvatarUrl,
   canViewReports,
+  onRefresh,
 }: SellerDashboardViewProps) {
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await onRefresh?.();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onRefresh]);
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 90);
@@ -270,6 +283,14 @@ export function SellerDashboardView({
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={COLORS.brand}
+          colors={[COLORS.brand]}
+        />
+      }
     >
       {/* En-tête */}
       <View style={styles.header}>

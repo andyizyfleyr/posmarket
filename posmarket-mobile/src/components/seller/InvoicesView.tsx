@@ -24,6 +24,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -225,6 +226,7 @@ export function SellerInvoicesView({
   const [invoices, setInvoices] = useState<SellerInvoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [storeSettings, setStoreSettings] = useState<InvoiceStoreSettings | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const [selectedInvoice, setSelectedInvoice] = useState<SellerInvoice | null>(null);
@@ -290,6 +292,16 @@ export function SellerInvoicesView({
     void fetchSellerInvoices(storeId)
       .then(applyInvoicesResponse)
       .catch(() => {});
+  }, [storeId, applyInvoicesResponse]);
+
+  /** Tirer vers le bas pour recharger la liste des factures. */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchSellerInvoices(storeId).then(applyInvoicesResponse).catch(() => {});
+    } finally {
+      setRefreshing(false);
+    }
   }, [storeId, applyInvoicesResponse]);
 
   // Articles de la facture sélectionnée (table `invoice_items`, comme le web).
@@ -558,6 +570,14 @@ export function SellerInvoicesView({
             style={styles.list}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={COLORS.brand}
+                colors={[COLORS.brand]}
+              />
+            }
           >
             {invoices.map((invoice, index) => (
               <Pressable

@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -266,6 +266,14 @@ export default function AccountScreen() {
             styles.content,
             { paddingBottom: Math.max(insets.bottom, 16) + 48 },
           ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={Boolean(data?.refreshing)}
+              onRefresh={() => void data?.refreshAll()}
+              tintColor={COLORS.brand}
+              colors={[COLORS.brand]}
+            />
+          }
         >
           {/* ---- Carte identité ---- */}
           <View style={styles.identityCard}>

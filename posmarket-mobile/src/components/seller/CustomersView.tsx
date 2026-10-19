@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -87,6 +88,7 @@ export function SellerCustomersView({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [localCustomers, setLocalCustomers] = useState<SellerCustomer[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -176,6 +178,16 @@ export function SellerCustomersView({
       setHasMore(Boolean(res.hasMore));
     }
   }, [storeId, searchTerm]);
+
+  /** Tirer vers le bas pour recharger (équivalent du rechargement de page). */
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reloadCustomers();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadCustomers]);
 
   const getSegment = (customer: SellerCustomer) => {
     const isVIP = (Number(customer.totalSpent) || 0) >= 500000;
@@ -450,6 +462,14 @@ export function SellerCustomersView({
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={COLORS.brand}
+              colors={[COLORS.brand]}
+            />
+          }
         >
           {filteredCustomers.map((customer, index) => {
             const { isVIP, isInactive } = getSegment(customer);
