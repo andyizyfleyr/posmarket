@@ -117,6 +117,7 @@ interface PartnerEntry {
 
 function HeroCarousel() {
   const { width } = useWindowDimensions();
+  const router = useRouter();
   // Le cadre a un filet de 1 px : largeur utile = largeur - 2×16 (marges)
   // - 2×1 (bordures), sinon le snap dérive de 2 px.
   const slideWidth = width - 34;
@@ -162,9 +163,15 @@ function HeroCarousel() {
         {HERO_SLIDES.map((slide) => (
           <Pressable
             key={slide.image}
-            onPress={() =>
-              Linking.openURL(`${API_BASE_URL}${slide.link}`).catch(() => {})
-            }
+            onPress={() => {
+              // La page `/login` vendeur existe dans l'app : navigation interne
+              // (le web renvoie vers AuthView).
+              if (slide.link === '/login') {
+                router.push('/login');
+                return;
+              }
+              Linking.openURL(`${API_BASE_URL}${slide.link}`).catch(() => {});
+            }}
           >
             <Image
               source={{ uri: slide.image }}
