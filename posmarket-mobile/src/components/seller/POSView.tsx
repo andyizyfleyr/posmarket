@@ -163,9 +163,14 @@ const PosProductCard = React.memo(function PosProductCard({
   onOutOfStock,
 }: PosProductCardProps) {
   const [tapped, setTapped] = useState(false);
-  const isOutOfStock = stock === 0;
-  const isLowStock = stock > 0 && stock <= 5;
   const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+  // Une variante en rupture ne doit pas laisser la carte « disponible » : le
+  // produit est epitaphe des qu'aucune variante n'a de stock.
+  const allVariantsOut =
+    hasVariants &&
+    (product.variants || []).every((variant) => Math.max(0, Number(variant.stock) || 0) <= 0);
+  const isOutOfStock = stock === 0 || allVariantsOut;
+  const isLowStock = !isOutOfStock && stock > 0 && stock <= 5;
   const wholesaleTiers = getNormalizedWholesaleTiers(product);
   const hasWholesale = wholesaleTiers.length > 0;
   const firstWholesaleTier = hasWholesale ? wholesaleTiers[0] : null;
@@ -249,7 +254,7 @@ const PosProductCard = React.memo(function PosProductCard({
         {isOutOfStock ? (
           <View style={styles.outOfStockOverlay} pointerEvents="none">
             <View style={styles.outOfStockBand}>
-              <Text style={styles.outOfStockText}>Rupture de stock</Text>
+              <Text style={styles.outOfStockText}>En rupture</Text>
             </View>
           </View>
         ) : null}
