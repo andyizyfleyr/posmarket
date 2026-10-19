@@ -84,6 +84,8 @@ interface PhoneRule {
   length: number;
   /** Regex appliquée sur les chiffres du numéro national significatif */
   pattern: RegExp;
+  /** Découpage d'affichage du numéro national (ex. [2,2,2,2,2]). */
+  groups: number[];
 }
 
 /**
@@ -91,16 +93,46 @@ interface PhoneRule {
  * le web pour que la validation soit identique des deux côtés.
  */
 const PHONE_RULES: Record<string, PhoneRule> = {
-  BJ: { length: 10, pattern: /^01\d{8}$/ },
-  TG: { length: 8, pattern: /^(2[2-9]|9[0-9]|70[0-5]|79[3-9])\d{6}$/ },
-  CI: { length: 10, pattern: /^(0[157]|2[157])\d{8}$/ },
-  SN: { length: 9, pattern: /^(3[02369]|7[025-9]|93)\d{7}$/ },
-  CM: { length: 9, pattern: /^[26]\d{8}$/ },
-  ML: { length: 8, pattern: /^(2\d|44|6\d|7\d|8[2-4]|9\d)\d{6}$/ },
-  NE: { length: 8, pattern: /^(2[013]|7[04]|8[0-9]|9[0-9])\d{6}$/ },
-  GH: { length: 9, pattern: /^[235]\d{8}$/ },
-  NG: { length: 10, pattern: /^[789]\d{9}$/ },
+  BJ: { length: 10, pattern: /^01\d{8}$/, groups: [2, 2, 2, 2, 2] },
+  TG: { length: 8, pattern: /^(2[2-9]|9[0-9]|70[0-5]|79[3-9])\d{6}$/, groups: [2, 2, 2, 2] },
+  CI: { length: 10, pattern: /^(0[157]|2[157])\d{8}$/, groups: [2, 2, 2, 2, 2] },
+  SN: { length: 9, pattern: /^(3[02369]|7[025-9]|93)\d{7}$/, groups: [2, 3, 2, 2] },
+  CM: { length: 9, pattern: /^[26]\d{8}$/, groups: [1, 2, 2, 2, 2] },
+  ML: { length: 8, pattern: /^(2\d|44|6\d|7\d|8[2-4]|9\d)\d{6}$/, groups: [2, 2, 2, 2] },
+  NE: { length: 8, pattern: /^(2[013]|7[04]|8[0-9]|9[0-9])\d{6}$/, groups: [2, 2, 2, 2] },
+  GH: { length: 9, pattern: /^[235]\d{8}$/, groups: [2, 3, 4] },
+  NG: { length: 10, pattern: /^[789]\d{9}$/, groups: [3, 3, 4] },
 };
+
+function groupDigits(digits: string, groups: number[]): string {
+  const total = groups.reduce((a, b) => a + b, 0);
+  if (total !== digits.length) {
+    return digits.match(/.{1,2}/g)?.join(' ') || digits;
+  }
+  const parts: string[] = [];
+  let i = 0;
+  for (const g of groups) {
+    parts.push(digits.slice(i, i + g));
+    i += g;
+  }
+  return parts.join(' ');
+}
+
+/** Formate un numéro pour l'affichage (ex. « +229 01 97 12 34 56 »). */
+export function formatPhoneNumber(phone: string, defaultCountry: Country = DEFAULT_COUNTRY): string {
+  if (!phone) return '';
+  const parsed = parsePhoneNumber(phone, defaultCountry);
+  if (!parsed.nationalNumber) {
+    return parsed.country.dialCode;
+  }
+
+  const rule = PHONE_RULES[parsed.country.code];
+  const grouped = rule
+    ? groupDigits(parsed.nationalNumber, rule.groups)
+    : parsed.nationalNumber.match(/.{1,2}/g)?.join(' ') || parsed.nationalNumber;
+
+  return `${parsed.country.dialCode} ${grouped}`.trim();
+}
 
 /**
  * Valide un numéro contre le plan de numérotation du pays détecté.

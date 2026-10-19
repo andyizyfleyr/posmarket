@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CartProvider } from '@/context/CartContext';
 import { PromoProvider } from '@/context/PromoContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/components/ToastProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
 
@@ -26,8 +27,9 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <CartProvider>
-          <PromoProvider>
+        <AuthProvider>
+          <CartProvider>
+            <PromoProvider>
             <StatusBar style="dark" />
             <OfflineBanner />
             <Stack screenOptions={{ headerShown: false }}>
@@ -68,8 +70,9 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
-          </PromoProvider>
-        </CartProvider>
+            </PromoProvider>
+          </CartProvider>
+        </AuthProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

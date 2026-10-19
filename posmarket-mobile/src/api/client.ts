@@ -1,9 +1,13 @@
 /**
  * Client API — Phase 2.3 du plan.
  * Point d'entrée unique pour toutes les requêtes vers le backend PosMarket.
+ *
+ * Chaque appel porte le cookie de session acheteur (voir `session.ts`) : c'est
+ * lui qui donne accès aux commandes, adresses, avis et au profil.
  */
 
 import Constants from 'expo-constants';
+import { sessionCookieHeader } from '@/api/session';
 
 const API_BASE_URL =
   Constants.expoConfig?.extra?.API_BASE_URL ||
@@ -17,7 +21,7 @@ interface FetchOptions extends RequestInit {
 }
 
 /**
- * Wrapper fetch avec timeout et gestion d'erreur uniforme.
+ * Wrapper fetch avec timeout, cookie de session et gestion d'erreur uniforme.
  */
 async function apiFetch<T>(
   path: string,
@@ -28,6 +32,8 @@ async function apiFetch<T>(
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
+
+  const cookie = await sessionCookieHeader().catch(() => null);
 
   try {
     const response = await fetch(url, {
@@ -40,6 +46,7 @@ async function apiFetch<T>(
         // React Native (okhttp) comme un bot (403 Forbidden).
         'X-PosMarket-Client': 'mobile-app',
         'User-Agent': 'PosMarket-Mobile/1.0 (Android)',
+        ...(cookie ? { Cookie: cookie } : {}),
         ...fetchOpts.headers,
       },
     });
@@ -59,7 +66,18 @@ async function apiFetch<T>(
 
 // ── Marketplace endpoints ─────────────────────────────────────────
 
-import type { StoreData, StorefrontProduct, Review, Coupon } from '@/types';
+import type {
+  StoreData,
+  StorefrontProduct,
+  Review,
+  Coupon,
+  BuyerOrder,
+  BuyerAddress,
+  BuyerReview,
+  BuyerProfile,
+  NotificationPreference,
+  NotificationOutboxItem,
+} from '@/types';
 
 interface CatalogResponse {
   success: boolean;
@@ -159,44 +177,157 @@ export async function submitCheckout(payload: {
   });
 }
 
-export async function fetchBuyerOrders(fallback?: string): Promise<{
+// ── Connexion / espace acheteur ───────────────────────────────────
+
+export interface LoginBuyerPayload {
+  email: string;
+  name?: string;
+  mode: 'login' | 'register';
+}
+
+export interface LoginBuyerResponse {
   success: boolean;
-  orders: unknown[];
+  /** `true` quand un e-mail de connexion a dû être envoyé (repli). */
+  sent?: boolean;
+  user?: BuyerProfile & { name: string };
+  session?: { name: string; value: string };
+  error?: string;
+}
+
+/** Connexion acheteur (lien magique échangé côté serveur contre une session). */
+export async function loginBuyer(
+  payload: LoginBuyerPayload,
+): Promise<LoginBuyerResponse> {
+  return apiFetch<LoginBuyerResponse>('/api/marketplace/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+interface OrdersResponse {
+  success: boolean;
+  orders: BuyerOrder[];
   totalCount?: number;
   error?: string;
-}> {
-  const query = fallback ? `?email=${encodeURIComponent(fallback)}` : '';
-  return apiFetch(`/api/marketplace/buyer/orders${query}`);
 }
 
-export async function fetchBuyerAddresses(fallback?: string): Promise<{
-  success: boolean;
-  addresses: unknown[];
-  error?: string;
-}> {
-  const query = fallback ? `?email=${encodeURIComponent(fallback)}` : '';
-  return apiFetch(`/api/marketplace/buyer/addresses${query}`);
+/** Commandes de l'acheteur connecté (paginées). */
+export async function fetchBuyerOrders(
+  page = 1,
+  limit = 10,
+): Promise<OrdersResponse> {
+  return apiFetch<OrdersResponse>(
+    `/api/marketplace/buyer/orders?page=${page}&limit=${limit}`,
+  );
 }
 
-export async function saveBuyerAddress(address: Record<string, unknown>): Promise<{
+interface AddressesResponse {
   success: boolean;
+  addresses: BuyerAddress[];
   error?: string;
-}> {
+}
+
+export async function fetchBuyerAddresses(): Promise<AddressesResponse> {
+  return apiFetch<AddressesResponse>('/api/marketplace/buyer/addresses');
+}
+
+export async function saveBuyerAddress(
+  address: Record<string, unknown>,
+): Promise<{ success: boolean; error?: string }> {
   return apiFetch('/api/marketplace/buyer/addresses', {
     method: 'POST',
     body: JSON.stringify(address),
   });
 }
 
-export async function deleteBuyerAddress(id: string, fallback?: string): Promise<{
+export async function deleteBuyerAddress(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch(
+    `/api/marketplace/buyer/addresses?id=${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+}
+
+interface ProfileResponse {
   success: boolean;
+  profile?: BuyerProfile;
+  user?: BuyerProfile;
   error?: string;
-}> {
-  const query = fallback
-    ? `?id=${encodeURIComponent(id)}&email=${encodeURIComponent(fallback)}`
-    : `?id=${encodeURIComponent(id)}`;
-  return apiFetch(`/api/marketplace/buyer/addresses${query}`, {
-    method: 'DELETE',
+}
+
+export async function fetchBuyerProfile(): Promise<ProfileResponse> {
+  return apiFetch<ProfileResponse>('/api/marketplace/buyer/profile');
+}
+
+export async function updateBuyerProfile(payload: {
+  fullName?: string;
+  phone?: string;
+  avatarUrl?: string | null;
+}): Promise<ProfileResponse> {
+  return apiFetch<ProfileResponse>('/api/marketplace/buyer/profile', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+interface BuyerReviewsResponse {
+  success: boolean;
+  reviews: BuyerReview[];
+  error?: string;
+}
+
+export async function fetchBuyerReviews(): Promise<BuyerReviewsResponse> {
+  return apiFetch<BuyerReviewsResponse>('/api/marketplace/buyer/reviews');
+}
+
+export async function saveBuyerReview(payload: {
+  storeId: string;
+  productId: string;
+  rating: number;
+  comment: string;
+  author?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/buyer/reviews', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+interface NotificationPrefsResponse {
+  success: boolean;
+  preferences: NotificationPreference[];
+  error?: string;
+}
+
+export async function fetchNotificationPreferences(): Promise<NotificationPrefsResponse> {
+  return apiFetch<NotificationPrefsResponse>('/api/marketplace/buyer/notifications');
+}
+
+interface NotificationOutboxResponse {
+  success: boolean;
+  outbox: NotificationOutboxItem[];
+  error?: string;
+}
+
+export async function fetchNotificationOutbox(
+  limit = 30,
+): Promise<NotificationOutboxResponse> {
+  return apiFetch<NotificationOutboxResponse>(
+    `/api/marketplace/buyer/notifications?outbox=1&limit=${limit}`,
+  );
+}
+
+export async function setNotificationPreference(payload: {
+  eventType: string;
+  channel: 'whatsapp' | 'email';
+  enabled: boolean;
+  whatsappPhone?: string;
+  emailAddress?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/buyer/notifications', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }
 
@@ -224,4 +355,3 @@ export function resolveImageUrl(url?: string | null): string {
 }
 
 export { API_BASE_URL };
-

@@ -61,6 +61,7 @@ import { Loader } from '@/components/Loader';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
 import { generateProductSlug } from '@/utils';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { COLORS } from '@/theme';
 import logoTrimmed from '../assets/logo-trimmed.png';
 import type { StorefrontProduct, StoreData } from '@/types';
@@ -403,6 +404,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { cartCount } = useCart();
+  const { user, openAuth } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -810,13 +812,37 @@ export default function HomeScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.headerProfileBtn,
+                !!user && styles.headerProfileBtnActive,
                 pressed && styles.headerBtnPressed,
               ]}
-              onPress={() => router.push('/account' as never)}
-              accessibilityLabel="Mon compte"
+              onPress={() => {
+                if (user) {
+                  router.push('/account' as never);
+                } else {
+                  openAuth('login');
+                }
+              }}
+              accessibilityLabel={user ? 'Mon compte' : 'Se connecter'}
             >
-              <View style={styles.headerProfileAvatar}>
-                <User size={18} strokeWidth={3} color={COLORS.textFaint} />
+              <View
+                style={[
+                  styles.headerProfileAvatar,
+                  !!user && styles.headerProfileAvatarActive,
+                ]}
+              >
+                {user?.avatarUrl ? (
+                  <Image
+                    source={{ uri: user.avatarUrl }}
+                    style={styles.headerProfileAvatarImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <User
+                    size={18}
+                    strokeWidth={3}
+                    color={user ? '#FFFFFF' : COLORS.textFaint}
+                  />
+                )}
               </View>
             </Pressable>
           </View>
@@ -1003,6 +1029,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerProfileBtnActive: {
+    backgroundColor: 'rgba(245,107,42,0.05)',
+    borderColor: 'rgba(245,107,42,0.2)',
+  },
   headerProfileAvatar: {
     width: 28,
     height: 28,
@@ -1010,6 +1040,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  headerProfileAvatarActive: {
+    backgroundColor: COLORS.brand,
+  },
+  headerProfileAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   headerBtnPressed: {
     opacity: 0.85,

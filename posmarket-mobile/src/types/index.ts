@@ -134,3 +134,86 @@ export interface Coupon {
   store_id: string;
   created_at?: string;
 }
+
+// ── Espace acheteur (copie de `src/components/buyer/accountTypes.ts` web) ──
+
+export interface BuyerOrderItem {
+  id: string;
+  quantity: number;
+  price: number;
+  products: Array<{
+    id: string;
+    name: string;
+    image: string;
+    business_type?: string;
+  }>;
+}
+
+export interface BuyerOrder {
+  id: string;
+  date: string;
+  total: number;
+  subtotal: number;
+  status: string;
+  paymentMethod: string;
+  store_id?: string;
+  stores: Array<{ name?: string; business_type?: string }>;
+  order_items: BuyerOrderItem[];
+}
+
+export interface BuyerAddress {
+  id: string;
+  name: string;
+  full_name: string;
+  phone: string;
+  address: string;
+  city: string;
+  is_default: boolean;
+}
+
+export interface BuyerReview {
+  id: string;
+  rating: number;
+  comment: string;
+  date?: string;
+  stores: Array<{ name?: string }>;
+  products: Array<{
+    id: string;
+    name: string;
+    image: string;
+    business_type?: string;
+  }>;
+}
+
+/** Profil acheteur renvoyé par `/api/marketplace/buyer/profile`. */
+export interface BuyerProfile {
+  id?: string;
+  email: string;
+  /** Nom d'affichage (`name` pour la connexion, `fullName` pour le profil). */
+  name?: string;
+  fullName?: string;
+  phone?: string;
+  companyName?: string;
+  ninea?: string;
+  avatarUrl?: string | null;
+}
+
+export type BuyerTabId = 'orders' | 'addresses' | 'reviews' | 'notifications' | 'profile';
+
+export interface NotificationPreference {
+  eventType: string;
+  label: string;
+  optIn: boolean;
+  whatsapp: { enabled: boolean; hasAddress: boolean; phone: string };
+  email: { enabled: boolean; hasAddress: boolean; email: string };
+}
+
+export interface NotificationOutboxItem {
+  id: string;
+  eventType: string;
+  title: string | null;
+  body: string;
+  provider: string;
+  status: string;
+  createdAt?: string;
+}

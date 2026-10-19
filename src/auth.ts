@@ -8,6 +8,7 @@ import { profiles } from '@/db/schema';
 import { authConfig } from '@/lib/auth.config';
 import { authAdapter } from '@/db/auth-adapter';
 import { sendMagicLinkEmail } from '@/lib/email';
+import { captureMagicLinkUrl } from '@/lib/magic-link-capture';
 import {
   ensureAuthProfile,
   linkGoogleAccount,
@@ -27,6 +28,9 @@ const providers: NextAuthConfig['providers'] = [
     // de la table system_settings.
     server: { host: 'localhost', port: 25, auth: { user: '', pass: '' } },
     async sendVerificationRequest({ identifier: email, url }) {
+      // Connexion demandée par l'app mobile : le lien est intercepté (échangé
+      // côté serveur contre le cookie de session) et l'e-mail est inutile.
+      if (captureMagicLinkUrl(email, url)) return;
       await sendMagicLinkEmail({ to: email, url });
     },
   }),
