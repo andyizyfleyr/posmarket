@@ -494,3 +494,178 @@ export async function bulkDeleteSellerCustomers(
     body: JSON.stringify({ ids }),
   });
 }
+
+// ── Inventaire (Stocks) ───────────────────────────────────────────
+
+export type SellerProductTypeFilter = 'all' | 'pos' | 'marketplace';
+export type SellerProductVerticalFilter = 'all' | 'shopping' | 'food';
+
+export interface SellerProductsPage {
+  success: boolean;
+  error?: string;
+  products?: import('@/types').Product[];
+  hasMore?: boolean;
+  total?: number;
+}
+
+/** Liste paginée des produits (mêmes filtres que `getProductsAction`). */
+export async function fetchSellerProducts(
+  storeId: string,
+  offset: number,
+  limit: number,
+  search: string,
+  productType: SellerProductTypeFilter,
+  businessType: SellerProductVerticalFilter,
+): Promise<SellerProductsPage> {
+  const params = new URLSearchParams({
+    storeId,
+    offset: String(offset),
+    limit: String(limit),
+    search,
+    productType,
+    businessType,
+  });
+  return apiFetch(`/api/marketplace/seller/inventory?${params.toString()}`, {
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Nœud de l'arbre de catégories (`getProductCategoryTree`). */
+export interface SellerCategoryNode {
+  id: string;
+  name: string;
+  businessType: string;
+  children: SellerCategoryNode[];
+}
+
+/** Taxonomie produit (repli sur les constantes si vide, comme le web). */
+export async function fetchSellerProductCategories(
+  businessType: 'shopping' | 'food',
+): Promise<{ success: boolean; tree?: SellerCategoryNode[]; error?: string }> {
+  const params = new URLSearchParams({ categories: '1', businessType });
+  return apiFetch(`/api/marketplace/seller/inventory?${params.toString()}`);
+}
+
+/** Crée ou met à jour un produit (modale produit). */
+export async function saveSellerProduct(
+  storeId: string,
+  product: Record<string, unknown>,
+): Promise<{
+  success: boolean;
+  product?: import('@/types').Product;
+  warnings?: string[];
+  error?: string;
+}> {
+  return apiFetch('/api/marketplace/seller/inventory/save', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, product }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Supprime un produit. */
+export async function deleteSellerProduct(
+  storeId: string,
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/inventory/delete', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, id }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Supprime plusieurs produits. */
+export async function bulkDeleteSellerProducts(
+  storeId: string,
+  ids: string[],
+): Promise<{ success: boolean; error?: string }> {
+  return apiFetch('/api/marketplace/seller/inventory/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, ids }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+/** Boutiques gérables par l'utilisateur (modale de transfert). */
+export async function fetchSellerManageableStores(): Promise<{
+  success: boolean;
+  stores?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    businessType: string;
+    isOwner: boolean;
+  }>;
+  error?: string;
+}> {
+  return apiFetch('/api/marketplace/seller/inventory/stores');
+}
+
+/** Export JSON/CSV des produits (`exportStoreProductsAction`). */
+export async function exportSellerProducts(
+  storeId: string,
+  ids?: string[],
+): Promise<{
+  success: boolean;
+  products?: Array<Record<string, unknown>>;
+  store?: { id: string; name: string; businessType: string };
+  error?: string;
+}> {
+  return apiFetch('/api/marketplace/seller/inventory/export', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, ids }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+export interface SellerImportOptions {
+  duplicateStrategy: 'skip' | 'update' | 'create_new';
+  resetStock?: boolean;
+  forceOnlineStatus?: 'keep' | 'online' | 'pos';
+}
+
+export interface SellerImportResult {
+  success: boolean;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  totalProcessed: number;
+  errors: string[];
+  error?: string;
+}
+
+/** Import groupé de produits (CSV/JSON analysés côté app). */
+export async function importSellerProducts(
+  storeId: string,
+  items: Array<Record<string, unknown>>,
+  options: SellerImportOptions,
+): Promise<SellerImportResult> {
+  return apiFetch('/api/marketplace/seller/inventory/import', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, items, options }),
+    extraCookies: [`currentStoreId=${storeId}`],
+  });
+}
+
+export interface SellerTransferOptions {
+  duplicateStrategy: 'skip' | 'update' | 'create_new';
+  copyStock: boolean;
+  priceAdjustmentPercent?: number;
+  priceAdjustmentFixed?: number;
+  forceOnlineStatus?: 'keep' | 'online' | 'pos';
+}
+
+/** Copie / transfert de produits vers une autre boutique. */
+export async function transferSellerProducts(
+  sourceStoreId: string,
+  targetStoreId: string,
+  productIds: string[],
+  options: SellerTransferOptions,
+): Promise<SellerImportResult> {
+  return apiFetch('/api/marketplace/seller/inventory/transfer', {
+    method: 'POST',
+    body: JSON.stringify({ sourceStoreId, targetStoreId, productIds, options }),
+    extraCookies: [`currentStoreId=${sourceStoreId}`],
+  });
+}

@@ -1,14 +1,237 @@
 /**
- * Utilitaires de variantes produit — portage fidèle de src/utils/variants.ts (web).
+ * Utilitaires de variantes produits — portage fidèle de src/utils/variants.ts (web).
  *
  * Les options et variantes sont stockées en JSONB sur `products`. Ces fonctions
  * sont pures (aucune dépendance React) et servent à la fiche produit mobile :
- * matrice de combinaisons, disponibilité par valeur d'option, stock total.
+ * matrice de combinaisons (génération NON destructive), normalisation avant
+ * écriture, disponibilité par valeur d'option, stock total.
  */
+
+export type ProductOptionDef = {
+  id: string;
+  name: string;
+  values: string[];
+};
+
+export type ProductVariantDef = {
+  id: string;
+  name: string;
+  optionValues: Record<string, string>;
+  price: number;
+  stock: number;
+  sku?: string;
+  image?: string;
+  /** Nom modifié manuellement : il n'est plus recalculé à chaque reconstr. */
+  nameCustom?: boolean;
+  /** Variante conservée mais non vendable (masquée côté acheteur). */
+  enabled?: boolean;
+};
+
+export type VariantLimits = {
+  maxOptions: number;
+  maxValuesPerOption: number;
+  maxVariants: number;
+};
+
+/** Sanitize : tableaux à plat (profondeur 1), valeurs d'objets en chaînes. */
+export function sanitizeJsonbValue<T>(value: unknown, defaultValue: T): T {
+  if (value === null || value === undefined) return defaultValue;
+
+  if (Array.isArray(value)) {
+    const sanitized: unknown[] = [];
+    for (const item of value) {
+      if (Array.isArray(item)) {
+        sanitized.push(String(item));
+      } else if (item && typeof item === 'object') {
+        const cleanObj: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(item)) {
+          cleanObj[k] = Array.isArray(v) ? String(v) : v;
+        }
+        sanitized.push(cleanObj);
+      } else {
+        sanitized.push(item);
+      }
+    }
+    return sanitized as T;
+  }
+
+  if (value && typeof value === 'object') {
+    const cleanObj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      cleanObj[k] = Array.isArray(v) ? String(v) : v;
+    }
+    return cleanObj as T;
+  }
+
+  return value as T;
+}
+
+export function sanitizeOptions(raw: unknown): ProductOptionDef[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((opt): opt is ProductOptionDef => {
+      return (
+        !!opt &&
+        typeof opt === 'object' &&
+        typeof (opt as ProductOptionDef).name === 'string' &&
+        Array.isArray((opt as ProductOptionDef).values)
+      );
+    })
+    .map((opt) => ({
+      id: String(opt.id ?? ''),
+      name: String(opt.name ?? ''),
+      values: opt.values.map((v) => String(v)).filter((v) => v.length > 0),
+    }))
+    .filter((opt) => opt.name.length > 0 && opt.values.length > 0);
+}
+
+export function sanitizeVariants(raw: unknown): ProductVariantDef[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((var_): var_ is ProductVariantDef => {
+      return (
+        !!var_ &&
+        typeof var_ === 'object' &&
+        typeof (var_ as ProductVariantDef).id === 'string' &&
+        typeof (var_ as ProductVariantDef).name === 'string'
+      );
+    })
+    .map((var_) => ({
+      id: String(var_.id ?? ''),
+      name: String(var_.name ?? ''),
+      optionValues:
+        var_.optionValues && typeof var_.optionValues === 'object'
+          ? Object.fromEntries(
+              Object.entries(var_.optionValues).map(([k, v]) => [k, String(v)]),
+            )
+          : {},
+      price: Number(var_.price) || 0,
+      stock: Math.max(0, Math.round(Number(var_.stock) || 0)),
+      sku: var_.sku ? String(var_.sku) : undefined,
+      image: var_.image ? String(var_.image) : undefined,
+      nameCustom: Boolean(var_.nameCustom),
+      enabled: var_.enabled !== false,
+    }));
+}
+
+export function sanitizeStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+export function sanitizeWholesaleTiers(
+  raw: unknown,
+): Array<{ minQty: number; price: number }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((tier): tier is { minQty: number; price: number } => {
+      return (
+        !!tier &&
+        typeof tier === 'object' &&
+        typeof (tier as { minQty?: unknown }).minQty === 'number' &&
+        typeof (tier as { price?: unknown }).price === 'number'
+      );
+    })
+    .map((tier) => ({
+      minQty: Number(tier.minQty),
+      price: Number(tier.price),
+    }))
+    .filter((tier) => tier.minQty >= 0 && tier.price >= 0);
+}
+
+export const DEFAULT_VARIANT_LIMITS: VariantLimits = {
+  maxOptions: 4,
+  maxValuesPerOption: 20,
+  maxVariants: 500,
+};
+
+export const MAX_VARIANT_OPTIONS = DEFAULT_VARIANT_LIMITS.maxOptions;
+export const MAX_VALUES_PER_OPTION = DEFAULT_VARIANT_LIMITS.maxValuesPerOption;
+export const MAX_VARIANTS = DEFAULT_VARIANT_LIMITS.maxVariants;
+
+export function resolveVariantLimits(limits?: Partial<VariantLimits>): VariantLimits {
+  const clamp = (v: unknown, fallback: number, min: number, max: number) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  };
+  return {
+    maxOptions: clamp(limits?.maxOptions, DEFAULT_VARIANT_LIMITS.maxOptions, 1, 6),
+    maxValuesPerOption: clamp(
+      limits?.maxValuesPerOption,
+      DEFAULT_VARIANT_LIMITS.maxValuesPerOption,
+      1,
+      50,
+    ),
+    maxVariants: clamp(limits?.maxVariants, DEFAULT_VARIANT_LIMITS.maxVariants, 1, 2000),
+  };
+}
+
+/** Identifiant durable : survit aux rechargements de la fiche produit. */
+export function newVariantId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  return `v${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function toFiniteNumber(value: unknown, fallback = 0): number {
   const n = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function cleanText(value: unknown, max = 80): string {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+/**
+ * Nettoie les options issues du client ou de la base. Une option sans nom ou
+ * sans valeur est ignorée : elle ne peut pas produire de variante exploitable.
+ */
+export function normalizeOptions(
+  raw: unknown,
+  limits?: Partial<VariantLimits>,
+): ProductOptionDef[] {
+  if (!Array.isArray(raw)) return [];
+  const { maxOptions, maxValuesPerOption } = resolveVariantLimits(limits);
+  const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
+  const out: ProductOptionDef[] = [];
+
+  for (const entry of raw.slice(0, maxOptions)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const option = entry as Record<string, unknown>;
+    const name = cleanText(option.name, 40);
+    if (!name || seenNames.has(name.toLowerCase())) continue;
+
+    const sourceValues = Array.isArray(option.values)
+      ? option.values
+      : typeof option.values === 'string'
+        ? option.values.split(',')
+        : [];
+    const values: string[] = [];
+    for (const value of sourceValues) {
+      const cleaned = cleanText(value, 40);
+      if (!cleaned) continue;
+      if (values.some((v) => v.toLowerCase() === cleaned.toLowerCase())) continue;
+      values.push(cleaned);
+      if (values.length >= maxValuesPerOption) break;
+    }
+    if (values.length === 0) continue;
+
+    const rawId = cleanText(option.id, 64);
+    const id = rawId && !seenIds.has(rawId) ? rawId : newVariantId();
+    seenIds.add(id);
+    seenNames.add(name.toLowerCase());
+    out.push({ id, name, values });
+  }
+
+  return out;
 }
 
 /** Clé de combinaison stable, indépendante de l'ordre des clés. */
@@ -20,6 +243,143 @@ export function variantCombinationKey(
     .sort()
     .map((key) => `${key}=>${String(optionValues[key] ?? '').trim().toLowerCase()}`)
     .join('|');
+}
+
+/** Libellé lisible d'une combinaison : « Rouge / M ». */
+export function variantLabel(
+  optionValues: Record<string, string>,
+  options: ProductOptionDef[],
+): string {
+  return options
+    .map((option) => optionValues?.[option.id])
+    .filter((value): value is string => !!value)
+    .join(' / ');
+}
+
+export function combinationsOf(
+  options: ProductOptionDef[],
+  limits?: Partial<VariantLimits>,
+): Record<string, string>[] {
+  if (options.length === 0) return [];
+  const { maxVariants } = resolveVariantLimits(limits);
+  let combinations: Record<string, string>[] = [{}];
+  for (const option of options) {
+    const next: Record<string, string>[] = [];
+    for (const combination of combinations) {
+      for (const value of option.values) {
+        next.push({ ...combination, [option.id]: value });
+      }
+    }
+    combinations = next;
+    if (combinations.length > maxVariants) break;
+  }
+  return combinations.slice(0, maxVariants);
+}
+
+/**
+ * Génère la matrice des variantes SANS rien détruire.
+ *
+ * - une combinaison déjà saisie conserve son identifiant, son prix, son stock,
+ *   son SKU et son image ;
+ * - les nouvelles combinaisons héritent du prix du produit ;
+ * - les variantes devenues invalides sont retournées dans `dropped`.
+ */
+export function buildVariantMatrix(
+  options: ProductOptionDef[],
+  existing: ProductVariantDef[],
+  fallbackPrice: number,
+  limits?: Partial<VariantLimits>,
+): { variants: ProductVariantDef[]; dropped: ProductVariantDef[] } {
+  const combinations = combinationsOf(options, limits);
+  const byKey = new Map<string, ProductVariantDef>();
+  for (const variant of existing) {
+    const key = variantCombinationKey(variant.optionValues);
+    if (key && !byKey.has(key)) byKey.set(key, variant);
+  }
+
+  const price = toFiniteNumber(fallbackPrice, 0);
+  const variants: ProductVariantDef[] = combinations.map((combination) => {
+    const key = variantCombinationKey(combination);
+    const previous = byKey.get(key);
+    byKey.delete(key);
+    return {
+      id: previous?.id || newVariantId(),
+      name: previous?.nameCustom ? previous.name : variantLabel(combination, options),
+      optionValues: combination,
+      price: previous ? toFiniteNumber(previous.price, price) : price,
+      stock: previous ? Math.max(0, Math.round(toFiniteNumber(previous.stock, 0))) : 0,
+      nameCustom: previous?.nameCustom === true,
+      enabled: previous ? previous.enabled !== false : true,
+      ...(previous?.sku ? { sku: previous.sku } : {}),
+      ...(previous?.image ? { image: previous.image } : {}),
+    };
+  });
+
+  return { variants, dropped: Array.from(byKey.values()) };
+}
+
+/**
+ * Nettoie les variantes avant écriture : clés d'options valides, valeurs
+ * autorisées par l'option correspondante, prix et stock coercés.
+ */
+export function normalizeVariants(
+  raw: unknown,
+  options: ProductOptionDef[],
+  limits?: Partial<VariantLimits>,
+): ProductVariantDef[] {
+  if (!Array.isArray(raw)) return [];
+  if (options.length === 0) return [];
+
+  const { maxVariants } = resolveVariantLimits(limits);
+  const valid = new Set(
+    combinationsOf(options, limits).map((combination) => variantCombinationKey(combination)),
+  );
+  const seen = new Set<string>();
+  const out: ProductVariantDef[] = [];
+
+  for (const entry of raw.slice(0, maxVariants)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const variant = entry as Record<string, unknown>;
+    const optionValues: Record<string, string> = {};
+
+    for (const option of options) {
+      const value = cleanText(
+        (variant.optionValues as Record<string, unknown> | undefined)?.[option.id],
+        40,
+      );
+      if (value && option.values.some((allowed) => allowed.toLowerCase() === value.toLowerCase())) {
+        optionValues[option.id] = value;
+      }
+    }
+    if (Object.keys(optionValues).length !== options.length) continue;
+
+    const key = variantCombinationKey(optionValues);
+    if (!valid.has(key) || seen.has(key)) continue;
+    seen.add(key);
+
+    const price = Math.max(0, toFiniteNumber(variant.price, 0));
+    const stock = Math.max(0, Math.round(toFiniteNumber(variant.stock, 0)));
+    const sku = cleanText(variant.sku, 60);
+    const image = cleanText(variant.image, 2048);
+
+    const name = cleanText(variant.name, 120);
+    const nameCustom = variant.nameCustom === true;
+    const enabled = variant.enabled !== false;
+
+    out.push({
+      id: cleanText(variant.id, 64) || newVariantId(),
+      name: nameCustom && name ? name : variantLabel(optionValues, options),
+      nameCustom,
+      optionValues,
+      price,
+      stock,
+      enabled,
+      ...(sku ? { sku } : {}),
+      ...(image ? { image } : {}),
+    });
+  }
+
+  return out;
 }
 
 /** Retrouve la variante correspondant à une sélection d'options. */
@@ -45,10 +405,10 @@ export function variantIsInStock(
 }
 
 /**
- * Une variante est-elle compatible avec une sélection partielle ?
- * Les options pas encore choisies sont ignorées : c'est ce qui permet
- * d'afficher « disponible / indisponible » sur une valeur avant que
- * l'acheteur ait terminé sa sélection.
+ * Une variante est-elle compatible avec une sélection partielle ? Les options
+ * pas encore choisies sont ignorées : c'est ce qui permet d'afficher
+ * « disponible / indisponible » sur une valeur avant que l'acheteur ait
+ * terminé sa sélection.
  */
 function isVariantCompatibleWith(
   variant: { optionValues?: Record<string, string> },
@@ -99,4 +459,20 @@ export function totalVariantStock(
     (total, variant) => total + (variant.enabled === false ? 0 : toFiniteNumber(variant?.stock, 0)),
     0,
   );
+}
+
+/** Stock disponible d'une variante, ou null si le produit n'en a pas. */
+export function variantStock(
+  product:
+    | { stock?: number | null; variants?: Array<{ id: string; stock?: number }> }
+    | null
+    | undefined,
+  variantId?: string | null,
+): number | null {
+  if (!product) return null;
+  if (variantId && Array.isArray(product.variants) && product.variants.length > 0) {
+    const variant = product.variants.find((v) => v.id === variantId);
+    if (variant) return Math.max(0, Math.round(toFiniteNumber(variant.stock, 0)));
+  }
+  return product.stock != null ? Math.max(0, Math.round(toFiniteNumber(product.stock, 0))) : null;
 }

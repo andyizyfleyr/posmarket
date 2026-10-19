@@ -37,6 +37,15 @@ export const maskName = (name?: string | null): string => {
     .join(' ');
 };
 
+/** Jours restants avant une échéance (arrondi supérieur, minimum 0). */
+export const getDaysRemaining = (end: string): number => {
+  const endDate = new Date(end);
+  const now = new Date();
+  const diffTime = endDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
+};
+
 export const generateSlug = (text: string): string => {
   return text
     .toString()
