@@ -80,8 +80,9 @@ function getVertical(
 }
 
 /**
- * Apparition décalée (fondu + montée) : équivalent des animations d'entrée du
- * web (`animate-shopify-reveal`), appliquées à chaque bloc du tableau de bord.
+ * Apparition décalée (montée) : équivalent des animations d'entrée du web
+ * (`animate-shopify-reveal`). Pas de fondu sur l'opacité — les cartes
+ * seraient translucides et laisseraient voir le fond gris de la page.
  */
 function Reveal({
   delay = 0,
@@ -107,7 +108,6 @@ function Reveal({
   return (
     <Animated.View
       style={{
-        opacity: progress,
         transform: [
           { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
         ],
@@ -963,7 +963,6 @@ function PerformanceChart({
           style={[
             styles.chartCanvas,
             {
-              opacity: revealAnim,
               transform: [
                 {
                   translateY: revealAnim.interpolate({
