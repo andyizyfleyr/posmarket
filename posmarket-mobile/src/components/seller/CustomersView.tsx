@@ -41,7 +41,7 @@ import { PhoneField } from '@/components/PhoneField';
 import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
 import { formatCurrency } from '@/utils';
-import { formatPhoneNumber, parsePhoneNumber } from '@/constants/countries';
+import { parsePhoneNumber } from '@/constants/countries';
 import {
   bulkDeleteSellerCustomers,
   deleteSellerCustomer,
@@ -503,7 +503,7 @@ return (
               {/* En-tête de tableau : Nom | Dépensé | N Cmd | Action */}
               <View style={styles.tableHeader}>
                 <Text style={styles.tableHeadNom}>Nom</Text>
-                <Text style={[styles.tableHeadCol, styles.tableHeadRight]}>Dépensé</Text>
+                <Text style={styles.tableHeadSpent}>Dépensé</Text>
                 <Text style={styles.tableHeadCmd}>N Cmd</Text>
                 <Text style={styles.tableHeadAction}>Action</Text>
               </View>
@@ -519,14 +519,9 @@ return (
                       pressed ? styles.customerRowPressed : null,
                     ]}
                   >
-                    <View style={styles.customerBody}>
-                      <Text style={styles.customerName} numberOfLines={1}>
-                        {customer.name}
-                      </Text>
-                      <Text style={styles.customerMeta} numberOfLines={1}>
-                        {formatPhoneNumber(customer.phone || '')}
-                      </Text>
-                    </View>
+                    <Text style={styles.customerName} numberOfLines={1}>
+                      {customer.name}
+                    </Text>
 
                     <Text
                       style={styles.customerTotal}
@@ -550,19 +545,24 @@ return (
                         <Pressable
                           onPress={() => openWhatsApp(customer.phone, customer.name)}
                           style={styles.whatsappBtn}
+                          hitSlop={4}
                           accessibilityLabel={`Envoyer un message WhatsApp à ${customer.name}`}
                         >
-                          <WhatsAppIcon size={16} />
+                          <WhatsAppIcon size={15} />
                         </Pressable>
                       ) : null}
                       {customer.phone ? (
                         <Pressable
                           onPress={() => callCustomer(customer.phone)}
                           style={styles.callBtn}
+                          hitSlop={4}
                           accessibilityLabel={`Appeler ${customer.name}`}
                         >
                           <Phone size={13} color="#111827" />
                         </Pressable>
+                      ) : null}
+                      {!customer.phone ? (
+                        <Text style={styles.actionDash}>—</Text>
                       ) : null}
                     </View>
                   </Pressable>
@@ -918,7 +918,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     backgroundColor: '#FCFCFD',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -932,16 +932,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  tableHeadCol: {
-    width: 88,
+  tableHeadSpent: {
+    width: 92,
     flexShrink: 0,
     fontSize: 8,
     fontWeight: '700',
     color: '#9CA3AF',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-  },
-  tableHeadRight: {
     textAlign: 'right',
   },
   tableHeadCmd: {
@@ -955,7 +953,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   tableHeadAction: {
-    width: 62,
+    width: 68,
     flexShrink: 0,
     fontSize: 8,
     fontWeight: '700',
@@ -979,30 +977,21 @@ const styles = StyleSheet.create({
   customerRowPressed: {
     backgroundColor: '#F9FAFB',
   },
-  customerBody: {
+  customerName: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
-  },
-  customerName: {
     fontSize: 11,
     fontWeight: '700',
     color: '#111827',
-    flexShrink: 1,
-  },
-  customerMeta: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    flexShrink: 1,
   },
   customerTotal: {
-    width: 88,
+    width: 92,
     flexShrink: 0,
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.brand,
     textAlign: 'right',
+    fontVariant: ['tabular-nums'],
   },
   customerOrders: {
     width: 34,
@@ -1011,12 +1000,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     textAlign: 'right',
+    fontVariant: ['tabular-nums'],
   },
   customerActions: {
+    width: 68,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
+    justifyContent: 'flex-end',
+    gap: 5,
+  },
+  actionDash: {
+    flex: 1,
+    fontSize: 10,
+    color: '#E5E7EB',
+    textAlign: 'center',
   },
   callBtn: {
     width: 28,
