@@ -35,13 +35,12 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
-  Filter,
-  Package,
+  Loader2,
   Plus,
   Search,
   ShoppingBag,
   Trash2,
-  Zap,
+  X,
 } from 'lucide-react-native';
 import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -365,127 +364,29 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
   const allSelected =
     filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length;
 
-  return (
+return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Commandes</Text>
-          <View style={styles.verticalsRow}>
-            {(
-              [
-                { id: 'all' as const, label: 'Toutes', Icon: Package, color: '#6B7280' },
-                { id: 'shopping' as const, label: 'Shop', Icon: ShoppingBag, color: '#F97316' },
-                { id: 'food' as const, label: 'Resto', Icon: Zap, color: '#EAB308' },
-              ] as const
-            ).map((v) => {
-              const active = selectedVertical === v.id;
-              return (
-                <Pressable
-                  key={v.id}
-                  onPress={() => setSelectedVertical(v.id)}
-                  style={[
-                    styles.verticalPill,
-                    active
-                      ? { backgroundColor: v.color, borderColor: v.color }
-                      : styles.verticalPillIdle,
-                  ]}
-                >
-                  <v.Icon size={12} color={active ? '#FFFFFF' : '#9CA3AF'} />
-                  <Text
-                    style={[
-                      styles.verticalPillText,
-                      active ? styles.verticalPillTextActive : null,
-                    ]}
-                  >
-                    {v.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.searchRow}>
-          <View style={styles.searchWrap}>
-            <View pointerEvents="none" style={styles.searchIcon}>
-              <Search size={14} color="#9CA3AF" />
-            </View>
-            <TextInput
-              value={searchTerm}
-              onChangeText={setSearchTerm}
-              placeholder="Chercher une commande..."
-              placeholderTextColor="#C4C9D1"
-              autoCapitalize="none"
-              style={styles.searchInput}
-            />
-          </View>
-          <View style={styles.filterBtn}>
-            {isSearching ? (
-              <ActivityIndicator size="small" color={COLORS.brand} />
-            ) : (
-              <Filter size={18} color="#9CA3AF" />
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* Carte liste */}
-      <View style={styles.card}>
-        {/* Onglets de statut */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.statusTabsScroll}
-          contentContainerStyle={styles.statusTabs}
-        >
-          {(
-            [
-              { id: 'ALL' as const, label: 'Toutes', color: COLORS.brand },
-              { id: 'PENDING' as const, label: 'Commandées', color: '#F59E0B' },
-              { id: 'READY' as const, label: 'En cours', color: '#3B82F6' },
-              { id: 'COMPLETED' as const, label: 'Livrées', color: '#22C55E' },
-            ] as const
-          ).map((tab) => {
-            const active = filterStatus === tab.id;
-            const count =
-              tab.id === 'ALL'
-                ? localOrders.length
-                : localOrders.filter((order) => order.status === tab.id).length;
-            return (
+      {/* Barre collante : sélection multiple ou recherche + statuts */}
+      <View style={styles.stickyWrap}>
+        {selectedOrderIds.length > 0 ? (
+          <View style={styles.selectionBar}>
+            <View style={styles.selectionCount}>
               <Pressable
-                key={tab.id}
-                onPress={() => setFilterStatus(tab.id)}
-                style={[styles.statusTab, active ? { backgroundColor: tab.color } : null]}
+                onPress={() => setSelectedOrderIds([])}
+                style={styles.selectionClear}
+                accessibilityLabel="Annuler la sélection"
               >
-                <Text
-                  style={[styles.statusTabText, active ? styles.statusTabTextActive : null]}
-                >
-                  {tab.label} ({count})
-                </Text>
+                <X size={14} color="#6B7280" />
               </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* Barre de sélection groupée */}
-        <View style={styles.bulkBar}>
-          <View style={styles.bulkBarLeft}>
-            <SellerCheckbox
-              checked={allSelected}
-              onToggle={() => toggleSelectAll(!allSelected)}
-            />
-            <Text style={styles.bulkBarLabel}>
-              {selectedOrderIds.length > 0
-                ? `${selectedOrderIds.length} sélectionnés`
-                : 'Tout choisir'}
-            </Text>
-          </View>
-
-          {selectedOrderIds.length > 0 ? (
+              <Text style={styles.selectionText}>
+                {selectedOrderIds.length} sélectionné
+                {selectedOrderIds.length > 1 ? 's' : ''}
+              </Text>
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.bulkActions}
+              contentContainerStyle={styles.selectionActions}
             >
               {(
                 [
@@ -499,7 +400,7 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
                   onPress={() => handleBulkUpdateStatus(action.status)}
                   disabled={Boolean(bulkUpdatingStatus)}
                   style={[
-                    styles.bulkActionBtn,
+                    styles.selectionBtn,
                     { backgroundColor: action.color },
                     bulkUpdatingStatus ? styles.disabled : null,
                   ]}
@@ -507,26 +408,94 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
                   {bulkUpdatingStatus === action.status ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : null}
-                  <Text style={styles.bulkActionText}>{action.label}</Text>
+                  <Text style={styles.selectionBtnText}>{action.label}</Text>
                 </Pressable>
               ))}
               <Pressable
                 onPress={() => setIsBulkDeleteModalOpen(true)}
                 disabled={Boolean(bulkUpdatingStatus)}
                 style={[
-                  styles.bulkActionBtn,
-                  styles.bulkDeleteBtn,
+                  styles.selectionBtn,
+                  styles.selectionBtnDanger,
                   bulkUpdatingStatus ? styles.disabled : null,
                 ]}
               >
                 <Trash2 size={12} color="#DC2626" />
-                <Text style={styles.bulkDeleteText}>Supprimer</Text>
+                <Text style={styles.selectionBtnDangerText}>Supprimer</Text>
               </Pressable>
             </ScrollView>
-          ) : null}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.filterBlock}>
+            {/* Recherche */}
+            <View style={styles.searchWrap}>
+              <Search size={16} color="#9CA3AF" style={styles.searchIcon} />
+              <TextInput
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Chercher une commande..."
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                style={styles.searchInput}
+              />
+              {isSearching || isLoadingMore ? (
+                <Loader2 size={16} color={COLORS.brand} style={styles.searchAccessory} />
+              ) : searchTerm.length > 0 ? (
+                <Pressable
+                  onPress={() => setSearchTerm('')}
+                  style={styles.searchClear}
+                  accessibilityLabel="Effacer la recherche"
+                >
+                  <X size={14} color="#6B7280" />
+                </Pressable>
+              ) : null}
+            </View>
 
-        {/* Liste */}
+            {/* Filtres de statut */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.statusTabs}
+            >
+              {(
+                [
+                  { id: 'ALL' as const, label: 'Toutes', color: '#111827' },
+                  { id: 'PENDING' as const, label: 'Commandées', color: '#F59E0B' },
+                  { id: 'READY' as const, label: 'En cours', color: '#3B82F6' },
+                  { id: 'COMPLETED' as const, label: 'Livrées', color: '#22C55E' },
+                ] as const
+              ).map((tab) => {
+                const active = filterStatus === tab.id;
+                const count =
+                  tab.id === 'ALL'
+                    ? localOrders.length
+                    : localOrders.filter((order) => order.status === tab.id).length;
+                return (
+                  <Pressable
+                    key={tab.id}
+                    onPress={() => setFilterStatus(tab.id)}
+                    style={[
+                      styles.statusTab,
+                      active ? { backgroundColor: tab.color, borderColor: tab.color } : null,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={[styles.statusTabText, active ? styles.statusTabTextActive : null]}>
+                      {tab.label} ({count})
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+
+      {/* Carte liste */}
+      <View style={styles.card}>
         <ScrollView
           style={styles.list}
           contentContainerStyle={styles.listContent}
@@ -541,92 +510,136 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
             />
           }
         >
-          {filteredOrders.length > 0 ? (
+          {isSearching && filteredOrders.length === 0 ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <View key={`skel-${i}`} style={styles.skeletonRow}>
+                <View style={styles.skeletonBox} />
+                <View style={styles.skeletonIcon} />
+                <View style={styles.skeletonBody}>
+                  <View style={styles.skeletonLineWide} />
+                  <View style={styles.skeletonLineShort} />
+                </View>
+              </View>
+            ))
+          ) : filteredOrders.length > 0 ? (
             <>
-              {filteredOrders.map((order, index) => (
+              <View style={styles.listHeader}>
+                <Text style={styles.listHeaderText}>
+                  {filteredOrders.length} commande{filteredOrders.length > 1 ? 's' : ''}
+                  {hasMore ? ' chargées' : ''}
+                </Text>
                 <Pressable
-                  key={order.id}
-                  onPress={() => setSelectedOrder(order)}
-                  style={[
-                    styles.orderRow,
-                    index < filteredOrders.length - 1 ? styles.orderRowBorder : null,
-                    selectedOrderIds.includes(order.id) ? styles.orderRowSelected : null,
-                  ]}
+                  onPress={() => toggleSelectAll(!allSelected)}
+                  style={styles.selectAllBtn}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: allSelected }}
+                  accessibilityLabel={allSelected ? 'Tout désélectionner' : 'Tout choisir'}
                 >
-                  <View style={styles.orderRowLeft}>
-                    <SellerCheckbox
-                      checked={selectedOrderIds.includes(order.id)}
-                      onToggle={() =>
-                        toggleSelect(order.id, !selectedOrderIds.includes(order.id))
-                      }
-                    />
-                  </View>
-
-                  <View style={styles.orderIconBox}>
-                    <ShoppingBag size={14} color={COLORS.brand} />
-                  </View>
-
-                  <View style={styles.orderBody}>
-                    <View style={styles.orderBodyLeft}>
-                      <View style={styles.orderIdRow}>
-                        <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-                        <Text style={styles.orderCustomer} numberOfLines={1}>
-                          {order.customer?.name || 'Passage'}
-                        </Text>
-                        <View
-                          style={[
-                            styles.orderTypeBadge,
-                            order.type === 'PICKUP' ? styles.orderTypeWeb : styles.orderTypePos,
-                          ]}
-                        >
-                          <Text
-                            style={
-                              order.type === 'PICKUP'
-                                ? styles.orderTypeWebText
-                                : styles.orderTypePosText
-                            }
-                          >
-                            {order.type === 'PICKUP' ? 'WEB' : 'POS'}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.orderMetaRow}>
-                        <View style={styles.orderMetaItem}>
-                          <Calendar size={10} color={COLORS.brand} />
-                          <Text style={styles.orderMetaText}>
-                            {new Date(order.date).toLocaleDateString('fr-FR')}
-                          </Text>
-                        </View>
-                        <View style={styles.orderMetaItem}>
-                          <Clock size={10} color="#9CA3AF" />
-                          <Text style={styles.orderMetaText}>
-                            {new Date(order.date).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.orderRight}>
-                      <View style={styles.orderRightText}>
-                        <Text style={styles.orderTotal}>
-                          {formatCurrency(order.total || 0)}
-                        </Text>
-                        <View
-                          style={[styles.statusPill, getStatusColor(order.status || 'READY')]}
-                        >
-                          <Text style={styles.statusPillText}>
-                            {getStatusLabel(order.status || 'READY')}
-                          </Text>
-                        </View>
-                      </View>
-                      <ChevronRight size={14} color="#D1D5DB" />
-                    </View>
-                  </View>
+                  <SellerCheckbox
+                    checked={allSelected}
+                    onToggle={() => toggleSelectAll(!allSelected)}
+                    size={18}
+                  />
+                  <Text style={styles.selectAllText}>
+                    {allSelected ? 'Tout désélectionner' : 'Tout choisir'}
+                  </Text>
                 </Pressable>
-              ))}
+              </View>
+
+              {filteredOrders.map((order, index) => {
+                const selected = selectedOrderIds.includes(order.id);
+                return (
+                  <Pressable
+                    key={order.id}
+                    onPress={() => setSelectedOrder(order)}
+                    style={({ pressed }) => [
+                      styles.orderRow,
+                      index < filteredOrders.length - 1 ? styles.orderRowBorder : null,
+                      selected ? styles.orderRowSelected : null,
+                      pressed ? styles.orderRowPressed : null,
+                    ]}
+                  >
+                    <Pressable
+                      onPress={() => toggleSelect(order.id, !selected)}
+                      style={styles.checkboxHit}
+                      hitSlop={8}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={`Sélectionner la commande ${order.id.slice(-6).toUpperCase()}`}
+                    >
+                      <SellerCheckbox
+                        checked={selected}
+                        onToggle={() => toggleSelect(order.id, !selected)}
+                        size={20}
+                      />
+                    </Pressable>
+
+                    <View style={styles.orderIconBox}>
+                      <ShoppingBag size={14} color={COLORS.brand} />
+                    </View>
+
+                    <View style={styles.orderBody}>
+                      <View style={styles.orderBodyLeft}>
+                        <View style={styles.orderIdRow}>
+                          <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
+                          <Text style={styles.orderCustomer} numberOfLines={1}>
+                            {order.customer?.name || 'Passage'}
+                          </Text>
+                          <View
+                            style={[
+                              styles.orderTypeBadge,
+                              order.type === 'PICKUP' ? styles.orderTypeWeb : styles.orderTypePos,
+                            ]}
+                          >
+                            <Text
+                              style={
+                                order.type === 'PICKUP'
+                                  ? styles.orderTypeWebText
+                                  : styles.orderTypePosText
+                              }
+                            >
+                              {order.type === 'PICKUP' ? 'WEB' : 'POS'}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.orderMetaRow}>
+                          <View style={styles.orderMetaItem}>
+                            <Calendar size={10} color={COLORS.brand} />
+                            <Text style={styles.orderMetaText}>
+                              {new Date(order.date).toLocaleDateString('fr-FR')}
+                            </Text>
+                          </View>
+                          <View style={styles.orderMetaItem}>
+                            <Clock size={10} color="#9CA3AF" />
+                            <Text style={styles.orderMetaText}>
+                              {new Date(order.date).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.orderRight}>
+                        <View style={styles.orderRightText}>
+                          <Text style={styles.orderTotal}>
+                            {formatCurrency(order.total || 0)}
+                          </Text>
+                          <View
+                            style={[styles.statusPill, getStatusColor(order.status || 'READY')]}
+                          >
+                            <Text style={styles.statusPillText}>
+                              {getStatusLabel(order.status || 'READY')}
+                            </Text>
+                          </View>
+                        </View>
+                        <ChevronRight size={14} color="#D1D5DB" />
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
 
               {hasMore ? (
                 <View style={styles.loadMoreWrap}>
@@ -655,32 +668,32 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
             </>
           ) : (
             <View style={styles.emptyState}>
-              {isSearching ? (
-                <>
-                  <ActivityIndicator size="large" color={COLORS.brand} />
-                  <View style={styles.emptyStateTextWrap}>
-                    <Text style={styles.emptyStateTitle}>Recherche en cours…</Text>
-                    <Text style={styles.emptyStateHint}>Chargement de vos commandes.</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.emptyStateIcon}>
-                    <ShoppingBag size={40} color="#E5E7EB" />
-                  </View>
-                  <View style={styles.emptyStateTextWrap}>
-                    <Text style={styles.emptyStateTitle}>Aucune commande trouvée</Text>
-                    <Text style={styles.emptyStateHint}>
-                      Ajustez vos filtres ou effectuez une nouvelle recherche.
-                    </Text>
-                  </View>
-                </>
-              )}
+              <View style={styles.emptyStateIcon}>
+                {searchTerm ? (
+                  <Search size={24} color="#9CA3AF" />
+                ) : (
+                  <ShoppingBag size={26} color="#9CA3AF" />
+                )}
+              </View>
+              <View style={styles.emptyStateTextWrap}>
+                <Text style={styles.emptyStateTitle}>
+                  {searchTerm ? 'Aucune commande trouvée' : 'Aucune commande'}
+                </Text>
+                <Text style={styles.emptyStateHint}>
+                  {searchTerm
+                    ? `Aucune commande ne correspond à « ${searchTerm} ».`
+                    : 'Vos nouvelles commandes apparaîtront ici.'}
+                </Text>
+              </View>
+              {searchTerm ? (
+                <Pressable onPress={() => setSearchTerm('')} style={styles.emptyCta}>
+                  <Text style={styles.emptyCtaText}>Effacer la recherche</Text>
+                </Pressable>
+              ) : null}
             </View>
           )}
         </ScrollView>
       </View>
-
       {/* Détail de commande */}
       <Modal
         visible={selectedOrder !== null}
@@ -1036,28 +1049,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  searchWrap: {
-    flex: 1,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 12,
-    zIndex: 1,
-  },
-  searchInput: {
-    paddingLeft: 36,
-    paddingRight: 16,
-    paddingVertical: 6,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    borderRadius: 10,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#111827',
-  },
   filterBtn: {
     padding: 8,
     backgroundColor: '#FFFFFF',
@@ -1086,30 +1077,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
-  },
-  statusTabsScroll: {
-    flexGrow: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
-  },
-  statusTabs: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-  },
-  statusTab: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  statusTabText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9CA3AF',
-  },
-  statusTabTextActive: {
-    color: '#FFFFFF',
   },
   bulkBar: {
     flexDirection: 'row',
@@ -1337,28 +1304,8 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 80,
   },
-  emptyStateIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   emptyStateTextWrap: {
     alignItems: 'center',
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    lineHeight: 22,
-  },
-  emptyStateHint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    textAlign: 'center',
   },
 
   // ── Détail ──────────────────────────────────────────────────────
@@ -1727,4 +1674,156 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
+
+  /* ── Refonte (mêmes proportions que la page Stocks) ── */
+  stickyWrap: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    zIndex: 20,
+    elevation: 3,
+  },
+  filterBlock: { gap: 8 },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 38,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#111827',
+    paddingVertical: 0,
+  },
+  searchAccessory: { marginLeft: 8 },
+  searchClear: {
+    marginLeft: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusTabsScroll: { marginHorizontal: -12 },
+  statusTabs: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12 },
+  statusTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  statusTabText: { fontSize: 10, fontWeight: '700', color: '#9CA3AF' },
+  statusTabTextActive: { color: '#FFFFFF' },
+
+  selectionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  selectionCount: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  selectionClear: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectionText: { color: '#6B7280', fontSize: 10, fontWeight: '600' },
+  selectionActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  selectionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  selectionBtnText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
+  selectionBtnDanger: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FEE2E2' },
+  selectionBtnDangerText: { fontSize: 10, fontWeight: '700', color: '#DC2626' },
+
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  listHeaderText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+  selectAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  selectAllText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+
+  checkboxHit: { width: 26, alignItems: 'center' },
+  orderRowPressed: { backgroundColor: '#F9FAFB' },
+
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  skeletonBox: { width: 20, height: 20, borderRadius: 5, backgroundColor: '#F3F4F6' },
+  skeletonIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#F3F4F6' },
+  skeletonBody: { flex: 1, gap: 6 },
+  skeletonLineWide: { width: '55%', height: 10, borderRadius: 5, backgroundColor: '#F3F4F6' },
+  skeletonLineShort: { width: '30%', height: 8, borderRadius: 4, backgroundColor: '#F9FAFB' },
+
+  emptyStateIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateTitle: { fontSize: 13, fontWeight: '700', color: '#4B5563' },
+  emptyStateHint: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  emptyCta: {
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  emptyCtaText: { fontSize: 11, fontWeight: '700', color: COLORS.brand },
 });
