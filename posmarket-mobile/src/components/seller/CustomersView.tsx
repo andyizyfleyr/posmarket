@@ -38,7 +38,6 @@ import {
 } from 'lucide-react-native';
 import { WhatsAppIcon } from '@/components/seller/WhatsAppIcon';
 import { useToast } from '@/components/ToastProvider';
-import { DataTable, MD3LightTheme, PaperProvider } from 'react-native-paper';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PhoneField } from '@/components/PhoneField';
 import { SellerCheckbox } from '@/components/seller/ui';
@@ -63,19 +62,6 @@ const GRID = {
   cmd: 34,
   action: 68,
 } as const;
-
-/** Thème Paper limité à la page Clients : accent de marque sur l'ondulation
- * des lignes, surfaces blanches. */
-const paperCustomersTheme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: COLORS.brand,
-    onPrimary: '#FFFFFF',
-    surface: '#FFFFFF',
-    surfaceVariant: '#FCFCFD',
-  },
-};
 
 interface SellerCustomersViewProps {
   storeId: string;
@@ -566,8 +552,7 @@ return (
         />
       ) : null}
 
-      {/* ── Carte liste (composants Paper) ── */}
-      <PaperProvider theme={paperCustomersTheme}>
+      {/* ── Carte liste ── */}
       <View style={styles.card}>
         <ScrollView
           style={styles.list}
@@ -592,72 +577,62 @@ return (
                 </Text>
               </View>
 
-              <DataTable>
-                {/* En-tête : mêmes cellules (cellName/cellSpent/cellCmd/cellAction)
-                    que les lignes, avec le contrat `numeric` de Paper à droite. */}
-                <DataTable.Header style={styles.paperHeader}>
-                  <DataTable.Title
-                    style={[styles.cellName, styles.titleHead]}
-                    textStyle={styles.tableHeadLeft}
-                  >
-                    Nom
-                  </DataTable.Title>
-                  <DataTable.Title
-                    numeric
-                    style={[styles.cellSpent, styles.titleHead]}
-                    textStyle={styles.tableHeadRight}
-                  >
-                    Dépensé
-                  </DataTable.Title>
-                  <DataTable.Title
-                    numeric
-                    style={[styles.cellCmd, styles.titleHead]}
-                    textStyle={styles.tableHeadRight}
-                  >
-                    N Cmd
-                  </DataTable.Title>
-                  <DataTable.Title
-                    style={[styles.cellAction, styles.titleHead]}
-                    textStyle={styles.tableHeadAction}
-                  >
-                    Action
-                  </DataTable.Title>
-                </DataTable.Header>
+              {/* Grille partagée : l'en-tête et les lignes utilisent EXACTEMENT
+                  les mêmes rangées et colonnes (gridRow + colName/colSpent/
+                  colCmd/colAction) — alignement structurel, aucune lib entre les deux. */}
+              <View style={[styles.gridRow, styles.gridHeader]}>
+                <View style={[styles.gridCol, styles.colName]}>
+                  <Text style={styles.tableHeadLeft}>Nom</Text>
+                </View>
+                <View style={[styles.gridCol, styles.colSpent]}>
+                  <Text style={styles.tableHeadRight}>Dépensé</Text>
+                </View>
+                <View style={[styles.gridCol, styles.colCmd]}>
+                  <Text style={styles.tableHeadRight}>N Cmd</Text>
+                </View>
+                <View style={[styles.gridCol, styles.colAction]}>
+                  <Text style={styles.tableHeadAction}>Action</Text>
+                </View>
+              </View>
 
-                {filteredCustomers.map((customer) => (
-                  <DataTable.Row
-                    key={customer.id}
-                    onPress={() => handleOpenModal(customer)}
-                    style={styles.paperRow}
-                  >
-                    <DataTable.Cell style={styles.cellName}>
-                      <Text style={styles.customerName} numberOfLines={1}>
-                        {customer.name}
-                      </Text>
-                    </DataTable.Cell>
+              {filteredCustomers.map((customer) => (
+                <Pressable
+                  key={customer.id}
+                  onPress={() => handleOpenModal(customer)}
+                  style={styles.gridRow}
+                  android_ripple={{ color: 'rgba(245, 107, 42, 0.08)' }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ouvrir la fiche de ${customer.name}`}
+                >
+                  <View style={[styles.gridCol, styles.colName]}>
+                    <Text style={styles.customerName} numberOfLines={1}>
+                      {customer.name}
+                    </Text>
+                  </View>
 
-                    <DataTable.Cell style={styles.cellSpent} numeric>
-                      <Text
-                        style={styles.customerTotal}
-                        numberOfLines={1}
-                        accessibilityLabel={`${customer.name} a dépensé ${formatCurrency(
-                          Number(customer.totalSpent) || 0,
-                        )}`}
-                      >
-                        {formatCurrency(Number(customer.totalSpent) || 0)}
-                      </Text>
-                    </DataTable.Cell>
+                  <View style={[styles.gridCol, styles.colSpent]}>
+                    <Text
+                      style={styles.customerTotal}
+                      numberOfLines={1}
+                      accessibilityLabel={`${customer.name} a dépensé ${formatCurrency(
+                        Number(customer.totalSpent) || 0,
+                      )}`}
+                    >
+                      {formatCurrency(Number(customer.totalSpent) || 0)}
+                    </Text>
+                  </View>
 
-                    <DataTable.Cell style={styles.cellCmd} numeric>
-                      <Text
-                        style={styles.customerOrders}
-                        accessibilityLabel={`${customer.ordersCount || 0} commandes`}
-                      >
-                        {customer.ordersCount || 0}
-                      </Text>
-                    </DataTable.Cell>
+                  <View style={[styles.gridCol, styles.colCmd]}>
+                    <Text
+                      style={styles.customerOrders}
+                      accessibilityLabel={`${customer.ordersCount || 0} commandes`}
+                    >
+                      {customer.ordersCount || 0}
+                    </Text>
+                  </View>
 
-                    <DataTable.Cell style={styles.cellAction}>
+                  <View style={[styles.gridCol, styles.colAction]}>
+                    <View style={styles.actionButtons}>
                       <Pressable
                         onPress={() => openWhatsApp(customer.phone, customer.name)}
                         style={styles.whatsappBtn}
@@ -678,10 +653,10 @@ return (
                       >
                         <Phone size={13} color={customer.phone ? '#111827' : '#D1D5DB'} />
                       </Pressable>
-                    </DataTable.Cell>
-                  </DataTable.Row>
-                ))}
-              </DataTable>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
             </>
           ) : isSearching ? (
             Array.from({ length: 6 }).map((_, i) => (
@@ -745,7 +720,6 @@ return (
           ) : null}
         </ScrollView>
       </View>
-      </PaperProvider>
       {/* Modale client */}
       <Modal
         visible={isModalOpen}
@@ -1052,18 +1026,49 @@ const styles = StyleSheet.create({
   },
   listHeaderText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
 
-  /* Tableau Paper : en-tête + lignes */
-  paperHeader: {
+  /* Tableau : grille flexbox PARTAGÉE. L'en-tête et chaque ligne rendent
+     exactement gridRow + colName/colSpent/colCmd/colAction. Les colonnes ont
+     une largeur fixe et leurs valeurs s'alignent à droite (alignItems
+     flex-end) : les bords droits coïncident dans l'en-tête comme dans
+     toutes les lignes, quelle que soit la longueur des montants. */
+  gridRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    height: 34,
-    backgroundColor: '#FCFCFD',
+    minHeight: 42,
     borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  gridHeader: {
+    height: 34,
+    minHeight: 34,
+    backgroundColor: '#FCFCFD',
     borderBottomColor: '#F3F4F6',
   },
-  /* Neutralise le paddingVertical 12 + lineHeight 24 internes des Title. */
-  titleHead: {
-    alignItems: 'center',
-    paddingVertical: 4,
+  gridCol: {
+    justifyContent: 'center',
+  },
+  colName: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'flex-start',
+    paddingRight: GRID.gap,
+  },
+  colSpent: {
+    width: GRID.spent,
+    alignItems: 'flex-end',
+  },
+  colCmd: {
+    width: GRID.cmd,
+    alignItems: 'flex-end',
+  },
+  colAction: {
+    width: GRID.action,
+    alignItems: 'flex-end',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 5,
   },
   tableHeadLeft: {
     fontSize: 8,
@@ -1087,38 +1092,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textTransform: 'uppercase',
     textAlign: 'right',
-  },
-  paperRow: {
-    paddingHorizontal: 10,
-    minHeight: 42,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
-  },
-
-  /* Cellules de la grille (communes en-tête / lignes).
-   ⚠ flex: 0 tue le flexBasis 0% interne de Paper (Cell/Title) qui sinon
-   écrase la largeur fixe GRID.* et détruit l'alignement de la grille. */
-  cellName: {
-    flex: 1,
-    minWidth: 0,
-  },
-  cellSpent: {
-    flex: 0,
-    width: GRID.spent,
-    justifyContent: 'flex-end',
-  },
-  cellCmd: {
-    flex: 0,
-    width: GRID.cmd,
-    justifyContent: 'flex-end',
-  },
-  cellAction: {
-    flex: 0,
-    width: GRID.action,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 5,
   },
   customerName: {
     fontSize: 11,
