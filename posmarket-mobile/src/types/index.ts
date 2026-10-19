@@ -11,6 +11,8 @@ export interface Review {
   comment: string;
   date: string;
   productId?: string;
+  productName?: string | null;
+  productImage?: string | null;
   sellerReply?: string | null;
 }
 

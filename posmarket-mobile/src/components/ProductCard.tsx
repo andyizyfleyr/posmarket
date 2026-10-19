@@ -1,7 +1,9 @@
 /**
  * ProductCard — transposition native fidèle du composant web
- * (src/components/ProductCard.tsx) : carte blanche à bord fin, badge remise
- * rouge, nom discret, prix en noir, bouton neutre qui devient orange à l'appui.
+ * (src/components/ProductCard.tsx) : image carrée encadrée, badge remise
+ * rouge, nom 9 px sur une ligne, prix noir 10 px + prix barré, ligne
+ * « N ventes / N vues » (œil), bouton neutre 36 px qui devient orange à
+ * l'appui (« Choisir » si options, « Rupture » si stock nul).
  */
 
 import React, { useState, useCallback } from 'react';
@@ -13,10 +15,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Plus, Star, ShoppingCart } from 'lucide-react-native';
+import { Plus, Eye, Package } from 'lucide-react-native';
 import { resolveImageUrl } from '@/api/client';
-import { formatCurrency } from '@/utils';
-import { COLORS, RADIUS } from '@/theme';
+import { formatCurrency, formatNumber } from '@/utils';
+import { COLORS } from '@/theme';
 import type { StorefrontProduct } from '@/types';
 import { useCart } from '@/context/CartContext';
 
@@ -30,16 +32,15 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
   const [adding, setAdding] = useState(false);
   const imageUrl = resolveImageUrl(product.image);
   const isOutOfStock = product.stock <= 0;
-  const hasRequiredOptions =
-    (product.options && product.options.length > 0) ||
-    (product.variants && product.variants.length > 0);
+  const hasOptions =
+    (product.options?.length ?? 0) > 0 || (product.variants?.length ?? 0) > 0;
 
   const handleAdd = useCallback(() => {
-    if (isOutOfStock || hasRequiredOptions) return;
+    if (isOutOfStock || hasOptions) return;
     setAdding(true);
     addToCart(product, 1);
     setTimeout(() => setAdding(false), 600);
-  }, [addToCart, product, isOutOfStock, hasRequiredOptions]);
+  }, [addToCart, product, isOutOfStock, hasOptions]);
 
   const handlePress = useCallback(() => {
     onPress?.(product);
@@ -52,6 +53,9 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
             100,
         )
       : 0;
+
+  const salesCount = product.salesCount ?? 0;
+  const views = product.views ?? 0;
 
   return (
     <Pressable
@@ -71,7 +75,7 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
             />
           ) : (
             <View style={[styles.image, styles.imagePlaceholder]}>
-              <ShoppingCart size={22} color={COLORS.textFaint} />
+              <Package size={22} color={COLORS.textFaint} />
             </View>
           )}
           {discount > 0 && (
@@ -79,42 +83,40 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
               <Text style={styles.discountText}>-{discount}%</Text>
             </View>
           )}
-          {isOutOfStock && (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>Rupture</Text>
-            </View>
-          )}
         </View>
       </View>
 
-      {/* Info */}
+      {/* Infos */}
       <View style={styles.info}>
-        <Text style={styles.storeName} numberOfLines={1}>
-          {product.storeName}
-        </Text>
-        <Text style={styles.productName} numberOfLines={2}>
+        <Text style={styles.productName} numberOfLines={1}>
           {product.name}
         </Text>
 
-        {(product.rating ?? 0) > 0 && (
-          <View style={styles.ratingRow}>
-            <Star size={10} color={COLORS.warning} fill={COLORS.warning} />
-            <Text style={styles.ratingText}>
-              {(product.rating ?? 0).toFixed(1)}
-            </Text>
-            {(product.reviewCount ?? 0) > 0 && (
-              <Text style={styles.reviewCount}>({product.reviewCount})</Text>
+        <View style={styles.infoBottom}>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{formatCurrency(product.price)}</Text>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <Text style={styles.originalPrice}>
+                {formatCurrency(product.originalPrice)}
+              </Text>
             )}
           </View>
-        )}
 
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{formatCurrency(product.price)}</Text>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <Text style={styles.originalPrice}>
-              {formatCurrency(product.originalPrice)}
-            </Text>
-          )}
+          <View style={styles.metaRow}>
+            {salesCount > 0 ? (
+              <Text style={styles.metaSales}>
+                {formatNumber(salesCount)} {salesCount > 1 ? 'ventes' : 'vente'}
+              </Text>
+            ) : (
+              <View />
+            )}
+            {views > 0 && (
+              <View style={styles.metaViews}>
+                <Text style={styles.metaViewsText}>{formatNumber(views)}</Text>
+                <Eye size={10} color="#4B5563" strokeWidth={2.5} />
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -126,7 +128,7 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
             isOutOfStock && styles.addButtonDisabled,
             pressed && !isOutOfStock && styles.addButtonPressed,
           ]}
-          onPress={hasRequiredOptions ? handlePress : handleAdd}
+          onPress={hasOptions ? handlePress : handleAdd}
           disabled={isOutOfStock || adding}
         >
           {({ pressed }) =>
@@ -134,11 +136,11 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
               <ActivityIndicator size="small" color={COLORS.brand} />
             ) : (
               <View style={styles.addButtonRow}>
-                {!isOutOfStock && !hasRequiredOptions && (
+                {!isOutOfStock && !hasOptions && (
                   <Plus
-                    size={13}
+                    size={12}
                     strokeWidth={2.5}
-                    color={pressed ? '#FFFFFF' : COLORS.text}
+                    color={pressed ? '#FFFFFF' : '#111827'}
                   />
                 )}
                 <Text
@@ -150,7 +152,7 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
                 >
                   {isOutOfStock
                     ? 'Rupture'
-                    : hasRequiredOptions
+                    : hasOptions
                       ? 'Choisir'
                       : 'Ajouter'}
                 </Text>
@@ -166,10 +168,10 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.card,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.line,
+    borderColor: '#F3F4F6',
     overflow: 'hidden',
     margin: 4,
     elevation: 1,
@@ -182,14 +184,15 @@ const styles = StyleSheet.create({
     opacity: 0.92,
   },
   imageWrap: {
-    padding: 4,
+    paddingHorizontal: 4,
+    paddingTop: 4,
   },
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: COLORS.surfaceMuted,
+    backgroundColor: '#FFFFFF',
   },
   image: {
     width: '100%',
@@ -198,91 +201,89 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceMuted,
+    backgroundColor: '#F9FAFB',
   },
   discountBadge: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: COLORS.danger,
+    top: 8,
+    left: 8,
+    backgroundColor: '#EF4444',
     borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 1.5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   discountText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  outOfStockOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.40)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  outOfStockText: {
-    color: '#FFF',
-    fontSize: 12,
+    color: '#FFFFFF',
+    fontSize: 8,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   info: {
-    paddingHorizontal: 8,
-    paddingTop: 2,
-    gap: 2,
+    padding: 6,
     flexGrow: 1,
   },
-  storeName: {
-    fontSize: 9,
-    color: COLORS.textFaint,
-    fontWeight: '500',
-  },
   productName: {
-    fontSize: 12,
+    fontSize: 9,
     fontWeight: '600',
     color: '#1F2937',
-    lineHeight: 16,
+    lineHeight: 12,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 1,
-  },
-  ratingText: {
-    fontSize: 10,
-    color: COLORS.warning,
-    fontWeight: '600',
-  },
-  reviewCount: {
-    fontSize: 9,
-    color: COLORS.textFaint,
+  infoBottom: {
+    marginTop: 'auto',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 5,
-    marginTop: 1,
+    gap: 4,
+    marginBottom: 4,
   },
   price: {
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: '700',
-    color: COLORS.price,
+    color: '#1A1A1A',
   },
   originalPrice: {
-    fontSize: 10,
-    color: COLORS.textFaint,
+    fontSize: 8,
+    color: '#6B7280',
     textDecorationLine: 'line-through',
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 4,
+    marginTop: -4,
+    marginBottom: 6,
+    minHeight: 14,
+  },
+  metaSales: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#4B5563',
+    opacity: 0.7,
+  },
+  metaViews: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaViewsText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#4B5563',
+    opacity: 0.8,
+  },
   buttonWrap: {
-    padding: 6,
+    paddingHorizontal: 6,
+    paddingBottom: 6,
   },
   addButton: {
-    minHeight: 32,
+    minHeight: 36,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceMuted,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -291,24 +292,24 @@ const styles = StyleSheet.create({
     borderColor: COLORS.brand,
   },
   addButtonDisabled: {
-    backgroundColor: COLORS.surfaceMuted,
-    borderColor: COLORS.line,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#F3F4F6',
   },
   addButtonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   addButtonText: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
-    color: COLORS.text,
+    color: '#111827',
+    letterSpacing: -0.1,
   },
   addButtonTextPressed: {
     color: '#FFFFFF',
   },
   addButtonTextDisabled: {
     color: '#D1D5DB',
-    fontWeight: '600',
   },
 });

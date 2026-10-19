@@ -117,6 +117,8 @@ Top bar simple ; carte boutique (logo 56, nom, adresse, téléphone, description
 ### Correctifs
 Refaire la page selon la structure ci-dessus (cover, carte centrée, stats, onglets, recherche interne, en-tâtes catégorie + feuille, avis).
 
+**✅ Fait** — page refaite intégralement (cover dégradé `expo-linear-gradient`, logo 48 chevauchant + coche, ligne note, adresse, description, WhatsApp, bandeau stats 3 colonnes, onglets collants, recherche serveur, sections par catégorie + feuille « Voir tout », chargement infini 20/lot, avis boutique via `GET /api/marketplace/store-reviews/[storeId]`). L'en-tête « catégorie interne » du web n'apparaît que via URL `?cat=` (jamais sur mobile web) : non repris.
+
 ---
 
 ## 4. Panier & Checkout — `app/(tabs)/cart.tsx` + `app/checkout.tsx`
@@ -194,8 +196,7 @@ Refaire la mise en page (identité + stats, tuiles Commandes/Avis/Profil, titre 
 
 ### ProductCard (web) vs app
 - Web : **pas de nom de boutique, pas de note** ; nom produit **9 px sur 1 ligne** (`line-clamp-1`) ; prix 10 px noir + prix barré 8 px ; ligne « **N ventes** » (9 px) à gauche + « **N vues** » (9 px + œil 10) à droite ; badge « -X% » 8 px ; bouton « Ajouter » min 36 px, texte 9 px, gris clair (devient orange à l'appui), Plus 12 ; « Choisir » si options ; « Rupture » grisé dans le bouton ; **pas d'overlay sur l'image**.
-- App : ajoute un nom de boutique (9) + une ligne note/étoile/avis (10/9) — inventés ; nom 12 px sur 2 lignes ; prix 13 px ; bouton 32 px texte 11 px ; overlay noir « Rupture » sur l'image (absent du web).
-- → À ramener au modèle web : retirer boutique/note/overlay, ajouter ventes/vues, nom sur 1 ligne, tailles web.
+- App : ✅ alignée (plus de boutique/note/overlay, ventes/vues, nom 1 ligne, tailles web).
 
 ### Bottom sheet (web)
 - Poignée grise 40×4, titre 14 px bold centré, bouton fermer rond gris 32 px à droite, sous-titre 11 px gris centré, corps scrollable, radius haut 24, fond noir 50 %.

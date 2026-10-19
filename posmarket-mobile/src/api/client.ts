@@ -104,6 +104,15 @@ export async function fetchProductReviews(
   );
 }
 
+/** Avis d'une boutique (tous ses produits confondus). */
+export async function fetchStoreReviews(
+  storeId: string,
+): Promise<ReviewsResponse> {
+  return apiFetch<ReviewsResponse>(
+    `/api/marketplace/store-reviews/${encodeURIComponent(storeId)}`,
+  );
+}
+
 interface CheckoutResponse {
   success: boolean;
   orderId?: string;

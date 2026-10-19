@@ -1190,12 +1190,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   sheetList: {
-    paddingHorizontal: 4,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 0,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
   sheetRow: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
+    marginBottom: 8,
   },
   sheetCell: {
     flex: 1,
@@ -1491,7 +1492,7 @@ const styles = StyleSheet.create({
   // Grille
   gridRow: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     marginBottom: 8,
   },
   gridCell: {
