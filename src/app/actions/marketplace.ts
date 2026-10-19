@@ -3,8 +3,9 @@
 import { db } from '@/db'
 import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles, coupons, checkoutIdempotency } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
-import { unstable_cache, updateTag } from 'next/cache'
+import { unstable_cache } from 'next/cache'
 import { revalidatePath } from 'next/cache'
+import { refreshTag } from '@/lib/revalidate'
 import { getCurrentSession } from '@/app/actions/session'
 import { incrementProductSales, adjustProductStock } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
@@ -830,7 +831,7 @@ export async function saveProductReviewAction(
         set: { averageRating: avg.toFixed(2), reviewCount: Number(count) },
       });
 
-    updateTag(CATALOG_TAG);
+    refreshTag(CATALOG_TAG);
 
     try {
       const storeInfo = await getStorePhone(storeId);

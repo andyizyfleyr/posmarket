@@ -1,6 +1,6 @@
 'use server'
 
-import { updateTag } from 'next/cache'
+import { refreshTag } from '@/lib/revalidate'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
@@ -259,7 +259,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       product.id && !product.id.startsWith('temp-') ? 'update' : 'create'
     );
 
-    updateTag('marketplace');
+    refreshTag('marketplace');
 
     const safe = {
       id: savedProduct.id,
@@ -318,7 +318,7 @@ export async function deleteProductAction(id: string, storeId: string) {
       .returning({ id: products.id });
     if (deleted.length === 0) return { success: false, error: 'Produit introuvable' };
 
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error deleting product with Drizzle:', error);
@@ -342,7 +342,7 @@ export async function bulkDeleteProductsAction(ids: string[], storeId: string) {
       .returning({ id: products.id });
     if (deleted.length === 0) return { success: false, error: 'Aucun produit supprimable' };
 
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true, deleted: deleted.length };
   } catch (error: unknown) {
     console.error('Error bulk deleting products with Drizzle:', error);
@@ -831,7 +831,7 @@ export async function importProductsBatchAction(
       }
     }
 
-    updateTag('marketplace');
+    refreshTag('marketplace');
 
     return {
       success: true,

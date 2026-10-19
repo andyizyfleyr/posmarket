@@ -1,6 +1,7 @@
 'use server'
 
-import { revalidatePath, updateTag } from 'next/cache'
+import { revalidatePath } from 'next/cache'
+import { refreshTag } from '@/lib/revalidate'
 import { dbFetchStores, dbFetchStoreData, dbCreateStore, StoreDataFields } from '@/db/api'
 import { db } from '@/db'
 import { stores, profiles } from '@/db/schema'
@@ -103,7 +104,7 @@ export async function quickCreateStoreAction(name: string, businessType: string)
     (await cookies()).set('currentStoreId', newStore.id, { path: '/', maxAge: 60 * 60 * 24 * 7 });
 
     revalidatePath('/dashboard');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true, store: newStore };
   } catch (error: unknown) {
     console.error('Error creating store with Drizzle:', error);
@@ -136,7 +137,7 @@ export async function quickDeleteStoreAction(storeId: string) {
     await db.delete(stores).where(eq(stores.id, storeId));
 
     revalidatePath('/dashboard');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error deleting store with Drizzle:', error);

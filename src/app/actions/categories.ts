@@ -3,7 +3,8 @@
 import { db } from '@/db';
 import { productCategories, products } from '@/db/schema';
 import { eq, and, isNull, isNotNull, sql, asc, ne, inArray } from 'drizzle-orm';
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
+import { refreshTag } from '@/lib/revalidate';
 import { getAdminSession } from '@/app/actions/admin-auth';
 
 export type ProductCategoryInput = {
@@ -255,7 +256,7 @@ async function resolveParentId(
 function revalidateCategoryViews() {
   revalidatePath('/pam/categories');
   revalidatePath('/inventory');
-  updateTag('marketplace');
+  refreshTag('marketplace');
 }
 
 export async function createProductCategoryAction(input: ProductCategoryInput) {

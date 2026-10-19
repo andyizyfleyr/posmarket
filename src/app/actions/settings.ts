@@ -1,6 +1,7 @@
 'use server'
 
-import { revalidatePath, updateTag } from 'next/cache'
+import { revalidatePath } from 'next/cache'
+import { refreshTag } from '@/lib/revalidate'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { stores, profiles, coupons, storeStaff } from '@/db/schema'
@@ -50,7 +51,7 @@ export async function updateStoreSettingsAction(storeId: string, settings: Store
         }).where(eq(stores.id, storeId));
 
         revalidatePath('/settings');
-        updateTag('marketplace');
+        refreshTag('marketplace');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating store settings with Drizzle:', error);
@@ -79,7 +80,7 @@ export async function createStoreAction(settings: StoreSettings, userId: string)
         }).returning();
 
         revalidatePath('/settings');
-        updateTag('marketplace');
+        refreshTag('marketplace');
         return { success: true, store: newStore };
     } catch (error: unknown) {
         console.error('Error creating store with Drizzle:', error);
@@ -94,7 +95,7 @@ export async function deleteStoreAction(id: string) {
 
         await db.delete(stores).where(eq(stores.id, id));
         revalidatePath('/settings');
-        updateTag('marketplace');
+        refreshTag('marketplace');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error deleting store with Drizzle:', error);
@@ -133,7 +134,7 @@ export async function updateProfileSettingsAction(userId: string, data: { fullNa
 
         revalidatePath('/settings');
         revalidatePath('/mon-compte');
-        updateTag('marketplace');
+        refreshTag('marketplace');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating profile with Drizzle:', error);

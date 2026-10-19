@@ -3,7 +3,8 @@
 import { db } from '@/db';
 import { stores, profiles, orders, products, productReviews, orderItems, invoices, systemSettings, productStats, reviewAuthors, boostLogs, boostSchedules, customers } from '@/db/schema';
 import { eq, desc, sql, inArray, and, ne, gte } from 'drizzle-orm';
-import { revalidatePath, revalidateTag, updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { refreshTag } from '@/lib/revalidate';
 import { notify, getStorePhone, getAdminEmails } from '@/lib/notifications';
 import { getAdminSession, type AdminSession } from '@/app/actions/admin-auth';
 import { invalidateOrdersCache, incrementProductSales } from '@/db/api';
@@ -237,7 +238,7 @@ export async function updateStoreApproval(storeId: string, status: string) {
   try {
     await db.update(stores).set({ status }).where(eq(stores.id, storeId));
     revalidatePath('/pam/stores');
-    updateTag('marketplace');
+    refreshTag('marketplace');
 
     const upper = String(status || '').toUpperCase();
     if (upper === 'APPROVED' || upper === 'APPROUVE') {
@@ -412,7 +413,7 @@ export async function updateSellerAccountAction(userId: string, updates: SellerA
     revalidatePath('/pam/users');
     revalidatePath(`/pam/users/${userId}`);
     revalidatePath('/pam/stores');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error updating seller account:', error);
@@ -425,7 +426,7 @@ export async function deleteUser(userId: string) {
   try {
     await db.delete(profiles).where(eq(profiles.id, userId));
     revalidatePath('/pam/users');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -437,7 +438,7 @@ export async function forceDeleteStore(storeId: string) {
   try {
     await db.delete(stores).where(eq(stores.id, storeId));
     revalidatePath('/pam/stores');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -455,7 +456,7 @@ export async function deleteUsersBulk(userIds: string[]) {
   try {
     await db.delete(profiles).where(inArray(profiles.id, userIds));
     revalidatePath('/pam/users');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true, deleted: userIds.length };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -468,7 +469,7 @@ export async function deleteStoresBulk(storeIds: string[]) {
   try {
     await db.delete(stores).where(inArray(stores.id, storeIds));
     revalidatePath('/pam/stores');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true, deleted: storeIds.length };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -488,7 +489,7 @@ export async function deleteReview(reviewId: string) {
     // `average_rating` périmés dans `product_stats`.
     if (review) await recomputeReviewAggregates(review.storeId, [review.productId]);
     revalidatePath('/pam/reviews');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -500,7 +501,7 @@ export async function deleteProduct(productId: string) {
   try {
     await db.delete(products).where(eq(products.id, productId));
     revalidatePath('/pam/inventory');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
@@ -1080,7 +1081,7 @@ export async function boostStoreViewsAction(
     await logBoost(storeId, 'views', value, { scope, productId, ip }, session.username);
     revalidatePath('/pam/stores');
     revalidatePath('/dashboard');
-    updateTag('marketplace');
+    refreshTag('marketplace');
     return { success: true, amount: value, products: productListCount, quotaLeft: quota - value };
   } catch (error: unknown) {
     return { success: false, error: boostFailure(error) };
@@ -1301,7 +1302,7 @@ export async function boostStoreOrdersAction(
     revalidatePath('/inventory');
     revalidatePath('/dashboard');
     revalidatePath('/pam/stores');
-    updateTag('marketplace');
+    refreshTag('marketplace');
 
     return { success: true, created: inserted.length, revenue: Math.round(revenue * 100) / 100, quotaLeft: quota - inserted.length };
   } catch (error: unknown) {
@@ -1822,7 +1823,7 @@ export async function boostStoreReviewsAction(
     revalidatePath('/pam/reviews');
     revalidatePath('/pam/stores');
     revalidatePath('/dashboard');
-    updateTag('marketplace');
+    refreshTag('marketplace');
 
     const average = Number(
       (values.reduce((sum, v) => sum + (v.rating || 0), 0) / Math.max(1, values.length)).toFixed(1)
@@ -2004,7 +2005,7 @@ export async function unboostStoreAction(
     revalidatePath('/pam/reviews');
     revalidatePath('/pam/orders');
     revalidatePath('/dashboard');
-    updateTag('marketplace');
+    refreshTag('marketplace');
 
     return {
       success: true,

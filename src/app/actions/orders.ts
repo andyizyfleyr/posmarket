@@ -1,6 +1,7 @@
 'use server'
 
-import { revalidatePath, revalidateTag, updateTag } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { refreshTag } from '@/lib/revalidate'
 import { db } from '@/db'
 import { orders, orderItems, customers } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, decrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
@@ -202,7 +203,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
         revalidatePath('/pos');
         revalidatePath('/inventory');
         revalidatePath('/dashboard');
-        updateTag('marketplace');
+        refreshTag('marketplace');
 
         try {
           const storeInfo = await getStorePhone(storeId);
@@ -246,7 +247,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
             const items = await getOrderItemsForStock(orderId);
             if (!existing.boosted) await adjustProductStock(storeId, items, 'restore');
             await decrementProductSales(storeId, items);
-            updateTag('marketplace');
+            refreshTag('marketplace');
         }
 
         sendStatusNotifications(orderId, status).catch(() => {});
@@ -274,7 +275,7 @@ export async function deleteOrderAction(id: string) {
             const items = await getOrderItemsForStock(id);
             if (!existing.boosted) await adjustProductStock(storeId, items, 'restore');
             await decrementProductSales(storeId, items);
-            updateTag('marketplace');
+            refreshTag('marketplace');
         }
         await db.delete(orders).where(eq(orders.id, id));
         invalidateOrdersCache(storeId);
@@ -302,7 +303,7 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
                     const items = await getOrderItemsForStock(id);
                     if (!existing.boosted) await adjustProductStock(sid, items, 'restore');
                     await decrementProductSales(sid, items);
-                    updateTag('marketplace');
+                    refreshTag('marketplace');
                 }
             }
             await db.delete(orders).where(inArray(orders.id, ids));
@@ -338,7 +339,7 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
                 const items = await getOrderItemsForStock(id);
                 if (!existing.boosted) await adjustProductStock(sid, items, 'restore');
                 await decrementProductSales(sid, items);
-                updateTag('marketplace');
+                refreshTag('marketplace');
             }
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
             storeIds.forEach(sid => {

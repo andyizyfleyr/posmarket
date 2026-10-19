@@ -1,7 +1,8 @@
 import { eq, and, inArray, desc, asc, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { AnyPgTable, PgColumn } from 'drizzle-orm/pg-core';
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
+import { refreshTag } from '@/lib/revalidate';
 import { db } from './index';
 import * as schema from './schema';
 import { QuerySpec, QueryResult, QueryBuilder } from './builder';
@@ -106,7 +107,7 @@ function deny(message: string): QueryResult {
 function revalidateCatalog(table: string) {
   if (!CATALOG_TABLES.has(table)) return;
   try {
-    updateTag('marketplace');
+    refreshTag('marketplace');
     revalidatePath('/store');
   } catch {
     // ignore: called outside action/route context
