@@ -6,10 +6,10 @@ export function SplashScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.iconWrapper}>
-        <ShoppingCart size={64} color="#F56B2A" strokeWidth={2.5} />
+        <ShoppingCart size={56} color="#F56B2A" strokeWidth={2.5} />
         <ActivityIndicator size="large" color="#F56B2A" style={styles.spinner} />
       </View>
-      <Text style={styles.loadingText}>Chargement…</Text>
+      <Text style={styles.loadingText}>Chargement</Text>
     </View>
   );
 }
@@ -23,8 +23,8 @@ const styles = StyleSheet.create({
   },
   iconWrapper: {
     position: 'relative',
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -32,9 +32,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   loadingText: {
-    marginTop: 24,
-    fontSize: 16,
-    color: '#666',
+    marginTop: 20,
+    fontSize: 15,
+    color: '#6B7280',
     fontFamily: 'System',
+    fontWeight: '500',
   },
 });

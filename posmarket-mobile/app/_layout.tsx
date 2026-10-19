@@ -1,6 +1,13 @@
 /**
  * Root Layout — Phase 4 du plan.
  * Providers globaux : React Query, CartProvider.
+ * Redirige vers /seller (tableau de bord vendeur) comme l'app web vendeur.
+ */
+
+/**
+ * Root Layout — Phase 4 du plan.
+ * Providers globaux : React Query, CartProvider.
+ * Redirige vers /seller (tableau de bord vendeur) comme l'app web vendeur.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -64,6 +71,7 @@ export default function RootLayout() {
             <OfflineBanner />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
+              <Stack.Screen name="seller/*" />
               <Stack.Screen
                 name="cart"
                 options={{
