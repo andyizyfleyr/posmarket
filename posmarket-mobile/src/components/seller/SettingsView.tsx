@@ -28,10 +28,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Building,
   Camera,
+  CheckSquare,
   FileText,
   Info,
   Loader2,
@@ -39,6 +39,7 @@ import {
   Plus,
   Save,
   ShieldCheck,
+  Square,
   Store,
   Tag,
   Trash2,
@@ -50,7 +51,6 @@ import {
 import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PhoneField } from '@/components/PhoneField';
-import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
 import type { Coupon, StoreData, StoreSettings } from '@/types';
 import {
@@ -111,7 +111,6 @@ export function SellerSettingsView({
   onSaved,
 }: SellerSettingsViewProps) {
   const { notify } = useToast();
-  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<TabId>('store');
   const [localSettings, setLocalSettings] = useState<StoreSettings>(EMPTY_SETTINGS);
@@ -123,8 +122,6 @@ export function SellerSettingsView({
   const [isSaving, setIsSaving] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState(false);
   const saveFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Champ « code » de l'onglet Promos (action principale « Nouveau code »). */
-  const couponCodeRef = useRef<TextInput>(null);
 
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isSubmittingStaff, setIsSubmittingStaff] = useState(false);
@@ -282,9 +279,6 @@ export function SellerSettingsView({
       }
       if (res.success) {
         notify('Profil mis à jour !', 'success');
-        setSaveFeedback(true);
-        if (saveFeedbackTimer.current) clearTimeout(saveFeedbackTimer.current);
-        saveFeedbackTimer.current = setTimeout(() => setSaveFeedback(false), 2500);
         await onSaved?.();
         void reload({ silent: true });
       } else {
@@ -441,16 +435,22 @@ export function SellerSettingsView({
   const tabs = TABS.filter((tab) => tab.id !== 'staff' || permissions?.canManageStaff);
 
   return (
-    <View style={styles.root}>
-      {/* ── Action principale (dépend de l'onglet actif) ── */}
-      {activeTab === 'store' ? (
+    <View style={styles.screen}>
+      {/* En-tête */}
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Réglages</Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            Gérez vos préférences.
+          </Text>
+        </View>
         <Pressable
           onPress={() => void handleSave()}
           disabled={isSaving}
           style={[
-            styles.primaryBtn,
-            isSaving && styles.disabled,
-            saveFeedback && styles.primaryBtnDone,
+            styles.saveBtn,
+            isSaving && { opacity: 0.7 },
+            saveFeedback && { backgroundColor: '#22C55E' },
           ]}
         >
           {isSaving ? (
@@ -460,73 +460,35 @@ export function SellerSettingsView({
           ) : (
             <Save size={16} color="#FFFFFF" />
           )}
-          <Text style={styles.primaryBtnText}>
+          <Text style={styles.saveBtnText}>
             {isSaving ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
           </Text>
         </Pressable>
-      ) : activeTab === 'user' ? (
-        <Pressable
-          onPress={() => void handleUpdateProfileLocal()}
-          disabled={isUpdatingProfile}
-          style={[
-            styles.primaryBtn,
-            isUpdatingProfile && styles.disabled,
-            saveFeedback && styles.primaryBtnDone,
-          ]}
-        >
-          {isUpdatingProfile ? (
-            <Loader2 size={16} color="#FFFFFF" />
-          ) : saveFeedback ? (
-            <ShieldCheck size={16} color="#FFFFFF" />
-          ) : (
-            <Save size={16} color="#FFFFFF" />
-          )}
-          <Text style={styles.primaryBtnText}>
-            {isUpdatingProfile ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
-          </Text>
-        </Pressable>
-      ) : activeTab === 'staff' ? (
-        <Pressable onPress={() => setIsStaffModalOpen(true)} style={styles.primaryBtn}>
-          <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.primaryBtnText}>Ajouter un membre</Text>
-        </Pressable>
-      ) : (
-        <Pressable onPress={() => couponCodeRef.current?.focus()} style={styles.primaryBtn}>
-          <Plus size={16} color="#FFFFFF" />
-          <Text style={styles.primaryBtnText}>Nouveau code</Text>
-        </Pressable>
-      )}
-
-      {/* ── Barre blanche : onglets ── */}
-      <View style={styles.tabsWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsRow}
-          style={styles.tabsScroll}
-        >
-          {tabs.map((tab) => {
-            const active = activeTab === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                style={[styles.tabBtn, active && styles.tabBtnActive]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <tab.Icon size={14} color={active ? '#FFFFFF' : '#6B7280'} />
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
       </View>
 
-      {/* ── Carte plein écran ── */}
-      <View style={styles.card}>
+      {/* Onglets */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsRow}
+        style={styles.tabsScroll}
+      >
+        {tabs.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={[styles.tabBtn, active && styles.tabBtnActive]}
+            >
+              <tab.Icon size={18} color={active ? COLORS.brand : '#6B7280'} />
+              <Text style={[styles.tabText, active && { color: COLORS.brand }]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       {/* Contenu */}
       <ScrollView
@@ -728,33 +690,58 @@ export function SellerSettingsView({
                   contentFit="cover"
                 />
                 <View style={styles.avatarCamera}>
-                  <Camera size={14} color={COLORS.brand} />
+                  <Camera size={18} color={COLORS.brand} />
                 </View>
               </Pressable>
 
               <View style={styles.profileIdentity}>
                 <Text style={styles.profileName}>{profileName || 'Gérant'}</Text>
                 <View style={styles.profileEmailRow}>
-                  <Mail size={12} color="rgba(255,255,255,0.8)" />
+                  <Mail size={14} color="rgba(255,255,255,0.8)" />
                   <Text style={styles.profileEmail}>{userEmail}</Text>
                 </View>
               </View>
             </LinearGradient>
 
-            <View>
-              <SectionHeader title="Identité Personnelle" Icon={User} />
-              <View style={styles.field}>
-                <Text style={styles.label}>Nom Complet</Text>
-                <View style={styles.inputWrap}>
-                  <User size={14} color="#D1D5DB" />
-                  <TextInput
-                    value={profileName}
-                    onChangeText={setProfileName}
-                    placeholder="Votre nom"
-                    placeholderTextColor="#9CA3AF"
-                    style={styles.input}
-                  />
+            <View style={styles.identityBlock}>
+              <View style={styles.identityHeader}>
+                <View style={styles.identityIcon}>
+                  <User size={20} color={COLORS.brand} />
                 </View>
+                <Text style={styles.identityTitle}>Identité Personnelle</Text>
+              </View>
+
+              <View style={styles.identityCard}>
+                <View>
+                  <Text style={styles.identityLabel}>Nom Complet</Text>
+                  <View style={styles.inputWrap}>
+                    <User size={20} color="#D1D5DB" />
+                    <TextInput
+                      value={profileName}
+                      onChangeText={setProfileName}
+                      placeholder="Votre nom"
+                      placeholderTextColor="#9CA3AF"
+                      style={[styles.input, styles.identityInput]}
+                    />
+                  </View>
+                </View>
+
+                <Pressable
+                  onPress={() => void handleUpdateProfileLocal()}
+                  disabled={isUpdatingProfile}
+                  style={[styles.profileSave, isUpdatingProfile && { opacity: 0.5 }]}
+                >
+                  {isUpdatingProfile ? (
+                    <Loader2 size={18} color="#FFFFFF" />
+                  ) : (
+                    <Save size={18} color="#FFFFFF" />
+                  )}
+                  <Text style={styles.profileSaveText}>
+                    {isUpdatingProfile
+                      ? 'Mise à jour...'
+                      : 'Sauvegarder les modifications'}
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -763,23 +750,35 @@ export function SellerSettingsView({
         {/* ── Onglet Équipe ── */}
         {activeTab === 'staff' && permissions?.canManageStaff ? (
           <View style={styles.tabBody}>
-            {staff.length === 0 ? (
-              <View style={styles.emptyState}>
-                <View style={styles.emptyIcon}>
-                  <Users size={24} color="#9CA3AF" />
-                </View>
-                <Text style={styles.emptyTitle}>Aucun membre d&apos;équipe</Text>
-                <Text style={styles.emptyHint}>
-                  Ajoutez un membre pour lui donner accès au POS, aux commandes et à
-                  l&apos;inventaire.
-                </Text>
+            <View style={styles.staffHeaderRow}>
+              <View style={styles.flex1}>
+                <SectionHeader title="Gestion de l'Équipe" Icon={Users} />
               </View>
-            ) : (
-              <View style={styles.staffList}>
-                {staff.map((member) => (
-                  <View key={member.id} style={styles.staffRow}>
+              <Pressable onPress={() => setIsStaffModalOpen(true)} style={styles.addStaffBtn}>
+                <Plus size={14} color="#FFFFFF" />
+                <Text style={styles.addStaffText}>Ajouter un membre</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.staffList}>
+              {staff.length === 0 ? (
+                <View style={styles.staffEmpty}>
+                  <Text style={styles.staffEmptyText}>
+                    Aucun membre d&apos;équipe enregistré.
+                  </Text>
+                </View>
+              ) : (
+                staff.map((member) => (
+                  <View key={member.id} style={styles.staffCard}>
+                    <Pressable
+                      onPress={() => setStaffToDelete(member.id)}
+                      style={styles.staffDelete}
+                      accessibilityLabel="Supprimer ce membre"
+                    >
+                      <Trash2 size={12} color="#F87171" />
+                    </Pressable>
                     <View style={styles.staffAvatar}>
-                      <User size={16} color={COLORS.brand} />
+                      <User size={20} color={COLORS.brand} />
                     </View>
                     <View style={styles.flex1}>
                       <Text style={styles.staffName} numberOfLines={1}>
@@ -804,44 +803,41 @@ export function SellerSettingsView({
                           </Text>
                         </View>
                         <Text style={styles.staffStore} numberOfLines={1}>
+                          <Store size={8} color="#9CA3AF" />{' '}
                           {stores.find((s) => s.id === member.storeId)?.name || 'Boutique'}
                         </Text>
                       </View>
                     </View>
-                    <Pressable
-                      onPress={() => setStaffToDelete(member.id)}
-                      style={styles.staffDelete}
-                      hitSlop={6}
-                      accessibilityLabel="Supprimer ce membre"
-                    >
-                      <Trash2 size={15} color="#F87171" />
-                    </Pressable>
                   </View>
-                ))}
-              </View>
-            )}
+                ))
+              )}
+            </View>
           </View>
         ) : null}
 
         {/* ── Onglet Promos ── */}
         {activeTab === 'promos' ? (
           <View style={styles.tabBody}>
-            {/* Formulaire de création */}
+            <SectionHeader title="Campagnes Promotionnelles" Icon={Tag} />
+            <Text style={styles.promosIntro}>
+              Créez des codes promo uniques pour fidéliser vos clients et booster vos ventes
+              en ligne.
+            </Text>
+
             <View style={styles.promoFormCard}>
               <View style={styles.promoFormTitle}>
-                <Tag size={12} color={COLORS.brand} />
-                <Text style={styles.promoFormTitleText}>Nouveau code promo</Text>
+                <Plus size={16} color={COLORS.brand} />
+                <Text style={styles.promoFormTitleText}>Nouveau Code</Text>
               </View>
-              <TextInput
-                ref={couponCodeRef}
-                value={newCouponCode}
-                onChangeText={setNewCouponCode}
-                placeholder="Code (ex: BIENVENUE20)"
-                placeholderTextColor="#C4C9D1"
-                autoCapitalize="characters"
-                style={styles.promoCodeInput}
-              />
-              <View style={styles.promoDiscountRow}>
+              <View style={styles.promoInputs}>
+                <TextInput
+                  value={newCouponCode}
+                  onChangeText={setNewCouponCode}
+                  placeholder="Code (ex: BIENVENUE20)"
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="characters"
+                  style={styles.promoCodeInput}
+                />
                 <View style={styles.promoDiscountWrap}>
                   <TextInput
                     value={String(newCouponDiscount)}
@@ -860,85 +856,76 @@ export function SellerSettingsView({
                   disabled={!newCouponCode.trim() || loadingCoupons}
                   style={[
                     styles.promoAddBtn,
-                    (!newCouponCode.trim() || loadingCoupons) && styles.disabled,
+                    (!newCouponCode.trim() || loadingCoupons) && { opacity: 0.5 },
                   ]}
                 >
                   {loadingCoupons ? (
-                    <Loader2 size={15} color="#FFFFFF" />
+                    <Loader2 size={16} color="#FFFFFF" />
                   ) : (
-                    <Plus size={15} color="#FFFFFF" />
+                    <Save size={16} color="#FFFFFF" />
                   )}
                   <Text style={styles.promoAddText}>
                     {loadingCoupons ? 'Action...' : 'Ajouter'}
                   </Text>
                 </Pressable>
               </View>
-              <Text style={styles.promoHelp}>
-                Remise en % appliquée automatiquement au panier du client.
-              </Text>
             </View>
 
-            {localCoupons.length === 0 ? (
-              <View style={styles.emptyState}>
-                <View style={styles.emptyIcon}>
-                  <Tag size={24} color="#9CA3AF" />
+            <View style={styles.couponList}>
+              {localCoupons.length === 0 ? (
+                <View style={styles.couponEmpty}>
+                  <Tag size={48} color="#9CA3AF" style={styles.couponEmptyIcon} />
+                  <Text style={styles.couponEmptyText}>
+                    Aucune promotion active actuellement.
+                  </Text>
                 </View>
-                <Text style={styles.emptyTitle}>Aucune promotion active</Text>
-                <Text style={styles.emptyHint}>
-                  Créez un code promo pour fidéliser vos clients et booster vos ventes en
-                  ligne.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.couponList}>
-                {localCoupons.map((coupon) => (
-                  <View key={coupon.id || coupon.code} style={styles.couponRow}>
-                    <SellerCheckbox
-                      checked={!!coupon.active}
-                      onToggle={() => coupon.id && void handleToggleCoupon(coupon.id)}
-                      size={16}
-                    />
+              ) : (
+                localCoupons.map((coupon) => (
+                  <View key={coupon.id || coupon.code} style={styles.couponCard}>
+                    <Pressable
+                      onPress={() => coupon.id && void handleToggleCoupon(coupon.id)}
+                      style={styles.couponToggle}
+                    >
+                      {coupon.active ? (
+                        <CheckSquare size={22} color={COLORS.brand} />
+                      ) : (
+                        <Square size={22} color="#D1D5DB" />
+                      )}
+                    </Pressable>
                     <View style={styles.flex1}>
-                      <Text style={styles.couponCode} numberOfLines={1}>
-                        {coupon.code}
-                      </Text>
+                      <Text style={styles.couponCode}>{coupon.code}</Text>
                       <View style={styles.couponMetaRow}>
                         <View style={styles.couponBadge}>
-                          <Text style={styles.couponBadgeText}>-{coupon.discount_pct}%</Text>
+                          <Text style={styles.couponBadgeText}>
+                            -{coupon.discount_pct}%
+                          </Text>
                         </View>
-                        <Text style={styles.couponState}>
-                          {coupon.active ? 'Valide en ligne' : 'Désactivé'}
-                        </Text>
+                        <Text style={styles.couponValid}>Valide en ligne</Text>
                       </View>
                     </View>
                     <Pressable
                       onPress={() => coupon.id && void handleDeleteCouponLocal(coupon.id)}
                       style={styles.couponDelete}
-                      hitSlop={6}
                       accessibilityLabel="Supprimer le code promo"
                     >
-                      <Trash2 size={15} color="#F87171" />
+                      <Trash2 size={18} color="#D1D5DB" />
                     </Pressable>
                   </View>
-                ))}
-              </View>
-            )}
+                ))
+              )}
+            </View>
 
             <View style={styles.adviceCard}>
-              <ShieldCheck size={16} color={COLORS.brand} />
+              <ShieldCheck size={18} color={COLORS.brand} />
               <Text style={styles.adviceText}>
-                <Text style={styles.adviceStrong}>Conseil :</Text> les codes promo sont
+                <Text style={styles.adviceStrong}>Conseil :</Text> Les codes promo sont
                 sensibles à la casse. Vos clients verront ces remises s&apos;appliquer
                 automatiquement s&apos;ils saisissent le code correspondant dans leur panier.
               </Text>
             </View>
           </View>
         ) : null}
-        </ScrollView>
-      </View>
-
-      {/* Marge basse sûre (barre de navigation de la coquille). */}
-      <View style={{ height: insets.bottom }} />
+      </ScrollView>
 
       {/* Modale « Nouvel Employé » */}
       <Modal
@@ -1077,98 +1064,91 @@ function SectionHeader({
 }) {
   return (
     <View style={styles.sectionHeader}>
-      <Icon size={12} color={COLORS.brand} />
+      <View style={styles.sectionIcon}>
+        <Icon size={14} color="#FFFFFF" />
+      </View>
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#FDFDFE',
-    paddingHorizontal: 12,
-    paddingTop: 12,
-  },
+  screen: { flex: 1, backgroundColor: 'rgba(249,250,251,0.3)' },
 
-  /* Action principale (s'adapte à l'onglet actif) */
-  primaryBtn: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  headerText: { flex: 1 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827', letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 10, color: '#6B7280', marginTop: 2 },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    height: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: COLORS.brand,
-    borderRadius: 14,
-    shadowColor: COLORS.brand,
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
-  primaryBtnDone: { backgroundColor: '#22C55E', shadowColor: '#22C55E' },
-  primaryBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  disabled: { opacity: 0.6 },
+  saveBtnText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
 
-  /* Barre blanche : onglets (même modèle que la barre de filtres des listes) */
-  tabsWrap: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F9FAFB',
-    borderRadius: 16,
-    padding: 6,
-    marginTop: 10,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
   tabsScroll: { flexGrow: 0 },
-  tabsRow: { gap: 6 },
+  tabsRow: { gap: 6, paddingHorizontal: 12, paddingBottom: 12 },
   tabBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 36,
+    gap: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  tabBtnActive: { backgroundColor: COLORS.brand },
-  tabText: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
-  tabTextActive: { color: '#FFFFFF' },
-
-  /* Carte plein écran */
-  card: {
-    flex: 1,
+  tabBtnActive: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
+  tabText: { fontSize: 10, fontWeight: '700', color: '#6B7280' },
+
   contentScroll: { flex: 1 },
-  content: { padding: 14, paddingBottom: 32 },
+  content: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    padding: 14,
+    paddingBottom: 40,
+  },
   loadingBox: { alignItems: 'center', paddingVertical: 12 },
-  tabBody: { gap: 18 },
+  tabBody: { gap: 24 },
   flex1: { flex: 1 },
 
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  sectionIcon: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: COLORS.brand,
+  },
   sectionTitle: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#111827',
     textTransform: 'uppercase',
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
   },
 
-  logoWrap: { alignItems: 'center', marginBottom: 8 },
+  logoWrap: { alignItems: 'center', marginBottom: 24 },
   logoBox: {
     width: 80,
     height: 80,
@@ -1237,23 +1217,23 @@ const styles = StyleSheet.create({
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, paddingHorizontal: 4 },
   note: { fontSize: 8, color: '#9CA3AF', fontWeight: '600', fontStyle: 'italic' },
 
-  b2bBlock: { paddingTop: 18, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  b2bBlock: { paddingTop: 24, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
   b2bCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    padding: 12,
+    padding: 16,
     backgroundColor: 'rgba(255,247,237,0.6)',
     borderWidth: 1,
     borderColor: '#FFEDD5',
-    borderRadius: 14,
+    borderRadius: 16,
   },
-  b2bLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  b2bLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   b2bIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: 'rgba(245,107,42,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1262,13 +1242,13 @@ const styles = StyleSheet.create({
   b2bTitle: { fontSize: 12, fontWeight: '700', color: '#111827' },
   b2bDesc: { fontSize: 10, color: '#6B7280', marginTop: 2 },
   b2bMinCard: {
-    padding: 12,
+    padding: 16,
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 14,
+    borderRadius: 16,
     gap: 8,
-    marginTop: 12,
+    marginTop: 16,
   },
   b2bMinLabel: {
     fontSize: 10,
@@ -1300,10 +1280,10 @@ const styles = StyleSheet.create({
   b2bHelp: { fontSize: 9, color: '#6B7280' },
 
   profileCard: {
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 32,
+    padding: 24,
     alignItems: 'center',
-    gap: 14,
+    gap: 24,
     overflow: 'hidden',
   },
   profileHaloTop: {
@@ -1326,135 +1306,184 @@ const styles = StyleSheet.create({
   },
   avatarWrap: { position: 'relative' },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 24,
-    borderWidth: 3,
+    width: 112,
+    height: 112,
+    borderRadius: 32,
+    borderWidth: 4,
     borderColor: 'rgba(255,255,255,0.3)',
     backgroundColor: '#FFFFFF',
   },
   avatarCamera: {
     position: 'absolute',
-    bottom: -6,
-    right: -6,
+    bottom: -8,
+    right: -8,
     backgroundColor: '#FFFFFF',
-    padding: 7,
-    borderRadius: 12,
+    padding: 10,
+    borderRadius: 16,
     shadowColor: '#000000',
     shadowOpacity: 0.15,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  profileIdentity: { alignItems: 'center', gap: 3 },
-  profileName: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.4 },
-  profileEmailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  profileEmail: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+  profileIdentity: { alignItems: 'center', gap: 4 },
+  profileName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.4 },
+  profileEmailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  profileEmail: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
 
-  /* Liste Équipe : lignes compactes séparées par des filets */
-  staffList: {},
-  staffRow: {
+  identityBlock: { gap: 32, alignSelf: 'center', width: '100%', maxWidth: 672 },
+  identityHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
+  identityIcon: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFF7ED',
+  },
+  identityTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111827',
+    textTransform: 'uppercase',
+    letterSpacing: 1.6,
+  },
+  identityCard: {
+    backgroundColor: 'rgba(249,250,251,0.5)',
+    padding: 24,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    gap: 32,
+  },
+  identityLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1.6,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  identityInput: {
+    fontSize: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  profileSave: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 2,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 18,
+    borderRadius: 16,
+    backgroundColor: COLORS.brand,
+  },
+  profileSaveText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+
+  staffHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  addStaffBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.brand,
+    borderRadius: 8,
+  },
+  addStaffText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
+  staffList: { gap: 12 },
+  staffEmpty: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#F3F4F6',
+    borderRadius: 24,
+  },
+  staffEmptyText: { fontSize: 12, fontWeight: '600', color: '#9CA3AF' },
+  staffCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  staffDelete: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 6,
+    opacity: 0.6,
+    zIndex: 2,
   },
   staffAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#FFF7ED',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  staffName: { fontSize: 12, fontWeight: '700', color: '#111827' },
-  staffMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  staffName: { fontSize: 12, fontWeight: '700', color: '#111827', paddingRight: 24 },
+  staffMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   roleBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
   roleOwner: { backgroundColor: '#F3E8FF' },
   roleSeller: { backgroundColor: '#FFEDD5' },
   roleText: { fontSize: 8, fontWeight: '700' },
   staffStore: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', flexShrink: 1 },
-  staffDelete: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    backgroundColor: '#FEF2F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
-  /* États vides (Équipe / Promos) */
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#F3F4F6',
-    borderRadius: 16,
-  },
-  emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  emptyTitle: { fontSize: 13, fontWeight: '700', color: '#4B5563' },
-  emptyHint: { fontSize: 11, color: '#9CA3AF', textAlign: 'center', lineHeight: 16 },
-
-  /* Promos : formulaire compact */
+  promosIntro: { fontSize: 12, color: '#6B7280', lineHeight: 18, marginBottom: 24 },
   promoFormCard: {
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    padding: 12,
-    gap: 10,
+    padding: 16,
+    marginBottom: 32,
+    gap: 12,
   },
-  promoFormTitle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  promoFormTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   promoFormTitleText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#111827',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
   },
+  promoInputs: { gap: 12 },
   promoCodeInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 40,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     fontSize: 12,
     fontWeight: '700',
     color: '#111827',
   },
-  promoDiscountRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  promoDiscountWrap: { flex: 1, justifyContent: 'center' },
+  promoDiscountWrap: { justifyContent: 'center' },
   promoDiscountInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 40,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     fontSize: 12,
     fontWeight: '700',
     color: '#111827',
-    paddingRight: 28,
+    paddingRight: 32,
   },
   promoPercent: {
     position: 'absolute',
-    right: 12,
+    right: 32,
     fontSize: 12,
     fontWeight: '700',
     color: '#9CA3AF',
@@ -1463,26 +1492,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    height: 40,
-    paddingHorizontal: 16,
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
     backgroundColor: COLORS.brand,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   promoAddText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  promoHelp: { fontSize: 9, fontWeight: '600', color: '#9CA3AF', fontStyle: 'italic' },
 
-  /* Liste des codes promo : lignes compactes séparées par des filets */
-  couponList: {},
-  couponRow: {
+  couponList: { gap: 12 },
+  couponEmpty: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#F9FAFB',
+    borderRadius: 24,
+  },
+  couponEmptyIcon: { opacity: 0.1, marginBottom: 16 },
+  couponEmptyText: { fontSize: 14, fontWeight: '600', color: '#9CA3AF', fontStyle: 'italic' },
+  couponCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 2,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    justifyContent: 'space-between',
+    gap: 16,
+    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
+  couponToggle: { padding: 2 },
   couponCode: {
     fontSize: 12,
     fontWeight: '700',
@@ -1490,30 +1530,24 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: -0.2,
   },
-  couponMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  couponMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   couponBadge: {
     backgroundColor: '#FFF7ED',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   couponBadgeText: { fontSize: 9, fontWeight: '700', color: COLORS.brand },
-  couponState: { fontSize: 9, fontWeight: '600', color: '#9CA3AF' },
-  couponDelete: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    backgroundColor: '#FEF2F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  couponValid: { fontSize: 10, color: '#9CA3AF' },
+  couponDelete: { padding: 8 },
 
   adviceCard: {
     flexDirection: 'row',
-    gap: 8,
-    padding: 12,
+    gap: 12,
+    marginTop: 32,
+    padding: 16,
     backgroundColor: 'rgba(255,247,237,0.5)',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#FFEDD5',
   },
