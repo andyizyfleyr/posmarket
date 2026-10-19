@@ -127,6 +127,20 @@ export async function fetchCoupons(
   return apiFetch<CouponsResponse>(`/api/marketplace/coupons?storeIds=${ids}`);
 }
 
+interface CountryGateResponse {
+  success: boolean;
+  allowed: boolean;
+  checked: boolean;
+  countryCode: string | null;
+  countryName: string | null;
+  error?: string;
+}
+
+/** Portail pays du checkout (« Commande indisponible »). */
+export async function fetchCountryGate(): Promise<CountryGateResponse> {
+  return apiFetch<CountryGateResponse>('/api/marketplace/country-gate');
+}
+
 interface CheckoutResponse {
   success: boolean;
   orderId?: string;

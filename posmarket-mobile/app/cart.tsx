@@ -143,7 +143,7 @@ export default function CartScreen() {
   }, [cart]);
 
   const goShopping = useCallback(() => {
-    router.navigate('/' as never);
+    router.dismissTo('/' as never);
   }, [router]);
 
   /** Passage à la livraison : contrôle des minimums de commande de gros. */
