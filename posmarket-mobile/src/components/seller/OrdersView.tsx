@@ -574,13 +574,8 @@ return (
                       />
                     </Pressable>
 
-                    <View
-                      style={[
-                        styles.orderIconBox,
-                        getStatusColor(order.status || 'READY'),
-                      ]}
-                    >
-                      <ShoppingBag size={15} color="#FFFFFF" />
+                    <View style={styles.orderIconBox}>
+                      <ShoppingBag size={15} color="#111827" />
                     </View>
 
                     <View style={styles.orderBody}>
@@ -1159,6 +1154,9 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
