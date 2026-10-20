@@ -62,6 +62,7 @@ export function StorefrontSkeleton() {
                 <View style={styles.partnerBody}>
                   <Skeleton style={styles.partnerAvatar} />
                   <Skeleton style={styles.partnerName} />
+                  <Skeleton style={styles.partnerCountry} />
                   <Skeleton style={styles.partnerMeta} />
                 </View>
               </View>
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   partnerCover: {
-    height: 46,
+    height: 44,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
   },
@@ -199,24 +200,30 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   partnerAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    marginTop: -23,
+    marginTop: -21,
   },
   partnerName: {
     width: 110,
     height: 13,
     borderRadius: 4,
-    marginTop: 7,
+    marginTop: 6,
+  },
+  partnerCountry: {
+    width: 52,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 3,
   },
   partnerMeta: {
     width: 76,
     height: 8,
     borderRadius: 4,
-    marginTop: 4,
+    marginTop: 3,
   },
   grid: {
     flexDirection: 'row',

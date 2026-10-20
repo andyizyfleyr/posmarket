@@ -273,21 +273,9 @@ function PartnersRow({
               >
                 <View style={[styles.partnerBubble, styles.partnerBubbleLarge]} />
                 <View style={[styles.partnerBubble, styles.partnerBubbleSmall]} />
-                <View style={styles.partnerCoverTop}>
-                  {country ? (
-                    <View style={styles.partnerCountry}>
-                      <MapPin size={9} color={COLORS.brand} strokeWidth={2.6} />
-                      <Text style={styles.partnerCountryText} numberOfLines={1}>
-                        {country}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View />
-                  )}
-                  <View style={styles.partnerBadge}>
-                    <ShieldCheck size={9} color={COLORS.brand} />
-                    <Text style={styles.partnerBadgeText}>Partenaire</Text>
-                  </View>
+                <View style={styles.partnerBadge}>
+                  <ShieldCheck size={9} color={COLORS.brand} />
+                  <Text style={styles.partnerBadgeText}>Partenaire</Text>
                 </View>
               </LinearGradient>
 
@@ -316,6 +304,15 @@ function PartnersRow({
                   </Text>
                   <ChevronRight size={12} color="#C4C8CE" strokeWidth={2.5} />
                 </View>
+
+                {country ? (
+                  <View style={styles.partnerCountry}>
+                    <MapPin size={9.5} color={COLORS.brand} strokeWidth={2.5} />
+                    <Text style={styles.partnerCountryText} numberOfLines={1}>
+                      {country}
+                    </Text>
+                  </View>
+                ) : null}
 
                 <View style={styles.partnerMeta}>
                   {rating > 0 ? (
@@ -1346,19 +1343,13 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   partnerCover: {
-    height: 46,
+    height: 44,
     borderTopLeftRadius: 17,
     borderTopRightRadius: 17,
     paddingHorizontal: 10,
     paddingTop: 8,
+    alignItems: 'flex-end',
     overflow: 'hidden',
-  },
-  partnerCoverTop: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
   },
   partnerBubble: {
     position: 'absolute',
@@ -1397,34 +1388,29 @@ const styles = StyleSheet.create({
   partnerCountry: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 1,
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    gap: 3,
+    marginTop: 2,
   },
   partnerCountryText: {
     flexShrink: 1,
-    fontSize: 8.5,
-    fontWeight: '700',
-    color: '#7C3E1D',
-    letterSpacing: 0.1,
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   partnerBody: {
     paddingHorizontal: 12,
-    paddingBottom: 11,
+    paddingBottom: 10,
   },
   partnerLogoWrap: {
-    width: 46,
-    height: 46,
-    marginTop: -23,
+    width: 42,
+    height: 42,
+    marginTop: -21,
     position: 'relative',
   },
   partnerLogo: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 2,
     borderColor: '#FFFFFF',
     backgroundColor: COLORS.brandSoft,
@@ -1442,7 +1428,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   partnerLogoInitials: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.brand,
     letterSpacing: -0.4,
@@ -1464,7 +1450,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 7,
+    marginTop: 6,
   },
   partnerName: {
     flex: 1,
