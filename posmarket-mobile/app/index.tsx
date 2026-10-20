@@ -61,6 +61,7 @@ import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { Loader } from '@/components/Loader';
 import { StorefrontSkeleton } from '@/components/StorefrontSkeleton';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
+import { COUNTRIES } from '@/constants/countries';
 import { generateProductSlug } from '@/utils';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -250,6 +251,7 @@ function PartnersRow({
           const logo = resolveStoreLogo(store);
           const rating = store.rating ?? 0;
           const initials = name.trim().slice(0, 2).toUpperCase();
+          const country = resolveCountryName(store.settings?.country);
 
           return (
             <Pressable
@@ -271,9 +273,21 @@ function PartnersRow({
               >
                 <View style={[styles.partnerBubble, styles.partnerBubbleLarge]} />
                 <View style={[styles.partnerBubble, styles.partnerBubbleSmall]} />
-                <View style={styles.partnerBadge}>
-                  <ShieldCheck size={9} color={COLORS.brand} />
-                  <Text style={styles.partnerBadgeText}>Partenaire</Text>
+                <View style={styles.partnerCoverTop}>
+                  {country ? (
+                    <View style={styles.partnerCountry}>
+                      <MapPin size={9} color={COLORS.brand} strokeWidth={2.6} />
+                      <Text style={styles.partnerCountryText} numberOfLines={1}>
+                        {country}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View />
+                  )}
+                  <View style={styles.partnerBadge}>
+                    <ShieldCheck size={9} color={COLORS.brand} />
+                    <Text style={styles.partnerBadgeText}>Partenaire</Text>
+                  </View>
                 </View>
               </LinearGradient>
 
@@ -332,6 +346,19 @@ function resolveStoreLogo(store: StoreData): string {
   if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
   if (raw.startsWith('/')) return `${API_BASE_URL}${raw}`;
   return raw;
+}
+
+/** Le pays est stocké par nom (sélecteur vendeur), mais on tolère un code. */
+function resolveCountryName(value?: string): string {
+  const raw = (value || '').trim();
+  if (!raw) return '';
+  const normalized = raw.toLowerCase();
+  const match = COUNTRIES.find(
+    (country) =>
+      country.name.toLowerCase() === normalized ||
+      country.code.toLowerCase() === normalized,
+  );
+  return match?.name || raw;
 }
 
 // ── Boutique trouvée (mode recherche) ─────────────────────────────
@@ -1324,8 +1351,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 17,
     paddingHorizontal: 10,
     paddingTop: 8,
-    alignItems: 'flex-end',
     overflow: 'hidden',
+  },
+  partnerCoverTop: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
   },
   partnerBubble: {
     position: 'absolute',
@@ -1348,6 +1381,7 @@ const styles = StyleSheet.create({
   partnerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
     gap: 3,
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -1359,6 +1393,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.brand,
     letterSpacing: 0.15,
+  },
+  partnerCountry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+  },
+  partnerCountryText: {
+    flexShrink: 1,
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#7C3E1D',
+    letterSpacing: 0.1,
   },
   partnerBody: {
     paddingHorizontal: 12,
