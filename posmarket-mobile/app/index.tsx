@@ -43,7 +43,6 @@ import {
   Search,
   X,
   Store,
-  Star,
   Check,
   ChevronRight,
   ChevronLeft,
@@ -326,6 +325,10 @@ function PartnersRow({
   // visuelle du nouveau design (cover, logo superposé, note).
   const cardWidth = Math.min((width - 44) / 2, 210);
   const cardGap = 12;
+  // Toutes les stats tiennent sur une ligne : on adapte finement la taille
+  // selon la largeur réelle de la carte.
+  const statsFontSize =
+    cardWidth >= 190 ? 9 : cardWidth >= 170 ? 8.5 : 8;
 
   return (
     <View style={styles.partnersSection}>
@@ -423,38 +426,34 @@ function PartnersRow({
                   </View>
                 ) : null}
 
-                <View style={styles.partnerMetaStack}>
-                  <View style={styles.partnerMeta}>
-                    {rating > 0 ? (
-                      <View style={styles.partnerRating}>
-                        <Star
-                          size={10}
-                          color={COLORS.brand}
-                          fill={COLORS.brand}
-                        />
-                        <Text style={styles.partnerRatingText}>
-                          {formatRating(rating)}
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.partnerNew}>Nouveau</Text>
-                    )}
-                    <View style={styles.partnerMetaDot} />
-                    <Text style={styles.partnerStat} numberOfLines={1}>
-                      {formatNumber(reviewCount)} Avis
+                <Text
+                  style={[
+                    styles.partnerMetaLine,
+                    { fontSize: statsFontSize },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {rating > 0 ? (
+                    <Text style={styles.partnerRatingInline}>
+                      ★ {formatRating(rating)}
                     </Text>
-                  </View>
-                  <View style={styles.partnerMeta}>
-                    <Text style={styles.partnerStat} numberOfLines={1}>
-                      {formatNumber(salesCount)}{' '}
-                      {salesCount > 1 ? 'ventes' : 'vente'}
-                    </Text>
-                    <View style={styles.partnerMetaDot} />
-                    <Text style={styles.partnerStat} numberOfLines={1}>
-                      {formatNumber(viewsCount)} {viewsCount > 1 ? 'vues' : 'vue'}
-                    </Text>
-                  </View>
-                </View>
+                  ) : (
+                    <Text style={styles.partnerNew}>Nouveau</Text>
+                  )}
+                  <Text style={styles.partnerMetaSep}> · </Text>
+                  <Text style={styles.partnerStat}>
+                    {formatNumber(reviewCount)} Avis
+                  </Text>
+                  <Text style={styles.partnerMetaSep}> · </Text>
+                  <Text style={styles.partnerStat}>
+                    {formatNumber(salesCount)}{' '}
+                    {salesCount > 1 ? 'ventes' : 'vente'}
+                  </Text>
+                  <Text style={styles.partnerMetaSep}> · </Text>
+                  <Text style={styles.partnerStat}>
+                    {formatNumber(viewsCount)} {viewsCount > 1 ? 'vues' : 'vue'}
+                  </Text>
+                </Text>
               </View>
             </Pressable>
           );
@@ -1846,41 +1845,27 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     letterSpacing: -0.2,
   },
-  partnerMetaStack: {
+  partnerMetaLine: {
     marginTop: 3,
-    gap: 1,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+    letterSpacing: -0.1,
   },
-  partnerMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  partnerRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  partnerRatingText: {
-    fontSize: 9.5,
+  partnerRatingInline: {
     fontWeight: '700',
     color: '#4B5563',
   },
   partnerNew: {
-    fontSize: 9.5,
     fontWeight: '700',
     color: COLORS.brand,
   },
-  partnerMetaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#D1D5DB',
+  partnerMetaSep: {
+    fontWeight: '600',
+    color: '#D1D5DB',
   },
   partnerStat: {
-    fontSize: 9.5,
     fontWeight: '600',
     color: COLORS.textMuted,
-    flexShrink: 1,
   },
   // Boutique trouvée (recherche)
   searchStoreCard: {
