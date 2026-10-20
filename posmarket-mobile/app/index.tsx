@@ -451,12 +451,12 @@ function PartnersRow({
                   ) : (
                     <Text style={styles.partnerNew}>Nouveau</Text>
                   )}
-                  <Text style={styles.partnerMetaSep}> · </Text>
+                  <Text style={styles.partnerMetaSep}> | </Text>
                   <Text style={styles.partnerStatValue}>
                     {formatNumber(reviewCount)}
                   </Text>
                   <Text style={styles.partnerStatLabel}> Avis</Text>
-                  <Text style={styles.partnerMetaSep}> · </Text>
+                  <Text style={styles.partnerMetaSep}> | </Text>
                   <Text style={styles.partnerStatValue}>
                     {formatNumber(salesCount)}
                   </Text>
@@ -464,7 +464,7 @@ function PartnersRow({
                     {' '}
                     {salesCount > 1 ? 'ventes' : 'vente'}
                   </Text>
-                  <Text style={styles.partnerMetaSep}> · </Text>
+                  <Text style={styles.partnerMetaSep}> | </Text>
                   <Text style={styles.partnerStatValue}>
                     {formatNumber(viewsCount)}
                   </Text>
