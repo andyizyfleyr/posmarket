@@ -521,7 +521,7 @@ export default function ProductDetailScreen() {
   const stockTone = stockUnavailable ? '#dc2626' : isLowStock ? '#d97706' : '#047857';
   const prepTime = isFood ? product.preparationTime : undefined;
 
-  const renderReview = (review: Review, idx: number) => {
+  const renderReview = (review: Review, idx: number, compact = false) => {
     const tone = AVATAR_TONES[idx % AVATAR_TONES.length];
     return (
       <View key={review.id ?? String(idx)} style={styles.reviewCard}>
@@ -571,11 +571,23 @@ export default function ProductDetailScreen() {
               </View>
             </View>
           </View>
-          {review.comment ? <Text style={styles.reviewComment}>{review.comment}</Text> : null}
+          {review.comment ? (
+            <Text
+              style={styles.reviewComment}
+              numberOfLines={compact ? 3 : undefined}
+            >
+              {review.comment}
+            </Text>
+          ) : null}
           {review.sellerReply ? (
             <View style={styles.sellerReply}>
               <Text style={styles.sellerReplyLabel}>Réponse du vendeur</Text>
-              <Text style={styles.sellerReplyText}>{review.sellerReply}</Text>
+              <Text
+                style={styles.sellerReplyText}
+                numberOfLines={compact ? 2 : undefined}
+              >
+                {review.sellerReply}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -983,55 +995,74 @@ export default function ProductDetailScreen() {
 
         {/* ── Avis ── */}
         <View
-          style={[styles.card, styles.cardSpacing]}
+          style={[styles.card, styles.cardSpacing, styles.reviewsCard]}
           onLayout={(e) => setReviewsY(e.nativeEvent.layout.y)}
         >
-          <View style={[styles.cardHeaderRow, styles.cardHeaderRowAvis]}>
+          <View
+            style={[
+              styles.cardHeaderRow,
+              styles.cardHeaderRowAvis,
+              styles.reviewsHeaderRow,
+            ]}
+          >
             <Text style={[styles.cardHeaderText, styles.cardHeaderTextSm]}>
               Avis {isFood ? 'sur le repas' : 'sur le produit'}
             </Text>
+            {reviews.length > 2 ? (
+              <Pressable
+                style={styles.reviewsHeaderLink}
+                onPress={() => setShowAllReviews(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Voir les ${reviews.length} avis`}
+              >
+                <Text style={styles.reviewsHeaderLinkText}>Voir tout</Text>
+                <ChevronRight size={11} color={BRAND} />
+              </Pressable>
+            ) : null}
           </View>
 
-          <View style={styles.reviewScore}>
-            <View style={styles.reviewScoreValueRow}>
-              <Text style={styles.reviewScoreValue}>{formatRating(rating)}</Text>
-              <Text style={styles.reviewScoreMax}>/5</Text>
+          <View style={styles.reviewSummary}>
+            <View style={styles.reviewSummaryScore}>
+              <View style={styles.reviewSummaryValueRow}>
+                <Text style={styles.reviewSummaryValue}>{formatRating(rating)}</Text>
+                <Text style={styles.reviewSummaryMax}>/5</Text>
+              </View>
+              <View style={styles.reviewSummaryStars}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={10}
+                    color="#fbbf24"
+                    fill={s <= Math.round(rating) ? '#fbbf24' : 'none'}
+                  />
+                ))}
+              </View>
+              <Text style={styles.reviewSummaryCount}>
+                {formatNumber(reviewTotal)} avis
+              </Text>
             </View>
-            <View style={styles.reviewScoreStars}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  size={16}
-                  color="#fbbf24"
-                  fill={s <= Math.round(rating) ? '#fbbf24' : 'none'}
-                />
-              ))}
-            </View>
-            <Text style={styles.reviewScoreLabel}>
-              {formatNumber(reviewTotal)} {isFood ? 'avis clients' : 'notes et avis'}
-            </Text>
-          </View>
 
-          {reviews.length > 0 && (
-            <View style={styles.distribution}>
-              {distribution.map(({ star, pct }) => (
-                <View key={star} style={styles.distributionRow}>
-                  <View style={styles.distributionStarLabel}>
-                    <Text style={styles.distributionStarText}>{star}</Text>
-                    <Star size={8} color="#facc15" fill="#facc15" />
+            {reviews.length > 0 ? (
+              <View style={styles.distribution}>
+                {distribution.map(({ star, pct }) => (
+                  <View key={star} style={styles.distributionRow}>
+                    <View style={styles.distributionStarLabel}>
+                      <Text style={styles.distributionStarText}>{star}</Text>
+                      <Star size={6} color="#facc15" fill="#facc15" />
+                    </View>
+                    <View style={styles.distributionTrack}>
+                      <View style={[styles.distributionFill, { width: `${pct}%` }]} />
+                    </View>
+                    <Text style={styles.distributionPct}>{pct}%</Text>
                   </View>
-                  <View style={styles.distributionTrack}>
-                    <View style={[styles.distributionFill, { width: `${pct}%` }]} />
-                  </View>
-                  <Text style={styles.distributionPct}>{pct}%</Text>
-                </View>
-              ))}
-            </View>
-          )}
+                ))}
+              </View>
+            ) : null}
+          </View>
 
           {reviews.length === 0 ? (
             <View style={styles.reviewsEmpty}>
-              <MessageCircle size={18} color="#d1d5db" />
+              <MessageCircle size={16} color="#d1d5db" />
               <Text style={styles.reviewsEmptyTitle}>Aucun avis rédigé</Text>
               <Text style={styles.reviewsEmptySub}>
                 {isFood
@@ -1040,21 +1071,7 @@ export default function ProductDetailScreen() {
               </Text>
             </View>
           ) : (
-            <>
-              {reviews.slice(0, 3).map((r, idx) => renderReview(r, idx))}
-              {reviews.length > 3 && (
-                <Pressable style={styles.seeAllBtn} onPress={() => setShowAllReviews(true)}>
-                  <Text style={styles.seeAllText}>
-                    Voir les {reviews.length - 3} autres avis
-                  </Text>
-                  <ChevronRight
-                    size={12}
-                    color="#111827"
-                    style={{ transform: [{ rotate: '90deg' }] }}
-                  />
-                </Pressable>
-              )}
-            </>
+            reviews.slice(0, 2).map((r, idx) => renderReview(r, idx, true))
           )}
         </View>
 
@@ -1644,7 +1661,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardHeaderRowAvis: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   cardTick: {
     width: 4,
@@ -1666,6 +1683,10 @@ const styles = StyleSheet.create({
   },
   // ── Carte info compacte ──
   infoCard: {
+    padding: 14,
+    borderRadius: 20,
+  },
+  reviewsCard: {
     padding: 14,
     borderRadius: 20,
   },
@@ -2019,90 +2040,110 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   // ── Avis ──
-  reviewScore: {
-    alignItems: 'center',
-    marginBottom: 16,
+  reviewsHeaderRow: {
+    justifyContent: 'space-between',
   },
-  reviewScoreValueRow: {
+  reviewsHeaderLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1,
+    paddingVertical: 2,
+    paddingLeft: 8,
+  },
+  reviewsHeaderLinkText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: BRAND,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  reviewSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 8,
+  },
+  reviewSummaryScore: {
+    width: 82,
+  },
+  reviewSummaryValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
+    gap: 1,
   },
-  reviewScoreValue: {
-    fontSize: 20,
+  reviewSummaryValue: {
+    fontSize: 24,
+    lineHeight: 27,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
   },
-  reviewScoreMax: {
-    fontSize: 12,
+  reviewSummaryMax: {
+    fontSize: 10,
     fontWeight: '700',
     color: '#d1d5db',
   },
-  reviewScoreStars: {
+  reviewSummaryStars: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    marginTop: 6,
+    gap: 1,
+    marginTop: 2,
   },
-  reviewScoreLabel: {
-    fontSize: 8,
-    fontWeight: '600',
+  reviewSummaryCount: {
+    fontSize: 9,
     color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 6,
+    marginTop: 3,
   },
   distribution: {
-    gap: 6,
-    marginBottom: 16,
+    flex: 1,
+    gap: 3,
   },
   distributionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 6,
   },
   distributionStarLabel: {
-    width: 28,
+    width: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 1,
   },
   distributionStarText: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 8,
+    fontWeight: '600',
     color: '#6b7280',
   },
   distributionTrack: {
     flex: 1,
-    height: 6,
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#f3f4f6',
     overflow: 'hidden',
   },
   distributionFill: {
-    height: 6,
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#fbbf24',
   },
   distributionPct: {
-    width: 36,
+    width: 28,
     textAlign: 'right',
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 8,
+    fontWeight: '600',
     color: '#9ca3af',
   },
   reviewCard: {
     flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#f9fafb',
+    gap: 9,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#f3f4f6',
   },
   reviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -2112,7 +2153,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   reviewAvatarText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   reviewBody: {
@@ -2123,112 +2164,93 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 2,
+    gap: 6,
+    marginBottom: 1,
   },
   reviewHead: {
     flexShrink: 1,
   },
   reviewAuthor: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#111827',
   },
   reviewStars: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 1,
-    marginTop: 4,
+    gap: 0.5,
+    marginTop: 2,
   },
   reviewMeta: {
     alignItems: 'flex-end',
-    gap: 2,
+    gap: 1,
   },
   reviewDate: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '500',
     color: '#9ca3af',
   },
   reviewVerified: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   reviewVerifiedText: {
-    fontSize: 10,
+    fontSize: 8.5,
     fontWeight: '500',
     color: '#059669',
   },
   reviewComment: {
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11.5,
+    lineHeight: 16.5,
     color: '#4b5563',
-    marginTop: 6,
+    marginTop: 4,
   },
   sellerReply: {
-    marginTop: 8,
-    marginLeft: 12,
-    paddingLeft: 10,
-    paddingRight: 10,
-    paddingVertical: 6,
+    marginTop: 6,
+    marginLeft: 8,
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingVertical: 5,
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(245,107,42,0.4)',
     backgroundColor: 'rgba(255,247,237,0.4)',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
   },
   sellerReplyLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 0.8,
     color: BRAND,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   sellerReplyText: {
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10.5,
+    lineHeight: 14.5,
     color: '#4b5563',
   },
   reviewsEmpty: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 16,
     marginTop: 4,
     backgroundColor: 'rgba(249,250,251,0.6)',
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: '#e5e7eb',
-    borderRadius: 12,
-    gap: 4,
+    borderRadius: 10,
+    gap: 3,
   },
   reviewsEmptyTitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#4b5563',
-    marginTop: 4,
+    marginTop: 2,
   },
   reviewsEmptySub: {
     fontSize: 9,
     color: '#9ca3af',
-  },
-  seeAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    marginTop: 8,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    borderRadius: 12,
-  },
-  seeAllText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#111827',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
   // ── Similaires ──
   relatedSection: {
