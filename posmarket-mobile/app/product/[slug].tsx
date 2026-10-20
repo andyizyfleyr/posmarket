@@ -118,10 +118,7 @@ export default function ProductDetailScreen() {
     Math.round(windowHeight * 0.88),
     windowHeight - 20,
   );
-  const sheetScrollMaxHeight = Math.max(
-    140,
-    sheetMaxHeight - 178 - insets.bottom,
-  );
+  const sheetScrollMaxHeight = Math.max(140, sheetMaxHeight - 72);
 
   const scrollRef = useRef<ScrollView>(null);
   const galleryRef = useRef<ScrollView>(null);
@@ -135,6 +132,7 @@ export default function ProductDetailScreen() {
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [isOptionsSheetOpen, setIsOptionsSheetOpen] = useState(false);
+  const [sheetFooterHeight, setSheetFooterHeight] = useState(0);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isWholesaleExpanded, setIsWholesaleExpanded] = useState(false);
   const [addedWholesaleIdx, setAddedWholesaleIdx] = useState<number | null>(null);
@@ -1280,7 +1278,10 @@ export default function ProductDetailScreen() {
 
             <ScrollView
               style={[styles.sheetScroll, { maxHeight: sheetScrollMaxHeight }]}
-              contentContainerStyle={styles.sheetScrollContent}
+              contentContainerStyle={[
+                styles.sheetScrollContent,
+                { paddingBottom: sheetFooterHeight + 16 },
+              ]}
             >
               {selectedOptionCount > 0 && (
                 <View style={styles.selectionBox}>
@@ -1456,7 +1457,25 @@ export default function ProductDetailScreen() {
               ) : null}
             </ScrollView>
 
-            <View style={[styles.sheetFooter, { paddingBottom: 12 + insets.bottom }]}>
+            <View
+              style={[
+                styles.sheetFooter,
+                {
+                  paddingBottom: 12 + insets.bottom,
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 2,
+                },
+              ]}
+              onLayout={(event) => {
+                const height = event.nativeEvent.layout.height;
+                if (height > 0 && Math.abs(height - sheetFooterHeight) > 1) {
+                  setSheetFooterHeight(height);
+                }
+              }}
+            >
               <View style={styles.sheetFooterRow}>
                 <View style={styles.sheetFooterLeft}>
                   <Text style={styles.sheetFooterCount}>
