@@ -32,10 +32,8 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Eye,
   MessageCircle,
   Package,
-  ShoppingBag,
   ShoppingCart,
   Star,
   Store,
@@ -521,7 +519,7 @@ export default function ProductDetailScreen() {
             ? `${formatNumber(stockValue)} en stock`
             : 'En stock';
   const stockTone = stockUnavailable ? '#dc2626' : isLowStock ? '#d97706' : '#047857';
-  const prepTime = isFood ? product.preparationTime || product.deliveryTime : undefined;
+  const prepTime = isFood ? product.preparationTime : undefined;
 
   const renderReview = (review: Review, idx: number) => {
     const tone = AVATAR_TONES[idx % AVATAR_TONES.length];
@@ -702,10 +700,15 @@ export default function ProductDetailScreen() {
           )}
         </View>
 
-        {/* ── Carte info ── */}
-        <View style={styles.card}>
+        {/* ── Carte info compacte ── */}
+        <View style={[styles.card, styles.infoCard]}>
           {/* Vendeur */}
-          <Pressable style={styles.sellerRow} onPress={openStore}>
+          <Pressable
+            style={styles.sellerRow}
+            onPress={openStore}
+            accessibilityRole="button"
+            accessibilityLabel={`Voir la boutique ${product.storeName}`}
+          >
             <View style={styles.sellerLogo}>
               {storeLogo ? (
                 <Image
@@ -716,7 +719,7 @@ export default function ProductDetailScreen() {
                   accessible={false}
                 />
               ) : (
-                <Store size={16} color="#d1d5db" />
+                <Store size={14} color="#d1d5db" />
               )}
             </View>
             <View style={styles.sellerTexts}>
@@ -725,65 +728,69 @@ export default function ProductDetailScreen() {
                 <Text style={styles.sellerName} numberOfLines={1}>
                   {product.storeName}
                 </Text>
-                <CheckCircle2 size={13} color={BRAND} />
+                <CheckCircle2 size={11} color={BRAND} />
               </View>
               {realCategory ? (
                 <Pressable
                   style={styles.categoryLink}
                   onPress={() => router.push('/' as never)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Voir la catégorie ${realCategory}`}
                 >
                   <Text style={styles.categoryText} numberOfLines={1}>
                     {realCategory}
                   </Text>
-                  <ChevronRight size={11} color="#9ca3af" />
                 </Pressable>
               ) : null}
             </View>
+            <ChevronRight size={14} color="#c4c9d1" />
           </Pressable>
 
           {/* Titre */}
-          <Text style={styles.productName}>{product.name}</Text>
+          <Text style={styles.productName} numberOfLines={3} accessibilityRole="header">
+            {product.name}
+          </Text>
 
-          {/* Preuve sociale */}
-          <Pressable style={styles.proofRow} onPress={scrollToReviews}>
-            <View style={styles.starsRow}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  size={12}
-                  color="#fbbf24"
-                  fill={s <= Math.round(rating) ? '#fbbf24' : 'none'}
-                />
-              ))}
-            </View>
-            <Text style={styles.ratingValue}>{formatRating(rating)}</Text>
+          {/* Stats compactes */}
+          <Pressable
+            style={styles.proofRow}
+            onPress={scrollToReviews}
+            accessibilityRole="button"
+            accessibilityLabel={
+              rating > 0
+                ? `Note ${formatRating(rating)} sur 5, ${formatNumber(reviewTotal)} avis. Voir les avis.`
+                : `Nouveau produit, ${formatNumber(reviewTotal)} avis. Voir les avis.`
+            }
+          >
+            {rating > 0 ? (
+              <>
+                <Star size={11} color="#EAB308" fill="#EAB308" />
+                <Text style={styles.ratingValue}>{formatRating(rating)}</Text>
+              </>
+            ) : (
+              <Text style={styles.newLabel}>Nouveau</Text>
+            )}
             <Text style={styles.proofText} numberOfLines={1}>
               ({formatNumber(reviewTotal)} avis)
             </Text>
             {product.salesCount !== undefined && product.salesCount > 0 ? (
               <>
-                <Text style={styles.proofSep}>·</Text>
-                <View style={styles.proofItem}>
-                  <ShoppingBag size={11} color="#9ca3af" />
-                  <Text style={styles.proofText}>
-                    {formatNumber(product.salesCount)} {isFood ? 'commandes' : 'vendus'}
-                  </Text>
-                </View>
+                <View style={styles.proofDot} />
+                <Text style={styles.proofText}>
+                  {formatNumber(product.salesCount)} {isFood ? 'commandes' : 'vendus'}
+                </Text>
               </>
             ) : null}
             {product.views !== undefined && product.views > 0 ? (
               <>
-                <Text style={styles.proofSep}>·</Text>
-                <View style={styles.proofItem}>
-                  <Eye size={11} color="#9ca3af" />
-                  <Text style={styles.proofText}>{formatNumber(product.views)} vues</Text>
-                </View>
+                <View style={styles.proofDot} />
+                <Text style={styles.proofText}>{formatNumber(product.views)} vues</Text>
               </>
             ) : null}
           </Pressable>
 
-          {/* Prix */}
-          <View style={styles.priceBlock}>
+          {/* Prix compact */}
+          <View style={styles.priceRow}>
             <View style={styles.priceLeft}>
               <Text style={styles.priceLabel}>
                 {hasOptions && !allSelected ? 'Dès' : 'Prix'}
@@ -798,18 +805,18 @@ export default function ProductDetailScreen() {
                 </Text>
               ) : null}
             </View>
-            {product.originalPrice && product.originalPrice > basePrice ? (
-              <View style={styles.ecoBadge}>
-                <Text style={styles.ecoBadgeText}>-{discountPct}% Éco</Text>
+            {discountPct > 0 ? (
+              <View style={styles.priceDiscountBadge}>
+                <Text style={styles.priceDiscountBadgeText}>-{discountPct}%</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Stock + délais */}
+          {/* Stock + délais sur une ligne */}
           <View style={styles.stockRow}>
             <View style={styles.stockState}>
               {stockUnavailable || isLowStock ? (
-                <AlertCircle size={13} color={stockTone} />
+                <AlertCircle size={11} color={stockTone} />
               ) : (
                 <View style={styles.stockDot} />
               )}
@@ -817,15 +824,15 @@ export default function ProductDetailScreen() {
             </View>
             {prepTime ? (
               <View style={styles.delayItem}>
-                <Clock size={13} color="#16a34a" />
+                <Clock size={11} color="#16a34a" />
                 <Text style={styles.delayText}>
-                  Préparation <Text style={styles.delayValue}>{prepTime}</Text>
+                  Prêt en <Text style={styles.delayValue}>{prepTime}</Text>
                 </Text>
               </View>
             ) : null}
             {product.deliveryTime ? (
               <View style={styles.delayItem}>
-                <Truck size={13} color="#3b82f6" />
+                <Truck size={11} color="#3b82f6" />
                 <Text style={styles.delayText}>
                   Livraison <Text style={styles.delayValue}>{product.deliveryTime}</Text>
                 </Text>
@@ -1657,17 +1664,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.2,
   },
+  // ── Carte info compacte ──
+  infoCard: {
+    padding: 14,
+    borderRadius: 20,
+  },
   // ── Vendeur ──
   sellerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 8,
   },
   sellerLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#f9fafb',
     borderWidth: 1,
     borderColor: 'rgba(229,231,235,0.8)',
@@ -1686,14 +1698,14 @@ const styles = StyleSheet.create({
   sellerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   sellerLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#9ca3af',
   },
   sellerName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1f2937',
     flexShrink: 1,
@@ -1701,141 +1713,136 @@ const styles = StyleSheet.create({
   categoryLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
+    alignSelf: 'flex-start',
+    marginTop: 1,
   },
   categoryText: {
-    fontSize: 11,
+    fontSize: 9.5,
     color: '#9ca3af',
     flexShrink: 1,
   },
-  // ── Titre + preuve sociale ──
+  // ── Titre + stats ──
   productName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#030712',
     lineHeight: 21,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   proofRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 14,
     flexWrap: 'wrap',
-  },
-  starsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 1,
+    gap: 5,
+    marginBottom: 8,
   },
   ratingValue: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10.5,
+    fontWeight: '700',
     color: '#374151',
   },
+  newLabel: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#047857',
+  },
   proofText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#9ca3af',
   },
-  proofSep: {
-    fontSize: 11,
-    color: '#d1d5db',
-  },
-  proofItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  proofDot: {
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#d1d5db',
   },
   // ── Prix ──
-  priceBlock: {
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    backgroundColor: 'rgba(249,250,251,0.8)',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 8,
+    marginBottom: 6,
   },
   priceLeft: {
     flexDirection: 'row',
     alignItems: 'baseline',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
     flexShrink: 1,
   },
   priceLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
     color: '#9ca3af',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   priceValue: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '700',
     color: '#030712',
+    letterSpacing: -0.3,
   },
   priceUnit: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     color: '#6b7280',
   },
   priceOriginal: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#9ca3af',
     textDecorationLine: 'line-through',
   },
-  ecoBadge: {
-    backgroundColor: 'rgba(209,250,229,0.7)',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    borderRadius: 6,
-    paddingHorizontal: 6,
+  priceDiscountBadge: {
+    backgroundColor: '#fef2f2',
+    borderRadius: 5,
+    paddingHorizontal: 5,
     paddingVertical: 2,
   },
-  ecoBadgeText: {
-    fontSize: 10,
+  priceDiscountBadgeText: {
+    fontSize: 9.5,
     fontWeight: '700',
-    color: '#047857',
+    color: '#b91c1c',
   },
   // ── Stock ──
   stockRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 8,
   },
   stockState: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   stockDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#10b981',
   },
   stockText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 10.5,
+    fontWeight: '600',
   },
   delayItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   delayText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#6b7280',
   },
   delayValue: {
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#374151',
   },
   // ── Prix de gros ──
   wholesale: {
