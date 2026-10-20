@@ -417,14 +417,22 @@ function PartnersRow({
                   <ChevronRight size={12} color="#C4C8CE" strokeWidth={2.5} />
                 </View>
 
-                {country ? (
-                  <View style={styles.partnerCountry}>
-                    <MapPin size={9.5} color={COLORS.brand} strokeWidth={2.5} />
-                    <Text style={styles.partnerCountryText} numberOfLines={1}>
-                      {country}
-                    </Text>
-                  </View>
-                ) : null}
+                <View style={styles.partnerCountry}>
+                  <MapPin
+                    size={9.5}
+                    color={country ? COLORS.brand : COLORS.textFaint}
+                    strokeWidth={2.5}
+                  />
+                  <Text
+                    style={[
+                      styles.partnerCountryText,
+                      !country && styles.partnerCountryTextEmpty,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {country || 'Non défini'}
+                  </Text>
+                </View>
 
                 <Text
                   style={[
@@ -434,24 +442,35 @@ function PartnersRow({
                   numberOfLines={1}
                 >
                   {rating > 0 ? (
-                    <Text style={styles.partnerRatingInline}>
-                      ★ {formatRating(rating)}
-                    </Text>
+                    <>
+                      <Text style={styles.partnerStar}>★ </Text>
+                      <Text style={styles.partnerRatingValue}>
+                        {formatRating(rating)}
+                      </Text>
+                    </>
                   ) : (
                     <Text style={styles.partnerNew}>Nouveau</Text>
                   )}
                   <Text style={styles.partnerMetaSep}> · </Text>
-                  <Text style={styles.partnerStat}>
-                    {formatNumber(reviewCount)} Avis
+                  <Text style={styles.partnerStatValue}>
+                    {formatNumber(reviewCount)}
                   </Text>
+                  <Text style={styles.partnerStatLabel}> Avis</Text>
                   <Text style={styles.partnerMetaSep}> · </Text>
-                  <Text style={styles.partnerStat}>
-                    {formatNumber(salesCount)}{' '}
+                  <Text style={styles.partnerStatValue}>
+                    {formatNumber(salesCount)}
+                  </Text>
+                  <Text style={styles.partnerStatLabel}>
+                    {' '}
                     {salesCount > 1 ? 'ventes' : 'vente'}
                   </Text>
                   <Text style={styles.partnerMetaSep}> · </Text>
-                  <Text style={styles.partnerStat}>
-                    {formatNumber(viewsCount)} {viewsCount > 1 ? 'vues' : 'vue'}
+                  <Text style={styles.partnerStatValue}>
+                    {formatNumber(viewsCount)}
+                  </Text>
+                  <Text style={styles.partnerStatLabel}>
+                    {' '}
+                    {viewsCount > 1 ? 'vues' : 'vue'}
                   </Text>
                 </Text>
               </View>
@@ -1845,15 +1864,23 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     letterSpacing: -0.2,
   },
+  partnerCountryTextEmpty: {
+    color: COLORS.textFaint,
+    fontWeight: '500',
+  },
   partnerMetaLine: {
     marginTop: 3,
     fontWeight: '600',
     color: COLORS.textMuted,
     letterSpacing: -0.1,
   },
-  partnerRatingInline: {
+  partnerStar: {
     fontWeight: '700',
-    color: '#4B5563',
+    color: COLORS.brand,
+  },
+  partnerRatingValue: {
+    fontWeight: '700',
+    color: COLORS.text,
   },
   partnerNew: {
     fontWeight: '700',
@@ -1863,7 +1890,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#D1D5DB',
   },
-  partnerStat: {
+  partnerStatValue: {
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  partnerStatLabel: {
     fontWeight: '600',
     color: COLORS.textMuted,
   },
