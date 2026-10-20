@@ -15,9 +15,9 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Package, Plus } from 'lucide-react-native';
+import { Package, Plus, Star } from 'lucide-react-native';
 import { resolveImageUrl } from '@/api/client';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatNumber } from '@/utils';
 import { COLORS } from '@/theme';
 import type { StorefrontProduct } from '@/types';
 import { useCart } from '@/context/CartContext';
@@ -53,6 +53,12 @@ export function ProductTile({ product, onPress }: ProductTileProps) {
             100,
         )
       : 0;
+
+  const salesCount = product.salesCount ?? 0;
+  const rating = product.rating ?? 0;
+  const reviewCount = product.reviewCount ?? 0;
+  const fullStars = Math.floor(rating);
+  const hasStats = salesCount > 0 || rating > 0;
 
   return (
     <Pressable
@@ -92,7 +98,7 @@ export function ProductTile({ product, onPress }: ProductTileProps) {
             ]}
             onPress={hasOptions ? handlePress : handleAdd}
             disabled={adding}
-            hitSlop={6}
+            hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={
               hasOptions ? 'Choisir les options' : 'Ajouter au panier'
@@ -100,11 +106,15 @@ export function ProductTile({ product, onPress }: ProductTileProps) {
           >
             {({ pressed }) =>
               adding ? (
-                <ActivityIndicator size="small" color={COLORS.brand} />
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.brand}
+                  style={styles.quickAddSpinner}
+                />
               ) : (
                 <Plus
-                  size={17}
-                  strokeWidth={2.8}
+                  size={12}
+                  strokeWidth={2.6}
                   color={pressed ? '#FFFFFF' : '#111827'}
                 />
               )
@@ -117,15 +127,47 @@ export function ProductTile({ product, onPress }: ProductTileProps) {
         <Text style={styles.name} numberOfLines={1}>
           {product.name}
         </Text>
+
+        <View style={styles.statsRow}>
+          {salesCount > 0 ? (
+            <Text style={styles.salesText} numberOfLines={1}>
+              {formatNumber(salesCount)} vendu{salesCount > 1 ? 's' : ''}
+            </Text>
+          ) : null}
+
+          {salesCount > 0 && rating > 0 ? (
+            <View style={styles.statsDivider} />
+          ) : null}
+
+          {rating > 0 ? (
+            <View style={styles.ratingGroup}>
+              <View style={styles.stars}>
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <Star
+                    key={index}
+                    size={9}
+                    strokeWidth={2}
+                    color={index < fullStars ? '#EAB308' : '#D1D5DB'}
+                    fill={index < fullStars ? '#EAB308' : 'none'}
+                  />
+                ))}
+              </View>
+              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+              {reviewCount > 0 ? (
+                <Text style={styles.reviewText}>
+                  ({formatNumber(reviewCount)})
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {!hasStats ? <Text style={styles.newText}>Nouveau</Text> : null}
+        </View>
+
         <View style={styles.priceRow}>
           <Text style={styles.price} numberOfLines={1}>
             {formatCurrency(product.price)}
           </Text>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <Text style={styles.originalPrice} numberOfLines={1}>
-              {formatCurrency(product.originalPrice)}
-            </Text>
-          )}
         </View>
       </View>
     </Pressable>
@@ -187,21 +229,24 @@ const styles = StyleSheet.create({
   },
   quickAdd: {
     position: 'absolute',
-    right: 6,
-    bottom: 6,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    right: 5,
+    bottom: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
     borderColor: '#EEF0F3',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+  },
+  quickAddSpinner: {
+    transform: [{ scale: 0.65 }],
   },
   quickAddPressed: {
     backgroundColor: COLORS.brand,
@@ -215,13 +260,55 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: '400',
+    color: '#1F2937',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 14,
+    marginTop: 2,
+    overflow: 'hidden',
+  },
+  salesText: {
+    flexShrink: 1,
+    fontSize: 9.5,
+    color: '#6B7280',
+  },
+  statsDivider: {
+    width: 1,
+    height: 9,
+    marginHorizontal: 5,
+    backgroundColor: '#D1D5DB',
+  },
+  ratingGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
+  stars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1,
+  },
+  ratingText: {
+    marginLeft: 3,
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  reviewText: {
+    marginLeft: 2,
+    fontSize: 9,
+    color: '#9CA3AF',
+  },
+  newText: {
+    fontSize: 9.5,
+    color: '#9CA3AF',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 5,
     height: 19,
     marginTop: 3,
   },
@@ -232,12 +319,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.2,
-  },
-  originalPrice: {
-    flexShrink: 1,
-    fontSize: 9.5,
-    lineHeight: 12,
-    color: '#EF4444',
-    textDecorationLine: 'line-through',
   },
 });

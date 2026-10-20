@@ -77,7 +77,8 @@ export function StorefrontSkeleton() {
                 <View key={index} style={styles.card}>
                   <Skeleton style={[styles.cardImage, { height: cardWidth }]} />
                   <Skeleton style={[styles.line, { width: '92%', height: 10, marginTop: 6 }]} />
-                  <Skeleton style={[styles.line, { width: '52%', height: 14, marginTop: 4 }]} />
+                  <Skeleton style={[styles.line, { width: '68%', height: 8, marginTop: 2 }]} />
+                  <Skeleton style={[styles.line, { width: '52%', height: 14, marginTop: 3 }]} />
                 </View>
               ))}
             </View>
@@ -86,7 +87,8 @@ export function StorefrontSkeleton() {
                 <View key={`right-${index}`} style={styles.card}>
                   <Skeleton style={[styles.cardImage, { height: cardWidth }]} />
                   <Skeleton style={[styles.line, { width: '88%', height: 10, marginTop: 6 }]} />
-                  <Skeleton style={[styles.line, { width: '48%', height: 14, marginTop: 4 }]} />
+                  <Skeleton style={[styles.line, { width: '64%', height: 8, marginTop: 2 }]} />
+                  <Skeleton style={[styles.line, { width: '48%', height: 14, marginTop: 3 }]} />
                 </View>
               ))}
             </View>
