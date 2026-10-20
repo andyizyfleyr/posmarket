@@ -1,9 +1,9 @@
 /**
  * ProductTile — carte produit compacte pour le fil d'accueil, inspirée de
- * l'app Android Alibaba : image pleine largeur dont la hauteur suit le ratio
- * réel de la photo, titre sur une ligne, prix mis en avant, pas de bloc
- * d'informations supplémentaire. L'ajout rapide reste accessible via un petit
- * bouton « + » posé sur l'image, sans augmenter la hauteur de la carte.
+ * l'app Android Alibaba : image carrée pleine largeur, titre sur une ligne,
+ * prix mis en avant, pas de bloc d'informations supplémentaire. Toutes les
+ * cartes ont donc exactement la même hauteur. L'ajout rapide reste accessible
+ * via un petit bouton « + » posé sur l'image, sans augmenter la carte.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -14,7 +14,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Image, type ImageLoadEventData } from 'expo-image';
+import { Image } from 'expo-image';
 import { Package, Plus } from 'lucide-react-native';
 import { resolveImageUrl } from '@/api/client';
 import { formatCurrency } from '@/utils';
@@ -30,7 +30,6 @@ interface ProductTileProps {
 export function ProductTile({ product, onPress }: ProductTileProps) {
   const { addToCart } = useCart();
   const [adding, setAdding] = useState(false);
-  const [imageRatio, setImageRatio] = useState(1);
   const imageUrl = resolveImageUrl(product.image);
   const isOutOfStock = product.stock <= 0;
   const hasOptions =
@@ -47,14 +46,6 @@ export function ProductTile({ product, onPress }: ProductTileProps) {
     onPress?.(product);
   }, [onPress, product]);
 
-  const handleImageLoad = useCallback((event: ImageLoadEventData) => {
-    const { width, height } = event.source;
-    if (width > 0 && height > 0) {
-      // On garde des proportions raisonnables pour éviter les cartes extrêmes.
-      setImageRatio(Math.min(1.45, Math.max(0.7, width / height)));
-    }
-  }, []);
-
   const discount =
     product.originalPrice && product.originalPrice > product.price
       ? Math.round(
@@ -68,14 +59,13 @@ export function ProductTile({ product, onPress }: ProductTileProps) {
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={handlePress}
     >
-      <View style={[styles.imageWrap, { aspectRatio: imageRatio }]}>
+      <View style={styles.imageWrap}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
             style={styles.image}
             contentFit="cover"
             transition={180}
-            onLoad={handleImageLoad}
             placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
           />
         ) : (
@@ -151,6 +141,7 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     width: '100%',
+    aspectRatio: 1,
     overflow: 'hidden',
     borderRadius: 10,
     backgroundColor: '#F3F4F6',
@@ -231,11 +222,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 5,
+    height: 19,
     marginTop: 3,
   },
   price: {
     flexShrink: 1,
     fontSize: 15,
+    lineHeight: 19,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.2,
@@ -243,6 +236,7 @@ const styles = StyleSheet.create({
   originalPrice: {
     flexShrink: 1,
     fontSize: 9.5,
+    lineHeight: 12,
     color: '#EF4444',
     textDecorationLine: 'line-through',
   },

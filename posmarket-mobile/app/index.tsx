@@ -56,7 +56,7 @@ import {
   searchProducts,
   API_BASE_URL,
 } from '@/api/client';
-import { ProductMasonry } from '@/components/ProductMasonry';
+import { ProductGrid } from '@/components/ProductGrid';
 import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { Loader } from '@/components/Loader';
 import { StorefrontSkeleton } from '@/components/StorefrontSkeleton';
@@ -804,7 +804,7 @@ export default function HomeScreen() {
         case 'masonry':
           return (
             <View style={styles.masonryBlock}>
-              <ProductMasonry
+              <ProductGrid
                 products={item.products}
                 onPress={navigateToProduct}
               />
@@ -1032,7 +1032,7 @@ export default function HomeScreen() {
                 contentContainerStyle={styles.sheetList}
                 showsVerticalScrollIndicator={false}
               >
-                <ProductMasonry
+                <ProductGrid
                   products={sheetSection.products}
                   onPress={(p) => {
                     setSheetCategory(null);

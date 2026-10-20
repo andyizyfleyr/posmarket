@@ -18,9 +18,7 @@ export function StorefrontSkeleton() {
   const partnerWidth = Math.min((screenWidth - 44) / 2, 210);
   const gridGap = 8;
   const cardWidth = (contentWidth - gridGap) / 2;
-  const imageRatios = [1, 0.76, 0.82, 1.2, 0.72, 1.05, 0.9, 1.15];
-  const leftIndexes = [0, 2, 4, 6];
-  const rightIndexes = [1, 3, 5, 7];
+  const columnIndexes = [0, 1, 2, 3];
 
   return (
     <SkeletonProvider>
@@ -72,31 +70,21 @@ export function StorefrontSkeleton() {
             ))}
           </View>
 
-          {/* Grille produits — waterfall compact comme les cartes Alibaba */}
+          {/* Grille produits — cartes compactes de taille identique */}
           <View style={[styles.grid, { gap: gridGap }]}>
             <View style={styles.gridColumn}>
-              {leftIndexes.map((index) => (
+              {columnIndexes.map((index) => (
                 <View key={index} style={styles.card}>
-                  <Skeleton
-                    style={[
-                      styles.cardImage,
-                      { height: cardWidth / imageRatios[index] },
-                    ]}
-                  />
+                  <Skeleton style={[styles.cardImage, { height: cardWidth }]} />
                   <Skeleton style={[styles.line, { width: '92%', height: 10, marginTop: 6 }]} />
                   <Skeleton style={[styles.line, { width: '52%', height: 14, marginTop: 4 }]} />
                 </View>
               ))}
             </View>
             <View style={styles.gridColumn}>
-              {rightIndexes.map((index) => (
-                <View key={index} style={styles.card}>
-                  <Skeleton
-                    style={[
-                      styles.cardImage,
-                      { height: cardWidth / imageRatios[index] },
-                    ]}
-                  />
+              {columnIndexes.map((index) => (
+                <View key={`right-${index}`} style={styles.card}>
+                  <Skeleton style={[styles.cardImage, { height: cardWidth }]} />
                   <Skeleton style={[styles.line, { width: '88%', height: 10, marginTop: 6 }]} />
                   <Skeleton style={[styles.line, { width: '48%', height: 14, marginTop: 4 }]} />
                 </View>

@@ -1,8 +1,8 @@
 /**
- * ProductMasonry — grille waterfall à 2 colonnes pour le fil d'accueil.
- * Les produits sont répartis alternativement à gauche et à droite ; comme les
- * images conservent leur ratio réel, les colonnes prennent naturellement des
- * hauteurs différentes, comme dans l'app Android Alibaba.
+ * ProductGrid — grille produit compacte à 2 colonnes pour le fil d'accueil.
+ * Les produits sont répartis alternativement à gauche et à droite. Toutes les
+ * cartes ayant une image carrée et le même bloc d'informations, les deux
+ * colonnes restent parfaitement alignées.
  */
 
 import React, { useMemo } from 'react';
@@ -10,7 +10,7 @@ import { StyleSheet, View } from 'react-native';
 import { ProductTile } from '@/components/ProductTile';
 import type { StorefrontProduct } from '@/types';
 
-interface ProductMasonryProps {
+interface ProductGridProps {
   products: StorefrontProduct[];
   onPress?: (product: StorefrontProduct) => void;
   paddingHorizontal?: number;
@@ -18,13 +18,13 @@ interface ProductMasonryProps {
   rowGap?: number;
 }
 
-export function ProductMasonry({
+export function ProductGrid({
   products,
   onPress,
   paddingHorizontal = 8,
   columnGap = 8,
   rowGap = 14,
-}: ProductMasonryProps) {
+}: ProductGridProps) {
   const [leftColumn, rightColumn] = useMemo(() => {
     const left: StorefrontProduct[] = [];
     const right: StorefrontProduct[] = [];
