@@ -16,8 +16,11 @@ export function StorefrontSkeleton() {
   const contentWidth = Math.max(0, screenWidth - horizontalPadding * 2);
   const partnerGap = 12;
   const partnerWidth = Math.min((screenWidth - 44) / 2, 210);
-  const gridGap = 12;
+  const gridGap = 8;
   const cardWidth = (contentWidth - gridGap) / 2;
+  const imageRatios = [1, 0.76, 0.82, 1.2, 0.72, 1.05, 0.9, 1.15];
+  const leftIndexes = [0, 2, 4, 6];
+  const rightIndexes = [1, 3, 5, 7];
 
   return (
     <SkeletonProvider>
@@ -69,20 +72,36 @@ export function StorefrontSkeleton() {
             ))}
           </View>
 
-          {/* Grille produits */}
+          {/* Grille produits — waterfall compact comme les cartes Alibaba */}
           <View style={[styles.grid, { gap: gridGap }]}>
-            {Array.from({ length: 8 }).map((_, index) => (
-              <View key={index} style={[styles.card, { width: cardWidth }]}>
-                <Skeleton style={{ width: cardWidth, height: cardWidth }} />
-                <View style={styles.cardBody}>
-                  <Skeleton style={[styles.line, { width: cardWidth * 0.75, height: 12 }]} />
-                  <Skeleton style={[styles.line, { width: cardWidth * 0.5, height: 16 }]} />
+            <View style={styles.gridColumn}>
+              {leftIndexes.map((index) => (
+                <View key={index} style={styles.card}>
                   <Skeleton
-                    style={[styles.cardAction, { width: '100%', height: 32, marginTop: 8 }]}
+                    style={[
+                      styles.cardImage,
+                      { height: cardWidth / imageRatios[index] },
+                    ]}
                   />
+                  <Skeleton style={[styles.line, { width: '92%', height: 10, marginTop: 6 }]} />
+                  <Skeleton style={[styles.line, { width: '52%', height: 14, marginTop: 4 }]} />
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
+            <View style={styles.gridColumn}>
+              {rightIndexes.map((index) => (
+                <View key={index} style={styles.card}>
+                  <Skeleton
+                    style={[
+                      styles.cardImage,
+                      { height: cardWidth / imageRatios[index] },
+                    ]}
+                  />
+                  <Skeleton style={[styles.line, { width: '88%', height: 10, marginTop: 6 }]} />
+                  <Skeleton style={[styles.line, { width: '48%', height: 14, marginTop: 4 }]} />
+                </View>
+              ))}
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -227,23 +246,20 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+  },
+  gridColumn: {
+    flex: 1,
+    gap: 14,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    overflow: 'hidden',
+    width: '100%',
   },
-  cardBody: {
-    padding: 8,
-    gap: 8,
+  cardImage: {
+    width: '100%',
+    borderRadius: 10,
   },
   line: {
     borderRadius: 4,
-  },
-  cardAction: {
-    borderRadius: 12,
   },
 });

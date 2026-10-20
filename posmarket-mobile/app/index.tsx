@@ -56,7 +56,7 @@ import {
   searchProducts,
   API_BASE_URL,
 } from '@/api/client';
-import { ProductCard } from '@/components/ProductCard';
+import { ProductMasonry } from '@/components/ProductMasonry';
 import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { Loader } from '@/components/Loader';
 import { StorefrontSkeleton } from '@/components/StorefrontSkeleton';
@@ -108,7 +108,7 @@ type HomeItem =
   | { key: string; type: 'catHeader'; category: string; count: number }
   | { key: string; type: 'listHeader'; icon: 'store' | 'cart'; label: string }
   | { key: string; type: 'storeRow'; entries: PartnerEntry[] }
-  | { key: string; type: 'row'; products: StorefrontProduct[] }
+  | { key: string; type: 'masonry'; products: StorefrontProduct[] }
   | { key: string; type: 'empty'; mode: 'search' | 'category' | 'none'; label: string }
   | { key: string; type: 'footer' };
 
@@ -618,17 +618,16 @@ export default function HomeScreen() {
     const searching = debouncedSearch.length >= 2;
     const filtered = searching || selectedCategory !== 'all';
 
-    const pushRows = (
+    const pushMasonry = (
       products: StorefrontProduct[],
       prefix: string,
     ) => {
-      for (let i = 0; i < products.length; i += 2) {
-        items.push({
-          key: `${prefix}-row-${i}`,
-          type: 'row',
-          products: products.slice(i, i + 2),
-        });
-      }
+      if (products.length === 0) return;
+      items.push({
+        key: `${prefix}-masonry`,
+        type: 'masonry',
+        products,
+      });
     };
 
     if (filtered) {
@@ -665,7 +664,7 @@ export default function HomeScreen() {
           count: displayProducts.length,
         });
       }
-      pushRows(displayProducts, 'flat');
+      pushMasonry(displayProducts, 'flat');
       if (
         displayProducts.length === 0 &&
         !isLoading &&
@@ -693,7 +692,7 @@ export default function HomeScreen() {
         category: section.category,
         vertical: section.vertical,
       });
-      pushRows(
+      pushMasonry(
         section.products.slice(0, SECTION_PREVIEW_COUNT),
         `section-${idx}`,
       );
@@ -802,15 +801,13 @@ export default function HomeScreen() {
             </View>
           );
 
-        case 'row':
+        case 'masonry':
           return (
-            <View style={styles.gridRow}>
-              {item.products.map((product) => (
-                <View key={`${product.storeId}-${product.id}`} style={styles.gridCell}>
-                  <ProductCard product={product} onPress={navigateToProduct} />
-                </View>
-              ))}
-              {item.products.length === 1 && <View style={styles.gridCell} />}
+            <View style={styles.masonryBlock}>
+              <ProductMasonry
+                products={item.products}
+                onPress={navigateToProduct}
+              />
             </View>
           );
 
@@ -1030,27 +1027,20 @@ export default function HomeScreen() {
               >
                 <X size={16} color={COLORS.textMuted} />
               </Pressable>
-              <FlatList
-                data={sheetSection.products}
-                keyExtractor={(p) => `${p.storeId}-${p.id}`}
-                numColumns={2}
-                columnWrapperStyle={styles.sheetRow}
-                contentContainerStyle={styles.sheetList}
+              <ScrollView
                 style={styles.sheetListView}
+                contentContainerStyle={styles.sheetList}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={6}
-                renderItem={({ item }) => (
-                  <View style={styles.sheetCell}>
-                    <ProductCard
-                      product={item}
-                      onPress={(p) => {
-                        setSheetCategory(null);
-                        navigateToProduct(p);
-                      }}
-                    />
-                  </View>
-                )}
-              />
+              >
+                <ProductMasonry
+                  products={sheetSection.products}
+                  onPress={(p) => {
+                    setSheetCategory(null);
+                    navigateToProduct(p);
+                  }}
+                  paddingHorizontal={12}
+                />
+              </ScrollView>
             </View>
           )}
 
@@ -1236,13 +1226,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 16,
     paddingBottom: 24,
-  },
-  sheetRow: {
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  sheetCell: {
-    flex: 1,
   },
   // Hero
   heroWrap: {
@@ -1635,6 +1618,9 @@ const styles = StyleSheet.create({
     color: COLORS.textFaint,
   },
   // Grille
+  masonryBlock: {
+    marginBottom: 10,
+  },
   gridRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
