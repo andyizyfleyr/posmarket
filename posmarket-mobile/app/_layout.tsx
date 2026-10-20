@@ -39,22 +39,28 @@ export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     // Préparer l'application (chargement polices, auth, etc.)
     const prepare = async () => {
       try {
-        // Attendre un minimum pour afficher le splash custom (ex: 1.5s)
+        // Le splash custom est déjà rendu derrière le splash natif :
+        // on masque le natif tout de suite pour révéler le custom, puis
+        // on le laisse affiché 1,5 s avant de monter l'application.
+        await SplashScreen.hideAsync();
         await new Promise(resolve => setTimeout(resolve, 1500));
         // Ici vous pouvez ajouter d'autres initialisations asynchrones
       } catch (e) {
         console.warn('Erreur pendant le chargement initial', e);
       } finally {
-        // Cacher l'écran de lancement natif
-        await SplashScreen.hideAsync();
-        setAppReady(true);
+        if (mounted) setAppReady(true);
       }
     };
 
     prepare();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (!appReady) {

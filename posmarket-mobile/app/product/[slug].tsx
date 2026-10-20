@@ -8,7 +8,7 @@
  * d'action fixe et feuille d'options.
  */
 
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -45,8 +45,8 @@ import {
 } from 'lucide-react-native';
 import { fetchCatalog, fetchProductReviews, resolveImageUrl } from '@/api/client';
 import { useCart } from '@/context/CartContext';
-import { Loader } from '@/components/Loader';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductLoadingSkeleton } from '@/components/ProductLoadingSkeleton';
 import { ProductDescription } from '@/components/RichDescription';
 import {
   formatCurrency,
@@ -120,6 +120,15 @@ export default function ProductDetailScreen() {
   const [addedWholesaleIdx, setAddedWholesaleIdx] = useState<number | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Affiche le squelette de chargement (comme le `loading.tsx` du web)
+  // pendant l'ouverture de la fiche, meme si le catalogue est en cache.
+  const [isOpening, setIsOpening] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsOpening(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -452,8 +461,8 @@ export default function ProductDetailScreen() {
     [waDigits],
   );
 
-  if (isCatalogLoading) {
-    return <Loader message="Chargement du produit..." fullScreen />;
+  if (isCatalogLoading || isOpening) {
+    return <ProductLoadingSkeleton />;
   }
 
   if (!product) {

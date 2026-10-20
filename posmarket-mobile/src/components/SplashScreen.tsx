@@ -1,14 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { ShoppingCart } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import splashIcon from '../../assets/splash-icon.png';
 
+/**
+ * Splash custom — sigle PosMarket sur fond blanc, spinner et « Chargement ».
+ * Le sigle provient du meme asset que le splash natif, pour une transition
+ * sans rupture visuelle.
+ */
 export function SplashScreen() {
   return (
     <View style={styles.container}>
-      <View style={styles.iconWrapper}>
-        <ShoppingCart size={56} color="#F56B2A" strokeWidth={2.5} />
-        <ActivityIndicator size="large" color="#F56B2A" style={styles.spinner} />
-      </View>
+      <Image source={splashIcon} style={styles.logo} contentFit="contain" />
+      <ActivityIndicator size="large" color="#F56B2A" style={styles.spinner} />
       <Text style={styles.loadingText}>Chargement</Text>
     </View>
   );
@@ -21,18 +25,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
-  iconWrapper: {
-    position: 'relative',
-    width: 72,
-    height: 72,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logo: {
+    width: 200,
+    height: 200,
   },
   spinner: {
-    position: 'absolute',
+    marginTop: 4,
   },
   loadingText: {
-    marginTop: 20,
+    marginTop: 12,
     fontSize: 15,
     color: '#6B7280',
     fontFamily: 'System',
