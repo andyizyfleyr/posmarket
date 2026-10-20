@@ -14,7 +14,9 @@
     },
     "android": {
       "package": "com.posmarket.app",
-      "permissions": ["INTERNET"],
+      "permissions": [
+        "INTERNET"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -60,7 +62,20 @@
       "typedRoutes": true
     },
     "extra": {
-      "API_BASE_URL": "https://posmarket-eight.vercel.app"
+      "API_BASE_URL": "https://posmarket-eight.vercel.app",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "abf1d67c-7e87-4dd5-b9fe-0d857c85d093"
+      }
+    },
+    "owner": "andyizyfleur",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/abf1d67c-7e87-4dd5-b9fe-0d857c85d093"
     }
   }
 }
