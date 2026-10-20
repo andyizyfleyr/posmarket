@@ -59,6 +59,7 @@ import {
 import {
   findVariantByOptions,
   optionValueAvailability,
+  sameSelectedOptions,
   totalVariantStock,
   variantIsInStock,
 } from '@/utils/variants';
@@ -236,17 +237,45 @@ export default function ProductDetailScreen() {
   }, [reviewsData, product]);
 
   // ── Galerie ──
+  // La photo de la variante complète devient la photo principale, comme sur
+  // le web : l'acheteur voit exactement ce qu'il est en train de commander.
+  const selectedVariantImage = useMemo(() => {
+    if (
+      !product ||
+      !Array.isArray(product.options) ||
+      !Array.isArray(product.variants) ||
+      product.options.length === 0 ||
+      product.variants.length === 0
+    ) {
+      return null;
+    }
+    if (!product.options.every((option) => !!selectedOptions[option.id])) {
+      return null;
+    }
+    return findVariantByOptions(product.variants, selectedOptions)?.image || null;
+  }, [product, selectedOptions]);
+
   const images = useMemo(() => {
     if (!product) return [];
     const list: string[] = [];
-    if (product.image) list.push(product.image);
+    if (selectedVariantImage) list.push(selectedVariantImage);
+    if (product.image && !list.includes(product.image)) list.push(product.image);
     if (Array.isArray(product.images)) {
       product.images.forEach((img) => {
         if (img && !list.includes(img)) list.push(img);
       });
     }
     return list;
-  }, [product]);
+  }, [product, selectedVariantImage]);
+
+  // Repositionne la galerie sur la photo de la variante dès qu'elle change.
+  useEffect(() => {
+    setActiveImageIndex(0);
+    const frame = requestAnimationFrame(() => {
+      galleryRef.current?.scrollTo({ x: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedVariantImage]);
 
   // ── Options / variantes ──
   const options = useMemo(
@@ -308,7 +337,12 @@ export default function ProductDetailScreen() {
     ? cart.some(
         (item) =>
           item.product.id === product.id &&
-          (item.variantId || '') === (resolvedVariantId || ''),
+          item.product.storeId === product.storeId &&
+          (item.variantId ?? null) === (resolvedVariantId ?? null) &&
+          sameSelectedOptions(
+            item.selectedOptions,
+            selectedOptionCount > 0 ? selectedOptions : undefined,
+          ),
       )
     : false;
 
@@ -351,11 +385,32 @@ export default function ProductDetailScreen() {
   const primaryActionLabel =
     isOutOfStock || isSelectedOutOfStock
       ? 'Rupture'
-      : hasVariantMatrix && !allSelected
+      : hasOptions && !allSelected
         ? 'Choisir les options'
         : isFood
           ? 'Commander'
           : 'Ajouter au panier';
+
+  // Le bouton de la feuille n'est actif qu'une fois la combinaison complète :
+  // un CTA « Ajouter » qui ne fait rien parce qu'il manque une option est le
+  // principal point de friction du sélecteur.
+  const sheetActionDisabled = isBuyDisabled || !allSelected;
+  const sheetActionLabel =
+    isOutOfStock || isSelectedOutOfStock
+      ? 'Rupture'
+      : !allSelected
+        ? 'Sélectionnez les options'
+        : isFood
+          ? 'Commander'
+          : 'Ajouter au panier';
+
+  // Sans combinaison complète, le bouton de gros ouvre le sélecteur : son
+  // libellé doit annoncer cette action plutôt qu'un ajout impossible.
+  const wholesaleNeedsOptions = hasVariantMatrix && !matchedVariant;
+  const selectedOptionsSummary = options
+    .filter((option) => !!selectedOptions[option.id])
+    .map((option) => `${option.name}: ${selectedOptions[option.id]}`)
+    .join(' · ');
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -376,7 +431,15 @@ export default function ProductDetailScreen() {
   }, [reviewsY]);
 
   const selectValue = useCallback((optionId: string, value: string) => {
-    setSelectedOptions((prev) => ({ ...prev, [optionId]: value }));
+    setSelectedOptions((prev) => {
+      // Re-toucher la valeur active la retire : même comportement que le web.
+      if (prev[optionId] === value) {
+        const next = { ...prev };
+        delete next[optionId];
+        return next;
+      }
+      return { ...prev, [optionId]: value };
+    });
   }, []);
 
   const removeOption = useCallback((optionId: string) => {
@@ -398,7 +461,7 @@ export default function ProductDetailScreen() {
 
   const handlePrimaryAdd = useCallback(() => {
     if (!product || isBuyDisabled) return;
-    if (hasVariantMatrix && !allSelected) {
+    if (hasOptions && !allSelected) {
       setIsOptionsSheetOpen(true);
       return;
     }
@@ -412,7 +475,7 @@ export default function ProductDetailScreen() {
   }, [
     product,
     isBuyDisabled,
-    hasVariantMatrix,
+    hasOptions,
     allSelected,
     addToCart,
     resolvedVariantId,
@@ -853,6 +916,53 @@ export default function ProductDetailScreen() {
             ) : null}
           </View>
 
+          {/* Rappel des options : rouvre la feuille même après sélection
+              complète, sinon le CTA devient « Ajouter » et la modification
+              n'est plus accessible. */}
+          {hasOptions && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.optionsSummaryRow,
+                pressed ? styles.optionsSummaryRowPressed : null,
+              ]}
+              onPress={() => setIsOptionsSheetOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                selectedOptionCount > 0
+                  ? `Options sélectionnées : ${selectedOptionCount} sur ${options.length}. Modifier.`
+                  : 'Choisir les options'
+              }
+            >
+              <View style={styles.optionsSummaryIcon}>
+                <Package size={13} color={BRAND} strokeWidth={2.5} />
+              </View>
+              <View style={styles.optionsSummaryBody}>
+                <Text style={styles.optionsSummaryTitle}>Options & Variantes</Text>
+                <Text style={styles.optionsSummaryText} numberOfLines={1}>
+                  {selectedOptionsSummary || 'Touchez pour choisir'}
+                </Text>
+              </View>
+              {allSelected && !isOutOfStock && !isSelectedOutOfStock ? (
+                <View style={styles.optionsSummaryReady}>
+                  <CheckCircle2 size={10} color="#047857" strokeWidth={3} />
+                  <Text style={styles.optionsSummaryReadyText}>Prêt</Text>
+                </View>
+              ) : allSelected ? (
+                <View style={styles.optionsSummaryOut}>
+                  <AlertCircle size={10} color="#be123c" strokeWidth={2.5} />
+                  <Text style={styles.optionsSummaryOutText}>Rupture</Text>
+                </View>
+              ) : (
+                <View style={styles.optionsSummaryCount}>
+                  <Text style={styles.optionsSummaryCountText}>
+                    {selectedOptionCount}/{options.length}
+                  </Text>
+                </View>
+              )}
+              <ChevronRight size={15} color="#9ca3af" />
+            </Pressable>
+          )}
+
           {/* Prix de gros (accordéon) */}
           {hasWholesale && (
             <View style={styles.wholesale}>
@@ -918,11 +1028,19 @@ export default function ProductDetailScreen() {
                                   isAdded ? styles.wholesaleAddDone : null,
                                 ]}
                                 onPress={() => handleWholesaleAdd(idx, tier.minQty)}
+                                accessibilityRole="button"
+                                accessibilityLabel={
+                                  wholesaleNeedsOptions
+                                    ? 'Choisir les options de la variante'
+                                    : `Ajouter ${tier.minQty} pièces au panier`
+                                }
                               >
                                 {isAdded ? (
                                   <Check size={11} color="#ffffff" strokeWidth={3} />
                                 ) : (
-                                  <Text style={styles.wholesaleAddText}>Ajouter</Text>
+                                  <Text style={styles.wholesaleAddText}>
+                                    {wholesaleNeedsOptions ? 'Choisir' : 'Ajouter'}
+                                  </Text>
                                 )}
                               </Pressable>
                             )}
@@ -1137,8 +1255,15 @@ export default function ProductDetailScreen() {
               style={[styles.primaryBtn, isBuyDisabled ? styles.btnDisabled : null]}
               onPress={handlePrimaryAdd}
               disabled={isBuyDisabled}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isBuyDisabled }}
+              accessibilityLabel={primaryActionLabel}
             >
-              <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
+              {hasOptions && !allSelected && !isBuyDisabled ? (
+                <Package size={15} color="#ffffff" strokeWidth={2.5} />
+              ) : (
+                <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
+              )}
               <Text style={styles.primaryBtnText} numberOfLines={1}>
                 {primaryActionLabel}
               </Text>
@@ -1188,6 +1313,36 @@ export default function ProductDetailScreen() {
               </Pressable>
             </View>
 
+            {/* Identité du produit : la feuille ne doit pas ressembler à un
+                sélecteur anonyme, surtout quand plusieurs fiches sont ouvertes. */}
+            <View style={styles.sheetProductRow}>
+              <View style={styles.sheetProductImageWrap}>
+                {selectedVariantImage || product.image ? (
+                  <Image
+                    source={{ uri: resolveImageUrl(selectedVariantImage || product.image) }}
+                    style={styles.sheetProductImage}
+                    contentFit="cover"
+                    alt=""
+                    accessible={false}
+                  />
+                ) : (
+                  <Package size={18} color="#d1d5db" />
+                )}
+              </View>
+              <View style={styles.sheetProductTexts}>
+                <Text style={styles.sheetProductName} numberOfLines={1}>
+                  {product.name}
+                </Text>
+                <Text style={styles.sheetProductMeta} numberOfLines={1}>
+                  {stockLabel} · {options.length} option{options.length > 1 ? 's' : ''}
+                  {hasVariantMatrix
+                    ? ` · ${variants.length} variante${variants.length > 1 ? 's' : ''}`
+                    : ''}
+                </Text>
+              </View>
+              <Text style={styles.sheetProductPrice}>{formatCurrency(basePrice)}</Text>
+            </View>
+
             <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}>
               {selectedOptionCount > 0 && (
                 <View style={styles.selectionBox}>
@@ -1235,31 +1390,50 @@ export default function ProductDetailScreen() {
                           const isLight =
                             (COLOR_HEX[val.trim().toLowerCase()] || hex) === '#ffffff';
                           return (
-                            <Pressable
-                              key={val}
-                              disabled={isDisabled}
-                              onPress={() => selectValue(option.id, val)}
-                              onPressIn={() => !isDisabled && val}
-                              onPressOut={() => {}}
-                              style={[
-                                styles.swatch,
-                                { backgroundColor: hex },
-                                isSelected
-                                  ? styles.swatchSelected
-                                  : isDisabled
-                                    ? styles.swatchDisabled
-                                    : null,
-                              ]}
-                            >
-                              {isSelected && (
-                                <Check
-                                  size={14}
-                                  color={isLight ? '#1f2937' : '#ffffff'}
-                                  strokeWidth={3.5}
-                                />
-                              )}
-                              {isDisabled && !isSelected && <X size={12} color="#9ca3af" />}
-                            </Pressable>
+                            <View key={val} style={styles.swatchOption}>
+                              <Pressable
+                                disabled={isDisabled}
+                                onPress={() => selectValue(option.id, val)}
+                                accessibilityRole="button"
+                                accessibilityLabel={
+                                  isDisabled ? `${val}, indisponible` : val
+                                }
+                                accessibilityState={{
+                                  selected: isSelected,
+                                  disabled: isDisabled,
+                                }}
+                                style={[
+                                  styles.swatch,
+                                  { backgroundColor: hex },
+                                  isSelected
+                                    ? styles.swatchSelected
+                                    : isDisabled
+                                      ? styles.swatchDisabled
+                                      : null,
+                                ]}
+                              >
+                                {isSelected && (
+                                  <Check
+                                    size={14}
+                                    color={isLight ? '#1f2937' : '#ffffff'}
+                                    strokeWidth={3.5}
+                                  />
+                                )}
+                                {isDisabled && !isSelected && (
+                                  <X size={12} color="#9ca3af" />
+                                )}
+                              </Pressable>
+                              <Text
+                                style={[
+                                  styles.swatchLabel,
+                                  isSelected ? styles.swatchLabelSelected : null,
+                                  isDisabled ? styles.swatchLabelDisabled : null,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {val}
+                              </Text>
+                            </View>
                           );
                         }
                         return (
@@ -1267,8 +1441,12 @@ export default function ProductDetailScreen() {
                             key={val}
                             disabled={isDisabled}
                             onPress={() => selectValue(option.id, val)}
-                            onPressIn={() => !isDisabled && val}
-                            onPressOut={() => {}}
+                            accessibilityRole="button"
+                            accessibilityLabel={isDisabled ? `${val}, indisponible` : val}
+                            accessibilityState={{
+                              selected: isSelected,
+                              disabled: isDisabled,
+                            }}
                             style={[
                               styles.chip,
                               isDisabled
@@ -1390,18 +1568,21 @@ export default function ProductDetailScreen() {
                 style={[
                   styles.primaryBtn,
                   styles.sheetCta,
-                  isBuyDisabled ? styles.btnDisabled : null,
+                  sheetActionDisabled ? styles.btnDisabled : null,
                 ]}
                 onPress={handleSheetAdd}
-                disabled={isBuyDisabled}
+                disabled={sheetActionDisabled}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: sheetActionDisabled }}
+                accessibilityLabel={sheetActionLabel}
               >
-                <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
+                {!allSelected && !isBuyDisabled ? (
+                  <Package size={15} color="#ffffff" strokeWidth={2.5} />
+                ) : (
+                  <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
+                )}
                 <Text style={styles.primaryBtnText} numberOfLines={1}>
-                  {isOutOfStock || isSelectedOutOfStock
-                    ? 'Rupture'
-                    : isFood
-                      ? 'Commander'
-                      : 'Ajouter au panier'}
+                  {sheetActionLabel}
                 </Text>
               </Pressable>
             </View>
@@ -1874,6 +2055,99 @@ const styles = StyleSheet.create({
   delayValue: {
     fontWeight: '600',
     color: '#374151',
+  },
+  // ── Résumé options ──
+  optionsSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  optionsSummaryRowPressed: {
+    backgroundColor: '#f9fafb',
+  },
+  optionsSummaryIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245,107,42,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionsSummaryBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  optionsSummaryTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  optionsSummaryText: {
+    fontSize: 9.5,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginTop: 1,
+  },
+  optionsSummaryReady: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#d1fae5',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  optionsSummaryReadyText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#047857',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  optionsSummaryCount: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  optionsSummaryCountText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  optionsSummaryOut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#ffe4e6',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  optionsSummaryOutText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#be123c',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   // ── Prix de gros ──
   wholesale: {
@@ -2460,6 +2734,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sheetProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexShrink: 0,
+  },
+  sheetProductImageWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  sheetProductImage: {
+    width: '100%',
+    height: '100%',
+  },
+  sheetProductTexts: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sheetProductName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  sheetProductMeta: {
+    fontSize: 9,
+    fontWeight: '500',
+    color: '#9ca3af',
+    marginTop: 1,
+  },
+  sheetProductPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.2,
+  },
   sheetScroll: {
     flex: 1, // prend l'espace restant entre header et footer
     maxHeight: '100%',
@@ -2594,6 +2912,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ffffff',
   },
+  swatchOption: {
+    width: 44,
+    alignItems: 'center',
+    gap: 3,
+  },
   swatch: {
     width: 40,
     height: 40,
@@ -2607,6 +2930,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  swatchLabel: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: 8,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  swatchLabelSelected: {
+    color: BRAND,
+    fontWeight: '700',
+  },
+  swatchLabelDisabled: {
+    color: '#d1d5db',
+    textDecorationLine: 'line-through',
   },
   swatchSelected: {
     borderColor: BRAND,

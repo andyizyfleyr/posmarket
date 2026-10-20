@@ -396,6 +396,25 @@ export function findVariantByOptions<T extends { optionValues?: Record<string, s
   });
 }
 
+/**
+ * Compare deux sélections d'options sans tenir compte de l'ordre des clés.
+ * Sert au panier : deux lignes ne sont identiques que si la combinaison
+ * choisie l'est aussi, même quand le produit n'a pas de matrice de variantes.
+ */
+export function sameSelectedOptions(
+  a?: Record<string, string> | null,
+  b?: Record<string, string> | null,
+): boolean {
+  // Une sélection vide et une absence de sélection sont équivalentes.
+  const normalizedA = a && Object.keys(a).length > 0 ? a : null;
+  const normalizedB = b && Object.keys(b).length > 0 ? b : null;
+  if (!normalizedA || !normalizedB) return !normalizedA && !normalizedB;
+  const keysA = Object.keys(normalizedA);
+  const keysB = Object.keys(normalizedB);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every((key) => normalizedA[key] === normalizedB[key]);
+}
+
 export function variantIsInStock(
   variant: { stock?: number | null; enabled?: boolean } | null | undefined,
 ): boolean {

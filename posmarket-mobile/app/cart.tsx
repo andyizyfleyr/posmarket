@@ -62,6 +62,21 @@ const SWIPE_WIDTH = 80;
 /** Seuil de bascule du glissement (56 px, comme le web). */
 const SWIPE_THRESHOLD = 56;
 
+/**
+ * Identifie une ligne de panier : produit + variante + options choisies.
+ * Deux combinaisons différentes ne doivent pas partager la même clé React,
+ * sinon la suppression ou le changement de quantité touche la mauvaise ligne.
+ */
+function cartItemKey(item: CartItem): string {
+  const options = item.selectedOptions
+    ? Object.entries(item.selectedOptions)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}:${value}`)
+        .join('|')
+    : '';
+  return `${item.product.id}-${item.variantId || 'base'}-${options || 'none'}`;
+}
+
 export default function CartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -178,7 +193,7 @@ export default function CartScreen() {
 
   const handleSwipeDelete = useCallback(
     (item: CartItem) => {
-      removeFromCart(item.product.id, item.variantId);
+      removeFromCart(item.product.id, item.variantId, item.selectedOptions);
       setSwipeKey(null);
       notify(`Article retiré du ${cartWordLower}`, 'info');
     },
@@ -352,21 +367,14 @@ export default function CartScreen() {
                         <View>
                           {visibleItems.map((item, index) => (
                             <CartRow
-                              key={`${item.product.id}-${item.variantId || 'base'}`}
+                              key={cartItemKey(item)}
                               item={item}
                               isFirst={index === 0}
-                              isOpen={
-                                swipeKey ===
-                                `${item.product.id}-${item.variantId || 'base'}`
-                              }
-                              onOpen={() =>
-                                setSwipeKey(`${item.product.id}-${item.variantId || 'base'}`)
-                              }
+                              isOpen={swipeKey === cartItemKey(item)}
+                              onOpen={() => setSwipeKey(cartItemKey(item))}
                               onClose={() =>
                                 setSwipeKey((prev) =>
-                                  prev === `${item.product.id}-${item.variantId || 'base'}`
-                                    ? null
-                                    : prev,
+                                  prev === cartItemKey(item) ? null : prev,
                                 )
                               }
                               onDelete={() => handleSwipeDelete(item)}
@@ -376,13 +384,18 @@ export default function CartScreen() {
                                 )
                               }
                               onRemove={() =>
-                                removeFromCart(item.product.id, item.variantId)
+                                removeFromCart(
+                                  item.product.id,
+                                  item.variantId,
+                                  item.selectedOptions,
+                                )
                               }
                               onDecrease={() =>
                                 updateQuantity(
                                   item.product.id,
                                   (item.quantity || 1) - 1,
                                   item.variantId,
+                                  item.selectedOptions,
                                 )
                               }
                               onIncrease={() =>
@@ -390,6 +403,7 @@ export default function CartScreen() {
                                   item.product.id,
                                   (item.quantity || 1) + 1,
                                   item.variantId,
+                                  item.selectedOptions,
                                 )
                               }
                               cartWordLower={cartWordLower}
@@ -721,6 +735,14 @@ function CartRow({
     item.variantId && item.product.variants
       ? item.product.variants.find((v) => v.id === item.variantId)?.name
       : undefined;
+  // Produit sans matrice : les options choisies distinguent deux lignes.
+  const optionChips =
+    !item.variantId && item.selectedOptions
+      ? Object.entries(item.selectedOptions).map(([optionId, value]) => ({
+          optionId,
+          label: `${item.product.options?.find((o) => o.id === optionId)?.name || 'Option'}: ${value}`,
+        }))
+      : [];
 
   return (
     <View style={[styles.rowWrap, !isFirst && styles.rowDivider]}>
@@ -746,6 +768,8 @@ function CartRow({
           style={styles.itemImage}
           contentFit="cover"
           transition={200}
+          alt=""
+          accessible={false}
         />
         <View style={styles.itemInfo}>
           <View style={styles.itemNameRow}>
@@ -771,6 +795,12 @@ function CartRow({
                 <Text style={styles.variantChipText}>{variantName}</Text>
               </View>
             )}
+            {optionChips.map((option) => (
+              <View key={option.optionId} style={styles.variantChip}>
+                <Tag size={9} color="#6B7280" />
+                <Text style={styles.variantChipText}>{option.label}</Text>
+              </View>
+            ))}
             {showCouponChip && (
               <View style={styles.couponChip}>
                 <CheckCircle2 size={9} color="#16A34A" />

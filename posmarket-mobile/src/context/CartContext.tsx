@@ -13,6 +13,7 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEffectiveItemPrice } from '@/utils';
+import { sameSelectedOptions } from '@/utils/variants';
 import type { CartItem, StorefrontProduct } from '@/types';
 
 const CART_STORAGE_KEY = 'storefront_cart';
@@ -20,8 +21,17 @@ const CART_STORAGE_KEY = 'storefront_cart';
 interface CartContextType {
   cart: CartItem[];
   addToCart: (product: StorefrontProduct, quantity?: number, variantId?: string, selectedOptions?: Record<string, string>) => void;
-  removeFromCart: (productId: string, variantId?: string) => void;
-  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
+  removeFromCart: (
+    productId: string,
+    variantId?: string,
+    selectedOptions?: Record<string, string>,
+  ) => void;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    variantId?: string,
+    selectedOptions?: Record<string, string>,
+  ) => void;
   clearCart: () => void;
   cartCount: number;
   cartTotal: number;
@@ -70,17 +80,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = useCallback(
     (product: StorefrontProduct, quantity = 1, variantId?: string, selectedOptions?: Record<string, string>) => {
       setCart((prev) => {
-        const existing = prev.find(
-          (item) =>
-            item.product.id === product.id &&
-            (item.variantId || '') === (variantId || ''),
-        );
+        // Deux lignes du même produit ne sont identiques que si la variante
+        // ET les options choisies le sont : sans cela, « Rouge » et « Bleu »
+        // d'un produit sans matrice seraient fusionnés dans le panier.
+        const matches = (item: CartItem) =>
+          item.product.id === product.id &&
+          item.product.storeId === product.storeId &&
+          (item.variantId ?? null) === (variantId ?? null) &&
+          sameSelectedOptions(item.selectedOptions, selectedOptions);
+
+        const existing = prev.find(matches);
         if (existing) {
           return prev.map((item) =>
-            item.product.id === product.id &&
-            (item.variantId || '') === (variantId || '')
-              ? { ...item, quantity: item.quantity + quantity }
-              : item,
+            matches(item) ? { ...item, quantity: item.quantity + quantity } : item,
           );
         }
         return [...prev, { product, quantity, variantId, selectedOptions }];
@@ -90,13 +102,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const removeFromCart = useCallback(
-    (productId: string, variantId?: string) => {
+    (
+      productId: string,
+      variantId?: string,
+      selectedOptions?: Record<string, string>,
+    ) => {
       setCart((prev) =>
         prev.filter(
           (item) =>
             !(
               item.product.id === productId &&
-              (item.variantId || '') === (variantId || '')
+              (item.variantId ?? null) === (variantId ?? null) &&
+              sameSelectedOptions(item.selectedOptions, selectedOptions)
             ),
         ),
       );
@@ -105,15 +122,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateQuantity = useCallback(
-    (productId: string, quantity: number, variantId?: string) => {
+    (
+      productId: string,
+      quantity: number,
+      variantId?: string,
+      selectedOptions?: Record<string, string>,
+    ) => {
       if (quantity <= 0) {
-        removeFromCart(productId, variantId);
+        removeFromCart(productId, variantId, selectedOptions);
         return;
       }
       setCart((prev) =>
         prev.map((item) =>
           item.product.id === productId &&
-          (item.variantId || '') === (variantId || '')
+          (item.variantId ?? null) === (variantId ?? null) &&
+          sameSelectedOptions(item.selectedOptions, selectedOptions)
             ? { ...item, quantity }
             : item,
         ),
