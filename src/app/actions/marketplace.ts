@@ -112,6 +112,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
           preparationTime: products.preparationTime,
           options: products.options,
           variants: products.variants,
+          createdAt: products.createdAt,
           hasImage: sql<boolean>`${products.image} IS NOT NULL`,
         })
         .from(products)
@@ -233,7 +234,13 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               wholesaleTiers: Array.isArray(p.wholesaleTiers) ? (p.wholesaleTiers as Array<{ minQty: number; price: number }>) : [],
               options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
               variants: Array.isArray(p.variants) ? (p.variants as ProductVariant[]) : [],
-              businessType: (p.businessType as BusinessVertical) || undefined
+              businessType: (p.businessType as BusinessVertical) || undefined,
+              createdAt:
+                p.createdAt instanceof Date
+                  ? p.createdAt.toISOString()
+                  : p.createdAt
+                    ? String(p.createdAt)
+                    : undefined,
             };
           }),
         customers: [],
@@ -257,6 +264,179 @@ const getCachedMarketplaceData = unstable_cache(fetchMarketplaceDataUncached, ['
 
 export async function fetchMarketplaceData(): Promise<StoreData[]> {
   return getCachedMarketplaceData();
+}
+
+/**
+ * Catalogue allégé dédié à l'accueil mobile.
+ *
+ * L'accueil n'a besoin que des cartes produit (prix, image, stock, note,
+ * options/variantes) et des informations de vitrine. On évite ainsi de
+ * transporter descriptions, galeries, clients, commandes et factures.
+ */
+async function fetchHomeMarketplaceDataUncached(): Promise<StoreData[]> {
+  try {
+    const [storesData, productsData, productStatsData, salesCountsData, reviewsAggData] = await Promise.all([
+      db
+        .select({
+          id: stores.id,
+          name: stores.name,
+          slug: stores.slug,
+          settings: sql<Record<string, unknown> | null>`${stores.settings} - 'logo'`,
+          hasLogo: sql<boolean>`TRIM(COALESCE(${stores.settings}->>'logo','')) <> ''`,
+        })
+        .from(stores),
+      db
+        .select({
+          id: products.id,
+          storeId: products.storeId,
+          name: products.name,
+          price: products.price,
+          originalPrice: products.originalPrice,
+          stock: products.stock,
+          mainCategory: products.mainCategory,
+          businessType: products.businessType,
+          wholesalePrice: products.wholesalePrice,
+          wholesaleMinQty: products.wholesaleMinQty,
+          wholesaleTiers: products.wholesaleTiers,
+          isOnline: products.isOnline,
+          views: products.views,
+          image: sql<string | null>`CASE WHEN ${products.image} LIKE 'data:%' THEN NULL ELSE ${products.image} END`,
+          unit: products.unit,
+          options: products.options,
+          variants: products.variants,
+          createdAt: products.createdAt,
+          hasImage: sql<boolean>`${products.image} IS NOT NULL`,
+        })
+        .from(products)
+        .where(eq(products.isOnline, true)),
+      db.select().from(productStats).catch(() => []),
+      db
+        .select({
+          productId: orderItems.productId,
+          totalSales: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
+        })
+        .from(orderItems)
+        .where(sql`${orderItems.productId} IS NOT NULL`)
+        .groupBy(orderItems.productId)
+        .catch(() => []),
+      db
+        .select({
+          storeId: productReviews.storeId,
+          averageRating: sql<string>`COALESCE(ROUND(AVG(${productReviews.rating})::numeric, 2), 0)::text`,
+          reviewCount: sql<number>`COUNT(${productReviews.id})::int`,
+        })
+        .from(productReviews)
+        .groupBy(productReviews.storeId)
+        .catch(() => []),
+    ]);
+
+    const toImageRef = (
+      uri: string | null | undefined,
+      hasImage: boolean | null | undefined,
+      apiId: string,
+    ): string => uri || (hasImage ? `/api/image/${apiId}` : '');
+
+    const productStatsMap = Object.fromEntries(
+      (productStatsData || []).map((s) => [s.productId, s]),
+    );
+    const orderSalesMap = Object.fromEntries(
+      (salesCountsData || [])
+        .filter((s) => s.productId)
+        .map((s) => [s.productId!, Number(s.totalSales) || 0]),
+    );
+    const storeReviewsMap = Object.fromEntries(
+      (reviewsAggData || []).map((r) => [
+        r.storeId,
+        {
+          rating: Number(r.averageRating) || 0,
+          reviewCount: Number(r.reviewCount) || 0,
+        },
+      ]),
+    );
+
+    const productsByStoreMap: Record<string, Array<(typeof productsData)[number]>> = {};
+    (productsData || []).forEach((p) => {
+      if (!productsByStoreMap[p.storeId]) productsByStoreMap[p.storeId] = [];
+      productsByStoreMap[p.storeId].push(p);
+    });
+
+    return (storesData || [])
+      .map((s) => {
+        const settingsObj: Record<string, unknown> = { ...(s.settings || {}) };
+        if (s.hasLogo) settingsObj.logo = `/api/image/s${s.id}`;
+
+        return {
+          id: s.id,
+          slug: s.slug,
+          name: s.name,
+          rating: storeReviewsMap[s.id]?.rating || 0,
+          reviewCount: storeReviewsMap[s.id]?.reviewCount || 0,
+          business_type: (settingsObj.businessType as BusinessVertical) || undefined,
+          settings: {
+            name: s.name,
+            email: '',
+            phone: '',
+            address: '',
+            ninea: '',
+            ...(settingsObj as Partial<StoreData['settings']>),
+          },
+          products: (productsByStoreMap[s.id] || []).map((p) => {
+            const stats = productStatsMap[p.id];
+            const realSales = Math.max(
+              Number(orderSalesMap[p.id] || 0),
+              Number(stats?.totalSales || 0),
+            );
+            return {
+              id: p.id,
+              name: p.name,
+              price: Number(p.price) || 0,
+              originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+              image: toImageRef(p.image, p.hasImage, p.id),
+              stock: p.stock || 0,
+              category: p.mainCategory || 'Autre',
+              mainCategory: p.mainCategory || '',
+              isOnline: p.isOnline !== false,
+              views: p.views || 0,
+              rating: stats?.averageRating ? parseFloat(stats.averageRating) : 0,
+              reviewCount: stats?.reviewCount ? Number(stats.reviewCount) : 0,
+              salesCount: realSales,
+              unit: p.unit || undefined,
+              wholesalePrice: p.wholesalePrice ? parseFloat(p.wholesalePrice) : undefined,
+              wholesaleMinQty: p.wholesaleMinQty ?? undefined,
+              wholesaleTiers: Array.isArray(p.wholesaleTiers)
+                ? (p.wholesaleTiers as WholesaleTier[])
+                : [],
+              options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
+              variants: Array.isArray(p.variants) ? (p.variants as ProductVariant[]) : [],
+              businessType: (p.businessType as BusinessVertical) || undefined,
+              createdAt:
+                p.createdAt instanceof Date
+                  ? p.createdAt.toISOString()
+                  : p.createdAt
+                    ? String(p.createdAt)
+                    : undefined,
+            };
+          }),
+        } as StoreData;
+      })
+      .filter((store) => (store.products?.length || 0) > 0);
+  } catch (error: unknown) {
+    console.error('Error fetching home marketplace data:', error);
+    return [];
+  }
+}
+
+const getCachedHomeMarketplaceData = unstable_cache(
+  fetchHomeMarketplaceDataUncached,
+  ['marketplace-home'],
+  {
+    tags: [CATALOG_TAG],
+    revalidate: 60,
+  },
+);
+
+export async function fetchHomeMarketplaceData(): Promise<StoreData[]> {
+  return getCachedHomeMarketplaceData();
 }
 
 export async function submitCheckoutAction(
@@ -1412,14 +1592,20 @@ export async function searchProductsAction(query: string, limit: number = 30) {
           p.name,
           p.price,
           p.original_price,
-          p.image,
+          CASE WHEN p.image LIKE 'data:%' THEN NULL ELSE p.image END AS image,
+          (p.image IS NOT NULL) AS has_image,
           p.stock,
           p.main_category,
           p.store_id,
           p.is_online,
           p.business_type,
           p.wholesale_price,
+          p.wholesale_min_qty,
           p.wholesale_tiers,
+          p.unit,
+          p.options,
+          p.variants,
+          p.created_at,
           p.views,
           s.name          AS store_name,
           s.slug          AS store_slug,
@@ -1478,7 +1664,9 @@ export async function searchProductsAction(query: string, limit: number = 30) {
       name: p.name as string,
       price: Number(p.price),
       originalPrice: p.original_price ? Number(p.original_price) : undefined,
-      image: (p.image as string) || '',
+      image:
+        (p.image as string) ||
+        (p.has_image ? `/api/image/${p.id as string}` : ''),
       stock: Number(p.stock) || 0,
       category: (p.main_category as string) || 'Autre',
       mainCategory: (p.main_category as string) || '',
@@ -1488,7 +1676,16 @@ export async function searchProductsAction(query: string, limit: number = 30) {
       isOnline: p.is_online !== false,
       businessType: ((p.business_type as string) || 'shopping') as BusinessVertical,
       wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
+      wholesaleMinQty: p.wholesale_min_qty
+        ? Number(p.wholesale_min_qty)
+        : undefined,
       wholesaleTiers: Array.isArray(p.wholesale_tiers) ? (p.wholesale_tiers as WholesaleTier[]) : [],
+      unit: (p.unit as string) || undefined,
+      options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
+      variants: Array.isArray(p.variants) ? (p.variants as ProductVariant[]) : [],
+      createdAt: p.created_at
+        ? new Date(p.created_at as string).toISOString()
+        : undefined,
       views: Number(p.views) || 0,
       salesCount: Number(p.total_sales) || 0,
       rating: Number(p.average_rating) || 0,

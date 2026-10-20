@@ -48,6 +48,8 @@ export interface Product {
   variants?: ProductVariant[];
   businessType?: BusinessVertical;
   preparationTime?: string;
+  /** Date de publication ISO — sert au classement « Nouveautés ». */
+  createdAt?: string;
 }
 
 export interface ProductOption {
@@ -64,6 +66,8 @@ export interface ProductVariant {
   stock: number;
   sku?: string;
   image?: string;
+  /** Variante masquée côté acheteur quand `false`. */
+  enabled?: boolean;
 }
 
 export interface CartItem {
