@@ -403,10 +403,10 @@ export default function ProductDetailScreen() {
           ? 'Commander'
           : 'Ajouter au panier';
 
-  // Même libellé que la feuille web mobile. Un appui sans sélection complète
-  // affiche un toast au lieu de ne rien faire, mais le bouton reste visible
-  // et actif tant que le produit a du stock.
-  const sheetActionDisabled = isBuyDisabled;
+  // Le CTA d'ajout de la feuille reste désactivé tant que la combinaison
+  // complète n'est pas choisie (ou si le stock manque). Le bouton de la fiche,
+  // lui, reste actif pour ouvrir la feuille (« Choisir les options »).
+  const sheetActionDisabled = isBuyDisabled || (hasOptions && !allSelected);
   const sheetActionLabel =
     isOutOfStock || isSelectedOutOfStock
       ? 'Rupture'
