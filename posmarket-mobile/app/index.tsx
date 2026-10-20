@@ -363,6 +363,75 @@ function PartnersRow({
           const initials = name.trim().slice(0, 2).toUpperCase();
           const country = resolveCountryName(store.settings?.country);
 
+          // Ordre de lecture : note + avis, puis ventes, puis vues. Les stats à
+          // zéro sont masquées et les séparateurs ne se placent qu'entre deux
+          // blocs réellement affichés.
+          const statNodes: React.ReactNode[] = [];
+          const addSeparator = () => {
+            if (statNodes.length > 0) {
+              statNodes.push(
+                <Text
+                  key={`separator-${statNodes.length}`}
+                  style={styles.partnerMetaSep}
+                >
+                  {' | '}
+                </Text>,
+              );
+            }
+          };
+
+          addSeparator();
+          statNodes.push(
+            rating > 0 ? (
+              <Text key="rating">
+                <Text style={styles.partnerStar}>★ </Text>
+                <Text style={styles.partnerRatingValue}>
+                  {formatRating(rating)}
+                </Text>
+                {reviewCount > 0 ? (
+                  <Text style={styles.partnerStatLabel}>
+                    {' '}
+                    ({formatNumber(reviewCount)} avis)
+                  </Text>
+                ) : null}
+              </Text>
+            ) : (
+              <Text key="new" style={styles.partnerNew}>
+                Nouveau
+              </Text>
+            ),
+          );
+
+          if (salesCount > 0) {
+            addSeparator();
+            statNodes.push(
+              <Text key="sales">
+                <Text style={styles.partnerStatValue}>
+                  {formatNumber(salesCount)}
+                </Text>
+                <Text style={styles.partnerStatLabel}>
+                  {' '}
+                  {salesCount > 1 ? 'ventes' : 'vente'}
+                </Text>
+              </Text>,
+            );
+          }
+
+          if (viewsCount > 0) {
+            addSeparator();
+            statNodes.push(
+              <Text key="views">
+                <Text style={styles.partnerStatValue}>
+                  {formatNumber(viewsCount)}
+                </Text>
+                <Text style={styles.partnerStatLabel}>
+                  {' '}
+                  {viewsCount > 1 ? 'vues' : 'vue'}
+                </Text>
+              </Text>,
+            );
+          }
+
           return (
             <Pressable
               key={store.id}
@@ -441,38 +510,7 @@ function PartnersRow({
                   ]}
                   numberOfLines={1}
                 >
-                  {rating > 0 ? (
-                    <>
-                      <Text style={styles.partnerStar}>★ </Text>
-                      <Text style={styles.partnerRatingValue}>
-                        {formatRating(rating)}
-                      </Text>
-                      {reviewCount > 0 ? (
-                        <Text style={styles.partnerStatLabel}>
-                          {' '}
-                          ({formatNumber(reviewCount)} avis)
-                        </Text>
-                      ) : null}
-                    </>
-                  ) : (
-                    <Text style={styles.partnerNew}>Nouveau</Text>
-                  )}
-                  <Text style={styles.partnerMetaSep}> | </Text>
-                  <Text style={styles.partnerStatValue}>
-                    {formatNumber(salesCount)}
-                  </Text>
-                  <Text style={styles.partnerStatLabel}>
-                    {' '}
-                    {salesCount > 1 ? 'ventes' : 'vente'}
-                  </Text>
-                  <Text style={styles.partnerMetaSep}> | </Text>
-                  <Text style={styles.partnerStatValue}>
-                    {formatNumber(viewsCount)}
-                  </Text>
-                  <Text style={styles.partnerStatLabel}>
-                    {' '}
-                    {viewsCount > 1 ? 'vues' : 'vue'}
-                  </Text>
+                  {statNodes}
                 </Text>
               </View>
             </Pressable>
