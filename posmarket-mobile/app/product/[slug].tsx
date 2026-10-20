@@ -18,6 +18,7 @@ import {
   RefreshControl,
   StyleSheet,
   Dimensions,
+  useWindowDimensions,
   Modal,
   Linking,
 } from 'react-native';
@@ -106,8 +107,21 @@ const AVATAR_TONES = [
 export default function ProductDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { addToCart, cart, cartCount } = useCart();
+
+  // La feuille d'options garde son CTA visible : on borne la zone scrollable
+  // pour que le pied (prix + « Ajouter au panier ») ne soit jamais poussé
+  // hors de l'écran quand les options sont longues.
+  const sheetMaxHeight = Math.min(
+    Math.round(windowHeight * 0.88),
+    windowHeight - 20,
+  );
+  const sheetScrollMaxHeight = Math.max(
+    140,
+    sheetMaxHeight - 178 - insets.bottom,
+  );
 
   const scrollRef = useRef<ScrollView>(null);
   const galleryRef = useRef<ScrollView>(null);
@@ -1300,7 +1314,7 @@ export default function ProductDetailScreen() {
             style={styles.modalBackdrop}
             onPress={() => setIsOptionsSheetOpen(false)}
           />
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { maxHeight: sheetMaxHeight }]}>
             <View style={styles.sheetHandleWrap}>
               <View style={styles.sheetHandle} />
             </View>
@@ -1315,7 +1329,10 @@ export default function ProductDetailScreen() {
               </Pressable>
             </View>
 
-            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}>
+            <ScrollView
+              style={[styles.sheetScroll, { maxHeight: sheetScrollMaxHeight }]}
+              contentContainerStyle={styles.sheetScrollContent}
+            >
               {selectedOptionCount > 0 && (
                 <View style={styles.selectionBox}>
                   <Text style={styles.selectionLabel}>Sélection :</Text>
