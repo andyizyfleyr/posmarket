@@ -321,14 +321,14 @@ function PartnersRow({
   onOpen: (store: StoreData) => void;
 }) {
   const { width } = useWindowDimensions();
-  // Deux cartes compactes visibles par écran, sans perdre la richesse
-  // visuelle du nouveau design (cover, logo superposé, note).
-  const cardWidth = Math.min((width - 44) / 2, 210);
+  // Deux cartes largement visibles, la suivante dépasse légèrement pour
+  // inviter au défilement horizontal.
+  const cardWidth = Math.min((width - 44) / 2 + 18, 228);
   const cardGap = 12;
   // Toutes les stats tiennent sur une ligne : on adapte finement la taille
   // selon la largeur réelle de la carte.
   const statsFontSize =
-    cardWidth >= 190 ? 9 : cardWidth >= 170 ? 8.5 : 8;
+    cardWidth >= 180 ? 9 : cardWidth >= 160 ? 8.5 : 8;
 
   return (
     <View style={styles.partnersSection}>
