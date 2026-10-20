@@ -46,7 +46,7 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
-  ShieldCheck,
+  BadgeCheck,
   MapPin,
   ShoppingCart,
   User,
@@ -384,8 +384,8 @@ function PartnersRow({
                 <View style={[styles.partnerBubble, styles.partnerBubbleLarge]} />
                 <View style={[styles.partnerBubble, styles.partnerBubbleSmall]} />
                 <View style={styles.partnerBadge}>
-                  <ShieldCheck size={9} color={COLORS.brand} />
-                  <Text style={styles.partnerBadgeText}>Partenaire</Text>
+                  <BadgeCheck size={9} color={COLORS.brand} strokeWidth={2.5} />
+                  <Text style={styles.partnerBadgeText}>Vérifié</Text>
                 </View>
               </LinearGradient>
 
