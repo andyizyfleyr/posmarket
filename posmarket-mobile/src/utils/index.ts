@@ -62,9 +62,19 @@ export function variantPriceRange(
   return { min: Math.min(...prices), max: Math.max(...prices) };
 }
 
-/** Produit affichable en vitrine : image + au moins une unité disponible. */
+/**
+ * Produit affichable en vitrine : image, prix valide et au moins une unité
+ * disponible. Les fiches à 0 FCFA sans variante tarifée sont écartées de
+ * l'accueil (elles restent accessibles via la recherche).
+ */
 export function isMarketableProduct(product: Product): boolean {
-  return Boolean(product.image) && effectiveProductStock(product) > 0;
+  const basePrice = Number(product.price) || 0;
+  const displayPrice = variantPriceRange(product)?.min ?? basePrice;
+  return (
+    Boolean(product.image) &&
+    effectiveProductStock(product) > 0 &&
+    displayPrice > 0
+  );
 }
 
 export const formatCurrency = (amount: number): string => {
