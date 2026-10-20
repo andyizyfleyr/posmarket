@@ -13,6 +13,7 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -1444,12 +1445,21 @@ export default function ProductDetailScreen() {
                 </Pressable>
               </View>
             </View>
-            <ScrollView
+            <FlatList
+              data={reviews}
+              keyExtractor={(item, index) =>
+                item.id ? String(item.id) : `review-${index}`
+              }
+              renderItem={({ item, index }) => renderReview(item, index)}
               style={styles.sheetScroll}
               contentContainerStyle={styles.reviewsSheetList}
-            >
-              {reviews.map((r, idx) => renderReview(r, idx))}
-            </ScrollView>
+              initialNumToRender={6}
+              maxToRenderPerBatch={8}
+              windowSize={7}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews
+              showsVerticalScrollIndicator={false}
+            />
           </View>
         </View>
       </Modal>
