@@ -48,6 +48,7 @@ import { useCart } from '@/context/CartContext';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductLoadingSkeleton } from '@/components/ProductLoadingSkeleton';
 import { ProductDescription } from '@/components/RichDescription';
+import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
 import {
   formatCurrency,
   formatNumber,
@@ -110,6 +111,10 @@ export default function ProductDetailScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const galleryRef = useRef<ScrollView>(null);
 
+  // Navigation produit → produit : Expo Router peut réutiliser l'écran,
+  // ce qui conservait le scroll en bas de la fiche précédente.
+  useScrollToTopOnChange(scrollRef, slug);
+
   const [reviewsY, setReviewsY] = useState(0);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
@@ -129,6 +134,27 @@ export default function ProductDetailScreen() {
     const timer = setTimeout(() => setIsOpening(false), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Nouvelle fiche produit : réinitialiser l'état transitoire (galerie,
+  // options, feuilles, description) pour ne rien hériter de la fiche
+  // précédente lorsque l'écran est réutilisé.
+  useEffect(() => {
+    setReviewsY(0);
+    setActiveImageIndex(0);
+    setZoomImage(null);
+    setSelectedOptions({});
+    setIsOptionsSheetOpen(false);
+    setShowAllReviews(false);
+    setIsWholesaleExpanded(false);
+    setAddedWholesaleIdx(null);
+    setIsDescriptionExpanded(false);
+    setToast(null);
+
+    const frame = requestAnimationFrame(() => {
+      galleryRef.current?.scrollTo({ x: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [slug]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);

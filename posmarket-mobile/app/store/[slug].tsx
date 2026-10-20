@@ -53,6 +53,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
 import { formatNumber, generateProductSlug, maskName } from '@/utils';
 import { COLORS } from '@/theme';
+import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
 import { useCart } from '@/context/CartContext';
 import type { Review, StoreData, StorefrontProduct } from '@/types';
 
@@ -84,6 +85,10 @@ export default function StoreScreen() {
   );
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
   const loadMoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Ouverture d'une autre boutique depuis le même écran : remonter en haut.
+  useScrollToTopOnChange(scrollRef, slug);
 
   // ── Catalogue ──
   const { data: catalogData, isLoading, refetch: refetchCatalog } = useQuery({
@@ -178,6 +183,22 @@ export default function StoreScreen() {
       if (loadMoreTimer.current) clearTimeout(loadMoreTimer.current);
     };
   }, []);
+
+  // Nouvelle boutique sur le même écran : repartir de la première section,
+  // sans recherche, sans feuille ouverte et sans pagination héritée.
+  useEffect(() => {
+    setActiveTab('products');
+    setSearchTerm('');
+    setSearchFocused(false);
+    setVisibleCount(PAGE_LIMIT);
+    setIsLoadingMore(false);
+    setSheetCategory(null);
+    setShowAllStoreReviews(false);
+    if (loadMoreTimer.current) {
+      clearTimeout(loadMoreTimer.current);
+      loadMoreTimer.current = null;
+    }
+  }, [slug]);
 
   const pagedProducts = useMemo(
     () => gridSource.slice(0, visibleCount),
@@ -451,6 +472,7 @@ export default function StoreScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
