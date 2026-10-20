@@ -419,10 +419,6 @@ export default function ProductDetailScreen() {
   // Sans combinaison complète, le bouton de gros ouvre le sélecteur : son
   // libellé doit annoncer cette action plutôt qu'un ajout impossible.
   const wholesaleNeedsOptions = hasVariantMatrix && !matchedVariant;
-  const selectedOptionsSummary = options
-    .filter((option) => !!selectedOptions[option.id])
-    .map((option) => `${option.name}: ${selectedOptions[option.id]}`)
-    .join(' · ');
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -931,53 +927,6 @@ export default function ProductDetailScreen() {
               </View>
             ) : null}
           </View>
-
-          {/* Rappel des options : rouvre la feuille même après sélection
-              complète, sinon le CTA devient « Ajouter » et la modification
-              n'est plus accessible. */}
-          {hasOptions && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.optionsSummaryRow,
-                pressed ? styles.optionsSummaryRowPressed : null,
-              ]}
-              onPress={() => setIsOptionsSheetOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel={
-                selectedOptionCount > 0
-                  ? `Options sélectionnées : ${selectedOptionCount} sur ${options.length}. Modifier.`
-                  : 'Choisir les options'
-              }
-            >
-              <View style={styles.optionsSummaryIcon}>
-                <Package size={13} color={BRAND} strokeWidth={2.5} />
-              </View>
-              <View style={styles.optionsSummaryBody}>
-                <Text style={styles.optionsSummaryTitle}>Options & Variantes</Text>
-                <Text style={styles.optionsSummaryText} numberOfLines={1}>
-                  {selectedOptionsSummary || 'Touchez pour choisir'}
-                </Text>
-              </View>
-              {allSelected && !isOutOfStock && !isSelectedOutOfStock ? (
-                <View style={styles.optionsSummaryReady}>
-                  <CheckCircle2 size={10} color="#047857" strokeWidth={3} />
-                  <Text style={styles.optionsSummaryReadyText}>Prêt</Text>
-                </View>
-              ) : allSelected ? (
-                <View style={styles.optionsSummaryOut}>
-                  <AlertCircle size={10} color="#be123c" strokeWidth={2.5} />
-                  <Text style={styles.optionsSummaryOutText}>Rupture</Text>
-                </View>
-              ) : (
-                <View style={styles.optionsSummaryCount}>
-                  <Text style={styles.optionsSummaryCountText}>
-                    {selectedOptionCount}/{options.length}
-                  </Text>
-                </View>
-              )}
-              <ChevronRight size={15} color="#9ca3af" />
-            </Pressable>
-          )}
 
           {/* Prix de gros (accordéon) */}
           {hasWholesale && (
