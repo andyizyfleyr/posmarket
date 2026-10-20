@@ -447,15 +447,16 @@ function PartnersRow({
                       <Text style={styles.partnerRatingValue}>
                         {formatRating(rating)}
                       </Text>
+                      {reviewCount > 0 ? (
+                        <Text style={styles.partnerStatLabel}>
+                          {' '}
+                          ({formatNumber(reviewCount)} avis)
+                        </Text>
+                      ) : null}
                     </>
                   ) : (
                     <Text style={styles.partnerNew}>Nouveau</Text>
                   )}
-                  <Text style={styles.partnerMetaSep}> | </Text>
-                  <Text style={styles.partnerStatValue}>
-                    {formatNumber(reviewCount)}
-                  </Text>
-                  <Text style={styles.partnerStatLabel}> Avis</Text>
                   <Text style={styles.partnerMetaSep}> | </Text>
                   <Text style={styles.partnerStatValue}>
                     {formatNumber(salesCount)}
