@@ -384,8 +384,8 @@ function PartnersRow({
                 <View style={[styles.partnerBubble, styles.partnerBubbleLarge]} />
                 <View style={[styles.partnerBubble, styles.partnerBubbleSmall]} />
                 <View style={styles.partnerBadge}>
-                  <BadgeCheck size={9} color={COLORS.brand} strokeWidth={2.5} />
                   <Text style={styles.partnerBadgeText}>Vérifié</Text>
+                  <BadgeCheck size={9} color="#22C55E" strokeWidth={2.5} />
                 </View>
               </LinearGradient>
 
@@ -1787,7 +1787,7 @@ const styles = StyleSheet.create({
   partnerBadgeText: {
     fontSize: 7.5,
     fontWeight: '700',
-    color: COLORS.brand,
+    color: '#22C55E',
     letterSpacing: 0.15,
   },
   partnerCountry: {
