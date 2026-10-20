@@ -281,6 +281,7 @@ async function fetchHomeMarketplaceDataUncached(): Promise<StoreData[]> {
           id: stores.id,
           name: stores.name,
           slug: stores.slug,
+          views: stores.views,
           settings: sql<Record<string, unknown> | null>`${stores.settings} - 'logo'`,
           hasLogo: sql<boolean>`TRIM(COALESCE(${stores.settings}->>'logo','')) <> ''`,
         })
@@ -369,6 +370,7 @@ async function fetchHomeMarketplaceDataUncached(): Promise<StoreData[]> {
           id: s.id,
           slug: s.slug,
           name: s.name,
+          views: s.views || 0,
           rating: storeReviewsMap[s.id]?.rating || 0,
           reviewCount: storeReviewsMap[s.id]?.reviewCount || 0,
           business_type: (settingsObj.businessType as BusinessVertical) || undefined,

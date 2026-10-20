@@ -69,6 +69,7 @@ import { StorefrontSkeleton } from '@/components/StorefrontSkeleton';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
 import { COUNTRIES } from '@/constants/countries';
 import {
+  formatNumber,
   formatRating,
   generateProductSlug,
   isMarketableProduct,
@@ -103,12 +104,6 @@ const HERO_SLIDES = [
   },
 ];
 
-const LEGAL_LINKS = [
-  { label: "Guide d'utilisation", path: '/docs/utilisation' },
-  { label: 'Conditions Générales de Vente', path: '/cgv' },
-  { label: 'Politique de confidentialité', path: '/confidentialite' },
-];
-
 // ── Types des éléments de la liste hétérogène ─────────────────────
 
 type HomeItem =
@@ -135,6 +130,8 @@ type HomeItem =
 interface PartnerEntry {
   store: StoreData;
   productCount: number;
+  salesCount: number;
+  viewsCount: number;
 }
 
 interface HomeSection {
@@ -355,10 +352,11 @@ function PartnersRow({
         snapToAlignment="start"
         decelerationRate="fast"
       >
-        {entries.map(({ store, productCount }) => {
+        {entries.map(({ store, salesCount, viewsCount }) => {
           const name = store.settings?.name || store.name || 'Boutique';
           const logo = resolveStoreLogo(store);
           const rating = store.rating ?? 0;
+          const reviewCount = store.reviewCount ?? 0;
           const initials = name.trim().slice(0, 2).toUpperCase();
           const country = resolveCountryName(store.settings?.country);
 
@@ -425,21 +423,37 @@ function PartnersRow({
                   </View>
                 ) : null}
 
-                <View style={styles.partnerMeta}>
-                  {rating > 0 ? (
-                    <View style={styles.partnerRating}>
-                      <Star size={10} color={COLORS.brand} fill={COLORS.brand} />
-                      <Text style={styles.partnerRatingText}>
-                        {formatRating(rating)}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.partnerNew}>Nouveau</Text>
-                  )}
-                  <View style={styles.partnerMetaDot} />
-                  <Text style={styles.partnerCount} numberOfLines={1}>
-                    {productCount} {productCount > 1 ? 'produits' : 'produit'}
-                  </Text>
+                <View style={styles.partnerMetaStack}>
+                  <View style={styles.partnerMeta}>
+                    {rating > 0 ? (
+                      <View style={styles.partnerRating}>
+                        <Star
+                          size={10}
+                          color={COLORS.brand}
+                          fill={COLORS.brand}
+                        />
+                        <Text style={styles.partnerRatingText}>
+                          {formatRating(rating)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.partnerNew}>Nouveau</Text>
+                    )}
+                    <View style={styles.partnerMetaDot} />
+                    <Text style={styles.partnerStat} numberOfLines={1}>
+                      {formatNumber(reviewCount)} Avis
+                    </Text>
+                  </View>
+                  <View style={styles.partnerMeta}>
+                    <Text style={styles.partnerStat} numberOfLines={1}>
+                      {formatNumber(salesCount)}{' '}
+                      {salesCount > 1 ? 'ventes' : 'vente'}
+                    </Text>
+                    <View style={styles.partnerMetaDot} />
+                    <Text style={styles.partnerStat} numberOfLines={1}>
+                      {formatNumber(viewsCount)} {viewsCount > 1 ? 'vues' : 'vue'}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </Pressable>
@@ -563,10 +577,6 @@ function SectionHeader({
 // ── Footer ────────────────────────────────────────────────────────
 
 function HomeFooter() {
-  const openUrl = useCallback((path: string) => {
-    Linking.openURL(`${API_BASE_URL}${path}`).catch(() => {});
-  }, []);
-
   return (
     <View style={styles.footer}>
       <Image
@@ -579,28 +589,10 @@ function HomeFooter() {
         Place de marché reliant les vendeurs et les acheteurs.
       </Text>
 
-      <Text style={styles.footerHeading}>Légal</Text>
-      {LEGAL_LINKS.map((link) => (
-        <Pressable key={link.path} onPress={() => openUrl(link.path)}>
-          <Text style={styles.footerLink}>{link.label}</Text>
-        </Pressable>
-      ))}
-
-      <Text style={styles.footerHeading}>Nos engagements</Text>
-      <View style={styles.footerBulletRow}>
-        <ShieldCheck size={14} color="#22C55E" />
-        <Text style={styles.footerBullet}>Paiement sécurisé</Text>
-      </View>
-      <View style={styles.footerBulletRow}>
-        <MapPin size={14} color={COLORS.brand} />
-        <Text style={styles.footerBullet}>Commerçants locaux vérifiés</Text>
-      </View>
-
       <View style={styles.footerDivider} />
       <Text style={styles.footerLegal}>
         © {new Date().getFullYear()} PosMarket — Tous droits réservés
       </Text>
-      <Text style={styles.footerLegal}>Prix affichés en FCFA (XOF)</Text>
     </View>
   );
 }
@@ -858,10 +850,25 @@ export default function HomeScreen() {
     const stores = catalogData?.stores || [];
     return stores
       .map((store) => {
-        const productCount = (store.products || []).filter(
+        const onlineProducts = (store.products || []).filter(
           (p) => p.isOnline !== false && p.image,
-        ).length;
-        return { store, productCount };
+        );
+        const salesCount = onlineProducts.reduce(
+          (sum, product) => sum + (product.salesCount ?? 0),
+          0,
+        );
+        const viewsCount =
+          (store.views ?? 0) +
+          onlineProducts.reduce(
+            (sum, product) => sum + (product.views ?? 0),
+            0,
+          );
+        return {
+          store,
+          productCount: onlineProducts.length,
+          salesCount,
+          viewsCount,
+        };
       })
       .filter(({ productCount }) => productCount > 0)
       .sort(
@@ -1839,11 +1846,14 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     letterSpacing: -0.2,
   },
+  partnerMetaStack: {
+    marginTop: 3,
+    gap: 1,
+  },
   partnerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 3,
   },
   partnerRating: {
     flexDirection: 'row',
@@ -1866,7 +1876,7 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: '#D1D5DB',
   },
-  partnerCount: {
+  partnerStat: {
     fontSize: 9.5,
     fontWeight: '600',
     color: COLORS.textMuted,
@@ -2078,38 +2088,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textMuted,
     lineHeight: 20,
-    marginBottom: 20,
-  },
-  footerHeading: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    marginTop: 8,
-  },
-  footerLink: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4B5563',
-    marginBottom: 8,
-  },
-  footerBulletRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  footerBullet: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4B5563',
   },
   footerDivider: {
     height: 1,
     backgroundColor: '#F3F4F6',
-    marginTop: 16,
+    marginTop: 18,
     marginBottom: 14,
   },
   footerLegal: {
@@ -2118,6 +2101,6 @@ const styles = StyleSheet.create({
     color: COLORS.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 4,
+    textAlign: 'center',
   },
 });

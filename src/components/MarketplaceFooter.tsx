@@ -2,14 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { ShieldCheck, MapPin } from 'lucide-react';
 import { Link } from '@/components/RouterPolyfill';
-
-const footerNav = [
-  { label: 'Guide d\'utilisation', href: '/docs/utilisation' },
-  { label: 'Conditions Générales de Vente', href: '/cgv' },
-  { label: 'Politique de confidentialité', href: '/confidentialite' },
-];
 
 export const MarketplaceFooter: React.FC<{ reserveCartBar?: boolean }> = ({
   reserveCartBar = true,
@@ -23,70 +16,28 @@ export const MarketplaceFooter: React.FC<{ reserveCartBar?: boolean }> = ({
             : "pb-[calc(24px+env(safe-area-inset-bottom,0px))]"
         }`}
       >
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
-          {/* Marque */}
-          <div className="max-w-xs">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 w-fit group"
-              aria-label="PosMarket - Retour à l'accueil"
-            >
-              <Image
-                src="/logo-trimmed.png"
-                alt="PosMarket - Local & Express"
-                width={1767}
-                height={401}
-                className="h-8 w-auto group-hover:opacity-80 transition-opacity"
-              />
-            </Link>
-            <p className="mt-3 text-sm font-normal text-gray-500 leading-relaxed">
-              Place de marché reliant les vendeurs et les acheteurs.
-            </p>
-          </div>
-
-          {/* Navigation légale */}
-          <nav aria-label="Liens légaux">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
-              Légal
-            </h3>
-            <ul className="space-y-2">
-              {footerNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    to={item.href}
-                    className="text-xs font-semibold text-gray-600 hover:text-brand transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Confiance */}
-          <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
-              Nos engagements
-            </h3>
-            <ul className="space-y-2 text-xs font-semibold text-gray-600">
-              <li className="flex items-center gap-2">
-                <ShieldCheck size={14} className="text-green-500 flex-shrink-0" />
-                Paiement sécurisé
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin size={14} className="text-brand flex-shrink-0" />
-                Commerçants locaux vérifiés
-              </li>
-            </ul>
-          </div>
+        <div className="max-w-xs">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 w-fit group"
+            aria-label="PosMarket - Retour à l'accueil"
+          >
+            <Image
+              src="/logo-trimmed.png"
+              alt="PosMarket - Local & Express"
+              width={1767}
+              height={401}
+              className="h-8 w-auto group-hover:opacity-80 transition-opacity"
+            />
+          </Link>
+          <p className="mt-3 text-sm font-normal text-gray-500 leading-relaxed">
+            Place de marché reliant les vendeurs et les acheteurs.
+          </p>
         </div>
 
-        <div className="border-t border-gray-100 mt-8 pt-5 flex flex-col md:flex-row items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="border-t border-gray-100 mt-8 pt-5 flex items-center justify-center">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center">
             © {new Date().getFullYear()} PosMarket — Tous droits réservés
-          </p>
-          <p className="text-[10px] font-normal text-gray-400">
-            Prix affichés en FCFA (XOF)
           </p>
         </div>
       </div>
