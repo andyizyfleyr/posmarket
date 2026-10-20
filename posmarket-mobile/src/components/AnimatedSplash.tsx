@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   // se place juste sous le bas visible du logo, pas sous la boîte de 200 px.
   wordmarkRow: {
     position: 'absolute',
-    top: 188,
+    top: 185,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -188,10 +188,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   letter: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '800',
-    letterSpacing: 2,
+    letterSpacing: 2.5,
     includeFontPadding: false,
   },
 });
