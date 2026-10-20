@@ -58,6 +58,7 @@ import {
 import { ProductCard } from '@/components/ProductCard';
 import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { Loader } from '@/components/Loader';
+import { StorefrontSkeleton } from '@/components/StorefrontSkeleton';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
 import { generateProductSlug } from '@/utils';
 import { useCart } from '@/context/CartContext';
@@ -791,7 +792,7 @@ export default function HomeScreen() {
   );
 
   if (isLoading && allProducts.length === 0) {
-    return <Loader fullScreen message="Chargement du catalogue..." />;
+    return <StorefrontSkeleton />;
   }
 
   return (

@@ -1,16 +1,7 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Skeleton, SkeletonProvider } from '@/components/Skeleton';
 
 /**
  * Squelette de chargement de la fiche produit.
@@ -19,67 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
  * barre retour, visuel produit, blocs d'informations, puis grille
  * « Produits similaires » avec un effet shimmer de 1,5 s.
  */
-
-const ShimmerContext = createContext<Animated.Value | null>(null);
-
-function Skeleton({ style }: { style?: StyleProp<ViewStyle> }) {
-  const shimmer = useContext(ShimmerContext);
-  const [width, setWidth] = useState(0);
-
-  return (
-    <View
-      style={[styles.skeleton, style]}
-      onLayout={(event) => {
-        const next = event.nativeEvent.layout.width;
-        if (next !== width) setWidth(next);
-      }}
-    >
-      {shimmer && width > 0 ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.shimmer,
-            {
-              width: Math.max(width * 1.5, 120),
-              transform: [
-                {
-                  translateX: shimmer.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [width * 1.5, -width * 1.5],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={['rgba(243,244,246,0)', '#F3F4F6', 'rgba(243,244,246,0)']}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-      ) : null}
-    </View>
-  );
-}
-
 export function ProductLoadingSkeleton() {
-  const shimmer = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(shimmer, {
-        toValue: 1,
-        duration: 1500,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [shimmer]);
 
   const horizontalPadding = 16;
   const contentWidth = Math.max(0, screenWidth - horizontalPadding * 2);
@@ -87,7 +19,7 @@ export function ProductLoadingSkeleton() {
   const cardWidth = (contentWidth - gridGap) / 2;
 
   return (
-    <ShimmerContext.Provider value={shimmer}>
+    <SkeletonProvider>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
           style={styles.scroll}
@@ -137,7 +69,7 @@ export function ProductLoadingSkeleton() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ShimmerContext.Provider>
+    </SkeletonProvider>
   );
 }
 
@@ -214,15 +146,5 @@ const styles = StyleSheet.create({
   },
   cardAction: {
     borderRadius: 12,
-  },
-  skeleton: {
-    backgroundColor: '#E5E7EB',
-    overflow: 'hidden',
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
   },
 });
