@@ -136,6 +136,14 @@ export async function fetchCatalog(): Promise<CatalogResponse> {
   return apiFetch<CatalogResponse>('/api/marketplace/catalog');
 }
 
+/**
+ * Charge le catalogue allégé de l'accueil (cartes produit + vitrines).
+ * Les fiches boutique/produit continuent d'utiliser `fetchCatalog`.
+ */
+export async function fetchHomeCatalog(): Promise<CatalogResponse> {
+  return apiFetch<CatalogResponse>('/api/marketplace/home');
+}
+
 /** Recherche de produits (FTS + trigram). */
 export async function searchProducts(
   query: string,

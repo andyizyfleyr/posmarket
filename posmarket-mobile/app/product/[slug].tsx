@@ -52,6 +52,7 @@ import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
 import {
   formatCurrency,
   formatNumber,
+  formatRating,
   maskName,
   generateProductSlug,
   getNormalizedWholesaleTiers,
@@ -528,7 +529,13 @@ export default function ProductDetailScreen() {
       <View key={review.id ?? String(idx)} style={styles.reviewCard}>
         <View style={[styles.reviewAvatar, { backgroundColor: review.avatarUrl ? '#f3f4f6' : tone.bg }]}>
           {review.avatarUrl ? (
-            <Image source={{ uri: resolveImageUrl(review.avatarUrl) }} style={styles.reviewAvatarImg} contentFit="cover" />
+            <Image
+              source={{ uri: resolveImageUrl(review.avatarUrl) }}
+              style={styles.reviewAvatarImg}
+              contentFit="cover"
+              alt=""
+              accessible={false}
+            />
           ) : (
             <Text style={[styles.reviewAvatarText, { color: tone.fg }]}>
               {review.author?.[0]?.toUpperCase() || 'A'}
@@ -628,12 +635,19 @@ export default function ProductDetailScreen() {
             scrollEventThrottle={16}
           >
             {images.map((imgUri, idx) => (
-              <Pressable key={idx} onPress={() => setZoomImage(imgUri)}>
+              <Pressable
+                key={idx}
+                onPress={() => setZoomImage(imgUri)}
+                accessibilityRole="button"
+                accessibilityLabel={`Agrandir la photo ${idx + 1} de ${product.name}`}
+              >
                 <Image
                   source={{ uri: resolveImageUrl(imgUri) }}
                   style={styles.galleryImage}
                   contentFit="cover"
                   transition={150}
+                  alt=""
+                  accessible={false}
                 />
               </Pressable>
             ))}
@@ -698,6 +712,8 @@ export default function ProductDetailScreen() {
                   source={{ uri: resolveImageUrl(storeLogo) }}
                   style={styles.sellerLogoImg}
                   contentFit="cover"
+                  alt=""
+                  accessible={false}
                 />
               ) : (
                 <Store size={16} color="#d1d5db" />
@@ -740,7 +756,7 @@ export default function ProductDetailScreen() {
                 />
               ))}
             </View>
-            <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+            <Text style={styles.ratingValue}>{formatRating(rating)}</Text>
             <Text style={styles.proofText} numberOfLines={1}>
               ({formatNumber(reviewTotal)} avis)
             </Text>
@@ -971,7 +987,7 @@ export default function ProductDetailScreen() {
 
           <View style={styles.reviewScore}>
             <View style={styles.reviewScoreValueRow}>
-              <Text style={styles.reviewScoreValue}>{rating.toFixed(1)}</Text>
+              <Text style={styles.reviewScoreValue}>{formatRating(rating)}</Text>
               <Text style={styles.reviewScoreMax}>/5</Text>
             </View>
             <View style={styles.reviewScoreStars}>
@@ -1391,7 +1407,7 @@ export default function ProductDetailScreen() {
                   <View>
                     <Text style={styles.reviewsSheetTitle}>{reviews.length} avis</Text>
                     <Text style={styles.reviewsSheetSub}>
-                      {isFood ? 'Sur le repas' : 'Sur le produit'} · {rating.toFixed(1)}/5
+                      {isFood ? 'Sur le repas' : 'Sur le produit'} · {formatRating(rating)}/5
                     </Text>
                   </View>
                 </View>
@@ -1434,6 +1450,8 @@ export default function ProductDetailScreen() {
               source={{ uri: resolveImageUrl(zoomImage) }}
               style={styles.zoomImage}
               contentFit="contain"
+              alt=""
+              accessible={false}
             />
           ) : null}
         </View>

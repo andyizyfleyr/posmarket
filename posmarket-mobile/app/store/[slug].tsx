@@ -22,6 +22,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -50,9 +51,20 @@ import {
 import { Loader } from '@/components/Loader';
 import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
 import { ProductGrid } from '@/components/ProductGrid';
+import { ProductGridSkeleton } from '@/components/ProductGridSkeleton';
+import {
+  PRODUCT_GRID_COLUMN_GAP,
+  PRODUCT_GRID_PADDING,
+} from '@/components/ProductRow';
 import { ProductTile } from '@/components/ProductTile';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
-import { formatNumber, generateProductSlug, maskName } from '@/utils';
+import {
+  formatNumber,
+  formatRating,
+  generateProductSlug,
+  maskName,
+  productColumnsForWidth,
+} from '@/utils';
 import { COLORS } from '@/theme';
 import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
 import { useCart } from '@/context/CartContext';
@@ -73,6 +85,16 @@ export default function StoreScreen() {
   const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { cartCount } = useCart();
+  const { width: screenWidth } = useWindowDimensions();
+  const sheetColumns = productColumnsForWidth(screenWidth);
+  const sheetCardWidth = Math.max(
+    0,
+    (screenWidth -
+      PRODUCT_GRID_PADDING * 2 -
+      PRODUCT_GRID_COLUMN_GAP * (sheetColumns - 1)) /
+      sheetColumns,
+  );
+  const compactCards = screenWidth < 360;
 
   const [activeTab, setActiveTab] = useState<'products' | 'reviews'>(
     'products',
@@ -374,6 +396,8 @@ export default function StoreScreen() {
                   source={{ uri: resolveImageUrl(review.avatarUrl) }}
                   style={styles.reviewAvatarImg}
                   contentFit="cover"
+                  alt=""
+                  accessible={false}
                 />
               ) : (
                 <Text style={styles.reviewAvatarText}>
@@ -439,6 +463,8 @@ export default function StoreScreen() {
                   source={{ uri: resolveImageUrl(productImage) }}
                   style={styles.reviewProductImage}
                   contentFit="cover"
+                  alt=""
+                  accessible={false}
                 />
               ) : null}
             </View>
@@ -498,6 +524,8 @@ export default function StoreScreen() {
                   source={{ uri: logoUrl }}
                   style={styles.logo}
                   contentFit="cover"
+                  alt=""
+                  accessible={false}
                 />
               ) : (
                 <Store size={24} color={COLORS.brand} />
@@ -514,7 +542,7 @@ export default function StoreScreen() {
             <View style={styles.ratingLine}>
               <Star size={11} color="#FACC15" fill="#FACC15" />
               <Text style={styles.ratingValue}>
-                {(store.rating || 0).toFixed(1)}
+                {formatRating(store.rating || 0)}
               </Text>
               <Text style={styles.ratingCount}>
                 ({formatNumber(reviewCountTotal)} avis)
@@ -564,7 +592,7 @@ export default function StoreScreen() {
             </View>
             <View style={styles.statCol}>
               <Text style={styles.statValue}>
-                {(store.rating || 0).toFixed(1)}/5
+                {formatRating(store.rating || 0)}/5
               </Text>
               <Text style={styles.statLabel}>Note</Text>
             </View>
@@ -630,6 +658,7 @@ export default function StoreScreen() {
                 placeholderTextColor="#9CA3AF"
                 autoCorrect={false}
                 returnKeyType="search"
+                accessibilityLabel="Rechercher dans cette boutique"
               />
             </View>
 
@@ -637,7 +666,11 @@ export default function StoreScreen() {
             {sections.map((section) => (
               <View key={section.key} style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle} numberOfLines={1}>
+                  <Text
+                    style={styles.sectionTitle}
+                    numberOfLines={1}
+                    accessibilityRole="header"
+                  >
                     {section.cat}
                     {section.vertical === 'food' ? (
                       <Text style={styles.sectionFoodTag}>  Restauration</Text>
@@ -649,6 +682,8 @@ export default function StoreScreen() {
                       pressed && styles.pressedFaded,
                     ]}
                     onPress={() => setSheetCategory(section)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Voir tous les produits de la catégorie ${section.cat}`}
                   >
                     <Text style={styles.seeAllText}>Voir tout</Text>
                     <ChevronRight
@@ -669,20 +704,7 @@ export default function StoreScreen() {
             {/* États vides / chargement */}
             {sections.length === 0 && !isLoadingMore ? (
               searchActive && isSearching ? (
-                <View
-                  style={styles.grid}
-                  accessibilityRole="progressbar"
-                  accessibilityLabel="Recherche en cours"
-                >
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <View
-                      key={`store-search-skeleton-${i}`}
-                      style={styles.gridCell}
-                    >
-                      <ProductSkeleton />
-                    </View>
-                  ))}
-                </View>
+                <ProductGridSkeleton count={10} paddingHorizontal={16} />
               ) : (
                 <View style={styles.emptyCard}>
                   <Search size={48} color="#E5E7EB" />
@@ -722,7 +744,7 @@ export default function StoreScreen() {
                 <View style={styles.reviewSummary}>
                   <View style={styles.reviewSummaryLeft}>
                     <Text style={styles.reviewSummaryAvg}>
-                      {reviewsAverage.toFixed(1)}
+                      {formatRating(reviewsAverage)}
                     </Text>
                     <View style={styles.reviewSummaryStars}>
                       {[...Array(5)].map((_, i) => (
@@ -846,23 +868,33 @@ export default function StoreScreen() {
               style={styles.sheetClose}
               onPress={() => setSheetCategory(null)}
               hitSlop={8}
+              accessibilityRole="button"
               accessibilityLabel="Fermer"
             >
               <X size={16} color={COLORS.textMuted} />
             </Pressable>
             <FlatList
+              key={`store-sheet-${sheetColumns}`}
               data={sheetProducts}
               keyExtractor={(p) => `${p.storeId}-${p.id}`}
-              numColumns={2}
-              columnWrapperStyle={styles.sheetRow}
+              numColumns={sheetColumns}
+              columnWrapperStyle={[
+                styles.sheetRow,
+                { gap: PRODUCT_GRID_COLUMN_GAP },
+              ]}
               contentContainerStyle={styles.sheetList}
               style={styles.sheetListView}
               showsVerticalScrollIndicator={false}
-              initialNumToRender={6}
+              initialNumToRender={sheetColumns * 2}
+              maxToRenderPerBatch={sheetColumns * 2}
+              windowSize={7}
               renderItem={({ item }) => (
-                <View style={styles.gridCell}>
+                <View
+                  style={[styles.sheetTile, { width: sheetCardWidth }]}
+                >
                   <ProductTile
                     product={item}
+                    compact={compactCards}
                     onPress={(p) => {
                       setSheetCategory(null);
                       navigateToProduct(p);
@@ -881,18 +913,6 @@ export default function StoreScreen() {
       {/* Barre panier fixe — visible sur les pages de découverte
           (accueil, boutique), comme le web. */}
       <CartBar />
-    </View>
-  );
-}
-
-/** Squelette de carte produit affiché pendant une recherche boutique. */
-function ProductSkeleton() {
-  return (
-    <View style={styles.skeletonCard}>
-      <View style={styles.skeletonImage} />
-      <View style={[styles.skeletonLine, styles.skeletonLineWide]} />
-      <View style={[styles.skeletonLine, styles.skeletonLineStats]} />
-      <View style={[styles.skeletonLine, styles.skeletonLinePrice]} />
     </View>
   );
 }
@@ -1178,46 +1198,7 @@ const styles = StyleSheet.create({
   pressedFaded: {
     opacity: 0.6,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-  },
-  gridCell: {
-    width: '50%',
-    paddingHorizontal: 4,
-    marginBottom: 14,
-  },
-
   // ── États vides / chargements ──
-  skeletonCard: {
-    width: '100%',
-  },
-  skeletonImage: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-  },
-  skeletonLine: {
-    height: 10,
-    marginTop: 6,
-    borderRadius: 4,
-    backgroundColor: '#F3F4F6',
-  },
-  skeletonLineWide: {
-    width: '92%',
-  },
-  skeletonLineStats: {
-    width: '68%',
-    height: 8,
-    marginTop: 2,
-  },
-  skeletonLinePrice: {
-    width: '52%',
-    height: 14,
-    marginTop: 3,
-  },
   loadMoreWrap: {
     paddingVertical: 16,
     alignItems: 'center',
@@ -1649,6 +1630,13 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   sheetRow: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+  },
+  sheetTile: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    padding: 4,
   },
 });

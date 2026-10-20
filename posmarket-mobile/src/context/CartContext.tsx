@@ -3,7 +3,14 @@
  * Persisté dans AsyncStorage avec la clé `storefront_cart`.
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEffectiveItemPrice } from '@/utils';
 import type { CartItem, StorefrontProduct } from '@/types';
@@ -20,12 +27,16 @@ interface CartContextType {
   cartTotal: number;
 }
 
+type CartActions = Pick<
+  CartContextType,
+  'addToCart' | 'removeFromCart' | 'updateQuantity' | 'clearCart'
+>;
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartActionsContext = createContext<CartActions | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const cartRef = useRef(cart);
-  cartRef.current = cart;
   const [loaded, setLoaded] = useState(false);
 
   // Load cart from storage on mount
@@ -50,7 +61,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const timer = setTimeout(() => {
       AsyncStorage.setItem(
         CART_STORAGE_KEY,
-        JSON.stringify({ data: cartRef.current, timestamp: Date.now() }),
+        JSON.stringify({ data: cart, timestamp: Date.now() }),
       ).catch(() => {});
     }, 500);
     return () => clearTimeout(timer);
@@ -122,17 +133,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     0,
   );
 
+  // Les actions sont stables et isolées de l'état du panier : les tuiles
+  // produit peuvent ajouter au panier sans se re-rendre à chaque mutation.
+  const actions = useMemo<CartActions>(
+    () => ({ addToCart, removeFromCart, updateQuantity, clearCart }),
+    [addToCart, removeFromCart, updateQuantity, clearCart],
+  );
+
   return (
-    <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal }}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartActionsContext.Provider value={actions}>
+      <CartContext.Provider
+        value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal }}
+      >
+        {children}
+      </CartContext.Provider>
+    </CartActionsContext.Provider>
   );
 }
 
 export function useCart(): CartContextType {
   const ctx = useContext(CartContext);
   if (!ctx) throw new Error('useCart must be used within CartProvider');
+  return ctx;
+}
+
+/** Actions panier seules — à privilégier dans les cartes produit. */
+export function useCartActions(): CartActions {
+  const ctx = useContext(CartActionsContext);
+  if (!ctx) throw new Error('useCartActions must be used within CartProvider');
   return ctx;
 }

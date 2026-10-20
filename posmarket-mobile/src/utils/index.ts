@@ -3,23 +3,69 @@
  */
 
 import type { CartItem, Product, WholesaleTier } from '@/types';
+import { totalVariantStock } from '@/utils/variants';
+
+const compactNumber = (value: number, suffix: string): string => {
+  const rounded = Number(value.toFixed(1));
+  return `${rounded.toString().replace('.', ',')}${suffix}`;
+};
 
 export const formatNumber = (num: number): string => {
   if (num === undefined || num === null || isNaN(num)) return '0';
-  if (num >= 1_000_000_000) {
-    const value = num / 1_000_000_000;
-    return value % 1 === 0 ? `${value}B` : `${value.toFixed(1).replace(/\.0$/, '')}B`;
-  }
-  if (num >= 1_000_000) {
-    const value = num / 1_000_000;
-    return value % 1 === 0 ? `${value}M` : `${value.toFixed(1).replace(/\.0$/, '')}M`;
-  }
-  if (num >= 1_000) {
-    const value = num / 1_000;
-    return value % 1 === 0 ? `${value}K` : `${value.toFixed(1).replace(/\.0$/, '')}K`;
-  }
+  if (num >= 1_000_000_000) return compactNumber(num / 1_000_000_000, 'B');
+  if (num >= 1_000_000) return compactNumber(num / 1_000_000, 'M');
+  if (num >= 1_000) return compactNumber(num / 1_000, 'K');
   return num.toString();
 };
+
+/** Note affichée à la française : 4,8 (et non 4.8). */
+export const formatRating = (rating: number): string =>
+  (Number.isFinite(rating) ? rating : 0).toFixed(1).replace('.', ',');
+
+/** Nombre de colonnes produit selon la largeur de l'écran. */
+export function productColumnsForWidth(width: number): 2 | 3 | 4 {
+  if (width >= 1_000) return 4;
+  if (width >= 640) return 3;
+  return 2;
+}
+
+/**
+ * Stock réellement disponible : somme des variantes actives quand le produit
+ * en a, sinon stock de base. Évite d'afficher « en stock » alors que toutes
+ * les variantes sont épuisées.
+ */
+export function effectiveProductStock(product: Product): number {
+  const variantStock = totalVariantStock(product.variants);
+  if (variantStock !== null) return Math.max(0, variantStock);
+  return Math.max(0, Number(product.stock) || 0);
+}
+
+export function productDiscountPercent(product: Product): number {
+  const price = Number(product.price) || 0;
+  const original = Number(product.originalPrice) || 0;
+  if (original <= 0 || price <= 0 || original <= price) return 0;
+  return Math.round(((original - price) / original) * 100);
+}
+
+/**
+ * Fourchette de prix des variantes actives. Sert à afficher « dès X FCFA »
+ * sur la carte quand les options changent le prix.
+ */
+export function variantPriceRange(
+  product: Product,
+): { min: number; max: number } | null {
+  const prices = (product.variants || [])
+    .filter((variant) => variant.enabled !== false)
+    .map((variant) => Number(variant.price))
+    .filter((price) => Number.isFinite(price) && price > 0);
+  if (prices.length === 0) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+/** Produit affichable en vitrine : image + au moins une unité disponible. */
+export function isMarketableProduct(product: Product): boolean {
+  return Boolean(product.image) && effectiveProductStock(product) > 0;
+}
 
 export const formatCurrency = (amount: number): string => {
   if (amount === undefined || amount === null || isNaN(amount)) return '0 FCFA';

@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Skeleton, SkeletonProvider } from '@/components/Skeleton';
+import { productColumnsForWidth } from '@/utils';
 
 /**
  * Squelette de chargement du storefront mobile.
@@ -17,8 +18,12 @@ export function StorefrontSkeleton() {
   const partnerGap = 12;
   const partnerWidth = Math.min((screenWidth - 44) / 2, 210);
   const gridGap = 8;
-  const cardWidth = (contentWidth - gridGap) / 2;
-  const columnIndexes = [0, 1, 2, 3];
+  const gridColumns = productColumnsForWidth(screenWidth);
+  const gridWidth = screenWidth - 16;
+  const cardWidth =
+    (gridWidth - gridGap * (gridColumns - 1)) / gridColumns;
+  const skeletonCount = 8;
+  const skeletonRows = Math.ceil(skeletonCount / gridColumns);
 
   return (
     <SkeletonProvider>
@@ -70,28 +75,58 @@ export function StorefrontSkeleton() {
             ))}
           </View>
 
-          {/* Grille produits — cartes compactes de taille identique */}
-          <View style={[styles.grid, { gap: gridGap }]}>
-            <View style={styles.gridColumn}>
-              {columnIndexes.map((index) => (
-                <View key={index} style={styles.card}>
-                  <Skeleton style={[styles.cardImage, { height: cardWidth }]} />
-                  <Skeleton style={[styles.line, { width: '92%', height: 10, marginTop: 6 }]} />
-                  <Skeleton style={[styles.line, { width: '68%', height: 8, marginTop: 2 }]} />
-                  <Skeleton style={[styles.line, { width: '52%', height: 14, marginTop: 3 }]} />
-                </View>
-              ))}
-            </View>
-            <View style={styles.gridColumn}>
-              {columnIndexes.map((index) => (
-                <View key={`right-${index}`} style={styles.card}>
-                  <Skeleton style={[styles.cardImage, { height: cardWidth }]} />
-                  <Skeleton style={[styles.line, { width: '88%', height: 10, marginTop: 6 }]} />
-                  <Skeleton style={[styles.line, { width: '64%', height: 8, marginTop: 2 }]} />
-                  <Skeleton style={[styles.line, { width: '48%', height: 14, marginTop: 3 }]} />
-                </View>
-              ))}
-            </View>
+          {/* Grille produits — cartes compactes alignées sur ProductRow */}
+          <View
+            style={[
+              styles.grid,
+              { gap: gridGap, marginHorizontal: -8 },
+            ]}
+          >
+            {Array.from({ length: skeletonRows }).map((_, rowIndex) => (
+              <View
+                key={`skeleton-row-${rowIndex}`}
+                style={[
+                  styles.gridLine,
+                  {
+                    gap: gridGap,
+                    marginBottom: rowIndex < skeletonRows - 1 ? 14 : 0,
+                  },
+                ]}
+              >
+                {Array.from({ length: gridColumns }).map(
+                  (__, columnIndex) => {
+                    const index = rowIndex * gridColumns + columnIndex;
+                    if (index >= skeletonCount) {
+                      return (
+                        <View
+                          key={`skeleton-empty-${index}`}
+                          style={{ width: cardWidth }}
+                        />
+                      );
+                    }
+                    return (
+                      <View
+                        key={`skeleton-card-${index}`}
+                        style={{ width: cardWidth }}
+                      >
+                        <Skeleton
+                          style={[styles.cardImage, { height: cardWidth }]}
+                        />
+                        <Skeleton
+                          style={[styles.line, { width: '92%', height: 10, marginTop: 6 }]}
+                        />
+                        <Skeleton
+                          style={[styles.line, { width: '68%', height: 8, marginTop: 2 }]}
+                        />
+                        <Skeleton
+                          style={[styles.line, { width: '52%', height: 14, marginTop: 3 }]}
+                        />
+                      </View>
+                    );
+                  },
+                )}
+              </View>
+            ))}
           </View>
         </ScrollView>
       </View>
@@ -235,15 +270,11 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   grid: {
+    flexDirection: 'column',
+  },
+  gridLine: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-  },
-  gridColumn: {
-    flex: 1,
-    gap: 14,
-  },
-  card: {
-    width: '100%',
   },
   cardImage: {
     width: '100%',
