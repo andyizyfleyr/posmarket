@@ -391,18 +391,16 @@ export default function ProductDetailScreen() {
           ? 'Commander'
           : 'Ajouter au panier';
 
-  // Le bouton de la feuille n'est actif qu'une fois la combinaison complète :
-  // un CTA « Ajouter » qui ne fait rien parce qu'il manque une option est le
-  // principal point de friction du sélecteur.
-  const sheetActionDisabled = isBuyDisabled || !allSelected;
+  // Même libellé que la feuille web mobile. Un appui sans sélection complète
+  // affiche un toast au lieu de ne rien faire, mais le bouton reste visible
+  // et actif tant que le produit a du stock.
+  const sheetActionDisabled = isBuyDisabled;
   const sheetActionLabel =
     isOutOfStock || isSelectedOutOfStock
       ? 'Rupture'
-      : !allSelected
-        ? 'Sélectionnez les options'
-        : isFood
-          ? 'Commander'
-          : 'Ajouter au panier';
+      : isFood
+        ? 'Commander'
+        : 'Ajouter au panier';
 
   // Sans combinaison complète, le bouton de gros ouvre le sélecteur : son
   // libellé doit annoncer cette action plutôt qu'un ajout impossible.
@@ -485,7 +483,11 @@ export default function ProductDetailScreen() {
   ]);
 
   const handleSheetAdd = useCallback(() => {
-    if (!product || isBuyDisabled || !allSelected) return;
+    if (!product || isBuyDisabled) return;
+    if (!allSelected) {
+      showToast('Sélectionnez les options pour commander');
+      return;
+    }
     addToCart(
       product,
       1,
@@ -1305,42 +1307,12 @@ export default function ProductDetailScreen() {
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Choisir les options</Text>
               <Pressable
-                style={styles.sheetClose}
+                style={[styles.sheetClose, styles.optionsSheetClose]}
                 onPress={() => setIsOptionsSheetOpen(false)}
                 accessibilityLabel="Fermer"
               >
                 <X size={18} color="#6b7280" />
               </Pressable>
-            </View>
-
-            {/* Identité du produit : la feuille ne doit pas ressembler à un
-                sélecteur anonyme, surtout quand plusieurs fiches sont ouvertes. */}
-            <View style={styles.sheetProductRow}>
-              <View style={styles.sheetProductImageWrap}>
-                {selectedVariantImage || product.image ? (
-                  <Image
-                    source={{ uri: resolveImageUrl(selectedVariantImage || product.image) }}
-                    style={styles.sheetProductImage}
-                    contentFit="cover"
-                    alt=""
-                    accessible={false}
-                  />
-                ) : (
-                  <Package size={18} color="#d1d5db" />
-                )}
-              </View>
-              <View style={styles.sheetProductTexts}>
-                <Text style={styles.sheetProductName} numberOfLines={1}>
-                  {product.name}
-                </Text>
-                <Text style={styles.sheetProductMeta} numberOfLines={1}>
-                  {stockLabel} · {options.length} option{options.length > 1 ? 's' : ''}
-                  {hasVariantMatrix
-                    ? ` · ${variants.length} variante${variants.length > 1 ? 's' : ''}`
-                    : ''}
-                </Text>
-              </View>
-              <Text style={styles.sheetProductPrice}>{formatCurrency(basePrice)}</Text>
             </View>
 
             <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}>
@@ -1390,50 +1362,39 @@ export default function ProductDetailScreen() {
                           const isLight =
                             (COLOR_HEX[val.trim().toLowerCase()] || hex) === '#ffffff';
                           return (
-                            <View key={val} style={styles.swatchOption}>
-                              <Pressable
-                                disabled={isDisabled}
-                                onPress={() => selectValue(option.id, val)}
-                                accessibilityRole="button"
-                                accessibilityLabel={
-                                  isDisabled ? `${val}, indisponible` : val
-                                }
-                                accessibilityState={{
-                                  selected: isSelected,
-                                  disabled: isDisabled,
-                                }}
-                                style={[
-                                  styles.swatch,
-                                  { backgroundColor: hex },
-                                  isSelected
-                                    ? styles.swatchSelected
-                                    : isDisabled
-                                      ? styles.swatchDisabled
-                                      : null,
-                                ]}
-                              >
-                                {isSelected && (
-                                  <Check
-                                    size={14}
-                                    color={isLight ? '#1f2937' : '#ffffff'}
-                                    strokeWidth={3.5}
-                                  />
-                                )}
-                                {isDisabled && !isSelected && (
-                                  <X size={12} color="#9ca3af" />
-                                )}
-                              </Pressable>
-                              <Text
-                                style={[
-                                  styles.swatchLabel,
-                                  isSelected ? styles.swatchLabelSelected : null,
-                                  isDisabled ? styles.swatchLabelDisabled : null,
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {val}
-                              </Text>
-                            </View>
+                            <Pressable
+                              key={val}
+                              disabled={isDisabled}
+                              onPress={() => selectValue(option.id, val)}
+                              accessibilityRole="button"
+                              accessibilityLabel={
+                                isDisabled ? `${val}, indisponible` : val
+                              }
+                              accessibilityState={{
+                                selected: isSelected,
+                                disabled: isDisabled,
+                              }}
+                              style={[
+                                styles.swatch,
+                                { backgroundColor: hex },
+                                isSelected
+                                  ? styles.swatchSelected
+                                  : isDisabled
+                                    ? styles.swatchDisabled
+                                    : null,
+                              ]}
+                            >
+                              {isSelected && (
+                                <Check
+                                  size={14}
+                                  color={isLight ? '#1f2937' : '#ffffff'}
+                                  strokeWidth={3.5}
+                                />
+                              )}
+                              {isDisabled && !isSelected && (
+                                <X size={12} color="#9ca3af" />
+                              )}
+                            </Pressable>
                           );
                         }
                         return (
@@ -1576,11 +1537,7 @@ export default function ProductDetailScreen() {
                 accessibilityState={{ disabled: sheetActionDisabled }}
                 accessibilityLabel={sheetActionLabel}
               >
-                {!allSelected && !isBuyDisabled ? (
-                  <Package size={15} color="#ffffff" strokeWidth={2.5} />
-                ) : (
-                  <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
-                )}
+                <ShoppingCart size={15} color="#ffffff" strokeWidth={2.5} />
                 <Text style={styles.primaryBtnText} numberOfLines={1}>
                   {sheetActionLabel}
                 </Text>
@@ -2689,12 +2646,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17,24,39,0.5)',
   },
   sheet: {
-    flex: 1,
+    width: '100%',
+    flexShrink: 1,
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '80%', // réduit de 88% à 80% pour ne pas cacher trop d'écran
+    maxHeight: '88%',
     overflow: 'hidden',
   },
   reviewsSheet: {
@@ -2707,18 +2665,18 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   sheetHandle: {
-    width: 40,
+    width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#d1d5db',
   },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexShrink: 0, // header fixe en haut
   },
   sheetTitle: {
@@ -2734,53 +2692,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sheetProductRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    flexShrink: 0,
-  },
-  sheetProductImageWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  sheetProductImage: {
-    width: '100%',
-    height: '100%',
-  },
-  sheetProductTexts: {
-    flex: 1,
-    minWidth: 0,
-  },
-  sheetProductName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  sheetProductMeta: {
-    fontSize: 9,
-    fontWeight: '500',
-    color: '#9ca3af',
-    marginTop: 1,
-  },
-  sheetProductPrice: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.2,
+  optionsSheetClose: {
+    backgroundColor: 'transparent',
+    marginRight: -6,
   },
   sheetScroll: {
-    flex: 1, // prend l'espace restant entre header et footer
-    maxHeight: '100%',
+    flexGrow: 0, // la feuille se dimensionne sur son contenu, comme le web
+    flexShrink: 1, // et se limite à maxHeight quand les options sont longues
+    minHeight: 0,
   },
   sheetScrollContent: {
     paddingHorizontal: 16,
@@ -2912,11 +2831,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ffffff',
   },
-  swatchOption: {
-    width: 44,
-    alignItems: 'center',
-    gap: 3,
-  },
   swatch: {
     width: 40,
     height: 40,
@@ -2930,21 +2844,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
-  },
-  swatchLabel: {
-    width: '100%',
-    textAlign: 'center',
-    fontSize: 8,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  swatchLabelSelected: {
-    color: BRAND,
-    fontWeight: '700',
-  },
-  swatchLabelDisabled: {
-    color: '#d1d5db',
-    textDecorationLine: 'line-through',
   },
   swatchSelected: {
     borderColor: BRAND,
