@@ -49,7 +49,8 @@ import {
 } from '@/api/client';
 import { Loader } from '@/components/Loader';
 import { CartBar, CART_BAR_CONTENT_HEIGHT } from '@/components/CartBar';
-import { ProductCard } from '@/components/ProductCard';
+import { ProductGrid } from '@/components/ProductGrid';
+import { ProductTile } from '@/components/ProductTile';
 import { MAIN_CATEGORIES, verticalOfProduct } from '@/constants';
 import { formatNumber, generateProductSlug, maskName } from '@/utils';
 import { COLORS } from '@/theme';
@@ -344,12 +345,6 @@ export default function StoreScreen() {
     )}`;
     void Linking.openURL(url).catch(() => {});
   };
-
-  const renderProductCard = (product: StorefrontProduct) => (
-    <View key={`${product.storeId}-${product.id}`} style={styles.gridCell}>
-      <ProductCard product={product} onPress={navigateToProduct} />
-    </View>
-  );
 
   const renderReview = (review: Review) => {
     const reviewedProduct = review.productId
@@ -663,9 +658,11 @@ export default function StoreScreen() {
                     />
                   </Pressable>
                 </View>
-                <View style={styles.grid}>
-                  {section.items.map(renderProductCard)}
-                </View>
+                <ProductGrid
+                  products={section.items}
+                  onPress={navigateToProduct}
+                  paddingHorizontal={16}
+                />
               </View>
             ))}
 
@@ -864,7 +861,7 @@ export default function StoreScreen() {
               initialNumToRender={6}
               renderItem={({ item }) => (
                 <View style={styles.gridCell}>
-                  <ProductCard
+                  <ProductTile
                     product={item}
                     onPress={(p) => {
                       setSheetCategory(null);
@@ -894,11 +891,8 @@ function ProductSkeleton() {
     <View style={styles.skeletonCard}>
       <View style={styles.skeletonImage} />
       <View style={[styles.skeletonLine, styles.skeletonLineWide]} />
-      <View style={[styles.skeletonLine, styles.skeletonLineHalf]} />
-      <View style={styles.skeletonFooter}>
-        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-        <View style={styles.skeletonCircle} />
-      </View>
+      <View style={[styles.skeletonLine, styles.skeletonLineStats]} />
+      <View style={[styles.skeletonLine, styles.skeletonLinePrice]} />
     </View>
   );
 }
@@ -1191,53 +1185,38 @@ const styles = StyleSheet.create({
   },
   gridCell: {
     width: '50%',
-    marginBottom: 8,
+    paddingHorizontal: 4,
+    marginBottom: 14,
   },
 
   // ── États vides / chargements ──
   skeletonCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    padding: 16,
-    gap: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    width: '100%',
   },
   skeletonImage: {
-    height: 160,
-    borderRadius: 12,
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 10,
     backgroundColor: '#F3F4F6',
   },
   skeletonLine: {
-    height: 16,
+    height: 10,
+    marginTop: 6,
     borderRadius: 4,
     backgroundColor: '#F3F4F6',
   },
   skeletonLineWide: {
-    width: '75%',
+    width: '92%',
   },
-  skeletonLineHalf: {
-    width: '50%',
+  skeletonLineStats: {
+    width: '68%',
+    height: 8,
+    marginTop: 2,
   },
-  skeletonLineShort: {
-    width: 80,
-  },
-  skeletonFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-  },
-  skeletonCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+  skeletonLinePrice: {
+    width: '52%',
+    height: 14,
+    marginTop: 3,
   },
   loadMoreWrap: {
     paddingVertical: 16,

@@ -1,5 +1,5 @@
 /**
- * ProductGrid — grille produit compacte à 2 colonnes pour le fil d'accueil.
+ * ProductGrid — grille produit compacte à 2 colonnes de la marketplace.
  * Les produits sont répartis alternativement à gauche et à droite. Toutes les
  * cartes ayant une image carrée et le même bloc d'informations, les deux
  * colonnes restent parfaitement alignées.

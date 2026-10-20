@@ -15,7 +15,7 @@ export function ProductLoadingSkeleton() {
 
   const horizontalPadding = 16;
   const contentWidth = Math.max(0, screenWidth - horizontalPadding * 2);
-  const gridGap = 12;
+  const gridGap = 8;
   const cardWidth = (contentWidth - gridGap) / 2;
 
   return (
@@ -52,17 +52,21 @@ export function ProductLoadingSkeleton() {
             {/* Produits similaires */}
             <Skeleton style={[styles.sectionTitle, { width: 160, height: 20 }]} />
 
-            <View style={[styles.grid, { gap: gridGap }]}>
+            <View style={[styles.grid, { columnGap: gridGap, rowGap: 14 }]}>
               {[0, 1, 2, 3, 4].map((index) => (
-                <View key={index} style={[styles.card, { width: cardWidth }]}>
-                  <Skeleton style={{ width: cardWidth, height: cardWidth }} />
-                  <View style={styles.cardBody}>
-                    <Skeleton style={[styles.line, { width: cardWidth * 0.75, height: 12 }]} />
-                    <Skeleton style={[styles.line, { width: cardWidth * 0.5, height: 16 }]} />
-                    <Skeleton
-                      style={[styles.cardAction, { width: '100%', height: 32, marginTop: 8 }]}
-                    />
-                  </View>
+                <View key={index} style={{ width: cardWidth }}>
+                  <Skeleton
+                    style={{ width: cardWidth, height: cardWidth, borderRadius: 10 }}
+                  />
+                  <Skeleton
+                    style={[styles.line, { width: '92%', height: 10, marginTop: 6 }]}
+                  />
+                  <Skeleton
+                    style={[styles.line, { width: '68%', height: 8, marginTop: 2 }]}
+                  />
+                  <Skeleton
+                    style={[styles.line, { width: '52%', height: 14, marginTop: 3 }]}
+                  />
                 </View>
               ))}
             </View>
@@ -132,19 +136,5 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    overflow: 'hidden',
-  },
-  cardBody: {
-    padding: 8,
-    gap: 8,
-  },
-  cardAction: {
-    borderRadius: 12,
   },
 });

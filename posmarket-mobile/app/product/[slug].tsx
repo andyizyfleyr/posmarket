@@ -45,8 +45,8 @@ import {
 } from 'lucide-react-native';
 import { fetchCatalog, fetchProductReviews, resolveImageUrl } from '@/api/client';
 import { useCart } from '@/context/CartContext';
-import { ProductCard } from '@/components/ProductCard';
 import { ProductLoadingSkeleton } from '@/components/ProductLoadingSkeleton';
+import { ProductTile } from '@/components/ProductTile';
 import { ProductDescription } from '@/components/RichDescription';
 import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
 import {
@@ -1051,7 +1051,7 @@ export default function ProductDetailScreen() {
             >
               {relatedProducts.map((p) => (
                 <View key={p.id} style={styles.relatedCardWrap}>
-                  <ProductCard
+                  <ProductTile
                     product={p}
                     onPress={() =>
                       router.push(
@@ -2225,7 +2225,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   relatedCardWrap: {
-    width: 160,
+    width: 176,
   },
   // ── Toast ──
   toast: {

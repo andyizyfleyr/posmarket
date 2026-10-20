@@ -1,9 +1,9 @@
 /**
- * ProductTile — carte produit compacte pour le fil d'accueil, inspirée de
- * l'app Android Alibaba : image carrée pleine largeur, titre sur une ligne,
- * prix mis en avant, pas de bloc d'informations supplémentaire. Toutes les
- * cartes ont donc exactement la même hauteur. L'ajout rapide reste accessible
- * via un petit bouton « + » posé sur l'image, sans augmenter la carte.
+ * ProductTile — carte produit compacte de la marketplace, inspirée de l'app
+ * Android Alibaba : image carrée pleine largeur, titre fin sur une ligne,
+ * ventes et note/avis, prix mis en avant. Toutes les cartes ont exactement la
+ * même hauteur. L'ajout rapide reste accessible via un petit bouton « + »
+ * posé sur l'image, sans augmenter la carte.
  */
 
 import React, { useCallback, useState } from 'react';
