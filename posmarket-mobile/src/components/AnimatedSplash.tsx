@@ -2,9 +2,9 @@
  * Splash animé.
  *
  * Le splash natif est statique : on garde exactement le même fond blanc et le
- * même logo, puis on prolonge l'écran avec trois points orange animés sous le
- * logo. Le splash natif est masqué dès que cette vue est mesurée, ce qui évite
- * le flash blanc entre les deux.
+ * même logo, puis on prolonge l'écran avec le mot POSMARKET dont les lettres
+ * s'illuminent en vague. Le splash natif est masqué dès que cette vue est
+ * mesurée, ce qui évite le flash blanc entre les deux.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,49 +24,59 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 const MIN_VISIBLE_MS = 1100;
 const FADE_OUT_MS = 280;
 
+const WORDMARK = [
+  { char: 'P', color: '#111827' },
+  { char: 'O', color: '#111827' },
+  { char: 'S', color: '#111827' },
+  { char: 'M', color: COLORS.brand },
+  { char: 'A', color: COLORS.brand },
+  { char: 'R', color: COLORS.brand },
+  { char: 'K', color: COLORS.brand },
+  { char: 'E', color: COLORS.brand },
+  { char: 'T', color: COLORS.brand },
+] as const;
+
 interface AnimatedSplashProps {
   onFinish: () => void;
 }
 
 export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
   const [fade] = useState(() => new Animated.Value(1));
-  const [dot1] = useState(() => new Animated.Value(0.35));
-  const [dot2] = useState(() => new Animated.Value(0.35));
-  const [dot3] = useState(() => new Animated.Value(0.35));
+  const [letterValues] = useState(() =>
+    WORDMARK.map(() => new Animated.Value(0.5)),
+  );
 
   const nativeSplashHidden = useRef(false);
   const finished = useRef(false);
   const fadeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const dots = [dot1, dot2, dot3];
-
-    // Vague gauche → droite : chaque point monte en opacité et en taille à son
-    // tour, puis la boucle repart sans à-coup.
-    const loops = dots.map((dot, index) =>
+    // Vague gauche → droite : chaque lettre s'illumine et remonte légèrement,
+    // puis la boucle repart. Un cycle complet dure ~1,1 s.
+    const loops = letterValues.map((value, index) =>
       Animated.loop(
         Animated.sequence([
-          Animated.delay(index * 140),
-          Animated.timing(dot, {
+          Animated.delay(index * 70),
+          Animated.timing(value, {
             toValue: 1,
-            duration: 260,
+            duration: 240,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: USE_NATIVE_DRIVER,
           }),
-          Animated.timing(dot, {
-            toValue: 0.35,
-            duration: 260,
+          Animated.timing(value, {
+            toValue: 0.5,
+            duration: 300,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: USE_NATIVE_DRIVER,
           }),
-          Animated.delay((dots.length - 1 - index) * 140),
+          Animated.delay((WORDMARK.length - 1 - index) * 70),
         ]),
       ),
     );
 
     loops.forEach((loop) => loop.start());
     return () => loops.forEach((loop) => loop.stop());
-  }, [dot1, dot2, dot3]);
+  }, [letterValues]);
 
   useEffect(
     () => () => {
@@ -113,26 +123,33 @@ export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
           accessible={false}
           alt=""
         />
-        <View style={styles.dotsRow}>
-          {[dot1, dot2, dot3].map((dot, index) => (
-            <Animated.View
-              key={index}
-              style={[
-                styles.dot,
-                {
-                  opacity: dot,
-                  transform: [
-                    {
-                      scale: dot.interpolate({
-                        inputRange: [0.35, 1],
-                        outputRange: [0.82, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-          ))}
+        <View style={styles.wordmarkRow}>
+          {WORDMARK.map((letter, index) => {
+            const value = letterValues[index];
+            return (
+              <Animated.Text
+                key={`${letter.char}-${index}`}
+                accessible={false}
+                style={[
+                  styles.letter,
+                  {
+                    color: letter.color,
+                    opacity: value,
+                    transform: [
+                      {
+                        translateY: value.interpolate({
+                          inputRange: [0.5, 1],
+                          outputRange: [2, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                {letter.char}
+              </Animated.Text>
+            );
+          })}
         </View>
       </View>
     </Animated.View>
@@ -159,22 +176,22 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
   },
-  // Le visuel du logo occupe ~454/512 de la hauteur de l'image : les points se
-  // placent juste sous le bas visible du logo, pas sous la boîte de 200 px.
-  dotsRow: {
+  // Le visuel du logo occupe ~454/512 de la hauteur de l'image : le wordmark
+  // se place juste sous le bas visible du logo, pas sous la boîte de 200 px.
+  wordmarkRow: {
     position: 'absolute',
-    top: 194,
+    top: 188,
     left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.brand,
+  letter: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+    letterSpacing: 2,
+    includeFontPadding: false,
   },
 });
