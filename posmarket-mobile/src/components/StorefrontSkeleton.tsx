@@ -4,19 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Skeleton, SkeletonProvider } from '@/components/Skeleton';
 
 /**
- * Squelette de chargement du storefront.
+ * Squelette de chargement du storefront mobile.
  *
- * Reproduction fidele de `src/app/[[...slug]]/loading.tsx` du web :
- * header + recherche, hero, boutiques partenaires et grille de produits,
- * avec le shimmer gris #E5E7EB → #F3F4F6.
+ * Header + recherche, hero, carrousel « Boutiques partenaires » et grille de
+ * produits, avec le shimmer gris #E5E7EB → #F3F4F6.
  */
 export function StorefrontSkeleton() {
   const { width: screenWidth } = useWindowDimensions();
 
   const horizontalPadding = 16;
   const contentWidth = Math.max(0, screenWidth - horizontalPadding * 2);
-  const partnerGap = 10;
-  const partnerWidth = Math.max(0, (screenWidth - 42) / 2);
+  const partnerGap = 12;
+  const partnerWidth = Math.min((screenWidth - 44) / 2, 210);
   const gridGap = 12;
   const cardWidth = (contentWidth - gridGap) / 2;
 
@@ -49,13 +48,22 @@ export function StorefrontSkeleton() {
           <Skeleton style={[styles.hero, { width: contentWidth }]} />
 
           {/* Boutiques partenaires */}
-          <Skeleton style={styles.partnersTitle} />
+          <View style={styles.partnersHeader}>
+            <Skeleton style={styles.partnersAccent} />
+            <View style={styles.partnersHeading}>
+              <Skeleton style={styles.partnersTitle} />
+              <Skeleton style={styles.partnersSubtitle} />
+            </View>
+          </View>
           <View style={[styles.partnersRow, { gap: partnerGap }]}>
-            {[0, 1, 2, 3].map((index) => (
+            {[0, 1, 2].map((index) => (
               <View key={index} style={[styles.partnerCard, { width: partnerWidth }]}>
-                <Skeleton style={styles.partnerAvatar} />
-                <Skeleton style={styles.partnerName} />
-                <Skeleton style={styles.partnerMeta} />
+                <Skeleton style={styles.partnerCover} />
+                <View style={styles.partnerBody}>
+                  <Skeleton style={styles.partnerAvatar} />
+                  <Skeleton style={styles.partnerName} />
+                  <Skeleton style={styles.partnerMeta} />
+                </View>
               </View>
             ))}
           </View>
@@ -144,11 +152,30 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginBottom: 24,
   },
-  partnersTitle: {
-    width: 208,
+  partnersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  partnersAccent: {
+    width: 3,
     height: 24,
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 2,
+    marginRight: 9,
+  },
+  partnersHeading: {
+    flex: 1,
+    gap: 6,
+  },
+  partnersTitle: {
+    width: 190,
+    height: 18,
+    borderRadius: 6,
+  },
+  partnersSubtitle: {
+    width: 160,
+    height: 10,
+    borderRadius: 4,
   },
   partnersRow: {
     flexDirection: 'row',
@@ -157,25 +184,36 @@ const styles = StyleSheet.create({
   },
   partnerCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    padding: 10,
-    alignItems: 'center',
+    borderColor: '#F0F1F3',
+    overflow: 'hidden',
+  },
+  partnerCover: {
+    height: 46,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+  },
+  partnerBody: {
+    paddingHorizontal: 12,
+    paddingBottom: 10,
   },
   partnerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    marginTop: -23,
   },
   partnerName: {
-    width: 64,
-    height: 10,
+    width: 110,
+    height: 13,
     borderRadius: 4,
-    marginTop: 6,
+    marginTop: 7,
   },
   partnerMeta: {
-    width: 48,
+    width: 76,
     height: 8,
     borderRadius: 4,
     marginTop: 4,

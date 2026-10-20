@@ -37,6 +37,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Search,
   X,
@@ -214,24 +215,42 @@ function PartnersRow({
   onOpen: (store: StoreData) => void;
 }) {
   const { width } = useWindowDimensions();
-  const cardWidth = (width - 32 - 10) / 2;
+  // Deux cartes compactes visibles par écran, sans perdre la richesse
+  // visuelle du nouveau design (cover, logo superposé, note).
+  const cardWidth = Math.min((width - 44) / 2, 210);
+  const cardGap = 12;
 
   return (
     <View style={styles.partnersSection}>
-      <View style={styles.partnersTitleRow}>
-        <Text style={styles.partnersTitle}>Boutiques partenaires</Text>
-        <Text style={styles.partnersCount}>{entries.length}</Text>
+      <View style={styles.partnersHeader}>
+        <View style={styles.partnersAccent} />
+        <View style={styles.partnersHeading}>
+          <View style={styles.partnersTitleLine}>
+            <Text style={styles.partnersTitle}>Boutiques partenaires</Text>
+            <View style={styles.partnersCount}>
+              <Text style={styles.partnersCountText}>{entries.length}</Text>
+            </View>
+          </View>
+          <Text style={styles.partnersSubtitle}>
+            Des commerçants vérifiés à découvrir
+          </Text>
+        </View>
       </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.partnersScroll}
-        snapToInterval={cardWidth + 10}
+        contentContainerStyle={[styles.partnersScroll, { gap: cardGap }]}
+        snapToInterval={cardWidth + cardGap}
+        snapToAlignment="start"
         decelerationRate="fast"
       >
         {entries.map(({ store, productCount }) => {
           const name = store.settings?.name || store.name || 'Boutique';
           const logo = resolveStoreLogo(store);
+          const rating = store.rating ?? 0;
+          const initials = name.trim().slice(0, 2).toUpperCase();
+
           return (
             <Pressable
               key={store.id}
@@ -241,42 +260,63 @@ function PartnersRow({
                 pressed && styles.partnerCardPressed,
               ]}
               onPress={() => onOpen(store)}
+              accessibilityRole="button"
+              accessibilityLabel={`Voir la boutique ${name}`}
             >
-              <View style={styles.partnerLogo}>
-                {logo ? (
-                  <Image
-                    source={{ uri: logo }}
-                    style={styles.partnerLogoImg}
-                    contentFit="cover"
-                    transition={150}
-                  />
-                ) : (
-                  <Store size={18} color={COLORS.brand} />
-                )}
-              </View>
-              <View style={styles.partnerNameRow}>
-                <Text style={styles.partnerName} numberOfLines={1}>
-                  {name}
-                </Text>
-                <View style={styles.verifiedBadge}>
-                  <Check size={6} strokeWidth={4} color="#FFF" />
+              <LinearGradient
+                colors={['#FFF6F0', '#FFE3D3']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.partnerCover}
+              >
+                <View style={[styles.partnerBubble, styles.partnerBubbleLarge]} />
+                <View style={[styles.partnerBubble, styles.partnerBubbleSmall]} />
+                <View style={styles.partnerBadge}>
+                  <ShieldCheck size={9} color={COLORS.brand} />
+                  <Text style={styles.partnerBadgeText}>Partenaire</Text>
                 </View>
-              </View>
-              <View style={styles.partnerMeta}>
-                {(store.rating ?? 0) > 0 ? (
-                  <View style={styles.partnerRating}>
-                    <Star size={9} color={COLORS.brand} fill={COLORS.brand} />
-                    <Text style={styles.partnerRatingText}>
-                      {(store.rating ?? 0).toFixed(1)}
-                    </Text>
+              </LinearGradient>
+
+              <View style={styles.partnerBody}>
+                <View style={styles.partnerLogoWrap}>
+                  <View style={styles.partnerLogo}>
+                    {logo ? (
+                      <Image
+                        source={{ uri: logo }}
+                        style={styles.partnerLogoImg}
+                        contentFit="cover"
+                        transition={150}
+                      />
+                    ) : (
+                      <Text style={styles.partnerLogoInitials}>{initials}</Text>
+                    )}
                   </View>
-                ) : (
-                  <Text style={styles.partnerNew}>Nouveau</Text>
-                )}
-                <Text style={styles.partnerDot}>•</Text>
-                <Text style={styles.partnerCount} numberOfLines={1}>
-                  {productCount} produits
-                </Text>
+                  <View style={styles.partnerVerified}>
+                    <Check size={7} strokeWidth={4} color="#FFF" />
+                  </View>
+                </View>
+
+                <View style={styles.partnerNameRow}>
+                  <Text style={styles.partnerName} numberOfLines={1}>
+                    {name}
+                  </Text>
+                  <ChevronRight size={12} color="#C4C8CE" strokeWidth={2.5} />
+                </View>
+
+                <View style={styles.partnerMeta}>
+                  {rating > 0 ? (
+                    <View style={styles.partnerRating}>
+                      <Star size={10} color={COLORS.brand} fill={COLORS.brand} />
+                      <Text style={styles.partnerRatingText}>{rating.toFixed(1)}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.partnerNew}>Nouveau</Text>
+                  )}
+                  <View style={styles.partnerMetaDot} />
+                  <Text style={styles.partnerCount} numberOfLines={1}>
+                    {productCount} {productCount > 1 ? 'produits' : 'produit'}
+                  </Text>
+                </View>
               </View>
             </Pressable>
           );
@@ -1207,99 +1247,186 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand,
     width: 16,
   },
-  // Partenaires
+  // Partenaires — refonte mobile : carrousel de cartes compactes
   partnersSection: {
-    marginBottom: 24,
+    marginBottom: 22,
   },
-  partnersTitleRow: {
+  partnersHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  partnersAccent: {
+    width: 3,
+    height: 24,
+    borderRadius: 2,
+    backgroundColor: COLORS.brand,
+    marginRight: 9,
+  },
+  partnersHeading: {
+    flex: 1,
+  },
+  partnersTitleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   partnersTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: COLORS.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.35,
   },
   partnersCount: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.textFaint,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
+    backgroundColor: COLORS.brandSoft,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 999,
     overflow: 'hidden',
   },
+  partnersCountText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.brand,
+  },
+  partnersSubtitle: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: COLORS.textMuted,
+    marginTop: 2,
+    letterSpacing: 0.05,
+  },
   partnersScroll: {
     paddingHorizontal: 16,
-    gap: 10,
+    paddingTop: 2,
+    paddingBottom: 6,
   },
   partnerCard: {
-    height: 120,
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    borderColor: '#F0F1F3',
+    elevation: 3,
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
   },
   partnerCardPressed: {
     borderColor: COLORS.brandTint,
-    opacity: 0.9,
+    opacity: 0.94,
+    transform: [{ scale: 0.98 }],
+  },
+  partnerCover: {
+    height: 46,
+    borderTopLeftRadius: 17,
+    borderTopRightRadius: 17,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    alignItems: 'flex-end',
+    overflow: 'hidden',
+  },
+  partnerBubble: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  partnerBubbleLarge: {
+    width: 76,
+    height: 76,
+    right: -24,
+    top: -32,
+    backgroundColor: 'rgba(245, 107, 42, 0.10)',
+  },
+  partnerBubbleSmall: {
+    width: 36,
+    height: 36,
+    left: 30,
+    bottom: -22,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+  },
+  partnerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+  },
+  partnerBadgeText: {
+    fontSize: 7.5,
+    fontWeight: '700',
+    color: COLORS.brand,
+    letterSpacing: 0.15,
+  },
+  partnerBody: {
+    paddingHorizontal: 12,
+    paddingBottom: 11,
+  },
+  partnerLogoWrap: {
+    width: 46,
+    height: 46,
+    marginTop: -23,
+    position: 'relative',
   },
   partnerLogo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 2,
-    borderColor: COLORS.brand,
-    backgroundColor: '#FFF',
+    borderColor: '#FFFFFF',
+    backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
   },
   partnerLogoImg: {
     width: '100%',
     height: '100%',
   },
+  partnerLogoInitials: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.brand,
+    letterSpacing: -0.4,
+  },
+  partnerVerified: {
+    position: 'absolute',
+    right: -1,
+    bottom: 0,
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#1877F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   partnerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 6,
-    maxWidth: '100%',
+    marginTop: 7,
   },
   partnerName: {
-    fontSize: 11,
+    flex: 1,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.text,
-    flexShrink: 1,
-  },
-  verifiedBadge: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#1877F2',
-    alignItems: 'center',
-    justifyContent: 'center',
+    letterSpacing: -0.2,
   },
   partnerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 4,
-    maxWidth: '100%',
+    marginTop: 3,
   },
   partnerRating: {
     flexDirection: 'row',
@@ -1307,23 +1434,25 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   partnerRatingText: {
-    fontSize: 9,
-    fontWeight: '600',
+    fontSize: 9.5,
+    fontWeight: '700',
     color: '#4B5563',
   },
   partnerNew: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: COLORS.textFaint,
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: COLORS.brand,
   },
-  partnerDot: {
-    fontSize: 9,
-    color: '#D1D5DB',
+  partnerMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#D1D5DB',
   },
   partnerCount: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '600',
-    color: COLORS.textFaint,
+    color: COLORS.textMuted,
     flexShrink: 1,
   },
   // Boutique trouvée (recherche)
