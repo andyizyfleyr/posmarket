@@ -15,7 +15,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from 'react-native';
-import { RotateCcw, Star } from 'lucide-react-native';
+import { Star } from 'lucide-react-native';
 import { formatCurrency } from '@/utils';
 import type { BuyerOrder } from '@/types';
 import {
@@ -60,7 +60,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onPress,
   onReviewProduct,
   onReorder,
-  reorderLabel = 'Commander à nouveau',
+  reorderLabel = 'Recommander',
   reorderDisabled = false,
   highlight = false,
   highlightKey,
@@ -190,10 +190,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {content}
 
       <View style={styles.footer}>
+        <View style={styles.footerTotal}>
+          <Text style={styles.footerLabel}>Total</Text>
+          <Text style={styles.footerValue}>{formatCurrency(order.total)}</Text>
+        </View>
         {onReorder ? (
           <Pressable
             onPress={onReorder}
             disabled={reorderDisabled}
+            hitSlop={6}
             style={({ pressed }) => [
               styles.reorderBtn,
               pressed && styles.pressed,
@@ -201,18 +206,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             ]}
             accessibilityLabel="Remettre cette commande au panier"
           >
-            <RotateCcw size={12} color={COLORS.brand} />
             <Text style={styles.reorderText} numberOfLines={1}>
               {reorderDisabled ? 'Ajout…' : reorderLabel}
             </Text>
           </Pressable>
-        ) : (
-          <View />
-        )}
-        <View style={styles.footerTotal}>
-          <Text style={styles.footerLabel}>Total</Text>
-          <Text style={styles.footerValue}>{formatCurrency(order.total)}</Text>
-        </View>
+        ) : null}
       </View>
     </Animated.View>
   );
@@ -251,6 +249,7 @@ const styles = StyleSheet.create({
   items: {
     marginTop: 12,
     paddingTop: 12,
+    paddingBottom: 14,
     borderTopWidth: 1,
     borderTopColor: COLORS.line,
     gap: 8,
@@ -260,17 +259,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    marginTop: 12,
-    paddingTop: 12,
     paddingHorizontal: 14,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
+    paddingVertical: 12,
+    backgroundColor: COLORS.surfaceMuted,
   },
   footerTotal: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
   },
   footerLabel: {
     fontSize: 9,
@@ -280,10 +275,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   footerValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: COLORS.ink,
+    letterSpacing: -0.2,
     fontVariant: ['tabular-nums'],
+    marginTop: 1,
   },
   item: {
     flexDirection: 'row',
@@ -317,17 +314,16 @@ const styles = StyleSheet.create({
   reorderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    flexShrink: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    flexShrink: 0,
+    paddingVertical: 3,
+    paddingHorizontal: 7,
     borderRadius: 999,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: COLORS.brand,
   },
   reorderText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: COLORS.brand,
     letterSpacing: -0.1,
