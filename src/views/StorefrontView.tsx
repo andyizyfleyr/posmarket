@@ -3213,7 +3213,7 @@ const WHOLESALE_FILTER = "wholesale";
                   <button
                     onClick={() => {
                       if (user) {
-                        safeNavigate("/mon-compte/commandes");
+                        safeNavigate("/mon-compte/apercu");
                       } else {
                         setAuthMode("login");
                         setShowAuthModal(true);
@@ -3806,7 +3806,7 @@ const WHOLESALE_FILTER = "wholesale";
                               Boutiques partenaires
                             </h2>
                             <span className="overflow-hidden rounded-full bg-brand-soft px-[7px] py-0.5 text-[9px] font-bold text-brand">
-                              {Math.min(partnerStores.length, 6)}
+                              {partnerStores.length}
                             </span>
                           </div>
                           <p className="mt-0.5 text-[10.5px] font-medium tracking-[0.05px] text-gray-500">

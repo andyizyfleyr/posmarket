@@ -177,8 +177,13 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
     if (typeof window === 'undefined') return;
     const orderId = new URLSearchParams(window.location.search).get('order');
     if (!orderId) return;
-    setTargetOrderId(orderId);
-    setActiveTab('orders');
+    // L.state est applique apres l'hydratation : la lecture de l'URL ne doit
+    // pas provoquer de difference entre le HTML rendu et le client.
+    const id = window.setTimeout(() => {
+      setTargetOrderId(orderId);
+      setActiveTab('orders');
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   // Défilement vers la commande ciblée, une fois la liste rendue.
@@ -220,6 +225,8 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
 
   const handleTabChange = (tab: BuyerTabId) => {
     if (tab === activeTab) return;
+    // La commande mise en évidence n'a de sens que dans l'onglet Commandes.
+    if (tab !== 'orders') setTargetOrderId(null);
     setActiveTab(tab);
     const def = ALL_TABS.find((t) => t.id === tab);
     const newPath = `/mon-compte/${def?.path || tab}`;
@@ -389,9 +396,14 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                     <OrderCard
                       key={order.id}
                       order={order}
-                      onPress={() => handleTabChange('orders')}
+                      onPress={() => {
+                        setTargetOrderId(order.id);
+                        handleTabChange('orders');
+                      }}
                       onReorder={() => void reorder(order)}
                       reorderDisabled={pendingOrderId === order.id}
+                      cardId={`order-${order.id}`}
+                      highlight={targetOrderId === order.id}
                     />
                   ))}
                 </div>
