@@ -1,14 +1,19 @@
 /**
- * Onglet « Boutiques » — liste des boutiques chez lesquelles l'acheteur a
- * déjà passé au moins une commande. Données dérivées des commandes.
+ * Onglet « Boutiques suivies » — les boutiques chez lesquelles l'acheteur a
+ * déjà commandé au moins une fois.
+ *
+ * Les commandes ne donnent que le nom de la boutique : le catalogue est
+ * interrogé pour retrouver le logo réel, la slug et le type d'activité.
  */
 
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ShoppingBag, Store } from 'lucide-react-native';
-import { formatCurrency } from '@/utils';
-import type { BuyerOrder } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronRight, Store } from 'lucide-react-native';
+import { fetchCatalog, resolveImageUrl } from '@/api/client';
+import type { BuyerOrder, StoreData } from '@/types';
 import {
   EmptyState,
   PanelSkeleton,
@@ -26,11 +31,25 @@ interface StoreEntry {
   name: string;
   businessType?: string;
   orderCount: number;
-  totalSpent: number;
   lastOrderDate?: string;
 }
 
 export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
+  // Catalogue : sert uniquement aux logos et aux slugs.
+  const catalogQuery = useQuery({
+    queryKey: ['catalog'],
+    queryFn: fetchCatalog,
+    staleTime: 60_000,
+  });
+
+  const storeById = useMemo(() => {
+    const map = new Map<string, StoreData>();
+    for (const store of catalogQuery.data?.stores || []) {
+      map.set(store.id, store);
+    }
+    return map;
+  }, [catalogQuery.data]);
+
   const stores = useMemo<StoreEntry[]>(() => {
     const map = new Map<string, StoreEntry>();
     for (const order of orders) {
@@ -41,9 +60,10 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
       const existing = map.get(id);
       if (existing) {
         existing.orderCount += 1;
-        existing.totalSpent += order.total || 0;
         const t = order.date ? new Date(order.date).getTime() : 0;
-        const cur = existing.lastOrderDate ? new Date(existing.lastOrderDate).getTime() : 0;
+        const cur = existing.lastOrderDate
+          ? new Date(existing.lastOrderDate).getTime()
+          : 0;
         if (t > cur) existing.lastOrderDate = order.date;
       } else {
         map.set(id, {
@@ -51,7 +71,6 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
           name,
           businessType,
           orderCount: 1,
-          totalSpent: order.total || 0,
           lastOrderDate: order.date,
         });
       }
@@ -68,8 +87,8 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
   if (stores.length === 0) {
     return (
       <EmptyState
-        icon={<Store size={24} color="#D1D5DB" />}
-        title="Aucune boutique"
+        icon={<Store size={20} color={COLORS.brand} />}
+        title="Aucune boutique suivie"
         subtitle="Les boutiques chez lesquelles vous avez commandé apparaîtront ici."
       />
     );
@@ -77,61 +96,60 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
 
   return (
     <View style={styles.list}>
-      {stores.map((store) => (
-        <Pressable
-          key={store.id}
-          onPress={() => {
-            if (store.id) router.push(`/store/${encodeURIComponent(store.id)}`);
-          }}
-          style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={`Voir la boutique ${store.name}`}
-        >
-          <View style={styles.cardHead}>
-            <View style={styles.storeIcon}>
-              <Store size={16} color={COLORS.brand} />
-            </View>
-            <View style={styles.storeText}>
-              <Text style={styles.storeName} numberOfLines={1}>
-                {store.name}
-              </Text>
-              {store.businessType ? (
-                <Text style={styles.storeType} numberOfLines={1}>
-                  {store.businessType === 'food' ? 'Restauration' : 'Boutique'}
+      {stores.map((store) => {
+        const catalogStore = storeById.get(store.id);
+        const logo = catalogStore?.settings?.logo
+          ? resolveImageUrl(catalogStore.settings.logo as string)
+          : '';
+        const slug = catalogStore?.slug || store.id;
+        const businessType =
+          catalogStore?.business_type ||
+          catalogStore?.settings?.businessType ||
+          store.businessType;
+        return (
+          <Pressable
+            key={store.id}
+            onPress={() => router.push(`/store/${encodeURIComponent(slug)}` as never)}
+            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`Voir la boutique ${store.name}`}
+          >
+            <View style={styles.cardHead}>
+              <View style={styles.logoBox}>
+                {logo ? (
+                  <Image
+                    source={{ uri: logo }}
+                    style={styles.logo}
+                    contentFit="cover"
+                    transition={150}
+                    alt=""
+                  />
+                ) : (
+                  <Store size={16} color={COLORS.brand} />
+                )}
+              </View>
+              <View style={styles.storeText}>
+                <Text style={styles.storeName} numberOfLines={1}>
+                  {store.name}
                 </Text>
-              ) : null}
+                <Text style={styles.storeType} numberOfLines={1}>
+                  {businessType === 'food' ? 'Restauration' : 'Boutique'} ·{' '}
+                  {store.orderCount} commande{store.orderCount > 1 ? 's' : ''}
+                </Text>
+              </View>
+              <ChevronRight size={16} color="#D1D5DB" />
             </View>
-            <View style={styles.chevron}>
-              <ShoppingBag size={14} color="#9CA3AF" />
-            </View>
-          </View>
 
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{store.orderCount}</Text>
-              <Text style={styles.statLabel}>
-                commande{store.orderCount > 1 ? 's' : ''}
-              </Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{formatCurrency(store.totalSpent)}</Text>
-              <Text style={styles.statLabel}>dépensé</Text>
-            </View>
             {store.lastOrderDate ? (
-              <>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statValueSmall}>
-                    {formatShortDate(store.lastOrderDate)}
-                  </Text>
-                  <Text style={styles.statLabel}>dernière</Text>
-                </View>
-              </>
+              <View style={styles.foot}>
+                <Text style={styles.footText} numberOfLines={1}>
+                  Dernière commande le {formatShortDate(store.lastOrderDate)}
+                </Text>
+              </View>
             ) : null}
-          </View>
-        </Pressable>
-      ))}
+          </Pressable>
+        );
+      })}
     </View>
   );
 };
@@ -153,15 +171,20 @@ const styles = StyleSheet.create({
   cardHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
-  storeIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+  logoBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   storeText: {
     flex: 1,
@@ -179,50 +202,16 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontWeight: '500',
   },
-  chevron: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    backgroundColor: COLORS.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  foot: {
     marginTop: 12,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: COLORS.line,
-    gap: 8,
   },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
-  },
-  statValueSmall: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.ink,
-  },
-  statLabel: {
-    fontSize: 9,
+  footText: {
+    fontSize: 10,
+    fontWeight: '500',
     color: COLORS.textFaint,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: COLORS.line,
   },
 });
 
