@@ -28,6 +28,7 @@ import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
+import { StoreHero } from "@/components/StoreHero";
 import {
   clearLocalCache,
   readLocalCache,
@@ -430,6 +431,28 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const selectedStore = useMemo(() => {
     return activeStores.find((s) => s.id === selectedStoreId) || null;
   }, [selectedStoreId, activeStores]);
+
+  /** Statistiques de la boutique affichee (en-tete de page boutique). */
+  const storeStats = useMemo(() => {
+    const store = selectedStore;
+    if (!store) {
+      return { productCount: 0, visitorsCount: 0, reviewCount: 0 };
+    }
+    const onlineProducts = (store.products || []).filter(
+      (p) => p.isOnline !== false && p.image,
+    );
+    const productReviewTotal = (store.products || []).reduce(
+      (sum, p) => sum + (p.reviewCount || 0),
+      0,
+    );
+    return {
+      productCount: onlineProducts.length,
+      visitorsCount:
+        (store.views || 0) +
+        onlineProducts.reduce((sum, p) => sum + (p.views || 0), 0),
+      reviewCount: store.reviewCount ?? productReviewTotal,
+    };
+  }, [selectedStore]);
 
   // Autocomplete suggestions (fast, lightweight — fires at 150ms)
   const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string; category: string; storeName: string }>>([]);
@@ -3662,7 +3685,17 @@ const WHOLESALE_FILTER = "wholesale";
               <>
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
-                {!searchTerm && selectedCategory === "all" && (
+                {/* Boutique : en-tete dedie (identique a l'app mobile). */}
+                {selectedStoreParam && selectedStore && (
+                  <StoreHero
+                    store={selectedStore}
+                    productCount={storeStats.productCount}
+                    visitorsCount={storeStats.visitorsCount}
+                    reviewCount={storeStats.reviewCount}
+                  />
+                )}
+
+                {!searchTerm && selectedCategory === "all" && !selectedStoreParam && (
                   <div
                     className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden border border-brand-tint rounded-[24px] md:rounded-[32px]"
                     style={{ touchAction: "pan-y" }}
