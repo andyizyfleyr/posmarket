@@ -105,7 +105,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                 const product = item.products?.[0];
                 return (
                   <View key={item.id || `${order.id}-unit-${idx}`} style={styles.itemRow}>
-                    <ProductThumb src={product?.image} size={48} iconSize={20} />
+                    <ProductThumb src={product?.image} size={40} iconSize={16} />
                     <View style={styles.itemText}>
                       <ProductNameLink product={product} style={styles.itemName} />
                       <Text style={styles.itemMeta}>
@@ -157,7 +157,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
 const styles = StyleSheet.create({
   list: {
-    gap: 16,
+    gap: 12,
   },
   browseBtn: {
     borderRadius: 999,
@@ -170,22 +170,22 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    padding: 16,
+    gap: 10,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F9FAFB',
   },
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   orderIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
@@ -209,42 +209,42 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   orderRef: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#9CA3AF',
     fontWeight: '600',
     letterSpacing: 0.2,
   },
   storeName: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
     marginTop: 1,
   },
   items: {
-    padding: 16,
-    gap: 12,
+    padding: 12,
+    gap: 10,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   itemText: {
     flex: 1,
     minWidth: 0,
   },
   itemName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.ink,
     letterSpacing: -0.1,
   },
   itemMeta: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#9CA3AF',
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 1,
   },
   itemVariant: {
     fontSize: 10,
@@ -253,9 +253,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   reviewBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
@@ -264,21 +264,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: 'rgba(249,250,251,0.6)',
     borderTopWidth: 1,
     borderTopColor: '#F9FAFB',
   },
   totalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#9CA3AF',
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
     color: COLORS.ink,
     letterSpacing: -0.2,

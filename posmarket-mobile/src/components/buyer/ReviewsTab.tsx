@@ -44,7 +44,7 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
         return (
           <View key={rev.id} style={styles.card}>
             <View style={styles.head}>
-              <ProductThumb src={product?.image} size={56} iconSize={22} />
+              <ProductThumb src={product?.image} size={44} iconSize={18} />
               <View style={styles.headText}>
                 <Text style={styles.store} numberOfLines={1}>
                   {storeName}
@@ -68,65 +68,65 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
 
 const styles = StyleSheet.create({
   list: {
-    gap: 12,
+    gap: 10,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    padding: 18,
-    borderRadius: 20,
+    padding: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   head: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 10,
   },
   headText: {
     flex: 1,
     minWidth: 0,
   },
   store: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.brand,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   name: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.ink,
-    letterSpacing: -0.2,
-    marginTop: 2,
+    letterSpacing: -0.1,
+    marginTop: 1,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 6,
+    marginTop: 4,
   },
   date: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#9CA3AF',
     fontWeight: '500',
   },
   commentBox: {
     backgroundColor: '#F9FAFB',
-    padding: 14,
-    borderRadius: 14,
-    marginTop: 4,
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 2,
   },
   comment: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     color: '#4B5563',
-    lineHeight: 20,
+    lineHeight: 17,
     fontStyle: 'italic',
   },
 });
