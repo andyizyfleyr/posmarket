@@ -427,15 +427,10 @@ export default function AccountScreen() {
           <View style={styles.orderList}>
             {recentOrders.map((order) => {
               const items = order.order_items || [];
-              const firstItem = items[0];
-              const productName = firstItem?.products?.[0]?.name;
-              // Une commande peut contenir plusieurs lignes : on annonce le
-              // premier produit et le nombre d'articles de la commande.
               const articleCount = items.reduce(
                 (sum, item) => sum + (item.quantity || 0),
                 0,
               );
-              const otherCount = Math.max(0, items.length - 1);
               return (
                 <Pressable
                   key={order.id}
@@ -446,32 +441,45 @@ export default function AccountScreen() {
                     pressed && { transform: [{ scale: 0.99 }] },
                   ]}
                 >
-                  <View style={styles.orderRowTop}>
-                    <ProductThumb
-                      src={firstItem?.products?.[0]?.image}
-                      size={36}
-                      iconSize={14}
-                    />
-                    <Text style={styles.orderRowName} numberOfLines={1}>
-                      {productName || orderStoreName(order)}
-                    </Text>
-                    {otherCount > 0 ? (
-                      <View style={styles.orderRowCount}>
-                        <Text style={styles.orderRowCountText}>+{otherCount}</Text>
-                      </View>
-                    ) : null}
+                  <View style={styles.orderRowHead}>
+                    <View style={styles.orderRowHeadText}>
+                      <Text style={styles.orderRowStore} numberOfLines={1}>
+                        {orderStoreName(order)}
+                      </Text>
+                      <Text style={styles.orderRowMeta} numberOfLines={1}>
+                        {articleCount} article{articleCount > 1 ? 's' : ''} ·{' '}
+                        {formatShortDate(order.date)}
+                      </Text>
+                    </View>
                     <Text style={styles.orderRowTotal}>{formatCurrency(order.total)}</Text>
-                  </View>
-
-                  <View style={styles.orderRowBottom}>
-                    <Text style={styles.orderRowMeta} numberOfLines={1}>
-                      {orderStoreName(order)} · {articleCount} article
-                      {articleCount > 1 ? 's' : ''} · {formatShortDate(order.date)}
-                    </Text>
                     <StatusBadge
                       status={order.status}
                       businessType={orderBusinessType(order)}
                     />
+                  </View>
+
+                  <View style={styles.orderRowItems}>
+                    {items.map((item, idx) => {
+                      const product = item.products?.[0];
+                      return (
+                        <View
+                          key={item.id || `${order.id}-unit-${idx}`}
+                          style={styles.orderItemRow}
+                        >
+                          <ProductThumb
+                            src={product?.image}
+                            size={26}
+                            iconSize={12}
+                          />
+                          <Text style={styles.orderItemName} numberOfLines={1}>
+                            {product?.name || 'Produit'}
+                          </Text>
+                          <Text style={styles.orderItemMeta}>
+                            {item.quantity} × {formatCurrency(item.price)}
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 </Pressable>
               );
@@ -998,14 +1006,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  orderRowTop: {
+  orderRowHead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  orderRowName: {
+  orderRowHeadText: {
     flex: 1,
     minWidth: 0,
+    gap: 2,
+  },
+  orderRowStore: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.ink,
@@ -1017,31 +1028,32 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
-  orderRowCount: {
-    minWidth: 20,
-    height: 18,
-    paddingHorizontal: 6,
-    borderRadius: 999,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+  orderRowItems: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    gap: 8,
   },
-  orderRowCountText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#6B7280',
-  },
-  orderRowBottom: {
+  orderItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 8,
-    paddingLeft: 46,
+    gap: 8,
   },
-  orderRowMeta: {
+  orderItemName: {
     flex: 1,
     minWidth: 0,
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#4B5563',
+  },
+  orderItemMeta: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    fontVariant: ['tabular-nums'],
+  },
+  orderRowMeta: {
     fontSize: 9,
     fontWeight: '500',
     color: '#9CA3AF',
