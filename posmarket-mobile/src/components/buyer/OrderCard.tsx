@@ -307,9 +307,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: COLORS.brandSoft,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.brandTint,
+    borderColor: COLORS.brand,
   },
   reorderText: {
     fontSize: 11,
