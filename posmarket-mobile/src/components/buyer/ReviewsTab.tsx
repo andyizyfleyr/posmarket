@@ -28,7 +28,7 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
   if (reviews.length === 0) {
     return (
       <EmptyState
-        icon={<Star size={34} color="#D1D5DB" />}
+        icon={<Star size={24} color="#D1D5DB" />}
         title="Aucun avis publié"
         subtitle="Après une commande, laissez un avis pour aider les autres acheteurs et les boutiques."
       />
@@ -44,14 +44,14 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
         return (
           <View key={rev.id} style={styles.card}>
             <View style={styles.head}>
-              <ProductThumb src={product?.image} size={44} iconSize={18} />
+              <ProductThumb src={product?.image} size={36} iconSize={14} />
               <View style={styles.headText}>
                 <Text style={styles.store} numberOfLines={1}>
                   {storeName}
                 </Text>
                 <ProductNameLink product={product} style={styles.name} />
                 <View style={styles.ratingRow}>
-                  <StarRating value={rev.rating} size={13} />
+                  <StarRating value={rev.rating} size={11} />
                   {dateLabel ? <Text style={styles.date}>{dateLabel}</Text> : null}
                 </View>
               </View>

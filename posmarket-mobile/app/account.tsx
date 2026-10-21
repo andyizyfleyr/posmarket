@@ -305,7 +305,7 @@ export default function AccountScreen() {
     return (
       <View style={styles.errorCard}>
         <View style={styles.errorIcon}>
-          <AlertTriangle size={18} color="#DC2626" />
+          <AlertTriangle size={14} color="#DC2626" />
         </View>
         <View style={styles.errorBody}>
           <Text style={styles.errorTitle}>Impossible de charger vos données</Text>
@@ -343,7 +343,7 @@ export default function AccountScreen() {
             ]}
           >
             <View style={[styles.quickIcon, { backgroundColor: action.tint }]}>
-              <Icon size={18} color={action.color} />
+              <Icon size={14} color={action.color} />
             </View>
             <View style={styles.quickText}>
               <Text style={styles.quickLabel} numberOfLines={1}>
@@ -360,7 +360,7 @@ export default function AccountScreen() {
                 </Text>
               </View>
             ) : (
-              <ChevronRight size={15} color="#D1D5DB" />
+              <ChevronRight size={12} color="#D1D5DB" />
             )}
           </Pressable>
         );
@@ -382,14 +382,14 @@ export default function AccountScreen() {
             style={({ pressed }) => [styles.linkBtn, pressed && styles.pressed]}
           >
             <Text style={styles.linkBtnText}>Tout voir</Text>
-            <ChevronRight size={14} color={COLORS.brand} />
+            <ChevronRight size={12} color={COLORS.brand} />
           </Pressable>
         </View>
 
         {recentOrders.length === 0 ? (
           <View style={styles.emptyListCard}>
             <View style={styles.emptyListIcon}>
-              <Package size={24} color={COLORS.brand} />
+              <Package size={18} color={COLORS.brand} />
             </View>
             <Text style={styles.emptyListText}>
               Vos commandes terminées ou annulées apparaîtront ici.
@@ -417,8 +417,8 @@ export default function AccountScreen() {
                 >
                   <ProductThumb
                     src={firstItem?.products?.[0]?.image}
-                    size={44}
-                    iconSize={18}
+                    size={36}
+                    iconSize={14}
                   />
                   <View style={styles.orderRowText}>
                     <Text style={styles.orderRowStore} numberOfLines={1}>
@@ -502,7 +502,7 @@ export default function AccountScreen() {
       <LinearGradient colors={HERO_GRADIENT} style={styles.guestHero}>
         <View style={styles.guestGlow} />
         <View style={styles.guestIcon}>
-          <User size={30} color={COLORS.brand} />
+          <User size={22} color={COLORS.brand} />
         </View>
         <Text style={styles.guestTitle}>Votre espace client</Text>
         <Text style={styles.guestText}>
@@ -530,7 +530,7 @@ export default function AccountScreen() {
         ].map(({ Icon, title, text }) => (
           <View key={title} style={styles.guestBenefitRow}>
             <View style={styles.guestBenefitIcon}>
-              <Icon size={18} color={COLORS.brand} />
+              <Icon size={14} color={COLORS.brand} />
             </View>
             <View style={styles.guestBenefitText}>
               <Text style={styles.guestBenefitTitle}>{title}</Text>
@@ -566,7 +566,7 @@ export default function AccountScreen() {
             hitSlop={8}
             accessibilityLabel="Retour"
           >
-            <ArrowLeft size={22} color="#9CA3AF" />
+            <ArrowLeft size={18} color="#9CA3AF" />
           </Pressable>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Mon compte</Text>
@@ -580,7 +580,7 @@ export default function AccountScreen() {
               accessibilityLabel="Rafraîchir"
             >
               <RefreshCcw
-                size={20}
+                size={16}
                 color={data.refreshing ? COLORS.brand : '#9CA3AF'}
               />
             </Pressable>
@@ -635,7 +635,7 @@ export default function AccountScreen() {
               style={({ pressed }) => [styles.identityEdit, pressed && styles.pressed]}
               accessibilityLabel="Modifier mon profil"
             >
-              <Pencil size={16} color={COLORS.brand} />
+              <Pencil size={14} color={COLORS.brand} />
             </Pressable>
           </View>
 
@@ -649,7 +649,7 @@ export default function AccountScreen() {
             <View style={styles.sectionBody}>
               <View style={styles.sectionHead}>
                 <View style={styles.sectionHeadIcon}>
-                  <activeSectionDef.Icon size={20} color={COLORS.brand} />
+                  <activeSectionDef.Icon size={16} color={COLORS.brand} />
                 </View>
                 <View style={styles.sectionHeadText}>
                   <Text style={styles.sectionTitle}>{activeSectionDef.label}</Text>
@@ -659,7 +659,7 @@ export default function AccountScreen() {
                   onPress={() => openSection('overview')}
                   style={({ pressed }) => [styles.overviewBtn, pressed && styles.pressed]}
                 >
-                  <LayoutDashboard size={13} color="#6B7280" />
+                  <LayoutDashboard size={11} color="#6B7280" />
                   <Text style={styles.overviewBtnText}>Aperçu</Text>
                 </Pressable>
               </View>
@@ -689,7 +689,7 @@ export default function AccountScreen() {
         visible={showLogoutModal}
         title="Déconnexion"
         subtitle="Vous quittez votre compte"
-        icon={<LogOut size={20} color={COLORS.brand} />}
+        icon={<LogOut size={16} color={COLORS.brand} />}
         onClose={() => setShowLogoutModal(false)}
       >
         <View style={styles.logoutBody}>
@@ -756,8 +756,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   identityAvatar: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 16,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
@@ -1316,8 +1316,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   quickIcon: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

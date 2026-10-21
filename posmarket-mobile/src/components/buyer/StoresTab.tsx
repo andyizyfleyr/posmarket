@@ -69,7 +69,7 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
   if (stores.length === 0) {
     return (
       <EmptyState
-        icon={<Store size={34} color="#D1D5DB" />}
+        icon={<Store size={24} color="#D1D5DB" />}
         title="Aucune boutique"
         subtitle="Les boutiques chez lesquelles vous avez commandé apparaîtront ici."
       />
@@ -90,7 +90,7 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
         >
           <View style={styles.cardHead}>
             <View style={styles.storeIcon}>
-              <Store size={20} color={COLORS.brand} />
+              <Store size={16} color={COLORS.brand} />
             </View>
             <View style={styles.storeText}>
               <Text style={styles.storeName} numberOfLines={1}>
@@ -103,7 +103,7 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
               ) : null}
             </View>
             <View style={styles.chevron}>
-              <ShoppingBag size={16} color="#9CA3AF" />
+              <ShoppingBag size={14} color="#9CA3AF" />
             </View>
           </View>
 
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   storeIcon: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
     borderRadius: 12,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
@@ -186,8 +186,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   chevron: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 10,
     backgroundColor: '#F9FAFB',
     alignItems: 'center',

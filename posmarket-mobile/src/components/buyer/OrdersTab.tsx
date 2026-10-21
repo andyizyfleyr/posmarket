@@ -55,14 +55,14 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   if (orders.length === 0) {
     return (
       <EmptyState
-        icon={<Package size={34} color="#D1D5DB" />}
+        icon={<Package size={24} color="#D1D5DB" />}
         title="Aucune commande pour le moment"
         subtitle="Vos commandes validées apparaîtront ici avec leur statut de livraison."
         action={
           <Button
             variant="primary"
             size="sm"
-            icon={<ShoppingBag size={14} color="#FFFFFF" />}
+            icon={<ShoppingBag size={12} color="#FFFFFF" />}
             onPress={onBrowse}
             style={styles.browseBtn}
             textStyle={styles.browseText}
@@ -85,7 +85,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <View style={styles.orderIcon}>
-                  <Package size={18} color={COLORS.brand} />
+                  <Package size={14} color={COLORS.brand} />
                 </View>
                 <View style={styles.cardHeaderText}>
                   <Text style={styles.orderRef} numberOfLines={1}>
@@ -105,7 +105,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                 const product = item.products?.[0];
                 return (
                   <View key={item.id || `${order.id}-unit-${idx}`} style={styles.itemRow}>
-                    <ProductThumb src={product?.image} size={40} iconSize={16} />
+                    <ProductThumb src={product?.image} size={32} iconSize={14} />
                     <View style={styles.itemText}>
                       <ProductNameLink product={product} style={styles.itemName} />
                       <Text style={styles.itemMeta}>
@@ -121,7 +121,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         style={styles.reviewBtn}
                         accessibilityLabel={`Laisser un avis sur ${product.name}`}
                       >
-                        <Star size={15} color={COLORS.brand} fill={COLORS.brand} />
+                        <Star size={12} color={COLORS.brand} fill={COLORS.brand} />
                       </Pressable>
                     ) : null}
                   </View>
@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   orderIcon: {
-    width: 34,
-    height: 34,
+    width: 28,
+    height: 28,
     borderRadius: 10,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
@@ -253,8 +253,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   reviewBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 10,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
