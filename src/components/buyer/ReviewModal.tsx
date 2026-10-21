@@ -103,10 +103,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
               setCommentError(null);
             }}
             placeholder={placeholder}
-            className={`w-full px-5 py-4 bg-gray-50 border rounded-2xl text-sm font-semibold min-h-[110px] resize-none outline-none transition-all focus:ring-2 ${
+            className={`w-full px-5 py-4 bg-white border rounded-2xl text-sm font-semibold min-h-[110px] resize-none outline-none transition-all focus:ring-2 ${
               commentError
-                ? 'border-red-200 focus:ring-red-200/30'
-                : 'border-transparent focus:ring-brand/20'
+                ? 'border-red-300 focus:ring-red-200/40'
+                : 'border-gray-200 focus:border-brand focus:ring-brand/20'
             }`}
           />
           {commentError && (

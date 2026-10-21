@@ -16,6 +16,21 @@ interface ReviewsTabProps {
   loading: boolean;
 }
 
+const formatDate = (iso?: string): string => {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * Onglet « Mes avis » — un avis par carte : boutique, produit noté, date et
+ * commentaire. Design aligné sur la carte de commande.
+ */
 export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
   if (loading && reviews.length === 0) return <PanelSkeleton rows={2} />;
 
@@ -30,43 +45,53 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {reviews.map((rev) => {
         const product = rev.products?.[0];
         const storeName = rev.stores?.[0]?.name || 'Boutique';
+        const dateLabel = formatDate(rev.date);
         return (
           <div
             key={rev.id}
-            className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm"
+            className="rounded-2xl border border-gray-100 bg-white p-3.5 shadow-sm"
           >
-            <div className="flex gap-4 mb-3">
-              <ProductThumb src={product?.image} alt={product?.name} className="w-14 h-14" sizes="56px" iconSize={22} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[9px] text-brand font-bold uppercase tracking-wider truncate">
+            <div className="flex items-center gap-3">
+              <ProductThumb
+                src={product?.image}
+                alt={product?.name}
+                className="w-10 h-10 rounded-xl"
+                sizes="40px"
+                iconSize={16}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[9px] font-bold uppercase tracking-[1px] text-brand">
                   {storeName}
                 </p>
                 <ProductNameLink
                   product={product}
-                  className="text-sm font-bold text-ink"
+                  className="text-[13px] font-bold tracking-[-0.1px] text-gray-900"
                 />
-                <div className="flex items-center gap-2 mt-1">
-                  <StarRating value={rev.rating} size={13} />
-                  {rev.date && (
-                    <span className="text-[9px] text-gray-400 font-semibold">
-                      {new Date(rev.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-                  )}
+                <div className="mt-0.5 flex items-center gap-2">
+                  <StarRating value={rev.rating} size={11} />
+                  {dateLabel ? (
+                    <span className="text-[9px] font-medium text-gray-400">{dateLabel}</span>
+                  ) : null}
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50/60 p-4 rounded-[20px]">
-              <p className="text-xs font-semibold text-gray-600 leading-relaxed italic">
-                «{rev.comment}»
-              </p>
-            </div>
+
+            {rev.comment ? (
+              <div className="mt-3 border-t border-gray-100 pt-3">
+                <p className="text-[10px] font-medium leading-[14px] text-gray-500">
+                  {rev.comment}
+                </p>
+              </div>
+            ) : null}
           </div>
         );
       })}
     </div>
   );
 };
+
+export default ReviewsTab;

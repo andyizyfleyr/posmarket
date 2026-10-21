@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from '@/components/RouterPolyfill';
 import {
   ArrowLeft,
@@ -12,9 +12,14 @@ import {
   User,
   LogOut,
   AlertTriangle,
+  LayoutDashboard,
+  Store as StoreIcon,
+  ChevronRight,
 } from 'lucide-react';
 import { useBuyerData } from '@/components/buyer/useBuyerData';
 import { OrdersTab, ReviewTargetProduct } from '@/components/buyer/OrdersTab';
+import { OrderCard } from '@/components/buyer/OrderCard';
+import { StoresTab } from '@/components/buyer/StoresTab';
 import { AddressesTab } from '@/components/buyer/AddressesTab';
 import { ReviewsTab } from '@/components/buyer/ReviewsTab';
 import { NotificationsTab } from '@/components/buyer/NotificationsTab';
@@ -23,6 +28,7 @@ import { AddressModal } from '@/components/buyer/AddressModal';
 import { ReviewModal } from '@/components/buyer/ReviewModal';
 import { Modal } from '@/components/buyer/Modal';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import { useReorder } from '@/hooks/useReorder';
 import {
   BuyerAddress,
   BuyerTabId,
@@ -39,18 +45,70 @@ interface BuyerViewProps {
   onUserUpdate: (updates: { name: string; avatarUrl?: string | null }) => void;
 }
 
-const ALL_TABS: Array<{
+interface TabDef {
   id: BuyerTabId;
   path: string;
   label: string;
   desc: string;
   icon: React.ElementType;
-}> = [
-  { id: 'orders', path: 'commandes', label: 'Commandes', desc: 'Historique et suivi de vos achats', icon: Package },
-  { id: 'addresses', path: 'adresses', label: 'Livraison', desc: 'Vos contacts de livraison', icon: MapPin },
-  { id: 'reviews', path: 'avis', label: 'Avis', desc: 'Vos avis publiés', icon: Star },
-  { id: 'notifications', path: 'notifications', label: 'Alertes', desc: 'WhatsApp et e-mail', icon: BellRing },
-  { id: 'profile', path: 'profil', label: 'Profil', desc: 'Vos informations et sécurité', icon: User },
+  /** Libellé utilisé par la tuile de raccourci de l'aperçu. */
+  tileLabel?: string;
+}
+
+const ALL_TABS: TabDef[] = [
+  {
+    id: 'overview',
+    path: 'apercu',
+    label: 'Aperçu',
+    desc: 'Votre espace en un coup d’œil',
+    icon: LayoutDashboard,
+  },
+  {
+    id: 'orders',
+    path: 'commandes',
+    label: 'Commandes',
+    desc: 'Historique et suivi de vos achats',
+    icon: Package,
+    tileLabel: 'Mes commandes',
+  },
+  {
+    id: 'addresses',
+    path: 'adresses',
+    label: 'Livraison',
+    desc: 'Vos contacts de livraison',
+    icon: MapPin,
+  },
+  {
+    id: 'reviews',
+    path: 'avis',
+    label: 'Avis',
+    desc: 'Vos avis publiés',
+    icon: Star,
+    tileLabel: 'Mes avis',
+  },
+  {
+    id: 'stores',
+    path: 'boutiques',
+    label: 'Boutiques',
+    desc: 'Boutiques chez lesquelles vous avez commandé',
+    icon: StoreIcon,
+    tileLabel: 'Mes boutiques',
+  },
+  {
+    id: 'notifications',
+    path: 'notifications',
+    label: 'Alertes',
+    desc: 'WhatsApp et e-mail',
+    icon: BellRing,
+  },
+  {
+    id: 'profile',
+    path: 'profil',
+    label: 'Profil',
+    desc: 'Vos informations et sécurité',
+    icon: User,
+    tileLabel: 'Mon profil',
+  },
 ];
 
 /**
@@ -63,18 +121,17 @@ const HIDDEN_TAB_IDS: BuyerTabId[] = ['notifications', 'addresses'];
 
 const TABS = ALL_TABS.filter((t) => !HIDDEN_TAB_IDS.includes(t.id));
 
-/** Tailwind ne génère pas les classes construites : table de correspondance. */
-const TAB_GRID_COLS: Record<number, string> = {
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-4',
-  5: 'grid-cols-5',
-};
-
 const TAB_FROM_PATH: Record<string, BuyerTabId> = {
+  apercu: 'overview',
+  overview: 'overview',
   commandes: 'orders',
+  orders: 'orders',
   adresses: 'addresses',
+  addresses: 'addresses',
   avis: 'reviews',
+  reviews: 'reviews',
+  boutiques: 'stores',
+  stores: 'stores',
   notifications: 'notifications',
   profil: 'profile',
 };
@@ -93,7 +150,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<BuyerTabId>(() => {
-    return TAB_FROM_PATH[accountTab || 'commandes'] || 'orders';
+    return TAB_FROM_PATH[accountTab || 'apercu'] || 'overview';
   });
   const [addressModal, setAddressModal] = useState<{
     open: boolean;
@@ -102,16 +159,17 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   const [reviewTarget, setReviewTarget] = useState<
     (ReviewTargetProduct & { store_id: string }) | null
   >(null);
-const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [addressPendingDelete, setAddressPendingDelete] = useState<BuyerAddress | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
   const data = useBuyerData(user, notify);
+  const { reorder, pendingOrderId } = useReorder(notify);
 
   // Synchronise l'onglet actif si accountTab change depuis l'extérieur (URL)
   useEffect(() => {
-    const t = TAB_FROM_PATH[accountTab || 'commandes'];
+    const t = TAB_FROM_PATH[accountTab || 'apercu'];
     if (!t || t === activeTab) return;
     const id = window.setTimeout(() => setActiveTab(t), 0);
     return () => window.clearTimeout(id);
@@ -121,14 +179,14 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   useEffect(() => {
     const handlePopstate = () => {
       const match = window.location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0];
-      const targetTab = TAB_FROM_PATH[match || 'commandes'] || 'orders';
+      const targetTab = TAB_FROM_PATH[match || 'apercu'] || 'overview';
       setActiveTab(targetTab);
     };
     window.addEventListener('popstate', handlePopstate);
     return () => window.removeEventListener('popstate', handlePopstate);
   }, []);
 
-const showError = !!data.error && data.error !== dismissedError;
+  const showError = !!data.error && data.error !== dismissedError;
 
   // Un nouvel essai repart d'un état non masqué : si la requête échoue encore avec le
   // même message, le bandeau doit réapparaître plutôt que de rester caché.
@@ -140,7 +198,7 @@ const showError = !!data.error && data.error !== dismissedError;
   const handleTabChange = (tab: BuyerTabId) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
-    const def = TABS.find((t) => t.id === tab);
+    const def = ALL_TABS.find((t) => t.id === tab);
     const newPath = `/mon-compte/${def?.path || tab}`;
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', newPath);
@@ -155,7 +213,7 @@ const showError = !!data.error && data.error !== dismissedError;
     if (ok) setAddressPendingDelete(null);
   };
 
-const { submitReview } = data;
+  const { submitReview } = data;
 
   const handleReviewSubmit = useCallback(
     async (rating: number, comment: string) => {
@@ -175,15 +233,54 @@ const { submitReview } = data;
 
   const activeTabDef = ALL_TABS.find((t) => t.id === activeTab) || ALL_TABS[0];
 
+  /** Boutiques distinctes chez lesquelles l'acheteur a commandé. */
+  const followedStoresCount = useMemo(() => {
+    const ids = new Set<string>();
+    for (const order of data.orders) {
+      const id = order.store_id || order.stores?.[0]?.name || '';
+      if (id) ids.add(id);
+    }
+    return ids.size;
+  }, [data.orders]);
+
+  const counts: Record<BuyerTabId, number> = {
+    overview: 0,
+    orders: data.totalOrders,
+    addresses: data.addresses.length,
+    reviews: data.reviews.length,
+    stores: followedStoresCount,
+    notifications: 0,
+    profile: 0,
+  };
+
+  /** Tuiles de raccourci de l'aperçu. */
+  const tiles = useMemo(
+    () =>
+      TABS.filter((t) => t.id !== 'overview').map((tab) => {
+        const hint =
+          tab.id === 'orders'
+            ? `${counts.orders} au total`
+            : tab.id === 'reviews'
+              ? `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`
+              : tab.id === 'stores'
+                ? `${counts.stores} boutique${counts.stores > 1 ? 's' : ''}`
+                : 'Infos et sécurité';
+        return { id: tab.id, label: tab.tileLabel || tab.label, hint, icon: tab.icon };
+      }),
+    [counts.orders, counts.reviews, counts.stores],
+  );
+
+  const recentOrders = useMemo(() => data.orders.slice(0, 3), [data.orders]);
+
   const panel = (() => {
     if (showError) {
       return (
-<div className="bg-red-50 border border-red-200 rounded-card p-4 flex items-start gap-3">
+        <div className="bg-red-50 border border-red-200 rounded-card p-4 flex items-start gap-3">
           <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-red-700">Une erreur est survenue</p>
             <p className="text-sm text-red-600 mt-0.5">{data.error}</p>
-<div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3">
               <button
                 type="button"
                 onClick={handleRetry}
@@ -205,6 +302,80 @@ const { submitReview } = data;
     }
 
     switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-5">
+            {/* Tuiles de raccourci */}
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {tiles.map((tile) => {
+                const Icon = tile.icon;
+                return (
+                  <button
+                    key={tile.id}
+                    type="button"
+                    onClick={() => handleTabChange(tile.id)}
+                    className="flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border border-gray-100 bg-white p-3.5 text-center shadow-sm transition-all hover:border-brand/40 hover:shadow-md active:scale-[0.98]"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-brand">
+                      <Icon size={15} aria-hidden="true" />
+                    </span>
+                    <span className="text-[11px] font-bold text-gray-900">{tile.label}</span>
+                    <span className="text-[9.5px] font-medium text-gray-400">{tile.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Dernières commandes */}
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-bold tracking-tight text-gray-900">
+                  Dernières commandes
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('orders')}
+                  className="flex items-center gap-0.5 text-[11px] font-bold text-brand transition-opacity active:opacity-60"
+                >
+                  Tout voir
+                  <ChevronRight size={13} strokeWidth={3} />
+                </button>
+              </div>
+
+              {data.loading && recentOrders.length === 0 ? (
+                <PanelSkeleton rows={2} />
+              ) : recentOrders.length === 0 ? (
+                <div className="flex flex-col items-center rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-10 text-center">
+                  <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-brand">
+                    <Package size={20} aria-hidden="true" />
+                  </span>
+                  <p className="text-xs font-semibold text-gray-500">
+                    Vos commandes terminées ou annulées apparaîtront ici.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="mt-4 rounded-full bg-brand px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-opacity active:opacity-80"
+                  >
+                    Découvrir les boutiques
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {recentOrders.map((order) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      onPress={() => handleTabChange('orders')}
+                      onReorder={() => void reorder(order)}
+                      reorderDisabled={pendingOrderId === order.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        );
       case 'orders':
         return (
           <OrdersTab
@@ -217,11 +388,13 @@ const { submitReview } = data;
               setReviewTarget({ ...product, store_id: storeId })
             }
             onBrowse={() => navigate('/')}
+            onReorder={(order) => void reorder(order)}
+            pendingOrderId={pendingOrderId}
           />
         );
       case 'addresses':
         return (
-<AddressesTab
+          <AddressesTab
             addresses={data.addresses}
             loading={data.loading}
             onAdd={() => setAddressModal({ open: true, editing: null })}
@@ -231,6 +404,8 @@ const { submitReview } = data;
         );
       case 'reviews':
         return <ReviewsTab reviews={data.reviews} loading={data.loading} />;
+      case 'stores':
+        return <StoresTab orders={data.orders} loading={data.loading} />;
       case 'notifications':
         return <NotificationsTab notify={notify} />;
       case 'profile':
@@ -238,7 +413,7 @@ const { submitReview } = data;
           <ProfileTab
             user={user}
             notify={notify}
-onUserUpdate={(updates) => {
+            onUserUpdate={(updates) => {
               onUserUpdate(updates);
             }}
             onLogout={() => setShowLogoutModal(true)}
@@ -248,14 +423,6 @@ onUserUpdate={(updates) => {
         return null;
     }
   })();
-
-  const counts: Record<BuyerTabId, number> = {
-    orders: data.totalOrders,
-    addresses: data.addresses.length,
-    reviews: data.reviews.length,
-    notifications: 0,
-    profile: 0,
-  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-16 md:pb-8">
@@ -269,9 +436,12 @@ onUserUpdate={(updates) => {
           >
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-base font-bold text-ink tracking-tight">
-            Mon compte
-          </h1>
+          <div className="text-center">
+            <h1 className="text-base font-bold text-ink tracking-tight">Mon compte</h1>
+            <p className="hidden text-[10px] font-semibold uppercase tracking-widest text-gray-400 sm:block">
+              Espace client
+            </p>
+          </div>
           <button
             onClick={data.refreshAll}
             className="p-2 text-gray-400 hover:text-brand active:scale-90 transition-transform"
@@ -284,10 +454,10 @@ onUserUpdate={(updates) => {
 
       <div className="max-w-6xl mx-auto px-4 py-4 md:py-8">
         <div className="lg:grid lg:grid-cols-[290px_1fr] lg:gap-8">
-          {/* ---- Colonne latérale ---- */}
-          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          {/* ---- Colonne latérale (bureau) ---- */}
+          <aside className="hidden lg:block space-y-4 lg:sticky lg:top-20 lg:self-start">
             {/* Carte identité */}
-<div className="bg-white rounded-panel p-5 md:p-6 border border-line shadow-sm relative overflow-hidden">
+            <div className="bg-white rounded-panel p-5 md:p-6 border border-line shadow-sm relative overflow-hidden">
               <div className="relative z-10 flex items-center gap-4 lg:flex-col lg:gap-4 lg:text-center">
                 <div
                   className={`w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-tr ${AVATAR_GRADIENT} rounded-2xl lg:rounded-full flex items-center justify-center text-white text-xl lg:text-3xl font-bold shadow-md shadow-orange-100 ring-2 ring-white`}
@@ -322,7 +492,7 @@ onUserUpdate={(updates) => {
                 {[
                   { value: counts.orders, label: 'Commandes' },
                   { value: counts.reviews, label: 'Avis' },
-                  { value: counts.addresses, label: 'Adresses' },
+                  { value: counts.stores, label: 'Boutiques' },
                 ].map((s, i) => (
                   <React.Fragment key={s.label}>
                     {i > 0 && <div className="w-px h-5 bg-line" />}
@@ -339,8 +509,8 @@ onUserUpdate={(updates) => {
               </div>
             </div>
 
-            {/* Navigation desktop */}
-            <nav className="hidden lg:block space-y-2" role="tablist" aria-label="Sections du compte">
+            {/* Navigation bureau */}
+            <nav className="space-y-2" role="tablist" aria-label="Sections du compte">
               {TABS.map((tab) => {
                 const isActive = tab.id === activeTab;
                 const Icon = tab.icon;
@@ -382,44 +552,31 @@ onUserUpdate={(updates) => {
           </aside>
 
           <main className="mt-4 lg:mt-0">
-            {/* Navigation mobile : tuiles onglets */}
-            <div className="lg:hidden -mx-4 px-4 mb-4">
-              <div className={`grid gap-2 ${TAB_GRID_COLS[TABS.length] ?? "grid-cols-3"}`} role="tablist" aria-label="Sections du compte">
-                {TABS.map((tab) => {
-                  const isActive = tab.id === activeTab;
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      id={`buyer-tab-m-${tab.id}`}
-                      aria-selected={isActive}
-                      aria-controls="buyer-tabpanel"
-                      onClick={() => handleTabChange(tab.id)}
-                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-colors active:scale-95 ${
-                        isActive
-                          ? 'bg-brand-soft border-brand/20 text-brand'
-                          : 'bg-white border-line shadow-sm text-gray-500'
-                      }`}
-                    >
-                      <Icon size={20} aria-hidden="true" />
-                      <span className="text-xs font-bold">{tab.label}</span>
-                    </button>
-                  );
-                })}
+            {/* En-tête de section (mobile) : on revient à l'aperçu */}
+            {activeTab !== 'overview' && (
+              <div className="mb-4 flex items-start gap-3 lg:hidden">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-brand">
+                  {React.createElement(activeTabDef.icon, { size: 16, 'aria-hidden': true })}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-ink tracking-tight">
+                    {activeTabDef.label}
+                  </h2>
+                  <p className="text-sm text-gray-500 font-medium">{activeTabDef.desc}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('overview')}
+                  className="flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-500 transition-colors active:scale-95"
+                >
+                  <LayoutDashboard size={12} aria-hidden="true" />
+                  Aperçu
+                </button>
               </div>
-            </div>
-
-<div className="mb-4 lg:hidden">
-              <h2 className="text-lg font-bold text-ink tracking-tight">
-                {activeTabDef.label}
-              </h2>
-              <p className="text-sm text-gray-500 font-medium">{activeTabDef.desc}</p>
-            </div>
+            )}
 
             <div id="buyer-tabpanel" role="tabpanel" aria-labelledby={`buyer-tab-${activeTab}`}>
-              {data.loading ? <PanelSkeleton rows={3} /> : panel}
+              {data.loading && activeTab !== 'overview' ? <PanelSkeleton rows={3} /> : panel}
             </div>
           </main>
         </div>
@@ -442,7 +599,7 @@ onUserUpdate={(updates) => {
         />
       )}
 
-{showLogoutModal && (
+      {showLogoutModal && (
         <Modal
           title="Déconnexion"
           subtitle="Vous quittez votre compte"

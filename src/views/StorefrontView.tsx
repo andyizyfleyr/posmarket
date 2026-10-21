@@ -330,6 +330,44 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
    */
   const cartRef = useRef(cart);
   cartRef.current = cart;
+
+  /**
+   * Ajouts de panier demandés depuis une autre vue (espace client, bouton
+   * « Recommander »). L'événement porte les lignes prêtes à être fusionnées :
+   * le panier en mémoire reste la source de vérité, sinon la sauvegarde
+   * différée écraserait les lignes ajoutées depuis l'espace client.
+   */
+  React.useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ items?: CartItem[] }>).detail;
+      const incoming = detail?.items;
+      if (!Array.isArray(incoming) || incoming.length === 0) return;
+      setCart((prev) => {
+        let next = prev;
+        for (const line of incoming) {
+          const existing = next.find(
+            (item) =>
+              item.product.id === line.product.id &&
+              item.product.storeId === line.product.storeId &&
+              (item.variantId === line.variantId ||
+                (!item.variantId && !line.variantId)) &&
+              sameSelectedOptions(item.selectedOptions, line.selectedOptions),
+          );
+          next = existing
+            ? next.map((item) =>
+                item === existing
+                  ? { ...item, quantity: item.quantity + (line.quantity || 1) }
+                  : item,
+              )
+            : [...next, line];
+        }
+        return next;
+      });
+    };
+    window.addEventListener('posmarket:cart-add', handler);
+    return () => window.removeEventListener('posmarket:cart-add', handler);
+  }, []);
+
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     phone: "",
@@ -3017,7 +3055,7 @@ const WHOLESALE_FILTER = "wholesale";
         <div className="fixed inset-0 z-[900] bg-white overflow-y-auto">
           <BuyerView
             user={{ id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl }}
-            accountTab={location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0] || 'commandes'}
+            accountTab={location.pathname.split('/mon-compte/')[1]?.split('?')[0]?.split('/')[0] || 'apercu'}
             onBack={() => {
               if (isAccountViewUrl) handleGoBack("/");
               else setIsAccountView(false);

@@ -151,10 +151,10 @@ if (res?.success) {
   };
 
   const inputClass = (hasError?: string) =>
-    `w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-semibold outline-none transition-all focus:ring-2 ${
+    `w-full px-4 py-3 bg-white border rounded-xl text-sm font-semibold outline-none transition-all focus:ring-2 ${
       hasError
-        ? 'border-red-200 focus:ring-red-200/30'
-        : 'border-transparent focus:ring-brand/20'
+        ? 'border-red-300 focus:ring-red-200/40'
+        : 'border-gray-200 focus:border-brand focus:ring-brand/20'
     }`;
 
   return (
@@ -177,7 +177,7 @@ if (res?.success) {
         {/* Photo de profil */}
         <div className="space-y-1">
           <label className="text-[10px] font-semibold text-gray-400 px-1">Photo de profil</label>
-          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-brand to-orange-400 flex items-center justify-center text-white text-base font-bold shrink-0">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -244,7 +244,7 @@ if (res?.success) {
 
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-gray-400 px-1">E-mail</label>
-            <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs font-medium text-gray-500 flex items-center gap-2">
+            <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-500 flex items-center gap-2">
               <Mail size={14} />
               <span className="truncate">{user.email}</span>
             </div>

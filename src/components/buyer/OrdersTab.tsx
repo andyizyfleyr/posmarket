@@ -1,24 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Package, Star, ShoppingBag } from 'lucide-react';
+import { Package, ShoppingBag } from 'lucide-react';
 import Button from '@/components/Button';
-import { formatCurrency } from '@/utils';
 import { BuyerOrder } from './accountTypes';
-import {
-  EmptyState,
-  PanelSkeleton,
-  ProductThumb,
-  ProductNameLink,
-  StatusBadge,
-} from './accountUtils';
+import { OrderCard, ReviewTargetProduct } from './OrderCard';
+import { EmptyState, PanelSkeleton } from './accountUtils';
 
-export type ReviewTargetProduct = {
-  id: string;
-  name: string;
-  image: string;
-  business_type?: string;
-};
+export type { ReviewTargetProduct };
 
 interface OrdersTabProps {
   orders: BuyerOrder[];
@@ -28,21 +17,11 @@ interface OrdersTabProps {
   onLoadMore: () => void;
   onReviewProduct: (product: ReviewTargetProduct, storeId: string) => void;
   onBrowse: () => void;
+  /** Callback « commander à nouveau ». */
+  onReorder?: (order: BuyerOrder) => void;
+  /** Commande en cours de remise au panier. */
+  pendingOrderId?: string | null;
 }
-
-const formatDate = (iso: string): string => {
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return '';
-  }
-};
-
-const orderBusinessType = (order: BuyerOrder): string | undefined =>
-  order.stores?.[0]?.business_type ||
-  order.order_items?.[0]?.products?.[0]?.business_type;
 
 export const OrdersTab: React.FC<OrdersTabProps> = ({
   orders,
@@ -52,6 +31,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   onLoadMore,
   onReviewProduct,
   onBrowse,
+  onReorder,
+  pendingOrderId = null,
 }) => {
   if (loading && orders.length === 0) return <PanelSkeleton rows={3} />;
 
@@ -77,72 +58,16 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      {orders.map((order) => {
-        const storeName = order.stores?.[0]?.name || 'Boutique';
-        const businessType = orderBusinessType(order);
-        const dateLabel = formatDate(order.date);
-        return (
-          <div
-            key={order.id}
-            className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden"
-          >
-            <div className="p-4 border-b border-gray-50 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
-                  <Package size={18} className="text-brand" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider truncate">
-                    {order.id ? `#${order.id.slice(-6)}` : 'Commande'}
-                    {dateLabel ? ` • ${dateLabel}` : ''}
-                  </p>
-                  <p className="text-sm font-bold text-ink truncate">{storeName}</p>
-                </div>
-              </div>
-              <StatusBadge status={order.status} businessType={businessType} />
-            </div>
-
-            <div className="p-4 space-y-3">
-              {order.order_items?.map((item, idx) => {
-                const product = item.products?.[0];
-                return (
-                  <div
-                    key={item.id || `${order.id}-unit-${idx}`}
-                    className="flex items-center gap-3"
-                  >
-                    <ProductThumb src={product?.image} alt={product?.name} className="w-12 h-12" />
-                    <div className="flex-1 min-w-0">
-                      <ProductNameLink
-                        product={product}
-                        className="text-sm font-bold text-ink"
-                      />
-                      <p className="text-[10px] text-gray-400 font-semibold">
-                        {item.quantity} × {formatCurrency(item.price)}
-                      </p>
-                    </div>
-                    {product?.id && (
-                      <button
-                        onClick={() => onReviewProduct(product, order.store_id || '')}
-                        className="shrink-0 w-9 h-9 flex items-center justify-center bg-orange-50 text-brand rounded-xl hover:bg-brand hover:text-white transition-all active:scale-90"
-                        title={`Laisser un avis sur ${product.name}`}
-                        aria-label={`Laisser un avis sur ${product.name}`}
-                      >
-                        <Star size={15} fill="currentColor" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="px-4 py-3 bg-gray-50/60 border-t border-gray-50 flex items-center justify-between">
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total</span>
-              <span className="text-sm font-bold text-ink">{formatCurrency(order.total)}</span>
-            </div>
-          </div>
-        );
-      })}
+    <div className="space-y-3">
+      {orders.map((order) => (
+        <OrderCard
+          key={order.id}
+          order={order}
+          onReviewProduct={onReviewProduct}
+          onReorder={onReorder ? () => onReorder(order) : undefined}
+          reorderDisabled={pendingOrderId === order.id}
+        />
+      ))}
 
       {hasMoreOrders && (
         <div className="pt-2 flex justify-center">
@@ -160,3 +85,5 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     </div>
   );
 };
+
+export default OrdersTab;

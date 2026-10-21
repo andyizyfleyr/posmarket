@@ -2,6 +2,12 @@ export type BuyerOrderItem = {
   id: string;
   quantity: number;
   price: number;
+  /** Libellé de la variante retenue au moment de la commande. */
+  variantLabel?: string | null;
+  /** Référence interne de la variante (reconstitution du panier). */
+  variantSku?: string | null;
+  /** Options choisies, par nom d'option. */
+  variantOptionValues?: Record<string, string>;
   products: Array<{
     id: string;
     name: string;
@@ -46,7 +52,14 @@ export type BuyerReview = {
   }>;
 };
 
-export type BuyerTabId = 'orders' | 'addresses' | 'reviews' | 'notifications' | 'profile';
+export type BuyerTabId =
+  | 'overview'
+  | 'orders'
+  | 'addresses'
+  | 'reviews'
+  | 'stores'
+  | 'notifications'
+  | 'profile';
 
 export type NotifyFn = (
   message: string,
