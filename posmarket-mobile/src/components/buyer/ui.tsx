@@ -123,7 +123,7 @@ export const ProductNameLink: React.FC<{
   const id = product?.id;
   if (!id) {
     return (
-      <Text style={style} numberOfLines={1}>
+      <Text style={style} numberOfLines={1} ellipsizeMode="tail">
         {name}
       </Text>
     );
@@ -134,8 +134,11 @@ export const ProductNameLink: React.FC<{
       onPress={() => router.push(`/product/${slug}` as never)}
       hitSlop={4}
       accessibilityLabel={`Voir ${name}`}
+      // Le Pressable porte l'élasticité : sans cela le nom long pousse le
+      // prix au lieu d'être tronqué.
+      style={styles.linkWrapper}
     >
-      <Text style={[style, styles.link]} numberOfLines={1}>
+      <Text style={[style, styles.link]} numberOfLines={1} ellipsizeMode="tail">
         {name}
       </Text>
     </Pressable>
@@ -214,6 +217,10 @@ const styles = StyleSheet.create({
   },
   link: {
     textDecorationLine: 'underline',
+  },
+  linkWrapper: {
+    flex: 1,
+    minWidth: 0,
   },
   stars: {
     flexDirection: 'row',

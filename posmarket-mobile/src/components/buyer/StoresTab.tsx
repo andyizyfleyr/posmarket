@@ -138,19 +138,14 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
 
 const styles = StyleSheet.create({
   list: {
-    gap: 12,
+    gap: 10,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.line,
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   pressed: {
     opacity: 0.85,
@@ -158,7 +153,7 @@ const styles = StyleSheet.create({
   cardHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   storeIcon: {
     width: 34,
@@ -181,14 +176,14 @@ const styles = StyleSheet.create({
   },
   storeType: {
     fontSize: 10,
-    color: '#6B7280',
+    color: COLORS.textMuted,
     fontWeight: '500',
   },
   chevron: {
     width: 28,
     height: 28,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -198,7 +193,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: COLORS.line,
     gap: 8,
   },
   stat: {
@@ -219,7 +214,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 9,
-    color: '#9CA3AF',
+    color: COLORS.textFaint,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -227,7 +222,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: COLORS.line,
   },
 });
 

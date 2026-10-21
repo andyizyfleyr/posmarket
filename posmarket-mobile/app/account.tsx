@@ -54,16 +54,11 @@ import { ProfileTab } from '@/components/buyer/ProfileTab';
 import { AddressModal, type SaveAddressPayload } from '@/components/buyer/AddressModal';
 import { ReviewModal } from '@/components/buyer/ReviewModal';
 import { SheetModal } from '@/components/buyer/SheetModal';
-import {
-  PanelSkeleton,
-  ProductThumb,
-  StatusBadge,
-  formatShortDate,
-} from '@/components/buyer/ui';
+import { PanelSkeleton } from '@/components/buyer/ui';
+import { OrderCard } from '@/components/buyer/OrderCard';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Button } from '@/components/Button';
-import { formatCurrency } from '@/utils';
-import type { BuyerAddress, BuyerOrder, BuyerTabId } from '@/types';
+import type { BuyerAddress, BuyerTabId } from '@/types';
 import { COLORS } from '@/theme';
 
 type AccountSection = 'overview' | BuyerTabId | 'stores';
@@ -148,12 +143,6 @@ const SECTION_FROM_PARAM: Record<string, AccountSection> = {
 };
 
 const HERO_GRADIENT = ['#002F34', '#0B4A50'] as const;
-
-const orderStoreName = (order: BuyerOrder) => order.stores?.[0]?.name || 'Boutique';
-
-const orderBusinessType = (order: BuyerOrder): string | undefined =>
-  order.stores?.[0]?.business_type ||
-  order.order_items?.[0]?.products?.[0]?.business_type;
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -406,66 +395,13 @@ export default function AccountScreen() {
           </View>
         ) : (
           <View style={styles.orderList}>
-            {recentOrders.map((order) => {
-              const items = order.order_items || [];
-              const articleCount = items.reduce(
-                (sum, item) => sum + (item.quantity || 0),
-                0,
-              );
-              return (
-                <Pressable
-                  key={order.id}
-                  onPress={() => openSection('orders')}
-                  style={({ pressed }) => [
-                    styles.orderCard,
-                    pressed && styles.pressed,
-                    pressed && { transform: [{ scale: 0.99 }] },
-                  ]}
-                >
-                  <View style={styles.orderCardHead}>
-                    <Text style={styles.orderStore} numberOfLines={1}>
-                      {orderStoreName(order)}
-                    </Text>
-                    <Text style={styles.orderTotal}>{formatCurrency(order.total)}</Text>
-                  </View>
-
-                  <View style={styles.orderCardMeta}>
-                    <Text style={styles.orderMeta} numberOfLines={1}>
-                      {articleCount} article{articleCount > 1 ? 's' : ''} ·{' '}
-                      {formatShortDate(order.date)}
-                    </Text>
-                    <StatusBadge
-                      status={order.status}
-                      businessType={orderBusinessType(order)}
-                    />
-                  </View>
-
-                  <View style={styles.orderItems}>
-                    {items.map((item, idx) => {
-                      const product = item.products?.[0];
-                      return (
-                        <View
-                          key={item.id || `${order.id}-unit-${idx}`}
-                          style={styles.orderItem}
-                        >
-                          <ProductThumb
-                            src={product?.image}
-                            size={28}
-                            iconSize={12}
-                          />
-                          <Text style={styles.orderItemName} numberOfLines={1}>
-                            {product?.name || 'Produit'}
-                          </Text>
-                          <Text style={styles.orderItemMeta}>
-                            {item.quantity} × {formatCurrency(item.price)}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </Pressable>
-              );
-            })}
+            {recentOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                onPress={() => openSection('orders')}
+              />
+            ))}
           </View>
         )}
       </View>
@@ -853,69 +789,6 @@ const styles = StyleSheet.create({
   // ── Cartes de commande ───────────────────────────────────
   orderList: {
     gap: 10,
-  },
-  orderCard: {
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  orderCardHead: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 10,
-  },
-  orderCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 4,
-  },
-  orderStore: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.ink,
-    letterSpacing: -0.1,
-  },
-  orderTotal: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.ink,
-    fontVariant: ['tabular-nums'],
-  },
-  orderMeta: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: COLORS.textFaint,
-  },
-  orderItems: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
-    gap: 8,
-  },
-  orderItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  orderItemName: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.textMuted,
-  },
-  orderItemMeta: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.textFaint,
-    fontVariant: ['tabular-nums'],
   },
 
   // ── En-tête de section ───────────────────────────────────
