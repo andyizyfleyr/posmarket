@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Package, ShoppingBag, Star } from 'lucide-react-native';
+import { Package, RotateCcw, ShoppingBag, Star } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { formatCurrency } from '@/utils';
 import type { BuyerOrder } from '@/types';
@@ -18,6 +18,7 @@ import {
   StatusBadge,
   formatShortDate,
 } from '@/components/buyer/ui';
+import { useReorder } from '@/hooks/useReorder';
 import { COLORS } from '@/theme';
 
 export interface ReviewTargetProduct {
@@ -50,6 +51,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   onReviewProduct,
   onBrowse,
 }) => {
+  const { reorder, pendingOrderId } = useReorder();
+
   if (loading && orders.length === 0) return <PanelSkeleton rows={3} />;
 
   if (orders.length === 0) {
@@ -133,6 +136,22 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalValue}>{formatCurrency(order.total)}</Text>
             </View>
+
+            <Pressable
+              onPress={() => void reorder(order)}
+              disabled={pendingOrderId === order.id}
+              style={({ pressed }) => [
+                styles.reorderBtn,
+                pressed && styles.pressed,
+                pendingOrderId === order.id && styles.disabled,
+              ]}
+              accessibilityLabel="Remettre cette commande au panier"
+            >
+              <RotateCcw size={12} color={COLORS.brand} />
+              <Text style={styles.reorderText}>
+                {pendingOrderId === order.id ? 'Ajout…' : 'Commander à nouveau'}
+              </Text>
+            </Pressable>
           </View>
         );
       })}
@@ -269,6 +288,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(249,250,251,0.6)',
     borderTopWidth: 1,
     borderTopColor: '#F9FAFB',
+  },
+  reorderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    margin: 10,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: COLORS.brandSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(245,107,42,0.20)',
+  },
+  reorderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.brand,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  disabled: {
+    opacity: 0.6,
   },
   totalLabel: {
     fontSize: 9,

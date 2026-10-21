@@ -52,6 +52,7 @@ export const getStatusInfo = (status: string, businessType?: string): StatusInfo
   }
 };
 
+/** Pastille de statut : icône seule, la couleur porte l'information. */
 export const StatusBadge: React.FC<{ status: string; businessType?: string }> = ({
   status,
   businessType,
@@ -59,9 +60,12 @@ export const StatusBadge: React.FC<{ status: string; businessType?: string }> = 
   const info = getStatusInfo(status, businessType);
   const Icon = info.Icon;
   return (
-    <View style={[styles.statusBadge, { backgroundColor: info.background }]}>
-      <Icon size={12} color={info.color} />
-      <Text style={[styles.statusText, { color: info.color }]}>{info.label}</Text>
+    <View
+      style={[styles.statusBadge, { backgroundColor: info.background }]}
+      accessibilityRole="text"
+      accessibilityLabel={`Statut : ${info.label}`}
+    >
+      <Icon size={12} color={info.color} strokeWidth={2.4} />
     </View>
   );
 };
@@ -191,16 +195,11 @@ export const formatShortDate = (iso?: string | null): string => {
 
 const styles = StyleSheet.create({
   statusBadge: {
-    flexDirection: 'row',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
+    justifyContent: 'center',
   },
   thumb: {
     backgroundColor: '#F3F4F6',

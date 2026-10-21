@@ -21,7 +21,7 @@ import type { BuyerAddress, BuyerOrder, BuyerReview, BuyerTabId } from '@/types'
 import type { SaveAddressPayload } from '@/components/buyer/AddressModal';
 
 const CACHE_KEY = 'buyer_data_cache_v2';
-const ORDER_PAGE_SIZE = 10;
+const ORDER_PAGE_SIZE = 8;
 
 interface BuyerCache {
   orders: BuyerOrder[];

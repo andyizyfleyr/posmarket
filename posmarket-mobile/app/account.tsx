@@ -8,6 +8,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,9 +17,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -28,8 +28,6 @@ import {
   LogOut,
   MapPin,
   Package,
-  Pencil,
-  Plus,
   RefreshCcw,
   Star,
   Store,
@@ -55,8 +53,6 @@ import {
 } from '@/components/buyer/ui';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Button } from '@/components/Button';
-import { formatPhoneNumber } from '@/constants/countries';
-import { API_BASE_URL } from '@/api/client';
 import { formatCurrency } from '@/utils';
 import type { BuyerAddress, BuyerOrder, BuyerTabId } from '@/types';
 import { COLORS } from '@/theme';
@@ -68,6 +64,8 @@ interface SectionDef {
   label: string;
   desc: string;
   Icon: LucideIcon;
+  /** Libellé court affiché dans les cartes d'action rapide. */
+  quickLabel?: string;
 }
 
 const ALL_SECTIONS: SectionDef[] = [
@@ -82,6 +80,7 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Commandes',
     desc: 'Historique et suivi de vos achats',
     Icon: Package,
+    quickLabel: 'Mes commandes',
   },
   {
     id: 'addresses',
@@ -94,12 +93,14 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Avis',
     desc: 'Vos avis publiés',
     Icon: Star,
+    quickLabel: 'Mes avis',
   },
   {
     id: 'stores',
     label: 'Boutiques',
     desc: 'Boutiques chez lesquelles vous avez commandé',
     Icon: Store,
+    quickLabel: 'Boutiques suivies',
   },
   {
     id: 'notifications',
@@ -112,6 +113,7 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Profil',
     desc: 'Vos informations et sécurité',
     Icon: User,
+    quickLabel: 'Mon profil',
   },
 ];
 
@@ -145,33 +147,15 @@ interface QuickAction {
   Icon: LucideIcon;
   color: string;
   tint: string;
-  badge?: number;
 }
 
 const HERO_GRADIENT = ['#002F34', '#0B4A50'] as const;
-
-const avatarInitial = (name: string) => (name || 'U').trim().charAt(0).toUpperCase();
 
 const orderStoreName = (order: BuyerOrder) => order.stores?.[0]?.name || 'Boutique';
 
 const orderBusinessType = (order: BuyerOrder): string | undefined =>
   order.stores?.[0]?.business_type ||
   order.order_items?.[0]?.products?.[0]?.business_type;
-
-const orderItemCount = (order: BuyerOrder) =>
-  (order.order_items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
-
-const orderReference = (order: BuyerOrder) =>
-  order.id ? `#${order.id.slice(-6).toUpperCase()}` : 'Commande';
-
-const orderProgressStep = (status: string) => {
-  if (status === 'PENDING') return 0;
-  if (status === 'READY' || status === 'SHIPPED') return 1;
-  if (status === 'COMPLETED') return 2;
-  return -1;
-};
-
-const PROGRESS_LABELS = ['Confirmée', 'En cours', 'Livrée'];
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -214,6 +198,56 @@ export default function AccountScreen() {
     setActiveSection(section);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, []);
+
+  /**
+   * Retour hiérarchique : ferme d'abord les surcouches ouvertes, puis revient
+   * à l'aperçu, et ne quitte l'espace client qu'en dernier recours.
+   */
+  const handleBack = useCallback((): boolean => {
+    if (addressModal.open) {
+      setAddressModal({ open: false, editing: null });
+      return true;
+    }
+    if (reviewTarget) {
+      setReviewTarget(null);
+      return true;
+    }
+    if (showLogoutModal) {
+      setShowLogoutModal(false);
+      return true;
+    }
+    if (showHelpModal) {
+      setShowHelpModal(false);
+      return true;
+    }
+    if (addressPendingDelete) {
+      setAddressPendingDelete(null);
+      return true;
+    }
+    if (activeSection !== 'overview') {
+      setActiveSection('overview');
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return true;
+    }
+    return false;
+  }, [
+    activeSection,
+    addressModal.open,
+    addressPendingDelete,
+    reviewTarget,
+    showHelpModal,
+    showLogoutModal,
+  ]);
+
+  // Bouton retour Android : on revient à l'aperçu avant de quitter l'écran.
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () =>
+        handleBack(),
+      );
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
 
   const handleDeleteAddress = useCallback(async () => {
     if (!addressPendingDelete) return;
@@ -282,9 +316,9 @@ export default function AccountScreen() {
 
   const quickActions: QuickAction[] = useMemo(
     () =>
-      (SECTIONS.filter((s) => s.id !== 'overview' && s.id !== 'profile') as Array<SectionDef & { id: QuickActionId }>).map((section) => ({
+      (SECTIONS.filter((s) => s.id !== 'overview') as Array<SectionDef & { id: QuickActionId }>).map((section) => ({
         id: section.id,
-        label: section.label,
+        label: section.quickLabel || section.label,
         hint: section.id === 'orders'
           ? `${counts.orders} au total`
           : section.id === 'reviews'
@@ -295,7 +329,6 @@ export default function AccountScreen() {
         Icon: section.Icon,
         color: COLORS.brand,
         tint: COLORS.brandSoft,
-        badge: section.id === 'orders' ? counts.orders : section.id === 'reviews' ? counts.reviews : section.id === 'stores' ? counts.stores : undefined,
       })),
     [counts.orders, counts.reviews, counts.stores],
   );
@@ -339,29 +372,18 @@ export default function AccountScreen() {
             style={({ pressed }) => [
               styles.quickCard,
               pressed && styles.pressed,
-              pressed && { transform: [{ scale: 0.98 }] },
+              pressed && { transform: [{ scale: 0.97 }] },
             ]}
           >
             <View style={[styles.quickIcon, { backgroundColor: action.tint }]}>
               <Icon size={14} color={action.color} />
             </View>
-            <View style={styles.quickText}>
-              <Text style={styles.quickLabel} numberOfLines={1}>
-                {action.label}
-              </Text>
-              <Text style={styles.quickHint} numberOfLines={1}>
-                {action.hint}
-              </Text>
-            </View>
-            {typeof action.badge === 'number' && action.badge > 0 ? (
-              <View style={styles.quickBadge}>
-                <Text style={styles.quickBadgeText}>
-                  {action.badge > 99 ? '99+' : action.badge}
-                </Text>
-              </View>
-            ) : (
-              <ChevronRight size={12} color="#D1D5DB" />
-            )}
+            <Text style={styles.quickLabel} numberOfLines={1}>
+              {action.label}
+            </Text>
+            <Text style={styles.quickHint} numberOfLines={1}>
+              {action.hint}
+            </Text>
           </Pressable>
         );
       })}
@@ -404,7 +426,16 @@ export default function AccountScreen() {
         ) : (
           <View style={styles.orderList}>
             {recentOrders.map((order) => {
-              const firstItem = order.order_items?.[0];
+              const items = order.order_items || [];
+              const firstItem = items[0];
+              const productName = firstItem?.products?.[0]?.name;
+              // Une commande peut contenir plusieurs lignes : on annonce le
+              // premier produit et le nombre d'articles de la commande.
+              const articleCount = items.reduce(
+                (sum, item) => sum + (item.quantity || 0),
+                0,
+              );
+              const otherCount = Math.max(0, items.length - 1);
               return (
                 <Pressable
                   key={order.id}
@@ -415,21 +446,28 @@ export default function AccountScreen() {
                     pressed && { transform: [{ scale: 0.99 }] },
                   ]}
                 >
-                  <ProductThumb
-                    src={firstItem?.products?.[0]?.image}
-                    size={36}
-                    iconSize={14}
-                  />
-                  <View style={styles.orderRowText}>
-                    <Text style={styles.orderRowStore} numberOfLines={1}>
-                      {orderStoreName(order)}
+                  <View style={styles.orderRowTop}>
+                    <ProductThumb
+                      src={firstItem?.products?.[0]?.image}
+                      size={36}
+                      iconSize={14}
+                    />
+                    <Text style={styles.orderRowName} numberOfLines={1}>
+                      {productName || orderStoreName(order)}
                     </Text>
-                    <Text style={styles.orderRowMeta} numberOfLines={1}>
-                      {orderReference(order)} · {formatShortDate(order.date)}
-                    </Text>
-                  </View>
-                  <View style={styles.orderRowRight}>
+                    {otherCount > 0 ? (
+                      <View style={styles.orderRowCount}>
+                        <Text style={styles.orderRowCountText}>+{otherCount}</Text>
+                      </View>
+                    ) : null}
                     <Text style={styles.orderRowTotal}>{formatCurrency(order.total)}</Text>
+                  </View>
+
+                  <View style={styles.orderRowBottom}>
+                    <Text style={styles.orderRowMeta} numberOfLines={1}>
+                      {orderStoreName(order)} · {articleCount} article
+                      {articleCount > 1 ? 's' : ''} · {formatShortDate(order.date)}
+                    </Text>
                     <StatusBadge
                       status={order.status}
                       businessType={orderBusinessType(order)}
@@ -561,7 +599,9 @@ export default function AccountScreen() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              if (!handleBack()) router.back();
+            }}
             style={styles.headerBtn}
             hitSlop={8}
             accessibilityLabel="Retour"
@@ -609,38 +649,6 @@ export default function AccountScreen() {
             />
           }
         >
-          <View style={styles.identityRow}>
-            <View style={styles.identityAvatar}>
-              {user.avatarUrl ? (
-                <Image
-                  source={{ uri: user.avatarUrl }}
-                  style={styles.identityAvatarImage}
-                  contentFit="cover"
-                  alt=""
-                />
-              ) : (
-                <Text style={styles.identityAvatarInitial}>{avatarInitial(user.name)}</Text>
-              )}
-            </View>
-            <View style={styles.identityText}>
-              <Text style={styles.identityName} numberOfLines={1}>
-                {user.name}
-              </Text>
-              <Text style={styles.identityEmail} numberOfLines={1}>
-                {user.email}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => openSection('profile')}
-              style={({ pressed }) => [styles.identityEdit, pressed && styles.pressed]}
-              accessibilityLabel="Modifier mon profil"
-            >
-              <Pencil size={14} color={COLORS.brand} />
-            </Pressable>
-          </View>
-
-
-
           {renderError()}
 
           {activeSection === 'overview' ? (
@@ -739,63 +747,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#F6F7F9',
-  },
-  identityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  identityAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 16,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  identityAvatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  identityAvatarInitial: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.brand,
-  },
-  identityText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  identityName: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.ink,
-    letterSpacing: -0.3,
-  },
-  identityEmail: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  identityEdit: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   header: {
     backgroundColor: 'rgba(255,255,255,0.97)',
@@ -920,317 +871,8 @@ const styles = StyleSheet.create({
   guestActions: {
     gap: 10,
   },
-  hero: {
-    borderRadius: 28,
-    padding: 20,
-    overflow: 'hidden',
-  },
-  heroGlow: {
-    position: 'absolute',
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    backgroundColor: 'rgba(245,107,42,0.24)',
-    top: -120,
-    right: -70,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  avatarRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    padding: 3,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-  },
-  avatar: {
-    flex: 1,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarInitial: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  heroIdentity: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  memberBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    marginBottom: 2,
-  },
-  memberBadgeText: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#FDBA74',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  heroName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.4,
-  },
-  heroEmail: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.62)',
-    fontWeight: '500',
-  },
-  refreshingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  refreshingText: {
-    fontSize: 9,
-    color: '#FDBA74',
-    fontWeight: '700',
-  },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 18,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.12)',
-  },
-  heroStat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  heroStatDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  heroStatValue: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    fontVariant: ['tabular-nums'],
-  },
-  heroStatLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.55)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  tabsWrap: {
-    marginHorizontal: -16,
-  },
-  tabsContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  tabActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  tabLabelActive: {
-    color: '#FFFFFF',
-  },
-  tabCount: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 5,
-    borderRadius: 999,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabCountActive: {
-    backgroundColor: COLORS.brand,
-  },
-  tabCountText: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#6B7280',
-    fontVariant: ['tabular-nums'],
-  },
-  tabCountTextActive: {
-    color: '#FFFFFF',
-  },
   overview: {
     gap: 14,
-  },
-  activeOrderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  activeOrderTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-  },
-  activeOrderIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeOrderHeading: {
-    flex: 1,
-    minWidth: 0,
-  },
-  eyebrow: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: COLORS.brand,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  activeOrderRef: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.ink,
-    marginTop: 2,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 18,
-  },
-  progressStep: {
-    width: 76,
-    alignItems: 'center',
-    gap: 6,
-  },
-  progressDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressDotDone: {
-    backgroundColor: COLORS.brand,
-  },
-  progressDotText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#9CA3AF',
-  },
-  progressLabel: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-  progressLabelDone: {
-    color: COLORS.ink,
-  },
-  progressLine: {
-    flex: 1,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#F3F4F6',
-    marginTop: 10,
-    marginHorizontal: -6,
-  },
-  progressLineDone: {
-    backgroundColor: COLORS.brand,
-  },
-  cancelledRow: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#FEF2F2',
-  },
-  cancelledText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#B91C1C',
-  },
-  activeOrderFooter: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 14,
-    marginTop: 18,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  metaLabel: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  activeOrderTotal: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.ink,
-    marginTop: 2,
-    fontVariant: ['tabular-nums'],
-  },
-  activeOrderMeta: {
-    flex: 1,
-    gap: 2,
-  },
-  activeOrderDate: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#6B7280',
   },
   linkBtn: {
     flexDirection: 'row',
@@ -1246,54 +888,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.brand,
   },
-  emptyOrderCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 16,
-  },
-  emptyOrderIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyOrderTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  emptyOrderTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  emptyOrderText: {
-    fontSize: 9,
-    lineHeight: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  emptyOrderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 11,
-    backgroundColor: COLORS.brand,
-  },
-  emptyOrderBtnText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1301,11 +895,11 @@ const styles = StyleSheet.create({
   },
   quickCard: {
     width: '48%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 18,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 6,
+    padding: 12,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: COLORS.line,
@@ -1316,110 +910,22 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   quickIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  quickText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 1,
   },
   quickLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.ink,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
   quickHint: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#9CA3AF',
-  },
-  quickBadge: {
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 5,
-    borderRadius: 999,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickBadgeText: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: COLORS.brand,
-    fontVariant: ['tabular-nums'],
-  },
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 16,
-  },
-  infoCardHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-  },
-  infoIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoHeading: {
-    flex: 1,
-    minWidth: 0,
-  },
-  infoTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  infoSubtitle: {
     fontSize: 9,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-  addressBody: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    gap: 2,
-  },
-  addressName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.ink,
-  },
-  addressLine: {
-    fontSize: 11,
     fontWeight: '500',
-    color: '#6B7280',
-    lineHeight: 16,
-  },
-  addressPhone: {
-    fontSize: 10,
-    fontWeight: '600',
     color: '#9CA3AF',
-  },
-  addressEmpty: {
-    fontSize: 10,
-    lineHeight: 15,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
   block: {
     gap: 10,
@@ -1492,64 +998,53 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  orderRowText: {
+  orderRowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  orderRowName: {
     flex: 1,
     minWidth: 0,
-  },
-  orderRowStore: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     color: COLORS.ink,
-  },
-  orderRowMeta: {
-    fontSize: 8,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginTop: 2,
-  },
-  orderRowRight: {
-    alignItems: 'flex-end',
-    gap: 4,
+    letterSpacing: -0.1,
   },
   orderRowTotal: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
-  helpCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 14,
-  },
-  helpIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: COLORS.brandSoft,
+  orderRowCount: {
+    minWidth: 20,
+    height: 18,
+    paddingHorizontal: 6,
+    borderRadius: 999,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  helpTextWrap: {
+  orderRowCountText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#6B7280',
+  },
+  orderRowBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 8,
+    paddingLeft: 46,
+  },
+  orderRowMeta: {
     flex: 1,
     minWidth: 0,
-  },
-  helpTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  helpText: {
     fontSize: 9,
-    lineHeight: 14,
     fontWeight: '500',
-    color: '#6B7280',
-    marginTop: 1,
+    color: '#9CA3AF',
   },
   sectionBody: {
     gap: 14,
@@ -1661,97 +1156,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: '#DC2626',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E9EBEE',
-  },
-  footerBrand: {
-    gap: 1,
-  },
-  footerName: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  footerVersion: {
-    fontSize: 8,
-    fontWeight: '600',
-    color: '#9CA3AF',
-  },
-  footerLogout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1,
-    borderColor: '#FFE4E6',
-  },
-  footerLogoutText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#F43F5E',
-  },
-  helpBody: {
-    padding: 16,
-    gap: 4,
-  },
-  helpRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  helpRowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  helpRowText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  helpRowTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  helpRowSubtitle: {
-    fontSize: 9,
-    lineHeight: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginTop: 1,
-  },
-  helpSite: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  helpSiteText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.brand,
   },
   logoutBody: {
     padding: 20,

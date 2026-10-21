@@ -12,7 +12,6 @@ import type { BuyerOrder } from '@/types';
 import {
   EmptyState,
   PanelSkeleton,
-  ProductThumb,
   formatShortDate,
 } from '@/components/buyer/ui';
 import { COLORS } from '@/theme';
