@@ -1,7 +1,6 @@
 /**
- * Onglet « Profil » — copie mobile de `src/components/buyer/ProfileTab.tsx` du
- * web : photo de profil, nom d'affichage, e-mail (lecture seule), téléphone et
- * déconnexion.
+ * Onglet « Profil » — photo, nom d'affichage, e-mail (lecture seule),
+ * téléphone et déconnexion. Design aligné sur le reste de l'espace client.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -14,7 +13,6 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { LogOut, Mail, Save, User as UserIcon } from 'lucide-react-native';
@@ -62,7 +60,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
           setAvatarUrl(res.profile.avatarUrl || null);
           const rawPhone = res.profile.phone || '';
           setPhone(rawPhone);
-          void AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ phone: rawPhone }));
+          void AsyncStorage.setItem(
+            PROFILE_CACHE_KEY,
+            JSON.stringify({ phone: rawPhone }),
+          );
         } else if (res?.error === 'Unauthorized') {
           sessionExpired();
         }
@@ -95,7 +96,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
       if (res?.success) {
         notify('Profil mis à jour', 'success');
         updateUser({ name: trimmedName, avatarUrl: res.user?.avatarUrl ?? avatarUrl });
-        void AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ phone: phone.trim() }));
+        void AsyncStorage.setItem(
+          PROFILE_CACHE_KEY,
+          JSON.stringify({ phone: phone.trim() }),
+        );
       } else if (res?.error === 'Unauthorized') {
         sessionExpired();
       } else if (res?.error !== 'UnauthorizedStale') {
@@ -141,7 +145,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
 
       setAvatarBusy(true);
       setAvatarUrl(`data:${mime};base64,${asset.base64}`);
-      notify('Photo prête. Enregistrez pour la appliquer.', 'info');
+      notify('Photo prête. Enregistrez pour l’appliquer.', 'info');
     } catch {
       notify('Impossible de lire cette image.', 'error');
     } finally {
@@ -150,17 +154,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
   }, [notify]);
 
   const initials = (name || user?.name || 'U')[0].toUpperCase();
+  const busy = avatarBusy || saving;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.card}>
-        <View style={styles.identityRow}>
-          <LinearGradient
-            colors={[COLORS.brand, '#FB923C']}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.identityAvatar}
-          >
+        {/* Identité et photo : un seul bloc, pas deux avatars. */}
+        <View style={styles.identity}>
+          <View style={styles.avatarBox}>
             {avatarUrl ? (
               <Image
                 source={{ uri: avatarUrl }}
@@ -169,73 +170,48 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
                 alt=""
               />
             ) : (
-              <Text style={styles.identityInitials}>{initials}</Text>
+              <Text style={styles.avatarInitials}>{initials}</Text>
             )}
-          </LinearGradient>
+          </View>
           <View style={styles.identityText}>
             <Text style={styles.identityName} numberOfLines={1}>
               {user?.name}
             </Text>
-            <Text style={styles.identityRole}>Membre Marketplace</Text>
-          </View>
-        </View>
-
-        {/* Photo de profil */}
-        <View>
-          <Text style={styles.fieldLabel}>Photo de profil</Text>
-          <View style={styles.avatarRow}>
-            <LinearGradient
-              colors={[COLORS.brand, '#FB923C']}
-              start={{ x: 0, y: 1 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.avatarCircle}
-            >
+            <Text style={styles.identityMail} numberOfLines={1}>
+              {user?.email}
+            </Text>
+            <View style={styles.identityActions}>
+              <Pressable
+                onPress={handleAvatarPick}
+                disabled={busy}
+                style={({ pressed }) => [pressed && styles.pressed, busy && styles.disabled]}
+              >
+                <Text style={styles.linkText}>
+                  {avatarBusy ? 'Chargement…' : 'Changer la photo'}
+                </Text>
+              </Pressable>
               {avatarUrl ? (
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={styles.avatarImage}
-                  contentFit="cover"
-                  alt=""
-                />
-              ) : (
-                <Text style={styles.avatarInitials}>{initials}</Text>
-              )}
-            </LinearGradient>
-            <View style={styles.avatarText}>
-              <Text style={styles.avatarHint} numberOfLines={1}>
-                JPEG ou PNG, 2 Mo maximum.
-              </Text>
-              <View style={styles.avatarButtons}>
                 <Pressable
-                  onPress={handleAvatarPick}
-                  disabled={avatarBusy || saving}
-                  style={[styles.chooseBtn, (avatarBusy || saving) && styles.disabled]}
+                  onPress={() => setAvatarUrl(null)}
+                  disabled={busy}
+                  style={({ pressed }) => [pressed && styles.pressed, busy && styles.disabled]}
                 >
-                  <Text style={styles.chooseText}>
-                    {avatarBusy ? 'Envoi...' : avatarUrl ? 'Changer' : 'Choisir une photo'}
-                  </Text>
+                  <Text style={styles.linkDangerText}>Retirer</Text>
                 </Pressable>
-                {avatarUrl ? (
-                  <Pressable
-                    onPress={() => setAvatarUrl(null)}
-                    disabled={avatarBusy || saving}
-                    style={(avatarBusy || saving) && styles.disabled}
-                  >
-                    <Text style={styles.removeText}>Retirer</Text>
-                  </Pressable>
-                ) : null}
-              </View>
+              ) : null}
             </View>
           </View>
         </View>
 
+        <View style={styles.divider} />
+
         <View style={styles.form}>
           <View>
-            <Text style={styles.fieldLabel}>Nom d&apos;affichage</Text>
+            <Text style={styles.fieldLabel}>Nom d’affichage</Text>
             <View
               style={[styles.inputWrap, validation.name ? styles.inputError : null]}
             >
-              <UserIcon size={15} color="#D1D5DB" />
+              <UserIcon size={14} color={COLORS.textFaint} />
               <TextInput
                 value={name}
                 onChangeText={(value) => {
@@ -243,17 +219,19 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
                   setValidation((v) => ({ ...v, name: undefined }));
                 }}
                 placeholder="Votre nom"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={COLORS.textFaint}
                 style={styles.input}
               />
             </View>
-            {validation.name ? <Text style={styles.errorText}>{validation.name}</Text> : null}
+            {validation.name ? (
+              <Text style={styles.errorText}>{validation.name}</Text>
+            ) : null}
           </View>
 
           <View>
             <Text style={styles.fieldLabel}>E-mail</Text>
             <View style={styles.readOnlyField}>
-              <Mail size={14} color="#6B7280" />
+              <Mail size={14} color={COLORS.textMuted} />
               <Text style={styles.readOnlyText} numberOfLines={1}>
                 {user?.email}
               </Text>
@@ -275,97 +253,55 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ onLogout }) => {
           <Pressable
             onPress={handleSubmit}
             disabled={saving || loadingProfile}
-            style={[styles.saveBtn, (saving || loadingProfile) && styles.disabled]}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              (saving || loadingProfile) && styles.disabled,
+              pressed && styles.pressed,
+            ]}
           >
             {saving ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Save size={16} color="#FFFFFF" />
+              <Save size={14} color="#FFFFFF" />
             )}
-            <Text style={styles.saveText}>Enregistrer mes informations</Text>
+            <Text style={styles.saveText}>Enregistrer</Text>
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.logoutCard}>
-        <Pressable onPress={onLogout} style={styles.logoutBtn}>
-          <LogOut size={18} color="#F43F5E" />
-          <Text style={styles.logoutText}>Me déconnecter</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={onLogout}
+        style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
+        accessibilityLabel="Me déconnecter"
+      >
+        <LogOut size={14} color={COLORS.danger} />
+        <Text style={styles.logoutText}>Me déconnecter</Text>
+      </Pressable>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 16,
+    gap: 10,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 20,
-    gap: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  identityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  identityAvatar: {
-    width: 56,
-    height: 56,
+    backgroundColor: COLORS.surface,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    padding: 14,
   },
-  identityInitials: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  identityText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  identityName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.ink,
-  },
-  identityRole: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    fontWeight: '600',
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    paddingHorizontal: 4,
-    marginBottom: 4,
-  },
-  avatarRow: {
+  identity: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
   },
-  avatarCircle: {
+  avatarBox: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 16,
+    backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -375,57 +311,65 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   avatarInitials: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: COLORS.brand,
+    fontSize: 18,
+    fontWeight: '800',
   },
-  avatarText: {
+  identityText: {
     flex: 1,
     minWidth: 0,
+    gap: 1,
   },
-  avatarHint: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  avatarButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 6,
-  },
-  chooseBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  chooseText: {
-    fontSize: 11,
+  identityName: {
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.ink,
+    letterSpacing: -0.2,
   },
-  removeText: {
+  identityMail: {
     fontSize: 11,
+    fontWeight: '500',
+    color: COLORS.textMuted,
+  },
+  identityActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  linkText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: '#F43F5E',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    color: COLORS.brand,
+  },
+  linkDangerText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.danger,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.line,
+    marginVertical: 14,
   },
   form: {
-    gap: 16,
+    gap: 14,
+  },
+  fieldLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+    marginBottom: 5,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: COLORS.lineStrong,
     borderRadius: 12,
   },
   inputError: {
@@ -434,79 +378,67 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minWidth: 0,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: COLORS.text,
     padding: 0,
   },
   errorText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FB7185',
-    paddingHorizontal: 4,
+    color: COLORS.danger,
     marginTop: 4,
   },
   readOnlyField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: COLORS.lineStrong,
     borderRadius: 12,
   },
   readOnlyText: {
     flex: 1,
+    minWidth: 0,
     fontSize: 12,
     fontWeight: '500',
-    color: '#6B7280',
+    color: COLORS.textMuted,
   },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    paddingVertical: 12,
     backgroundColor: COLORS.brand,
-    borderRadius: 16,
-    shadowColor: '#FFEDD5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 12,
   },
   saveText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  logoutCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    color: COLORS.surface,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: '#FFF1F2',
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#FFE4E6',
+    borderColor: COLORS.line,
   },
   logoutText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F43F5E',
+    color: COLORS.danger,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   disabled: {
     opacity: 0.6,

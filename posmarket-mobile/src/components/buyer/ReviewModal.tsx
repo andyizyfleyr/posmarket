@@ -1,7 +1,6 @@
 /**
- * Modale d'avis produit — copie mobile de
- * `src/components/buyer/ReviewModal.tsx` du web (sélecteur d'étoiles,
- * commentaire, publication).
+ * Feuille basse « Noter le produit » — sélecteur d'étoiles, commentaire et
+ * publication. Design aligné sur le reste de l'espace client.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -14,9 +13,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ArrowRight, Star } from 'lucide-react-native';
+import { Star } from 'lucide-react-native';
 import { SheetModal } from '@/components/buyer/SheetModal';
-import { ProductThumb } from '@/components/buyer/ui';
 import { COLORS } from '@/theme';
 
 export interface ReviewTargetProduct {
@@ -36,6 +34,8 @@ interface ReviewModalProps {
 }
 
 const LABELS = ['Moyen', 'Bien', 'Très bien', 'Excellent !'];
+const STAR_COLOR = '#FBBF24';
+const STAR_EMPTY = '#E5E7EB';
 
 export function ReviewModal({
   visible,
@@ -63,7 +63,7 @@ export function ReviewModal({
   const placeholder =
     product.business_type === 'food'
       ? 'Comment était votre repas ?'
-      : 'Partagez votre expérience avec ce produit...';
+      : 'Partagez votre expérience avec ce produit…';
 
   const handleSubmit = async () => {
     if (comment.trim().length < 3) {
@@ -86,7 +86,7 @@ export function ReviewModal({
       visible={visible}
       title={title}
       subtitle={product.name}
-      icon={<Star size={20} color={COLORS.brand} fill={COLORS.brand} />}
+      icon={<Star size={16} color={COLORS.brand} fill={COLORS.brand} />}
       busy={isBusy}
       onClose={onClose}
     >
@@ -95,35 +95,33 @@ export function ReviewModal({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.form}
       >
-        <View style={styles.productRow}>
-          <ProductThumb src={product.image} size={48} iconSize={18} />
-          <Text style={styles.productName} numberOfLines={1}>
-            {product.name}
-          </Text>
-        </View>
-
         <View style={styles.ratingBox}>
-          <Text style={styles.ratingLabel}>Votre note</Text>
+          <View style={styles.ratingHead}>
+            <Text style={styles.ratingLabel}>Votre note</Text>
+            <Text style={styles.ratingWord}>
+              {rating >= 5 ? 'Excellent !' : LABELS[rating - 2] || ''}
+            </Text>
+          </View>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Pressable
                 key={star}
                 onPress={() => setRating(star)}
-                style={styles.starBtn}
+                hitSlop={6}
+                style={({ pressed }) => [styles.starBtn, pressed && styles.pressed]}
                 accessibilityLabel={`${star} étoile${star > 1 ? 's' : ''}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: star === rating }}
               >
                 <Star
-                  size={30}
-                  fill={star <= rating ? '#FBBF24' : 'transparent'}
-                  color={star <= rating ? '#FBBF24' : '#E5E7EB'}
+                  size={26}
+                  fill={star <= rating ? STAR_COLOR : 'transparent'}
+                  color={star <= rating ? STAR_COLOR : STAR_EMPTY}
                   strokeWidth={star <= rating ? 0 : 2}
                 />
               </Pressable>
             ))}
           </View>
-          <Text style={styles.ratingWord}>
-            {rating >= 5 ? 'Excellent !' : LABELS[rating - 2] || ''}
-          </Text>
         </View>
 
         <View>
@@ -135,23 +133,29 @@ export function ReviewModal({
               setCommentError(null);
             }}
             placeholder={placeholder}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={COLORS.textFaint}
             multiline
             textAlignVertical="top"
             style={[styles.comment, commentError ? styles.commentError : null]}
           />
-          {commentError ? <Text style={styles.errorText}>{commentError}</Text> : null}
+          {commentError ? (
+            <Text style={styles.errorText}>{commentError}</Text>
+          ) : null}
         </View>
 
         <Pressable
           onPress={handleSubmit}
           disabled={isBusy}
-          style={[styles.submit, isBusy && styles.disabled]}
+          style={({ pressed }) => [
+            styles.submit,
+            (isBusy || pressed) && styles.pressed,
+            isBusy && styles.disabled,
+          ]}
         >
           {submitting ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <ArrowRight size={16} color="#FFFFFF" />
+            <Star size={14} color="#FFFFFF" fill="#FFFFFF" />
           )}
           <Text style={styles.submitText}>Publier mon avis</Text>
         </Pressable>
@@ -162,73 +166,64 @@ export function ReviewModal({
 
 const styles = StyleSheet.create({
   form: {
-    padding: 24,
-    gap: 24,
-  },
-  productRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 4,
-  },
-  productName: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.ink,
+    padding: 16,
+    paddingTop: 4,
+    gap: 16,
   },
   ratingBox: {
-    alignItems: 'center',
     gap: 12,
-    paddingVertical: 20,
-    backgroundColor: 'rgba(249,250,251,0.6)',
-    borderRadius: 24,
+    padding: 14,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: 16,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.line,
+  },
+  ratingHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   ratingLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: COLORS.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 1.6,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  starBtn: {
-    padding: 4,
+    letterSpacing: 0.8,
   },
   ratingWord: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.brand,
-    textTransform: 'uppercase',
-    letterSpacing: 1.6,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  starBtn: {
+    padding: 2,
   },
   commentLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: COLORS.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 1.6,
-    marginLeft: 4,
-    marginBottom: 8,
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
   comment: {
     width: '100%',
-    minHeight: 110,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#F9FAFB',
+    minHeight: 96,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 16,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    borderColor: COLORS.lineStrong,
+    borderRadius: 12,
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text,
   },
   commentError: {
     borderColor: '#FECDD3',
@@ -236,23 +231,25 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#F87171',
-    paddingHorizontal: 4,
-    marginTop: 6,
+    color: COLORS.danger,
+    marginTop: 4,
   },
   submit: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
-    backgroundColor: COLORS.ink,
-    borderRadius: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.brand,
+    borderRadius: 12,
   },
   submitText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: COLORS.surface,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   disabled: {
     opacity: 0.6,
