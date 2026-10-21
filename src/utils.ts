@@ -30,7 +30,7 @@ export const formatRating = (rating: number): string =>
  */
 export const variantPriceRange = (
   product: {
-    variants?: Array<{ price?: number | null; enabled?: boolean }>;
+    variants?: Array<{ price?: number | null; enabled?: boolean }> | null;
   } | null
   | undefined,
 ): { min: number; max: number } | null => {
@@ -49,7 +49,7 @@ export const variantPriceRange = (
 export const displayPriceOf = (
   product: {
     price?: number | null;
-    variants?: Array<{ price?: number | null; enabled?: boolean }>;
+    variants?: Array<{ price?: number | null; enabled?: boolean }> | null;
   } | null
   | undefined,
 ): number => {
@@ -58,17 +58,56 @@ export const displayPriceOf = (
 };
 
 /**
- * Produit affichable en vitrine : image et prix valide. Les fiches à 0 FCFA
- * sans variante tarifée sont écartées de l'accueil (elles restent
- * accessibles via la recherche).
- *
- * Le stock n'est pas ici un critère : le web affiche volontairement les
- * produits en rupture (badge « Rupture ») plutôt que de les faire
- * disparaître.
+ * Stock réellement disponible : somme des variantes actives quand le produit
+ * en a, sinon stock de base. Évite d'afficher « en stock » alors que toutes
+ * les variantes sont épuisées.
+ */
+export const effectiveProductStock = (product: {
+  stock?: number | null;
+  variants?: Array<{ stock?: number | null; enabled?: boolean }> | null;
+} | null | undefined): number => {
+  const variants = product?.variants;
+  if (Array.isArray(variants) && variants.length > 0) {
+    return Math.max(
+      0,
+      variants.reduce(
+        (total, variant) =>
+          total + (variant.enabled === false ? 0 : Number(variant.stock) || 0),
+        0,
+      ),
+    );
+  }
+  return Math.max(0, Number(product?.stock) || 0);
+};
+
+/** Remise affichée sur un produit, en pourcentage entier. */
+export const productDiscountPercent = (product: {
+  price?: number | null;
+  originalPrice?: number | null;
+} | null | undefined): number => {
+  const price = Number(product?.price) || 0;
+  const original = Number(product?.originalPrice) || 0;
+  if (original <= 0 || price <= 0 || original <= price) return 0;
+  return Math.round(((original - price) / original) * 100);
+};
+
+/**
+ * Produit affichable en vitrine : image, prix valide et au moins une unité
+ * disponible. Les fiches à 0 FCFA sans variante tarifée sont écartées de
+ * l'accueil (elles restent accessibles via la recherche).
  */
 export const isMarketableProduct = (
-  product: { image?: string | null; price?: number | null } | null | undefined,
-): boolean => Boolean(product?.image) && displayPriceOf(product) > 0;
+  product: {
+    image?: string | null;
+    price?: number | null;
+    stock?: number | null;
+    variants?: Array<{ stock?: number | null; enabled?: boolean }> | null;
+  } | null
+  | undefined,
+): boolean =>
+  Boolean(product?.image) &&
+  displayPriceOf(product) > 0 &&
+  effectiveProductStock(product) > 0;
 
 /**
  * Masque le nom complet pour préserver la vie privée des clients dans les avis.

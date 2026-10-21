@@ -22,7 +22,8 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
-import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName, isMarketableProduct } from "@/utils";
+import { buildHomeSections } from "@/lib/home-sections";
+import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
@@ -1855,11 +1856,10 @@ const WHOLESALE_FILTER = "wholesale";
         const matchesVertical =
           selectedVertical === "all" || verticalOfProduct(p) === selectedVertical;
 
-        // Une fiche sans image ni prix exploitable n'a rien à montrer en
-        // vitrine : elle reste atteignable par la recherche.
-        const isMarketable = isMarketableProduct(p);
-
-        return isFromStore && matchesCategory && matchesVertical && isMarketable;
+        // Le filtrage « commercialisable » (image, prix, stock) ne concerne
+        // que l'accueil : la recherche et les pages boutique/catégorie
+        // affichent aussi les produits en rupture (badge « Rupture »).
+        return isFromStore && matchesCategory && matchesVertical;
       })
       .sort((a, b) => {
         // 1. Group by Category for Home sections
@@ -1887,6 +1887,16 @@ const WHOLESALE_FILTER = "wholesale";
     selectedCategory,
     selectedStoreId,
   ]);
+
+  /**
+   * Sections de l'accueil — même algorithme que l'app mobile : sections
+   * éditoriales (meilleures ventes, promotions, nouveautés) puis sections par
+   * catégorie, avec un aperçu de six produits triés et diversifiés.
+   */
+  const homeSections = useMemo(
+    () => buildHomeSections(allProducts),
+    [allProducts],
+  );
 
   // Un terme de recherche « actif » est un terme d'au moins 2 caractères :
   // c'est la condition utilisée par le moteur de recherche serveur.
@@ -3987,162 +3997,141 @@ const WHOLESALE_FILTER = "wholesale";
                           </button>
                         </div>
                       )}
-                      {searchTerm || activeHomeCategory || selectedCategory === WHOLESALE_FILTER ? (
-                        /* Simple grid for search results / category page */
-                        <>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                            {pagedProducts.map((product) => (
-                                <ProductCard
-                                  key={`${product.storeId}-${product.id}`}
-                                  product={product}
-                                  onClick={() =>
-                                    safeNavigate(
-                                      `/product/${generateProductSlug(product)}`,
-                                    )
-                                  }
-                                  onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
-                                  onAddToCart={handleCardAddToCart}
-                                  className="w-full"
-                                />
-                            ))}
-                          </div>
-                          {!isInitialLoading && pagedProducts.length === 0 && (
+                      {(() => {
+                        const renderCard = (product: StorefrontProduct) => (
+                          <ProductCard
+                            key={`${product.storeId}-${product.id}`}
+                            product={product}
+                            onClick={() =>
+                              safeNavigate(
+                                `/product/${generateProductSlug(product)}`,
+                              )
+                            }
+                            onPrefetch={() =>
+                              warmProduct({ id: product.id, image: product.image })
+                            }
+                            onAddToCart={handleCardAddToCart}
+                            className="w-full"
+                            showStore={!selectedStoreParam}
+                          />
+                        );
+
+                        return searchTerm ||
+                          activeHomeCategory ||
+                          selectedCategory === WHOLESALE_FILTER ? (
+                          /* Grille simple : recherche, categorie, vente en gros */
+                          <>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                              {pagedProducts.map(renderCard)}
+                            </div>
+                            {!isInitialLoading && pagedProducts.length === 0 && (
+                              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                                <ShoppingBasketIcon size={48} className="text-gray-200 mb-4" aria-hidden="true" />
+                                <p className="text-base font-semibold text-gray-600 text-center">
+                                  {selectedCategory === WHOLESALE_FILTER
+                                    ? "Aucun produit disponible en vente en gros pour le moment."
+                                    : "Aucun produit à afficher pour le moment."}
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          /* Accueil : sections editoriales puis sections par
+                             categorie — meme algorithme que l'app mobile. */
+                          homeSections.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                               <ShoppingBasketIcon size={48} className="text-gray-200 mb-4" aria-hidden="true" />
                               <p className="text-base font-semibold text-gray-600 text-center">
-                                {selectedCategory === WHOLESALE_FILTER
-                                  ? "Aucun produit disponible en vente en gros pour le moment."
-                                  : "Aucun produit à afficher pour le moment."}
+                                Aucune boutique ne publie encore de produit.
                               </p>
                             </div>
-                          )}
-                        </>
-                      ) : (
-                        /* Grouped sections for browsing - 4 products per category on mobile */
-                        (() => {
-                          // La verticale entre dans la clef : une section ne doit jamais
-                          // regrouper un plat et un produit de commerce sous la
-                          // meme categorie.
-                          const groups: Record<string, typeof pagedProducts> = {};
-                          pagedProducts.forEach((p) => {
-                            const cat = p.mainCategory || p.category || "Autre";
-                            const key = `${verticalOfProduct(p)}::${cat}`;
-                            if (!groups[key]) groups[key] = [];
-                            groups[key].push(p);
-                          });
-
-                          // Commerce d'abord, puis restauration ; a l'interieur de chaque
-                          // verticale on garde l'ordre historique.
-                          const sortedCats = Object.keys(groups).sort(
-                            (a: string, b: string) => {
-                              const [va, ca] = a.split("::");
-                              const [vb, cb] = b.split("::");
-                              if (va !== vb) return va === "shopping" ? -1 : 1;
-                              const idxA = MAIN_CATEGORIES.indexOf(ca);
-                              const idxB = MAIN_CATEGORIES.indexOf(cb);
+                          ) : (
+                            homeSections.map((section) => {
+                              const cat = section.key.includes("::")
+                                ? section.key.slice(section.key.indexOf("::") + 2)
+                                : section.title;
                               return (
-                                (idxA === -1 ? 999 : idxA) -
-                                (idxB === -1 ? 999 : idxB)
-                              );
-                            },
-                          );
-
-                          const renderCard = (product: StorefrontProduct) => (
-                            <ProductCard
-                              key={`${product.storeId}-${product.id}`}
-                              product={product}
-                              onClick={() =>
-                                safeNavigate(
-                                  `/product/${generateProductSlug(product)}`,
-                                )
-                              }
-                              onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
-                              onAddToCart={handleCardAddToCart}
-                              className="w-full"
-                              showStore={!selectedStoreParam}
-                            />
-                          );
-
-                                                    return sortedCats.map((groupKey) => {
-                            const sectionItems = groups[groupKey].slice(0, SECTION_PREVIEW_COUNT);
-                            // La clef porte la verticale ; seul le nom de la categorie est
-                            // affiche et utilise pour le filtre, sinon le titre afficherait
-                            // un libelle technique.
-                            const cat = groupKey.slice(groupKey.indexOf("::") + 2);
-                            const vertical = groupKey.slice(0, groupKey.indexOf("::")) as "shopping" | "food";
-                            // Le titre de section fait doublon avec la chip
-                            // active quand cette catégorie est filtrée.
-                            const showGroupHeader =
-                              selectedCategory === "all" ||
-                              cat !== selectedCategory;
-                            return (
-                            <div
-                              key={groupKey}
-                              className="   duration-500"
-                            >
-                              {showGroupHeader && (
-                                <div className={`flex items-center justify-between gap-3 mb-4`}>
-                                  <h3 className="text-sm md:text-base font-bold text-gray-900 truncate">
-                                      {cat}
-                                      {vertical === "food" && (
+                                <div key={section.key} className="duration-500">
+                                  <div className="flex items-center justify-between gap-3 mb-4">
+                                    <h3 className="text-sm md:text-base font-bold text-gray-900 truncate">
+                                      {section.title}
+                                      {section.vertical === "food" && (
                                         <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-brand">
                                           Restauration
                                         </span>
                                       )}
                                     </h3>
-                                  <button
-                                    onClick={() => {
-                                      // Mobile : on déplie la catégorie dans un
-                                      // bottom sheet plutôt que de changer de page.
-                                      if (isMobileSheetViewport()) {
-                                        openCategorySheet(cat, vertical);
-                                        return;
-                                      }
-                                      if (selectedStoreParam) {
-                                        setSelectedCategory(cat);
-                                        window.history.pushState(null, "", `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`);
-                                        window.scrollTo({ top: 0 });
-                                      } else {
-                                        navigate(`/category/${categoryToSlug(cat)}`);
-                                      }
-                                    }}
-                                    onMouseEnter={() => {
-                                      const catUrl = selectedStoreParam
-                                        ? `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`
-                                        : `/category/${categoryToSlug(cat)}`;
-                                      const link = document.createElement("link");
-                                      link.rel = "prefetch";
-                                      link.href = catUrl;
-                                      document.head.appendChild(link);
-                                    }}
-                                    className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-brand active:opacity-60 transition-opacity"
-                                  >
-                                    Voir tout
-                                    <ChevronRight size={13} strokeWidth={3} />
-                                  </button>
+                                    {section.canSeeAll && (
+                                      <button
+                                        onClick={() => {
+                                          // Mobile : on deplie la categorie dans un
+                                          // bottom sheet plutot que de changer de page.
+                                          if (isMobileSheetViewport()) {
+                                            openCategorySheet(
+                                              cat,
+                                              section.vertical || "shopping",
+                                            );
+                                            return;
+                                          }
+                                          if (selectedStoreParam) {
+                                            setSelectedCategory(cat);
+                                            window.history.pushState(
+                                              null,
+                                              "",
+                                              `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`,
+                                            );
+                                            window.scrollTo({ top: 0 });
+                                          } else {
+                                            navigate(`/category/${categoryToSlug(cat)}`);
+                                          }
+                                        }}
+                                        onMouseEnter={() => {
+                                          const catUrl = selectedStoreParam
+                                            ? `/store/${selectedStoreParam}?cat=${encodeURIComponent(cat)}`
+                                            : `/category/${categoryToSlug(cat)}`;
+                                          const link = document.createElement("link");
+                                          link.rel = "prefetch";
+                                          link.href = catUrl;
+                                          document.head.appendChild(link);
+                                        }}
+                                        className="flex-shrink-0 flex items-center gap-0.5 text-[11px] md:text-xs font-bold text-brand active:opacity-60 transition-opacity"
+                                      >
+                                        Voir tout
+                                        <ChevronRight size={13} strokeWidth={3} />
+                                      </button>
+                                    )}
+                                  </div>
+                                  {/* 6 produits par section ; « Voir tout »
+                                      ouvre la section complete. */}
+                                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 md:gap-3">
+                                    {section.preview.map(renderCard)}
+                                  </div>
                                 </div>
-                              )}
-                              {/* 6 produits par defaut, 2 par ligne ; « Voir tout »
-                                  deploye le reste de la section sur place. */}
-                              <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 md:gap-3">
-                                {sectionItems.map(renderCard)}
-                              </div>
-                            </div>
-                            );
-                          });
-                        })()
-                      )}
+                              );
+                            })
+                          )
+                        );
+                      })()}
                     </div>
 
                     {/* Load More Trigger
                         Le rembourrage est réduit une fois le catalogue épuisé :
                         sinon `py-20` laissait un grand vide sous la dernière
-                        catégorie. Réduit aussi pendant le scroll (sentinel). */}
+                        catégorie. Réduit aussi pendant le scroll (sentinel).
+                        L'accueil affiche toutes ses sections d'un coup : le
+                        sentinel reste dans le DOM (il porte l'observateur) mais
+                        il est masqué. */}
                     <div
                       ref={loadMoreRef}
                       className={`${
                         isLoadingMore ? "py-16" : "pt-3 pb-0"
-                      } flex flex-col items-center justify-center`}
+                      } flex flex-col items-center justify-center ${
+                        searchTerm ||
+                        activeHomeCategory ||
+                        selectedCategory === WHOLESALE_FILTER
+                          ? ""
+                          : "hidden"
+                      }`}
                     >
                       {isLoadingMore && (
                         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
