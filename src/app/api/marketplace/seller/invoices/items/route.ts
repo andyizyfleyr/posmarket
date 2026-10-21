@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInvoiceItemsAction } from '@/app/actions/invoices';
+import { parseQuery } from '@/lib/validation';
+import { invoiceItemsQuerySchema } from '@/lib/schemas';
 import { requireSellerSpace } from '@/lib/mobile-space';
 
 export const dynamic = 'force-dynamic';
@@ -15,11 +17,9 @@ export async function GET(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const { searchParams } = new URL(req.url);
-    const invoiceId = searchParams.get('invoiceId');
-    if (!invoiceId) {
-      return NextResponse.json({ success: false, items: [], error: 'MissingInvoiceId' });
-    }
+    const parsed = parseQuery(new URL(req.url), invoiceItemsQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const { invoiceId } = parsed.data;
 
     const result = await getInvoiceItemsAction(invoiceId);
     return NextResponse.json(result);

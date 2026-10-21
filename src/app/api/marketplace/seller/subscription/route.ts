@@ -4,6 +4,8 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles, subscriptionPayments } from '@/db/schema';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { subscriptionActionSchema } from '@/lib/schemas';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 import {
   activateSubscription,
@@ -109,8 +111,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    const action = String(body.action || '');
+    const parsed = await parseBody(req, subscriptionActionSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
+    const action = body.action;
     const config = await loadPaymentConfig();
 
     if (action === 'create') {

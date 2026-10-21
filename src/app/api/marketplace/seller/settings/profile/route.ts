@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateProfileAction } from '@/app/actions/settings';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerSettingsProfileSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,13 +18,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const fullName = String((body as { fullName?: unknown }).fullName ?? '');
-    const avatarUrl = (body as { avatarUrl?: unknown }).avatarUrl;
+    const parsed = await parseBody(req, sellerSettingsProfileSchema);
+    if (!parsed.ok) return parsed.response;
+    const { fullName } = parsed.data;
+    const avatarUrl = parsed.data.avatarUrl;
 
     const payload: { fullName: string; avatarUrl?: string } = { fullName };
     // Comme au web : `avatarUrl` absent = pas de changement (aucune suppression

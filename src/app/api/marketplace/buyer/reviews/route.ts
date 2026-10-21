@@ -4,6 +4,8 @@ import {
   saveProductReviewAction,
 } from '@/app/actions/marketplace';
 import { requireBuyerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { buyerReviewSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,16 +36,13 @@ export async function POST(req: NextRequest) {
   try {
     const guard = await requireBuyerSpace();
     if (!guard.ok) return guard.response;
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const storeId = String(body?.storeId || '').trim();
-    const productId = String(body?.productId || '').trim();
-    if (!storeId || !productId) {
-      return NextResponse.json({ success: false, error: 'Produit ou boutique manquant.' });
-    }
+    const parsed = await parseBody(req, buyerReviewSchema);
+    if (!parsed.ok) return parsed.response;
+    const { storeId, productId, rating, comment, author } = parsed.data;
     const result = await saveProductReviewAction(storeId, productId, {
-      rating: Number(body?.rating) || 0,
-      comment: String(body?.comment || '').trim(),
-      author: String(body?.author || '').trim(),
+      rating,
+      comment,
+      author,
     });
     return NextResponse.json(result);
   } catch (error) {

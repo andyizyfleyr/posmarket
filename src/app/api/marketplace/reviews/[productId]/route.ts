@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchProductReviewsAction } from '@/app/actions/marketplace';
+import { parseParams } from '@/lib/validation';
+import { pathIdSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +14,9 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ productId: string }> },
 ) {
-  const { productId } = await params;
-  if (!productId) {
-    return NextResponse.json({ success: false, error: 'Missing productId', reviews: [] }, { status: 400 });
-  }
+  const parsed = parseParams(await params, pathIdSchema);
+  if (!parsed.ok) return parsed.response;
+  const { id: productId } = parsed.data;
 
   const result = await fetchProductReviewsAction(productId);
   return NextResponse.json(result);

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { importProductsBatchAction } from '@/app/actions/inventory';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerInventoryImportSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,22 +12,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const {
-      items,
-      options,
-    } = body as {
-      items?: unknown[];
-      options?: Parameters<typeof importProductsBatchAction>[2];
-    };
-    const storeId = await resolveMobileStoreId(
-      guard.userId,
-      (body as { storeId?: string }).storeId,
-    );
+    const parsed = await parseBody(req, sellerInventoryImportSchema);
+    if (!parsed.ok) return parsed.response;
+    const { items, options } = parsed.data;
+    const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
 
     if (!storeId) {
       return NextResponse.json({ success: false, error: 'NoStore' });
@@ -33,8 +23,10 @@ export async function POST(req: NextRequest) {
 
     const result = await importProductsBatchAction(
       storeId,
-      (items || []) as Parameters<typeof importProductsBatchAction>[1],
-      options || { duplicateStrategy: 'skip' },
+      (items || []) as unknown as Parameters<typeof importProductsBatchAction>[1],
+      (options || { duplicateStrategy: 'skip' }) as Parameters<
+        typeof importProductsBatchAction
+      >[2],
     );
     return NextResponse.json(result);
   } catch (error) {

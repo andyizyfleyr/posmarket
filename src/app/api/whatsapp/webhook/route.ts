@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { notificationOutbox } from '@/db/schema';
+import { whatsappWebhookSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,21 +63,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  let payload: {
-    entry?: Array<{
-      changes?: Array<{
-        value?: {
-          statuses?: Array<{ id?: string; status?: string; timestamp?: string }>;
-          messages?: unknown[];
-        };
-      }>;
-    }>;
-  } = {};
+  let raw: unknown;
   try {
-    payload = JSON.parse(rawBody);
+    raw = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: 'Bad JSON' }, { status: 400 });
   }
+
+  const parsed = whatsappWebhookSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Bad payload' }, { status: 400 });
+  }
+  const payload = parsed.data;
 
   try {
     for (const entry of payload.entry || []) {

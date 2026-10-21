@@ -3,6 +3,8 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { coupons } from '@/db/schema';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseQuery } from '@/lib/validation';
+import { storeIdQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,11 +19,9 @@ export async function GET(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const { searchParams } = new URL(req.url);
-    const storeId = await resolveMobileStoreId(
-      guard.userId,
-      searchParams.get('storeId'),
-    );
+    const parsed = parseQuery(new URL(req.url), storeIdQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
 
     if (!storeId) {
       return NextResponse.json({ success: true, coupons: [] });

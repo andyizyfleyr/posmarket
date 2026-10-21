@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchActiveCouponsAction } from '@/app/actions/marketplace';
+import { parseQuery } from '@/lib/validation';
+import { couponsQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +12,9 @@ export const dynamic = 'force-dynamic';
  * (« Ajouter un code promo ») ; le web lit directement la table `coupons`.
  */
 export async function GET(request: NextRequest) {
-  const raw = request.nextUrl.searchParams.get('storeIds') || '';
-  const storeIds = raw
+  const parsed = parseQuery(new URL(request.url), couponsQuerySchema);
+  if (!parsed.ok) return parsed.response;
+  const storeIds = parsed.data.storeIds
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);

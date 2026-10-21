@@ -6,6 +6,7 @@ import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { kkiapayConfigured, verifyKkiapayWebhookSecret, verifyKkiapayTransaction } from '@/lib/kkiapay';
 import { notify, getAdminEmails } from '@/lib/notifications';
+import { kkiapayWebhookSchema } from '@/lib/schemas';
 
 export async function POST(request: Request) {
   if (!kkiapayConfigured()) {
@@ -17,14 +18,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Signature webhook invalide' }, { status: 401 });
   }
 
-  let payload: unknown;
+  let raw: unknown;
   try {
-    payload = await request.json();
+    raw = await request.json();
   } catch {
     return NextResponse.json({ error: 'Payload invalide' }, { status: 400 });
   }
 
-  const p = payload as { event?: string; isPaymentSucces?: boolean; partnerId?: string; transactionId?: string; amount?: number; [key: string]: unknown };
+  const parsed = kkiapayWebhookSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Payload invalide' }, { status: 400 });
+  }
+  const p = parsed.data;
+
   const event = String(p.event || '').trim();
   const isSuccess = p.isPaymentSucces === true || event === 'transaction.success';
   const kTxId = String(p.transactionId || '').trim();

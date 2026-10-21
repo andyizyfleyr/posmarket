@@ -12,6 +12,12 @@ import { orderEmailProducts } from '@/lib/email'
 import { generateProductSlug } from '@/utils/slug'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
+import { validate } from '@/lib/validation'
+import {
+  buyerAddressSchema,
+  buyerProfileUpdateSchema,
+  reviewPayloadSchema,
+} from '@/lib/schemas'
 import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
@@ -501,12 +507,14 @@ export async function saveProductReviewAction(
   reviewData?: ReviewPayload,
 ) {
   try {
-    const data: Partial<ReviewPayload> = reviewData || {};
-
     if (!storeId || !productId) {
       return { success: false, error: 'Données d\'avis invalides' };
     }
-
+    const validated = validate(reviewPayloadSchema, reviewData || {});
+    if (!validated) {
+      return { success: false, error: 'Données d\'avis invalides' };
+    }
+    const data = validated;
     const rating = Math.min(5, Math.max(1, Number(data.rating) || 5));
 
     // Avis : les visiteurs anonymes peuvent spammer sans limite et faire
@@ -915,6 +923,11 @@ export async function fetchBuyerAddressesAction(fallbackIdOrEmail?: string) {
 }
 
 export async function saveBuyerAddressAction(address: SaveAddressPayload) {
+  const validated = validate(buyerAddressSchema, address);
+  if (!validated) {
+    return { success: false, error: 'Tous les champs obligatoires sont requis' };
+  }
+  address = validated as unknown as SaveAddressPayload;
   const fallback = address?.userId || address?.email;
   const { user } = await resolveCurrentBuyer(fallback);
   if (!user) return { success: false, error: 'Unauthorized' };
@@ -1034,6 +1047,11 @@ export async function updateBuyerProfileAction(updates: {
   /** Photo de profil : URL R2, ou data-URI envoyee par le client. */
   avatarUrl?: string | null;
 }, fallbackIdOrEmail?: string) {
+  const validated = validate(buyerProfileUpdateSchema, updates);
+  if (!validated) {
+    return { success: false, error: 'Données de profil invalides' };
+  }
+  updates = validated;
   const { user } = await resolveCurrentBuyer(fallbackIdOrEmail);
   if (!user) return { success: false, error: 'Unauthorized' };
 

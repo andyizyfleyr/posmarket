@@ -4,6 +4,8 @@ import {
   updateBuyerProfileAction,
 } from '@/app/actions/marketplace';
 import { requireBuyerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { buyerProfileSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +36,14 @@ export async function POST(req: NextRequest) {
   try {
     const guard = await requireBuyerSpace();
     if (!guard.ok) return guard.response;
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const parsed = await parseBody(req, buyerProfileSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const updates: { fullName?: string; phone?: string; avatarUrl?: string | null } = {};
-    if (typeof body?.fullName !== 'undefined') updates.fullName = String(body.fullName || '');
-    if (typeof body?.phone !== 'undefined') updates.phone = String(body.phone || '');
-    if (typeof body?.avatarUrl !== 'undefined') {
-      updates.avatarUrl = body.avatarUrl === null ? null : String(body.avatarUrl || '');
+    if (typeof body.fullName !== 'undefined') updates.fullName = body.fullName;
+    if (typeof body.phone !== 'undefined') updates.phone = body.phone;
+    if (typeof body.avatarUrl !== 'undefined') {
+      updates.avatarUrl = body.avatarUrl === null ? null : body.avatarUrl;
     }
     const result = await updateBuyerProfileAction(updates);
     return NextResponse.json(result);

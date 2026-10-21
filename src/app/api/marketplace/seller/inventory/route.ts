@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProductsAction } from '@/app/actions/inventory';
 import { getProductCategoryTree } from '@/app/actions/categories';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseQuery } from '@/lib/validation';
+import { inventoryQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,20 +20,19 @@ export async function GET(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const { searchParams } = new URL(req.url);
+    const parsed = parseQuery(new URL(req.url), inventoryQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const { categories, businessType, offset, limit, search, productType } = parsed.data;
 
     // Taxonomie produit (modale produit) — ne dépend pas de la boutique.
-    if (searchParams.get('categories') === '1') {
+    if (categories === '1') {
       const tree = await getProductCategoryTree(
-        searchParams.get('businessType') || 'shopping',
+        businessType === 'all' ? 'shopping' : businessType,
       );
       return NextResponse.json({ success: true, tree });
     }
 
-    const storeId = await resolveMobileStoreId(
-      guard.userId,
-      searchParams.get('storeId'),
-    );
+    const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
 
     if (!storeId) {
       return NextResponse.json({
@@ -43,21 +44,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const offset = Number(searchParams.get('offset') || 0) || 0;
-    const limit = Number(searchParams.get('limit') || 10) || 10;
-    const search = searchParams.get('search') || '';
-    const productType = (searchParams.get('productType') || 'all') as
-      | 'all'
-      | 'pos'
-      | 'marketplace';
-    const businessType = (searchParams.get('businessType') || 'all') as
-      | 'all'
-      | 'shopping'
-      | 'food';
-
     const result = await getProductsAction(storeId, offset, limit, search, {
-      productType,
-      businessType,
+      productType: productType as 'all' | 'pos' | 'marketplace',
+      businessType: businessType as 'all' | 'shopping' | 'food',
     });
     return NextResponse.json(result);
   } catch (error) {

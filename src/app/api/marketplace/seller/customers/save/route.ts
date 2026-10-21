@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveCustomerAction } from '@/app/actions/customers';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerCustomerSaveSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
-
-interface CustomerBody {
-  id?: string;
-  name?: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  totalSpent?: number | string;
-  ordersCount?: number;
-  storeId?: string;
-}
 
 /**
  * POST /api/marketplace/seller/customers/save
@@ -26,7 +17,9 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as CustomerBody;
+    const parsed = await parseBody(req, sellerCustomerSaveSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     // Le web retombe sur `customers[0].store_id` quand le contexte n'a pas
     // d'identifiant ; côté mobile le storeId est explicite ou déduit du profil.

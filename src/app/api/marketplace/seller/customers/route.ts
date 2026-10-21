@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCustomersAction } from '@/app/actions/customers';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseQuery } from '@/lib/validation';
+import { listQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,19 +17,14 @@ export async function GET(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const { searchParams } = new URL(req.url);
-    const storeId = await resolveMobileStoreId(
-      guard.userId,
-      searchParams.get('storeId'),
-    );
+    const parsed = parseQuery(new URL(req.url), listQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const { offset, limit, search } = parsed.data;
+    const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
 
     if (!storeId) {
       return NextResponse.json({ success: false, error: 'NoStore', customers: [], hasMore: false, total: 0 });
     }
-
-    const offset = Number(searchParams.get('offset') || 0) || 0;
-    const limit = Number(searchParams.get('limit') || 10) || 10;
-    const search = searchParams.get('search') || '';
 
     const result = await getCustomersAction(storeId, offset, limit, search);
     return NextResponse.json(result);

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrderAction } from '@/app/actions/orders';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerPosCheckoutSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,16 +18,13 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => null)) as {
-      storeId?: string;
-      order?: Parameters<typeof createOrderAction>[0];
-    } | null;
+    const parsed = await parseBody(req, sellerPosCheckoutSchema);
+    if (!parsed.ok) return parsed.response;
 
-    if (!body?.storeId || !body.order) {
-      return NextResponse.json({ success: false, error: 'Commande incomplète.' });
-    }
-
-    const result = await createOrderAction(body.order, body.storeId);
+    const result = await createOrderAction(
+      parsed.data.order as unknown as Parameters<typeof createOrderAction>[0],
+      parsed.data.storeId,
+    );
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error });
     }

@@ -8,6 +8,8 @@ import { stores, profiles, coupons, storeStaff } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { StoreSettings } from '@/types'
 import { requireStoreAccess, requireSelfOrAdmin } from '@/lib/authorization'
+import { validate } from '@/lib/validation'
+import { couponInputSchema, profileUpdateSchema, staffInputSchema } from '@/lib/schemas'
 
 /**
  * Résout la boutique d'une ligne (coupon, membre d'équipe) afin d'en vérifier
@@ -155,11 +157,13 @@ export async function saveCouponAction(coupon: CouponInput, storeId: string) {
         const access = await requireStoreAccess(storeId)
         if (!access.ok) return { success: false, error: access.error }
 
-        if (!coupon || !coupon.code) return { success: false, error: 'Code promo manquant' };
+        const validated = validate(couponInputSchema, coupon);
+        if (!validated) return { success: false, error: 'Code promo manquant' };
+        coupon = validated as unknown as CouponInput;
 
         const [saved] = await db.insert(coupons).values({
             storeId,
-            code: coupon.code.toUpperCase(),
+            code: String(coupon.code).toUpperCase(),
             discountPct: String(coupon.discountPct ?? 10),
             active: coupon.active !== false,
             expiresAt: coupon.expiresAt ? new Date(coupon.expiresAt) : null,
@@ -213,6 +217,10 @@ export async function addStaffAction(staff: StaffInput, storeId: string) {
         const access = await requireStoreAccess(storeId)
         if (!access.ok) return { success: false, error: access.error }
 
+        const validated = validate(staffInputSchema, staff);
+        if (!validated) return { success: false, error: 'Email manquant' };
+        staff = validated as unknown as StaffInput;
+
         const email = String(staff?.email || '').trim().toLowerCase();
         if (!email) return { success: false, error: 'Email manquant' };
 
@@ -259,5 +267,9 @@ export async function deleteStaffAction(id: string) {
 }
 
 export async function updateProfileAction(userId: string, data: { fullName: string, email?: string, avatarUrl?: string }) {
-    return updateProfileSettingsAction(userId, data);
+    const validated = validate(profileUpdateSchema, data);
+    if (!validated) {
+        return { success: false, error: 'Données de profil invalides.' };
+    }
+    return updateProfileSettingsAction(userId, validated as { fullName: string; email?: string; avatarUrl?: string });
 }

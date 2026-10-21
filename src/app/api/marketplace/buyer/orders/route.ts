@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchBuyerOrdersAction } from '@/app/actions/marketplace';
 import { requireBuyerSpace } from '@/lib/mobile-space';
+import { parseQuery } from '@/lib/validation';
+import { buyerOrdersQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +13,10 @@ export async function GET(req: NextRequest) {
   try {
     const guard = await requireBuyerSpace();
     if (!guard.ok) return guard.response;
-    const { searchParams } = new URL(req.url);
-    const email = searchParams.get('email') || undefined;
-    const userId = searchParams.get('userId') || undefined;
+    const parsed = parseQuery(new URL(req.url), buyerOrdersQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const { page, limit, email, userId } = parsed.data;
     const fallback = userId || email;
-    const page = Number(searchParams.get('page')) || 1;
-    const limit = Number(searchParams.get('limit')) || 50;
     const result = await fetchBuyerOrdersAction(page, limit, fallback);
     return NextResponse.json(result);
   } catch (error) {

@@ -2,7 +2,7 @@
  * Espace client mobile — refonte épurée.
  *
  * Structure : en-tête → contenu contextuel.
- *  - Aperçu : raccourcis (Mes commandes, Mes avis, Boutiques suivies,
+ *  - Aperçu : raccourcis (Mes commandes, Mes avis, Mes boutiques,
  *    Mon profil) puis dernières commandes (liste complète des produits).
  *  - Une section par onglet, avec un en-tête de section et un retour
  *    « Aperçu ».
@@ -105,7 +105,7 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Boutiques',
     desc: 'Boutiques chez lesquelles vous avez commandé',
     Icon: Store,
-    tileLabel: 'Boutiques suivies',
+    tileLabel: 'Mes boutiques',
   },
   {
     id: 'notifications',

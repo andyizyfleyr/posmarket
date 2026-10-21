@@ -3,6 +3,8 @@ import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { orderItems, products } from '@/db/schema';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseQuery } from '@/lib/validation';
+import { orderItemsQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +20,9 @@ export async function GET(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const { searchParams } = new URL(req.url);
-    const orderId = searchParams.get('orderId');
-    if (!orderId) {
-      return NextResponse.json({ success: false, items: [], error: 'MissingOrderId' });
-    }
+    const parsed = parseQuery(new URL(req.url), orderItemsQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const { orderId } = parsed.data;
 
     const rows = await db
       .select()

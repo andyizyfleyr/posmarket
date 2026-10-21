@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createStoreAction, updateStoreSettingsAction } from '@/app/actions/settings';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerSettingsUpdateSchema } from '@/lib/schemas';
 import type { StoreSettings } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -16,20 +18,14 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const settings = (body as { settings?: StoreSettings }).settings;
-    if (!settings || typeof settings !== 'object') {
+    const parsed = await parseBody(req, sellerSettingsUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const settings = parsed.data.settings as StoreSettings | undefined;
+    if (!settings) {
       return NextResponse.json({ success: false, error: 'Paramètres invalides.' });
     }
 
-    const storeId = await resolveMobileStoreId(
-      guard.userId,
-      (body as { storeId?: string }).storeId,
-    );
+    const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
 
     if (storeId) {
       const result = await updateStoreSettingsAction(storeId, settings);

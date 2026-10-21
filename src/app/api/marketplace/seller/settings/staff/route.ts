@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addStaffAction, deleteStaffAction } from '@/app/actions/settings';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerStaffSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,22 +18,16 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const action = String((body as { action?: string }).action || '');
+    const parsed = await parseBody(req, sellerStaffSchema);
+    if (!parsed.ok) return parsed.response;
+    const { action } = parsed.data;
 
     if (action === 'add') {
-      const storeId = await resolveMobileStoreId(
-        guard.userId,
-        (body as { storeId?: string }).storeId,
-      );
+      const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
       if (!storeId) {
         return NextResponse.json({ success: false, error: 'Boutique inconnue' });
       }
-      const staff = (body as { staff?: { email?: string; role?: string } }).staff;
+      const staff = parsed.data.staff;
       const result = await addStaffAction(
         { email: staff?.email, role: staff?.role },
         storeId,
@@ -40,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'delete') {
-      const id = String((body as { id?: string }).id || '');
+      const id = parsed.data.id ?? '';
       if (!id) {
         return NextResponse.json({ success: false, error: 'Membre introuvable' });
       }

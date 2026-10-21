@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveInvoiceAction, type InvoiceInput } from '@/app/actions/invoices';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerInvoiceSaveSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
-
-interface SaveInvoiceBody {
-  storeId?: string;
-  invoice?: InvoiceInput;
-}
 
 /**
  * POST /api/marketplace/seller/invoices/save  { storeId, invoice }
@@ -21,7 +18,9 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as SaveInvoiceBody;
+    const parsed = await parseBody(req, sellerInvoiceSaveSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const storeId = await resolveMobileStoreId(guard.userId, body.storeId || null);
     if (!storeId) {
@@ -31,7 +30,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'MissingInvoice' });
     }
 
-    const result = await saveInvoiceAction(body.invoice, storeId);
+    const result = await saveInvoiceAction(
+      body.invoice as unknown as InvoiceInput,
+      storeId,
+    );
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] seller/invoices/save error:', error);

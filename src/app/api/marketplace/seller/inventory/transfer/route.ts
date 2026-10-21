@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { transferProductsBetweenStoresAction } from '@/app/actions/inventory';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerInventoryTransferSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,30 +12,17 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const { targetStoreId, productIds, options } = body as {
-      targetStoreId?: string;
-      productIds?: string[];
-      options?: Parameters<typeof transferProductsBetweenStoresAction>[3];
-    };
-    const sourceStoreId = (body as { sourceStoreId?: string }).sourceStoreId;
-
-    if (!sourceStoreId || !targetStoreId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Veuillez sélectionner une boutique de destination.',
-      });
-    }
+    const parsed = await parseBody(req, sellerInventoryTransferSchema);
+    if (!parsed.ok) return parsed.response;
+    const { sourceStoreId, targetStoreId, productIds, options } = parsed.data;
 
     const result = await transferProductsBetweenStoresAction(
       sourceStoreId,
       targetStoreId,
-      productIds || [],
-      options || { duplicateStrategy: 'skip', copyStock: false },
+      productIds,
+      (options || { duplicateStrategy: 'skip', copyStock: false }) as Parameters<
+        typeof transferProductsBetweenStoresAction
+      >[3],
     );
     return NextResponse.json(result);
   } catch (error) {

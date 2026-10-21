@@ -21,6 +21,7 @@ import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } fro
 import { generateProductSlug } from '@/utils/slug'
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale'
 import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
+import { checkoutActionSchema } from '@/lib/schemas'
 import type { Product, ProductOption, WholesaleTier } from '@/types'
 
 type CheckoutItemInput = {
@@ -243,6 +244,23 @@ export async function submitCheckoutAction(
   customerData?: CheckoutCustomer,
   idempotencyKey?: string,
 ) {
+  // Validation Zod de l'entrée : le web comme le mobile passent par ici, on ne
+  // fait donc confiance à aucun champ pour continuer le traitement.
+  const parsed = checkoutActionSchema.safeParse({
+    order: order ?? {},
+    customer: customerData ?? undefined,
+    idempotencyKey: idempotencyKey ?? undefined,
+  })
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      error: 'Données de commande invalides.',
+    }
+  }
+  const validatedOrder = parsed.data.order as Record<string, CheckoutStoreOrder>
+  const validatedCustomer = parsed.data.customer as CheckoutCustomer | undefined
+  const validatedKey = parsed.data.idempotencyKey
+
   const ip = await getClientIp()
   const limit = rateLimit(`checkout:${ip}`, 12, 60_000)
   if (!limit.ok) {
@@ -259,7 +277,7 @@ export async function submitCheckoutAction(
     }
   }
 
-  const rawKey = typeof idempotencyKey === 'string' ? idempotencyKey.trim() : ''
+  const rawKey = typeof validatedKey === 'string' ? validatedKey.trim() : ''
   if (rawKey.length > 128) {
     return { success: false as const, error: 'Clé de commande invalide. Rechargez la page et réessayez.' }
   }
@@ -268,7 +286,7 @@ export async function submitCheckoutAction(
   let completed = false
 
   const { user } = await getCurrentSession()
-  const customer = customerData || {}
+  const customer = validatedCustomer || {}
 
   try {
     if (key) {
@@ -314,7 +332,9 @@ export async function submitCheckoutAction(
     }
 
     const ordersData =
-      order && typeof order === 'object' && !Array.isArray(order) ? order : {}
+      validatedOrder && typeof validatedOrder === 'object' && !Array.isArray(validatedOrder)
+        ? validatedOrder
+        : {}
     const storeEntries = Object.entries(ordersData).filter(([, value]) => Boolean(value))
     if (storeEntries.length === 0) {
       reject('Votre panier est vide.')

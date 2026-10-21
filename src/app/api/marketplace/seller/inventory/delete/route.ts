@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteProductAction } from '@/app/actions/inventory';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerIdSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,22 +12,16 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const { id } = body as { id?: string };
-    const storeId = await resolveMobileStoreId(
-      guard.userId,
-      (body as { storeId?: string }).storeId,
-    );
+    const parsed = await parseBody(req, sellerIdSchema);
+    if (!parsed.ok) return parsed.response;
+    const { id } = parsed.data;
+    const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
 
     if (!storeId) {
       return NextResponse.json({ success: false, error: 'NoStore' });
     }
 
-    const result = await deleteProductAction(id || '', storeId);
+    const result = await deleteProductAction(id, storeId);
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] seller/inventory/delete error:', error);

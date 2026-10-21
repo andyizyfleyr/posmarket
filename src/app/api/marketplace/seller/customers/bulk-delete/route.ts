@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bulkDeleteCustomersAction } from '@/app/actions/customers';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerIdsSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,12 +16,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as { ids?: string[] };
-    if (!Array.isArray(body.ids) || body.ids.length === 0) {
-      return NextResponse.json({ success: false, error: 'MissingCustomers' });
-    }
+    const parsed = await parseBody(req, sellerIdsSchema);
+    if (!parsed.ok) return parsed.response;
 
-    const result = await bulkDeleteCustomersAction(body.ids);
+    const result = await bulkDeleteCustomersAction(parsed.data.ids);
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] seller/customers/bulk-delete error:', error);

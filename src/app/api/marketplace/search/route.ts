@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchProductsAction } from '@/app/actions/marketplace';
+import { parseQuery } from '@/lib/validation';
+import { searchQuerySchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,9 +11,9 @@ export const dynamic = 'force-dynamic';
  * Full-text + trigram product search for the mobile app.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const q = searchParams.get('q') || '';
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '30', 10)));
+  const parsed = parseQuery(new URL(request.url), searchQuerySchema);
+  if (!parsed.ok) return parsed.response;
+  const { q, limit } = parsed.data;
 
   if (!q || q.trim().length < 2) {
     return NextResponse.json({ success: true, products: [] });

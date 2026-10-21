@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { submitCheckoutAction } from '@/app/actions/checkout';
+import { parseBody } from '@/lib/validation';
+import { checkoutSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,15 +12,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orders, customer, idempotencyKey } = body;
-
-    if (!orders || typeof orders !== 'object') {
-      return NextResponse.json(
-        { success: false, error: 'Données de commande invalides' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseBody(req, checkoutSchema);
+    if (!parsed.ok) return parsed.response;
+    const { orders, customer, idempotencyKey } = parsed.data;
 
     const result = await submitCheckoutAction(orders, customer, idempotencyKey);
     return NextResponse.json(result);

@@ -5,6 +5,8 @@ import {
 } from '@/app/actions/store';
 import { updateStoreSettingsAction } from '@/app/actions/settings';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerStoreActionSchema } from '@/lib/schemas';
 import type { StoreSettings } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -23,12 +25,13 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const action = String(body?.action || '');
+    const parsed = await parseBody(req, sellerStoreActionSchema);
+    if (!parsed.ok) return parsed.response;
+    const { action } = parsed.data;
 
     if (action === 'create') {
-      const name = String(body?.name || '').trim();
-      const businessType = body?.businessType === 'food' ? 'food' : 'shopping';
+      const name = parsed.data.name ?? '';
+      const businessType = parsed.data.businessType ?? 'shopping';
       if (!name) {
         return NextResponse.json({ success: false, error: 'Nom de boutique requis.' });
       }
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'delete') {
-      const storeId = String(body?.storeId || '');
+      const storeId = parsed.data.storeId ?? '';
       if (!storeId) {
         return NextResponse.json({ success: false, error: 'Boutique inconnue.' });
       }
@@ -46,8 +49,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'settings') {
-      const storeId = String(body?.storeId || '');
-      const settings = body?.settings as StoreSettings | undefined;
+      const storeId = parsed.data.storeId ?? '';
+      const settings = parsed.data.settings as StoreSettings | undefined;
       if (!storeId || !settings || typeof settings !== 'object') {
         return NextResponse.json({ success: false, error: 'Paramètres invalides.' });
       }

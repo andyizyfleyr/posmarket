@@ -5,6 +5,8 @@ import { db } from '@/db'
 import { customers } from '@/db/schema'
 import { eq, or, and, sql, inArray, desc } from 'drizzle-orm'
 import { requireStoreAccess } from '@/lib/authorization'
+import { validate } from '@/lib/validation'
+import { customerInputSchema } from '@/lib/schemas'
 
 /**
  * Vérifie que l'appelant gère la boutique concernée : sans ce contrôle, un
@@ -39,6 +41,10 @@ export async function saveCustomerAction(customer: CustomerInput, storeId: strin
 try {
             const access = await requireStoreAccess(storeId);
             if (!access.ok) return { success: false, error: access.error };
+
+            const validated = validate(customerInputSchema, customer);
+            if (!validated) return { success: false, error: 'Nom du client requis.' };
+            customer = validated as unknown as CustomerInput;
 
             const dataToSave = {
             storeId,

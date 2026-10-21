@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteOrderAction } from '@/app/actions/orders';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerIdSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,12 +16,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as { id?: string };
-    if (!body.id) {
-      return NextResponse.json({ success: false, error: 'MissingOrder' });
-    }
+    const parsed = await parseBody(req, sellerIdSchema);
+    if (!parsed.ok) return parsed.response;
 
-    const result = await deleteOrderAction(body.id);
+    const result = await deleteOrderAction(parsed.data.id);
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] seller/orders/delete error:', error);

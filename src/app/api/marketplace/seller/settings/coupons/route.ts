@@ -5,6 +5,8 @@ import {
   toggleCouponAction,
 } from '@/app/actions/settings';
 import { requireSellerSpace, resolveMobileStoreId } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerCouponsSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,24 +23,18 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Requête invalide' });
-    }
-
-    const action = String((body as { action?: string }).action || '');
+    const parsed = await parseBody(req, sellerCouponsSchema);
+    if (!parsed.ok) return parsed.response;
+    const { action } = parsed.data;
 
     if (action === 'save') {
-      const storeId = await resolveMobileStoreId(
-        guard.userId,
-        (body as { storeId?: string }).storeId,
-      );
+      const storeId = await resolveMobileStoreId(guard.userId, parsed.data.storeId);
       if (!storeId) {
         return NextResponse.json({ success: false, error: 'Boutique inconnue' });
       }
-      const coupon = (body as {
-        coupon?: { code?: string; discountPct?: number | string; active?: boolean };
-      }).coupon;
+      const coupon = parsed.data.coupon as
+        | { code?: string; discountPct?: number | string; active?: boolean }
+        | undefined;
       const result = await saveCouponAction(
         {
           code: coupon?.code,
@@ -51,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'delete') {
-      const id = String((body as { id?: string }).id || '');
+      const id = parsed.data.id;
       if (!id) {
         return NextResponse.json({ success: false, error: 'Code promo manquant' });
       }
@@ -60,11 +56,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'toggle') {
-      const id = String((body as { id?: string }).id || '');
+      const id = parsed.data.id;
       if (!id) {
         return NextResponse.json({ success: false, error: 'Code promo manquant' });
       }
-      const active = Boolean((body as { active?: boolean }).active);
+      const active = Boolean(parsed.data.active);
       const result = await toggleCouponAction(id, active);
       return NextResponse.json(result);
     }

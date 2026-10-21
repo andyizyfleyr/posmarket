@@ -6,6 +6,8 @@ import {
 } from '@/lib/notification-actions';
 import type { NotificationEvent } from '@/types';
 import { requireBuyerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { buyerNotificationSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,19 +44,15 @@ export async function POST(req: NextRequest) {
   try {
     const guard = await requireBuyerSpace();
     if (!guard.ok) return guard.response;
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const eventType = String(body?.eventType || '') as NotificationEvent;
-    const channel = body?.channel === 'email' ? 'email' : 'whatsapp';
-    const enabled = Boolean(body?.enabled);
-    if (!eventType) {
-      return NextResponse.json({ success: false, error: 'Événement manquant.' });
-    }
+    const parsed = await parseBody(req, buyerNotificationSchema);
+    if (!parsed.ok) return parsed.response;
+    const { eventType, channel, enabled } = parsed.data;
     const result = await setNotificationPreferenceAction(
-      eventType,
+      eventType as NotificationEvent,
       channel,
       enabled,
-      String(body?.whatsappPhone || ''),
-      String(body?.emailAddress || ''),
+      parsed.data.whatsappPhone ?? '',
+      parsed.data.emailAddress ?? '',
     );
     return NextResponse.json(result);
   } catch (error) {

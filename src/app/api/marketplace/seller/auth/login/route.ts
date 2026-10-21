@@ -7,6 +7,8 @@ import {
   closeMagicLinkCapture,
   openMagicLinkCapture,
 } from '@/lib/magic-link-capture';
+import { parseBody } from '@/lib/validation';
+import { authLoginSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,14 +31,11 @@ const SESSION_COOKIE_RE = /((?:__Secure-)?authjs\.session-token)=([^;,\s]+)/;
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const email = String(body?.email || '').trim().toLowerCase();
-    const name = String(body?.name || '').trim();
-    const mode = body?.mode === 'register' ? 'register' : 'login';
+    const parsed = await parseBody(req, authLoginSchema);
+    if (!parsed.ok) return parsed.response;
+    const { email, mode } = parsed.data;
+    const name = parsed.data.name ?? '';
 
-    if (!email || !email.includes('@')) {
-      return NextResponse.json({ success: false, error: 'Adresse email invalide.' });
-    }
     if (mode === 'register' && !name) {
       return NextResponse.json({ success: false, error: 'Veuillez saisir votre nom complet.' });
     }

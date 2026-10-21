@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateOrderStatusAction } from '@/app/actions/orders';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerOrderStatusSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,16 +17,13 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as {
-      orderId?: string;
-      status?: string;
-    };
+    const parsed = await parseBody(req, sellerOrderStatusSchema);
+    if (!parsed.ok) return parsed.response;
 
-    if (!body.orderId || !body.status) {
-      return NextResponse.json({ success: false, error: 'MissingOrder' });
-    }
-
-    const result = await updateOrderStatusAction(body.orderId, body.status);
+    const result = await updateOrderStatusAction(
+      parsed.data.orderId,
+      parsed.data.status,
+    );
     return NextResponse.json(result);
   } catch (error) {
     console.error('[API] seller/orders/status error:', error);

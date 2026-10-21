@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStockCountsAction } from '@/app/actions/inventory';
 import { requireSellerSpace } from '@/lib/mobile-space';
+import { parseBody } from '@/lib/validation';
+import { sellerStoreIdSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +17,10 @@ export async function POST(req: NextRequest) {
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 
-    const body = (await req.json().catch(() => ({}))) as { storeId?: string };
-    if (!body.storeId) {
-      return NextResponse.json({ success: false, error: 'NoStore' });
-    }
+    const parsed = await parseBody(req, sellerStoreIdSchema);
+    if (!parsed.ok) return parsed.response;
 
-    const result = await getStockCountsAction(body.storeId);
+    const result = await getStockCountsAction(parsed.data.storeId);
     if (!result.ok) {
       return NextResponse.json({ success: false, error: result.error });
     }

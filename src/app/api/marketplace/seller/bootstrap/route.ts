@@ -4,6 +4,8 @@ import { canAccessSellerSpace, resolveAccountAccess } from '@/utils/account-acce
 import { getStoreCookie } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
 import { getPermissionsForUser } from '@/utils/permissions';
+import { parseQuery } from '@/lib/validation';
+import { bootstrapQuerySchema } from '@/lib/schemas';
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
 import type { StaffRole, SubscriptionDuration, SubscriptionTier, UserSubscription } from '@/types';
 
@@ -73,7 +75,9 @@ export async function GET(req: NextRequest) {
     // pas de changer de boutique. On ne retient le paramètre que s'il correspond à
     // une boutique accessible, puis on retombe sur le cookie, puis sur la plus
     // ancienne boutique.
-    const requested = req.nextUrl.searchParams.get('storeId');
+    const parsed = parseQuery(new URL(req.url), bootstrapQuerySchema);
+    if (!parsed.ok) return parsed.response;
+    const requested = parsed.data.storeId;
     let currentStoreId =
       requested && stores.some((store) => store.id === requested)
         ? requested
