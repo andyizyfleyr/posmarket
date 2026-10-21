@@ -154,11 +154,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           );
         })}
       </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerLabel}>Total</Text>
-        <Text style={styles.footerValue}>{formatCurrency(order.total)}</Text>
-      </View>
     </>
   );
 
@@ -193,23 +188,32 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       ]}
     >
       {content}
-      {onReorder ? (
-        <Pressable
-          onPress={onReorder}
-          disabled={reorderDisabled}
-          style={({ pressed }) => [
-            styles.reorderBtn,
-            pressed && styles.pressed,
-            reorderDisabled && styles.disabled,
-          ]}
-          accessibilityLabel="Remettre cette commande au panier"
-        >
-          <RotateCcw size={12} color={COLORS.brand} />
-          <Text style={styles.reorderText}>
-            {reorderDisabled ? 'Ajout…' : reorderLabel}
-          </Text>
-        </Pressable>
-      ) : null}
+
+      <View style={styles.footer}>
+        {onReorder ? (
+          <Pressable
+            onPress={onReorder}
+            disabled={reorderDisabled}
+            style={({ pressed }) => [
+              styles.reorderBtn,
+              pressed && styles.pressed,
+              reorderDisabled && styles.disabled,
+            ]}
+            accessibilityLabel="Remettre cette commande au panier"
+          >
+            <RotateCcw size={12} color={COLORS.brand} />
+            <Text style={styles.reorderText} numberOfLines={1}>
+              {reorderDisabled ? 'Ajout…' : reorderLabel}
+            </Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
+        <View style={styles.footerTotal}>
+          <Text style={styles.footerLabel}>Total</Text>
+          <Text style={styles.footerValue}>{formatCurrency(order.total)}</Text>
+        </View>
+      </View>
     </Animated.View>
   );
 };
@@ -255,14 +259,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
     marginTop: 12,
     paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
     borderTopWidth: 1,
     borderTopColor: COLORS.line,
   },
+  footerTotal: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
   footerLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: COLORS.textFaint,
     letterSpacing: 0.6,
@@ -306,21 +317,20 @@ const styles = StyleSheet.create({
   reorderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginHorizontal: 14,
-    marginTop: -4,
-    marginBottom: 14,
-    paddingVertical: 9,
-    borderRadius: 10,
+    gap: 5,
+    flexShrink: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: COLORS.brand,
   },
   reorderText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: COLORS.brand,
+    letterSpacing: -0.1,
   },
   pressed: {
     opacity: 0.85,
