@@ -125,7 +125,7 @@ export function PartnerStoreCard({ store, stats, onOpen }: PartnerStoreCardProps
       <div className="relative h-11 overflow-hidden bg-gradient-to-br from-[#FFF6F0] to-[#FFE3D3]">
         <span className="absolute -right-6 -top-8 h-[76px] w-[76px] rounded-full bg-[rgba(245,107,42,0.10)]" />
         <span className="absolute bottom-[-22px] left-[30px] h-9 w-9 rounded-full bg-[rgba(255,255,255,0.55)]" />
-        <span className="absolute left-2.5 top-2 inline-flex shrink-0 items-center gap-[3px] rounded-full bg-[rgba(255,255,255,0.78)] px-1.5 py-[3px]">
+        <span className="absolute right-2.5 top-2 inline-flex shrink-0 items-center gap-[3px] rounded-full bg-[rgba(255,255,255,0.78)] px-1.5 py-[3px]">
           <span className="text-[7.5px] font-bold tracking-[0.15px] text-[#22C55E]">
             Vérifié
           </span>

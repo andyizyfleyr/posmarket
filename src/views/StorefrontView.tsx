@@ -4103,7 +4103,7 @@ const WHOLESALE_FILTER = "wholesale";
                                   </div>
                                   {/* 6 produits par section ; « Voir tout »
                                       ouvre la section complete. */}
-                                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 md:gap-3">
+                                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 md:gap-3">
                                     {section.preview.map(renderCard)}
                                   </div>
                                 </div>
@@ -4294,7 +4294,7 @@ const WHOLESALE_FILTER = "wholesale";
                       ) : pagedProducts.length > 0 ? (
                         activeStoreCategory ? (
                           /* Full category grid */
-                          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 md:gap-3">
+                          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 md:gap-3">
                             {pagedProducts.map((product) => (
                               <ProductCard
                                 key={`${product.storeId}-${product.id}`}
@@ -4406,7 +4406,7 @@ const WHOLESALE_FILTER = "wholesale";
                                     </button>
                                   </div>
                                 )}
-                                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 md:gap-3">
+                                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 md:gap-3">
                                   {sectionItems.map(renderCard)}
                                 </div>
                               </div>
