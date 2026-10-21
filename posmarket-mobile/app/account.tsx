@@ -146,7 +146,7 @@ const HERO_GRADIENT = ['#002F34', '#0B4A50'] as const;
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; order?: string }>();
   const { user, isReady, openAuth, logout } = useAuth();
   const data = useBuyerData();
 
@@ -154,6 +154,16 @@ export default function AccountScreen() {
   const [activeSection, setActiveSection] = useState<AccountSection>(
     () => SECTION_FROM_PARAM[params.tab || ''] || 'overview',
   );
+  /** Commande ciblée : mise en évidence après un clic depuis l'aperçu. */
+  const [targetOrderId, setTargetOrderId] = useState<string | null>(
+    () => params.order || null,
+  );
+  /** Jeton : relance la surbrillance à chaque nouvelle cible. */
+  const [targetKey, setTargetKey] = useState(0);
+  /** Position de la section dans le contenu défilant. */
+  const [sectionOffset, setSectionOffset] = useState<number | null>(null);
+  /** Position de la commande ciblée, relative à la section. */
+  const [targetOffset, setTargetOffset] = useState<number | null>(null);
   const [addressModal, setAddressModal] = useState<{
     open: boolean;
     editing: BuyerAddress | null;
@@ -173,6 +183,14 @@ export default function AccountScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.tab]);
 
+  // Commande ciblée (deep link `?order=…` ou clic depuis l'aperçu).
+  useEffect(() => {
+    if (params.order && params.order !== targetOrderId) {
+      setTargetOrderId(params.order);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.order]);
+
   const showError = !!data.error && data.error !== dismissedError;
 
   const handleRetry = useCallback(() => {
@@ -181,9 +199,40 @@ export default function AccountScreen() {
   }, [data]);
 
   const openSection = useCallback((section: AccountSection) => {
+    // Une navigation « normale » annule la commande ciblée.
+    setTargetOrderId(null);
+    setTargetOffset(null);
     setActiveSection(section);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, []);
+
+  /**
+   * Ouvre la page Commandes sur la commande visée : on mémorise l'identifiant,
+   * on émet le deep link, puis on fait défiler jusqu'à la carte.
+   */
+  const openOrder = useCallback((orderId: string) => {
+    setTargetOrderId(orderId);
+    setTargetKey((key) => key + 1);
+    setTargetOffset(null);
+    setActiveSection('orders');
+    router.setParams({ tab: 'orders', order: orderId });
+  }, []);
+
+  /** Position de la commande ciblée, relative à la section. */
+  const handleTargetOffset = useCallback((offset: number) => {
+    setTargetOffset(offset);
+  }, []);
+
+  // Défilement vers la commande ciblée, une fois toutes les mesures connues.
+  useEffect(() => {
+    if (sectionOffset === null || targetOffset === null) return;
+    const y = Math.max(0, sectionOffset + targetOffset - 12);
+    // Léger délai : la carte doit être montée avant le scroll.
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [sectionOffset, targetOffset]);
 
   /**
    * Retour hiérarchique : ferme d'abord les surcouches ouvertes, puis revient
@@ -399,7 +448,7 @@ export default function AccountScreen() {
               <OrderCard
                 key={order.id}
                 order={order}
-                onPress={() => openSection('orders')}
+                onPress={() => openOrder(order.id)}
               />
             ))}
           </View>
@@ -429,6 +478,9 @@ export default function AccountScreen() {
               setReviewTarget({ ...product, store_id: storeId })
             }
             onBrowse={() => router.replace('/')}
+            targetOrderId={targetOrderId}
+            targetKey={targetKey}
+            onTargetOffset={handleTargetOffset}
           />
         );
       case 'addresses':
@@ -579,7 +631,10 @@ export default function AccountScreen() {
           {activeSection === 'overview' ? (
             renderOverview()
           ) : (
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={(event) => setSectionOffset(event.nativeEvent.layout.y)}
+            >
               <View style={styles.sectionHead}>
                 <View style={styles.sectionHeadIcon}>
                   <activeSectionDef.Icon size={16} color={COLORS.brand} />

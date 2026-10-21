@@ -4,8 +4,8 @@
  * liste des produits, avis et récommande.
  */
 
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Package, ShoppingBag } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import type { BuyerOrder } from '@/types';
@@ -24,6 +24,15 @@ interface OrdersTabProps {
   onLoadMore: () => void;
   onReviewProduct: (product: ReviewTargetProduct, storeId: string) => void;
   onBrowse: () => void;
+  /** Commande à mettre en évidence (issue de l'aperçu). */
+  targetOrderId?: string | null;
+  /** Jeton de surbrillance : relance l'animation à chaque nouvelle cible. */
+  targetKey?: string | number;
+  /**
+   * Position de la commande ciblée, relative au haut de la liste.
+   * L'écran parent l'utilise pour scroller jusqu'à la bonne commande.
+   */
+  onTargetOffset?: (offset: number) => void;
 }
 
 export const OrdersTab: React.FC<OrdersTabProps> = ({
@@ -34,8 +43,43 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   onLoadMore,
   onReviewProduct,
   onBrowse,
+  targetOrderId,
+  targetKey,
+  onTargetOffset,
 }) => {
   const { reorder, pendingOrderId } = useReorder();
+
+  /** Décalage vertical de chaque carte dans la liste. */
+  const cardOffsets = useRef<Record<string, number>>({});
+  const listOffset = useRef(0);
+  const notified = useRef<string | null>(null);
+  // Incrémenté à chaque mesure : relance l'effet de ciblage.
+  const [measureTick, setMeasureTick] = useState(0);
+
+  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
+    listOffset.current = event.nativeEvent.layout.y;
+    setMeasureTick((tick) => tick + 1);
+  }, []);
+
+  const handleCardLayout = useCallback(
+    (orderId: string) => (event: LayoutChangeEvent) => {
+      cardOffsets.current[orderId] = event.nativeEvent.layout.y;
+      setMeasureTick((tick) => tick + 1);
+    },
+    [],
+  );
+
+  // Une fois la mesure connue, on signale la position de la cible.
+  useEffect(() => {
+    if (!targetOrderId || !onTargetOffset) return;
+    const token = `${targetOrderId}#${targetKey ?? ''}`;
+    if (notified.current === token) return;
+    const cardOffset = cardOffsets.current[targetOrderId];
+    if (cardOffset === undefined) return;
+    notified.current = token;
+    // Position de la carte par rapport au haut de la section.
+    onTargetOffset(listOffset.current + cardOffset);
+  }, [targetOrderId, targetKey, onTargetOffset, orders, measureTick]);
 
   if (loading && orders.length === 0) return <PanelSkeleton rows={3} />;
 
@@ -62,7 +106,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   }
 
   return (
-    <View style={styles.list}>
+    <View style={styles.list} onLayout={handleListLayout}>
       {orders.map((order) => (
         <OrderCard
           key={order.id}
@@ -70,6 +114,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
           onReviewProduct={onReviewProduct}
           onReorder={() => void reorder(order)}
           reorderDisabled={pendingOrderId === order.id}
+          highlight={order.id === targetOrderId}
+          highlightKey={targetKey}
+          onLayout={handleCardLayout(order.id)}
         />
       ))}
 

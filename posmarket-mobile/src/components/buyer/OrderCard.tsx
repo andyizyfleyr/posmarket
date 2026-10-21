@@ -6,8 +6,15 @@
  * Les actions (avis, recommander) sont optionnelles.
  */
 
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { RotateCcw, Star } from 'lucide-react-native';
 import { formatCurrency } from '@/utils';
 import type { BuyerOrder } from '@/types';
@@ -37,6 +44,15 @@ interface OrderCardProps {
   /** Libellé du bouton de récommandation. */
   reorderLabel?: string;
   reorderDisabled?: boolean;
+  /** Met la commande en évidence (surbrillance clignotante). */
+  highlight?: boolean;
+  /**
+   * Jeton de surbrillance : changé à chaque nouvelle cible, il relance
+   * l'animation même si l'on vise deux fois la même commande.
+   */
+  highlightKey?: string | number;
+  /** Position de la carte dans la liste (pour le scroll ciblé). */
+  onLayout?: (event: LayoutChangeEvent) => void;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -46,6 +62,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onReorder,
   reorderLabel = 'Commander à nouveau',
   reorderDisabled = false,
+  highlight = false,
+  highlightKey,
+  onLayout,
 }) => {
   const items = order.order_items || [];
   const storeName = order.stores?.[0]?.name || 'Boutique';
@@ -53,6 +72,46 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     order.stores?.[0]?.business_type ||
     order.order_items?.[0]?.products?.[0]?.business_type;
   const articleCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+  /**
+   * Surbrillance : la carte clignote trois fois pour que l'acheteur
+   * repère immédiatement la commande qu'il vient d'ouvrir.
+   */
+  const [pulse] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    if (!highlight) return;
+    pulse.setValue(0);
+    const blink = Animated.sequence([
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(pulse, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+    ]);
+    const animation = Animated.sequence([blink, blink, blink]);
+    // Léger délai : le clignotement démarre une fois la carte à l'écran.
+    const timer = setTimeout(() => animation.start(), 220);
+    return () => {
+      clearTimeout(timer);
+      animation.stop();
+      pulse.setValue(0);
+    };
+  }, [highlight, highlightKey, pulse]);
+
+  const flashBackground = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLORS.surface, COLORS.brandSoft],
+  });
+  const flashBorder = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLORS.line, COLORS.brand],
+  });
 
   const body = (
     <>
@@ -121,29 +180,46 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     </>
   );
 
-  if (!onPress) return <View style={styles.card}>{body}</View>;
-
-  return (
+  const inner = onPress ? (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.card,
+        styles.cardInner,
         pressed && styles.pressed,
         pressed && { transform: [{ scale: 0.99 }] },
       ]}
     >
       {body}
     </Pressable>
+  ) : (
+    <View style={styles.cardInner}>{body}</View>
+  );
+
+  return (
+    <Animated.View
+      onLayout={onLayout}
+      style={[
+        styles.card,
+        highlight
+          ? { backgroundColor: flashBackground, borderColor: flashBorder }
+          : null,
+      ]}
+    >
+      {inner}
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    padding: 14,
     borderRadius: 16,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.line,
+    overflow: 'hidden',
+  },
+  cardInner: {
+    padding: 14,
   },
   head: {
     flexDirection: 'row',
