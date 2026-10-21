@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import Constants from 'expo-constants';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -270,14 +269,12 @@ export default function AccountScreen() {
 
   const quickActions: QuickAction[] = useMemo(
     () =>
-      (SECTIONS.filter((s) => s.id !== 'overview') as Array<SectionDef & { id: QuickActionId }>).map((section) => ({
+      (SECTIONS.filter((s) => s.id !== 'overview' && s.id !== 'profile') as Array<SectionDef & { id: QuickActionId }>).map((section) => ({
         id: section.id,
         label: section.label,
         hint: section.id === 'orders'
           ? `${counts.orders} au total`
-          : section.id === 'reviews'
-            ? `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`
-            : 'Infos et sécurité',
+          : `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`,
         Icon: section.Icon,
         color: COLORS.brand,
         tint: COLORS.brandSoft,
@@ -540,8 +537,6 @@ export default function AccountScreen() {
     </ScrollView>
   );
 
-  const version = Constants.expoConfig?.version || '1.0.0';
-
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
@@ -654,19 +649,6 @@ export default function AccountScreen() {
             </View>
           )}
 
-          <View style={styles.footer}>
-            <View style={styles.footerBrand}>
-              <Text style={styles.footerName}>PosMarket</Text>
-              <Text style={styles.footerVersion}>Espace client · v{version}</Text>
-            </View>
-            <Pressable
-              onPress={() => setShowLogoutModal(true)}
-              style={({ pressed }) => [styles.footerLogout, pressed && styles.pressed]}
-            >
-              <LogOut size={15} color="#F43F5E" />
-              <Text style={styles.footerLogoutText}>Déconnexion</Text>
-            </Pressable>
-          </View>
         </ScrollView>
       )}
 
