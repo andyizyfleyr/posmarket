@@ -1,9 +1,18 @@
 /**
- * Espace client mobile - refonte épurée.
+ * Espace client mobile — refonte épurée.
  *
- * Identité compacte, actions rapides (Commandes, Avis, Profil) et dernières
- * commandes. Adresses et Alertes masqués dans la navigation : accessibles via
- * `/account?tab=adresses` et `?tab=notifications`.
+ * Structure : en-tête → contenu contextuel.
+ *  - Aperçu : raccourcis (Mes commandes, Mes avis, Boutiques suivies,
+ *    Mon profil) puis dernières commandes (liste complète des produits).
+ *  - Une section par onglet, avec un en-tête de section et un retour
+ *    « Aperçu ».
+ *
+ * Adresses et Alertes restent masquées dans la navigation : elles sont
+ * accessibles via `/account?tab=adresses` et `?tab=notifications`.
+ *
+ * Design : une seule couleur d'accent (COLORS.brand), le reste en neutres.
+ * Échelle d'espacement 4/8/12/16/20, rayons 16 (carte) / 10 (élément),
+ * typo 15 (titre) / 13 (texte) / 11 (méta) / 9 (micro).
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -64,8 +73,8 @@ interface SectionDef {
   label: string;
   desc: string;
   Icon: LucideIcon;
-  /** Libellé court affiché dans les cartes d'action rapide. */
-  quickLabel?: string;
+  /** Libellé utilisé par la tuile de raccourci. */
+  tileLabel?: string;
 }
 
 const ALL_SECTIONS: SectionDef[] = [
@@ -80,7 +89,7 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Commandes',
     desc: 'Historique et suivi de vos achats',
     Icon: Package,
-    quickLabel: 'Mes commandes',
+    tileLabel: 'Mes commandes',
   },
   {
     id: 'addresses',
@@ -93,14 +102,14 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Avis',
     desc: 'Vos avis publiés',
     Icon: Star,
-    quickLabel: 'Mes avis',
+    tileLabel: 'Mes avis',
   },
   {
     id: 'stores',
     label: 'Boutiques',
     desc: 'Boutiques chez lesquelles vous avez commandé',
     Icon: Store,
-    quickLabel: 'Boutiques suivies',
+    tileLabel: 'Boutiques suivies',
   },
   {
     id: 'notifications',
@@ -113,11 +122,11 @@ const ALL_SECTIONS: SectionDef[] = [
     label: 'Profil',
     desc: 'Vos informations et sécurité',
     Icon: User,
-    quickLabel: 'Mon profil',
+    tileLabel: 'Mon profil',
   },
 ];
 
-/** Sections masquées dans la barre d'onglets : accessibles via deep link ?tab= */
+/** Sections masquées dans la navigation : accessibles via deep link ?tab= */
 const HIDDEN_SECTION_IDS: AccountSection[] = ['addresses', 'notifications'];
 
 const SECTIONS = ALL_SECTIONS.filter((s) => !HIDDEN_SECTION_IDS.includes(s.id));
@@ -137,17 +146,6 @@ const SECTION_FROM_PARAM: Record<string, AccountSection> = {
   profil: 'profile',
   profile: 'profile',
 };
-
-type QuickActionId = Exclude<AccountSection, 'overview'>;
-
-interface QuickAction {
-  id: QuickActionId;
-  label: string;
-  hint: string;
-  Icon: LucideIcon;
-  color: string;
-  tint: string;
-}
 
 const HERO_GRADIENT = ['#002F34', '#0B4A50'] as const;
 
@@ -175,7 +173,6 @@ export default function AccountScreen() {
     (ReviewTargetProduct & { store_id: string }) | null
   >(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
   const [addressPendingDelete, setAddressPendingDelete] = useState<BuyerAddress | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [dismissedError, setDismissedError] = useState<string | null>(null);
@@ -216,10 +213,6 @@ export default function AccountScreen() {
       setShowLogoutModal(false);
       return true;
     }
-    if (showHelpModal) {
-      setShowHelpModal(false);
-      return true;
-    }
     if (addressPendingDelete) {
       setAddressPendingDelete(null);
       return true;
@@ -235,7 +228,6 @@ export default function AccountScreen() {
     addressModal.open,
     addressPendingDelete,
     reviewTarget,
-    showHelpModal,
     showLogoutModal,
   ]);
 
@@ -295,41 +287,30 @@ export default function AccountScreen() {
     [data.orders],
   );
 
-  const activeOrder = useMemo(
-    () =>
-      sortedOrders.find(
-        (order) => order.status !== 'COMPLETED' && order.status !== 'CANCELLED',
-      ),
-    [sortedOrders],
-  );
-
-  const recentOrders = useMemo(
-    () =>
-      sortedOrders
-        .filter((order) => order.id !== activeOrder?.id)
-        .slice(0, 8),
-    [activeOrder?.id, sortedOrders],
-  );
+  const recentOrders = useMemo(() => sortedOrders.slice(0, 8), [sortedOrders]);
 
   const activeSectionDef =
     ALL_SECTIONS.find((section) => section.id === activeSection) || ALL_SECTIONS[0];
 
-  const quickActions: QuickAction[] = useMemo(
+  /** Tuiles de raccourci de l'aperçu. */
+  const tiles = useMemo(
     () =>
-      (SECTIONS.filter((s) => s.id !== 'overview') as Array<SectionDef & { id: QuickActionId }>).map((section) => ({
-        id: section.id,
-        label: section.quickLabel || section.label,
-        hint: section.id === 'orders'
-          ? `${counts.orders} au total`
-          : section.id === 'reviews'
-            ? `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`
-            : section.id === 'stores'
-              ? `${counts.stores} boutique${counts.stores > 1 ? 's' : ''}`
-              : 'Infos et sécurité',
-        Icon: section.Icon,
-        color: COLORS.brand,
-        tint: COLORS.brandSoft,
-      })),
+      SECTIONS.filter((s) => s.id !== 'overview').map((section) => {
+        const hint =
+          section.id === 'orders'
+            ? `${counts.orders} au total`
+            : section.id === 'reviews'
+              ? `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`
+              : section.id === 'stores'
+                ? `${counts.stores} boutique${counts.stores > 1 ? 's' : ''}`
+                : 'Infos et sécurité';
+        return {
+          id: section.id,
+          label: section.tileLabel || section.label,
+          hint,
+          Icon: section.Icon,
+        };
+      }),
     [counts.orders, counts.reviews, counts.stores],
   );
 
@@ -338,7 +319,7 @@ export default function AccountScreen() {
     return (
       <View style={styles.errorCard}>
         <View style={styles.errorIcon}>
-          <AlertTriangle size={14} color="#DC2626" />
+          <AlertTriangle size={14} color={COLORS.danger} />
         </View>
         <View style={styles.errorBody}>
           <Text style={styles.errorTitle}>Impossible de charger vos données</Text>
@@ -359,30 +340,30 @@ export default function AccountScreen() {
     );
   };
 
-  const renderQuickActions = () => (
-    <View style={styles.quickGrid}>
-      {quickActions.map((action) => {
-        const Icon = action.Icon;
+  const renderTiles = () => (
+    <View style={styles.tileGrid}>
+      {tiles.map((tile) => {
+        const Icon = tile.Icon;
         return (
           <Pressable
-            key={action.id}
-            onPress={() => openSection(action.id)}
+            key={tile.id}
+            onPress={() => openSection(tile.id)}
             accessibilityRole="button"
-            accessibilityLabel={action.label}
+            accessibilityLabel={tile.label}
             style={({ pressed }) => [
-              styles.quickCard,
+              styles.tile,
               pressed && styles.pressed,
-              pressed && { transform: [{ scale: 0.97 }] },
+              pressed && { transform: [{ scale: 0.98 }] },
             ]}
           >
-            <View style={[styles.quickIcon, { backgroundColor: action.tint }]}>
-              <Icon size={14} color={action.color} />
+            <View style={styles.tileIcon}>
+              <Icon size={15} color={COLORS.brand} />
             </View>
-            <Text style={styles.quickLabel} numberOfLines={1}>
-              {action.label}
+            <Text style={styles.tileLabel} numberOfLines={1}>
+              {tile.label}
             </Text>
-            <Text style={styles.quickHint} numberOfLines={1}>
-              {action.hint}
+            <Text style={styles.tileHint} numberOfLines={1}>
+              {tile.hint}
             </Text>
           </Pressable>
         );
@@ -392,7 +373,7 @@ export default function AccountScreen() {
 
   const renderRecentOrders = () => {
     if (data.loading && sortedOrders.length === 0) {
-      return <PanelSkeleton rows={1} />;
+      return <PanelSkeleton rows={2} />;
     }
 
     return (
@@ -404,23 +385,23 @@ export default function AccountScreen() {
             style={({ pressed }) => [styles.linkBtn, pressed && styles.pressed]}
           >
             <Text style={styles.linkBtnText}>Tout voir</Text>
-            <ChevronRight size={12} color={COLORS.brand} />
+            <ChevronRight size={13} color={COLORS.brand} />
           </Pressable>
         </View>
 
         {recentOrders.length === 0 ? (
-          <View style={styles.emptyListCard}>
-            <View style={styles.emptyListIcon}>
-              <Package size={18} color={COLORS.brand} />
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIcon}>
+              <Package size={20} color={COLORS.brand} />
             </View>
-            <Text style={styles.emptyListText}>
+            <Text style={styles.emptyText}>
               Vos commandes terminées ou annulées apparaîtront ici.
             </Text>
             <Pressable
               onPress={() => router.replace('/')}
-              style={({ pressed }) => [styles.emptyListBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.emptyBtn, pressed && styles.pressed]}
             >
-              <Text style={styles.emptyListBtnText}>Découvrir les boutiques</Text>
+              <Text style={styles.emptyBtnText}>Découvrir les boutiques</Text>
             </Pressable>
           </View>
         ) : (
@@ -436,39 +417,40 @@ export default function AccountScreen() {
                   key={order.id}
                   onPress={() => openSection('orders')}
                   style={({ pressed }) => [
-                    styles.orderRow,
+                    styles.orderCard,
                     pressed && styles.pressed,
                     pressed && { transform: [{ scale: 0.99 }] },
                   ]}
                 >
-                  <View style={styles.orderRowHead}>
-                    <View style={styles.orderRowHeadText}>
-                      <Text style={styles.orderRowStore} numberOfLines={1}>
-                        {orderStoreName(order)}
-                      </Text>
-                      <Text style={styles.orderRowMeta} numberOfLines={1}>
-                        {articleCount} article{articleCount > 1 ? 's' : ''} ·{' '}
-                        {formatShortDate(order.date)}
-                      </Text>
-                    </View>
-                    <Text style={styles.orderRowTotal}>{formatCurrency(order.total)}</Text>
+                  <View style={styles.orderCardHead}>
+                    <Text style={styles.orderStore} numberOfLines={1}>
+                      {orderStoreName(order)}
+                    </Text>
+                    <Text style={styles.orderTotal}>{formatCurrency(order.total)}</Text>
+                  </View>
+
+                  <View style={styles.orderCardMeta}>
+                    <Text style={styles.orderMeta} numberOfLines={1}>
+                      {articleCount} article{articleCount > 1 ? 's' : ''} ·{' '}
+                      {formatShortDate(order.date)}
+                    </Text>
                     <StatusBadge
                       status={order.status}
                       businessType={orderBusinessType(order)}
                     />
                   </View>
 
-                  <View style={styles.orderRowItems}>
+                  <View style={styles.orderItems}>
                     {items.map((item, idx) => {
                       const product = item.products?.[0];
                       return (
                         <View
                           key={item.id || `${order.id}-unit-${idx}`}
-                          style={styles.orderItemRow}
+                          style={styles.orderItem}
                         >
                           <ProductThumb
                             src={product?.image}
-                            size={26}
+                            size={28}
                             iconSize={12}
                           />
                           <Text style={styles.orderItemName} numberOfLines={1}>
@@ -492,7 +474,7 @@ export default function AccountScreen() {
 
   const renderOverview = () => (
     <View style={styles.overview}>
-      {renderQuickActions()}
+      {renderTiles()}
       {renderRecentOrders()}
     </View>
   );
@@ -546,9 +528,8 @@ export default function AccountScreen() {
       ]}
     >
       <LinearGradient colors={HERO_GRADIENT} style={styles.guestHero}>
-        <View style={styles.guestGlow} />
         <View style={styles.guestIcon}>
-          <User size={22} color={COLORS.brand} />
+          <User size={26} color={COLORS.brand} />
         </View>
         <Text style={styles.guestTitle}>Votre espace client</Text>
         <Text style={styles.guestText}>
@@ -574,9 +555,9 @@ export default function AccountScreen() {
             text: 'Aidez les autres acheteurs et les boutiques.',
           },
         ].map(({ Icon, title, text }) => (
-          <View key={title} style={styles.guestBenefitRow}>
+          <View key={title} style={styles.guestBenefit}>
             <View style={styles.guestBenefitIcon}>
-              <Icon size={14} color={COLORS.brand} />
+              <Icon size={15} color={COLORS.brand} />
             </View>
             <View style={styles.guestBenefitText}>
               <Text style={styles.guestBenefitTitle}>{title}</Text>
@@ -614,7 +595,7 @@ export default function AccountScreen() {
             hitSlop={8}
             accessibilityLabel="Retour"
           >
-            <ArrowLeft size={18} color="#9CA3AF" />
+            <ArrowLeft size={20} color={COLORS.textFaint} />
           </Pressable>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Mon compte</Text>
@@ -628,8 +609,8 @@ export default function AccountScreen() {
               accessibilityLabel="Rafraîchir"
             >
               <RefreshCcw
-                size={16}
-                color={data.refreshing ? COLORS.brand : '#9CA3AF'}
+                size={18}
+                color={data.refreshing ? COLORS.brand : COLORS.textFaint}
               />
             </Pressable>
           ) : (
@@ -662,7 +643,7 @@ export default function AccountScreen() {
           {activeSection === 'overview' ? (
             renderOverview()
           ) : (
-            <View style={styles.sectionBody}>
+            <View style={styles.section}>
               <View style={styles.sectionHead}>
                 <View style={styles.sectionHeadIcon}>
                   <activeSectionDef.Icon size={16} color={COLORS.brand} />
@@ -673,17 +654,16 @@ export default function AccountScreen() {
                 </View>
                 <Pressable
                   onPress={() => openSection('overview')}
-                  style={({ pressed }) => [styles.overviewBtn, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.sectionBack, pressed && styles.pressed]}
                 >
-                  <LayoutDashboard size={11} color="#6B7280" />
-                  <Text style={styles.overviewBtnText}>Aperçu</Text>
+                  <LayoutDashboard size={13} color={COLORS.textMuted} />
+                  <Text style={styles.sectionBackText}>Aperçu</Text>
                 </Pressable>
               </View>
 
               {data.loading ? <PanelSkeleton rows={3} /> : renderPanel()}
             </View>
           )}
-
         </ScrollView>
       )}
 
@@ -705,7 +685,7 @@ export default function AccountScreen() {
         visible={showLogoutModal}
         title="Déconnexion"
         subtitle="Vous quittez votre compte"
-        icon={<LogOut size={16} color={COLORS.brand} />}
+        icon={<LogOut size={18} color={COLORS.brand} />}
         onClose={() => setShowLogoutModal(false)}
       >
         <View style={styles.logoutBody}>
@@ -754,186 +734,54 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F6F7F9',
+    backgroundColor: COLORS.background,
   },
+
+  // ── En-tête ──────────────────────────────────────────────
   header: {
-    backgroundColor: 'rgba(255,255,255,0.97)',
+    backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F3',
+    borderBottomColor: COLORS.line,
   },
   headerRow: {
-    height: 64,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
   },
   headerBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: 12,
   },
   headerCenter: {
     alignItems: 'center',
     gap: 1,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: COLORS.ink,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   headerSubtitle: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: COLORS.textFaint,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
+
+  // ── Contenu ──────────────────────────────────────────────
   content: {
     padding: 16,
-    gap: 16,
-  },
-  guestWrap: {
-    padding: 16,
-    gap: 16,
-  },
-  guestHero: {
-    borderRadius: 28,
-    padding: 24,
-    minHeight: 210,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  guestGlow: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(245,107,42,0.22)',
-    top: -90,
-    right: -70,
-  },
-  guestIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  guestTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.6,
-  },
-  guestText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: 'rgba(255,255,255,0.72)',
-    fontWeight: '500',
-    marginTop: 6,
-    maxWidth: 300,
-  },
-  guestBenefits: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 18,
-    gap: 16,
-  },
-  guestBenefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  guestBenefitIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guestBenefitText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  guestBenefitTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.ink,
-  },
-  guestBenefitDesc: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  guestActions: {
-    gap: 10,
+    gap: 20,
   },
   overview: {
-    gap: 14,
-  },
-  linkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginRight: -8,
-    borderRadius: 10,
-  },
-  linkBtnText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.brand,
-  },
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  quickCard: {
-    width: '48%',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 6,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  quickIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.ink,
-    letterSpacing: -0.2,
-  },
-  quickHint: {
-    fontSize: 9,
-    fontWeight: '500',
-    color: '#9CA3AF',
+    gap: 20,
   },
   block: {
     gap: 10,
@@ -945,97 +793,113 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   blockTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: COLORS.ink,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
-  emptyListCard: {
+  linkBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
+    gap: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginRight: -8,
+    borderRadius: 10,
+  },
+  linkBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.brand,
+  },
+
+  // ── Tuiles de raccourci ──────────────────────────────────
+  tileGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
-  emptyListIcon: {
-    width: 52,
-    height: 52,
+  tile: {
+    width: '48%',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 6,
+    padding: 12,
     borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  tileIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyListText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-    color: '#6B7280',
-    textAlign: 'center',
-    maxWidth: 260,
-  },
-  emptyListBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 12,
-    backgroundColor: COLORS.brand,
-    marginTop: 4,
-  },
-  emptyListBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  orderList: {
-    gap: 8,
-  },
-  orderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  orderRowHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  orderRowHeadText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  orderRowStore: {
+  tileLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.ink,
     letterSpacing: -0.1,
   },
-  orderRowTotal: {
-    fontSize: 12,
+  tileHint: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.textFaint,
+  },
+
+  // ── Cartes de commande ───────────────────────────────────
+  orderList: {
+    gap: 10,
+  },
+  orderCard: {
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  orderCardHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 10,
+  },
+  orderCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 4,
+  },
+  orderStore: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+    letterSpacing: -0.1,
+  },
+  orderTotal: {
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.ink,
     fontVariant: ['tabular-nums'],
   },
-  orderRowItems: {
+  orderMeta: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.textFaint,
+  },
+  orderItems: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: COLORS.line,
     gap: 8,
   },
-  orderItemRow: {
+  orderItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1045,32 +909,28 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: 11,
     fontWeight: '500',
-    color: '#4B5563',
+    color: COLORS.textMuted,
   },
   orderItemMeta: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: COLORS.textFaint,
     fontVariant: ['tabular-nums'],
   },
-  orderRowMeta: {
-    fontSize: 9,
-    fontWeight: '500',
-    color: '#9CA3AF',
-  },
-  sectionBody: {
+
+  // ── En-tête de section ───────────────────────────────────
+  section: {
     gap: 14,
   },
   sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    paddingHorizontal: 2,
+    gap: 10,
   },
   sectionHeadIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1078,48 +938,89 @@ const styles = StyleSheet.create({
   sectionHeadText: {
     flex: 1,
     minWidth: 0,
+    gap: 1,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '800',
     color: COLORS.ink,
-    letterSpacing: -0.4,
+    letterSpacing: -0.2,
   },
   sectionDesc: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '500',
-    color: '#6B7280',
-    marginTop: 1,
+    color: COLORS.textMuted,
   },
-  overviewBtn: {
+  sectionBack: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.line,
   },
-  overviewBtnText: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#6B7280',
+  sectionBackText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textMuted,
   },
+
+  // ── État vide ────────────────────────────────────────────
+  emptyCard: {
+    alignItems: 'center',
+    gap: 10,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  emptyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
+  emptyBtn: {
+    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: COLORS.brand,
+  },
+  emptyBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.surface,
+  },
+
+  // ── Erreur ───────────────────────────────────────────────
   errorCard: {
     flexDirection: 'row',
-    gap: 11,
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 18,
-    padding: 14,
+    borderColor: '#FEE2E2',
   },
   errorIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1127,85 +1028,163 @@ const styles = StyleSheet.create({
   errorBody: {
     flex: 1,
     minWidth: 0,
+    gap: 4,
   },
   errorTitle: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#B91C1C',
+    fontWeight: '700',
+    color: '#991B1B',
   },
   errorMessage: {
-    fontSize: 10,
-    lineHeight: 15,
-    color: '#DC2626',
-    fontWeight: '500',
-    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#B91C1C',
   },
   errorActions: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 10,
+    marginTop: 4,
   },
   retryBtn: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    backgroundColor: '#DC2626',
-    borderRadius: 10,
+    borderRadius: 9,
+    backgroundColor: COLORS.danger,
   },
   retryText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.surface,
   },
   dismissBtn: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 9,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: '#FECACA',
   },
   dismissText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#DC2626',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B91C1C',
   },
-  logoutBody: {
+
+  // ── Invité (non connecté) ────────────────────────────────
+  guestWrap: {
+    padding: 16,
+    gap: 16,
+  },
+  guestHero: {
+    borderRadius: 20,
     padding: 20,
+    gap: 6,
+    backgroundColor: COLORS.ink,
+  },
+  guestIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.surface,
+    letterSpacing: -0.4,
+  },
+  guestText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.70)',
+    fontWeight: '500',
+    maxWidth: 300,
+  },
+  guestBenefits: {
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  guestBenefit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  guestBenefitIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: COLORS.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestBenefitText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  guestBenefitTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.ink,
+  },
+  guestBenefitDesc: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  guestActions: {
+    gap: 10,
+  },
+
+  // ── Déconnexion ──────────────────────────────────────────
+  logoutBody: {
+    gap: 16,
   },
   logoutQuestion: {
     fontSize: 13,
-    lineHeight: 20,
-    color: '#4B5563',
+    lineHeight: 19,
+    color: COLORS.textMuted,
     fontWeight: '500',
   },
   logoutActions: {
+    flexDirection: 'row',
     gap: 10,
-    marginTop: 20,
   },
   logoutConfirm: {
-    paddingVertical: 14,
-    backgroundColor: '#DC2626',
-    borderRadius: 14,
+    flex: 1,
     alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.danger,
   },
   logoutConfirmText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: COLORS.surface,
   },
   logoutCancel: {
-    paddingVertical: 14,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 14,
+    flex: 1,
     alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceMuted,
     borderWidth: 1,
     borderColor: COLORS.line,
   },
   logoutCancelText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#4B5563',
+    fontWeight: '600',
+    color: COLORS.textMuted,
   },
+
   pressed: {
     opacity: 0.85,
   },
