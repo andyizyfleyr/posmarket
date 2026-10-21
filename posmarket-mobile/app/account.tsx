@@ -322,7 +322,11 @@ export default function AccountScreen() {
             onPress={() => openSection(action.id)}
             accessibilityRole="button"
             accessibilityLabel={action.label}
-            style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.quickCard,
+              pressed && styles.pressed,
+              pressed && { transform: [{ scale: 0.98 }] },
+            ]}
           >
             <View style={[styles.quickIcon, { backgroundColor: action.tint }]}>
               <Icon size={18} color={action.color} />
@@ -371,7 +375,7 @@ export default function AccountScreen() {
         {recentOrders.length === 0 ? (
           <View style={styles.emptyListCard}>
             <View style={styles.emptyListIcon}>
-              <Package size={22} color="#9CA3AF" />
+              <Package size={24} color={COLORS.brand} />
             </View>
             <Text style={styles.emptyListText}>
               Vos commandes terminées ou annulées apparaîtront ici.
@@ -391,7 +395,11 @@ export default function AccountScreen() {
                 <Pressable
                   key={order.id}
                   onPress={() => openSection('orders')}
-                  style={({ pressed }) => [styles.orderRow, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.orderRow,
+                    pressed && styles.pressed,
+                    pressed && { transform: [{ scale: 0.99 }] },
+                  ]}
                 >
                   <ProductThumb
                     src={firstItem?.products?.[0]?.image}
@@ -734,17 +742,22 @@ const styles = StyleSheet.create({
   identityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.line,
-    padding: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   identityAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -755,23 +768,23 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   identityAvatarInitial: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: COLORS.brand,
   },
   identityText: {
     flex: 1,
     minWidth: 0,
-    gap: 1,
+    gap: 2,
   },
   identityName: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '800',
     color: COLORS.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   identityEmail: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: '#6B7280',
   },
@@ -807,21 +820,21 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: COLORS.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    fontSize: 8,
-    fontWeight: '800',
+    fontSize: 9,
+    fontWeight: '700',
     color: '#9CA3AF',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   content: {
     padding: 16,
-    gap: 14,
+    gap: 16,
   },
   guestWrap: {
     padding: 16,
@@ -1289,16 +1302,21 @@ const styles = StyleSheet.create({
     width: '48%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    padding: 11,
+    gap: 12,
+    padding: 14,
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: COLORS.line,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   quickIcon: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1306,17 +1324,18 @@ const styles = StyleSheet.create({
   quickText: {
     flex: 1,
     minWidth: 0,
+    gap: 1,
   },
   quickLabel: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.ink,
+    letterSpacing: -0.1,
   },
   quickHint: {
-    fontSize: 8,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '500',
     color: '#9CA3AF',
-    marginTop: 1,
   },
   quickBadge: {
     minWidth: 20,
@@ -1411,46 +1430,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   blockTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
     color: COLORS.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   emptyListCard: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.line,
-    paddingVertical: 24,
+    paddingVertical: 28,
     paddingHorizontal: 20,
-    gap: 8,
+    gap: 10,
   },
   emptyListIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#F9FAFB',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyListText: {
-    fontSize: 10,
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 18,
     fontWeight: '500',
     color: '#6B7280',
     textAlign: 'center',
+    maxWidth: 260,
   },
   emptyListBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: COLORS.brandSoft,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: COLORS.brand,
+    marginTop: 4,
   },
   emptyListBtnText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: COLORS.brand,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   orderList: {
     gap: 8,
@@ -1458,12 +1479,17 @@ const styles = StyleSheet.create({
   orderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.line,
-    padding: 10,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   orderRowText: {
     flex: 1,
@@ -1764,6 +1790,6 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   pressed: {
-    opacity: 0.72,
+    opacity: 0.85,
   },
 });
