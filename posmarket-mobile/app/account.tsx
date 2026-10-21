@@ -56,6 +56,7 @@ import { ReviewModal } from '@/components/buyer/ReviewModal';
 import { SheetModal } from '@/components/buyer/SheetModal';
 import { PanelSkeleton } from '@/components/buyer/ui';
 import { OrderCard } from '@/components/buyer/OrderCard';
+import { useReorder } from '@/hooks/useReorder';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Button } from '@/components/Button';
 import type { BuyerAddress, BuyerTabId } from '@/types';
@@ -149,6 +150,7 @@ export default function AccountScreen() {
   const params = useLocalSearchParams<{ tab?: string; order?: string }>();
   const { user, isReady, openAuth, logout } = useAuth();
   const data = useBuyerData();
+  const { reorder, pendingOrderId } = useReorder();
 
   const scrollRef = useRef<ScrollView>(null);
   const [activeSection, setActiveSection] = useState<AccountSection>(
@@ -449,6 +451,8 @@ export default function AccountScreen() {
                 key={order.id}
                 order={order}
                 onPress={() => openOrder(order.id)}
+                onReorder={() => void reorder(order)}
+                reorderDisabled={pendingOrderId === order.id}
               />
             ))}
           </View>
@@ -478,6 +482,8 @@ export default function AccountScreen() {
               setReviewTarget({ ...product, store_id: storeId })
             }
             onBrowse={() => router.replace('/')}
+            onReorder={(order) => void reorder(order)}
+            pendingOrderId={pendingOrderId}
             targetOrderId={targetOrderId}
             targetKey={targetKey}
             onTargetOffset={handleTargetOffset}

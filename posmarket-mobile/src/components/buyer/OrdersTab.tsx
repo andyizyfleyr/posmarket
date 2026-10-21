@@ -11,7 +11,6 @@ import { Button } from '@/components/Button';
 import type { BuyerOrder } from '@/types';
 import { EmptyState, PanelSkeleton } from '@/components/buyer/ui';
 import { OrderCard, type ReviewTarget } from '@/components/buyer/OrderCard';
-import { useReorder } from '@/hooks/useReorder';
 import { COLORS } from '@/theme';
 
 export type ReviewTargetProduct = ReviewTarget;
@@ -24,6 +23,10 @@ interface OrdersTabProps {
   onLoadMore: () => void;
   onReviewProduct: (product: ReviewTargetProduct, storeId: string) => void;
   onBrowse: () => void;
+  /** Remise au panier d'une commande déjà passée. */
+  onReorder: (order: BuyerOrder) => void;
+  /** Commande en cours de remise au panier. */
+  pendingOrderId?: string | null;
   /** Commande à mettre en évidence (issue de l'aperçu). */
   targetOrderId?: string | null;
   /** Jeton de surbrillance : relance l'animation à chaque nouvelle cible. */
@@ -43,12 +46,12 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   onLoadMore,
   onReviewProduct,
   onBrowse,
+  onReorder,
+  pendingOrderId = null,
   targetOrderId,
   targetKey,
   onTargetOffset,
 }) => {
-  const { reorder, pendingOrderId } = useReorder();
-
   /** Décalage vertical de chaque carte dans la liste. */
   const cardOffsets = useRef<Record<string, number>>({});
   const listOffset = useRef(0);
@@ -112,7 +115,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
           key={order.id}
           order={order}
           onReviewProduct={onReviewProduct}
-          onReorder={() => void reorder(order)}
+          onReorder={() => onReorder(order)}
           reorderDisabled={pendingOrderId === order.id}
           highlight={order.id === targetOrderId}
           highlightKey={targetKey}

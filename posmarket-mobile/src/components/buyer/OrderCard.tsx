@@ -159,28 +159,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <Text style={styles.footerLabel}>Total</Text>
         <Text style={styles.footerValue}>{formatCurrency(order.total)}</Text>
       </View>
-
-      {onReorder ? (
-        <Pressable
-          onPress={onReorder}
-          disabled={reorderDisabled}
-          style={({ pressed }) => [
-            styles.reorderBtn,
-            pressed && styles.pressed,
-            reorderDisabled && styles.disabled,
-          ]}
-          accessibilityLabel="Remettre cette commande au panier"
-        >
-          <RotateCcw size={12} color={COLORS.brand} />
-          <Text style={styles.reorderText}>
-            {reorderDisabled ? 'Ajout…' : reorderLabel}
-          </Text>
-        </Pressable>
-      ) : null}
     </>
   );
 
-  const inner = onPress ? (
+  /**
+   * La zone cliquable et le bouton « recommander » sont frères, jamais
+   * imbriqués : deux Pressable l'un dans l'autre déclenchent des actions
+   * parasites.
+   */
+  const content = onPress ? (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
@@ -205,7 +192,24 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           : null,
       ]}
     >
-      {inner}
+      {content}
+      {onReorder ? (
+        <Pressable
+          onPress={onReorder}
+          disabled={reorderDisabled}
+          style={({ pressed }) => [
+            styles.reorderBtn,
+            pressed && styles.pressed,
+            reorderDisabled && styles.disabled,
+          ]}
+          accessibilityLabel="Remettre cette commande au panier"
+        >
+          <RotateCcw size={12} color={COLORS.brand} />
+          <Text style={styles.reorderText}>
+            {reorderDisabled ? 'Ajout…' : reorderLabel}
+          </Text>
+        </Pressable>
+      ) : null}
     </Animated.View>
   );
 };
@@ -304,7 +308,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginTop: 10,
+    marginHorizontal: 14,
+    marginTop: -4,
+    marginBottom: 14,
     paddingVertical: 9,
     borderRadius: 10,
     backgroundColor: 'transparent',
