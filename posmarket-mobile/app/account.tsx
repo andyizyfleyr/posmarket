@@ -32,6 +32,7 @@ import {
   Plus,
   RefreshCcw,
   Star,
+  Store,
   User,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -40,6 +41,7 @@ import { useBuyerData } from '@/hooks/useBuyerData';
 import { OrdersTab, type ReviewTargetProduct } from '@/components/buyer/OrdersTab';
 import { AddressesTab } from '@/components/buyer/AddressesTab';
 import { ReviewsTab } from '@/components/buyer/ReviewsTab';
+import { StoresTab } from '@/components/buyer/StoresTab';
 import { NotificationsTab } from '@/components/buyer/NotificationsTab';
 import { ProfileTab } from '@/components/buyer/ProfileTab';
 import { AddressModal, type SaveAddressPayload } from '@/components/buyer/AddressModal';
@@ -59,7 +61,7 @@ import { formatCurrency } from '@/utils';
 import type { BuyerAddress, BuyerOrder, BuyerTabId } from '@/types';
 import { COLORS } from '@/theme';
 
-type AccountSection = 'overview' | BuyerTabId;
+type AccountSection = 'overview' | BuyerTabId | 'stores';
 
 interface SectionDef {
   id: AccountSection;
@@ -94,6 +96,12 @@ const ALL_SECTIONS: SectionDef[] = [
     Icon: Star,
   },
   {
+    id: 'stores',
+    label: 'Boutiques',
+    desc: 'Boutiques chez lesquelles vous avez commandé',
+    Icon: Store,
+  },
+  {
     id: 'notifications',
     label: 'Alertes',
     desc: 'WhatsApp et e-mail',
@@ -121,6 +129,8 @@ const SECTION_FROM_PARAM: Record<string, AccountSection> = {
   addresses: 'addresses',
   avis: 'reviews',
   reviews: 'reviews',
+  boutiques: 'stores',
+  stores: 'stores',
   notifications: 'notifications',
   profil: 'profile',
   profile: 'profile',
@@ -230,13 +240,16 @@ export default function AccountScreen() {
     [data, reviewTarget, user?.name],
   );
 
-  const counts = useMemo(
-    () => ({
+  const counts = useMemo(() => {
+    const storeIds = new Set(
+      data.orders.map((o) => o.store_id || o.stores?.[0]?.name || '').filter(Boolean),
+    );
+    return {
       orders: data.totalOrders,
       reviews: data.reviews.length,
-    }),
-    [data.reviews.length, data.totalOrders],
-  );
+      stores: storeIds.size,
+    };
+  }, [data.orders, data.reviews.length, data.totalOrders]);
 
   const sortedOrders = useMemo(
     () =>
@@ -260,7 +273,7 @@ export default function AccountScreen() {
     () =>
       sortedOrders
         .filter((order) => order.id !== activeOrder?.id)
-        .slice(0, 2),
+        .slice(0, 8),
     [activeOrder?.id, sortedOrders],
   );
 
@@ -274,13 +287,17 @@ export default function AccountScreen() {
         label: section.label,
         hint: section.id === 'orders'
           ? `${counts.orders} au total`
-          : `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`,
+          : section.id === 'reviews'
+            ? `${counts.reviews} publié${counts.reviews > 1 ? 's' : ''}`
+            : section.id === 'stores'
+              ? `${counts.stores} boutique${counts.stores > 1 ? 's' : ''}`
+              : 'Infos et sécurité',
         Icon: section.Icon,
         color: COLORS.brand,
         tint: COLORS.brandSoft,
-        badge: section.id === 'orders' ? counts.orders : section.id === 'reviews' ? counts.reviews : undefined,
+        badge: section.id === 'orders' ? counts.orders : section.id === 'reviews' ? counts.reviews : section.id === 'stores' ? counts.stores : undefined,
       })),
-    [counts.orders, counts.reviews],
+    [counts.orders, counts.reviews, counts.stores],
   );
 
   const renderError = () => {
@@ -329,10 +346,10 @@ export default function AccountScreen() {
               <Icon size={18} color={action.color} />
             </View>
             <View style={styles.quickText}>
-              <Text style={styles.quickLabel} numberOfLines={1}>
+              <Text style={styles.quickLabel} numberOfLines={2}>
                 {action.label}
               </Text>
-              <Text style={styles.quickHint} numberOfLines={1}>
+              <Text style={styles.quickHint} numberOfLines={2}>
                 {action.hint}
               </Text>
             </View>
@@ -404,7 +421,7 @@ export default function AccountScreen() {
                     iconSize={18}
                   />
                   <View style={styles.orderRowText}>
-                    <Text style={styles.orderRowStore} numberOfLines={1}>
+                    <Text style={styles.orderRowStore} numberOfLines={2}>
                       {orderStoreName(order)}
                     </Text>
                     <Text style={styles.orderRowMeta} numberOfLines={1}>
@@ -463,6 +480,8 @@ export default function AccountScreen() {
         );
       case 'reviews':
         return <ReviewsTab reviews={data.reviews} loading={data.loading} />;
+      case 'stores':
+        return <StoresTab orders={data.orders} loading={data.loading} />;
       case 'notifications':
         return <NotificationsTab />;
       case 'profile':

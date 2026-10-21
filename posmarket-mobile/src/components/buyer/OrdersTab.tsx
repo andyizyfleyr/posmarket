@@ -92,7 +92,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                     {order.id ? `#${order.id.slice(-6)}` : 'Commande'}
                     {dateLabel ? ` • ${dateLabel}` : ''}
                   </Text>
-                  <Text style={styles.storeName} numberOfLines={1}>
+                  <Text style={styles.storeName} numberOfLines={2}>
                     {storeName}
                   </Text>
                 </View>
