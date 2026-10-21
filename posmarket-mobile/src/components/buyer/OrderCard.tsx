@@ -73,8 +73,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           const product = item.products?.[0];
           return (
             <View key={item.id || `${order.id}-unit-${idx}`} style={styles.item}>
-              <ProductThumb src={product?.image} size={28} iconSize={12} />
-              <ProductNameLink product={product} style={styles.itemName} />
+              <ProductThumb src={product?.image} size={26} iconSize={11} />
+              <ProductNameLink
+                product={product}
+                style={styles.itemName}
+                containerStyle={styles.itemNameWrap}
+              />
               <Text style={styles.itemMeta} numberOfLines={1}>
                 {item.quantity} × {formatCurrency(item.price)}
               </Text>
@@ -84,7 +88,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   style={({ pressed }) => [styles.reviewBtn, pressed && styles.pressed]}
                   accessibilityLabel={`Laisser un avis sur ${product.name}`}
                 >
-                  <Star size={12} color={COLORS.brand} fill={COLORS.brand} />
+                  <Star size={10} color={COLORS.brand} fill={COLORS.brand} />
                 </Pressable>
               ) : null}
             </View>
@@ -195,9 +199,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  itemName: {
+  itemNameWrap: {
     flex: 1,
     minWidth: 0,
+  },
+  itemName: {
     fontSize: 11,
     fontWeight: '500',
     color: COLORS.textMuted,
@@ -210,9 +216,9 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   reviewBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     backgroundColor: COLORS.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',

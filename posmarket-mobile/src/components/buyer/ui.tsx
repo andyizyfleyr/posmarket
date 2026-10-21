@@ -117,13 +117,19 @@ export const ProductNameLink: React.FC<{
   product?: { id?: string | null; name?: string | null } | null;
   fallback?: string;
   style?: object;
-}> = ({ product, fallback = 'Produit', style }) => {
+  /** Style du conteneur (élasticité de la ligne). */
+  containerStyle?: object;
+}> = ({ product, fallback = 'Produit', style, containerStyle }) => {
   const router = useRouter();
   const name = product?.name || fallback;
   const id = product?.id;
   if (!id) {
     return (
-      <Text style={style} numberOfLines={1} ellipsizeMode="tail">
+      <Text
+        style={[style, styles.linkWrapper, containerStyle]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
         {name}
       </Text>
     );
@@ -134,9 +140,9 @@ export const ProductNameLink: React.FC<{
       onPress={() => router.push(`/product/${slug}` as never)}
       hitSlop={4}
       accessibilityLabel={`Voir ${name}`}
-      // Le Pressable porte l'élasticité : sans cela le nom long pousse le
+      // Le conteneur porte l'élasticité : sans cela un nom long pousse le
       // prix au lieu d'être tronqué.
-      style={styles.linkWrapper}
+      style={[styles.linkWrapper, containerStyle]}
     >
       <Text style={[style, styles.link]} numberOfLines={1} ellipsizeMode="tail">
         {name}
@@ -219,7 +225,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   linkWrapper: {
-    flex: 1,
     minWidth: 0,
   },
   stars: {
