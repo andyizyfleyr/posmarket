@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Mail, User as UserIcon, LogOut, Save, Loader2 } from 'lucide-react';
+import { Mail, User as UserIcon, LogOut, Save, Loader2, MapPin, ChevronRight } from 'lucide-react';
+import { useNavigate } from '@/components/RouterPolyfill';
 import { updateBuyerProfileAction, fetchBuyerProfileAction } from '@/app/actions/marketplace';
 import { isValidPhoneNumber } from '@/utils';
 import { PhoneInput } from '@/components/PhoneInput';
@@ -40,6 +41,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   onLogout,
   notify,
 }) => {
+  const navigate = useNavigate();
   const initialProfile = readProfileCache();
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(() => initialProfile?.phone || '');
@@ -273,7 +275,24 @@ if (res?.success) {
         </form>
       </div>
 
-      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-4">
+      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-4 space-y-2">
+        <button
+          type="button"
+          onClick={() => navigate('/mon-compte/adresses')}
+          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-gray-50 active:scale-[0.98]"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-brand">
+            <MapPin size={16} aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-bold text-ink">Adresses de livraison</span>
+            <span className="block text-[10px] font-medium text-gray-500">
+              Gérez vos contacts de livraison
+            </span>
+          </span>
+          <ChevronRight size={16} className="shrink-0 text-gray-300" />
+        </button>
+
         <button
           onClick={onLogout}
           className="flex items-center gap-2 w-full py-3 px-3 bg-red-50 text-red-500 font-semibold text-xs rounded-xl border border-red-100 active:bg-red-100 active:scale-[0.98] transition-all"
