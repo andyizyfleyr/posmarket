@@ -27,6 +27,69 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * Les pages du panneau PAM lisent des clés en snake_case (forme historique
+ * Supabase) alors que Drizzle renvoie du camelCase. Sans cette translation,
+ * `user_id`, `full_name`, `created_at`… valent `undefined` : les pages
+ * affichent des données vides et les liens d'impersonation partent avec
+ * `userId=unknown` (identifiant inexistant → erreur serveur).
+ *
+ * On expose donc les deux écritures : la legacy pour les pages, la native
+ * pour le reste du code.
+ */
+type LegacyStore = typeof stores.$inferSelect & {
+  user_id: string;
+  business_type: string;
+  created_at: Date;
+};
+
+type LegacyProfile = typeof profiles.$inferSelect & {
+  full_name: string | null;
+  is_super_admin: boolean;
+  created_at: Date;
+};
+
+type LegacyReview = typeof productReviews.$inferSelect & {
+  store_id: string;
+  product_id: string;
+  user_id: string | null;
+  author_name: string;
+  author_avatar: string | null;
+  seller_reply: string | null;
+  created_at: Date;
+};
+
+function toLegacyStore(row: typeof stores.$inferSelect): LegacyStore {
+  return {
+    ...row,
+    user_id: row.userId,
+    business_type: row.businessType,
+    created_at: row.createdAt,
+  };
+}
+
+function toLegacyProfile(row: typeof profiles.$inferSelect): LegacyProfile {
+  return {
+    ...row,
+    full_name: row.fullName,
+    is_super_admin: row.isSuperAdmin,
+    created_at: row.createdAt,
+  };
+}
+
+function toLegacyReview(row: typeof productReviews.$inferSelect): LegacyReview {
+  return {
+    ...row,
+    store_id: row.storeId,
+    product_id: row.productId,
+    user_id: row.userId,
+    author_name: row.authorName,
+    author_avatar: row.authorAvatar,
+    seller_reply: row.sellerReply,
+    created_at: row.createdAt,
+  };
+}
+
 export async function getGlobalStats() {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   // Pas de cron côté serveur : on profite du chargement du tableau de bord
@@ -76,7 +139,7 @@ export async function getAllStores() {
   await applyAllDueViewBoosts();
   try {
     const storesList = await db.select().from(stores).orderBy(desc(stores.createdAt));
-    return storesList || [];
+    return (storesList || []).map(toLegacyStore);
   } catch (error: unknown) {
     console.error('Error fetching all stores:', error);
     return [];
@@ -87,7 +150,7 @@ export async function getAllUsers() {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const usersList = await db.select().from(profiles).orderBy(desc(profiles.createdAt));
-    return usersList || [];
+    return (usersList || []).map(toLegacyProfile);
   } catch (error: unknown) {
     console.error('Error fetching all users:', error);
     return [];
@@ -120,7 +183,7 @@ export async function getGlobalReviews(limit = 100) {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
     const reviewsList = await db.select().from(productReviews).orderBy(desc(productReviews.createdAt)).limit(limit);
-    return reviewsList || [];
+    return (reviewsList || []).map(toLegacyReview);
   } catch (error: unknown) {
     console.error('Error fetching global reviews:', error);
     return [];

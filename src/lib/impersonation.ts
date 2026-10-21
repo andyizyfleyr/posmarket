@@ -28,6 +28,17 @@ export function getAuthSecret(): string {
   return secret;
 }
 
+/**
+ * Les colonnes `profiles.id` et `stores.id` sont des uuid PostgreSQL.
+ * Interroger `eq(uuid, 'unknown')` fait échouer la requête avec une erreur de
+ * syntaxe : l'identifiant mal formé doit donc être rejeté AVANT la base.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_RE.test(value.trim());
+}
+
 export interface CreateImpersonationOptions {
   userId?: string | null;
   storeId?: string | null;
@@ -79,14 +90,19 @@ export async function createImpersonationSession(
   }
 
   // 2. Résolution du profil utilisateur cible
-  let targetUserId = opts.userId?.trim();
+  // Un identifiant mal formé n'est jamais envoyé à la base (colonne uuid).
+  const rawUserId = typeof opts.userId === 'string' ? opts.userId.trim() : '';
+  const rawStoreId = typeof opts.storeId === 'string' ? opts.storeId.trim() : '';
+
+  let targetUserId = isUuid(rawUserId) ? rawUserId : null;
+  let resolvedStoreId = isUuid(rawStoreId) ? rawStoreId : null;
 
   // Si on a passé un storeId sans userId, on trouve le propriétaire de la boutique
-  if (!targetUserId && opts.storeId) {
+  if (!targetUserId && resolvedStoreId) {
     const [store] = await db
       .select({ userId: stores.userId })
       .from(stores)
-      .where(eq(stores.id, opts.storeId))
+      .where(eq(stores.id, resolvedStoreId))
       .limit(1);
     if (store?.userId) {
       targetUserId = store.userId;
@@ -94,20 +110,28 @@ export async function createImpersonationSession(
   }
 
   let profile = null;
-  if (targetUserId) {
-    const [p] = await db
-      .select()
-      .from(profiles)
-      .where(eq(profiles.id, targetUserId))
-      .limit(1);
-    profile = p;
-  } else if (opts.email) {
-    const [p] = await db
-      .select()
-      .from(profiles)
-      .where(eq(profiles.email, opts.email.trim().toLowerCase()))
-      .limit(1);
-    profile = p;
+  try {
+    if (targetUserId) {
+      const [p] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.id, targetUserId))
+        .limit(1);
+      profile = p;
+    } else if (opts.email) {
+      const [p] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.email, opts.email.trim().toLowerCase()))
+        .limit(1);
+      profile = p;
+    }
+  } catch {
+    return {
+      success: false,
+      error: 'Impossible de retrouver ce compte. Vérifiez l’identifiant saisi.',
+      cookies: [],
+    };
   }
 
   if (!profile) {
@@ -209,7 +233,6 @@ export async function createImpersonationSession(
   }
 
   // 5. Gestion de la boutique active (si le compte est vendeur et possède une boutique)
-  let resolvedStoreId = opts.storeId || null;
   if (!resolvedStoreId && accountType === 'seller') {
     const [userStore] = await db
       .select({ id: stores.id })

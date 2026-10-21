@@ -19,6 +19,38 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Page d'erreur lisible pour l'administrateur (jamais de 500 brut). */
+function errorPage(message: string, status = 400): NextResponse {
+  return new NextResponse(
+    `<!DOCTYPE html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8">
+        <title>Erreur de connexion impersonée</title>
+        <style>
+          body { font-family: system-ui, sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+          .card { background: #1e293b; padding: 2rem; border-radius: 1rem; max-width: 420px; text-align: center; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5); }
+          h1 { color: #f87171; font-size: 1.25rem; margin-bottom: 0.75rem; }
+          p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem; }
+          a { display: inline-block; background: #f56b2a; color: white; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; font-weight: bold; font-size: 0.875rem; }
+          a:hover { background: #ea580c; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>Connexion impossible</h1>
+          <p>${escapeHtml(message)}</p>
+          <a href="/pam/users">Retour à l'espace Admin</a>
+        </div>
+      </body>
+    </html>`,
+    {
+      status,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    },
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const admin = await getAdminSession();
@@ -45,33 +77,8 @@ export async function GET(request: NextRequest) {
     });
 
     if (!result.success || !result.redirectUrl) {
-      return new NextResponse(
-        `<!DOCTYPE html>
-        <html lang="fr">
-          <head>
-            <meta charset="utf-8">
-            <title>Erreur de connexion impersonée</title>
-            <style>
-              body { font-family: system-ui, sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-              .card { background: #1e293b; padding: 2rem; border-radius: 1rem; max-width: 420px; text-align: center; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5); }
-              h1 { color: #f87171; font-size: 1.25rem; margin-bottom: 0.75rem; }
-              p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem; }
-              a { display: inline-block; background: #f56b2a; color: white; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; font-weight: bold; font-size: 0.875rem; }
-              a:hover { background: #ea580c; }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <h1>Connexion impossible</h1>
-              <p>${escapeHtml(result.error || 'Une erreur est survenue lors de la tentative de connexion.')}</p>
-              <a href="/pam/users">Retour à l'espace Admin</a>
-            </div>
-          </body>
-        </html>`,
-        {
-          status: 400,
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-        },
+      return errorPage(
+        result.error || 'Une erreur est survenue lors de la tentative de connexion.',
       );
     }
 
@@ -93,7 +100,10 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('PAM Impersonate GET Error:', error);
-    return new NextResponse('Erreur serveur lors de la connexion', { status: 500 });
+    return errorPage(
+      'Erreur serveur lors de la connexion. Réessayez dans un instant.',
+      500,
+    );
   }
 }
 

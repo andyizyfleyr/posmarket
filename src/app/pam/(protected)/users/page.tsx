@@ -28,7 +28,7 @@ interface UserRow {
   is_super_admin?: boolean | null;
   subscription_tier?: string | null;
   subscription_status?: string | null;
-  created_at?: string | null;
+  created_at?: Date | string | null;
 }
 
 export default function AdminUsersPage() {

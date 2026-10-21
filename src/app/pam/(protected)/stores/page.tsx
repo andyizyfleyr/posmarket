@@ -45,7 +45,7 @@ interface StoreRow {
   status?: string | null;
   views?: number | null;
   business_type?: string | null;
-  created_at?: string | null;
+  created_at?: Date | string | null;
   address?: string | null;
   ninea?: string | null;
 }
@@ -60,6 +60,8 @@ interface ProfileRow {
 interface OwnerStores {
   owner: ProfileRow;
   stores: StoreRow[];
+  /** Vrai si le propriétaire est un compte réel (lien d'impersonation possible). */
+  hasOwner: boolean;
 }
 
 const STATUS_META: Record<string, { label: string; classes: string; dot: string }> = {
@@ -187,16 +189,19 @@ export default function AdminStoresPage() {
 
     const grouped: Record<string, OwnerStores> = {};
     result.forEach(s => {
-      const uid = s.user_id || 'unknown';
+      // Une boutique sans propriétaire n'a pas de compte à ouvrir : elle est
+      // regroupée à part, sans lien d'impersonation.
+      const uid = s.user_id || `orphan-${s.id}`;
       const owner = s.user_id ? userMap.get(s.user_id) : undefined;
       if (!grouped[uid]) {
         grouped[uid] = {
           owner: owner || {
             id: uid,
-            email: s.email || `Compte #${uid.substring(0, 8)}`,
-            full_name: s.email ? `Compte ${s.email.split('@')[0]}` : undefined
+            email: s.email || `Boutique sans compte (${s.id.substring(0, 8)})`,
+            full_name: s.email ? `Compte ${s.email.split('@')[0]}` : 'Boutique sans compte'
           },
-          stores: []
+          stores: [],
+          hasOwner: Boolean(s.user_id),
         };
       }
       grouped[uid].stores.push(s);
@@ -326,15 +331,24 @@ export default function AdminStoresPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <a
-                      href={`/pam/impersonate?userId=${uid}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-brand text-brand hover:text-white rounded-full text-xs font-bold border border-orange-200 transition-all shadow-sm"
-                      title="Se connecter au compte du propriétaire sans mot de passe (nouvel onglet)"
-                    >
-                      <LogIn size={13} /> Connexion Vendeur
-                    </a>
+                    {group.hasOwner ? (
+                      <a
+                        href={`/pam/impersonate?userId=${uid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-brand text-brand hover:text-white rounded-full text-xs font-bold border border-orange-200 transition-all shadow-sm"
+                        title="Se connecter au compte du propriétaire sans mot de passe (nouvel onglet)"
+                      >
+                        <LogIn size={13} /> Connexion Vendeur
+                      </a>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-400 rounded-full text-xs font-bold border border-gray-200 cursor-not-allowed"
+                        title="Aucun compte propriétaire associé à cette boutique"
+                      >
+                        <LogIn size={13} /> Connexion Vendeur
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-semibold text-gray-700 ring-1 ring-gray-200">
                       <Store size={14} className="text-brand" />
                       {group.stores.length} boutique{group.stores.length > 1 ? 's' : ''}
@@ -408,15 +422,24 @@ export default function AdminStoresPage() {
 
                             {/* Actions */}
                             <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch lg:w-44 shrink-0">
-                              <a
-                                href={`/pam/impersonate?userId=${s.user_id || uid}&storeId=${s.id}&redirectTo=/dashboard`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand to-orange-600 text-white rounded-xl text-xs font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm"
-                                title="Se connecter en tant que vendeur sur cette boutique (nouvel onglet)"
-                              >
-                                <LogIn size={14} /> Ouvrir session
-                              </a>
+                              {s.user_id ? (
+                                <a
+                                  href={`/pam/impersonate?userId=${s.user_id}&storeId=${s.id}&redirectTo=/dashboard`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-brand to-orange-600 text-white rounded-xl text-xs font-bold hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm"
+                                  title="Se connecter en tant que vendeur sur cette boutique (nouvel onglet)"
+                                >
+                                  <LogIn size={14} /> Ouvrir session
+                                </a>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gray-100 text-gray-400 rounded-xl text-xs font-bold cursor-not-allowed"
+                                  title="Aucun compte propriétaire associé à cette boutique"
+                                >
+                                  <LogIn size={14} /> Ouvrir session
+                                </span>
+                              )}
                               {s.status === 'PENDING' && (
                                 <>
                                   <button

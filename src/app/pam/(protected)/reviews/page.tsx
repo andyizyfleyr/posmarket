@@ -25,7 +25,7 @@ interface ReviewRow {
   author_avatar?: string | null;
   rating?: number | null;
   comment?: string | null;
-  created_at?: string | null;
+  created_at?: Date | string | null;
   boosted?: boolean | null;
   seller_reply?: string | null;
 }
