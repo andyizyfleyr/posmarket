@@ -309,9 +309,9 @@ export function ProductFormModal({
         formData.price === undefined ||
         formData.price === null ||
         Number.isNaN(Number(formData.price)) ||
-        Number(formData.price) < 0
+        Number(formData.price) <= 0
       ) {
-        setSubmitError('Veuillez renseigner un prix de vente valide.');
+        setSubmitError('Veuillez renseigner un prix de vente strictement supérieur à 0.');
         return;
       }
     }
@@ -797,15 +797,15 @@ export function ProductFormModal({
                           const baseUnitPrice = Number(formData.price) || 0;
                           const minQty = Math.max(1, Number(tier.minQty) || 1);
                           const tierPrice = Number(tier.price) || 0;
+                          const explicitUnit = Number(tier.unitPrice) || 0;
                           const effectiveUnit =
-                            tierPrice >= baseUnitPrice && minQty > 1
-                              ? Math.round(tierPrice / minQty)
+                            explicitUnit > 0
+                              ? explicitUnit
                               : tierPrice > 0
-                                ? tierPrice
+                                ? Math.round(tierPrice / minQty)
                                 : baseUnitPrice;
                           const normalTotal = baseUnitPrice * minQty;
-                          const packageTotal =
-                            tierPrice >= baseUnitPrice && minQty > 1 ? tierPrice : tierPrice * minQty;
+                          const packageTotal = tierPrice > 0 ? tierPrice : effectiveUnit * minQty;
                           const savings = normalTotal > packageTotal ? normalTotal - packageTotal : 0;
                           const savingsPct =
                             normalTotal > 0 && savings > 0

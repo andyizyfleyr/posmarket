@@ -145,6 +145,9 @@ export interface BuyerOrderItem {
   id: string;
   quantity: number;
   price: number;
+  variantLabel?: string | null;
+  variantSku?: string | null;
+  variantOptionValues?: Record<string, string>;
   products: Array<{
     id: string;
     name: string;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { submitCheckoutAction } from '@/app/actions/marketplace';
+import { submitCheckoutAction } from '@/app/actions/checkout';
 
 export const dynamic = 'force-dynamic';
 

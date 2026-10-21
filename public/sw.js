@@ -1,9 +1,48 @@
-const CACHE_NAME = 'marketplace-premium-cache-v4';
+const CACHE_NAME = 'marketplace-premium-cache-v5';
 const MAX_ENTRIES = 200;
 const STATIC_ASSETS = [
     '/manifest.json',
     '/offline',
+    '/icon-192.png',
+    '/icon-512.png',
 ];
+
+/**
+ * Dernier recours si la page `/offline` n'a pas pu être pré-cachée (première
+ * installation hors ligne, cache vidé par le navigateur, etc.). La page
+ * complète reste privilégiée ; ce HTML minimal évite un écran blanc.
+ */
+function offlineFallbackResponse() {
+    return new Response(
+        '<!doctype html><html lang="fr"><head><meta charset="utf-8">' +
+            '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+            '<title>Pas de connexion Internet | PosMarket</title>' +
+            '<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+            'background:#fffaf7;color:#111827;font-family:system-ui,-apple-system,sans-serif;padding:24px}' +
+            '.card{max-width:420px;text-align:center;background:#fff;border:1px solid #ffedd5;border-radius:24px;' +
+            'padding:32px;box-shadow:0 20px 45px rgba(120,53,15,.08)}' +
+            'h1{font-size:24px;margin:16px 0 8px}p{color:#6b7280;line-height:1.6;font-size:14px}' +
+            'a{display:inline-block;margin-top:20px;background:#f56b2a;color:#fff;text-decoration:none;' +
+            'font-weight:700;padding:12px 20px;border-radius:14px}</style></head><body><div class="card">' +
+            '<div style="font-size:48px" aria-hidden="true">📶</div><h1>Pas de connexion Internet</h1>' +
+            '<p>Vérifiez votre Wi-Fi ou vos données mobiles, puis rechargez la page. Votre panier est conservé.</p>' +
+            '<a href="/offline">Réessayer</a></div></body></html>',
+        {
+            status: 503,
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-store',
+            },
+        },
+    );
+}
+
+function offlineFallback() {
+    return caches
+        .match('/offline')
+        .then((cached) => cached || offlineFallbackResponse())
+        .catch(() => offlineFallbackResponse());
+}
 
 /**
  * Évince les entrées les plus anciennes quand le cache dépasse `MAX_ENTRIES`.
@@ -100,11 +139,7 @@ self.addEventListener('fetch', (event) => {
 
     // 🛡️ Navigation requests : réseau d'abord, page /offline en secours
     if (request.mode === 'navigate') {
-        event.respondWith(
-            fetch(request).catch(() =>
-                caches.match('/offline').then((r) => r || Response.error())
-            )
-        );
+        event.respondWith(fetch(request).catch(() => offlineFallback()));
         return;
     }
 

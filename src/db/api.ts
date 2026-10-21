@@ -186,8 +186,9 @@ export async function adjustProductStock(
   items: Array<{ productId?: string | null; quantity?: number | null; variantId?: string | null }>,
   mode: 'sale' | 'restore'
 ) {
-  const totals = new Map<string, number>();
+  const simpleTotals = new Map<string, number>();
   const variantLines: Array<{ productId: string; variantId: string; quantity: number }> = [];
+  const variantProductIds = new Set<string>();
 
   for (const item of items || []) {
     const pid = item?.productId;
@@ -195,8 +196,12 @@ export async function adjustProductStock(
     const qty = Math.floor(Number(item.quantity) || 0);
     if (qty <= 0) continue;
     const variantId = item.variantId ? String(item.variantId) : null;
-    if (variantId) variantLines.push({ productId: pid, variantId, quantity: qty });
-    totals.set(pid, (totals.get(pid) || 0) + qty);
+    if (variantId) {
+      variantLines.push({ productId: pid, variantId, quantity: qty });
+      variantProductIds.add(pid);
+    } else {
+      simpleTotals.set(pid, (simpleTotals.get(pid) || 0) + qty);
+    }
   }
 
   for (const line of variantLines) {
@@ -239,7 +244,26 @@ export async function adjustProductStock(
     }
   }
 
-  for (const [productId, qty] of totals) {
+  // Le stock global d'un produit à variantes est TOUJOURS la somme des stocks
+  // de ses variantes. L'incrémenter en plus de la variante (ancien comportement)
+  // gonflait le stock à chaque annulation.
+  for (const productId of variantProductIds) {
+    await db.execute(sql`
+      UPDATE products
+      SET stock = (
+        SELECT COALESCE(SUM(GREATEST(COALESCE((v->>'stock')::int, 0), 0)), 0)
+        FROM jsonb_array_elements(
+          CASE
+            WHEN jsonb_typeof(products.variants) = 'array' THEN products.variants
+            ELSE '[]'::jsonb
+          END
+        ) AS v
+      )
+      WHERE products.id = ${productId} AND products.store_id = ${storeId}
+    `);
+  }
+
+  for (const [productId, qty] of simpleTotals) {
     if (mode === 'sale') {
       await db
         .update(products)
@@ -256,7 +280,7 @@ export async function adjustProductStock(
   // --- V2 (B1) : garder la table relationnelle synchronisée avec le JSONB ---
   await resyncVariantsFromJson(
     db,
-    Array.from(totals.keys()).concat(variantLines.map((l) => l.productId))
+    Array.from(simpleTotals.keys()).concat(Array.from(variantProductIds))
   );
 }
 

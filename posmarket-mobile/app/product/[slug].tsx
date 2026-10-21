@@ -136,6 +136,10 @@ export default function ProductDetailScreen() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isWholesaleExpanded, setIsWholesaleExpanded] = useState(false);
   const [addedWholesaleIdx, setAddedWholesaleIdx] = useState<number | null>(null);
+  const [pendingWholesale, setPendingWholesale] = useState<{
+    idx: number;
+    minQty: number;
+  } | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -160,6 +164,7 @@ export default function ProductDetailScreen() {
     setShowAllReviews(false);
     setIsWholesaleExpanded(false);
     setAddedWholesaleIdx(null);
+    setPendingWholesale(null);
     setIsDescriptionExpanded(false);
     setToast(null);
 
@@ -323,9 +328,20 @@ export default function ProductDetailScreen() {
   const isLowStock = stockValue !== null && stockValue > 0 && stockValue <= 5;
 
   // ── Prix ──
+  // Sans combinaison choisie, une fiche à variantes affiche « Dès » le prix le
+  // plus bas des variantes actives, jamais le prix de base générique.
+  const minVariantPrice = useMemo(() => {
+    const prices = variants
+      .filter((variant) => variant.enabled !== false)
+      .map((variant) => Number(variant.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+    return prices.length > 0 ? Math.min(...prices) : 0;
+  }, [variants]);
   const basePrice = matchedVariant
     ? Number(matchedVariant.price) || 0
-    : Number(product?.price) || 0;
+    : hasVariantMatrix && minVariantPrice > 0
+      ? minVariantPrice
+      : Number(product?.price) || 0;
   const discountPct =
     product?.originalPrice && product.originalPrice > basePrice
       ? Math.round(((product.originalPrice - basePrice) / product.originalPrice) * 100)
@@ -333,14 +349,20 @@ export default function ProductDetailScreen() {
 
   // ── Gros / food / WhatsApp ──
   const wholesaleTiers = useMemo(
-    () => (product ? getNormalizedWholesaleTiers(product) : []),
-    [product],
+    () => (product ? getNormalizedWholesaleTiers(product, basePrice) : []),
+    [product, basePrice],
   );
   const mainCat = product?.mainCategory || product?.category || 'Boutique';
   const realCategory = product?.mainCategory || product?.category || '';
   const isFood =
     product?.businessType === 'food' || mainCat === 'Restauration & Livraison Rapide';
-  const hasWholesale = wholesaleTiers.length > 0 && !isFood;
+  const wholesaleAllowedByStore = store?.settings?.wholesaleEnabled !== false;
+  const hasWholesale =
+    wholesaleTiers.length > 0 &&
+    !isFood &&
+    product?.businessType !== 'food' &&
+    store?.business_type !== 'food' &&
+    wholesaleAllowedByStore;
   const storePhone = store?.phone || store?.settings?.phone;
   const waDigits = storePhone ? String(storePhone).replace(/\D/g, '') : null;
   const storeLogo = store?.settings?.logo;
@@ -397,26 +419,36 @@ export default function ProductDetailScreen() {
   const primaryActionLabel =
     isOutOfStock || isSelectedOutOfStock
       ? 'Rupture'
-      : hasOptions && !allSelected
+      : hasOptions
         ? 'Choisir les options'
         : isFood
           ? 'Commander'
           : 'Ajouter au panier';
 
   // Le CTA d'ajout de la feuille reste désactivé tant que la combinaison
-  // complète n'est pas choisie (ou si le stock manque). Le bouton de la fiche,
-  // lui, reste actif pour ouvrir la feuille (« Choisir les options »).
-  const sheetActionDisabled = isBuyDisabled || (hasOptions && !allSelected);
+  // complète n'est pas choisie (ou si le stock manque, y compris pour une
+  // quantité de gros en attente). Le bouton de la fiche, lui, reste actif pour
+  // ouvrir la feuille (« Choisir les options »).
+  const pendingWholesaleStockMissing =
+    pendingWholesale !== null &&
+    stockValue !== null &&
+    stockValue < pendingWholesale.minQty;
+  const sheetActionDisabled =
+    isBuyDisabled || (hasOptions && !allSelected) || pendingWholesaleStockMissing;
   const sheetActionLabel =
     isOutOfStock || isSelectedOutOfStock
       ? 'Rupture'
-      : isFood
-        ? 'Commander'
-        : 'Ajouter au panier';
+      : pendingWholesaleStockMissing
+        ? 'Stock insuffisant'
+        : isFood
+          ? 'Commander'
+          : pendingWholesale
+            ? `Ajouter ${pendingWholesale.minQty} au panier`
+            : 'Ajouter au panier';
 
   // Sans combinaison complète, le bouton de gros ouvre le sélecteur : son
   // libellé doit annoncer cette action plutôt qu'un ajout impossible.
-  const wholesaleNeedsOptions = hasVariantMatrix && !matchedVariant;
+  const wholesaleNeedsOptions = hasOptions && !allSelected;
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -467,7 +499,11 @@ export default function ProductDetailScreen() {
 
   const handlePrimaryAdd = useCallback(() => {
     if (!product || isBuyDisabled) return;
-    if (hasOptions && !allSelected) {
+    // Toute fiche avec options passe par la feuille : c'est le seul endroit
+    // où l'acheteur choisit (ou modifie) sa combinaison. Le bouton ne doit
+    // jamais ajouter silencieusement la première variante disponible.
+    if (hasOptions) {
+      setPendingWholesale(null);
       setIsOptionsSheetOpen(true);
       return;
     }
@@ -482,7 +518,6 @@ export default function ProductDetailScreen() {
     product,
     isBuyDisabled,
     hasOptions,
-    allSelected,
     addToCart,
     resolvedVariantId,
     selectedOptionCount,
@@ -490,24 +525,41 @@ export default function ProductDetailScreen() {
     showToast,
   ]);
 
+  const closeOptionsSheet = useCallback(() => {
+    setIsOptionsSheetOpen(false);
+    setPendingWholesale(null);
+  }, []);
+
   const handleSheetAdd = useCallback(() => {
     if (!product || isBuyDisabled) return;
     if (!allSelected) {
       showToast('Sélectionnez les options pour commander');
       return;
     }
+    const quantity = pendingWholesale?.minQty ?? 1;
+    if (stockValue !== null && stockValue < quantity) {
+      showToast(`Stock insuffisant (${stockValue} disponibles) pour ${quantity} unité(s)`);
+      return;
+    }
     addToCart(
       product,
-      1,
+      quantity,
       resolvedVariantId,
       selectedOptionCount > 0 ? selectedOptions : undefined,
     );
     setIsOptionsSheetOpen(false);
-    showToast('Produit ajouté au panier !');
+    setPendingWholesale(null);
+    showToast(
+      quantity > 1
+        ? `${quantity} produits ajoutés au panier !`
+        : 'Produit ajouté au panier !',
+    );
   }, [
     product,
     isBuyDisabled,
     allSelected,
+    pendingWholesale,
+    stockValue,
     addToCart,
     resolvedVariantId,
     selectedOptionCount,
@@ -518,7 +570,15 @@ export default function ProductDetailScreen() {
   const handleWholesaleAdd = useCallback(
     (idx: number, minQty: number) => {
       if (!product || addedWholesaleIdx === idx) return;
-      if (hasVariantMatrix && !matchedVariant) {
+      if (isBuyDisabled) {
+        showToast('Cette combinaison est en rupture de stock');
+        return;
+      }
+      // Les options sont obligatoires, même pour un produit sans matrice de
+      // variantes : on mémorise la quantité de gros et on laisse la feuille
+      // l'appliquer après la sélection.
+      if (hasOptions && !allSelected) {
+        setPendingWholesale({ idx, minQty });
         setIsOptionsSheetOpen(true);
         return;
       }
@@ -531,7 +591,7 @@ export default function ProductDetailScreen() {
       addToCart(
         product,
         minQty,
-        matchedVariant?.id,
+        resolvedVariantId,
         selectedOptionCount > 0 ? selectedOptions : undefined,
       );
       setAddedWholesaleIdx(idx);
@@ -542,8 +602,10 @@ export default function ProductDetailScreen() {
     [
       product,
       addedWholesaleIdx,
-      hasVariantMatrix,
-      matchedVariant,
+      isBuyDisabled,
+      hasOptions,
+      allSelected,
+      resolvedVariantId,
       stockValue,
       addToCart,
       selectedOptionCount,
@@ -1254,12 +1316,12 @@ export default function ProductDetailScreen() {
         visible={isOptionsSheetOpen && hasOptions}
         transparent
         animationType="slide"
-        onRequestClose={() => setIsOptionsSheetOpen(false)}
+        onRequestClose={closeOptionsSheet}
       >
         <View style={styles.modalRoot}>
           <Pressable
             style={styles.modalBackdrop}
-            onPress={() => setIsOptionsSheetOpen(false)}
+            onPress={closeOptionsSheet}
           />
           <View style={[styles.sheet, { maxHeight: sheetMaxHeight }]}>
             <View style={styles.sheetHandleWrap}>
@@ -1269,7 +1331,7 @@ export default function ProductDetailScreen() {
               <Text style={styles.sheetTitle}>Choisir les options</Text>
               <Pressable
                 style={[styles.sheetClose, styles.optionsSheetClose]}
-                onPress={() => setIsOptionsSheetOpen(false)}
+                onPress={closeOptionsSheet}
                 accessibilityLabel="Fermer"
               >
                 <X size={18} color="#6b7280" />

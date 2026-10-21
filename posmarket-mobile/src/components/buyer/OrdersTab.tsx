@@ -111,6 +111,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                       <Text style={styles.itemMeta}>
                         {item.quantity} × {formatCurrency(item.price)}
                       </Text>
+                      {item.variantLabel ? (
+                        <Text style={styles.itemVariant}>{item.variantLabel}</Text>
+                      ) : null}
                     </View>
                     {product?.id ? (
                       <Pressable
@@ -239,6 +242,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#9CA3AF',
     fontWeight: '600',
+  },
+  itemVariant: {
+    fontSize: 10,
+    color: COLORS.brand,
+    fontWeight: '700',
+    marginTop: 1,
   },
   reviewBtn: {
     width: 36,

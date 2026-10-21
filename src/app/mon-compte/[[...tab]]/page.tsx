@@ -1,4 +1,5 @@
-import { fetchMarketplaceData, submitCheckoutAction, notifyCartInterestAction, notifyPostCheckoutAction } from '@/app/actions/marketplace';
+import { submitCheckoutAction } from '@/app/actions/checkout';
+import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from '@/app/actions/marketplace';
 import { StorefrontWrapper } from '@/components/StorefrontWrapper';
 
 // La garde de rôle vit dans `layout.tsx` : elle dépend de la session, la page

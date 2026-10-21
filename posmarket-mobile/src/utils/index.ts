@@ -136,46 +136,42 @@ export function generateProductSlug(product: { id?: string; name?: string }): st
  * Si le prix était déjà unitaire (ex: 4 000 FCFA < 5 000 FCFA), il est conservé tel quel.
  */
 export function getTierUnitPrice(tier: WholesaleTier | undefined, productPrice: number): number {
-  if (!tier) return Number(productPrice) || 0;
-  if (tier.unitPrice && tier.unitPrice > 0) return tier.unitPrice;
+  const basePrice = Math.max(0, Number(productPrice) || 0);
+  if (!tier) return basePrice;
 
-  const numPrice = Number(tier.price) || 0;
-  const basePrice = Number(productPrice) || 0;
-  const minQty = Math.max(1, Number(tier.minQty) || 1);
+  const minQty = Math.max(1, Math.floor(Number(tier.minQty) || 1));
+  const explicitUnit = Number(tier.unitPrice);
+  let unitPrice: number;
 
-  if (numPrice <= 0) return basePrice;
-
-  if (numPrice >= basePrice && minQty > 1) {
-    return Math.round(numPrice / minQty);
+  if (Number.isFinite(explicitUnit) && explicitUnit > 0) {
+    unitPrice = explicitUnit;
+  } else {
+    const numPrice = Number(tier.price) || 0;
+    if (numPrice <= 0) return basePrice;
+    unitPrice = numPrice >= basePrice && minQty > 1 ? numPrice / minQty : numPrice;
   }
 
-  return numPrice;
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return basePrice;
+  return Math.min(basePrice, unitPrice);
 }
 
 /**
- * Calcule le prix total du lot pour un palier de gros
- * (ex: 400 000 FCFA pour le lot de 100 pièces).
+ * Calcule le prix total du lot pour un palier de gros. Il est dérivé du prix
+ * unitaire pour rester exactement cohérent avec le panier.
  */
 export function getTierPackagePrice(tier: WholesaleTier | undefined, productPrice: number): number {
   if (!tier) return 0;
-  const numPrice = Number(tier.price) || 0;
-  const basePrice = Number(productPrice) || 0;
-  const minQty = Math.max(1, Number(tier.minQty) || 1);
-
-  if (numPrice <= 0) return basePrice * minQty;
-
-  if (numPrice >= basePrice && minQty > 1) {
-    return numPrice;
-  }
-
-  return Math.round(numPrice * minQty);
+  const minQty = Math.max(1, Math.floor(Number(tier.minQty) || 1));
+  return Math.round((getTierUnitPrice(tier, productPrice) * minQty + Number.EPSILON) * 100) / 100;
 }
 
 /**
- * Liste normalisée des paliers de gros triés par quantité croissante
- * (copie fidèle de src/utils/wholesale.ts du web).
+ * Liste normalisée des paliers de gros triés par quantité croissante.
  */
-export function getNormalizedWholesaleTiers(product: Product): Array<{
+export function getNormalizedWholesaleTiers(
+  product: Product,
+  basePriceOverride?: number,
+): Array<{
   minQty: number;
   packagePrice: number;
   unitPrice: number;
@@ -191,11 +187,14 @@ export function getNormalizedWholesaleTiers(product: Product): Array<{
 
   if (tiers.length === 0) return [];
 
-  const basePrice = Number(product.price) || 0;
-  const sorted = [...tiers].sort((a, b) => a.minQty - b.minQty);
+  const basePrice = Math.max(
+    0,
+    Number(basePriceOverride !== undefined ? basePriceOverride : product.price) || 0,
+  );
+  const sorted = [...tiers].sort((a, b) => Number(a.minQty) - Number(b.minQty));
 
   return sorted.map((t) => {
-    const minQty = Math.max(1, Number(t.minQty) || 1);
+    const minQty = Math.max(1, Math.floor(Number(t.minQty) || 1));
     const unitPrice = getTierUnitPrice(t, basePrice);
     const packagePrice = getTierPackagePrice(t, basePrice);
     const normalTotal = basePrice * minQty;
@@ -207,36 +206,27 @@ export function getNormalizedWholesaleTiers(product: Product): Array<{
 }
 
 /**
- * Retourne le prix unitaire effectif à appliquer en fonction de la quantité commandée
- * (paliers de gros multiples ou ancien palier unique).
+ * Retourne le meilleur prix unitaire parmi tous les paliers atteints. Un palier
+ * mal configuré ne peut ni dépasser le prix de détail ni faire payer plus cher
+ * qu'un palier inférieur.
  */
 export function getEffectiveWholesaleUnitPrice(
   product: Product,
   quantity: number,
   basePriceOverride?: number,
 ): number {
-  const basePrice =
-    basePriceOverride !== undefined ? basePriceOverride : Number(product.price) || 0;
-
-  const tiers: WholesaleTier[] = [];
-  if (Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0) {
-    tiers.push(...product.wholesaleTiers);
-  } else if (product.wholesalePrice && product.wholesaleMinQty) {
-    tiers.push({
-      minQty: Number(product.wholesaleMinQty),
-      price: Number(product.wholesalePrice),
-    });
-  }
-
-  if (tiers.length === 0) return basePrice;
-
-  // Palier le plus avantageux atteint par la quantité (tri décroissant par minQty).
-  const sortedDesc = [...tiers].sort((a, b) => b.minQty - a.minQty);
-  const matched = sortedDesc.find(
-    (tier) => quantity >= Math.max(1, Number(tier.minQty) || 1),
+  const basePrice = Math.max(
+    0,
+    Number(basePriceOverride !== undefined ? basePriceOverride : product.price) || 0,
   );
+  const normalized = getNormalizedWholesaleTiers(product, basePrice);
+  if (normalized.length === 0) return basePrice;
 
-  return matched ? getTierUnitPrice(matched, basePrice) : basePrice;
+  const safeQuantity = Math.max(0, Number(quantity) || 0);
+  const matched = normalized.filter((tier) => safeQuantity >= tier.minQty);
+  if (matched.length === 0) return basePrice;
+
+  return Math.min(basePrice, ...matched.map((tier) => tier.unitPrice));
 }
 
 /**

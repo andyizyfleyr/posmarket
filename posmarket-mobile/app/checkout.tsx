@@ -87,10 +87,22 @@ export default function CheckoutScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [completedOrderStores, setCompletedOrderStores] = useState<
-    Array<{ storeId: string; storeName: string; products: Array<{ id: string; name: string; image: string }> }>
+    Array<{
+      storeId: string;
+      storeName: string;
+      orderId?: string;
+      products: Array<{ id: string; name: string; image: string }>;
+    }>
   >([]);
   const [completedOrderItems, setCompletedOrderItems] = useState<
-    Array<{ name: string; quantity: number; price: number }>
+    Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      total?: number;
+      variantLabel?: string | null;
+      orderId?: string;
+    }>
   >([]);
   const [completedOrderTotal, setCompletedOrderTotal] = useState(0);
   // La clé reste la même pour tous les essais d'une même commande : le serveur
@@ -304,34 +316,84 @@ export default function CheckoutScreen() {
       });
 
       if (response?.success) {
-        // Instantané de la commande pour l'écran de succès (avant vidage).
-        const storeMap: Record<
-          string,
-          { storeId: string; storeName: string; products: Array<{ id: string; name: string; image: string }> }
-        > = {};
-        cart.forEach((item) => {
-          const sid = item.product.storeId;
-          if (!storeMap[sid]) {
-            storeMap[sid] = { storeId: sid, storeName: item.product.storeName, products: [] };
-          }
-          if (!storeMap[sid].products.find((p) => p.id === item.product.id)) {
-            storeMap[sid].products.push({
-              id: item.product.id,
-              name: item.product.name,
-              image: item.product.image,
-            });
-          }
-        });
+        // On affiche les montants RENVOYÉS PAR LE SERVEUR, pas le total local :
+        // un coupon expiré ou un prix modifié ne doit jamais produire un écran
+        // de succès (ni un message WhatsApp) avec un montant faux.
+        const serverOrders =
+          Array.isArray(response.orders) && response.orders.length > 0
+            ? response.orders
+            : null;
 
-        setCompletedOrderStores(Object.values(storeMap));
-        setCompletedOrderItems(
-          cart.map((item) => ({
-            name: item.product.name,
-            quantity: item.quantity || 1,
-            price: getEffectiveItemPrice(item),
-          })),
-        );
-        setCompletedOrderTotal(cartTotal);
+        if (serverOrders) {
+          setCompletedOrderStores(
+            serverOrders.map((order) => ({
+              storeId: order.storeId,
+              storeName: order.storeName,
+              orderId: order.id,
+              products: Array.from(
+                new Map(
+                  order.items.map((item) => [
+                    item.productId || item.name,
+                    {
+                      id: item.productId || item.name,
+                      name: item.name,
+                      image: item.image || '',
+                    },
+                  ]),
+                ).values(),
+              ),
+            })),
+          );
+          setCompletedOrderItems(
+            serverOrders.flatMap((order) =>
+              order.items.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.unitPrice,
+                total: item.total,
+                variantLabel: item.variantLabel,
+                orderId: order.id,
+              })),
+            ),
+          );
+          setCompletedOrderTotal(
+            serverOrders.reduce((sum, order) => sum + Number(order.total || 0), 0),
+          );
+        } else {
+          // Compatibilité avec un serveur plus ancien qui ne renvoie que les
+          // identifiants. Le nouveau serveur renvoie toujours `orders`.
+          const storeMap: Record<
+            string,
+            { storeId: string; storeName: string; products: Array<{ id: string; name: string; image: string }> }
+          > = {};
+          cart.forEach((item) => {
+            const sid = item.product.storeId;
+            if (!storeMap[sid]) {
+              storeMap[sid] = { storeId: sid, storeName: item.product.storeName, products: [] };
+            }
+            if (!storeMap[sid].products.find((p) => p.id === item.product.id)) {
+              storeMap[sid].products.push({
+                id: item.product.id,
+                name: item.product.name,
+                image: item.product.image,
+              });
+            }
+          });
+          setCompletedOrderStores(Object.values(storeMap));
+          setCompletedOrderItems(
+            cart.map((item) => ({
+              name: item.product.name,
+              quantity: item.quantity || 1,
+              price: getEffectiveItemPrice(item),
+              total: getEffectiveItemPrice(item) * (item.quantity || 1),
+              variantLabel: item.selectedOptions
+                ? Object.values(item.selectedOptions).join(' / ')
+                : null,
+            })),
+          );
+          setCompletedOrderTotal(cartTotal);
+        }
+
         setPromoApplied(null);
         setStage('success');
         clearCart();
@@ -407,9 +469,16 @@ export default function CheckoutScreen() {
     if (!storePhoneForWhatsApp) return;
     // La référence est générée au clic : le message doit refléter la commande
     // validée, pas l'instant de rendu de l'écran.
-    const orderRef = Date.now().toString().slice(-6);
+    const orderRef =
+      completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() ||
+      Date.now().toString().slice(-6);
     const itemsText = completedOrderItems
-      .map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`)
+      .map((item) => {
+        const variant = item.variantLabel ? ` (${item.variantLabel})` : '';
+        return `• ${item.quantity}x ${item.name}${variant} - ${formatCurrency(
+          item.total ?? item.price * item.quantity,
+        )}`;
+      })
       .join('\n');
     const waMsg = `NOUVELLE COMMANDE #${orderRef}\n\nClient: ${customerName || 'Anonyme'}\nTelephone: ${customerPhone || 'Non fourni'}\n\nArticles:\n${itemsText}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: Especes`;
     const waUrl = `https://wa.me/${storePhoneForWhatsApp.replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
@@ -418,6 +487,7 @@ export default function CheckoutScreen() {
     setTimeout(() => setIsWhatsAppLoading(false), 1500);
   }, [
     completedOrderItems,
+    completedOrderStores,
     completedOrderTotal,
     customerName,
     customerPhone,

@@ -1,21 +1,18 @@
 'use server'
 
 import { db } from '@/db'
-import { stores, products, productStats, productReviews, orders, orderItems, customers, buyerAddresses, profiles, coupons, checkoutIdempotency } from '@/db/schema'
+import { stores, products, productStats, productReviews, orders, orderItems, buyerAddresses, profiles, coupons } from '@/db/schema'
 import { eq, sql, and, or, desc, inArray } from 'drizzle-orm'
 import { unstable_cache } from 'next/cache'
 import { revalidatePath } from 'next/cache'
 import { refreshTag } from '@/lib/revalidate'
 import { getCurrentSession } from '@/app/actions/session'
-import { incrementProductSales, adjustProductStock } from '@/db/api'
 import { notify, getStorePhone } from '@/lib/notifications'
 import { orderEmailProducts } from '@/lib/email'
-import { detectClientCountry, isCountryAllowed, getSupportedCountriesLabel } from '@/lib/geo'
 import { generateProductSlug } from '@/utils/slug'
-import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
-import { StoreData, BusinessVertical, Product, ProductOption, ProductVariant, WholesaleTier } from '@/types'
+import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTier } from '@/types'
 
 const CATALOG_TAG = 'marketplace'
 
@@ -441,457 +438,6 @@ export async function fetchHomeMarketplaceData(): Promise<StoreData[]> {
   return getCachedHomeMarketplaceData();
 }
 
-export async function submitCheckoutAction(
-  order: Record<string, CheckoutStoreOrder> = {},
-  customerData?: CheckoutCustomer,
-  idempotencyKey?: string,
-) {
-  const ordersData = order;
-  const customer = customerData || {};
-  const { user } = await getCurrentSession();
-
-  // Pays du client (IP) — blocage autoritaire : on ne crée aucune commande
-  // si le pays détecté n'est pas desservi. Non bypassable côté navigateur.
-  const countryGate = await detectClientCountry();
-  if (countryGate.detected && countryGate.code && !isCountryAllowed(countryGate.code)) {
-    return {
-      success: false,
-      error: `Commande impossible : nous livrons actuellement uniquement au ${getSupportedCountriesLabel()}. Votre connexion indique un autre pays.`,
-    };
-  }
-
-  // --- Déduplication ---------------------------------------------------
-  // La clé est réservée AVANT toute création. Deux cas à distinguer :
-  //  - clé déjà terminée (order_ids renseigné) : rejeu d'un envoi qui a
-  //    abouti, on renvoie les mêmes références sans rien recréer ;
-  //  - clé réservée mais vide : un envoi est en cours, on refuse plutôt que
-  //    de créer un doublon.
-  // Sans clé, le comportement historique est conservé (le client peut être
-  // un ancien client hors ligne qui ne l'envoie pas encore).
-  if (idempotencyKey) {
-    const [reserved] = await db
-      .insert(checkoutIdempotency)
-      .values({ key: idempotencyKey, orderIds: null })
-      .onConflictDoNothing()
-      .returning();
-
-    if (!reserved) {
-      const [existing] = await db
-        .select()
-        .from(checkoutIdempotency)
-        .where(eq(checkoutIdempotency.key, idempotencyKey))
-        .limit(1);
-
-      if (existing?.orderIds) {
-        const replayed = existing.orderIds as string[];
-        return {
-          success: true,
-          orderId: replayed[0],
-          orderIds: replayed,
-          error: undefined,
-        };
-      }
-      return {
-        success: false,
-        error: 'Cette commande est déjà en cours de traitement. Merci de ne pas confirmer deux fois.',
-      };
-    }
-  }
-
-  const createdOrderIds: string[] = [];
-  try {
-    for (const [storeId, storeOrder] of Object.entries(ordersData)) {
-      const items = Array.isArray(storeOrder?.items) ? storeOrder.items : [];
-      if (!storeOrder || items.length === 0) continue;
-
-      // Upsert du client côté boutique (par téléphone) pour alimenter le CRM vendeur.
-      let customerId: string | null = null;
-      let customerCreated = false;
-      const phone = String(customer.phone || '').replace(/\D/g, '');
-      if (phone) {
-        const [existing] = await db
-          .select({ id: customers.id })
-          .from(customers)
-          .where(and(eq(customers.storeId, storeId), eq(customers.phone, phone)))
-          .limit(1);
-        if (existing) {
-          customerId = existing.id;
-        } else {
-          const [created] = await db
-            .insert(customers)
-            .values({
-              storeId,
-              name: customer.name || user?.email?.split('@')[0] || 'Client',
-              phone,
-              email: customer.email || user?.email || null,
-              address: customer.address || null,
-            })
-            .returning({ id: customers.id });
-          customerId = created.id;
-          customerCreated = true;
-        }
-      }
-
-      // --- Tarification serveur -------------------------------------------
-      // Le prix transmis par le navigateur n'est jamais facturé : on relit le
-      // produit en base, on résout la variante choisie, et on refuse la
-      // commande si le stock ne suit pas. Le vendeur garde ainsi un historique
-      // fiable ("quelle taille ?") et aucun client ne peut imposer un prix.
-      const requestedIds = Array.from(
-        new Set(items.map((item) => String(item?.product?.id || '')).filter(Boolean))
-      );
-      if (requestedIds.length === 0) continue;
-
-      const dbRows = await db
-        .select({
-          id: products.id,
-          storeId: products.storeId,
-          name: products.name,
-          unit: products.unit,
-          image: products.image,
-          price: products.price,
-          stock: products.stock,
-          wholesalePrice: products.wholesalePrice,
-          wholesaleMinQty: products.wholesaleMinQty,
-          wholesaleTiers: products.wholesaleTiers,
-          variants: products.variants,
-        })
-        .from(products)
-        .where(inArray(products.id, requestedIds));
-      const catalog = new Map(dbRows.map((row) => [row.id, row]));
-
-      type PricedLine = {
-        productId: string;
-        quantity: number;
-        unitPrice: number;
-        variantId: string | null;
-        variantLabel: string | null;
-        variantSku: string | null;
-        variantOptionValues: Record<string, string>;
-        productName: string;
-        productUnit: string | null;
-        productImage: string | null;
-      };
-      const pricedItems: PricedLine[] = [];
-
-      for (const item of items) {
-        const productId = String(item?.product?.id || '');
-        const row = catalog.get(productId);
-        if (!row) {
-          return {
-            success: false,
-            error: 'Un article de votre commande n\'existe plus. Actualisez votre panier.',
-          };
-        }
-        if (row.storeId !== storeId) {
-          return {
-            success: false,
-            error: 'Un article de votre commande ne provient pas de cette boutique.',
-          };
-        }
-
-        const quantity = Math.max(1, Math.floor(Number(item?.quantity) || 1));
-        const variants = Array.isArray(row.variants)
-          ? (row.variants as Array<{ id?: string; name?: string; price?: number; stock?: number; sku?: string; optionValues?: Record<string, string> }>)
-          : [];
-        const variant = item?.variantId
-          ? variants.find((v) => v.id === String(item.variantId))
-          : undefined;
-
-        if (variants.length > 0 && !variant) {
-          return {
-            success: false,
-            error: `Choisissez les options de « ${row.name} » avant de valider.`,
-          };
-        }
-
-        const basePrice = variant ? Number(variant.price) : Number(row.price);
-        if (!Number.isFinite(basePrice) || basePrice < 0) {
-          return { success: false, error: `Le prix de « ${row.name} » est invalide.` };
-        }
-
-        // Paliers de gros : la regle du panier (getEffectiveItemPrice) est
-        // rejouee ici, sinon le serveur facturait le prix de base alors que le
-        // client affichait le prix degresif. Le meme utilitaire est utilise des
-        // deux cotes pour qu'il n'y ait jamais d'ecart.
-        const wholesaleUnitPrice = getEffectiveWholesaleUnitPrice(
-          {
-            price: basePrice,
-            wholesalePrice: row.wholesalePrice != null ? Number(row.wholesalePrice) : undefined,
-            wholesaleMinQty: row.wholesaleMinQty != null ? Number(row.wholesaleMinQty) : undefined,
-            wholesaleTiers: Array.isArray(row.wholesaleTiers)
-              ? (row.wholesaleTiers as Array<{ minQty: number; price: number; unitPrice?: number }>)
-              : [],
-          } as Product,
-          quantity,
-          basePrice,
-        );
-        const unitPrice =
-          Number.isFinite(wholesaleUnitPrice) && wholesaleUnitPrice > 0 ? wholesaleUnitPrice : basePrice;
-
-        const availableStock = variant ? Number(variant.stock) : Number(row.stock);
-        if (Number.isFinite(availableStock) && availableStock < quantity) {
-          const detail = variant?.name ? ` (${variant.name})` : '';
-          return {
-            success: false,
-            error: `Stock insuffisant pour « ${row.name}${detail} » : ${availableStock} disponible(s).`,
-          };
-        }
-
-        pricedItems.push({
-          productId,
-          quantity,
-          unitPrice,
-          variantId: variant?.id ? String(variant.id) : null,
-          variantLabel: variant?.name || null,
-          variantSku: variant?.sku || null,
-          variantOptionValues: variant?.optionValues || {},
-          productName: row.name,
-          productUnit: row.unit,
-          productImage: row.image,
-        });
-      }
-
-      // Le sous-total est reconstruit depuis les prix base : la remise et les
-      // frais de livraison restent ceux calculés par le panier, mais plafonnés.
-      const subtotal = pricedItems.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
-
-      // La remise n'est plus calculée par le navigateur : on relit le coupon en
-      // base. Sans cela, un appel direct à l'action permettait d'imposer -100 %.
-      const requestedPromoCode = String(storeOrder?.promoCode || '').trim();
-      let promoLabel: string | null = null;
-      let discount = 0;
-      if (requestedPromoCode) {
-        const [coupon] = await db
-          .select({
-            code: coupons.code,
-            discountPct: coupons.discountPct,
-            active: coupons.active,
-            expiresAt: coupons.expiresAt,
-          })
-          .from(coupons)
-          .where(and(eq(coupons.storeId, storeId), eq(coupons.code, requestedPromoCode)))
-          .limit(1);
-        const usable =
-          coupon &&
-          coupon.active &&
-          (!coupon.expiresAt || new Date(coupon.expiresAt).getTime() > Date.now());
-        if (usable && coupon) {
-          const pct = Math.max(0, Math.min(Number(coupon.discountPct) || 0, 100));
-          discount = Math.min((subtotal * pct) / 100, subtotal);
-          promoLabel = coupon.code;
-        }
-      }
-
-      const shipping = Math.max(0, Number(storeOrder?.shippingCost ?? 0) || 0);
-      const total = Math.max(0, subtotal - discount + shipping);
-
-      const [newOrder] = await db
-        .insert(orders)
-        .values({
-          storeId,
-          customerId,
-          buyerUserId: user?.id || null,
-          buyerEmail: user?.email || customer.email || null,
-          status: 'PENDING',
-          paymentMethod: storeOrder?.paymentMethod || 'ESPECES',
-          type: 'ONLINE',
-          subtotal: String(subtotal),
-          discountAmount: String(discount),
-          promoCode: promoLabel,
-          total: String(total),
-          date: new Date(),
-        })
-        .returning({ id: orders.id });
-
-      await db.insert(orderItems).values(
-        pricedItems.map((line) => ({
-          orderId: newOrder.id,
-          productId: line.productId,
-          quantity: line.quantity,
-          unitPrice: String(line.unitPrice),
-          total: String(line.unitPrice * line.quantity),
-          variantId: line.variantId,
-          variantLabel: line.variantLabel,
-          variantSku: line.variantSku,
-          variantOptionValues: line.variantOptionValues,
-          productName: line.productName,
-          productUnit: line.productUnit,
-          productImage: line.productImage,
-        }))
-      );
-
-      await incrementProductSales(
-        storeId,
-        pricedItems.map((line) => ({ productId: line.productId, quantity: line.quantity }))
-      );
-
-      await adjustProductStock(
-        storeId,
-        pricedItems.map((line) => ({
-          productId: line.productId,
-          quantity: line.quantity,
-          variantId: line.variantId,
-        })),
-        'sale'
-      );
-
-      // Compteurs du CRM vendeur (Dépensé / Nb de commandes). Sans ce bloc,
-      // une commande passée sur la marketplace laissait le client affiche a 0 :
-      // seuls les ventes POS les incrementaient.
-      if (customerId) {
-        await db
-          .update(customers)
-          .set({
-            totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${total}`,
-            ordersCount: sql`COALESCE(${customers.ordersCount}, 0) + 1`,
-          })
-          .where(eq(customers.id, customerId))
-          .catch((error) => {
-            // Un compteur de CRM ne doit jamais faire echouer la commande.
-            console.error('Error updating customer counters:', error);
-          });
-      }
-
-      // --- Notifications WhatsApp (best-effort, ne bloque jamais la commande) ---
-      try {
-        const storeInfo = await getStorePhone(storeId);
-        const shortId = newOrder.id.slice(0, 8).toUpperCase();
-        const totalStr = new Intl.NumberFormat('fr-FR').format(Number(total) || 0);
-        const buyerName = customer.name || String(customer.email || '').split('@')[0] || 'Client';
-        const paymentMethod = storeOrder?.paymentMethod || 'ESPECES';
-        const storeDisplayName = storeInfo?.name || 'boutique';
-        const emailProducts = await orderEmailProducts(newOrder.id);
-
-        if (storeInfo?.phone) {
-          await notify({
-            userId: storeInfo.ownerId,
-            phone: storeInfo.phone,
-            email: storeInfo.email || '',
-            eventType: 'NOUVELLE_COMMANDE',
-            title: 'Nouvelle commande',
-            body: `Nouvelle commande #${shortId}\nClient : ${buyerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentMethod === 'CARTE' ? 'Carte' : 'Espèces'}`,
-            templateParams: [shortId, buyerName, totalStr],
-            emailData: { order: shortId, buyer: buyerName, phone: customer.phone || phone || undefined, total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '', products: emailProducts },
-          });
-          if (customerCreated) {
-            await notify({
-              userId: storeInfo.ownerId,
-              phone: storeInfo.phone,
-              email: storeInfo.email || '',
-              eventType: 'NOUVEAU_CLIENT',
-              title: 'Nouveau client',
-              body: `Nouveau client enregistré : ${buyerName} (${phone})`,
-              templateParams: [buyerName, phone],
-              emailData: { buyer: buyerName, phone, store: storeInfo?.name || '', storeSlug: storeInfo?.slug || '' },
-            });
-          }
-        }
-
-        const buyerEmail = customer.email || user?.email || '';
-        if (customer.phone || buyerEmail) {
-          await notify({
-            userId: user?.id || null,
-            phone: customer.phone,
-            email: buyerEmail,
-            eventType: 'CONFIRMATION_COMMANDE',
-            title: 'Commande confirmée',
-            body: `Votre commande #${shortId} chez ${storeDisplayName} est confirmée. Total : ${totalStr} FCFA.`,
-            templateParams: [shortId, storeDisplayName, totalStr],
-            emailData: { order: shortId, store: storeDisplayName, storeSlug: storeInfo?.slug || '', total: totalStr, payment: paymentMethod, paymentLabel: paymentMethod === 'CARTE' ? 'Carte' : 'Espèces', items: emailProducts.length || undefined, products: emailProducts },
-          });
-        }
-
-        const productIds = items.map((i) => i.product?.id).filter((x): x is string => Boolean(x));
-        if (productIds.length > 0) {
-          const lowProducts = await db
-.select({ id: products.id, name: products.name, stock: products.stock })
-          .from(products)
-          .where(inArray(products.id, productIds));
-        for (const p of lowProducts) {
-          const stock = Number(p.stock) || 0;
-          const productSlug = generateProductSlug({ id: p.id, name: p.name });
-          if (stock === 0 && storeInfo?.phone) {
-            await notify({
-              userId: storeInfo.ownerId,
-              phone: storeInfo.phone,
-              email: storeInfo.email || '',
-              eventType: 'RUPTURE_STOCK',
-              title: 'Rupture de stock',
-              body: `Rupture de stock : « ${p.name} » n'est plus disponible.`,
-              templateParams: [p.name],
-              emailData: { product: p.name, productSlug },
-            });
-          } else if (stock > 0 && stock <= 10 && storeInfo?.phone) {
-            await notify({
-              userId: storeInfo.ownerId,
-              phone: storeInfo.phone,
-              email: storeInfo.email || '',
-              eventType: 'ALERTE_STOCK_BAS',
-              title: 'Stock bas',
-              body: `Stock bas : « ${p.name} » — plus que ${stock} en stock.`,
-              templateParams: [p.name, String(stock)],
-              emailData: { product: p.name, productSlug, stock },
-            });
-          }
-        }
-        }
-      } catch (err) {
-        console.error('[marketplace] notification error:', err);
-      }
-
-      createdOrderIds.push(newOrder.id);
-    }
-
-    // La clé est désormais associated aux commandes créées : un rejeu
-    // renverra ces références au lieu de dupliquer.
-    if (idempotencyKey) {
-      await db
-        .update(checkoutIdempotency)
-        .set({ orderIds: createdOrderIds })
-        .where(eq(checkoutIdempotency.key, idempotencyKey))
-        .catch((err) => {
-          console.error('[marketplace] idempotency update error:', err);
-        });
-    }
-
-    // Un succès sans aucune commande créée afficherait « Commande Réussie »
-    // au client alors que rien n'a été enregistré. Mieux vaut un refus
-    // explicite, qui laisse le client réessayer.
-    if (createdOrderIds.length === 0) {
-      if (idempotencyKey) {
-        await db
-          .delete(checkoutIdempotency)
-          .where(eq(checkoutIdempotency.key, idempotencyKey))
-          .catch(() => {});
-      }
-      return {
-        success: false,
-        error: 'Aucune commande n’a pu être enregistrée. Merci de réessayer.',
-      };
-    }
-
-    return {
-      success: true,
-      orderId: createdOrderIds[0],
-      orderIds: createdOrderIds,
-      error: undefined,
-    };
-  } catch (error) {
-    console.error('Error persisting marketplace order:', error);
-    const message = error instanceof Error ? error.message : 'Erreur lors de la validation de la commande';
-    // La tentative a échoué : on rend la clé, sinon le client serait bloqué
-    // sur cette clé s'il réessayait.
-    if (idempotencyKey) {
-      await db
-        .delete(checkoutIdempotency)
-        .where(eq(checkoutIdempotency.key, idempotencyKey))
-        .catch(() => {});
-    }
-    return { success: false, error: message };
-  }
-}
-
 const normalizeImageUrl = (uri: string | null | undefined): string => {
   if (!uri) return '';
   if (uri.startsWith('data:')) return '';
@@ -1265,6 +811,9 @@ export async function fetchBuyerOrdersAction(page: number = 1, pageSize: number 
           orderId: orderItems.orderId,
           quantity: orderItems.quantity,
           unitPrice: orderItems.unitPrice,
+          variantLabel: orderItems.variantLabel,
+          variantSku: orderItems.variantSku,
+          variantOptionValues: orderItems.variantOptionValues,
           productId: products.id,
           productName: products.name,
           productImage: products.image,
@@ -1296,6 +845,12 @@ export async function fetchBuyerOrdersAction(page: number = 1, pageSize: number 
           id: i.id,
           quantity: Number(i.quantity) || 0,
           price: Number(i.unitPrice) || 0,
+          variantLabel: i.variantLabel || null,
+          variantSku: i.variantSku || null,
+          variantOptionValues:
+            i.variantOptionValues && typeof i.variantOptionValues === 'object'
+              ? (i.variantOptionValues as Record<string, string>)
+              : {},
           products: i.productId
             ? [{
                 id: i.productId,
@@ -1319,6 +874,9 @@ type OrderItemRow = {
   orderId: string;
   quantity: string | number | null;
   unitPrice: string | number | null;
+  variantLabel?: string | null;
+  variantSku?: string | null;
+  variantOptionValues?: unknown;
   productId: string | null;
   productName: string | null;
   productImage: string | null;

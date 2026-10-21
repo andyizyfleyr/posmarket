@@ -130,23 +130,30 @@ export function sanitizeStringArray(raw: unknown): string[] {
 }
 
 /**
- * Sanitize wholesale tiers to ensure it's flat array of objects with minQty:number and price:number.
+ * Sanitize wholesale tiers. `unitPrice` est conservé lorsqu'il existe : c'est
+ * lui qui garantit un prix de lot exact (ex. 40 005 F pour 10 unités).
  */
-export function sanitizeWholesaleTiers(raw: unknown): Array<{ minQty: number; price: number }> {
+export function sanitizeWholesaleTiers(
+  raw: unknown,
+): Array<{ minQty: number; price: number; unitPrice?: number }> {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((tier): tier is { minQty: number; price: number } => {
-      return (
+    .filter((tier): tier is { minQty: number; price: number; unitPrice?: number } => {
+      return Boolean(
         tier &&
         typeof tier === 'object' &&
-        typeof tier.minQty === 'number' &&
-        typeof tier.price === 'number'
+        Number.isFinite(Number((tier as { minQty?: unknown }).minQty)) &&
+        Number.isFinite(Number((tier as { price?: unknown }).price)),
       );
     })
-    .map((tier) => ({
-      minQty: Number(tier.minQty),
-      price: Number(tier.price),
-    }))
+    .map((tier) => {
+      const unitPrice = Number(tier.unitPrice);
+      return {
+        minQty: Math.max(0, Math.floor(Number(tier.minQty))),
+        price: Math.max(0, Number(tier.price)),
+        ...(Number.isFinite(unitPrice) && unitPrice > 0 ? { unitPrice } : {}),
+      };
+    })
     .filter((tier) => tier.minQty >= 0 && tier.price >= 0);
 }
 

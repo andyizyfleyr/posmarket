@@ -77,8 +77,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [cart, loaded]);
 
+  /**
+   * Plafond de stock réellement disponible pour la ligne. Pour une variante,
+   * on utilise son stock ; sinon le stock produit. Une variante désactivée ou
+   * un produit hors ligne vaut 0. `null` = stock inconnu (pas de plafond).
+   */
+  const getAvailableStock = useCallback(
+    (product: StorefrontProduct, variantId?: string): number | null => {
+      if (product.isOnline === false) return 0;
+      if (variantId && Array.isArray(product.variants)) {
+        const variant = product.variants.find((entry) => entry.id === variantId);
+        if (!variant || variant.enabled === false) return 0;
+        const stock = Number(variant.stock);
+        return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : null;
+      }
+      if (Array.isArray(product.variants) && product.variants.length > 0) {
+        // Une fiche à variantes ne peut pas être ajoutée sans variante.
+        return 0;
+      }
+      const stock = Number(product.stock);
+      return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : null;
+    },
+    [],
+  );
+
   const addToCart = useCallback(
     (product: StorefrontProduct, quantity = 1, variantId?: string, selectedOptions?: Record<string, string>) => {
+      const available = getAvailableStock(product, variantId);
+      if (available !== null && available <= 0) return;
+
       setCart((prev) => {
         // Deux lignes du même produit ne sont identiques que si la variante
         // ET les options choisies le sont : sans cela, « Rouge » et « Bleu »
@@ -89,16 +116,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           (item.variantId ?? null) === (variantId ?? null) &&
           sameSelectedOptions(item.selectedOptions, selectedOptions);
 
+        const requested = Math.max(1, Math.floor(Number(quantity) || 1));
+        const clamp = (value: number) =>
+          available === null ? value : Math.min(value, available);
+
         const existing = prev.find(matches);
         if (existing) {
+          const nextQuantity = clamp(existing.quantity + requested);
+          if (nextQuantity <= 0) {
+            return prev.filter((item) => !matches(item));
+          }
           return prev.map((item) =>
-            matches(item) ? { ...item, quantity: item.quantity + quantity } : item,
+            matches(item) ? { ...item, quantity: nextQuantity } : item,
           );
         }
-        return [...prev, { product, quantity, variantId, selectedOptions }];
+        const safeQuantity = clamp(requested);
+        if (safeQuantity <= 0) return prev;
+        return [...prev, { product, quantity: safeQuantity, variantId, selectedOptions }];
       });
     },
-    [],
+    [getAvailableStock],
   );
 
   const removeFromCart = useCallback(
@@ -133,16 +170,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       setCart((prev) =>
-        prev.map((item) =>
-          item.product.id === productId &&
-          (item.variantId ?? null) === (variantId ?? null) &&
-          sameSelectedOptions(item.selectedOptions, selectedOptions)
-            ? { ...item, quantity }
-            : item,
-        ),
+        prev.flatMap((item) => {
+          const matches =
+            item.product.id === productId &&
+            (item.variantId ?? null) === (variantId ?? null) &&
+            sameSelectedOptions(item.selectedOptions, selectedOptions);
+          if (!matches) return [item];
+          const available = getAvailableStock(item.product, item.variantId);
+          const nextQuantity =
+            available === null
+              ? Math.max(1, Math.floor(Number(quantity) || 1))
+              : Math.min(Math.max(1, Math.floor(Number(quantity) || 1)), available);
+          if (nextQuantity <= 0) return [];
+          return [{ ...item, quantity: nextQuantity }];
+        }),
       );
     },
-    [removeFromCart],
+    [getAvailableStock, removeFromCart],
   );
 
   const clearCart = useCallback(() => {

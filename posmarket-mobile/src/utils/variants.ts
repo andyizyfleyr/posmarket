@@ -124,21 +124,25 @@ export function sanitizeStringArray(raw: unknown): string[] {
 
 export function sanitizeWholesaleTiers(
   raw: unknown,
-): Array<{ minQty: number; price: number }> {
+): Array<{ minQty: number; price: number; unitPrice?: number }> {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((tier): tier is { minQty: number; price: number } => {
-      return (
-        !!tier &&
+    .filter((tier): tier is { minQty: number; price: number; unitPrice?: number } => {
+      return Boolean(
+        tier &&
         typeof tier === 'object' &&
-        typeof (tier as { minQty?: unknown }).minQty === 'number' &&
-        typeof (tier as { price?: unknown }).price === 'number'
+        Number.isFinite(Number((tier as { minQty?: unknown }).minQty)) &&
+        Number.isFinite(Number((tier as { price?: unknown }).price)),
       );
     })
-    .map((tier) => ({
-      minQty: Number(tier.minQty),
-      price: Number(tier.price),
-    }))
+    .map((tier) => {
+      const unitPrice = Number(tier.unitPrice);
+      return {
+        minQty: Math.max(0, Math.floor(Number(tier.minQty))),
+        price: Math.max(0, Number(tier.price)),
+        ...(Number.isFinite(unitPrice) && unitPrice > 0 ? { unitPrice } : {}),
+      };
+    })
     .filter((tier) => tier.minQty >= 0 && tier.price >= 0);
 }
 

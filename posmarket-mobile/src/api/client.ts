@@ -201,10 +201,37 @@ export async function fetchCountryGate(): Promise<CountryGateResponse> {
   return apiFetch<CountryGateResponse>('/api/marketplace/country-gate');
 }
 
+export interface CheckoutResponseOrderItem {
+  id: string;
+  productId: string | null;
+  name: string;
+  image: string | null;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  variantId: string | null;
+  variantLabel: string | null;
+  variantOptionValues: Record<string, string>;
+}
+
+export interface CheckoutResponseOrder {
+  id: string;
+  storeId: string;
+  storeName: string;
+  subtotal: number;
+  discount: number;
+  shipping: number;
+  total: number;
+  paymentMethod: string;
+  status: string;
+  items: CheckoutResponseOrderItem[];
+}
+
 interface CheckoutResponse {
   success: boolean;
   orderId?: string;
   orderIds?: string[];
+  orders?: CheckoutResponseOrder[];
   error?: string;
 }
 

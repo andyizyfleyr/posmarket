@@ -37,10 +37,18 @@ type SwipeState = { key: string; dx: number } | null;
 type CompletedOrderStore = {
   storeId: string;
   storeName: string;
+  orderId?: string;
   products: Array<{ id: string; name: string; image: string }>;
 };
 
-type CompletedOrderItem = { name: string; quantity: number; price: number };
+type CompletedOrderItem = {
+  name: string;
+  quantity: number;
+  price: number;
+  total?: number;
+  variantLabel?: string | null;
+  orderId?: string;
+};
 
 export interface CartCheckoutViewBundle {
   checkoutStage: CheckoutStage;
@@ -95,6 +103,7 @@ export interface CartCheckoutViewBundle {
   isApplyingPromo: boolean;
   setIsApplyingPromo: (b: boolean) => void;
   baseCartTotal: number;
+  retailCartTotal: number;
   wholesaleSavings: number;
   discountAmount: number;
   cartTotal: number;
@@ -119,7 +128,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     getEffectiveItemPrice, handleCheckoutSubmit, handleStageChange, removeFromCart,
     updateQuantity, handlePromoApply, promoApplied, setPromoApplied, promoCodeInput, setPromoCodeInput,
     isPromoOpen, setIsPromoOpen, isApplyingPromo, setIsApplyingPromo,
-    baseCartTotal, wholesaleSavings, discountAmount, cartTotal,
+    retailCartTotal, wholesaleSavings, discountAmount, cartTotal,
     completedOrderStores, completedOrderItems, completedOrderTotal,
     isCheckoutSubmitting,
   } = props;
@@ -133,6 +142,17 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   const cartWord = cartNoun(cartVertical);
   const cartWordLower = cartNounLower(cartVertical);
 
+  /** Prix de référence (variante choisie sinon produit) d'une ligne. */
+  const referencePrice = (item: CartLine): number => {
+    if (item.variantId && item.product?.variants) {
+      const variant = item.product.variants.find((v) => v.id === item.variantId);
+      if (variant) return Number(variant.price) || 0;
+    }
+    return Number(item.product?.price) || 0;
+  };
+  const hasWholesalePrice = (item: CartLine): boolean =>
+    getEffectiveItemPrice(item) < referencePrice(item) - 0.005;
+
   const handleProceedToShipping = () => {
     // Vérifier les MOQ (Minimum Order Quantity / Amount) par boutique
     const storeIds = Array.from(
@@ -140,9 +160,15 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     );
     for (const sId of storeIds) {
       const sObj = stores.find((s) => s.id === sId);
-      const minAmount = Number(sObj?.settings?.wholesaleMinOrderAmount || 0);
+      const wholesaleEnabled =
+        sObj?.settings?.wholesaleEnabled !== false &&
+        sObj?.business_type !== "food";
+      const sItems = cart.filter((i) => i.product?.storeId === sId);
+      const minAmount =
+        wholesaleEnabled && sItems.some(hasWholesalePrice)
+          ? Number(sObj?.settings?.wholesaleMinOrderAmount || 0)
+          : 0;
       if (minAmount > 0) {
-        const sItems = cart.filter((i) => i.product?.storeId === sId);
         const subtotal = sItems.reduce((sum, i) => sum + getEffectiveItemPrice(i) * (i.quantity || 1), 0);
         if (subtotal < minAmount) {
           const sName = sItems[0]?.product?.storeName || sObj?.name || "Boutique";
@@ -277,7 +303,13 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 );
                 const storeObj = stores.find((s) => s.id === storeId);
                 const storeSettings = storeObj?.settings;
-                const storeMinOrder = Number(storeSettings?.wholesaleMinOrderAmount || 0);
+                const storeWholesaleEnabled =
+                  storeSettings?.wholesaleEnabled !== false &&
+                  storeObj?.business_type !== "food";
+                const storeMinOrder =
+                  storeWholesaleEnabled && storeItems.some(hasWholesalePrice)
+                    ? Number(storeSettings?.wholesaleMinOrderAmount || 0)
+                    : 0;
                 const storeSubtotal = storeItems.reduce(
                   (sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1),
                   0,
@@ -760,8 +792,17 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                             // La référence est générée au clic : le message doit
                             // refléter la commande qui vient d'être validée,
                             // pas l'instant de rendu de l'écran.
-                            const orderRef = Date.now().toString().slice(-6);
-                            const waMsg = `NOUVELLE COMMANDE #${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems.map((item) => `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}`).join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
+                            const orderRef =
+                              completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() ||
+                              Date.now().toString().slice(-6);
+                            const waMsg = `NOUVELLE COMMANDE #${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems
+                              .map((item) => {
+                                const variant = item.variantLabel
+                                  ? ` (${item.variantLabel})`
+                                  : "";
+                                return `• ${item.quantity}x ${item.name}${variant} - ${formatCurrency(item.total ?? item.price * item.quantity)}`;
+                              })
+                              .join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
                             const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
                             setIsWhatsAppLoading(true);
                             window.open(waUrl, "_blank");
@@ -819,7 +860,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     {cartItemsCount > 1 ? "s" : ""}
                   </span>
                   <span className="font-bold text-gray-700 tabular-nums">
-                    {formatCurrency(Number(baseCartTotal) || 0)}
+                    {formatCurrency(Number(retailCartTotal) || 0)}
                   </span>
                 </div>
                 {wholesaleSavings > 0 && (

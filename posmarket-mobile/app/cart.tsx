@@ -141,6 +141,9 @@ export default function CartScreen() {
       (referenceItemPrice(item) - getEffectiveItemPrice(item)) * (item.quantity || 1);
     return sum + (saved > 0 ? saved : 0);
   }, 0);
+  // Sous-total « prix de détail » : les deux remises (gros puis coupon) se
+  // lisent alors de haut en bas sans incohérence arithmétique.
+  const retailCartTotal = baseCartTotal + wholesaleSavings;
 
   /** Lignes regroupées par boutique, dans l'ordre d'ajout (comme le web). */
   const storeGroups = useMemo(() => {
@@ -167,8 +170,16 @@ export default function CartScreen() {
 
     for (const { id, items } of storeGroups) {
       const storeObj = stores.find((s) => s.id === id);
+      const wholesaleEnabled =
+        storeObj?.settings?.wholesaleEnabled !== false &&
+        storeObj?.business_type !== 'food';
+      const hasWholesaleLine = items.some(
+        (item) => getEffectiveItemPrice(item) < referenceItemPrice(item) - 0.005,
+      );
       const minAmount = Number(storeObj?.settings?.wholesaleMinOrderAmount || 0);
-      if (minAmount > 0) {
+      // Le minimum de gros ne doit bloquer que les commandes qui bénéficient
+      // réellement d'un tarif de gros. Un panier au prix de détail reste libre.
+      if (wholesaleEnabled && hasWholesaleLine && minAmount > 0) {
         const subtotal = items.reduce(
           (sum, item) => sum + getEffectiveItemPrice(item) * (item.quantity || 1),
           0,
@@ -506,7 +517,7 @@ export default function CartScreen() {
                       {cartItemsCount > 1 ? 's' : ''}
                     </Text>
                     <Text style={styles.recapValue}>
-                      {formatCurrency(baseCartTotal)}
+                      {formatCurrency(retailCartTotal)}
                     </Text>
                   </View>
                   {wholesaleSavings > 0 && (

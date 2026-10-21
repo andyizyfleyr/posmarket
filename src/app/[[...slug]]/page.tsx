@@ -1,4 +1,5 @@
-import { fetchMarketplaceData, submitCheckoutAction, notifyCartInterestAction, notifyPostCheckoutAction } from '@/app/actions/marketplace';
+import { submitCheckoutAction } from '@/app/actions/checkout';
+import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from '@/app/actions/marketplace';
 import { StorefrontWrapper } from '@/components/StorefrontWrapper';
 
 // Next.js ISR: Cache the page on Vercel CDN for 60 seconds to eliminate Server TTFB delay.

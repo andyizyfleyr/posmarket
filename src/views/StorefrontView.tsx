@@ -237,6 +237,33 @@ interface StorefrontViewProps {
     /** Références des commandes créées, renvoyées par l'action serveur. */
     orderId?: string;
     orderIds?: string[];
+    /**
+     * Montants et lignes canoniques calculés par le serveur. Ils font foi pour
+     * l'écran de succès et le message WhatsApp (prix, coupon, livraison).
+     */
+    orders?: Array<{
+      id: string;
+      storeId: string;
+      storeName: string;
+      subtotal: number;
+      discount: number;
+      shipping: number;
+      total: number;
+      paymentMethod: string;
+      status: string;
+      items: Array<{
+        id: string;
+        productId: string | null;
+        name: string;
+        image: string | null;
+        quantity: number;
+        unitPrice: number;
+        total: number;
+        variantId: string | null;
+        variantLabel: string | null;
+        variantOptionValues: Record<string, string>;
+      }>;
+    }>;
   }>;
   onNotifyCartInterest: (
     storeId: string,
@@ -1015,11 +1042,19 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     Array<{
       storeId: string;
       storeName: string;
+      orderId?: string;
       products: Array<{ id: string; name: string; image: string }>;
     }>
   >([]);
   const [completedOrderItems, setCompletedOrderItems] = useState<
-    Array<{ name: string; quantity: number; price: number }>
+    Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      total?: number;
+      variantLabel?: string | null;
+      orderId?: string;
+    }>
   >([]);
   const [completedOrderTotal, setCompletedOrderTotal] = useState<number>(0);
 
@@ -2131,21 +2166,21 @@ const WHOLESALE_FILTER = "wholesale";
     // Le stock doit être lu sur la variante choisie : sinon on autorise
     // l'achat d'un gros lot à partir du stock global du produit.
     const stock = getStockFor(product, variantId ?? undefined);
-    const effectiveQty =
-      stock !== null && stock > 0 ? Math.min(qty, stock) : qty;
-    if (stock !== null && qty > stock) {
-      showStockNotice(
-        `Stock insuffisant pour « ${product.name} » : ${stock} disponible${stock > 1 ? "s" : ""} (${effectiveQty} ajouté${effectiveQty > 1 ? "s" : ""}).`,
-      );
-    }
     if (stock !== null && stock < 1) {
       showStockNotice(`« ${product.name} » est en rupture de stock.`);
       return;
     }
+    if (stock !== null && qty > stock) {
+      showStockNotice(
+        `Stock insuffisant pour « ${product.name} » : ${stock} disponible${stock > 1 ? "s" : ""} pour ce palier de ${qty}.`,
+      );
+      return;
+    }
+    const effectiveQty = qty;
     setCart((prev) => {
       const lineKey = (item: CartItem) =>
-        `${item.product.id}::${item.product.storeId}::${item.variantId ?? 'base'}`;
-      const key = `${product.id}::${product.storeId}::${variantId ?? 'base'}`;
+        `${item.product.id}::${item.product.storeId}::${item.variantId ?? 'base'}::${JSON.stringify(item.selectedOptions ?? {})}`;
+      const key = `${product.id}::${product.storeId}::${variantId ?? 'base'}::${JSON.stringify(selectedOptions ?? {})}`;
       const existing = prev.find((item) => lineKey(item) === key);
       if (existing) {
         return prev.map((item) =>
@@ -2157,7 +2192,15 @@ const WHOLESALE_FILTER = "wholesale";
             : item,
         );
       }
-      return [...prev, { product, quantity: effectiveQty, variantId: variantId ?? undefined }];
+      return [
+        ...prev,
+        {
+          product,
+          quantity: effectiveQty,
+          variantId: variantId ?? undefined,
+          selectedOptions,
+        },
+      ];
     });
     setLastAddedProduct(product);
     buzz();
@@ -2345,6 +2388,9 @@ const WHOLESALE_FILTER = "wholesale";
       (item.quantity || 1);
     return sum + (saved > 0 ? saved : 0);
   }, 0);
+  // Sous-total au prix de détail : les remises (gros puis coupon) s'affichent
+  // ensuite et l'arithmétique du récapitulatif reste exacte.
+  const retailCartTotal = baseCartTotal + wholesaleSavings;
 
   const handlePromoApply = async () => {
     const inputCode = promoCodeInput.trim().toUpperCase();
@@ -2490,42 +2536,95 @@ const WHOLESALE_FILTER = "wholesale";
             if (response?.success) {
               playSuccessSound();
 
-              const storeMap: Record<
-                string,
-                {
-                  storeId: string;
-                  storeName: string;
-                  products: Array<{ id: string; name: string; image: string }>;
-                }
-              > = {};
-              cart.forEach((item) => {
-                const sid = item.product.storeId;
-                if (!storeMap[sid]) {
-                  storeMap[sid] = {
-                    storeId: sid,
-                    storeName: item.product.storeName,
-                    products: [],
-                  };
-                }
-                if (
-                  !storeMap[sid].products.find((p) => p.id === item.product.id)
-                ) {
-                  storeMap[sid].products.push({
-                    id: item.product.id,
+              const serverOrders =
+                Array.isArray(response.orders) && response.orders.length > 0
+                  ? response.orders
+                  : null;
+
+              if (serverOrders) {
+                // Les montants serveur font foi : un coupon expiré ou un prix
+                // modifié entre-temps ne doit jamais produire un reçu faux.
+                setCompletedOrderStores(
+                  serverOrders.map((order) => ({
+                    storeId: order.storeId,
+                    storeName: order.storeName,
+                    orderId: order.id,
+                    products: Array.from(
+                      new Map(
+                        order.items.map((item) => [
+                          item.productId || item.name,
+                          {
+                            id: item.productId || item.name,
+                            name: item.name,
+                            image: item.image || "",
+                          },
+                        ]),
+                      ).values(),
+                    ),
+                  })),
+                );
+                setCompletedOrderItems(
+                  serverOrders.flatMap((order) =>
+                    order.items.map((item) => ({
+                      name: item.name,
+                      quantity: item.quantity,
+                      price: item.unitPrice,
+                      total: item.total,
+                      variantLabel: item.variantLabel,
+                      orderId: order.id,
+                    })),
+                  ),
+                );
+                setCompletedOrderTotal(
+                  serverOrders.reduce(
+                    (sum, order) => sum + Number(order.total || 0),
+                    0,
+                  ),
+                );
+              } else {
+                // Compatibilité avec un serveur plus ancien qui ne renvoie que
+                // les identifiants.
+                const storeMap: Record<
+                  string,
+                  {
+                    storeId: string;
+                    storeName: string;
+                    products: Array<{ id: string; name: string; image: string }>;
+                  }
+                > = {};
+                cart.forEach((item) => {
+                  const sid = item.product.storeId;
+                  if (!storeMap[sid]) {
+                    storeMap[sid] = {
+                      storeId: sid,
+                      storeName: item.product.storeName,
+                      products: [],
+                    };
+                  }
+                  if (
+                    !storeMap[sid].products.find((p) => p.id === item.product.id)
+                  ) {
+                    storeMap[sid].products.push({
+                      id: item.product.id,
+                      name: item.product.name,
+                      image: item.product.image,
+                    });
+                  }
+                });
+                setCompletedOrderStores(Object.values(storeMap));
+                setCompletedOrderItems(
+                  cart.map((item) => ({
                     name: item.product.name,
-                    image: item.product.image,
-                  });
-                }
-              });
-              setCompletedOrderStores(Object.values(storeMap));
-              setCompletedOrderItems(
-                cart.map((item) => ({
-                  name: item.product.name,
-                  quantity: item.quantity,
-                  price: getEffectiveItemPrice(item),
-                })),
-              );
-              setCompletedOrderTotal(cartTotal);
+                    quantity: item.quantity,
+                    price: getEffectiveItemPrice(item),
+                    total: getEffectiveItemPrice(item) * item.quantity,
+                    variantLabel: item.selectedOptions
+                      ? Object.values(item.selectedOptions).join(" / ")
+                      : null,
+                  })),
+                );
+                setCompletedOrderTotal(cartTotal);
+              }
               setPromoApplied(null);
               setPromoCodeInput("");
               setCheckoutStage("success");
@@ -2788,6 +2887,7 @@ const WHOLESALE_FILTER = "wholesale";
       isApplyingPromo={isApplyingPromo}
       setIsApplyingPromo={setIsApplyingPromo}
       baseCartTotal={baseCartTotal}
+      retailCartTotal={retailCartTotal}
       wholesaleSavings={wholesaleSavings}
       discountAmount={discountAmount}
       cartTotal={cartTotal}

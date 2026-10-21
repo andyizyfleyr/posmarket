@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { serializeJsonLd } from '@/lib/json-ld';
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
-import { fetchMarketplaceData, submitCheckoutAction, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
+import { submitCheckoutAction } from '@/app/actions/checkout';
+import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { getStoreSeo, absoluteImage } from "@/utils/catalog-seo";
 
 export const revalidate = 60;

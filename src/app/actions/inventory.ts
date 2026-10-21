@@ -6,7 +6,8 @@ import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
-import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants, sanitizeStringArray, sanitizeWholesaleTiers } from '@/utils/variants'
+import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants, sanitizeStringArray, sanitizeWholesaleTiers, MAX_VARIANT_OPTIONS, MAX_VALUES_PER_OPTION, MAX_VARIANTS } from '@/utils/variants'
+import { normalizeWholesaleTiersForSave } from '@/utils/wholesale'
 import { syncProductVariants } from '@/db/variants'
 import type { ProductImportItem } from '@/utils/product-import-export'
 
@@ -29,7 +30,7 @@ type ProductInput = {
   isOnline?: boolean;
   wholesalePrice?: string | number;
   wholesaleMinQty?: number;
-  wholesaleTiers?: Array<{ minQty: number; price: number }>;
+  wholesaleTiers?: Array<{ minQty: number; price: number; unitPrice?: number }>;
   businessType?: string;
   options?: unknown;
   variants?: unknown;
@@ -119,11 +120,11 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     if (name.length > 140) return { success: false, error: 'Le nom ne doit pas dépasser 140 caractères.' };
 
     const price = Number(product.price);
-    if (!Number.isFinite(price) || price < 0) {
-      return { success: false, error: 'Le prix doit être un nombre positif.' };
+    if (!Number.isFinite(price) || price <= 0) {
+      return { success: false, error: 'Le prix doit être strictement supérieur à 0.' };
     }
 
-    if (Number(product.stock) < 0) return { success: false, error: 'Le stock ne peut pas être négatif.' };;
+    if (Number(product.stock) < 0) return { success: false, error: 'Le stock ne peut pas être négatif.' };
 
     // La catégorie doit appartenir à la verticale de la boutique : sans ce
     // contrôle, un produit de resto pouvait être rangé dans une catégorie de
@@ -153,6 +154,44 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     const warnings: string[] = [];
     const options = normalizeOptions(product.options);
     const rawVariants = Array.isArray(product.variants) ? product.variants : [];
+
+    if (options.length > MAX_VARIANT_OPTIONS) {
+      return {
+        success: false,
+        error: `Un produit ne peut pas avoir plus de ${MAX_VARIANT_OPTIONS} options.`,
+      };
+    }
+    for (const option of options) {
+      if (!option.values || option.values.length === 0) {
+        return {
+          success: false,
+          error: `L’option « ${option.name} » doit avoir au moins une valeur.`,
+        };
+      }
+      if (option.values.length > MAX_VALUES_PER_OPTION) {
+        return {
+          success: false,
+          error: `L’option « ${option.name} » ne peut pas dépasser ${MAX_VALUES_PER_OPTION} valeurs.`,
+        };
+      }
+    }
+    if (rawVariants.length > 0 && options.length === 0) {
+      return {
+        success: false,
+        error: 'Des variantes existent sans option : ajoutez au moins une option ou supprimez les variantes.',
+      };
+    }
+    const combinationCount = options.reduce(
+      (total, option) => total * Math.max(1, option.values.length),
+      1,
+    );
+    if (options.length > 0 && combinationCount > MAX_VARIANTS) {
+      return {
+        success: false,
+        error: `Cette combinaison génère ${combinationCount} variantes, au-delà de la limite de ${MAX_VARIANTS}. Réduisez le nombre d’options ou de valeurs.`,
+      };
+    }
+
     // `normalizeVariants` filtre les entrées illisibles SANS prévenir : on
     // mesure d'abord la perte réelle, sinon les avertissements seraient
     // toujours vides et l'appelant croirait la matrice intacte.
@@ -169,11 +208,48 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
         `${dropped.length} variante(s) retirée(s) : leurs options ne font plus partie du produit.`
       );
     }
+    const invalidVariant = variants.find(
+      (variant) =>
+        !Number.isFinite(Number(variant.price)) || Number(variant.price) <= 0,
+    );
+    if (invalidVariant) {
+      return {
+        success: false,
+        error: `La variante « ${invalidVariant.name || 'sans nom'} » doit avoir un prix strictement supérieur à 0.`,
+      };
+    }
     // Le stock global doit refléter la matrice : c'est lui qui pilote les
     // listes, les compteurs et le fallback « produit sans variante ».
     const stockValue = options.length > 0
       ? variants.reduce((total, variant) => total + Math.max(0, Math.round(Number(variant.stock) || 0)), 0)
       : Math.max(0, Math.round(Number(product.stock) || 0));
+
+    // --- Prix de gros -----------------------------------------------------
+    // Les paliers sont canonicalisés avant écriture : prix unitaire < prix de
+    // détail, quantités uniques, paliers dégressifs. La restauration n'a pas de
+    // prix de gros : les champs sont vidés pour éviter tout affichage fantôme.
+    let wholesaleTiers: Array<{ minQty: number; price: number; unitPrice?: number }> = [];
+    if (storeVertical === 'food') {
+      if (
+        (Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0) ||
+        product.wholesalePrice
+      ) {
+        warnings.push('Le prix de gros n’est pas disponible pour la restauration : il a été retiré.');
+      }
+    } else {
+      const rawTiers =
+        Array.isArray(product.wholesaleTiers) && product.wholesaleTiers.length > 0
+          ? product.wholesaleTiers
+          : product.wholesalePrice && product.wholesaleMinQty
+            ? [{ minQty: Number(product.wholesaleMinQty), price: Number(product.wholesalePrice) }]
+            : [];
+      const wholesaleResult = normalizeWholesaleTiersForSave(rawTiers, price);
+      if (wholesaleResult.error) {
+        return { success: false, error: wholesaleResult.error };
+      }
+      wholesaleTiers = wholesaleResult.tiers;
+    }
+    const primaryWholesaleTier = wholesaleTiers[0];
 
     const uploadCache = new Map<string, string>();
     const resolveImage = async (img: string): Promise<string> => {
@@ -224,9 +300,9 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       mainCategory: product.mainCategory || product.main_category,
       description: product.description,
       isOnline: product.isOnline !== undefined ? product.isOnline : true,
-      wholesalePrice: product.wholesalePrice?.toString(),
-      wholesaleMinQty: product.wholesaleMinQty,
-      wholesaleTiers: product.wholesaleTiers || [],
+      wholesalePrice: primaryWholesaleTier ? String(primaryWholesaleTier.price) : null,
+      wholesaleMinQty: primaryWholesaleTier ? primaryWholesaleTier.minQty : null,
+      wholesaleTiers,
       businessType: storeVertical,
       options,
       variants

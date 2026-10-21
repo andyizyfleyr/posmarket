@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
+import { submitCheckoutAction } from "@/app/actions/checkout";
 import {
     fetchMarketplaceData,
-    submitCheckoutAction,
     notifyCartInterestAction,
     notifyPostCheckoutAction,
 } from "@/app/actions/marketplace";

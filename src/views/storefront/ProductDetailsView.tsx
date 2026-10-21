@@ -847,7 +847,18 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       allSelected &&
       (!matchedVariant || !variantIsInStock(matchedVariant));
 
-    const basePrice = matchedVariant ? matchedVariant.price : product.price;
+    const minVariantPrice = React.useMemo(() => {
+      const prices = variants
+        .filter((variant) => variant.enabled !== false)
+        .map((variant) => Number(variant.price))
+        .filter((price) => Number.isFinite(price) && price > 0);
+      return prices.length > 0 ? Math.min(...prices) : 0;
+    }, [variants]);
+    const basePrice = matchedVariant
+      ? Number(matchedVariant.price) || 0
+      : hasOptions && minVariantPrice > 0
+        ? minVariantPrice
+        : product.price;
     const discountPct =
       product.originalPrice && product.originalPrice > basePrice
         ? Math.round(
@@ -857,10 +868,18 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         : 0;
 
     const wholesaleTiers = React.useMemo(() => {
-      return getNormalizedWholesaleTiers(product);
-    }, [product]);
+      return getNormalizedWholesaleTiers(product, basePrice);
+    }, [product, basePrice]);
 
-    const hasWholesale = wholesaleTiers.length > 0 && !isFood;
+    const wholesaleStore = props.stores?.find(
+      (store) => store.id === product.storeId,
+    );
+    const hasWholesale =
+      wholesaleTiers.length > 0 &&
+      !isFood &&
+      product.businessType !== "food" &&
+      wholesaleStore?.business_type !== "food" &&
+      wholesaleStore?.settings?.wholesaleEnabled !== false;
 
     const [addingWholesaleIdx, setAddingWholesaleIdx] = React.useState<number | null>(null);
     const [addedWholesaleIdx, setAddedWholesaleIdx] = React.useState<number | null>(null);
@@ -885,12 +904,21 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     };
   }, [isOptionsSheetOpen]);
     const [isWholesaleExpanded, setIsWholesaleExpanded] = React.useState(false);
+    const [pendingWholesale, setPendingWholesale] = React.useState<{
+      idx: number;
+      minQty: number;
+    } | null>(null);
 
     const handleWholesaleAdd = (idx: number, minQty: number) => {
       if (addingWholesaleIdx === idx || addedWholesaleIdx === idx) return;
-      if (hasOptions && variants.length > 0 && !matchedVariant) {
-        // Un produit à matrice ne se vend pas « au hasard » : on ouvre le
-        // sélecteur plutôt que d'ajouter une ligne sans variante.
+      if (hasOptions && !allSelected) {
+        // Le palier de gros est mémorisé : après la sélection des options, le
+        // CTA de la feuille ajoutera la quantité du palier, pas 1 unité.
+        setPendingWholesale({ idx, minQty });
+        guardSelection();
+        return;
+      }
+      if (isBuyDisabled) {
         guardSelection();
         return;
       }
@@ -902,6 +930,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
         return;
       }
       setAddingWholesaleIdx(idx);
+      setPendingWholesale(null);
       addWholesaleToCart(product, minQty, matchedVariant?.id ?? null);
       setTimeout(() => {
         setAddingWholesaleIdx(null);
@@ -929,6 +958,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const stockValue = selectedStock;
     const isOutOfStock = stockValue === 0;
     const isBuyDisabled = isOutOfStock || isSelectedOutOfStock;
+    const pendingWholesaleStockMissing =
+      pendingWholesale !== null &&
+      stockValue !== null &&
+      stockValue < pendingWholesale.minQty;
     const isLowStock =
       stockValue !== null && stockValue > 0 && stockValue <= 5;
 
@@ -938,7 +971,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const primaryActionLabel =
       isOutOfStock || isSelectedOutOfStock
         ? "Rupture"
-        : hasVariantMatrix && !allSelected
+        : hasOptions
           ? "Choisir les options"
           : isFood
             ? "Commander"
@@ -995,6 +1028,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       setIsOptionsSheetOpen(true);
     };
 
+    const closeOptionsSheet = () => {
+      setIsOptionsSheetOpen(false);
+      setPendingWholesale(null);
+    };
+
     const guardSelection = (): boolean => {
       if (!allSelected) {
         // Pas de toast ici : la feuille qui vient de s'ouvrir affiche déjà
@@ -1039,6 +1077,14 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     };
 
     const handleAddToCart = () => {
+      // Toute fiche avec options passe par la feuille : le bouton principal ne
+      // doit jamais ajouter une variante non choisie (ou choisie auparavant)
+      // sans laisser l'acheteur la vérifier.
+      if (hasOptions) {
+        setPendingWholesale(null);
+        focusOptions();
+        return;
+      }
       if (!guardSelection()) return;
       addToCart(product, resolveVariantId());
     };
@@ -2151,7 +2197,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           <div className="fixed inset-0 z-[1000] flex items-end justify-center lg:items-center lg:p-6">
             <div
               className="absolute inset-0 bg-gray-900/50"
-              onClick={() => setIsOptionsSheetOpen(false)}
+              onClick={closeOptionsSheet}
             />
             <div
               role="dialog"
@@ -2166,7 +2212,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   <h2 className="text-sm font-bold text-gray-900">Choisir les options</h2>
                   <button
                     type="button"
-                    onClick={() => setIsOptionsSheetOpen(false)}
+                    onClick={closeOptionsSheet}
                     aria-label="Fermer"
                     className="w-8 h-8 -mr-1.5 rounded-full flex items-center justify-center text-gray-500 active:bg-gray-100 transition-colors"
                   >
@@ -2230,21 +2276,37 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 <button
                   type="button"
                   onClick={() => {
-                    if (guardSelection()) {
-                      addToCart(product, resolveVariantId());
-                      setIsOptionsSheetOpen(false);
+                    if (!guardSelection()) return;
+                    const quantity = pendingWholesale?.minQty ?? 1;
+                    if (stockValue !== null && stockValue < quantity) {
+                      localNotify(
+                        `Stock insuffisant pour « ${product.name} » : ${stockValue} disponible${stockValue > 1 ? "s" : ""}.`,
+                        "warning",
+                      );
+                      return;
                     }
+                    if (pendingWholesale && quantity > 1) {
+                      addWholesaleToCart(product, quantity, resolveVariantId() ?? null);
+                    } else {
+                      addToCart(product, resolveVariantId());
+                    }
+                    setPendingWholesale(null);
+                    setIsOptionsSheetOpen(false);
                   }}
-                  disabled={isBuyDisabled}
+                  disabled={isBuyDisabled || pendingWholesaleStockMissing}
                   className="w-full h-12 rounded-full bg-brand active:bg-[#e04e0f] text-white font-bold text-[13px] shadow-sm shadow-orange-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingCart size={15} strokeWidth={2.5} className="flex-shrink-0" />
                   <span className="truncate">
                     {isOutOfStock || isSelectedOutOfStock
                       ? "Rupture"
-                      : isFood
-                        ? "Commander"
-                        : "Ajouter au panier"}
+                      : pendingWholesaleStockMissing
+                        ? "Stock insuffisant"
+                        : isFood
+                          ? "Commander"
+                          : pendingWholesale
+                            ? `Ajouter ${pendingWholesale.minQty} au panier`
+                            : "Ajouter au panier"}
                   </span>
                 </button>
               </div>
