@@ -327,7 +327,7 @@ export default function AccountScreen() {
     [data.orders],
   );
 
-  const recentOrders = useMemo(() => sortedOrders.slice(0, 8), [sortedOrders]);
+  const recentOrders = useMemo(() => sortedOrders.slice(0, 3), [sortedOrders]);
 
   const activeSectionDef =
     ALL_SECTIONS.find((section) => section.id === activeSection) || ALL_SECTIONS[0];
