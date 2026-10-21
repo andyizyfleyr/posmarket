@@ -46,7 +46,7 @@ export const ReviewsTab: React.FC<ReviewsTabProps> = ({ reviews, loading }) => {
             <View style={styles.head}>
               <ProductThumb src={product?.image} size={44} iconSize={18} />
               <View style={styles.headText}>
-                <Text style={styles.store} numberOfLines={2}>
+                <Text style={styles.store} numberOfLines={1}>
                   {storeName}
                 </Text>
                 <ProductNameLink product={product} style={styles.name} />

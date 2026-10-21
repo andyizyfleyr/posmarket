@@ -93,7 +93,7 @@ export const StoresTab: React.FC<StoresTabProps> = ({ orders, loading }) => {
               <Store size={20} color={COLORS.brand} />
             </View>
             <View style={styles.storeText}>
-              <Text style={styles.storeName} numberOfLines={2}>
+              <Text style={styles.storeName} numberOfLines={1}>
                 {store.name}
               </Text>
               {store.businessType ? (
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   storeName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.ink,
     letterSpacing: -0.1,

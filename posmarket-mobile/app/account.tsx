@@ -346,10 +346,10 @@ export default function AccountScreen() {
               <Icon size={18} color={action.color} />
             </View>
             <View style={styles.quickText}>
-              <Text style={styles.quickLabel} numberOfLines={2}>
+              <Text style={styles.quickLabel} numberOfLines={1}>
                 {action.label}
               </Text>
-              <Text style={styles.quickHint} numberOfLines={2}>
+              <Text style={styles.quickHint} numberOfLines={1}>
                 {action.hint}
               </Text>
             </View>
@@ -421,7 +421,7 @@ export default function AccountScreen() {
                     iconSize={18}
                   />
                   <View style={styles.orderRowText}>
-                    <Text style={styles.orderRowStore} numberOfLines={2}>
+                    <Text style={styles.orderRowStore} numberOfLines={1}>
                       {orderStoreName(order)}
                     </Text>
                     <Text style={styles.orderRowMeta} numberOfLines={1}>
