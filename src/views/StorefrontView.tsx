@@ -11,7 +11,7 @@ import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
-import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Check, Mail, MailCheck, AlertTriangle, BadgeCheck } from "lucide-react";
+import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Mail, MailCheck, AlertTriangle } from "lucide-react";
 import {
   StoreData,
   Product,
@@ -22,13 +22,13 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
-import { formatCurrency, formatNumber, formatRating, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
+import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
-import { StoreHero } from "@/components/StoreHero";
+import { PartnerStoreCard } from "@/components/PartnerStoreCard";
 import {
   clearLocalCache,
   readLocalCache,
@@ -431,28 +431,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const selectedStore = useMemo(() => {
     return activeStores.find((s) => s.id === selectedStoreId) || null;
   }, [selectedStoreId, activeStores]);
-
-  /** Statistiques de la boutique affichee (en-tete de page boutique). */
-  const storeStats = useMemo(() => {
-    const store = selectedStore;
-    if (!store) {
-      return { productCount: 0, visitorsCount: 0, reviewCount: 0 };
-    }
-    const onlineProducts = (store.products || []).filter(
-      (p) => p.isOnline !== false && p.image,
-    );
-    const productReviewTotal = (store.products || []).reduce(
-      (sum, p) => sum + (p.reviewCount || 0),
-      0,
-    );
-    return {
-      productCount: onlineProducts.length,
-      visitorsCount:
-        (store.views || 0) +
-        onlineProducts.reduce((sum, p) => sum + (p.views || 0), 0),
-      reviewCount: store.reviewCount ?? productReviewTotal,
-    };
-  }, [selectedStore]);
 
   // Autocomplete suggestions (fast, lightweight — fires at 150ms)
   const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string; category: string; storeName: string }>>([]);
@@ -3685,17 +3663,7 @@ const WHOLESALE_FILTER = "wholesale";
               <>
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
-                {/* Boutique : en-tete dedie (identique a l'app mobile). */}
-                {selectedStoreParam && selectedStore && (
-                  <StoreHero
-                    store={selectedStore}
-                    productCount={storeStats.productCount}
-                    visitorsCount={storeStats.visitorsCount}
-                    reviewCount={storeStats.reviewCount}
-                  />
-                )}
-
-                {!searchTerm && selectedCategory === "all" && !selectedStoreParam && (
+                {!searchTerm && selectedCategory === "all" && (
                   <div
                     className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden border border-brand-tint rounded-[24px] md:rounded-[32px]"
                     style={{ touchAction: "pan-y" }}
@@ -3788,161 +3756,33 @@ const WHOLESALE_FILTER = "wholesale";
                   selectedCategory === "all" &&
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
-                      <h2 className="text-[15px] md:text-xl font-bold text-gray-900 mb-3 md:mb-5 tracking-tight flex items-center gap-2.5">
-                        Boutiques partenaires
-                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full ml-1">
-                          {Math.min(partnerStores.length, 6)}
-                        </span>
-                      </h2>
+                      <div className="mb-3 flex items-center gap-2.5 md:mb-5">
+                        <span className="mr-1 h-6 w-[3px] shrink-0 rounded-full bg-brand" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-[16px] font-extrabold tracking-[-0.35px] text-gray-900 md:text-xl">
+                              Boutiques partenaires
+                            </h2>
+                            <span className="overflow-hidden rounded-full bg-brand-soft px-[7px] py-0.5 text-[9px] font-bold text-brand">
+                              {Math.min(partnerStores.length, 6)}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[10.5px] font-medium tracking-[0.05px] text-gray-500">
+                            Des commerçants vérifiés à découvrir
+                          </p>
+                        </div>
+                      </div>
                       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 md:pb-3 -mx-4 px-4 snap-x snap-mandatory">
-                        {partnerStores.slice(0, 6).map(({ store, salesCount, viewsCount }) => {
-                          const name = store.settings?.name || store.name || "Boutique";
-                          const rating = store.rating ?? 0;
-                          const reviewCount = store.reviewCount ?? 0;
-                          const initials = name.trim().slice(0, 2).toUpperCase();
-                          const country = store.settings?.country;
-
-                          // Ordre de lecture : note + avis, puis ventes, puis vues.
-                          // Les stats a zero sont masquees et le separateur ne se
-                          // place qu'entre deux blocs reellement affiches.
-                          const stats: React.ReactNode[] = [];
-                          const addSeparator = () => {
-                            if (stats.length > 0) {
-                              stats.push(
-                                <span key={`sep-${stats.length}`} className="text-gray-300">
-                                  {" | "}
-                                </span>,
-                              );
+                        {partnerStores.slice(0, 6).map(({ store, salesCount, viewsCount }) => (
+                          <PartnerStoreCard
+                            key={store.id}
+                            store={store}
+                            stats={{ salesCount, viewsCount }}
+                            onOpen={(target) =>
+                              safeNavigate(`/store/${target.slug || target.id}`)
                             }
-                          };
-
-                          addSeparator();
-                          stats.push(
-                            rating > 0 ? (
-                              <span key="rating" className="text-gray-600">
-                                <span className="text-brand">★ </span>
-                                <span className="font-bold">{formatRating(rating)}</span>
-                                {reviewCount > 0 ? (
-                                  <span className="text-gray-500">
-                                    {" "}({formatNumber(reviewCount)} avis)
-                                  </span>
-                                ) : null}
-                              </span>
-                            ) : (
-                              <span key="new" className="text-gray-400">
-                                Nouveau
-                              </span>
-                            ),
-                          );
-
-                          if (salesCount > 0) {
-                            addSeparator();
-                            stats.push(
-                              <span key="sales" className="text-gray-600">
-                                <span className="font-bold">{formatNumber(salesCount)}</span>{" "}
-                                <span className="text-gray-500">
-                                  {salesCount > 1 ? "ventes" : "vente"}
-                                </span>
-                              </span>,
-                            );
-                          }
-
-                          if (viewsCount > 0) {
-                            addSeparator();
-                            stats.push(
-                              <span key="views" className="text-gray-600">
-                                <span className="font-bold">{formatNumber(viewsCount)}</span>{" "}
-                                <span className="text-gray-500">
-                                  {viewsCount > 1 ? "vues" : "vue"}
-                                </span>
-                              </span>,
-                            );
-                          }
-
-                          return (
-                            <div
-                              key={store.id}
-                              onClick={() =>
-                                safeNavigate(`/store/${store.slug || store.id}`)
-                              }
-                              tabIndex={0}
-                              role="button"
-                              aria-label={`Voir la boutique ${name}`}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  safeNavigate(
-                                    `/store/${store.slug || store.id}`,
-                                  );
-                                }
-                              }}
-                              className="w-[calc((100vw-42px)/2)] md:w-[168px] shrink-0 snap-start bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-brand/40 hover:shadow-md cursor-pointer group active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-brand/60 overflow-hidden flex flex-col"
-                            >
-                              {/* Couverture + badge « Verifie » */}
-                              <div className="relative h-11 shrink-0 bg-gradient-to-br from-[#FFF6F0] to-[#FFE3D3] overflow-hidden">
-                                <span className="absolute -top-6 -right-5 h-16 w-16 rounded-full bg-white/25" />
-                                <span className="absolute -bottom-5 -left-4 h-12 w-12 rounded-full bg-white/20" />
-                                <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-green-600 shadow-sm">
-                                  Verifie
-                                  <BadgeCheck size={9} strokeWidth={2.5} className="text-green-500" />
-                                </span>
-                              </div>
-
-                              {/* Logo, nom, pays, stats */}
-                              <div className="flex flex-1 flex-col items-center px-2.5 pb-2.5">
-                                <div className="relative -mt-4 shrink-0">
-                                  <div className="w-10 h-10 rounded-full bg-white border-2 border-brand shadow-sm flex items-center justify-center overflow-hidden">
-                                    {store.settings?.logo ? (
-                                      <Image
-                                        src={store.settings.logo ?? ""}
-                                        alt={name}
-                                        fill
-                                        sizes="40px"
-                                        className="object-cover"
-                                        unoptimized={needsNoOptimization(store.settings.logo)}
-                                      />
-                                    ) : (
-                                      <span className="text-[11px] font-bold text-brand">
-                                        {initials}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
-                                    <Check size={8} strokeWidth={4} className="text-white" />
-                                  </span>
-                                </div>
-
-                                <h3 className="mt-1.5 w-full flex items-center justify-center gap-1 min-w-0">
-                                  <span className="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover:text-brand transition-colors">
-                                    {name}
-                                  </span>
-                                  <ChevronRight
-                                    size={12}
-                                    strokeWidth={2.5}
-                                    className="text-gray-300 flex-shrink-0"
-                                  />
-                                </h3>
-
-                                <div className="mt-0.5 flex items-center gap-1 w-full justify-center min-w-0">
-                                  <MapPin
-                                    size={9.5}
-                                    strokeWidth={2.5}
-                                    className={country ? "text-brand" : "text-gray-300"}
-                                  />
-                                  <span
-                                    className={`truncate text-[9px] ${country ? "text-gray-500" : "text-gray-300"}`}
-                                  >
-                                    {country || "Non defini"}
-                                  </span>
-                                </div>
-
-                                <div className="mt-1 w-full truncate text-[9px] text-gray-500">
-                                  {stats}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                          />
+                        ))}
                       </div>
                     </div>
                   )}
