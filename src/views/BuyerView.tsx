@@ -167,13 +167,36 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
   const data = useBuyerData(user, notify);
   const { reorder, pendingOrderId } = useReorder(notify);
 
+  /**
+   * Lien profond : `/mon-compte/commandes?order=<id>` ouvre la commande
+   * ciblée, la met en évidence et défile jusqu'à elle.
+   */
+  const [targetOrderId, setTargetOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const orderId = new URLSearchParams(window.location.search).get('order');
+    if (!orderId) return;
+    setTargetOrderId(orderId);
+    setActiveTab('orders');
+  }, []);
+
+  // Défilement vers la commande ciblée, une fois la liste rendue.
+  useEffect(() => {
+    if (!targetOrderId || data.loading) return;
+    const element = document.getElementById(`order-${targetOrderId}`);
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [targetOrderId, data.loading, data.orders.length]);
+
   // Synchronise l'onglet actif si accountTab change depuis l'extérieur (URL)
   useEffect(() => {
+    if (targetOrderId) return;
     const t = TAB_FROM_PATH[accountTab || 'apercu'];
     if (!t || t === activeTab) return;
     const id = window.setTimeout(() => setActiveTab(t), 0);
     return () => window.clearTimeout(id);
-  }, [accountTab, activeTab]);
+  }, [accountTab, activeTab, targetOrderId]);
 
   // Synchronise l'onglet lors de la navigation navigateur (bouton Précédent / Suivant)
   useEffect(() => {
@@ -390,6 +413,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
             onBrowse={() => navigate('/')}
             onReorder={(order) => void reorder(order)}
             pendingOrderId={pendingOrderId}
+            highlightOrderId={targetOrderId}
           />
         );
       case 'addresses':

@@ -21,6 +21,8 @@ interface OrdersTabProps {
   onReorder?: (order: BuyerOrder) => void;
   /** Commande en cours de remise au panier. */
   pendingOrderId?: string | null;
+  /** Commande à mettre en évidence (lien profond). */
+  highlightOrderId?: string | null;
 }
 
 export const OrdersTab: React.FC<OrdersTabProps> = ({
@@ -33,6 +35,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   onBrowse,
   onReorder,
   pendingOrderId = null,
+  highlightOrderId = null,
 }) => {
   if (loading && orders.length === 0) return <PanelSkeleton rows={3} />;
 
@@ -66,6 +69,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
           onReviewProduct={onReviewProduct}
           onReorder={onReorder ? () => onReorder(order) : undefined}
           reorderDisabled={pendingOrderId === order.id}
+          cardId={`order-${order.id}`}
+          highlight={highlightOrderId === order.id}
         />
       ))}
 

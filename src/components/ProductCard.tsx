@@ -3,7 +3,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Product } from '@/types';
 import { Check, ChevronRight, Plus, Star } from 'lucide-react';
-import { formatCurrency, formatNumber, formatRating } from '@/utils';
+import { formatCurrency, formatNumber, formatRating, variantPriceRange } from '@/utils';
 import ProductImage from './ProductImage';
 import { generateProductSlug } from '@/utils/slug';
 
@@ -74,6 +74,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(
     const reviewCount = product.reviewCount ?? 0;
     const hasStats = salesCount > 0 || rating > 0;
     const storeName = extras.storeName?.trim();
+
+    // Un produit à variantes affiche « dès X » : le prix dépend des options.
+    const priceRange = variantPriceRange(product);
+    const displayPrice = priceRange?.min ?? (Number(product.price) || 0);
+    const pricePrefix =
+      priceRange && priceRange.max > priceRange.min ? 'dès ' : '';
 
     const handleAddToCart = useCallback(
       (e: React.MouseEvent) => {
@@ -219,8 +225,11 @@ const ProductCard: React.FC<ProductCardProps> = memo(
           </div>
 
           <div className="mt-auto flex items-baseline gap-1 pt-1">
+            {pricePrefix ? (
+              <span className="text-[9px] font-semibold text-gray-400">{pricePrefix}</span>
+            ) : null}
             <span className="truncate text-[12px] font-bold text-[#1a1a1a] md:text-[13px]">
-              {formatCurrency(product.price)}
+              {formatCurrency(displayPrice)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-[9px] text-gray-400 line-through">

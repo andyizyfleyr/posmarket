@@ -25,6 +25,52 @@ export const formatRating = (rating: number): string =>
   (Number.isFinite(rating) ? rating : 0).toFixed(1).replace('.', ',');
 
 /**
+ * Fourchette de prix des variantes actives. Sert à afficher « dès X FCFA »
+ * sur la carte quand les options changent le prix.
+ */
+export const variantPriceRange = (
+  product: {
+    variants?: Array<{ price?: number | null; enabled?: boolean }>;
+  } | null
+  | undefined,
+): { min: number; max: number } | null => {
+  const prices = (product?.variants || [])
+    .filter((variant) => variant.enabled !== false)
+    .map((variant) => Number(variant.price))
+    .filter((price) => Number.isFinite(price) && price > 0);
+  if (prices.length === 0) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+};
+
+/**
+ * Prix affiché d'un produit : celui de la variante la moins chère quand le
+ * produit en a, sinon le prix de base.
+ */
+export const displayPriceOf = (
+  product: {
+    price?: number | null;
+    variants?: Array<{ price?: number | null; enabled?: boolean }>;
+  } | null
+  | undefined,
+): number => {
+  const basePrice = Number(product?.price) || 0;
+  return variantPriceRange(product)?.min ?? basePrice;
+};
+
+/**
+ * Produit affichable en vitrine : image et prix valide. Les fiches à 0 FCFA
+ * sans variante tarifée sont écartées de l'accueil (elles restent
+ * accessibles via la recherche).
+ *
+ * Le stock n'est pas ici un critère : le web affiche volontairement les
+ * produits en rupture (badge « Rupture ») plutôt que de les faire
+ * disparaître.
+ */
+export const isMarketableProduct = (
+  product: { image?: string | null; price?: number | null } | null | undefined,
+): boolean => Boolean(product?.image) && displayPriceOf(product) > 0;
+
+/**
  * Masque le nom complet pour préserver la vie privée des clients dans les avis.
  * Exemple : "Poppy Roberts" -> "P**** R*****"
  */

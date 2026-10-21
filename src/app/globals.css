@@ -146,6 +146,22 @@ button, a, [role="button"], input, select, textarea {
     animation: pulse-orange 2s infinite;
 }
 
+/* Mise en évidence d'une commande ciblée par un lien profond
+   (/mon-compte/commandes?order=<id>) : la carte clignote trois fois. */
+@keyframes order-highlight {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgb(from var(--color-brand) r g b / 0);
+        background-color: #ffffff;
+    }
+    50% {
+        box-shadow: 0 0 0 3px rgb(from var(--color-brand) r g b / 0.35);
+        background-color: var(--color-brand-soft);
+    }
+}
+.animate-order-highlight {
+    animation: order-highlight 0.6s ease-in-out 3;
+}
+
 /* Base form styles.
    Placé dans @layer base (et sans !important) pour que les utilitaires Tailwind
    de composants (border-red-200, rounded-xl, bg-gray-50...) restent prioritaires. */

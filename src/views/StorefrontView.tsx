@@ -22,7 +22,7 @@ import {
 } from "@/types";
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
-import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
+import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName, isMarketableProduct } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
@@ -1855,7 +1855,11 @@ const WHOLESALE_FILTER = "wholesale";
         const matchesVertical =
           selectedVertical === "all" || verticalOfProduct(p) === selectedVertical;
 
-        return isFromStore && matchesCategory && matchesVertical;
+        // Une fiche sans image ni prix exploitable n'a rien à montrer en
+        // vitrine : elle reste atteignable par la recherche.
+        const isMarketable = isMarketableProduct(p);
+
+        return isFromStore && matchesCategory && matchesVertical && isMarketable;
       })
       .sort((a, b) => {
         // 1. Group by Category for Home sections
@@ -4055,6 +4059,7 @@ const WHOLESALE_FILTER = "wholesale";
                               onPrefetch={() => warmProduct({ id: product.id, image: product.image })}
                               onAddToCart={handleCardAddToCart}
                               className="w-full"
+                              showStore={!selectedStoreParam}
                             />
                           );
 

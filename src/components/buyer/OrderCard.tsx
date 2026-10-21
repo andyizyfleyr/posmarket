@@ -28,6 +28,10 @@ interface OrderCardProps {
   /** Libellé du bouton de récommandation. */
   reorderLabel?: string;
   reorderDisabled?: boolean;
+  /** Met la commande en évidence (lien profond vers une commande). */
+  highlight?: boolean;
+  /** Identifiant DOM, cible du défilement. */
+  cardId?: string;
 }
 
 const formatDate = (iso: string): string => {
@@ -58,6 +62,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onReorder,
   reorderLabel = 'Recommander',
   reorderDisabled = false,
+  highlight = false,
+  cardId,
 }) => {
   const items = order.order_items || [];
   const storeName = order.stores?.[0]?.name || 'Boutique';
@@ -135,7 +141,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <div
+      id={cardId}
+      className={`overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ${
+        highlight ? 'animate-order-highlight' : ''
+      }`}
+    >
       {content}
 
       <div className="flex items-center justify-between gap-3 bg-gray-50/60 px-3.5 py-3">
