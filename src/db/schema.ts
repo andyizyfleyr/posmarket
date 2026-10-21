@@ -503,10 +503,29 @@ export const storeStaffRelations = relations(storeStaff, ({ one }) => ({
   user: one(profiles, { fields: [storeStaff.userId], references: [profiles.id] }),
 }));
 
+/**
+ * Compteurs de limitation de débit partagés entre les instances.
+ *
+ * Le limiteur en mémoire (`src/lib/rate-limit.ts`) est rapide mais
+ * undergraduel : sur Vercel chaque instance a sa propre mémoire, un
+ * attaquant change d'instance pour repartir à zéro. Cette table sert aux
+ * quotas stricts (connexion, encaissement, administration) : le compteur
+ * survit au redéploiement et est partagé par toutes les instances.
+ */
+export const apiRateLimits = pgTable(
+  'api_rate_limits',
+  {
+    key: text('key').primaryKey(),
+    count: integer('count').notNull().default(0),
+    resetAt: timestamp('reset_at', { mode: 'date' }).notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+  },
+  (t) => [index('api_rate_limits_reset_at_idx').on(t.resetAt)],
+);
+
 export const storeStatsRelations = relations(storeStats, ({ one }) => ({
   store: one(stores, { fields: [storeStats.storeId], references: [stores.id] }),
 }));
-
 export const profilesRelations = relations(profiles, ({ many }) => ({
   stores: many(stores),
 }));

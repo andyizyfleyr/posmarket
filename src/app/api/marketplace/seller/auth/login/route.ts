@@ -9,6 +9,7 @@ import {
 } from '@/lib/magic-link-capture';
 import { parseBody } from '@/lib/validation';
 import { authLoginSchema } from '@/lib/schemas';
+import { enforceSharedRateLimit } from '@/lib/api-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,11 @@ const SESSION_COOKIE_RE = /((?:__Secure-)?authjs\.session-token)=([^;,\s]+)/;
  */
 export async function POST(req: NextRequest) {
   try {
+    // Quota strict et partagé : une connexion ne doit pas être devinable même
+    // en répartissant les essais sur plusieurs instances.
+    const limited = await enforceSharedRateLimit(req, 'auth');
+    if (limited) return limited;
+
     const parsed = await parseBody(req, authLoginSchema);
     if (!parsed.ok) return parsed.response;
     const { email, mode } = parsed.data;

@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server'
 import NextAuth from 'next-auth'
 import { authConfig } from '@/lib/auth.config'
 import { updateSession } from '@/utils/supabase/middleware'
+import { enforceApiRateLimit } from '@/lib/api-rate-limit'
 
 const { auth } = NextAuth(authConfig)
 
@@ -10,8 +11,15 @@ const { auth } = NextAuth(authConfig)
 const BAD_BOT_RE =
   /(semrush|ahrefs|majestic|dotbot|petalbot|mj12bot|screaming ?frog|buzzsumo|megaindex|linkpad|serpstat|python-requests|python-urllib|scrapy|curl\/|wget|httpclient|okhttp|go-http-client|libwww|axios\/|node-fetch|java\/|apache-httpclient|zgrab|masscan|nikto|sqlmap)/i;
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   try {
+    // Limitation de débit : appliquée en premier, avant toute session, pour
+    // protéger l'API même des requêtes non authentifiées.
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      const limited = await enforceApiRateLimit(request)
+      if (limited) return limited
+    }
+
     // L'application mobile (React Native/OkHttp) envoie un User-Agent qui
     // ressemble à celui de bots ; elle s'identifie avec cet en-tête dédié
     // pour ne pas être bloquée par le filtre ci-dessous.

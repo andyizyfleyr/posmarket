@@ -3,6 +3,7 @@ import { createOrderAction } from '@/app/actions/orders';
 import { requireSellerSpace } from '@/lib/mobile-space';
 import { parseBody } from '@/lib/validation';
 import { sellerPosCheckoutSchema } from '@/lib/schemas';
+import { enforceSharedRateLimit } from '@/lib/api-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   try {
+    // Quota strict et partagé : l'encaissement POS touche au stock et au CA.
+    const limited = await enforceSharedRateLimit(req, 'sensitive');
+    if (limited) return limited;
+
     const guard = await requireSellerSpace();
     if (!guard.ok) return guard.response;
 

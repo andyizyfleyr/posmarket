@@ -20,6 +20,10 @@ export const formatCurrency = (amount: number): string => {
   return Math.floor(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
 };
 
+/** Note affichée à la française : 4,8 (et non 4.8). */
+export const formatRating = (rating: number): string =>
+  (Number.isFinite(rating) ? rating : 0).toFixed(1).replace('.', ',');
+
 /**
  * Masque le nom complet pour préserver la vie privée des clients dans les avis.
  * Exemple : "Poppy Roberts" -> "P**** R*****"
