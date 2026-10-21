@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.line,
   },
   comment: {
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '500',
     color: COLORS.textMuted,
   },
