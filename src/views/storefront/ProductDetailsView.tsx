@@ -581,64 +581,6 @@ function OptionsPicker({
   );
 }
 
-/**
- * Résumé des options affiché dans la page.
- *
- * Le sélecteur n'existe qu'en un seul endroit — la feuille modale — sinon il
- * était dupliqué (accordéon desktop + carte mobile) et pouvait diverger. Cette
- * ligne ne le reproduit pas : elle rappelle la sélection courante et sert de
- * bouton pour rouvrir la feuille. C'est indispensable une fois la sélection
- * complète, car le libellé du CTA passe alors de « Choisir les options » à
- * « Ajouter au panier » : sans ce rappel, la modification devient inaccessible.
- */
-function OptionsSummaryRow({
-  options,
-  selectedOptions,
-  onOpen,
-}: {
-  options: ProductOption[];
-  selectedOptions: Record<string, string>;
-  onOpen: () => void;
-}) {
-  const selectedCount = options.filter((o) => !!selectedOptions[o.id]).length;
-  const allSelected = selectedCount === options.length;
-  const summary = options
-    .filter((o) => !!selectedOptions[o.id])
-    .map((o) => `${o.name}: ${selectedOptions[o.id]}`)
-    .join(" · ");
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label="Choisir les options"
-      className="w-full flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-3 py-2.5 text-left shadow-sm active:bg-gray-50 transition-colors cursor-pointer"
-    >
-      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-brand/10 text-brand shrink-0">
-        <Package size={13} strokeWidth={2.5} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-bold text-gray-900 leading-tight">
-          Options &amp; Variantes
-        </span>
-        <span className="block text-[10px] font-medium text-gray-500 truncate">
-          {summary || "Touchez pour choisir"}
-        </span>
-      </span>
-      {allSelected ? (
-        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full shrink-0">
-          <CheckCircle2 size={10} strokeWidth={3} /> Prêt
-        </span>
-      ) : (
-        <span className="text-[10px] font-semibold text-gray-500 bg-white border border-gray-200 px-2 py-1 rounded-full shrink-0">
-          {selectedCount}/{options.length}
-        </span>
-      )}
-      <ChevronRight size={15} className="shrink-0 text-gray-400" />
-    </button>
-  );
-}
-
 export function ProductDetailsView(props: ProductDetailsProps) {
   const product = props.selectedProductDetails;
   const { isInitialLoading, allProducts, handleGoBack, isNavigating } = props;
@@ -750,7 +692,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     // --- Pricing & variants ---
     const options = Array.isArray(product.options) ? product.options : [];
-    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const variants = React.useMemo(
+      () => (Array.isArray(product.variants) ? product.variants : []),
+      [product.variants],
+    );
     const reviews: Review[] = Array.isArray(product.reviews) ? product.reviews : [];
 
     const renderReviewCard = (review: Review, idx: number) => (
@@ -967,7 +912,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     // Le libellé annonce l'action réellement possible : proposer « Ajouter »
     // alors qu'il manque une option ne fait qu'un clic perdu.
-    const hasVariantMatrix = hasOptions && variants.length > 0;
     const primaryActionLabel =
       isOutOfStock || isSelectedOutOfStock
         ? "Rupture"

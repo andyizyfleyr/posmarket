@@ -89,7 +89,11 @@ export default function OfflineView() {
 
   useEffect(() => {
     mountedRef.current = true;
-    setReturnTo(getSafeReturnTo());
+    // La destination de retour depend du referrer : elle n'est lisible que
+    // cote client, apres l'hydratation.
+    const resolveReturnTo = window.setTimeout(() => {
+      setReturnTo(getSafeReturnTo());
+    }, 0);
 
     const initialCheck = window.setTimeout(() => {
       void verifyConnection(false);
@@ -107,6 +111,7 @@ export default function OfflineView() {
 
     return () => {
       mountedRef.current = false;
+      window.clearTimeout(resolveReturnTo);
       window.clearTimeout(initialCheck);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
