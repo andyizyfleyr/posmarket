@@ -1,9 +1,9 @@
 /**
  * Rendu riche & automatique de la description produit — refonte mobile.
  *
- * Nouvelle hiérarchie : badges de confiance, points clés en tuiles, description
- * éditoriale (lead + sections + listes) et caractéristiques présentées en liste
- * lisible (icône / libellé / valeur) plutôt qu'en grille de petites cases.
+ * Nouvelle hiérarchie : points clés en tuiles, description éditoriale (lead +
+ * sections + listes) et caractéristiques présentées en liste lisible (icône /
+ * libellé / valeur) plutôt qu'en grille de petites cases.
  */
 
 import React from 'react';
@@ -24,7 +24,6 @@ import {
 import { COLORS } from '@/theme';
 import {
   parseDescription,
-  type AutoBadge,
   type AutoSpec,
 } from '@/utils/product-description';
 
@@ -123,30 +122,6 @@ export function DescriptionHighlights({ items }: { items: string[] }) {
   );
 }
 
-const BADGE_TONES = {
-  amber: { backgroundColor: '#FFFBEB', color: '#B45309', dot: '#F59E0B' },
-  green: { backgroundColor: '#ECFDF5', color: '#047857', dot: '#10B981' },
-  red: { backgroundColor: '#FEF2F2', color: '#B91C1C', dot: '#EF4444' },
-  blue: { backgroundColor: '#EFF6FF', color: '#1D4ED8', dot: '#3B82F6' },
-} as const;
-
-export function DescriptionBadges({ badges }: { badges: AutoBadge[] }) {
-  if (!badges || badges.length === 0) return null;
-  return (
-    <View style={styles.badgesRow}>
-      {badges.map((b) => {
-        const tone = BADGE_TONES[b.tone];
-        return (
-          <View key={b.id} style={[styles.badge, { backgroundColor: tone.backgroundColor }]}>
-            <View style={[styles.badgeDot, { backgroundColor: tone.dot }]} />
-            <Text style={[styles.badgeText, { color: tone.color }]}>{b.text}</Text>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 function SpecIcon({ label }: { label: string }) {
   const common = { size: 12, color: COLORS.textMuted } as const;
   switch (label) {
@@ -212,21 +187,18 @@ export function DescriptionSpecs({ specs }: { specs: AutoSpec[] }) {
   );
 }
 
-/** Bloc complet : badges, points forts, description et caractéristiques. */
+/** Bloc complet : points forts, description et caractéristiques. */
 export function ProductDescription({
   text,
   highlights,
-  badges,
   specs,
 }: {
   text: string;
   highlights: string[];
-  badges: AutoBadge[];
   specs: AutoSpec[];
 }) {
   return (
     <View style={styles.root}>
-      <DescriptionBadges badges={badges} />
       <DescriptionHighlights items={highlights} />
       <RichDescription text={text} />
       <DescriptionSpecs specs={specs} />
@@ -364,22 +336,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
-
-  badgesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  badgeDot: { width: 4, height: 4, borderRadius: 2 },
-  badgeText: { fontSize: 9.5, fontWeight: '700' },
 
   specsPanel: {
     backgroundColor: COLORS.surfaceMuted,

@@ -36,14 +36,12 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
-  FileText,
   MessageCircle,
   Package,
   ShoppingCart,
   Star,
   Store,
   Truck,
-  UtensilsCrossed,
   X,
   Zap,
 } from 'lucide-react-native';
@@ -70,7 +68,6 @@ import {
   variantIsInStock,
 } from '@/utils/variants';
 import {
-  buildAutoBadges,
   buildAutoSpecs,
   extractDescriptionHighlights,
 } from '@/utils/product-description';
@@ -411,7 +408,6 @@ export default function ProductDetailScreen() {
         : [],
     [product, mainCat, isFood, isOutOfStock, stockValue],
   );
-  const autoBadges = useMemo(() => (product ? buildAutoBadges(product) : []), [product]);
   const hasMoreContent = descriptionContentHeight > DESCRIPTION_COLLAPSED_HEIGHT;
 
   // ── Avis ──
@@ -1113,13 +1109,6 @@ export default function ProductDetailScreen() {
         {/* ── Description ── */}
         <View style={[styles.card, styles.cardSpacing, styles.descriptionCard]}>
           <View style={styles.descriptionHeader}>
-            <View style={styles.descriptionHeaderIcon}>
-              {isFood ? (
-                <UtensilsCrossed size={16} color={COLORS.brand} />
-              ) : (
-                <FileText size={16} color={COLORS.brand} />
-              )}
-            </View>
             <View style={styles.descriptionHeaderTexts}>
               <Text style={styles.descriptionTitle}>
                 {isFood ? 'Détails du plat' : 'Description produit'}
@@ -1152,7 +1141,6 @@ export default function ProductDetailScreen() {
                 <ProductDescription
                   text={descriptionText}
                   highlights={autoHighlights}
-                  badges={autoBadges}
                   specs={autoSpecs}
                 />
               </View>
@@ -2371,14 +2359,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginBottom: 14,
-  },
-  descriptionHeaderIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: COLORS.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   descriptionHeaderTexts: {
     flex: 1,

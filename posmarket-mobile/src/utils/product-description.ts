@@ -6,7 +6,7 @@
  */
 
 import type { Product } from '@/types';
-import { formatCurrency, formatNumber, getNormalizedWholesaleTiers } from '@/utils';
+import { formatCurrency, getNormalizedWholesaleTiers } from '@/utils';
 
 export type DescriptionBlock =
   | { type: 'paragraph'; text: string }
@@ -291,52 +291,4 @@ export function buildAutoSpecs(product: Product, ctx: ProductContext): AutoSpec[
   }
 
   return specs;
-}
-
-/** Badges auto (ventes, vues, avis, stock) générés à partir du produit. */
-export interface AutoBadge {
-  id: string;
-  text: string;
-  tone: 'amber' | 'green' | 'red' | 'blue';
-}
-
-export function buildAutoBadges(product: Product): AutoBadge[] {
-  const badges: AutoBadge[] = [];
-
-  const rating = Number(product.rating) || 0;
-  const reviews = Number(product.reviewCount) || 0;
-  const sales = Number(product.salesCount) || 0;
-  const views = Number(product.views) || 0;
-  const stock = product.stock != null ? Number(product.stock) : null;
-
-  if (rating > 0 && reviews > 0) {
-    badges.push({
-      id: 'rating',
-      text: `★ ${rating.toFixed(1)} · ${formatNumber(reviews)} avis`,
-      tone: 'amber',
-    });
-    if (rating >= 4.5 && reviews >= 3) {
-      badges.push({ id: 'top', text: 'Top noté', tone: 'amber' });
-    }
-  }
-
-  if (sales >= 50) {
-    badges.push({ id: 'bestseller', text: 'Meilleure vente', tone: 'green' });
-  } else if (sales >= 5) {
-    badges.push({ id: 'sold', text: `Déjà vendu ${formatNumber(sales)} fois`, tone: 'green' });
-  }
-
-  if (views >= 100) {
-    badges.push({ id: 'views', text: `Populaire · ${formatNumber(views)} vues`, tone: 'blue' });
-  }
-
-  if (stock !== null && stock > 0 && stock <= 5) {
-    badges.push({
-      id: 'lowstock',
-      text: stock === 1 ? 'Plus que 1 disponible' : `Plus que ${formatNumber(stock)} disponibles`,
-      tone: 'red',
-    });
-  }
-
-  return badges.slice(0, 5);
 }
