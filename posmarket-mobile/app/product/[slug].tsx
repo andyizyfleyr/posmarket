@@ -25,6 +25,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -33,13 +34,16 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Clock,
+  FileText,
   MessageCircle,
   Package,
   ShoppingCart,
   Star,
   Store,
   Truck,
+  UtensilsCrossed,
   X,
   Zap,
 } from 'lucide-react-native';
@@ -49,6 +53,7 @@ import { ProductLoadingSkeleton } from '@/components/ProductLoadingSkeleton';
 import { ProductTile } from '@/components/ProductTile';
 import { ProductDescription } from '@/components/RichDescription';
 import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
+import { COLORS } from '@/theme';
 import {
   formatCurrency,
   formatNumber,
@@ -74,6 +79,7 @@ import type { StorefrontProduct, StoreData, Review } from '@/types';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BRAND = '#F56B2A';
+const DESCRIPTION_COLLAPSED_HEIGHT = 176;
 
 /** Carte de couleurs pour l'affichage nuancier (option « couleur »). */
 const COLOR_HEX: Record<string, string> = {
@@ -141,6 +147,7 @@ export default function ProductDetailScreen() {
     minQty: number;
   } | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [descriptionContentHeight, setDescriptionContentHeight] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
   // Affiche le squelette de chargement (comme le `loading.tsx` du web)
@@ -166,6 +173,7 @@ export default function ProductDetailScreen() {
     setAddedWholesaleIdx(null);
     setPendingWholesale(null);
     setIsDescriptionExpanded(false);
+    setDescriptionContentHeight(0);
     setToast(null);
 
     const frame = requestAnimationFrame(() => {
@@ -382,6 +390,10 @@ export default function ProductDetailScreen() {
 
   // ── Description enrichie (auto) ──
   const descriptionText = product?.description || '';
+  const readingMinutes = useMemo(() => {
+    const words = descriptionText.trim().split(/\s+/).filter(Boolean).length;
+    return words === 0 ? 0 : Math.max(1, Math.round(words / 200));
+  }, [descriptionText]);
   const autoHighlights = useMemo(
     () => extractDescriptionHighlights(descriptionText),
     [descriptionText],
@@ -400,11 +412,7 @@ export default function ProductDetailScreen() {
     [product, mainCat, isFood, isOutOfStock, stockValue],
   );
   const autoBadges = useMemo(() => (product ? buildAutoBadges(product) : []), [product]);
-  const hasMoreContent =
-    descriptionText.length > 180 ||
-    autoSpecs.length > 0 ||
-    autoHighlights.length > 0 ||
-    autoBadges.length > 0;
+  const hasMoreContent = descriptionContentHeight > DESCRIPTION_COLLAPSED_HEIGHT;
 
   // ── Avis ──
   const rating = product?.rating || 0;
@@ -1103,38 +1111,83 @@ export default function ProductDetailScreen() {
         </View>
 
         {/* ── Description ── */}
-        <View style={[styles.card, styles.cardSpacing]}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardTick} />
-            <Text style={styles.cardHeaderText}>
-              {isFood ? 'Détails du plat' : 'Description produit'}
-            </Text>
+        <View style={[styles.card, styles.cardSpacing, styles.descriptionCard]}>
+          <View style={styles.descriptionHeader}>
+            <View style={styles.descriptionHeaderIcon}>
+              {isFood ? (
+                <UtensilsCrossed size={16} color={COLORS.brand} />
+              ) : (
+                <FileText size={16} color={COLORS.brand} />
+              )}
+            </View>
+            <View style={styles.descriptionHeaderTexts}>
+              <Text style={styles.descriptionTitle}>
+                {isFood ? 'Détails du plat' : 'Description produit'}
+              </Text>
+              <Text style={styles.descriptionSubtitle}>
+                {isFood ? 'Tout savoir sur ce plat' : "L'essentiel avant d'acheter"}
+              </Text>
+            </View>
+            {readingMinutes > 0 ? (
+              <View style={styles.readingPill}>
+                <Clock size={9} color={COLORS.textFaint} />
+                <Text style={styles.readingText}>{readingMinutes} min</Text>
+              </View>
+            ) : null}
           </View>
-          <View style={isDescriptionExpanded ? null : styles.descriptionCollapsed}>
-            <ProductDescription
-              text={descriptionText}
-              highlights={autoHighlights}
-              badges={autoBadges}
-              specs={autoSpecs}
-            />
+
+          <View style={styles.descriptionBody}>
+            <View style={isDescriptionExpanded ? null : styles.descriptionCollapsed}>
+              <View
+                onLayout={(event) => {
+                  const height = event.nativeEvent.layout.height;
+                  if (
+                    height > 0 &&
+                    Math.abs(height - descriptionContentHeight) > 1
+                  ) {
+                    setDescriptionContentHeight(height);
+                  }
+                }}
+              >
+                <ProductDescription
+                  text={descriptionText}
+                  highlights={autoHighlights}
+                  badges={autoBadges}
+                  specs={autoSpecs}
+                />
+              </View>
+            </View>
+            {!isDescriptionExpanded && hasMoreContent ? (
+              <LinearGradient
+                pointerEvents="none"
+                colors={['rgba(255,255,255,0)', '#FFFFFF']}
+                style={styles.descriptionFade}
+              />
+            ) : null}
           </View>
-          {hasMoreContent && (
+
+          {hasMoreContent ? (
             <Pressable
-              style={styles.readMoreBtn}
+              style={styles.readMorePill}
               onPress={() => setIsDescriptionExpanded((v) => !v)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isDescriptionExpanded }}
+              accessibilityLabel={
+                isDescriptionExpanded
+                  ? 'Réduire la description'
+                  : 'Lire la suite de la description'
+              }
             >
               <Text style={styles.readMoreText}>
                 {isDescriptionExpanded ? 'Réduire' : 'Lire la suite'}
               </Text>
-              <ChevronRight
-                size={10}
-                color={BRAND}
-                style={{
-                  transform: [{ rotate: isDescriptionExpanded ? '-90deg' : '90deg' }],
-                }}
-              />
+              {isDescriptionExpanded ? (
+                <ChevronUp size={12} color={COLORS.brand} strokeWidth={2.5} />
+              ) : (
+                <ChevronDown size={12} color={COLORS.brand} strokeWidth={2.5} />
+              )}
             </Pressable>
-          )}
+          ) : null}
         </View>
 
         {/* ── Avis ── */}
@@ -2309,23 +2362,89 @@ const styles = StyleSheet.create({
     color: '#047857',
   },
   // ── Description ──
-  descriptionCollapsed: {
-    maxHeight: 128,
-    overflow: 'hidden',
+  descriptionCard: {
+    padding: 16,
+    borderRadius: 20,
   },
-  readMoreBtn: {
+  descriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  descriptionHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: COLORS.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  descriptionHeaderTexts: {
+    flex: 1,
+    minWidth: 0,
+  },
+  descriptionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: -0.2,
+  },
+  descriptionSubtitle: {
+    fontSize: 10.5,
+    color: COLORS.textFaint,
+    marginTop: 2,
+  },
+  readingPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginTop: 8,
-    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  readingText: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  descriptionBody: {
+    position: 'relative',
+  },
+  descriptionCollapsed: {
+    maxHeight: DESCRIPTION_COLLAPSED_HEIGHT,
+    overflow: 'hidden',
+  },
+  descriptionFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 64,
+  },
+  readMorePill: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.lineStrong,
+    backgroundColor: COLORS.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   readMoreText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: BRAND,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   // ── Avis ──
   reviewsHeaderRow: {
