@@ -50,6 +50,7 @@ import { useCart } from '@/context/CartContext';
 import { ProductLoadingSkeleton } from '@/components/ProductLoadingSkeleton';
 import { ProductTile } from '@/components/ProductTile';
 import { ProductDescription } from '@/components/RichDescription';
+import { useCartAddToast } from '@/components/CartAddToast';
 import { useScrollToTopOnChange } from '@/hooks/useScrollToTopOnChange';
 import { COLORS } from '@/theme';
 import {
@@ -180,6 +181,10 @@ export default function ProductDetailScreen() {
     setToast(msg);
     setTimeout(() => setToast(null), 2000);
   }, []);
+
+  // Toast « Ajouté au panier » style web, partagé avec l'accueil.
+  // Le toast générique ci-dessus reste pour les erreurs et les rappels.
+  const showCartAddToast = useCartAddToast();
 
   // ── Catalogue : produit + boutique + produits de la même boutique ──
   const { data: catalogData, isLoading: isCatalogLoading, refetch: refetchCatalog } = useQuery({
@@ -501,7 +506,11 @@ export default function ProductDetailScreen() {
       resolvedVariantId,
       selectedOptionCount > 0 ? selectedOptions : undefined,
     );
-    showToast('Produit ajouté au panier !');
+    showCartAddToast({
+      name: product.name,
+      price: basePrice,
+      image: images[0] ?? product.image,
+    });
   }, [
     product,
     isBuyDisabled,
@@ -510,7 +519,9 @@ export default function ProductDetailScreen() {
     resolvedVariantId,
     selectedOptionCount,
     selectedOptions,
-    showToast,
+    showCartAddToast,
+    basePrice,
+    images,
   ]);
 
   const closeOptionsSheet = useCallback(() => {
@@ -537,11 +548,11 @@ export default function ProductDetailScreen() {
     );
     setIsOptionsSheetOpen(false);
     setPendingWholesale(null);
-    showToast(
-      quantity > 1
-        ? `${quantity} produits ajoutés au panier !`
-        : 'Produit ajouté au panier !',
-    );
+    showCartAddToast({
+      name: product.name,
+      price: basePrice,
+      image: images[0] ?? product.image,
+    });
   }, [
     product,
     isBuyDisabled,
@@ -553,6 +564,9 @@ export default function ProductDetailScreen() {
     selectedOptionCount,
     selectedOptions,
     showToast,
+    showCartAddToast,
+    basePrice,
+    images,
   ]);
 
   const handleWholesaleAdd = useCallback(
@@ -582,6 +596,11 @@ export default function ProductDetailScreen() {
         resolvedVariantId,
         selectedOptionCount > 0 ? selectedOptions : undefined,
       );
+      showCartAddToast({
+        name: product.name,
+        price: basePrice,
+        image: images[0] ?? product.image,
+      });
       setAddedWholesaleIdx(idx);
       setTimeout(() => {
         setAddedWholesaleIdx((prev) => (prev === idx ? null : prev));
@@ -599,6 +618,9 @@ export default function ProductDetailScreen() {
       selectedOptionCount,
       selectedOptions,
       showToast,
+      showCartAddToast,
+      basePrice,
+      images,
     ],
   );
 
@@ -869,7 +891,9 @@ export default function ProductDetailScreen() {
               {realCategory ? (
                 <Pressable
                   style={styles.categoryLink}
-                  onPress={() => router.push('/' as never)}
+                  onPress={() =>
+                    router.push(`/?cat=${encodeURIComponent(mainCat)}` as never)
+                  }
                   accessibilityRole="button"
                   accessibilityLabel={`Voir la catégorie ${realCategory}`}
                 >
@@ -925,25 +949,37 @@ export default function ProductDetailScreen() {
             ) : null}
           </Pressable>
 
-          {/* Prix compact */}
-          <View style={styles.priceRow}>
-            <View style={styles.priceLeft}>
+          {/* Prix (bloc web) */}
+          <View style={styles.priceBlock}>
+            <View style={styles.priceBlockLeft}>
               <Text style={styles.priceLabel}>
-                {hasOptions && !allSelected ? 'Dès' : 'Prix'}
+                {hasOptions && !allSelected
+                  ? 'À partir de'
+                  : isFood
+                    ? 'Prix unitaire'
+                    : 'Prix'}
               </Text>
-              <Text style={styles.priceValue}>{formatCurrency(basePrice)}</Text>
-              {product.unit && !hasOptions ? (
-                <Text style={styles.priceUnit}>/{product.unit}</Text>
-              ) : null}
-              {product.originalPrice && product.originalPrice > basePrice ? (
-                <Text style={styles.priceOriginal}>
-                  {formatCurrency(product.originalPrice)}
-                </Text>
-              ) : null}
+              <View style={styles.priceValueRow}>
+                <Text style={styles.priceValue}>{formatCurrency(basePrice)}</Text>
+                {product.unit && !hasOptions ? (
+                  <Text style={styles.priceUnit}>/ {product.unit}</Text>
+                ) : null}
+                {product.originalPrice && product.originalPrice > basePrice ? (
+                  <Text style={styles.priceOriginal}>
+                    {formatCurrency(product.originalPrice)}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-            {discountPct > 0 ? (
-              <View style={styles.priceDiscountBadge}>
-                <Text style={styles.priceDiscountBadgeText}>-{discountPct}%</Text>
+            {discountPct > 0 && product.originalPrice ? (
+              <View style={styles.priceDiscountWrap}>
+                <View style={styles.priceDiscountBadge}>
+                  <Zap size={10} color="#047857" />
+                  <Text style={styles.priceDiscountBadgeText}>-{discountPct}%</Text>
+                </View>
+                <Text style={styles.priceEcoText}>
+                  Éco. {formatCurrency(product.originalPrice - basePrice)}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -1172,17 +1208,6 @@ export default function ProductDetailScreen() {
             <Text style={[styles.cardHeaderText, styles.cardHeaderTextSm]}>
               Avis {isFood ? 'sur le repas' : 'sur le produit'}
             </Text>
-            {reviews.length > 2 ? (
-              <Pressable
-                style={styles.reviewsHeaderLink}
-                onPress={() => setShowAllReviews(true)}
-                accessibilityRole="button"
-                accessibilityLabel={`Voir les ${reviews.length} avis`}
-              >
-                <Text style={styles.reviewsHeaderLinkText}>Voir tout</Text>
-                <ChevronRight size={11} color={BRAND} />
-              </Pressable>
-            ) : null}
           </View>
 
           <View style={styles.reviewSummary}>
@@ -1202,7 +1227,7 @@ export default function ProductDetailScreen() {
                 ))}
               </View>
               <Text style={styles.reviewSummaryCount}>
-                {formatNumber(reviewTotal)} avis
+                {formatNumber(reviewTotal)} {isFood ? 'avis clients' : 'notes et avis'}
               </Text>
             </View>
 
@@ -1235,8 +1260,21 @@ export default function ProductDetailScreen() {
               </Text>
             </View>
           ) : (
-            reviews.slice(0, 2).map((r, idx) => renderReview(r, idx, true))
+            reviews.slice(0, 3).map((r, idx) => renderReview(r, idx, true))
           )}
+          {reviews.length > 3 ? (
+            <Pressable
+              style={styles.moreReviewsBtn}
+              onPress={() => setShowAllReviews(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Voir les ${reviews.length - 3} autres avis`}
+            >
+              <Text style={styles.moreReviewsBtnText}>
+                Voir les {reviews.length - 3} autres avis
+              </Text>
+              <ChevronDown size={11} color="#9ca3af" />
+            </Pressable>
+          ) : null}
         </View>
 
         {/* ── Dans la même boutique ── */}
@@ -1992,57 +2030,76 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     backgroundColor: '#d1d5db',
   },
-  // ── Prix ──
-  priceRow: {
+  // ── Prix (bloc web) ──
+  priceBlock: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#f1f5f9',
-    paddingTop: 8,
+    gap: 10,
+    backgroundColor: 'rgba(249,250,251,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(229,231,235,0.7)',
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 6,
   },
-  priceLeft: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    flexWrap: 'wrap',
-    gap: 4,
-    flexShrink: 1,
+  priceBlockLeft: {
+    flex: 1,
   },
   priceLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
     color: '#9ca3af',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    marginBottom: 3,
+  },
+  priceValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   priceValue: {
-    fontSize: 21,
+    fontSize: 22,
+    lineHeight: 27,
     fontWeight: '700',
     color: '#030712',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   priceUnit: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
     color: '#6b7280',
   },
   priceOriginal: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#9ca3af',
     textDecorationLine: 'line-through',
   },
+  priceDiscountWrap: {
+    alignItems: 'flex-end',
+    gap: 3,
+  },
   priceDiscountBadge: {
-    backgroundColor: '#fef2f2',
-    borderRadius: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(209,250,229,0.7)',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   priceDiscountBadgeText: {
-    fontSize: 9.5,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#b91c1c',
+    color: '#047857',
+  },
+  priceEcoText: {
+    fontSize: 10,
+    color: '#6b7280',
   },
   // ── Stock ──
   stockRow: {
@@ -2409,20 +2466,6 @@ const styles = StyleSheet.create({
   reviewsHeaderRow: {
     justifyContent: 'space-between',
   },
-  reviewsHeaderLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 1,
-    paddingVertical: 2,
-    paddingLeft: 8,
-  },
-  reviewsHeaderLinkText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: BRAND,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
   reviewSummary: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2457,8 +2500,30 @@ const styles = StyleSheet.create({
   },
   reviewSummaryCount: {
     fontSize: 9,
+    fontWeight: '600',
     color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginTop: 3,
+  },
+  moreReviewsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 10,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    borderRadius: 12,
+  },
+  moreReviewsBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#111827',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   distribution: {
     flex: 1,

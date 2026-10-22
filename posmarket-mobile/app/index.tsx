@@ -36,7 +36,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -698,7 +698,14 @@ export default function HomeScreen() {
   const { user, openAuth } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const { cat } = useLocalSearchParams<{ cat?: string }>();
+  // Lien « catégorie » de la fiche produit : ?cat=<catégorie> pré-filtre la
+  // grille sur cette catégorie (comme le clic catégorie du web).
+  const [selectedCategory, setSelectedCategory] = useState(cat ?? 'all');
+  useEffect(() => {
+    if (cat && cat !== selectedCategory) setSelectedCategory(cat);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat]);
   const [refreshing, setRefreshing] = useState(false);
   // Feuille « Voir tout » : clé de section (verticale + catégorie).
   const [sheetSectionKey, setSheetSectionKey] = useState<string | null>(null);

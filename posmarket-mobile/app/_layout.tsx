@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CartProvider } from '@/context/CartContext';
 import { PromoProvider } from '@/context/PromoContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { CartAddToastProvider } from '@/components/CartAddToast';
 import { ToastProvider } from '@/components/ToastProvider';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
@@ -37,60 +38,62 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <AuthProvider>
-          <CartProvider>
-            <PromoProvider>
-              <View style={styles.root}>
-                <StatusBar style="dark" />
-                <OfflineBanner />
-                <View style={styles.content}>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="index" />
-                    <Stack.Screen name="seller/*" />
-                    <Stack.Screen
-                      name="cart"
-                      options={{
-                        headerShown: false,
-                        animation: 'slide_from_right',
-                      }}
-                    />
-                    <Stack.Screen
-                      name="account"
-                      options={{
-                        headerShown: false,
-                        animation: 'slide_from_right',
-                      }}
-                    />
-                    <Stack.Screen
-                      name="product/[slug]"
-                      options={{
-                        headerShown: false,
-                        animation: 'slide_from_right',
-                      }}
-                    />
-                    <Stack.Screen
-                      name="store/[slug]"
-                      options={{
-                        headerShown: false,
-                        animation: 'slide_from_right',
-                      }}
-                    />
-                    <Stack.Screen
-                      name="checkout"
-                      options={{
-                        headerShown: false,
-                        animation: 'slide_from_bottom',
-                      }}
-                    />
-                  </Stack>
+        <CartAddToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              <PromoProvider>
+                <View style={styles.root}>
+                  <StatusBar style="dark" />
+                  <OfflineBanner />
+                  <View style={styles.content}>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="index" />
+                      <Stack.Screen name="seller/*" />
+                      <Stack.Screen
+                        name="cart"
+                        options={{
+                          headerShown: false,
+                          animation: 'slide_from_right',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="account"
+                        options={{
+                          headerShown: false,
+                          animation: 'slide_from_right',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="product/[slug]"
+                        options={{
+                          headerShown: false,
+                          animation: 'slide_from_right',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="store/[slug]"
+                        options={{
+                          headerShown: false,
+                          animation: 'slide_from_right',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="checkout"
+                        options={{
+                          headerShown: false,
+                          animation: 'slide_from_bottom',
+                        }}
+                      />
+                    </Stack>
+                  </View>
+                  {isSplashVisible && (
+                    <AnimatedSplash onFinish={handleSplashFinish} />
+                  )}
                 </View>
-                {isSplashVisible && (
-                  <AnimatedSplash onFinish={handleSplashFinish} />
-                )}
-              </View>
-            </PromoProvider>
-          </CartProvider>
-        </AuthProvider>
+              </PromoProvider>
+            </CartProvider>
+          </AuthProvider>
+        </CartAddToastProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

@@ -28,6 +28,7 @@ import {
 import { COLORS } from '@/theme';
 import type { StorefrontProduct } from '@/types';
 import { useCartActions } from '@/context/CartContext';
+import { useCartAddToast } from '@/components/CartAddToast';
 
 interface ProductTileProps {
   product: StorefrontProduct;
@@ -85,6 +86,7 @@ function ProductTileComponent({
   compact = false,
 }: ProductTileProps) {
   const { addToCart } = useCartActions();
+  const showCartAddToast = useCartAddToast();
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,6 +106,13 @@ function ProductTileComponent({
   const hasOptions =
     (product.options?.length ?? 0) > 0 || (product.variants?.length ?? 0) > 0;
 
+  const discount = productDiscountPercent(product);
+  const priceRange = variantPriceRange(product);
+  const displayPrice = priceRange?.min ?? (Number(product.price) || 0);
+  const pricePrefix =
+    priceRange && priceRange.max > priceRange.min ? 'dès ' : '';
+  const priceLabel = `${pricePrefix}${formatCurrency(displayPrice)}`;
+
   const handlePress = useCallback(() => {
     onPress?.(product);
   }, [onPress, product]);
@@ -111,17 +120,15 @@ function ProductTileComponent({
   const handleAdd = useCallback(() => {
     if (isOutOfStock || hasOptions) return;
     addToCart(product, 1);
+    showCartAddToast({
+      name: product.name,
+      price: displayPrice,
+      image: product.image,
+    });
     setAdded(true);
     if (addedTimer.current) clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setAdded(false), 900);
-  }, [addToCart, product, isOutOfStock, hasOptions]);
-
-  const discount = productDiscountPercent(product);
-  const priceRange = variantPriceRange(product);
-  const displayPrice = priceRange?.min ?? (Number(product.price) || 0);
-  const pricePrefix =
-    priceRange && priceRange.max > priceRange.min ? 'dès ' : '';
-  const priceLabel = `${pricePrefix}${formatCurrency(displayPrice)}`;
+  }, [addToCart, product, isOutOfStock, hasOptions, showCartAddToast, displayPrice]);
 
   const salesCount = product.salesCount ?? 0;
   const rating = product.rating ?? 0;

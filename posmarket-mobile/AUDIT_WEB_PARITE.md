@@ -39,11 +39,11 @@
 3. **Barre « Voir mon panier • total »** sur la home (bandeau blanc + pilule orange 48 px + badge sombre).
 4. Boutons **retour** ajoutés sur Panier et Compte (écrans poussés).
 5. Recherche compacte « Je cherche... » (38 px, radius 12, texte 11).
+6. **Toast « Ajouté au panier »** style web (22/10/2026) : carte blanche en haut (vignette 48, « AJOUTÉ AU PANIER » vert uppercase, nom 1 ligne, prix, X, barre de progression 4 s). Composant partagé `src/components/CartAddToast.tsx` (provider au root) — déclenché par la fiche produit (ajout direct, feuille options, accordéon gros) et par les tuiles d'accueil `ProductTile` (en plus du check vert 900 ms).
 
 ### À faire
 1. Recherche : **overlay plein écran** (§6) + repli au scroll.
-2. **Toast d'ajout au panier** (style web) partagé.
-3. Vérifier la barre panier au clavier / safe-area basse.
+2. Vérifier la barre panier au clavier / safe-area basse.
 
 ---
 
@@ -66,7 +66,7 @@
 - Sections ✅ sauf « Voir tout » qui **filtre la page** (le web ouvre une feuille), et grille sans le badge « -X% » web exact (voir §7 ProductCard).
 - Recherche : résultats **en ligne dans la home** (« Boutiques trouvées (N) » + « Résultats produits ») — proche du contenu web mais sans overlay/récentes/populaires/suggestions.
 - Footer ✅ (logo 26 px au lieu de 32, tagline 13 px au lieu de 14).
-- Manquants : barre panier fixe, toast d'ajout, feuille « Voir tout ».
+- Barre panier fixe, toast d'ajout et feuille « Voir tout » : **en place** (voir Fait §0).
 
 ---
 
@@ -99,6 +99,12 @@ Top bar avec **bouton partage (inventé)** ; galerie 320 px (pas pleine largeur,
 ### Correctifs
 - Supprimer : partage, quantité, blocs gros/variantes actuels, badges confiance actuels, total dans la barre, toast orange.
 - Ajouter/refaire : topbar boutique + trait, galerie bord à bord + badges + compteur, vendeur avec logo + catégorie, preuve sociale complète, bloc prix conforme, stock+délais, accordéon gros conforme, description enrichie + « Lire la suite », section avis complète + feuille, similaires 8, feuille options, barre CTA conforme (labels dynamiques + « Voir mon panier »), toast web.
+
+### Fait ✅ (22/10/2026)
+- **Lien catégorie** (carte vendeur, item 3) → accueil filtré : `router.push('/?cat={catégorie}')` ; l'accueil lit `cat` (`useLocalSearchParams`, init + synchro `useEffect` gardée sur l'état, pattern compte) et pré-filtre la grille sur la vue « catHeader » existante (bouton retour = tout).
+- **Bloc prix** (item 3) = gabarit web : bloc gris radius 12 (fond `rgba(249,250,251,0.9)`, bordure, padding 14), label « PRIX » / « PRIX UNITAIRE » (food) / « À PARTIR DE » (options incomplètes) 10 px uppercase, prix **22 px** bold noir + « / {unité} » 12 px + prix barré 12 px ; colonne droite : badge vert « ⚡ -X% » + « Éco. {diff} ». Tranche validée : prix 22 px (le web fait 28) pour ne pas gonfler la carte validée.
+- **Section avis** (item 5) : récap « N notes et avis » (shopping) / « N avis clients » (food) 9 px uppercase ; **3 avis** en carte puis bouton pleine largeur « Voir les N autres avis » (chevron) ouvrant la **feuille d'avis** existante (`setShowAllReviews`) ; lien « Voir tout » retiré de l'en-tête. (Décision audit : la feuille remplace l'expansion inline du web.)
+- **Toast « Ajouté au panier »** web partagé (voir §0 Fait n°6) : déclenché par l'ajout direct, la feuille options et l'accordéon gros ; toast générique conservé uniquement pour les erreurs (options manquantes, stock).
 
 ---
 
