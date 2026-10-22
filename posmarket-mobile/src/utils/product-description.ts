@@ -5,9 +5,6 @@
  * MAJUSCULES) et des lignes "Libellé : valeur".
  */
 
-import type { Product } from '@/types';
-import { formatCurrency, getNormalizedWholesaleTiers } from '@/utils';
-
 export type DescriptionBlock =
   | { type: 'paragraph'; text: string }
   | { type: 'heading'; text: string }
@@ -220,75 +217,4 @@ export function extractDescriptionHighlights(raw?: string | null, max = 6): stri
   }
 
   return out.slice(0, max);
-}
-
-/** Grille de caractéristiques auto-remplie à partir des données du produit. */
-export interface AutoSpec {
-  label: string;
-  value: string;
-  tone?: 'success' | 'danger';
-}
-
-export interface ProductContext {
-  mainCategory?: string;
-  storeName?: string;
-  isFood: boolean;
-  isOutOfStock: boolean;
-  stock: number | null;
-}
-
-export function buildAutoSpecs(product: Product, ctx: ProductContext): AutoSpec[] {
-  const specs: AutoSpec[] = [];
-
-  const cat = ctx.mainCategory || product.category;
-  if (cat) specs.push({ label: 'Catégorie', value: cat });
-  if (ctx.storeName) specs.push({ label: 'Boutique', value: ctx.storeName });
-
-  if (ctx.stock != null) {
-    if (ctx.isOutOfStock) {
-      specs.push({ label: 'Disponibilité', value: 'Rupture de stock', tone: 'danger' });
-    } else {
-      const label =
-        ctx.stock === 1 ? '1 disponible' : `${ctx.stock.toLocaleString('fr-FR')} disponibles`;
-      specs.push({ label: 'Disponibilité', value: label, tone: 'success' });
-    }
-  } else {
-    specs.push({ label: 'Disponibilité', value: 'En stock', tone: 'success' });
-  }
-
-  if (product.sku) specs.push({ label: 'Référence', value: product.sku });
-  if (product.unit) specs.push({ label: 'Format', value: product.unit });
-
-  if (!ctx.isFood && product.deliveryTime) {
-    specs.push({ label: 'Délai de livraison', value: product.deliveryTime });
-  }
-  const prepTime = product.preparationTime || product.deliveryTime;
-  if (ctx.isFood && prepTime) {
-    specs.push({ label: 'Préparation estimée', value: prepTime });
-  }
-
-  const options = Array.isArray(product.options) ? product.options : [];
-  if (options.length) {
-    specs.push({ label: 'Options', value: options.map((o) => o.name).join(' · ') });
-  }
-  const variants = Array.isArray(product.variants) ? product.variants : [];
-  if (variants.length) {
-    specs.push({
-      label: 'Variantes',
-      value: `${variants.length} ${variants.length > 1 ? 'variantes' : 'variante'}`,
-    });
-  }
-
-  if (!ctx.isFood) {
-    const tiers = getNormalizedWholesaleTiers(product);
-    const first = tiers[0];
-    if (first && first.minQty > 0) {
-      specs.push({
-        label: 'Prix de gros',
-        value: `Dès ${first.minQty.toLocaleString('fr-FR')} unités · ${formatCurrency(first.unitPrice)}`,
-      });
-    }
-  }
-
-  return specs;
 }

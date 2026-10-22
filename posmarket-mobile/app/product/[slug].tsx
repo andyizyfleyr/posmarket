@@ -67,10 +67,7 @@ import {
   totalVariantStock,
   variantIsInStock,
 } from '@/utils/variants';
-import {
-  buildAutoSpecs,
-  extractDescriptionHighlights,
-} from '@/utils/product-description';
+import { extractDescriptionHighlights } from '@/utils/product-description';
 import type { StorefrontProduct, StoreData, Review } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -394,19 +391,6 @@ export default function ProductDetailScreen() {
   const autoHighlights = useMemo(
     () => extractDescriptionHighlights(descriptionText),
     [descriptionText],
-  );
-  const autoSpecs = useMemo(
-    () =>
-      product
-        ? buildAutoSpecs(product, {
-            mainCategory: mainCat,
-            storeName: product.storeName,
-            isFood,
-            isOutOfStock,
-            stock: stockValue,
-          })
-        : [],
-    [product, mainCat, isFood, isOutOfStock, stockValue],
   );
   const hasMoreContent = descriptionContentHeight > DESCRIPTION_COLLAPSED_HEIGHT;
 
@@ -1119,7 +1103,6 @@ export default function ProductDetailScreen() {
             </View>
             {readingMinutes > 0 ? (
               <View style={styles.readingPill}>
-                <Clock size={9} color={COLORS.textFaint} />
                 <Text style={styles.readingText}>{readingMinutes} min</Text>
               </View>
             ) : null}
@@ -1138,11 +1121,7 @@ export default function ProductDetailScreen() {
                   }
                 }}
               >
-                <ProductDescription
-                  text={descriptionText}
-                  highlights={autoHighlights}
-                  specs={autoSpecs}
-                />
+                <ProductDescription text={descriptionText} highlights={autoHighlights} />
               </View>
             </View>
             {!isDescriptionExpanded && hasMoreContent ? (

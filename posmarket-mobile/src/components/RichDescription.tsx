@@ -2,30 +2,14 @@
  * Rendu riche & automatique de la description produit — refonte mobile.
  *
  * Nouvelle hiérarchie : points clés en tuiles, description éditoriale (lead +
- * sections + listes) et caractéristiques présentées en liste lisible (icône /
- * libellé / valeur) plutôt qu'en grille de petites cases.
+ * sections + listes).
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import {
-  Check,
-  Clock,
-  Hash,
-  Layers,
-  Package,
-  Ruler,
-  SlidersHorizontal,
-  Store as StoreIcon,
-  Tag,
-  Truck,
-  Zap,
-} from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import { COLORS } from '@/theme';
-import {
-  parseDescription,
-  type AutoSpec,
-} from '@/utils/product-description';
+import { parseDescription } from '@/utils/product-description';
 
 const LINE = {
   fontSize: 12.5,
@@ -40,7 +24,7 @@ export function RichDescription({ text }: { text: string }) {
     return text ? <Text style={styles.lead}>{text}</Text> : null;
   }
 
-  let leadUsed = false;
+  const firstParagraphIndex = blocks.findIndex((b) => b.type === 'paragraph');
 
   return (
     <View style={styles.blocks}>
@@ -54,8 +38,7 @@ export function RichDescription({ text }: { text: string }) {
           );
         }
         if (b.type === 'paragraph') {
-          const isLead = !leadUsed;
-          leadUsed = true;
+          const isLead = i === firstParagraphIndex;
           return (
             <Text key={i} style={isLead ? styles.lead : styles.paragraph}>
               {b.text}
@@ -122,86 +105,18 @@ export function DescriptionHighlights({ items }: { items: string[] }) {
   );
 }
 
-function SpecIcon({ label }: { label: string }) {
-  const common = { size: 12, color: COLORS.textMuted } as const;
-  switch (label) {
-    case 'Catégorie':
-      return <Tag {...common} />;
-    case 'Boutique':
-      return <StoreIcon {...common} />;
-    case 'Disponibilité':
-      return <Package {...common} />;
-    case 'Référence':
-      return <Hash {...common} />;
-    case 'Format':
-      return <Ruler {...common} />;
-    case 'Délai de livraison':
-      return <Truck {...common} />;
-    case 'Préparation estimée':
-      return <Clock {...common} />;
-    case 'Options':
-      return <SlidersHorizontal {...common} />;
-    case 'Variantes':
-      return <Layers {...common} />;
-    case 'Prix de gros':
-      return <Zap {...common} />;
-    default:
-      return <Package {...common} />;
-  }
-}
-
-const SPEC_TONES: Record<string, string> = {
-  success: '#047857',
-  danger: '#DC2626',
-};
-
-export function DescriptionSpecs({ specs }: { specs: AutoSpec[] }) {
-  if (!specs || specs.length === 0) return null;
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionLabel}>Caractéristiques</Text>
-        <View style={styles.sectionLine} />
-      </View>
-      <View style={styles.specsPanel}>
-        {specs.map((s, i) => (
-          <View
-            key={`${s.label}-${i}`}
-            style={[styles.specRow, i > 0 ? styles.specRowBorder : null]}
-          >
-            <View style={styles.specIcon}>
-              <SpecIcon label={s.label} />
-            </View>
-            <Text style={styles.specLabel}>{s.label}</Text>
-            <View style={styles.specSpacer} />
-            <Text
-              style={[styles.specValue, s.tone ? { color: SPEC_TONES[s.tone] } : null]}
-              numberOfLines={2}
-            >
-              {s.value}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/** Bloc complet : points forts, description et caractéristiques. */
+/** Bloc complet : points forts et description. */
 export function ProductDescription({
   text,
   highlights,
-  specs,
 }: {
   text: string;
   highlights: string[];
-  specs: AutoSpec[];
 }) {
   return (
     <View style={styles.root}>
       <DescriptionHighlights items={highlights} />
       <RichDescription text={text} />
-      <DescriptionSpecs specs={specs} />
     </View>
   );
 }
@@ -337,43 +252,4 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
-  specsPanel: {
-    backgroundColor: COLORS.surfaceMuted,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-  },
-  specRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 9,
-  },
-  specRowBorder: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.lineStrong,
-  },
-  specIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    backgroundColor: COLORS.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLORS.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  specLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    flexShrink: 0,
-  },
-  specSpacer: { flex: 1 },
-  specValue: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: COLORS.text,
-    maxWidth: '55%',
-    textAlign: 'right',
-  },
-});
+  });
