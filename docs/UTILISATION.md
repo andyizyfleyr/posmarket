@@ -83,6 +83,7 @@ Tous les prix sont en **FCFA (XOF)**.
 | Factures | Brouillon → payée. Impression PDF ou ticket 80mm | `/invoices` |
 | Paramètres | Logo, thème, codes promo, staff, multi-boutiques | `/settings` |
 | Rapports | CA et revenus par période (Pro et Entreprise) | `/reports` |
+| Images produits | Toutes les photos du catalogue (ou de la sélection) dans une archive ZIP | `/inventory` → « Images » |
 | Abonnement | Changer de plan ou de durée, effet immédiat | `/subscription` |
 
 ---
@@ -92,6 +93,7 @@ Tous les prix sont en **FCFA (XOF)**.
 - **Comptes séparés** — Acheteur et vendeur sont deux espaces distincts
 - **Notifications push** — Vendeurs : commandes, stock bas, avis. Acheteurs : promos
 - **Photos de bonne qualité** — Compression automatique (WebP), même sur 3G
+- **Sauvegarde des photos** — Bouton « Images » de l'inventaire : télécharge toutes les photos produits dans un seul fichier ZIP (un dossier par produit + un manifeste CSV), pour les sauvegarder ou changer d'outil
 - **Application sur téléphone** — Installez PosMarket comme une PWA. Panier conservé hors ligne
 - **Paiement protégé** — Espèces à la livraison ou carte bancaire sécurisée
 - **Bien vendre = bien décrire** — Produits bien décrits remontent mieux dans la recherche

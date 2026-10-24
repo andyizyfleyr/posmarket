@@ -218,6 +218,13 @@ export default function VendeurPage() {
           <strong>Supprimer :</strong> icône poubelle, ou suppression en bloc avec la case à
           cocher.
         </p>
+        <p className="text-xs font-normal text-gray-700">
+          <strong>Télécharger toutes les photos :</strong> cliquez sur « Images » dans la barre
+          d&apos;outils. Une seule archive ZIP est préparée avec un dossier par produit (image
+          principale, galerie et photos de variantes) et un fichier{" "}
+          <strong>manifeste-images.csv</strong>. Cochez des produits pour n&apos;exporter que
+          la sélection.
+        </p>
         <Info>
           Limite selon votre plan : 50 produits (Starter), 500 (Pro), illimité (Entreprise).
         </Info>

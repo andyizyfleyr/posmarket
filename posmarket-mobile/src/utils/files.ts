@@ -47,3 +47,61 @@ export async function pickTextFile(options?: {
   });
   return { name: asset.name || 'fichier', uri: asset.uri, content };
 }
+
+/**
+ * Télécharge un fichier binaire dans le cache puis ouvre la feuille de partage.
+ * Renvoie le statut HTTP en cas d'échec, avec le corps de la réponse (les
+ * routes API renvoient un JSON `{ success, error }` explicite).
+ */
+export async function downloadAndShareFile(
+  url: string,
+  filename: string,
+  headers: Record<string, string>,
+  options?: {
+    mimeType?: string;
+    dialogTitle?: string;
+    /**
+     * Type MIME attendu. Les routes vendeur répondent 200 avec un JSON
+     * `{ success: false, error: 'Unauthorized' }` quand la session a expiré :
+     * sans ce contrôle, l'application partagerait ce JSON comme une archive.
+     */
+    expectedMimeType?: string;
+  },
+): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
+  const uri = `${FileSystem.cacheDirectory}${filename}`;
+
+  const result = await FileSystem.downloadAsync(url, uri, { headers });
+  if (result.status < 200 || result.status >= 300) {
+    const body = await FileSystem.readAsStringAsync(result.uri).catch(() => '');
+    await FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => undefined);
+    return { ok: false, status: result.status, body };
+  }
+
+  const responseType = (
+    result.mimeType ||
+    result.headers?.['content-type'] ||
+    result.headers?.['Content-Type'] ||
+    ''
+  ).toLowerCase();
+  if (options?.expectedMimeType && !responseType.includes(options.expectedMimeType)) {
+    const body = await FileSystem.readAsStringAsync(result.uri).catch(() => '');
+    await FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => undefined);
+    return { ok: false, status: result.status, body };
+  }
+
+  const info = await FileSystem.getInfoAsync(result.uri);
+  if (!info.exists || (info.size ?? 0) === 0) {
+    await FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => undefined);
+    return { ok: false, status: result.status, body: '' };
+  }
+
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(result.uri, {
+      mimeType: options?.mimeType ?? 'application/octet-stream',
+      dialogTitle: options?.dialogTitle,
+      UTI: options?.mimeType === 'application/zip' ? 'public.zip-archive' : undefined,
+    });
+  }
+
+  return { ok: true };
+}

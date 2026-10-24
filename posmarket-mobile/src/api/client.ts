@@ -83,6 +83,32 @@ export async function apiFetch<T>(
   }
 }
 
+/** URL absolue d'une route API — pour les téléchargements binaires. */
+export function apiFileUrl(path: string): string {
+  return `${API_BASE_URL}${path}`;
+}
+
+/**
+ * En-têtes d'un téléchargement binaire : session (cookie + Bearer), identité
+ * mobile (le proxy bloque l'UA React Native) et cookies de boutique courante.
+ */
+export async function apiDownloadHeaders(
+  extraCookies: string[] = [],
+): Promise<Record<string, string>> {
+  const [cookie, token] = await Promise.all([
+    sessionCookieHeader().catch(() => null),
+    sessionBearerToken().catch(() => null),
+  ]);
+  const cookieHeader = [cookie, ...extraCookies].filter(Boolean).join('; ');
+  return {
+    Accept: 'application/zip, application/json',
+    'X-PosMarket-Client': 'mobile-app',
+    'User-Agent': 'PosMarket-Mobile/1.0 (Android)',
+    ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 /**
  * Une réponse « Unauthorized » arrivée après un changement de session (connexion
  * ou déconnexion survenue pendant la requête) est obsolète : elle ne doit ni

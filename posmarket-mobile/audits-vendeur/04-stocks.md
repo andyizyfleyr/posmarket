@@ -28,11 +28,12 @@
    - bouton « X » (icône 14, padding 4, texte `slate-400`) : vide la sélection (désélectionner tout) ;
    - séparateur vertical blanc 10 % ;
    - bouton « **Exporter (N)** » : icône `Download` 14 orange, fond `white/10`, radius 12, padding 12/6, `text-xs` gras ;
+   - bouton « **Images (N)** » (web) / icône `Image` (mobile) : télécharge les photos des produits cochés (même style) ;
    - bouton « **Transférer (N)** » : icône `ArrowRightLeft` 14 bleue, même style ;
    - bouton « **Supprimer (N)** » : icône `Trash2` 14, fond `red-500/20`, texte `red-300`, bordure `red-500/30`, même dimensions.
 3. **En-tête de page** (padding 12 px) : titre « **Inventaire** » (`text-xl` très gras, gris 900) suivi d'un badge de flux : « **Flux Shop** » (fond `orange-100`, texte orange brand) ou « **Flux Resto** » (fond `amber-100`, texte `amber-800`) — `text-[10px]` très gras majuscules, radius 8, padding 10/2. Le compteur « • N référence(s) » (`hidden sm:inline`) et le sous-titre « Gérez vos produits, vos stocks et vos transferts inter-boutiques. » (`hidden sm:block`) sont **EXCLUS** (desktop).
 4. **Groupe d'actions** (sous le titre, en `flex-wrap`, justifié entre les bords) :
-   - carte blanche bordure `gray-200/80`, padding 4, radius 16, ombre légère, contenant 2 ou 3 boutons `text-xs` gras padding 12/6 avec icône 14 : « **Exporter** » (`Download`, gris), « **Importer** » (`Upload`, gris), « **Transférer** » (`ArrowRightLeft`, bleu : texte `blue-700`, icône `blue-600`). Séparateurs : traits de 1×16 px `gray-200`. « Exporter » toujours visible ; « Importer » et « Transférer » seulement si `canManageInventory`.
+   - carte blanche bordure `gray-200/80`, padding 4, radius 16, ombre légère, contenant 3 ou 4 boutons `text-xs` gras padding 12/6 avec icône 14 : « **Exporter** » (`Download`, gris), « **Images** » (`Image`, gris), « **Importer** » (`Upload`, gris), « **Transférer** » (`ArrowRightLeft`, bleu : texte `blue-700`, icône `blue-600`). Séparateurs : traits de 1×16 px `gray-200`. En mobile, la rangée d'outils passe sur deux lignes (`flexWrap`, `flexBasis: 47 %`). « Exporter » et « Images » toujours visibles ; « Importer » et « Transférer » seulement si `canManageInventory`.
    - deux boutons pleins, visibles si `canManageInventory` : « **+ POS** » (fond `blue-600`, texte blanc, radius 16, padding 14/8, `text-xs` gras, icône `Monitor` 15, ombre bleue) et « **+ Store & POS** » (fond orange brand, icône `ShoppingBag` 15, ombre orange).
 5. **Conteneur de liste** : carte blanche, bordure `gray-100`, radius 24, ombre légère, en colonne (occupe le reste de la hauteur, la liste défile en interne).
 6. **Onglets de flux (verticaux)** — rangée de 2 boutons, défilement horizontal si besoin, `gap-2`, sans barre de scroll. Libellés exacts : « **Tous les flux** » (icône `Package` 16) puis, selon la boutique, « **Shop** » (icône `ShoppingBag` 16, couleur orange) ou « **Resto** » (icône `Zap` 16, couleur jaune). Style : `px-4 py-2.5` (16/10), radius 16, `text-xs` gras, bordure 2 px. Actif = fond blanc + bordure colorée (orange 500 pour Shop, jaune 500 pour Resto, gris 500 pour « Tous les flux ») + texte coloré + ombre légère ; inactif = bordure transparente, texte `gray-400`. Valeur par défaut : « Tous les flux ».
@@ -100,6 +101,16 @@
   - Note encadrée grise (icône `Sparkles` 18 orange) : « **Les fichiers exportés peuvent être directement réimportés dans n'importe laquelle de vos boutiques.** »
 - Pied gris : « **Annuler** » (texte gris gras) ; bouton principal orange pleine largeur : « **Télécharger {N} produit(s) (JSON|CSV)** » (icône `Download` 16), état chargement « **Génération en cours...** » (spinner), état succès « **Téléchargé !** » (fond vert, `CheckCircle2` 16) puis fermeture automatique après 1,2 s. Désactivé si export en cours ou 0 produit.
 - Données : `exportStoreProductsAction(storeId, ids?)` → `{ success, products, error? }` (utilise les produits locaux si la sélection est entièrement connue) ; fichiers `export-produits-{slug-boutique}-{AAAA-MM-JJ}.json|.csv` (CSV : `;`, UTF-8). En mobile : partager le fichier (ex. `expo-sharing`) au lieu du téléchargement navigateur.
+
+### C bis. Modale « Télécharger les images » — ExportProductImagesModal
+
+- Ouverte par le bouton « **Images** » de l'en-tête ou « **Images (N)** » de la barre groupée (périmètre pré-sélectionné).
+- Overlay `black/60` + flou, panneau blanc radius 24 max 512 px ; en-tête avec pastille orange `FolderArchive` 24, titre « **Télécharger les images** », sous-titre « **{storeName} • toutes les photos produits dans un ZIP** » ; bouton `X`.
+- Bandeau de compteurs (fond `orange-50`) : « **{N} photos prêtes à télécharger** » + « {M} produits avec image • {K} sans photo » ; état vide « **Aucune photo à télécharger** » ; état chargement « **Comptage des photos en cours…** ».
+- « **1. Périmètre** » : « Tous les produits » / « Sélection ({N}) » (désactivée au-delà de 300 produits, message « Maximum 300 produits — utilisez « Tous les produits » »).
+- « **2. Contenu de l'archive** » : un dossier par produit (principale, galerie, variantes), `manifeste-images.csv` (produit, rôle, fichier, source, statut, taille) et note sur la limite de 500 images.
+- Pied : « **Annuler** » / bouton orange « **Télécharger {N} images** » (spinner « Préparation du ZIP… », succès « Téléchargé ! » puis fermeture). En mobile : l'archive est écrite dans le cache puis proposée via la feuille de partage (`expo-sharing`).
+- API : `GET /api/marketplace/seller/inventory/images/summary|export?storeId=…&ids=a,b` (vendeur authentifié, ZIP streamé). Route web : `fetch` + `blob` ; mobile : `FileSystem.downloadAsync` avec les en-têtes de session.
 
 ### D. Modale « Importer des produits » — ImportProductsModal
 

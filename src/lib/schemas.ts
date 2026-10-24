@@ -170,6 +170,16 @@ export const sellerExportSchema = z.object({
   storeId: z.string().trim().max(64).optional(),
 });
 
+/**
+ * Téléchargement groupé des images produits (query string GET).
+ * `ids` est une liste d'identifiants séparés par des virgules ; 300 UUID font
+ * environ 11 100 caractères, d'où la borne à 30 000.
+ */
+export const sellerImagesQuerySchema = z.object({
+  storeId: z.string().trim().max(64).optional(),
+  ids: z.string().trim().max(30_000).optional(),
+});
+
 export const sellerOrderStatusSchema = z.object({
   orderId: z.string().trim().min(1, 'Commande manquante.').max(64),
   status: z.string().trim().min(1, 'Statut manquant.').max(40),
