@@ -6,7 +6,7 @@ import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { fedapayConfigured, verifyFedapayTransaction, verifyFedapayWebhookSignature } from '@/lib/fedapay';
-import { notify, getAdminEmails } from '@/lib/notifications';
+import { notify, getAdminEmails, notifyPaymentFailed } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -137,6 +137,12 @@ export async function POST(request: Request) {
               eq(subscriptionPayments.status, 'PENDING'),
             ),
           );
+        await notifyPaymentFailed({
+          userId: row.userId,
+          amount: row.amount,
+          provider: 'FedaPay',
+          reference: fTxId,
+        });
       }
 
       const admins = await getAdminEmails();

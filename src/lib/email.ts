@@ -292,6 +292,7 @@ const SUBJECTS: Record<string, string> = {
   RECAP_VENTES_JOUR: 'Récap des ventes du jour',
   ALERTE_TECHNIQUE: 'Alerte technique PosMarket',
   PAIEMENT_INCIDENT: 'Paiement en erreur',
+  PAIEMENT_ECHOUE: 'Paiement non abouti',
 };
 
 // ---------------------------------------------------------------------------
@@ -516,9 +517,9 @@ const renderers: Record<string, EmailRenderer> = {
   // ---------------------------------------------------------------- Acheteur
   CONFIRMATION_COMMANDE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Commande #${d.order} confirmée`, { text: 'Confirmée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande chez ${d.store || 'la boutique'} a été enregistrée.`)}
+      return bodyBlock(d, `${hero(`Commande ${d.order} confirmée`, { text: 'Confirmée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande chez ${d.store || 'la boutique'} a été enregistrée.`)}
 ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
+      ${rows([['Commande', `${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Suivre ma commande')}
       ${note('Une question sur votre commande ? Contactez directement la boutique.')}`);
@@ -526,9 +527,9 @@ ${productList(d.products)}
   },
   COMMANDE_PRET: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Commande #${d.order} prête`, { text: 'À récupérer', bg: '#e8f0fe', fg: '#1a73e8' }, `Votre commande peut être récupérée chez ${d.store || 'la boutique'}.`)}
+      return bodyBlock(d, `${hero(`Commande ${d.order} prête`, { text: 'À récupérer', bg: '#e8f0fe', fg: '#1a73e8' }, `Votre commande peut être récupérée chez ${d.store || 'la boutique'}.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${rows([['Commande', `${d.order}`], ['Boutique', d.store]])}
       ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Voir ma commande')}
       ${note('Présentez simplement votre numéro de commande lors du retrait.')}`);
@@ -536,9 +537,9 @@ ${productList(d.products)}
   },
   COMMANDE_EXPEDIEE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Commande #${d.order} expédiée`, { text: 'En route', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande ${d.store ? `de ${d.store} ` : ''}vient d'être expédiée.`)}
+      return bodyBlock(d, `${hero(`Commande ${d.order} expédiée`, { text: 'En route', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande ${d.store ? `de ${d.store} ` : ''}vient d'être expédiée.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${rows([['Commande', `${d.order}`], ['Boutique', d.store]])}
       ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Suivre le suivi')}
       ${note('Vous recevrez une notification dès la livraison.')}`);
@@ -546,9 +547,9 @@ ${productList(d.products)}
   },
   COMMANDE_LIVREE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Commande #${d.order} livrée`, { text: 'Livrée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande de ${d.store || 'la boutique'} a été livrée. Merci pour votre achat !`)}
+      return bodyBlock(d, `${hero(`Commande ${d.order} livrée`, { text: 'Livrée', bg: '#ecfdf3', fg: '#027a48' }, `Votre commande de ${d.store || 'la boutique'} a été livrée. Merci pour votre achat !`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${rows([['Commande', `${d.order}`], ['Boutique', d.store]])}
       ${summaryLine('Total', money(d.total))}
       ${CTA(account(), 'Laisser un avis')}
       ${note('Une remarque sur votre commande ? Contactez la boutique. Votre avis aide les commerçants locaux.')}`);
@@ -556,18 +557,18 @@ ${productList(d.products)}
   },
   COMMANDE_ANNULEE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Commande #${d.order} annulée`, { text: 'Annulée', bg: '#fef3f2', fg: '#b42318' }, `La commande ${d.store ? `de ${d.store} ` : ''}portant le numéro \u201c#${d.order}\u201d a été annulée.`)}
+      return bodyBlock(d, `${hero(`Commande ${d.order} annulée`, { text: 'Annulée', bg: '#fef3f2', fg: '#b42318' }, `La commande ${d.store ? `de ${d.store} ` : ''}portant le numéro \u201c${d.order}\u201d a été annulée.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store]])}
+      ${rows([['Commande', `${d.order}`], ['Boutique', d.store]])}
       ${CTA(account(), 'Mes commandes')}
       ${note('En cas de paiement déjà effectué, le remboursement sera traité par la boutique. Contactez-la pour plus d\u2019informations.')}`);
     },
   },
   RECU_PAIEMENT: {
     render: (d) => {
-      return bodyBlock(d, `${hero('Paiement reçu', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, `Le paiement de votre commande #${d.order} a bien été reçu.`)}
+      return bodyBlock(d, `${hero('Paiement reçu', { text: 'Payé', bg: '#ecfdf3', fg: '#027a48' }, `Le paiement de votre commande ${d.order} a bien été reçu.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Statut', 'Payé']])}
+      ${rows([['Commande', `${d.order}`], ['Statut', 'Payé']])}
       ${summaryLine('Total payé', money(d.total))}
       ${CTA(account(), 'Voir le reçu')}
       ${note('Ceci fait office de reçu de paiement pour votre commande.')}`);
@@ -575,9 +576,9 @@ ${productList(d.products)}
   },
   DEMANDE_AVIS: {
     render: (d) => {
-      return bodyBlock(d, `${hero('Partagez votre avis', { text: 'Merci !', bg: '#fff7ed', fg: '#c2410c' }, d.store ? `Votre commande #${d.order || ''} de ${d.store} est terminée. Aidez la boutique à progresser : notez vos produits.` : 'Aidez la boutique à progresser : notez vos produits.')}
+      return bodyBlock(d, `${hero('Partagez votre avis', { text: 'Merci !', bg: '#fff7ed', fg: '#c2410c' }, d.store ? `Votre commande ${d.order || ''} de ${d.store} est terminée. Aidez la boutique à progresser : notez vos produits.` : 'Aidez la boutique à progresser : notez vos produits.')}
       ${productList(d.products)}
-      ${rows([['Commande', d.order ? `#${d.order}` : null], ['Boutique', d.store]])}
+      ${rows([['Commande', d.order ? `${d.order}` : null], ['Boutique', d.store]])}
       ${CTA(account(), 'Laisser un avis')}
       ${note('Votre avis prend moins d\u2019une minute et compte beaucoup pour les commerçants locaux.')}`);
     },
@@ -596,7 +597,7 @@ ${productList(d.products)}
     render: (d) => {
       return bodyBlock(d, `${hero('Vente enregistrée', paymentBadge(d), d.store ? `Une vente a été enregistrée en boutique (${d.store}).` : 'Une vente a été enregistrée en boutique.')}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
+      ${rows([['Commande', `${d.order}`], ['Boutique', d.store], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total de la vente', money(d.total))}
       ${CTA(`${siteUrl()}/dashboard`, 'Voir le tableau de bord')}
       ${note('Le stock a été mis à jour automatiquement.')}`);
@@ -604,9 +605,9 @@ ${productList(d.products)}
   },
   NOUVELLE_COMMANDE: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Nouvelle commande #${d.order}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${d.buyer || 'un client'} est arrivée.`)}
+      return bodyBlock(d, `${hero(`Nouvelle commande ${d.order}`, { text: 'À traiter', bg: '#fef3c7', fg: '#b45309' }, `Une commande de ${d.buyer || 'un client'} est arrivée.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone], ['Paiement', d.paymentLabel]])}
+      ${rows([['Commande', `${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone], ['Paiement', d.paymentLabel]])}
       ${summaryLine('Total à encaisser', money(d.total))}
       ${CTA(`${siteUrl()}/orders`, 'Préparer la commande')}
       ${note('Pensez à notifier le client dès que la commande est prête.')}`);
@@ -614,9 +615,9 @@ ${productList(d.products)}
   },
   COMMANDE_A_PREPARER: {
     render: (d) => {
-      return bodyBlock(d, `${hero(`Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande #${d.order} de ${d.buyer || 'un client'} attend sa préparation.`)}
+      return bodyBlock(d, `${hero(`Commande à préparer`, { text: 'En attente', bg: '#fef3c7', fg: '#b45309' }, `La commande ${d.order} de ${d.buyer || 'un client'} attend sa préparation.`)}
       ${productList(d.products)}
-      ${rows([['Commande', `#${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone]])}
+      ${rows([['Commande', `${d.order}`], ['Client', d.buyer], ['Téléphone', d.phone]])}
       ${summaryLine('Total à encaisser', money(d.total))}
       ${CTA(`${siteUrl()}/orders`, 'Préparer le colis')}
       ${note('Marquez la commande comme prête dès que le colis est emballé.')}`);
@@ -716,7 +717,7 @@ ${productList(d.products)}
   PAIEMENT_INCIDENT: {
     render: (d) => {
       return bodyBlock(d, `${hero('Paiement en erreur', { text: 'Action requise', bg: '#fef3f2', fg: '#b42318' }, `Un paiement d\u2019abonnement a été refusé.`)}
-      ${rows([['Transaction', `#${d.tx}`], ['Fournisseur', d.provider]])}
+      ${rows([['Transaction', `${d.tx}`], ['Fournisseur', d.provider]])}
       ${CTA(`${siteUrl()}/pam/invoices`, 'Vérifier le paiement')}
       ${note('Contactez le client concerné si l\u2019incident se répète.')}`);
     },

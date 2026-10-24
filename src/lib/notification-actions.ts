@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { profiles, notificationOutbox } from '@/db/schema';
+import { profiles, notificationOutbox, pushTokens } from '@/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { getCurrentSession } from '@/app/actions/session';
 import {
@@ -25,9 +25,16 @@ export async function getNotificationPreferencesAction() {
 
   try {
     const prefs = await listNotificationPreferences(user.id);
+    const devices = await db
+      .select({ id: pushTokens.id })
+      .from(pushTokens)
+      .where(and(eq(pushTokens.userId, user.id), eq(pushTokens.enabled, true)))
+      .catch(() => [] as Array<{ id: string }>);
+    const hasPushDevice = devices.length > 0;
     const events = Object.entries(NOTIFICATION_EVENTS).map(([key, def]) => {
       const wa = prefs.find((p) => p.eventType === key && p.channel === 'whatsapp');
       const em = prefs.find((p) => p.eventType === key && p.channel === 'email');
+      const pu = prefs.find((p) => p.eventType === key && p.channel === 'push');
       return {
         eventType: key as NotificationEvent,
         label: def.label,
@@ -41,6 +48,10 @@ export async function getNotificationPreferencesAction() {
           enabled: em ? em.enabled : true,
           hasAddress: !!user.email,
           email: em?.email || user.email || '',
+        },
+        push: {
+          enabled: pu ? pu.enabled : !def.optIn,
+          hasAddress: hasPushDevice,
         },
       };
     });
@@ -56,7 +67,7 @@ export async function getNotificationPreferencesAction() {
 
 export async function setNotificationPreferenceAction(
   eventType: NotificationEvent,
-  channel: 'whatsapp' | 'email',
+  channel: 'whatsapp' | 'email' | 'push',
   enabled: boolean,
   phone: string,
   email: string,

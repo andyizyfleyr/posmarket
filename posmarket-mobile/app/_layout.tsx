@@ -15,6 +15,7 @@ import { PromoProvider } from '@/context/PromoContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartAddToastProvider } from '@/components/CartAddToast';
 import { ToastProvider } from '@/components/ToastProvider';
+import { PushNotifications } from '@/components/PushNotifications';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 
@@ -42,6 +43,7 @@ export default function RootLayout() {
           <AuthProvider>
             <CartProvider>
               <PromoProvider>
+                <PushNotifications />
                 <View style={styles.root}>
                   <StatusBar style="dark" />
                   <OfflineBanner />

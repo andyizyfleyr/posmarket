@@ -12,6 +12,8 @@ import {
 } from '@/db/schema';
 import { isWhatsAppConfigured, sendWhatsAppTemplate, sendWhatsAppText, toE164 } from '@/lib/whatsapp';
 import { isEmailConfigured, sendEmail, renderEmailEvent, type ProductEmailItem } from '@/lib/email';
+import { sendPush, getPushTokens } from '@/lib/push';
+import { buildPushContent } from '@/lib/push-templates';
 import { COUNTRIES } from '@/constants/countries';
 import { NotificationEvent } from '@/types';
 
@@ -60,6 +62,7 @@ export const NOTIFICATION_EVENTS: Record<NotificationEvent, EventDefinition> = {
   RECAP_VENTES_JOUR: { label: 'Récap ventes du jour', templateName: null, lang: 'fr', optIn: false },
   ALERTE_TECHNIQUE: { label: 'Alerte technique', templateName: null, lang: 'fr', optIn: false },
   PAIEMENT_INCIDENT: { label: 'Paiement en erreur', templateName: null, lang: 'fr', optIn: false },
+  PAIEMENT_ECHOUE: { label: 'Paiement non abouti', templateName: null, lang: 'fr', optIn: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -68,7 +71,7 @@ export const NOTIFICATION_EVENTS: Record<NotificationEvent, EventDefinition> = {
 
 async function ensurePreference(
   userId: string | null,
-  channel: 'whatsapp' | 'email',
+  channel: 'whatsapp' | 'email' | 'push',
   eventType: NotificationEvent,
   phone: string,
   email?: string | null,
@@ -98,7 +101,7 @@ export async function isEventEnabled(
   userId: string | null,
   phone: string,
   eventType: NotificationEvent,
-  channel: 'whatsapp' | 'email' = 'whatsapp',
+  channel: 'whatsapp' | 'email' | 'push' = 'whatsapp',
 ): Promise<boolean> {
   if (!userId) return true;
   const key = channel === 'whatsapp' ? phone : '';
@@ -123,7 +126,7 @@ export async function setNotificationPreference(
   phone: string,
   eventType: NotificationEvent,
   enabled: boolean,
-  channel: 'whatsapp' | 'email' = 'whatsapp',
+  channel: 'whatsapp' | 'email' | 'push' = 'whatsapp',
   email?: string | null,
 ): Promise<void> {
   const e164 = channel === 'whatsapp' ? toE164(phone) : '';
@@ -176,19 +179,56 @@ export interface NotifyInput {
   marker?: string;
 }
 
+/** Le push est actif par défaut pour le transactionnel, jamais pour le marketing. */
+async function isPushEnabled(userId: string, eventType: NotificationEvent): Promise<boolean> {
+  const rows = await db
+    .select({ enabled: notificationPreferences.enabled })
+    .from(notificationPreferences)
+    .where(
+      and(
+        eq(notificationPreferences.userId, userId),
+        eq(notificationPreferences.eventType, eventType),
+        eq(notificationPreferences.channel, 'push'),
+        eq(notificationPreferences.phone, ''),
+      ),
+    )
+    .limit(1);
+  if (rows.length === 0) return !NOTIFICATION_EVENTS[eventType]?.optIn;
+  return rows[0].enabled !== false;
+}
+
 export async function notify(input: NotifyInput): Promise<{ ok: boolean; skipped?: boolean }> {
   const phone = input.phoneE164 || toE164(input.phone || '');
   const email = String(input.email || '').trim();
   const eventType = input.eventType;
   const userId = input.userId || null;
+  const def = NOTIFICATION_EVENTS[eventType];
 
   const wantWhatsapp = isWhatsAppConfigured() && !!phone;
   const wantEmail = (await isEmailConfigured()) && !!email;
-  const def = NOTIFICATION_EVENTS[eventType];
 
-  // In-app : une ligne est ALWAYS persistée pour le destinataire (fil de
-  // notifications dans l'espace vendeur), quel que soit l'état des canaux.
-  if (userId) {
+  // Push : indépendant de WhatsApp et de l'e-mail. Il faut au moins un appareil
+  // actif ; le contenu est rendu par `buildPushContent` à partir des mêmes
+  // données que l'e-mail.
+  const deviceTokens = userId ? await getPushTokens(userId) : [];
+  const pushEnabled =
+    userId && deviceTokens.length > 0 ? await isPushEnabled(userId, eventType) : false;
+  const printPush = !!userId && pushEnabled;
+  const pushContent = printPush
+    ? buildPushContent(eventType, {
+        title: input.title,
+        body: input.body,
+        emailData: input.emailData,
+      })
+    : null;
+
+  const scheduledAt = input.scheduledAt || null;
+  const isFuture = !!scheduledAt && scheduledAt > new Date();
+
+  // In-app : une ligne est toujours persistée pour le destinataire (fil de
+  // notifications dans l'espace vendeur). Quand le push part, c'est la ligne
+  // PUSH qui sert d'entrée d'historique : une seule ligne par événement.
+  if (userId && !pushContent) {
     await db
       .insert(notificationOutbox)
       .values({
@@ -207,7 +247,32 @@ export async function notify(input: NotifyInput): Promise<{ ok: boolean; skipped
       .catch(() => {});
   }
 
-  if (!wantWhatsapp && !wantEmail) return { ok: true, skipped: true };
+  if (pushContent && userId) {
+    try {
+      await ensurePreference(userId, 'push', eventType, '');
+      const [row] = await db
+        .insert(notificationOutbox)
+        .values({
+          recipientUserId: userId,
+          recipientPhone: '',
+          recipientEmail: null,
+          eventType,
+          title: pushContent.title,
+          body: pushContent.body,
+          provider: 'push',
+          status: isFuture ? 'SCHEDULED' : 'PENDING',
+          templateName: null,
+          params: { url: pushContent.url, channelId: pushContent.channelId, marker: input.marker || null },
+          scheduledAt,
+        })
+        .returning();
+      if (!isFuture) await deliverOutboxRow(row.id);
+    } catch (err) {
+      console.error('[notify] push insert error:', err);
+    }
+  }
+
+  if (!wantWhatsapp && !wantEmail) return { ok: true, skipped: !pushContent };
 
   // Préférences par canal : activé par défaut pour le transactionnel ;
   // l'opt-in explicite est requis pour le marketing. Un « off » explicite
@@ -223,7 +288,7 @@ export async function notify(input: NotifyInput): Promise<{ ok: boolean; skipped
       if (wantWhatsapp) await ensurePreference(userId, 'whatsapp', eventType, phone, null);
       if (wantEmail) await ensurePreference(userId, 'email', eventType, '', email);
     }
-    return { ok: true, skipped: true };
+    return { ok: true, skipped: !pushContent };
   }
 
   if (printWhatsapp) {
@@ -292,6 +357,45 @@ async function deliverOutboxRow(id: string): Promise<{ ok: boolean }> {
   const [row] = await db.select().from(notificationOutbox).where(eq(notificationOutbox.id, id)).limit(1);
   if (!row) return { ok: false };
 
+  if (row.provider === 'push') {
+    if (!row.recipientUserId) {
+      await db
+        .update(notificationOutbox)
+        .set({ status: 'SKIPPED', error: 'Destinataire inconnu.' })
+        .where(eq(notificationOutbox.id, id));
+      return { ok: false };
+    }
+    const params = (row.params || {}) as {
+      url?: string;
+      channelId?: 'orders' | 'stock' | 'account' | 'promos';
+    };
+    const result = await sendPush(row.recipientUserId, {
+      title: row.title || 'PosMarket',
+      body: row.body,
+      url: params.url,
+      channelId: params.channelId,
+    });
+
+    if (!result.ok) {
+      const attempts = (row.attempts || 0) + 1;
+      await db
+        .update(notificationOutbox)
+        .set({
+          status: attempts >= 3 ? 'FAILED' : 'PENDING',
+          attempts,
+          error: result.error || 'Envoi push impossible.',
+        })
+        .where(eq(notificationOutbox.id, id));
+      return { ok: false };
+    }
+
+    await db
+      .update(notificationOutbox)
+      .set({ status: 'SENT', messageId: result.ticketId || null, sentAt: new Date(), error: null })
+      .where(eq(notificationOutbox.id, id));
+    return { ok: true };
+  }
+
   if (row.provider === 'email') {
     const raw = row.params;
     let emailData: Record<string, string | number | null | undefined | ProductEmailItem[]> = {};
@@ -357,8 +461,6 @@ async function deliverOutboxRow(id: string): Promise<{ ok: boolean }> {
 
 /** Envoie tout ce qui est dû/hors-file, réessaie les échecs (< 3 tentatives). */
 export async function processDueNotifications(): Promise<{ processed: number }> {
-  if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return { processed: 0 };
-
   const due = await db
     .select({ id: notificationOutbox.id })
     .from(notificationOutbox)
@@ -426,6 +528,30 @@ export async function getProfileEmail(userId: string): Promise<string> {
   return p?.email || '';
 }
 
+/**
+ * Prévient l'acheteur qu'un paiement d'abonnement n'a pas abouti.
+ * Déclenché par les webhooks de paiement (Kkiapay, FedaPay, FeexPay).
+ */
+export async function notifyPaymentFailed(input: {
+  userId: string;
+  amount?: number | string | null;
+  provider: string;
+  reference?: string;
+}): Promise<void> {
+  if (!input.userId) return;
+  const amount = Number(input.amount || 0);
+  await notify({
+    userId: input.userId,
+    phone: await getProfilePhone(input.userId),
+    email: await getProfileEmail(input.userId),
+    eventType: 'PAIEMENT_ECHOUE',
+    title: 'Paiement non abouti',
+    body: `Votre paiement${amount ? ` de ${new Intl.NumberFormat('fr-FR').format(amount)} FCFA` : ''} n'a pas abouti. Réessayez depuis votre espace abonnement.`,
+    templateParams: [input.provider, String(amount)],
+    emailData: { amount, provider: input.provider, tx: input.reference || '' },
+  }).catch(() => {});
+}
+
 /** Téléphone des admins (NOUVELLE_INSCRIPTION etc.) : system_settings -> env. */
 export async function getAdminPhones(): Promise<string[]> {
   const [row] = await db.select({ value: systemSettings.value }).from(systemSettings).where(eq(systemSettings.key, 'admin_whatsapp_phones')).limit(1);
@@ -484,8 +610,6 @@ export async function notifyStaff(
 // ---------------------------------------------------------------------------
 
 export async function checkSubscriptionExpirations(): Promise<{ sent: number }> {
-  if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return { sent: 0 };
-
   const in7 = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const expiring = await db
@@ -574,7 +698,6 @@ async function alreadyNotified(eventType: NotificationEvent, marker: string): Pr
 
 /** Demande d'avis (J+2 après commande livrée/terminée). */
 export async function sendPendingReviewRequests(): Promise<{ sent: number }> {
-  if (!(await isEmailConfigured())) return { sent: 0 };
   const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
   const ordersToAsk = await db
     .select({ id: orders.id, storeId: orders.storeId, buyerEmail: orders.buyerEmail, buyerUserId: orders.buyerUserId, total: orders.total })
@@ -585,18 +708,19 @@ export async function sendPendingReviewRequests(): Promise<{ sent: number }> {
   let sent = 0;
   for (const order of ordersToAsk) {
     const email = order.buyerEmail || (order.buyerUserId ? await getProfileEmail(order.buyerUserId) : '');
-    if (!email) continue;
+    if (!email && !order.buyerUserId) continue;
     const marker = `order-${order.id.slice(0, 8).toUpperCase()}`;
     if (await alreadyNotified('DEMANDE_AVIS', marker)) continue;
     const contact = order.storeId ? await getStoreContact(order.storeId) : null;
     const shortId = order.id.slice(0, 8).toUpperCase();
     const res = await notify({
+      userId: order.buyerUserId,
       email,
       eventType: 'DEMANDE_AVIS',
       title: 'Donnez votre avis',
-      body: `Merci pour votre achat${contact ? ` chez ${contact.name}` : ''} ! Partagez votre expérience en laissant un avis sur vos produits.`,
+      body: `Merci pour votre achat${contact ? ` chez ${contact.name}` : ''}. Partagez votre expérience en laissant un avis sur vos produits.`,
       templateParams: [contact?.name || 'PosMarket'],
-      emailData: { order: shortId, store: contact?.name || '', storeSlug: contact?.slug || '' },
+      emailData: { order: shortId, orderId: order.id, store: contact?.name || '', storeSlug: contact?.slug || '' },
       marker,
     });
     if (res.ok) sent++;
@@ -611,7 +735,7 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
   today.setHours(0, 0, 0, 0);
   const marker = `day-${today.toISOString().slice(0, 10)}`;
 
-  const storeRows = await db.select({ id: stores.id, name: stores.name, slug: stores.slug }).from(stores).where(eq(stores.status, 'APPROVED'));
+  const storeRows = await db.select({ id: stores.id, name: stores.name, slug: stores.slug, userId: stores.userId }).from(stores).where(eq(stores.status, 'APPROVED'));
   let sent = 0;
   for (const store of storeRows) {
     const [agg] = await db
@@ -626,10 +750,24 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
     if (count === 0) continue;
 
     const emails = await getStaffEmails(store.id);
-    if (emails.length === 0) continue;
+    if (emails.length === 0 && !store.userId) continue;
     if (await alreadyNotified('RECAP_VENTES_JOUR', `${marker}-${store.id.slice(0, 8)}`)) continue;
 
     const totalStr = new Intl.NumberFormat('fr-FR').format(total);
+
+    if (store.userId) {
+      const res = await notify({
+        userId: store.userId,
+        eventType: 'RECAP_VENTES_JOUR',
+        title: `Récap des ventes — ${store.name}`,
+        body: `Ventes du jour chez ${store.name} : ${count} commande(s) pour ${totalStr} FCFA.`,
+        templateParams: [store.name, String(count), totalStr],
+        emailData: { store: store.name, storeSlug: store.slug, count, total: totalStr },
+        marker: `${marker}-${store.id.slice(0, 8)}`,
+      });
+      if (res.ok) sent++;
+    }
+
     for (const email of emails) {
       const res = await notify({
         email,
@@ -648,7 +786,6 @@ export async function sendStaffDailyRecap(): Promise<{ sent: number }> {
 
 /** Rapport hebdomadaire vendeurs (CA sur les 7 derniers jours). */
 export async function sendWeeklyVendorReports(): Promise<{ sent: number; skipped?: boolean }> {
-  if (!(await isEmailConfigured())) return { sent: 0 };
   if (!isWeeklyReportDay()) return { sent: 0, skipped: true };
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const marker = isoWeekMarker();
@@ -672,7 +809,7 @@ export async function sendWeeklyVendorReports(): Promise<{ sent: number; skipped
 
     const settings = (store.settings || {}) as Record<string, unknown> | null;
     const email = store.email || (settings?.email as string) || (store.userId ? await getProfileEmail(store.userId) : '');
-    if (!email) continue;
+    if (!email && !store.userId) continue;
     if (await alreadyNotified('RAPPORT_VENDEUR_HEBDO', `${marker}-${store.id.slice(0, 8)}`)) continue;
 
     const totalStr = new Intl.NumberFormat('fr-FR').format(total);
@@ -693,7 +830,6 @@ export async function sendWeeklyVendorReports(): Promise<{ sent: number; skipped
 
 /** Rapport hebdomadaire global → admins. */
 export async function sendWeeklyAdminReport(): Promise<{ sent: number; skipped?: boolean }> {
-  if (!(await isEmailConfigured())) return { sent: 0 };
   if (!isWeeklyReportDay()) return { sent: 0, skipped: true };
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const marker = isoWeekMarker();

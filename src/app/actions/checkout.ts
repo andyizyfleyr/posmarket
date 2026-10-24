@@ -1001,17 +1001,18 @@ export async function submitCheckoutAction(
         const emailProducts = await orderEmailProducts(sc.orderId)
         const paymentLabel = 'Espèces'
 
-        if (storeInfo?.phone) {
+        if (storeInfo) {
           await notify({
             userId: storeInfo.ownerId,
             phone: storeInfo.phone,
             email: storeInfo.email || '',
             eventType: 'NOUVELLE_COMMANDE',
             title: 'Nouvelle commande',
-            body: `Nouvelle commande #${shortId}\nClient : ${customerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentLabel}`,
+            body: `Nouvelle commande ${shortId}\nClient : ${customerName}\nTotal : ${totalStr} FCFA\nPaiement : ${paymentLabel}`,
             templateParams: [shortId, customerName, totalStr],
             emailData: {
               order: shortId,
+              orderId: sc.orderId,
               buyer: customerName,
               phone: phone || undefined,
               total: totalStr,
@@ -1042,17 +1043,18 @@ export async function submitCheckoutAction(
           }
         }
 
-        if (phone || email) {
+        if (phone || email || user?.id) {
           await notify({
             userId: user?.id || null,
             phone,
             email,
             eventType: 'CONFIRMATION_COMMANDE',
             title: 'Commande confirmée',
-            body: `Votre commande #${shortId} chez ${sc.storeName} est confirmée. Total : ${totalStr} FCFA.`,
+            body: `Votre commande ${shortId} chez ${sc.storeName} est confirmée. Total : ${totalStr} FCFA.`,
             templateParams: [shortId, sc.storeName, totalStr],
             emailData: {
               order: shortId,
+              orderId: sc.orderId,
               store: sc.storeName,
               storeSlug: storeInfo?.slug || '',
               total: totalStr,
@@ -1093,7 +1095,7 @@ export async function submitCheckoutAction(
                   stock: Math.max(0, Number(v.stock) || 0),
                 }))
                 .filter((v) => v.stock <= 10)
-              if (lowVariants.length === 0 || !storeInfo?.phone) continue
+              if (lowVariants.length === 0 || !storeInfo) continue
 
               const ruptures = lowVariants.filter((v) => v.stock === 0)
               const isRupture = ruptures.length > 0
@@ -1119,7 +1121,7 @@ export async function submitCheckoutAction(
               })
             } else {
               const stock = Math.max(0, Number(p.stock) || 0)
-              if (stock > 10 || !storeInfo?.phone) continue
+              if (stock > 10 || !storeInfo) continue
               await notify({
                 userId: storeInfo.ownerId,
                 phone: storeInfo.phone,

@@ -199,6 +199,20 @@ export async function ensureAuthProfile(opts: {
   if (accountType === 'seller') {
     await notifyNewSeller(created);
   }
+
+  // Bienvenue au nouvel utilisateur : push / e-mail / fil in-app.
+  await notify({
+    userId: created.id,
+    email: created.email,
+    eventType: 'BIENVENUE',
+    title: 'Bienvenue sur PosMarket',
+    body:
+      accountType === 'seller'
+        ? 'Votre compte commerçant est créé. Complétez votre boutique pour commencer à vendre.'
+        : 'Votre compte est créé. Découvrez les boutiques près de vous.',
+    emailData: { name: created.fullName || '', accountType },
+  }).catch(() => {});
+
   return created;
 }
 

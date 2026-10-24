@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { feexpayConfigured, verifyFeexpayWebhookSignature, verifyFeexpayTransaction } from '@/lib/feexpay';
+import { notifyPaymentFailed } from '@/lib/notifications';
 
 interface FeexpayWebhookEntity {
   id?: string | number;
@@ -134,6 +135,12 @@ export async function POST(request: Request) {
           .update(subscriptionPayments)
           .set({ status: 'DECLINED', reference: fTxId, updatedAt: new Date() })
           .where(and(eq(subscriptionPayments.transactionId, row.transactionId!), eq(subscriptionPayments.status, 'PENDING')));
+        await notifyPaymentFailed({
+          userId: row.userId,
+          amount: row.amount,
+          provider: 'FeexPay',
+          reference: fTxId,
+        });
       }
       return NextResponse.json({ ok: true, status: 'declined_processed' });
     }

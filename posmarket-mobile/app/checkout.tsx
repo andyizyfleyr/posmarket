@@ -53,10 +53,6 @@ import { fetchCatalog, fetchCountryGate, submitCheckout } from '@/api/client';
 import { cartNoun, verticalOfProduct } from '@/constants';
 import { COUNTRIES, isValidPhoneNumber, parsePhoneNumber } from '@/constants/countries';
 import { formatCurrency, getEffectiveItemPrice } from '@/utils';
-import {
-  notifyOrderConfirmed,
-  requestNotificationPermissions,
-} from '@/utils/notifications';
 import { COLORS } from '@/theme';
 import type { CartItem } from '@/types';
 
@@ -110,11 +106,6 @@ export default function CheckoutScreen() {
   const [idempotencyKey, setIdempotencyKey] = useState(
     () => `chk-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
   );
-
-  // Demande l'autorisation de notification (crée aussi le canal Android).
-  useEffect(() => {
-    requestNotificationPermissions();
-  }, []);
 
   // Portail pays (garde UX) : le blocage autoritaire reste côté action.
   const gateQuery = useQuery({
@@ -398,8 +389,6 @@ export default function CheckoutScreen() {
         setStage('success');
         clearCart();
 
-        const ids = response.orderIds || (response.orderId ? [response.orderId] : []);
-        if (ids.length > 0) notifyOrderConfirmed(ids);
         setIdempotencyKey(`chk-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
       } else {
         notify(response?.error || 'Erreur lors de la validation de la commande', 'error');

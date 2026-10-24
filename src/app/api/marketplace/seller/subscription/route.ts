@@ -295,6 +295,17 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      await notify({
+        userId: guard.userId,
+        phone: await getProfilePhone(guard.userId),
+        email: await getProfileEmail(guard.userId),
+        eventType: 'FACTURE_PAYEE',
+        title: 'Facture payée',
+        body: `Votre paiement de ${Number(payment.amount) || expectedAmount} FCFA a été confirmé.`,
+        templateParams: [String(Number(payment.amount) || expectedAmount)],
+        emailData: { amount: Number(payment.amount) || expectedAmount, tier: payment.tier },
+      });
+
       refreshTag('marketplace');
       return NextResponse.json({
         success: true,
@@ -362,6 +373,17 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      await notify({
+        userId: guard.userId,
+        phone: await getProfilePhone(guard.userId),
+        email: await getProfileEmail(guard.userId),
+        eventType: 'FACTURE_PAYEE',
+        title: 'Facture payée',
+        body: `Votre paiement de ${Number(payment.amount) || expectedAmount} FCFA a été confirmé.`,
+        templateParams: [String(Number(payment.amount) || expectedAmount)],
+        emailData: { amount: Number(payment.amount) || expectedAmount, tier: payment.tier },
+      });
+
       refreshTag('marketplace');
       return NextResponse.json({
         success: true,
@@ -411,6 +433,28 @@ export async function POST(req: NextRequest) {
       payment.tier as SubscriptionTier,
       payment.duration as SubscriptionDuration,
     );
+
+    await notify({
+      userId: guard.userId,
+      phone: await getProfilePhone(guard.userId),
+      email: await getProfileEmail(guard.userId),
+      eventType: 'ABONNEMENT_ACTIVE',
+      title: 'Abonnement activé',
+      body: `Votre abonnement ${payment.tier} (${payment.duration}) a été validé avec succès via Kkiapay.`,
+      templateParams: [String(payment.tier), durationLabel(payment.duration)],
+      emailData: { tier: payment.tier, duration: durationLabel(payment.duration) },
+    });
+
+    await notify({
+      userId: guard.userId,
+      phone: await getProfilePhone(guard.userId),
+      email: await getProfileEmail(guard.userId),
+      eventType: 'FACTURE_PAYEE',
+      title: 'Facture payée',
+      body: `Votre paiement de ${Number(payment.amount) || expectedAmount} FCFA a été confirmé.`,
+      templateParams: [String(Number(payment.amount) || expectedAmount)],
+      emailData: { amount: Number(payment.amount) || expectedAmount, tier: payment.tier },
+    });
 
     refreshTag('marketplace');
     return NextResponse.json({

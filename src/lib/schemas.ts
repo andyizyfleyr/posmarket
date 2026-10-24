@@ -78,10 +78,16 @@ export const buyerReviewSchema = z.object({
 
 export const buyerNotificationSchema = z.object({
   eventType: z.string().trim().min(1, 'Événement manquant.').max(64),
-  channel: z.enum(['email', 'whatsapp']),
+  channel: z.enum(['email', 'whatsapp', 'push']),
   enabled: z.boolean(),
   whatsappPhone: z.string().trim().max(40).optional(),
   emailAddress: z.string().trim().max(200).optional(),
+});
+
+export const pushTokenSchema = z.object({
+  token: z.string().trim().min(10, 'Jeton push manquant.').max(300, 'Jeton push invalide.'),
+  platform: z.enum(['ios', 'android']).default('android'),
+  deviceName: z.string().trim().max(120).optional(),
 });
 
 export const buyerOrdersQuerySchema = z.object({

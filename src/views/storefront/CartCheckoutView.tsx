@@ -795,12 +795,12 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                             const orderRef =
                               completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() ||
                               Date.now().toString().slice(-6);
-                            const waMsg = `NOUVELLE COMMANDE #${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems
+                            const waMsg = `NOUVELLE COMMANDE ${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems
                               .map((item) => {
                                 const variant = item.variantLabel
                                   ? ` (${item.variantLabel})`
                                   : "";
-                                return `• ${item.quantity}x ${item.name}${variant} - ${formatCurrency(item.total ?? item.price * item.quantity)}`;
+                                return `${item.quantity}x ${item.name}${variant} - ${formatCurrency(item.total ?? item.price * item.quantity)}`;
                               })
                               .join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
                             const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;

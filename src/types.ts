@@ -278,7 +278,8 @@ export type NotificationEvent =
   | 'RAPPORT_ADMIN'
   | 'RECAP_VENTES_JOUR'
   | 'ALERTE_TECHNIQUE'
-  | 'PAIEMENT_INCIDENT';
+  | 'PAIEMENT_INCIDENT'
+  | 'PAIEMENT_ECHOUE';
 
 export interface NotificationPreference {
   id: string;

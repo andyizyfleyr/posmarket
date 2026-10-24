@@ -395,6 +395,19 @@ export const notificationPreferences = pgTable('notification_preferences', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const pushTokens = pgTable('push_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  token: text('token').notNull().unique(),
+  platform: text('platform').default('android').notNull(),
+  deviceName: text('device_name'),
+  enabled: boolean('enabled').default(true).notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  { userIdx: { columns: [t.userId], name: 'push_tokens_user_idx' } as const },
+]);
+
 export const notificationOutbox = pgTable('notification_outbox', {
   id: uuid('id').primaryKey().defaultRandom(),
   recipientUserId: uuid('recipient_user_id').references(() => profiles.id, { onDelete: 'set null' }),

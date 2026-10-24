@@ -571,11 +571,11 @@ export async function saveProductReviewAction(
 
     try {
       const storeInfo = await getStorePhone(storeId);
-      if (storeInfo?.email) {
+      if (storeInfo) {
         const [prod] = await db.select({ id: products.id, name: products.name }).from(products).where(eq(products.id, productId)).limit(1);
         await notify({
           userId: storeInfo.ownerId,
-          email: storeInfo.email,
+          email: storeInfo.email || '',
           eventType: 'NOUVEL_AVIS',
           title: 'Nouvel avis',
           body: `Un nouvel avis (${rating}/5) a été publié sur un de vos produits.`,
@@ -743,7 +743,10 @@ export async function notifyCartInterestAction(data: unknown) {
     total?: number | string;
   };
   const phone = String(payload.phone || '').trim();
-  if (!phone) return { success: true, error: undefined };
+  // Le `userId` du payload n'est jamais fiable : on utilise la session.
+  const { user } = await getCurrentSession();
+  const targetUserId = user?.id || null;
+  if (!phone && !targetUserId) return { success: true, error: undefined };
 
   // Cette action déclenche un WhatsApp à un numéro fourni par le client : sans
   // plafond, elle devient un outil d'envoi de SMS en masse.
@@ -754,7 +757,7 @@ export async function notifyCartInterestAction(data: unknown) {
   try {
     const retryAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await notify({
-      userId: payload.userId || null,
+      userId: targetUserId,
       phone,
       eventType: 'RELANCE_PANIER_ABANDONNE',
       title: 'Votre panier vous attend',

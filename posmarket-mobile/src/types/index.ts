@@ -213,6 +213,7 @@ export interface NotificationPreference {
   optIn: boolean;
   whatsapp: { enabled: boolean; hasAddress: boolean; phone: string };
   email: { enabled: boolean; hasAddress: boolean; email: string };
+  push: { enabled: boolean; hasAddress: boolean };
 }
 
 export interface NotificationOutboxItem {

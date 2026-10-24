@@ -389,7 +389,7 @@ export async function fetchNotificationOutbox(
 
 export async function setNotificationPreference(payload: {
   eventType: string;
-  channel: 'whatsapp' | 'email';
+  channel: 'whatsapp' | 'email' | 'push';
   enabled: boolean;
   whatsappPhone?: string;
   emailAddress?: string;
@@ -397,6 +397,33 @@ export async function setNotificationPreference(payload: {
   return apiFetch('/api/marketplace/buyer/notifications', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+interface PushTokenResponse {
+  success: boolean;
+  error?: string;
+}
+
+/** Enregistre le jeton push Expo de l'appareil pour l'utilisateur connecté. */
+export async function registerPushToken(payload: {
+  token: string;
+  platform: 'ios' | 'android';
+  deviceName?: string;
+}): Promise<PushTokenResponse> {
+  return apiFetch<PushTokenResponse>('/api/marketplace/push-token', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Désactive le jeton push à la déconnexion. */
+export async function unregisterPushToken(token: string): Promise<PushTokenResponse> {
+  return apiFetch<PushTokenResponse>('/api/marketplace/push-token', {
+    method: 'DELETE',
+    body: JSON.stringify({ token }),
+    // La déconnexion ne doit pas rester bloquée si le réseau est lent.
+    timeout: 4000,
   });
 }
 

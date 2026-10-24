@@ -7,8 +7,7 @@ import { orders, orderItems, customers } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, decrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
 import { eq, inArray, desc, sql, and, or, ilike } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
-import { isWhatsAppConfigured } from '@/lib/whatsapp'
-import { isEmailConfigured, orderEmailProducts } from '@/lib/email'
+import { orderEmailProducts } from '@/lib/email'
 import { requireStoreAccess, ACCES_REFUSE } from '@/lib/authorization'
 
 // ---------------------------------------------------------------------------
@@ -44,7 +43,6 @@ async function requireAllOrdersAccess(orderIds: string[]): Promise<{ ok: true; s
 // ---------------------------------------------------------------------------
 
 async function sendStatusNotifications(orderId: string, status: string) {
-    if (!isWhatsAppConfigured() && !(await isEmailConfigured())) return;
     try {
         const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
         if (!order) return;
@@ -69,23 +67,30 @@ async function sendStatusNotifications(orderId: string, status: string) {
             const [cust] = await db.select({ email: customers.email }).from(customers).where(eq(customers.id, order.customerId)).limit(1);
             buyerEmail = cust?.email || '';
         }
-        if (!buyerPhone && !buyerEmail) return;
+        if (!buyerPhone && !buyerEmail && !order.buyerUserId) return;
 
         const eventName =
             status === 'COMPLETED'
                 ? 'COMMANDE_LIVREE'
                 : status === 'CANCELLED' || status === 'ANNULEE'
                     ? 'COMMANDE_ANNULEE'
-                    : null;
+                    : status === 'READY'
+                        ? 'COMMANDE_PRET'
+                        : null;
         if (!eventName) return;
 
         const products = await orderEmailProducts(orderId);
-        const labels = { COMMANDE_LIVREE: 'Commande livrée', COMMANDE_ANNULEE: 'Commande annulée' };
+        const labels = {
+            COMMANDE_PRET: 'Commande prête',
+            COMMANDE_LIVREE: 'Commande livrée',
+            COMMANDE_ANNULEE: 'Commande annulée',
+        };
         const storeLabel = storeInfo?.name || 'boutique';
         const totalStr = new Intl.NumberFormat('fr-FR').format(Number(order.total) || 0);
         const bodies = {
-            COMMANDE_LIVREE: `Votre commande #${shortId} (${storeLabel}) a bien été livrée. Merci pour votre achat !`,
-            COMMANDE_ANNULEE: `Votre commande #${shortId} (${storeLabel}) a été annulée. Contactez la boutique pour plus d'informations.`,
+            COMMANDE_PRET: `Votre commande ${shortId} (${storeLabel}) est prête. Présentez votre référence lors du retrait.`,
+            COMMANDE_LIVREE: `Votre commande ${shortId} (${storeLabel}) a bien été livrée. Merci pour votre achat.`,
+            COMMANDE_ANNULEE: `Votre commande ${shortId} (${storeLabel}) a été annulée. Contactez la boutique pour plus d'informations.`,
         };
 
         await notify({
@@ -96,7 +101,7 @@ async function sendStatusNotifications(orderId: string, status: string) {
             title: labels[eventName as keyof typeof labels],
             body: bodies[eventName as keyof typeof bodies],
             templateParams: [shortId, storeInfo?.name || 'boutique'],
-            emailData: { order: shortId, store: storeLabel, storeSlug: storeInfo?.slug || '', total: totalStr, products },
+            emailData: { order: shortId, orderId: order.id, store: storeLabel, storeSlug: storeInfo?.slug || '', total: totalStr, products },
         });
 
         if (eventName === 'COMMANDE_LIVREE') {
@@ -105,10 +110,11 @@ async function sendStatusNotifications(orderId: string, status: string) {
                 email: buyerEmail,
                 eventType: 'DEMANDE_AVIS',
                 title: 'Donnez votre avis',
-                body: `Votre commande #${shortId} (${storeLabel}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
+                body: `Votre commande ${shortId} (${storeLabel}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
                 templateParams: [shortId, storeInfo?.name || 'boutique'],
-                emailData: { order: shortId, store: storeLabel, storeSlug: storeInfo?.slug || '', products },
+                emailData: { order: shortId, orderId: order.id, store: storeLabel, storeSlug: storeInfo?.slug || '', products },
                 scheduledAt: new Date(Date.now() + 15 * 60 * 1000),
+                marker: `order-${shortId}`,
             });
         }
     } catch {}

@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { kkiapayConfigured, verifyKkiapayWebhookSecret, verifyKkiapayTransaction } from '@/lib/kkiapay';
-import { notify, getAdminEmails } from '@/lib/notifications';
+import { notify, getAdminEmails, notifyPaymentFailed } from '@/lib/notifications';
 import { kkiapayWebhookSchema } from '@/lib/schemas';
 
 export async function POST(request: Request) {
@@ -106,6 +106,12 @@ export async function POST(request: Request) {
             eq(subscriptionPayments.transactionId, row.transactionId!),
             eq(subscriptionPayments.status, 'PENDING'),
           ));
+        await notifyPaymentFailed({
+          userId: row.userId,
+          amount: row.amount,
+          provider: 'Kkiapay',
+          reference: kTxId,
+        });
       }
 
       const admins = await getAdminEmails();

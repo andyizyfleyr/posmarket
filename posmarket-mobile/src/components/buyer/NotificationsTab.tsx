@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import {
+  Bell,
   BellRing,
   Inbox,
   Mail,
@@ -31,7 +32,7 @@ import { useToast } from '@/components/ToastProvider';
 import type { NotificationOutboxItem, NotificationPreference } from '@/types';
 import { COLORS } from '@/theme';
 
-type Channel = 'whatsapp' | 'email';
+type Channel = 'whatsapp' | 'email' | 'push';
 
 const STATUS_TONE: Record<string, { background: string; color: string }> = {
   SENT: { background: '#ECFDF5', color: '#047857' },
@@ -59,7 +60,9 @@ interface ChannelToggleProps {
 }
 
 function ChannelToggle({ row, channel, label, icon, saving, onToggle }: ChannelToggleProps) {
-  const conf = row[channel];
+  // Défensif : une version antérieure du serveur peut ne pas encore renvoyer
+  // le canal push.
+  const conf = row[channel] ?? { enabled: false, hasAddress: false };
 
   if (!conf.hasAddress) {
     return (
@@ -178,8 +181,10 @@ export const NotificationsTab: React.FC = () => {
         (p) =>
           p.whatsapp.enabled ||
           p.email.enabled ||
+          p.push?.enabled ||
           p.whatsapp.hasAddress ||
-          p.email.hasAddress,
+          p.email.hasAddress ||
+          p.push?.hasAddress,
       );
 
   if (loading) {
@@ -202,7 +207,7 @@ export const NotificationsTab: React.FC = () => {
             <View style={styles.sectionHeadText}>
               <Text style={styles.sectionTitle}>Notifications</Text>
               <Text style={styles.sectionSubtitle}>
-                Choisissez comment être prévenu (WhatsApp et/ou e-mail)
+                Choisissez comment être prévenu (push, WhatsApp et/ou e-mail)
               </Text>
             </View>
           </View>
@@ -229,6 +234,14 @@ export const NotificationsTab: React.FC = () => {
                   ) : null}
                 </View>
                 <View style={styles.channels}>
+                  <ChannelToggle
+                    row={row}
+                    channel="push"
+                    label="Push"
+                    icon={<Bell size={14} color="#4B5563" />}
+                    saving={savingKey === `${row.eventType}:push`}
+                    onToggle={handleToggle}
+                  />
                   <ChannelToggle
                     row={row}
                     channel="whatsapp"
@@ -286,6 +299,8 @@ export const NotificationsTab: React.FC = () => {
                     <View style={styles.outboxIcon}>
                       {item.provider === 'email' ? (
                         <Mail size={14} color="#9CA3AF" />
+                      ) : item.provider === 'push' ? (
+                        <Bell size={14} color="#9CA3AF" />
                       ) : (
                         <MessageCircle size={14} color="#9CA3AF" />
                       )}

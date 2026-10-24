@@ -15,8 +15,9 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchBuyerProfile, loginBuyer } from '@/api/client';
+import { fetchBuyerProfile, loginBuyer, unregisterPushToken } from '@/api/client';
 import { getSessionSync, loadSession, saveSession } from '@/api/session';
+import { PUSH_TOKEN_STORAGE_KEY } from '@/utils/notifications';
 import { useToast } from '@/components/ToastProvider';
 import { AuthModal } from '@/components/buyer/AuthModal';
 
@@ -152,6 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    const pushToken = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY).catch(() => null);
+    if (pushToken) {
+      await unregisterPushToken(pushToken).catch(() => {});
+      await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY).catch(() => {});
+    }
     await saveSession(null);
     persistUser(null);
     try {
