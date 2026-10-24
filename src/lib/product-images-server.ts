@@ -95,7 +95,9 @@ function productFilter(storeId: string, productIds?: string[]) {
 /* Fragments SQL réutilisés : nombre d'images principales / galerie / variantes. */
 
 const MAIN_IMAGE_COUNT = sql<number>`CASE
-  WHEN ${products.image} IS NULL OR btrim(${products.image}) = '' THEN 0 ELSE 1 END`;
+  WHEN ${products.image} IS NULL OR btrim(${products.image}) = '' THEN 0 ELSE 1 END`.as(
+  'main_image_count',
+);
 
 const GALLERY_IMAGE_COUNT = sql<number>`COALESCE((
   SELECT count(*)::int
@@ -105,16 +107,16 @@ const GALLERY_IMAGE_COUNT = sql<number>`COALESCE((
   ) AS gallery(value)
   WHERE jsonb_typeof(gallery.value) = 'string'
     AND btrim(COALESCE(gallery.value #>> '{}', '')) <> ''
-), 0)`;
+), 0)`.as('gallery_image_count');
 
 const VARIANT_IMAGE_COUNT = sql<number>`COALESCE((
   SELECT count(*)::int
   FROM jsonb_array_elements(
     CASE WHEN jsonb_typeof(${products.variants}) = 'array'
       THEN ${products.variants} ELSE '[]'::jsonb END
-  ) AS variant(item)
-  WHERE btrim(COALESCE(variant.item->>'image', '')) <> ''
-), 0)`;
+  ) AS variant_item(item)
+  WHERE btrim(COALESCE(variant_item.item->>'image', '')) <> ''
+), 0)`.as('variant_image_count');
 
 export interface ProductImagesSummary {
   productCount: number;
@@ -182,8 +184,8 @@ export async function storeHasProductImages(
             FROM jsonb_array_elements(
               CASE WHEN jsonb_typeof(${products.variants}) = 'array'
                 THEN ${products.variants} ELSE '[]'::jsonb END
-            ) AS variant(item)
-            WHERE btrim(COALESCE(variant.item->>'image', '')) <> ''
+            ) AS variant_item(item)
+            WHERE btrim(COALESCE(variant_item.item->>'image', '')) <> ''
           )
         )`,
       ),
