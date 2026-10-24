@@ -306,8 +306,8 @@ export function ExportProductImagesModal({
                 <View style={styles.infoRow}>
                   <Info size={14} color={COLORS.brand} style={styles.infoIcon} />
                   <Text style={styles.infoText}>
-                    Un dossier par produit, avec l’image principale, la galerie et les photos
-                    de variantes.
+                    Toutes les photos dans un seul dossier. Les produits qui ont plusieurs
+                    photos reçoivent leur propre sous-dossier.
                   </Text>
                 </View>
                 <View style={styles.infoRow}>

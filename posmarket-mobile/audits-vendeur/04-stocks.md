@@ -108,7 +108,7 @@
 - Overlay `black/60` + flou, panneau blanc radius 24 max 512 px ; en-tête avec pastille orange `FolderArchive` 24, titre « **Télécharger les images** », sous-titre « **{storeName} • toutes les photos produits dans un ZIP** » ; bouton `X`.
 - Bandeau de compteurs (fond `orange-50`) : « **{N} photos prêtes à télécharger** » + « {M} produits avec image • {K} sans photo » ; état vide « **Aucune photo à télécharger** » ; état chargement « **Comptage des photos en cours…** ».
 - « **1. Périmètre** » : « Tous les produits » / « Sélection ({N}) » (désactivée au-delà de 300 produits, message « Maximum 300 produits — utilisez « Tous les produits » »).
-- « **2. Contenu de l'archive** » : un dossier par produit (principale, galerie, variantes), `manifeste-images.csv` (produit, rôle, fichier, source, statut, taille) et note sur la limite de 500 images.
+- « **2. Contenu de l'archive** » : toutes les photos dans un même dossier, un sous-dossier seulement pour les produits qui ont plusieurs photos (principale, galerie, variantes), `manifeste-images.csv` (produit, rôle, fichier, source, statut, taille) et note sur la limite de 500 images.
 - Pied : « **Annuler** » / bouton orange « **Télécharger {N} images** » (spinner « Préparation du ZIP… », succès « Téléchargé ! » puis fermeture). En mobile : l'archive est écrite dans le cache puis proposée via la feuille de partage (`expo-sharing`).
 - API : `GET /api/marketplace/seller/inventory/images/summary|export?storeId=…&ids=a,b` (vendeur authentifié, ZIP streamé). Route web : `fetch` + `blob` ; mobile : `FileSystem.downloadAsync` avec les en-têtes de session.
 

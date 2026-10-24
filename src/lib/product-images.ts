@@ -452,6 +452,55 @@ export function exportDateStamp(date = new Date()): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/* ── Arborescence de l'archive ────────────────────────────────────────── */
+
+/** Décrit la position d'une image dans l'archive (dossier = produit ou racine). */
+export interface ArchiveImageTarget {
+  /** Produit concerné (pour les libellés). */
+  productName: string;
+  /** Position 1-based du produit dans le catalogue. */
+  productIndex: number;
+  /** Nombre total d'images du produit (décide dossier ou fichier direct). */
+  productImageCount: number;
+}
+
+/** `001-nom-du-produit` : le préfixe conserve l'ordre du catalogue. */
+export function productArchiveBaseName(target: ArchiveImageTarget): string {
+  return `${String(target.productIndex).padStart(3, '0')}-${slugifyFilePart(target.productName, 40)}`;
+}
+
+/** Suffixe lisible du fichier : `01-principale`, `02-galerie`, `03-variante-rouge`. */
+export function imageFilePrefix(slot: ProductImageSlot, index: number): string {
+  const suffix =
+    slot.role === 'variante'
+      ? slugifyFilePart(`variante-${slot.variantName || ''}`, 30)
+      : slot.role;
+  return `${String(index + 1).padStart(2, '0')}-${suffix}`;
+}
+
+/**
+ * Chemin d'une image dans l'archive.
+ *
+ * Toutes les photos vivent dans **un seul dossier** (la racine de l'archive) :
+ * un produit qui n'a qu'une photo donne directement `001-nom-du-produit.jpg`.
+ * Seuls les produits qui ont **plusieurs** photos reçoivent un sous-dossier
+ * (`001-nom-du-produit/01-principale.jpg`, `02-galerie.jpg`…) pour garder
+ * leurs images ensemble.
+ */
+export function buildImageArchivePath(
+  archiveName: string,
+  target: ArchiveImageTarget,
+  slot: ProductImageSlot,
+  slotIndex: number,
+  extension: string,
+): string {
+  const base = productArchiveBaseName(target);
+  if (target.productImageCount <= 1) {
+    return `${archiveName}/${base}.${extension}`;
+  }
+  return `${archiveName}/${base}/${imageFilePrefix(slot, slotIndex)}.${extension}`;
+}
+
 /** Nom du dossier racine de l'archive et du fichier `.zip`. */
 export function buildImagesArchiveName(storeName: string, date = new Date()): string {
   return `images-produits-${slugifyFilePart(storeName, 40)}-${exportDateStamp(date)}`;
@@ -530,12 +579,16 @@ export function buildImagesReadme(
     `Images produits — ${storeName}`,
     `Export du ${new Date().toLocaleString('fr-FR')}`,
     '',
-    `${totals.files} image(s) répartie(s) dans ${totals.products} dossier(s) produit.`,
+    `${totals.files} image(s) pour ${totals.products} produit(s) avec photo.`,
     totals.failures > 0
       ? `${totals.failures} image(s) n'ont pas pu être récupérées : voir le manifeste.`
       : 'Toutes les images ont été récupérées.',
     '',
-    'Chaque dossier correspond à un produit, dans l’ordre du catalogue.',
+    'Toutes les photos sont rangées dans ce même dossier, dans l’ordre du',
+    'catalogue. Un produit qui n’a qu’une photo donne directement un fichier',
+    '« 001-nom-du-produit.jpg » ; un produit qui a plusieurs photos reçoit un',
+    'sous-dossier à son nom (image principale, galerie, variantes).',
+    '',
     'Le fichier « manifeste-images.csv » associe chaque fichier à son produit',
     'et à son rôle (principale, galerie ou variante).',
     '',

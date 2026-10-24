@@ -93,7 +93,7 @@ Tous les prix sont en **FCFA (XOF)**.
 - **Comptes séparés** — Acheteur et vendeur sont deux espaces distincts
 - **Notifications push** — Vendeurs : commandes, stock bas, avis. Acheteurs : promos
 - **Photos de bonne qualité** — Compression automatique (WebP), même sur 3G
-- **Sauvegarde des photos** — Bouton « Images » de l'inventaire : télécharge toutes les photos produits dans un seul fichier ZIP (un dossier par produit + un manifeste CSV), pour les sauvegarder ou changer d'outil
+- **Sauvegarde des photos** — Bouton « Images » de l'inventaire : télécharge toutes les photos produits dans un seul fichier ZIP (toutes les images dans un même dossier, un sous-dossier seulement pour les produits qui ont plusieurs photos + un manifeste CSV), pour les sauvegarder ou changer d'outil
 - **Application sur téléphone** — Installez PosMarket comme une PWA. Panier conservé hors ligne
 - **Paiement protégé** — Espèces à la livraison ou carte bancaire sécurisée
 - **Bien vendre = bien décrire** — Produits bien décrits remontent mieux dans la recherche

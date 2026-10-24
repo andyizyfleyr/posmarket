@@ -4,14 +4,13 @@ import { parseQuery } from '@/lib/validation';
 import { sellerImagesQuerySchema } from '@/lib/schemas';
 import { rateLimit, rateLimitMessage } from '@/lib/rate-limit';
 import {
+  buildImageArchivePath,
   buildImagesArchiveName,
   buildImagesManifestCsv,
   buildImagesReadme,
   fetchProductImage,
   IMAGE_EXPORT_LIMITS,
-  slugifyFilePart,
   type ImagesManifestRow,
-  type ProductImageSlot,
 } from '@/lib/product-images';
 import {
   iterateStoreProductImageFolders,
@@ -37,19 +36,7 @@ interface ImageTask {
   slotIndex: number;
 }
 
-/** `001-nom-du-produit` : le préfixe conserve l'ordre du catalogue. */
-function productFolderName(folder: ProductImageFolder): string {
-  return `${String(folder.productIndex).padStart(3, '0')}-${slugifyFilePart(folder.productName, 40)}`;
-}
 
-/** Suffixe lisible du fichier : `01-principale`, `02-galerie`, `03-variante-rouge`. */
-function slotFilePrefix(slot: ProductImageSlot, index: number): string {
-  const suffix =
-    slot.role === 'variante'
-      ? slugifyFilePart(`variante-${slot.variantName || ''}`, 30)
-      : slot.role;
-  return `${String(index + 1).padStart(2, '0')}-${suffix}`;
-}
 
 /**
  * GET /api/marketplace/seller/inventory/images/export?storeId=…&ids=a,b
@@ -205,9 +192,6 @@ export async function GET(req: NextRequest) {
             if (cancelled) return;
 
             for (const { task, slot, asset } of results) {
-              const folderName = productFolderName(task.folder);
-              const fileBase = slotFilePrefix(slot, task.slotIndex);
-
               if (!asset) {
                 failures += 1;
                 manifestRows.push({
@@ -240,7 +224,17 @@ export async function GET(req: NextRequest) {
                 continue;
               }
 
-              const path = `${archiveName}/${folderName}/${fileBase}.${asset.extension}`;
+              const path = buildImageArchivePath(
+                archiveName,
+                {
+                  productName: task.folder.productName,
+                  productIndex: task.folder.productIndex,
+                  productImageCount: task.folder.slots.length,
+                },
+                slot,
+                task.slotIndex,
+                asset.extension,
+              );
               enqueueAll(writer.addFile(path, asset.bytes));
               filesWritten += 1;
               exportedProductIds.add(task.folder.productId);

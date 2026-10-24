@@ -39,7 +39,7 @@ const features = [
   {
     icon: FolderArchive,
     title: "Images en un clic",
-    desc: "Depuis la page Produits, le bouton « Images » télécharge toutes les photos de votre catalogue (ou d'une sélection) dans une seule archive ZIP, avec un dossier par produit et un manifeste CSV.",
+    desc: "Depuis la page Produits, le bouton « Images » télécharge toutes les photos de votre catalogue (ou d'une sélection) dans une seule archive ZIP : toutes les images dans un même dossier, un sous-dossier seulement pour les produits qui ont plusieurs photos, et un manifeste CSV.",
     color: "bg-indigo-50 text-indigo-600",
   },
   {

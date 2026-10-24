@@ -220,8 +220,9 @@ export default function VendeurPage() {
         </p>
         <p className="text-xs font-normal text-gray-700">
           <strong>Télécharger toutes les photos :</strong> cliquez sur « Images » dans la barre
-          d&apos;outils. Une seule archive ZIP est préparée avec un dossier par produit (image
-          principale, galerie et photos de variantes) et un fichier{" "}
+          d&apos;outils. Une seule archive ZIP est préparée : toutes les photos dans un même
+          dossier, un sous-dossier seulement pour les produits qui ont plusieurs photos (image
+          principale, galerie et variantes), plus un fichier{" "}
           <strong>manifeste-images.csv</strong>. Cochez des produits pour n&apos;exporter que
           la sélection.
         </p>

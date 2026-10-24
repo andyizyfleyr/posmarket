@@ -407,8 +407,8 @@ export default function ExportProductImagesModal({
               <div className="flex items-start gap-2 text-xs text-gray-600">
                 <Info size={14} className="text-brand mt-0.5 flex-shrink-0" />
                 <span>
-                  Un dossier par produit, avec l’image principale, la galerie et les
-                  photos de variantes.
+                  Toutes les photos dans un seul dossier. Les produits qui ont plusieurs
+                  photos reçoivent leur propre sous-dossier.
                 </span>
               </div>
               <div className="flex items-start gap-2 text-xs text-gray-600">
