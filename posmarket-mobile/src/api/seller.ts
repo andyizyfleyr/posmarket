@@ -8,7 +8,8 @@
  * cookie `currentStoreId` seul ne suffit pas (il reste envoyé pour le web).
  */
 
-import { apiFetch } from '@/api/client';
+import { apiDownloadHeaders, apiFetch, apiFileUrl } from '@/api/client';
+import { downloadAndShareFile } from '@/utils/files';
 
 export interface SellerUser {
   id: string;
@@ -676,4 +677,87 @@ export async function transferSellerProducts(
     body: JSON.stringify({ sourceStoreId, targetStoreId, productIds, options }),
     extraCookies: [`currentStoreId=${sourceStoreId}`],
   });
+}
+
+/* ── Images produits (archive ZIP) ────────────────────────────────────── */
+
+export interface SellerImagesSummary {
+  success: boolean;
+  storeId?: string;
+  storeName?: string;
+  productCount?: number;
+  productsWithImages?: number;
+  productsWithoutImages?: number;
+  imageCount?: number;
+  error?: string;
+}
+
+/** Query string `storeId=…&ids=…` (liste d'identifiants séparés par des virgules). */
+function imagesQuery(storeId: string, ids?: string[]): string {
+  const parts = [`storeId=${encodeURIComponent(storeId)}`];
+  if (ids && ids.length > 0) {
+    parts.push(`ids=${encodeURIComponent(ids.join(','))}`);
+  }
+  return parts.join('&');
+}
+
+/** Compteurs de photos avant téléchargement (aucune image n'est transférée). */
+export async function fetchSellerImagesSummary(
+  storeId: string,
+  ids?: string[],
+): Promise<SellerImagesSummary> {
+  return apiFetch(
+    `/api/marketplace/seller/inventory/images/summary?${imagesQuery(storeId, ids)}`,
+    { extraCookies: [`currentStoreId=${storeId}`] },
+  );
+}
+
+/**
+ * Télécharge l'archive ZIP de toutes les images produits puis ouvre la feuille
+ * de partage native (enregistrer, envoyer par WhatsApp, Drive…).
+ */
+export async function downloadSellerProductImagesZip(
+  storeId: string,
+  ids: string[] | undefined,
+  storeName?: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const url = apiFileUrl(
+    `/api/marketplace/seller/inventory/images/export?${imagesQuery(storeId, ids)}`,
+  );
+  const headers = await apiDownloadHeaders([`currentStoreId=${storeId}`]);
+  const safeStore = (storeName || 'boutique')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+    .slice(0, 40);
+  const date = new Date().toISOString().slice(0, 10);
+  const filename = `images-produits-${safeStore || 'boutique'}-${date}.zip`;
+
+  try {
+    const result = await downloadAndShareFile(url, filename, headers, {
+      mimeType: 'application/zip',
+      dialogTitle: 'Images produits',
+      expectedMimeType: 'application/zip',
+    });
+    if (result.ok) return { ok: true };
+
+    let message = `Téléchargement impossible (${result.status}).`;
+    try {
+      const payload = JSON.parse(result.body) as { error?: string };
+      if (payload?.error === 'Unauthorized') return { ok: false, error: 'Unauthorized' };
+      if (typeof payload?.error === 'string' && payload.error.trim()) {
+        message = payload.error;
+      }
+    } catch {
+      // Corps non JSON (proxy, coupure réseau) : message générique.
+    }
+    return { ok: false, error: message };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Téléchargement impossible.',
+    };
+  }
 }

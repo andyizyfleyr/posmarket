@@ -6,6 +6,7 @@ import {
   BellRing,
   ImageIcon,
   Download,
+  FolderArchive,
   ShieldCheck,
   Search,
   ArrowRight,
@@ -33,6 +34,12 @@ const features = [
     icon: ImageIcon,
     title: "Photos de bonne qualité",
     desc: "Les images sont automatiquement compressées (format WebP, max 800 Ko) pour que votre boutique reste rapide même sur connexion lente.",
+    color: "bg-indigo-50 text-indigo-600",
+  },
+  {
+    icon: FolderArchive,
+    title: "Images en un clic",
+    desc: "Depuis la page Produits, le bouton « Images » télécharge toutes les photos de votre catalogue (ou d'une sélection) dans une seule archive ZIP : toutes les images dans un même dossier, un sous-dossier seulement pour les produits qui ont plusieurs photos, et un manifeste CSV.",
     color: "bg-indigo-50 text-indigo-600",
   },
   {

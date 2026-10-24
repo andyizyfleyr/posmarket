@@ -44,6 +44,7 @@ import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getPr
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
 import ExportProductsModal from '@/components/inventory/ExportProductsModal';
+import ExportProductImagesModal from '@/components/inventory/ExportProductImagesModal';
 import ImportProductsModal from '@/components/inventory/ImportProductsModal';
 import TransferProductsModal from '@/components/inventory/TransferProductsModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -115,8 +116,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [showSuccessToast, setShowSuccessToast] = useState<string | null>(null);
   const [showErrorToast, setShowErrorToast] = useState<string | null>(null);
 
-  // Modals state for export, import, transfer
+  // Modals state for export, import, transfer, images
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [totalProductsCount, setTotalProductsCount] = useState(initialProducts?.length || 0);
@@ -553,6 +555,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               </button>
 
               <button
+                onClick={() => setIsImagesModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all"
+                title="Télécharger les images des produits sélectionnés"
+              >
+                <ImageIcon size={14} className="text-emerald-300" />
+                <span>Images ({selectedIds.size})</span>
+              </button>
+
+              <button
                 onClick={() => setIsTransferModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all"
               >
@@ -607,6 +618,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             >
               <Download size={14} className="text-gray-500" />
               <span>Exporter</span>
+            </button>
+
+            <div className="h-4 w-px bg-gray-200 my-auto" />
+            <button
+              onClick={() => setIsImagesModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 md:py-2 text-xs font-bold text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 rounded-xl transition-all"
+              title="Télécharger toutes les images de vos produits dans une archive ZIP"
+            >
+              <ImageIcon size={14} className="text-gray-500" />
+              <span>Images</span>
             </button>
 
             {permissions.canManageInventory && (
@@ -1825,6 +1846,17 @@ if (formData.images.length >= 8) {
         selectedProductIds={Array.from(selectedIds)}
         totalProductsCount={totalProductsCount || localProducts.length}
         localProducts={localProducts}
+      />
+
+      {/* Images Export Modal */}
+      <ExportProductImagesModal
+        isOpen={isImagesModalOpen}
+        onClose={() => setIsImagesModalOpen(false)}
+        storeId={currentStoreId || ''}
+        storeName={storeName}
+        selectedProductIds={Array.from(selectedIds)}
+        selectedProductsCount={selectedIds.size}
+        totalProductsCount={totalProductsCount || localProducts.length}
       />
 
       {/* Import Modal */}

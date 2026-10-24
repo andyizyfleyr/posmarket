@@ -61,6 +61,7 @@ import {
 } from '@/api/seller';
 import { ProductFormModal } from './inventory/ProductFormModal';
 import { ExportProductsModal } from './inventory/ExportProductsModal';
+import { ExportProductImagesModal } from './inventory/ExportProductImagesModal';
 import { ImportProductsModal } from './inventory/ImportProductsModal';
 import { TransferProductsModal } from './inventory/TransferProductsModal';
 
@@ -107,6 +108,7 @@ export function SellerInventoryView({
   const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
@@ -419,6 +421,14 @@ export function SellerInventoryView({
               <Download size={16} color="#4B5563" />
               <Text style={styles.toolText}>Exporter</Text>
             </Pressable>
+            <Pressable
+              onPress={() => setIsImagesModalOpen(true)}
+              style={styles.toolBtn}
+              accessibilityLabel="Télécharger toutes les images des produits"
+            >
+              <ImageIcon size={16} color="#059669" />
+              <Text style={[styles.toolText, { color: '#047857' }]}>Images</Text>
+            </Pressable>
             {canManageInventory ? (
               <>
                 <Pressable
@@ -465,6 +475,13 @@ export function SellerInventoryView({
                   accessibilityLabel={`Exporter ${selectedIds.length} produits`}
                 >
                   <Download size={16} color="#FFFFFF" />
+                </Pressable>
+                <Pressable
+                  onPress={() => setIsImagesModalOpen(true)}
+                  style={[styles.selectionBtn, { backgroundColor: '#059669' }]}
+                  accessibilityLabel={`Télécharger les images de ${selectedIds.length} produits`}
+                >
+                  <ImageIcon size={16} color="#FFFFFF" />
                 </Pressable>
                 <Pressable
                   onPress={() => setIsTransferModalOpen(true)}
@@ -713,7 +730,17 @@ export function SellerInventoryView({
         </View>
       ) : null}
 
-      {/* Modales export / import / transfert */}
+      {/* Modales export / images / import / transfert */}
+      <ExportProductImagesModal
+        isOpen={isImagesModalOpen}
+        onClose={() => setIsImagesModalOpen(false)}
+        storeId={storeId}
+        storeName={storeName}
+        selectedProductIds={selectedIds}
+        selectedProductsCount={selectedIds.length}
+        totalProductsCount={totalProductsCount || localProducts.length}
+        onUnauthorized={onUnauthorized}
+      />
       <ExportProductsModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
@@ -998,9 +1025,10 @@ const styles = StyleSheet.create({
 
   /* Actions */
   actionsBlock: { paddingTop: 2, gap: 8 },
-  toolRow: { flexDirection: 'row', gap: 6 },
+  toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   toolBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '47%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
