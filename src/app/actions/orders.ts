@@ -7,6 +7,8 @@ import { orders, orderItems, customers } from '@/db/schema'
 import { invalidateOrdersCache, getStoreIdForOrder, incrementProductSales, decrementProductSales, adjustProductStock, isCancelledOrderStatus, getOrderItemsForStock } from '@/db/api'
 import { eq, inArray, desc, sql, and, or, ilike } from 'drizzle-orm'
 import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/notifications'
+import { sendPushToGuest } from '@/lib/push'
+import { buildPushContent } from '@/lib/push-templates'
 import { orderEmailProducts } from '@/lib/email'
 import { requireStoreAccess, ACCES_REFUSE } from '@/lib/authorization'
 
@@ -104,6 +106,23 @@ async function sendStatusNotifications(orderId: string, status: string) {
             emailData: { order: shortId, orderId: order.id, store: storeLabel, storeSlug: storeInfo?.slug || '', total: totalStr, products },
         });
 
+        // Invité sans compte : envoyer le push directement aux appareils liés à cette commande
+        if (!order.buyerUserId) {
+            try {
+                const pushContent = buildPushContent(eventName as any, {
+                    title: labels[eventName as keyof typeof labels],
+                    body: bodies[eventName as keyof typeof bodies],
+                    emailData: { order: shortId, orderId: order.id, store: storeLabel, storeSlug: storeInfo?.slug || '', total: totalStr },
+                });
+                await sendPushToGuest(order.id, {
+                    title: pushContent.title,
+                    body: pushContent.body,
+                    url: `/account?tab=orders&order=${order.id}`,
+                    channelId: pushContent.channelId,
+                });
+            } catch {}
+        }
+
         if (eventName === 'COMMANDE_LIVREE') {
             await notify({
                 userId: order.buyerUserId || null,
@@ -116,6 +135,22 @@ async function sendStatusNotifications(orderId: string, status: string) {
                 scheduledAt: new Date(Date.now() + 15 * 60 * 1000),
                 marker: `order-${shortId}`,
             });
+
+            if (!order.buyerUserId) {
+                try {
+                    const pushContent = buildPushContent('DEMANDE_AVIS', {
+                        title: 'Donnez votre avis',
+                        body: `Votre commande ${shortId} (${storeLabel}) vous a été livrée. Partagez votre expérience en laissant un avis.`,
+                        emailData: { order: shortId, orderId: order.id, store: storeLabel, storeSlug: storeInfo?.slug || '' },
+                    });
+                    await sendPushToGuest(order.id, {
+                        title: pushContent.title,
+                        body: pushContent.body,
+                        url: pushContent.url,
+                        channelId: pushContent.channelId,
+                    });
+                } catch {}
+            }
         }
     } catch {}
 }

@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -53,6 +54,8 @@ import { fetchCatalog, fetchCountryGate, submitCheckout } from '@/api/client';
 import { cartNoun, verticalOfProduct } from '@/constants';
 import { COUNTRIES, isValidPhoneNumber, parsePhoneNumber } from '@/constants/countries';
 import { formatCurrency, getEffectiveItemPrice } from '@/utils';
+import { registerGuestPushToken } from '@/api/client';
+import { getExpoPushToken, requestNotificationPermissions } from '@/utils/notifications';
 import { COLORS } from '@/theme';
 import type { CartItem } from '@/types';
 
@@ -388,6 +391,30 @@ export default function CheckoutScreen() {
         setPromoApplied(null);
         setStage('success');
         clearCart();
+
+        // Pour un invité, on enregistre le jeton push lié à sa commande pour recevoir
+        // les mises à jour de statut (prête / livrée / annulée).
+        const successOrderId = response.orderIds?.[0] || response.orderId || null;
+        if (successOrderId) {
+          const customer = (response as any).customer || {};
+          (async () => {
+            try {
+              const granted = await requestNotificationPermissions();
+              if (!granted) return;
+              const token = await getExpoPushToken();
+              if (!token) return;
+              await registerGuestPushToken({
+                token,
+                orderId: successOrderId,
+                email: customer.email || undefined,
+                phone: customer.phone || undefined,
+                platform: Platform.OS === 'ios' ? 'ios' : 'android',
+              });
+            } catch {
+              // Pas bloquant : l'invité peut quand même recevoir l'e-mail/WhatsApp
+            }
+          })();
+        }
 
         setIdempotencyKey(`chk-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
       } else {

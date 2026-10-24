@@ -419,6 +419,23 @@ export const pushTokens = pgTable('push_tokens', {
   { userIdx: { columns: [t.userId], name: 'push_tokens_user_idx' } as const },
 ]);
 
+export const guestPushTokens = pgTable('guest_push_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }),
+  email: text('email'),
+  phone: text('phone'),
+  token: text('token').notNull().unique(),
+  platform: text('platform').default('android').notNull(),
+  enabled: boolean('enabled').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at').default(sql`now() + interval '30 days'`).notNull(),
+}, (t) => [
+  { orderIdx: { columns: [t.orderId], name: 'guest_push_tokens_order_idx' } as const },
+  { emailIdx: { columns: [t.email], name: 'guest_push_tokens_email_idx' } as const },
+  { phoneIdx: { columns: [t.phone], name: 'guest_push_tokens_phone_idx' } as const },
+]);
+
 export const notificationOutbox = pgTable('notification_outbox', {
   id: uuid('id').primaryKey().defaultRandom(),
   recipientUserId: uuid('recipient_user_id').references(() => profiles.id, { onDelete: 'set null' }),

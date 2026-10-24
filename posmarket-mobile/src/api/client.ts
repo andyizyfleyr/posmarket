@@ -453,6 +453,20 @@ export async function unregisterPushToken(token: string): Promise<PushTokenRespo
   });
 }
 
+/** Enregistre le jeton push pour une commande invitée (sans compte). */
+export async function registerGuestPushToken(payload: {
+  token: string;
+  orderId: string;
+  email?: string;
+  phone?: string;
+  platform: 'ios' | 'android';
+}): Promise<PushTokenResponse> {
+  return apiFetch<PushTokenResponse>('/api/marketplace/guest/push-token', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 /** Vérifie la connectivité avec le serveur. */
 export async function ping(): Promise<boolean> {
   try {

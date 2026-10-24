@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { db } from '@/db';
-import { pushTokens } from '@/db/schema';
+import { pushTokens, guestPushTokens } from '@/db/schema';
 
 /**
  * Push Expo (application mobile).
@@ -82,6 +82,44 @@ export async function unregisterPushToken(token: string): Promise<void> {
     .update(pushTokens)
     .set({ enabled: false, lastSeenAt: new Date() })
     .where(eq(pushTokens.token, token));
+
+  await db
+    .update(guestPushTokens)
+    .set({ enabled: false, lastSeenAt: new Date() })
+    .where(eq(guestPushTokens.token, token))
+    .catch(() => {});
+}
+
+/** Enregistre (ou réactive) le jeton push d'un invité sur une commande. */
+export async function registerGuestPushToken(input: {
+  orderId: string;
+  token: string;
+  email?: string | null;
+  phone?: string | null;
+  platform: 'ios' | 'android';
+}): Promise<void> {
+  await db
+    .insert(guestPushTokens)
+    .values({
+      orderId: input.orderId,
+      token: input.token,
+      email: input.email || null,
+      phone: input.phone || null,
+      platform: input.platform,
+      enabled: true,
+      lastSeenAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: guestPushTokens.token,
+      set: {
+        orderId: input.orderId,
+        email: input.email || null,
+        phone: input.phone || null,
+        platform: input.platform,
+        enabled: true,
+        lastSeenAt: new Date(),
+      },
+    });
 }
 
 async function disablePushTokens(tokens: string[]): Promise<void> {
@@ -163,6 +201,102 @@ export async function sendPush(userId: string, payload: PushPayload): Promise<Pu
   tickets.forEach((ticket, index) => {
     if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
       invalidTokens.push(tokens[index]);
+    }
+  });
+  if (invalidTokens.length > 0) await disablePushTokens(invalidTokens);
+
+  const accepted = tickets.filter((ticket) => ticket.status === 'ok');
+  if (accepted.length === 0) {
+    const error =
+      tickets.find((ticket) => ticket.status === 'error')?.message ||
+      body.errors?.[0]?.message ||
+      'Envoi push refusé par Expo.';
+    return { ok: false, sent: 0, error };
+  }
+
+  return { ok: true, sent: accepted.length, ticketId: accepted[0]?.id };
+}
+
+/** Envoie une notification push aux invités liés à une commande (sans compte). */
+export async function sendPushToGuest(orderId: string, payload: PushPayload): Promise<PushResult> {
+  const tokens = await db
+    .select({ token: guestPushTokens.token })
+    .from(guestPushTokens)
+    .where(
+      and(
+        eq(guestPushTokens.orderId, orderId),
+        eq(guestPushTokens.enabled, true),
+        gt(guestPushTokens.expiresAt, new Date()),
+      ),
+    )
+    .catch(() => [] as Array<{ token: string }>);
+
+  const validTokens = tokens
+    .map((row) => row.token)
+    .filter((token) => EXPO_TOKEN_RE.test(token));
+
+  if (validTokens.length === 0) {
+    return { ok: false, sent: 0, error: 'Aucun appareil invité enregistré pour cette commande.' };
+  }
+
+  const messages = validTokens.map((token) => ({
+    to: token,
+    title: payload.title,
+    body: payload.body,
+    sound: 'default',
+    priority: 'high',
+    channelId: payload.channelId || 'orders',
+    data: {
+      ...(payload.data || {}),
+      url: payload.url || '/',
+    },
+  }));
+
+  let response: Response;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    try {
+      response = await fetch(EXPO_PUSH_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Accept-Encoding': 'gzip, deflate',
+        },
+        body: JSON.stringify(messages),
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      sent: 0,
+      error: error instanceof Error ? error.message : 'Réseau Expo Push indisponible.',
+    };
+  }
+
+  if (!response.ok) {
+    return { ok: false, sent: 0, error: `Expo Push ${response.status}` };
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch {
+    return { ok: false, sent: 0, error: 'Réponse Expo Push illisible.' };
+  }
+
+  const body = (json || {}) as { data?: ExpoTicket | ExpoTicket[]; errors?: { message?: string }[] };
+  const tickets = Array.isArray(body.data) ? body.data : body.data ? [body.data] : [];
+
+  const invalidTokens: string[] = [];
+  tickets.forEach((ticket, index) => {
+    if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
+      invalidTokens.push(validTokens[index]);
     }
   });
   if (invalidTokens.length > 0) await disablePushTokens(invalidTokens);
