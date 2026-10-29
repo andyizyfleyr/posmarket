@@ -74,6 +74,7 @@ const PROVIDER_NAMES: Record<PaymentProvider, string> = {
   kkiapay: 'Kkiapay',
   fedapay: 'FedaPay',
   feexpay: 'FeexPay',
+  saspay: 'SasPay',
 };
 
 /** Montant de la formule selon la durée choisie. */
@@ -114,6 +115,9 @@ export function SellerSubscriptionView({
     duration: SubscriptionDuration;
   } | null>(null);
   const [paymentHtml, setPaymentHtml] = useState<string | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [paymentReturnUrl, setPaymentReturnUrl] = useState<string | null>(null);
+  const saspayReturnHandled = useRef(false);
   // Facture courante (confirmation après retour du guichet).
   const [pendingTransaction, setPendingTransaction] = useState<string | null>(null);
 
@@ -226,9 +230,11 @@ export function SellerSubscriptionView({
           });
           void onRefresh();
         } else {
+          // Ne propose pas un nouveau paiement tant que celui-ci peut encore aboutir.
+          if (provider === 'saspay' && confirm.code === 'PENDING') setLastAttempt(null);
           openModal({
             status: 'error',
-            title: 'Paiement Non Confirmé',
+            title: confirm.code === 'PENDING' ? 'Paiement en attente' : 'Paiement Non Confirmé',
             message:
               confirm.error ||
               `Le paiement n'a pas pu être validé par ${PROVIDER_NAMES[provider]}.`,
@@ -244,13 +250,16 @@ export function SellerSubscriptionView({
           void onRefresh();
         }
       } catch {
+        if (provider === 'saspay') setLastAttempt(null);
         openModal({
           status: 'error',
           title: 'Erreur de Confirmation',
           message:
-            provider === 'kkiapay'
-              ? 'Une erreur est survenue lors de la confirmation du paiement Kkiapay.'
-              : 'Une erreur est survenue lors de la validation de votre paiement.',
+            provider === 'saspay'
+              ? 'Impossible de vérifier le paiement pour le moment. Actualisez votre abonnement avant de payer à nouveau.'
+              : provider === 'kkiapay'
+                ? 'Une erreur est survenue lors de la confirmation du paiement Kkiapay.'
+                : 'Une erreur est survenue lors de la validation de votre paiement.',
           amount,
           tier,
           duration,
@@ -283,6 +292,7 @@ export function SellerSubscriptionView({
             'Le module de paiement FedaPay est encore en cours de chargement. Veuillez patienter un instant et réessayer.',
           feexpay:
             'Le module de paiement FeexPay est encore en cours de chargement. Veuillez patienter un instant et réessayer.',
+          saspay: 'La page de paiement SasPay est momentanément indisponible.',
         };
         openModal({
           status: 'error',
@@ -389,8 +399,18 @@ export function SellerSubscriptionView({
   const handlePay = useCallback(
     async (tier: SubscriptionPlan['tier'], payDuration: SubscriptionDuration) => {
       setLastAttempt({ tier, duration: payDuration });
+      if (!config) {
+        openModal({ status: 'error', title: 'Paiement indisponible', message: 'Rechargez la page avant de réessayer.' });
+        return;
+      }
 
-      const res = await createSubscriptionPayment(tier, payDuration);
+      let res: Awaited<ReturnType<typeof createSubscriptionPayment>>;
+      try {
+        res = await createSubscriptionPayment(tier, payDuration);
+      } catch {
+        openModal({ status: 'error', title: 'Initialisation échouée', message: 'La connexion a été interrompue. Veuillez réessayer.', tier, duration: payDuration });
+        return;
+      }
       if (res.error === 'Unauthorized') {
         handleUnauthorized();
         return;
@@ -417,9 +437,28 @@ export function SellerSubscriptionView({
         });
         return;
       }
-      if (!config) return;
-
       const provider = config.provider;
+
+      if (provider === 'saspay' || res.paymentUrl) {
+        if (!res.paymentUrl || !res.returnUrl) {
+          openModal({
+            status: 'error',
+            title: 'Guichet indisponible',
+            message: 'La page de paiement SasPay n’a pas pu être ouverte. Veuillez réessayer.',
+            tier,
+            duration: payDuration,
+            amount: res.amount,
+            provider: 'saspay',
+            date: new Date(),
+          });
+          return;
+        }
+        saspayReturnHandled.current = false;
+        setPendingTransaction(res.transactionId);
+        setPaymentReturnUrl(res.returnUrl);
+        setPaymentUrl(res.paymentUrl);
+        return;
+      }
 
       if (provider === 'feexpay') {
         if (!config.feexpayShopId || !config.feexpayApiKey) {
@@ -518,8 +557,25 @@ export function SellerSubscriptionView({
     return hasActivePlan ? `Passer à ${plan.name}` : `Choisir ${plan.name}`;
   };
 
+  const finishSaspay = useCallback(() => {
+    if (saspayReturnHandled.current) return;
+    saspayReturnHandled.current = true;
+    setPaymentUrl(null);
+    setPaymentReturnUrl(null);
+    if (!pendingTransaction || !lastAttempt) return;
+    void confirmPayment(
+      'saspay', pendingTransaction, '', planAmount(lastAttempt.tier, lastAttempt.duration),
+      lastAttempt.tier, lastAttempt.duration,
+    );
+  }, [confirmPayment, lastAttempt, pendingTransaction]);
+
   const closePayment = useCallback(
     (provider: PaymentProvider) => {
+      if (paymentUrl) {
+        // L'échec ne redirige pas forcément : vérifier aussi à la fermeture.
+        finishSaspay();
+        return;
+      }
       setPaymentHtml(null);
       openModal(
         provider === 'kkiapay'
@@ -543,7 +599,7 @@ export function SellerSubscriptionView({
             },
       );
     },
-    [lastAttempt?.duration, lastAttempt?.tier, openModal],
+    [finishSaspay, lastAttempt?.duration, lastAttempt?.tier, openModal, paymentUrl],
   );
 
   const statusTone = isExpired
@@ -848,24 +904,39 @@ export function SellerSubscriptionView({
 
       {/* Guichet de paiement (WebView) */}
       <Modal
-        visible={paymentHtml !== null}
+        visible={paymentHtml !== null || paymentUrl !== null}
         animationType="slide"
-        onRequestClose={() => closePayment(providerOf())}
+        onRequestClose={() => closePayment(paymentUrl ? 'saspay' : providerOf())}
       >
         <View style={styles.webviewScreen}>
           <View style={styles.webviewHeader}>
             <Text style={styles.webviewTitle}>
-              Paiement {PROVIDER_NAMES[providerOf()]}
+              Paiement {PROVIDER_NAMES[paymentUrl ? 'saspay' : providerOf()]}
             </Text>
             <Pressable
-              onPress={() => closePayment(providerOf())}
+              onPress={() => closePayment(paymentUrl ? 'saspay' : providerOf())}
               style={styles.webviewClose}
               accessibilityLabel="Fermer"
             >
               <X size={18} color="#475569" />
             </Pressable>
           </View>
-          {paymentHtml ? (
+          {paymentUrl ? (
+            <WebView
+              source={{ uri: paymentUrl }}
+              originWhitelist={['https://*']}
+              onShouldStartLoadWithRequest={(request) => {
+                if (paymentReturnUrl && (request.url === paymentReturnUrl || request.url.startsWith(`${paymentReturnUrl}&`))) {
+                  finishSaspay();
+                  return false;
+                }
+                return true;
+              }}
+              javaScriptEnabled
+              domStorageEnabled
+              style={styles.webview}
+            />
+          ) : paymentHtml ? (
             <WebView
               source={{ html: paymentHtml, baseUrl: API_BASE_URL }}
               originWhitelist={['*']}

@@ -2,6 +2,7 @@ import SubscriptionClientWrapper from './SubscriptionClientWrapper';
 import { createClient } from '@/utils/supabase/server';
 import { updateSubscriptionAction, createSubscriptionPaymentAction, confirmKkiapayPaymentAction, confirmFedapayPaymentAction, confirmFeexpayPaymentAction } from '@/app/actions/subscription';
 import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
+import { reconcileSaspaySubscription, syncSaspaySubscriptions, type SaspayReconciliation } from '@/lib/saspaySubscriptions';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { UserSubscription, SubscriptionTier, SubscriptionDuration } from '@/types';
 
@@ -12,9 +13,10 @@ type SubscriptionSearchParams = Promise<{ [key: string]: string | string[] | und
 
 export default async function SubscriptionPage({ searchParams }: { searchParams: SubscriptionSearchParams }) {
   const sp = await searchParams;
-  const returnedFromPayment = sp.returned === '1' || sp.kkiapay === 'return' || sp.fedapay === 'return';
-
+  const returnedFromSaspay = sp.saspay === 'return';
   const config = await loadPaymentConfig();
+  // Ne jamais afficher le message legacy de succès sur un retour SasPay forgé.
+  const returnedFromPayment = config.provider !== 'saspay' && !returnedFromSaspay && (sp.returned === '1' || sp.kkiapay === 'return' || sp.fedapay === 'return');
 
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -27,6 +29,22 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
     } catch (error) {
       console.error('Subscription reconciliation error:', error);
     }
+  }
+
+  let saspayPaymentResult: SaspayReconciliation | 'error' | undefined;
+  if (returnedFromSaspay) {
+    try {
+      saspayPaymentResult = await reconcileSaspaySubscription({
+        transactionId: typeof sp.payment === 'string' ? sp.payment : '',
+        userId: session.user.id,
+        apiKey: config.saspayApiKey,
+      });
+    } catch {
+      // La redirection ne prouve pas le paiement : ne jamais afficher un succès ici.
+      saspayPaymentResult = 'error';
+    }
+  } else {
+    await syncSaspaySubscriptions(config.saspayApiKey, session.user.id).catch(() => undefined);
   }
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -62,9 +80,10 @@ export default async function SubscriptionPage({ searchParams }: { searchParams:
       paymentProvider={config.provider}
       userName={profile?.full_name ? String(profile.full_name) : ''}
       userEmail={String(profile?.email ?? session.user.email ?? '')}
-            userAvatarUrl={session.user.avatarUrl}
+      userAvatarUrl={session.user.avatarUrl}
       userPhone={profile?.phone ? String(profile.phone) : ''}
       paymentReturned={returnedFromPayment}
+      saspayPaymentResult={saspayPaymentResult}
     />
   );
 }

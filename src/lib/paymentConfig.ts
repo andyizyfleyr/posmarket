@@ -5,8 +5,10 @@ import { initFedapayConfig } from './fedapay';
 import { initKkiapayConfig } from './kkiapay';
 import { initFeexpayConfig } from './feexpay';
 
+export type PaymentProvider = 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay';
+
 export interface PaymentConfig {
-  provider: 'kkiapay' | 'fedapay' | 'feexpay';
+  provider: PaymentProvider;
   kkiapayPublicKey?: string;
   kkiapayPrivateKey?: string;
   kkiapaySecretKey?: string;
@@ -20,6 +22,9 @@ export interface PaymentConfig {
   feexpaySecretKey?: string;
   feexpayWebhookSecret?: string;
   feexpayEnv?: 'sandbox' | 'live';
+  // Ces secrets restent exclusivement côté serveur, jamais dans les props client.
+  saspayApiKey: string;
+  saspayWebhookSecret: string;
 }
 
 export async function loadPaymentConfig(): Promise<PaymentConfig> {
@@ -28,7 +33,10 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
   for (const r of rows) {
     map.set(r.key, r.value);
   }
-  const provider = (map.get('payment_provider') as 'kkiapay' | 'fedapay' | 'feexpay') || 'kkiapay';
+  const configuredProvider = map.get('payment_provider');
+  const provider: PaymentProvider = configuredProvider === 'fedapay' || configuredProvider === 'feexpay' || configuredProvider === 'saspay'
+    ? configuredProvider
+    : 'kkiapay';
 
   const config: PaymentConfig = {
     provider,
@@ -45,6 +53,8 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
     feexpaySecretKey: map.get('feexpay_secret_key') || '',
     feexpayWebhookSecret: map.get('feexpay_webhook_secret') || '',
     feexpayEnv: (map.get('feexpay_env') as 'sandbox' | 'live') || 'sandbox',
+    saspayApiKey: (map.get('saspay_api_key') || process.env.SASPAY_API_KEY || '').trim(),
+    saspayWebhookSecret: (map.get('saspay_webhook_secret') || process.env.SASPAY_WEBHOOK_SECRET || '').trim(),
   };
 
   // Init fedapay et kkiapay avec la config DB
@@ -71,7 +81,7 @@ export async function loadPaymentConfig(): Promise<PaymentConfig> {
   return config;
 }
 
-export async function getPaymentProvider(): Promise<'kkiapay' | 'fedapay' | 'feexpay'> {
+export async function getPaymentProvider(): Promise<PaymentProvider> {
   const [row] = await db.select({ value: systemSettings.value }).from(systemSettings).where(eq(systemSettings.key, 'payment_provider')).limit(1);
-  return (row?.value as 'kkiapay' | 'fedapay' | 'feexpay') || 'kkiapay';
+  return row?.value === 'fedapay' || row?.value === 'feexpay' || row?.value === 'saspay' ? row.value : 'kkiapay';
 }

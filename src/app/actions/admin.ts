@@ -11,6 +11,7 @@ import { invalidateOrdersCache, incrementProductSales } from '@/db/api';
 import { ACCES_REFUSE } from '@/lib/authorization';
 import { rateLimit, rateLimitMessage, getClientIp } from '@/lib/rate-limit';
 import { stripJsonFences } from '@/lib/json-fences';
+import { publicSaspayError, saspayAppOrigin, saspayConfigured } from '@/lib/saspay';
 
 /**
  * Garde-fou commun à toutes les actions de ce fichier : elles appartiennent à
@@ -580,7 +581,7 @@ export interface SystemSettingsData {
   maintenance: boolean;
   auto_indexing: boolean;
   weekly_reports: boolean;
-  payment_provider?: 'kkiapay' | 'fedapay' | 'feexpay';
+  payment_provider?: 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay';
   kkiapay_public_key?: string;
   kkiapay_private_key?: string;
   kkiapay_secret_key?: string;
@@ -594,6 +595,12 @@ export interface SystemSettingsData {
   feexpay_secret_key?: string;
   feexpay_webhook_secret?: string;
   feexpay_env?: 'sandbox' | 'live';
+  saspay_api_key?: string;
+  saspay_webhook_secret?: string;
+  saspay_api_key_set?: boolean;
+  saspay_webhook_secret_set?: boolean;
+  saspay_mode?: 'sandbox' | 'live';
+  saspay_webhook_url?: string;
   smtp_host?: string;
   smtp_port?: string;
   smtp_user?: string;
@@ -619,7 +626,7 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
       if (r.key === 'maintenance' || r.key === 'auto_indexing' || r.key === 'weekly_reports') {
         settings[r.key] = r.value === 'true';
       } else if (r.key === 'payment_provider') {
-        settings.payment_provider = r.value === 'fedapay' ? 'fedapay' : r.value === 'feexpay' ? 'feexpay' : 'kkiapay';
+        settings.payment_provider = r.value === 'fedapay' || r.value === 'feexpay' || r.value === 'saspay' ? r.value : 'kkiapay';
       } else if (r.key === 'kkiapay_env') {
         settings.kkiapay_env = r.value === 'live' ? 'live' : 'sandbox';
       } else if (r.key === 'fedapay_env') {
@@ -634,23 +641,57 @@ export async function getSystemSettings(): Promise<{ success: boolean; error?: s
         settings.smtp_pass_set = !!r.value;
       }
     });
+    // Les secrets SasPay sont en écriture seule : ne jamais les renvoyer au navigateur.
+    const saspayKey = (rows.find(r => r.key === 'saspay_api_key')?.value || process.env.SASPAY_API_KEY || '').trim();
+    const saspayWebhookSecret = (rows.find(r => r.key === 'saspay_webhook_secret')?.value || process.env.SASPAY_WEBHOOK_SECRET || '').trim();
+    settings.saspay_api_key_set = Boolean(saspayKey);
+    settings.saspay_webhook_secret_set = Boolean(saspayWebhookSecret);
+    if (saspayKey.startsWith('sk_test_')) settings.saspay_mode = 'sandbox';
+    if (saspayKey.startsWith('sk_live_')) settings.saspay_mode = 'live';
+    try {
+      settings.saspay_webhook_url = `${saspayAppOrigin()}/api/saspay/webhook`;
+    } catch {
+      // L'admin affiche l'instruction de configuration de l'URL publique.
+    }
     return { success: true, settings };
-  } catch (error: unknown) {
-    return { success: false, error: errorMessage(error), settings: { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay', smtp_pass_set: false } };
+  } catch {
+    return { success: false, error: 'Impossible de charger les paramètres.', settings: { maintenance: false, auto_indexing: true, weekly_reports: true, payment_provider: 'kkiapay', smtp_pass_set: false } };
   }
 }
 
 export async function updateSystemSettings(settings: Partial<SystemSettingsData>) {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   try {
+    if (settings.payment_provider && !['kkiapay', 'fedapay', 'feexpay', 'saspay'].includes(settings.payment_provider)) {
+      return { success: false, error: 'Fournisseur de paiement invalide.' };
+    }
+    const newSaspayKey = settings.saspay_api_key?.trim();
+    if (newSaspayKey && !saspayConfigured(newSaspayKey)) {
+      return { success: false, error: 'La clé SasPay doit commencer par sk_test_ ou sk_live_.' };
+    }
+    if (settings.payment_provider === 'saspay') {
+      try {
+        saspayAppOrigin();
+      } catch (error) {
+        return { success: false, error: publicSaspayError(error) };
+      }
+      const stored = await db.select().from(systemSettings).where(inArray(systemSettings.key, ['saspay_api_key', 'saspay_webhook_secret']));
+      const apiKey = newSaspayKey || stored.find(r => r.key === 'saspay_api_key')?.value || process.env.SASPAY_API_KEY || '';
+      const webhookSecret = settings.saspay_webhook_secret?.trim() || stored.find(r => r.key === 'saspay_webhook_secret')?.value || process.env.SASPAY_WEBHOOK_SECRET || '';
+      if (!saspayConfigured(apiKey) || !webhookSecret.trim()) {
+        return { success: false, error: 'Configurez la clé API et le secret de webhook SasPay avant de l’activer.' };
+      }
+    }
     const allowedStringKeys = ['payment_provider', 'kkiapay_public_key', 'kkiapay_private_key', 'kkiapay_secret_key', 'fedapay_public_key', 'fedapay_secret_key', 'fedapay_webhook_secret', 'feexpay_shop_id', 'feexpay_api_key', 'feexpay_secret_key', 'feexpay_webhook_secret', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'smtp_from_name', 'mail_reply_to', 'mail_brand_name', 'mail_tagline', 'mail_logo_url', 'mail_footer', 'admin_emails'];
     const allowedEnvKeys = ['kkiapay_env', 'fedapay_env', 'feexpay_env'];
     const booleanKeys = ['maintenance', 'auto_indexing', 'weekly_reports'];
 
-    for (const [key, value] of Object.entries(settings)) {
+    // Activer le fournisseur en dernier, après la sauvegarde de ses secrets.
+    const entries = Object.entries(settings).sort(([a], [b]) => a === 'payment_provider' ? 1 : b === 'payment_provider' ? -1 : 0);
+    for (const [key, value] of entries) {
       if (value === undefined || value === null) continue;
-      // Le mot de passe SMTP n'est persisté que s'il est réellement saisi.
-      if (key === 'smtp_pass') {
+      // Les secrets masqués ne sont remplacés que lorsqu'une valeur est saisie.
+      if (key === 'smtp_pass' || key === 'saspay_api_key' || key === 'saspay_webhook_secret') {
         if (String(value).trim()) {
           await db.insert(systemSettings)
             .values({ key, value: String(value).trim() })
@@ -675,8 +716,9 @@ export async function updateSystemSettings(settings: Partial<SystemSettingsData>
     revalidatePath('/pam/settings');
     revalidatePath('/subscription');
     return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: errorMessage(error) };
+  } catch {
+    // Les erreurs SQL peuvent contenir les paramètres, dont des secrets.
+    return { success: false, error: 'Impossible d’enregistrer les paramètres. Veuillez réessayer.' };
   }
 }
 

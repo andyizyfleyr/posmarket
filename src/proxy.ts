@@ -26,7 +26,10 @@ export async function proxy(request: NextRequest) {
     const isMobileApp =
       request.headers.get('x-posmarket-client') === 'mobile-app';
     const ua = request.headers.get('user-agent') || '';
-    if (!isMobileApp && (!ua || BAD_BOT_RE.test(ua))) {
+    // SasPay peut appeler le webhook sans User-Agent navigateur. Sa signature
+    // et son horodatage sont vérifiés dans le route handler lui-même.
+    const isSaspayWebhook = request.nextUrl.pathname === '/api/saspay/webhook' && request.method === 'POST';
+    if (!isMobileApp && !isSaspayWebhook && (!ua || BAD_BOT_RE.test(ua))) {
       return new Response('Forbidden', {
         status: 403,
         headers: { 'content-type': 'text/plain' },

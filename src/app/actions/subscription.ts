@@ -14,6 +14,8 @@ import { kkiapayConfigured, verifyKkiapayTransaction } from '@/lib/kkiapay';
 import { fedapayConfigured, verifyFedapayTransaction } from '@/lib/fedapay';
 import { feexpayConfigured, verifyFeexpayTransaction, isFeexpayApprovedStatus } from '@/lib/feexpay';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
+import { createSaspaySubscriptionPayment } from '@/lib/saspaySubscriptions';
+import { publicSaspayError } from '@/lib/saspay';
 
 function durationLabel(d: string): string {
     if (d === 'monthly') return 'mensuel';
@@ -29,19 +31,12 @@ export async function updateSubscriptionAction(tier: SubscriptionTier, duration:
         if (authError || !user) {
             return { success: false, error: 'Utilisateur non authentifié' };
         }
-        await activateSubscription(user.id, tier, duration);
-        await notify({
-            userId: user.id,
-            phone: await getProfilePhone(user.id),
-            email: await getProfileEmail(user.id),
-            eventType: 'ABONNEMENT_ACTIVE',
-            title: 'Abonnement activé',
-            body: `Votre abonnement ${tier} (${duration}) est actif. Bienvenue parmi les commerçants PosMarket !`,
-            templateParams: [String(tier), durationLabel(duration)],
-            emailData: { tier, duration: durationLabel(duration) },
-        });
-        revalidatePath('/subscription');
-        return { success: true };
+        // Une action serveur est appelable directement : elle ne doit pas
+        // permettre de contourner le paiement d'une formule payante.
+        if (subscriptionAmount(tier, duration)) {
+            return { success: false, error: 'Un paiement confirmé est nécessaire pour activer cette formule.' };
+        }
+        return { success: false, error: 'Formule d’abonnement invalide.' };
     } catch (error: unknown) {
         console.error('Error updating subscription:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -56,6 +51,13 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
             return { success: false, error: 'Utilisateur non authentifié' };
         }
         const config = await loadPaymentConfig();
+        if (config.provider === 'saspay') {
+          try {
+            return await createSaspaySubscriptionPayment(user.id, tier, duration, config.saspayApiKey);
+          } catch (error) {
+            return { success: false, error: publicSaspayError(error) };
+          }
+        }
         if (config.provider === 'fedapay') {
           if (!fedapayConfigured()) {
             return { success: false, code: 'NOT_CONFIGURED', error: 'Le paiement FedaPay n\'est pas encore configuré.' };
@@ -85,6 +87,7 @@ export async function createSubscriptionPaymentAction(tier: SubscriptionTier, du
             transactionId,
             reference: '',
             status: 'PENDING',
+            provider: config.provider,
             createdAt: new Date(),
             updatedAt: new Date(),
         }).onConflictDoNothing({ target: subscriptionPayments.transactionId });
@@ -130,7 +133,7 @@ export async function confirmKkiapayPaymentAction(
             )
             .limit(1);
         const payment = rows[0];
-        if (!payment || payment.status !== 'PENDING') {
+        if (!payment || payment.status !== 'PENDING' || (payment.provider && payment.provider !== 'kkiapay')) {
             return { success: false, error: 'Facture introuvable ou déjà traitée.' };
         }
 
@@ -204,7 +207,7 @@ export async function confirmFedapayPaymentAction(
             )
             .limit(1);
         const payment = rows[0];
-        if (!payment || payment.status !== 'PENDING') {
+        if (!payment || payment.status !== 'PENDING' || (payment.provider && payment.provider !== 'fedapay')) {
             return { success: false, error: 'Facture introuvable ou déjà traitée.' };
         }
 
@@ -293,7 +296,7 @@ export async function confirmFeexpayPaymentAction(
             )
             .limit(1);
         const payment = rows[0];
-        if (!payment || payment.status !== 'PENDING') {
+        if (!payment || payment.status !== 'PENDING' || (payment.provider && payment.provider !== 'feexpay')) {
             return { success: false, error: 'Facture introuvable ou déjà traitée.' };
         }
 

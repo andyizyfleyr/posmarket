@@ -10,7 +10,7 @@ import { apiFetch } from '@/api/client';
 
 export type SubscriptionTier = 'NONE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
 export type SubscriptionDuration = 'monthly' | 'quarterly' | 'annual';
-export type PaymentProvider = 'kkiapay' | 'fedapay' | 'feexpay';
+export type PaymentProvider = 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay';
 
 export interface SubscriptionSnapshot {
   tier: string;
@@ -41,6 +41,7 @@ export interface SubscriptionPaymentConfig {
 export async function fetchSubscriptionPaymentConfig(): Promise<SubscriptionPaymentConfig> {
   return apiFetch<SubscriptionPaymentConfig>(
     '/api/marketplace/seller/subscription',
+    { timeout: 25_000 },
   );
 }
 
@@ -50,6 +51,8 @@ export interface CreateSubscriptionPaymentResponse {
   code?: string;
   transactionId?: string;
   amount?: number;
+  paymentUrl?: string;
+  returnUrl?: string;
 }
 
 /** Facture PENDING (`createSubscriptionPaymentAction`). */
@@ -61,6 +64,7 @@ export async function createSubscriptionPayment(
     '/api/marketplace/seller/subscription',
     {
       method: 'POST',
+      timeout: 20_000,
       body: JSON.stringify({ action: 'create', tier, duration }),
     },
   );
@@ -69,10 +73,11 @@ export async function createSubscriptionPayment(
 export interface ConfirmSubscriptionPaymentResponse {
   success: boolean;
   error?: string;
+  code?: string;
   message?: string;
 }
 
-/** Vérification + activation (Kkiapay / FedaPay / FeexPay). */
+/** Vérification serveur puis activation (Kkiapay / FedaPay / FeexPay / SasPay). */
 export async function confirmSubscriptionPayment(
   transactionId: string,
   reference: string,
@@ -81,12 +86,13 @@ export async function confirmSubscriptionPayment(
     '/api/marketplace/seller/subscription',
     {
       method: 'POST',
+      timeout: 25_000,
       body: JSON.stringify({ action: 'confirm', transactionId, reference }),
     },
   );
 }
 
-/** Activation directe, sans paiement (`updateSubscriptionAction`). */
+/** Ancien endpoint d'activation directe : refuse désormais les formules payantes. */
 export async function updateSellerSubscription(
   tier: SubscriptionTier,
   duration: SubscriptionDuration,

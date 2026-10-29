@@ -98,6 +98,7 @@ export async function POST(request: Request) {
       }
 
       for (const row of rows) {
+        if (row.provider && row.provider !== 'feexpay') continue;
         try {
           const paidAmount = Number(verifiedTx.amount ?? 0);
           const expectedAmount = Number(row.amount ?? 0);
@@ -131,6 +132,7 @@ export async function POST(request: Request) {
         )
         .limit(10);
       for (const row of rows) {
+        if (row.provider && row.provider !== 'feexpay') continue;
         await db
           .update(subscriptionPayments)
           .set({ status: 'DECLINED', reference: fTxId, updatedAt: new Date() })

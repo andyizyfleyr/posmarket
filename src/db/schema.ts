@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, integer, boolean, jsonb, AnyPgColumn, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, integer, boolean, jsonb, AnyPgColumn, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 export const profiles = pgTable('profiles', {
@@ -380,9 +380,20 @@ export const subscriptionPayments = pgTable('subscription_payments', {
   transactionId: text('transaction_id').unique(),
   reference: text('reference'),
   status: text('status').default('PENDING').notNull(),
+  // Identifiants propres au checkout hébergé SasPay, jamais fournis par le client.
+  provider: text('provider'),
+  saspayCheckoutId: text('saspay_checkout_id'),
+  saspayPaymentId: text('saspay_payment_id'),
+  saspayChargedAmount: numeric('saspay_charged_amount', { precision: 15, scale: 2 }),
+  saspayNetAmount: numeric('saspay_net_amount', { precision: 15, scale: 2 }),
+  saspayFeeChargeMode: text('saspay_fee_charge_mode'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (t) => [
+  uniqueIndex('subscription_payments_saspay_checkout_unique').on(t.saspayCheckoutId).where(sql`${t.saspayCheckoutId} IS NOT NULL`),
+  uniqueIndex('subscription_payments_saspay_payment_unique').on(t.saspayPaymentId).where(sql`${t.saspayPaymentId} IS NOT NULL`),
+  index('subscription_payments_saspay_pending_idx').on(t.updatedAt).where(sql`${t.provider} = 'saspay' AND ${t.status} = 'PENDING'`),
+]);
 
 export const notificationPreferences = pgTable('notification_preferences', {
   id: uuid('id').primaryKey().defaultRandom(),
