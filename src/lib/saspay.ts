@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const API_BASE = 'https://api.saspay.me/api/v1';
+// La documentation montre pay.saspay.me, mais les liens réels peuvent aussi
+// être servis depuis checkout.saspay.me. Ne pas autoriser tous les sous-domaines.
+const CHECKOUT_HOSTS = new Set(['checkout.saspay.me', 'pay.saspay.me']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isSaspayId(value: unknown): value is string {
@@ -18,10 +21,13 @@ export function publicSaspayError(error: unknown): string {
   return error instanceof SaspayPublicError ? error.message : 'Le paiement SasPay est momentanément indisponible. Veuillez réessayer plus tard.';
 }
 
+export type SaspayApiErrorReason = 'http' | 'transport' | 'invalid_response' | 'invalid_checkout_id' | 'invalid_checkout_url' | 'checkout_url_not_allowed';
+
 export class SaspayApiError extends SaspayPublicError {
   readonly status: number;
+  readonly reason: SaspayApiErrorReason;
 
-  constructor(status: number) {
+  constructor(status: number, reason: SaspayApiErrorReason = 'invalid_response') {
     const message = status === 401
       ? 'La clé API SasPay est invalide ou expirée. Contactez l’administrateur.'
       : status === 403
@@ -34,6 +40,7 @@ export class SaspayApiError extends SaspayPublicError {
     super(message);
     this.name = 'SaspayApiError';
     this.status = status;
+    this.reason = reason;
   }
 }
 
@@ -59,11 +66,11 @@ async function saspayRequest(apiKey: string, path: string, body?: JsonObject): P
   } catch {
     // Ne jamais journaliser la requête, ses en-têtes ou la clé. Le checkout
     // n'est pas idempotent : ne pas réessayer automatiquement un POST.
-    throw new SaspayApiError(0);
+    throw new SaspayApiError(0, 'transport');
   }
 
   const envelope: unknown = await response.json().catch(() => null);
-  if (!response.ok) throw new SaspayApiError(response.status);
+  if (!response.ok) throw new SaspayApiError(response.status, 'http');
   if (!envelope || typeof envelope !== 'object') throw new SaspayApiError(0);
   const result = envelope as JsonObject;
   if (result.success !== true || !result.data || typeof result.data !== 'object' || Array.isArray(result.data)) {
@@ -120,15 +127,16 @@ export async function createSaspayCheckout(apiKey: string, input: SaspayCheckout
     return_url: input.returnUrl,
     metadata: { posmarket_payment_id: input.transactionId },
   });
+  if (!isSaspayId(data.id)) throw new SaspayApiError(0, 'invalid_checkout_id');
   const checkoutUrl = typeof data.checkout_url === 'string' ? data.checkout_url : '';
   let url: URL;
   try {
     url = new URL(checkoutUrl);
   } catch {
-    throw new SaspayApiError(0);
+    throw new SaspayApiError(0, 'invalid_checkout_url');
   }
-  if (!isSaspayId(data.id) || url.protocol !== 'https:' || url.hostname !== 'pay.saspay.me' || url.port || url.username || url.password) {
-    throw new SaspayApiError(0);
+  if (url.protocol !== 'https:' || !CHECKOUT_HOSTS.has(url.hostname) || url.port || url.username || url.password) {
+    throw new SaspayApiError(0, 'checkout_url_not_allowed');
   }
   return { id: data.id, checkoutUrl: url.toString() };
 }

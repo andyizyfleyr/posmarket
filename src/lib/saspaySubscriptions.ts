@@ -56,6 +56,7 @@ export async function createSaspaySubscriptionPayment(
     reference: '', status: 'PENDING', provider: 'saspay',
   });
 
+  let stage: 'provider' | 'persistence' = 'provider';
   try {
     const checkout = await createSaspayCheckout(apiKey, {
       amount,
@@ -66,11 +67,19 @@ export async function createSaspaySubscriptionPayment(
       customerName: profile?.fullName?.trim() || email.split('@')[0] || 'Client PosMarket',
       returnUrl,
     });
+    stage = 'persistence';
     await db.update(subscriptionPayments)
       .set({ saspayCheckoutId: checkout.id, updatedAt: new Date() })
       .where(and(eq(subscriptionPayments.transactionId, transactionId), eq(subscriptionPayments.provider, 'saspay')));
     return { success: true as const, transactionId, amount, paymentUrl: checkout.checkoutUrl, returnUrl };
   } catch (error) {
+    // Diagnostic strictement catégoriel : aucune clé, URL, donnée client ou
+    // réponse de l'API ne doit apparaître dans les journaux.
+    console.error('[SasPay] Initialisation impossible', {
+      stage,
+      reason: error instanceof SaspayApiError ? error.reason : 'internal',
+      status: error instanceof SaspayApiError ? error.status : null,
+    });
     // Un refus 4xx est définitif ; une panne ou un timeout peut masquer une
     // session créée. Conserver alors la facture pour un éventuel webhook.
     const definitive = error instanceof SaspayApiError && [400, 401, 403, 404, 422, 429].includes(error.status);
