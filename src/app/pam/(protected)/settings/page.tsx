@@ -18,7 +18,7 @@ interface SystemSettings {
   maintenance: boolean;
   auto_indexing: boolean;
   weekly_reports: boolean;
-  payment_provider?: 'kkiapay' | 'fedapay' | 'feexpay';
+  payment_provider?: 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay';
   kkiapay_public_key?: string;
   kkiapay_private_key?: string;
   kkiapay_secret_key?: string;
@@ -32,6 +32,12 @@ interface SystemSettings {
   feexpay_secret_key?: string;
   feexpay_webhook_secret?: string;
   feexpay_env?: 'sandbox' | 'live';
+  saspay_api_key?: string;
+  saspay_webhook_secret?: string;
+  saspay_api_key_set?: boolean;
+  saspay_webhook_secret_set?: boolean;
+  saspay_mode?: 'sandbox' | 'live';
+  saspay_webhook_url?: string;
   smtp_host?: string;
   smtp_port?: string;
   smtp_user?: string;
@@ -58,6 +64,7 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [initial, setInitial] = useState<SystemSettings | null>(null);
 
   const [testEvents, setTestEvents] = useState<{ key: string; label: string; audience: string }[]>([]);
@@ -129,12 +136,31 @@ export default function AdminSettingsPage() {
     if (!settings) return;
     setSaving(true);
     setSaved(false);
-    const res = await updateSystemSettings(settings);
-    setSaving(false);
-    if (res.success) {
-      setSaved(true);
-      setInitial(settings);
-      setTimeout(() => setSaved(false), 2500);
+    setSaveError(null);
+    try {
+      const res = await updateSystemSettings(settings);
+      if (res.success) {
+        // Effacer les secrets saisis après l'enregistrement, sans les relire.
+        const cleanSettings: SystemSettings = {
+          ...settings,
+          saspay_api_key_set: settings.saspay_api_key_set || Boolean(settings.saspay_api_key?.trim()),
+          saspay_webhook_secret_set: settings.saspay_webhook_secret_set || Boolean(settings.saspay_webhook_secret?.trim()),
+          saspay_mode: settings.saspay_api_key?.trim().startsWith('sk_live_') ? 'live'
+            : settings.saspay_api_key?.trim().startsWith('sk_test_') ? 'sandbox' : settings.saspay_mode,
+          saspay_api_key: '',
+          saspay_webhook_secret: '',
+        };
+        setSettings(cleanSettings);
+        setInitial(cleanSettings);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      } else {
+        setSaveError(res.error || 'Impossible d’enregistrer les paramètres.');
+      }
+    } catch {
+      setSaveError('Connexion interrompue. Vérifiez les paramètres enregistrés avant de réessayer.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -156,6 +182,8 @@ export default function AdminSettingsPage() {
     settings.feexpay_secret_key !== initial.feexpay_secret_key ||
     settings.feexpay_webhook_secret !== initial.feexpay_webhook_secret ||
     settings.feexpay_env !== initial.feexpay_env ||
+    Boolean(settings.saspay_api_key?.trim()) ||
+    Boolean(settings.saspay_webhook_secret?.trim()) ||
     settings.smtp_host !== initial.smtp_host ||
     settings.smtp_port !== initial.smtp_port ||
     settings.smtp_user !== initial.smtp_user ||
@@ -178,7 +206,7 @@ export default function AdminSettingsPage() {
     setSettings(prev => prev ? { ...prev, [key]: !prev[key] } : prev);
   };
 
-  const updateField = (key: keyof SystemSettings, value: string | boolean | 'kkiapay' | 'fedapay' | 'feexpay' | 'sandbox' | 'live') => {
+  const updateField = (key: keyof SystemSettings, value: string | boolean) => {
     setSettings(prev => prev ? { ...prev, [key]: value } : prev);
   };
 
@@ -235,7 +263,7 @@ export default function AdminSettingsPage() {
 
         <div className="space-y-6">
           {/* Provider selection */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => updateField('payment_provider', 'kkiapay')}
@@ -268,6 +296,18 @@ export default function AdminSettingsPage() {
                 FeexPay
               </div>
               <span className="text-[10px] font-normal normal-case">Active</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateField('payment_provider', 'saspay')}
+              aria-pressed={settings.payment_provider === 'saspay'}
+              className={`p-5 rounded-2xl border text-xs font-bold uppercase tracking-tight transition-all text-left ${settings.payment_provider === 'saspay' ? 'bg-violet-600/10 border-violet-600 text-violet-600' : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'}`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <CreditCard size={16} />
+                SasPay
+              </div>
+              <span className="text-[10px] font-normal normal-case">{settings.payment_provider === 'saspay' ? 'Actif' : 'Sélectionner'}</span>
             </button>
           </div>
 
@@ -438,6 +478,48 @@ export default function AdminSettingsPage() {
                 <p className="text-xs text-gray-600 font-mono break-all">https://votre-domaine.com/api/feexpay/webhook</p>
               </div>
             </div>
+          </div>
+
+          {/* SasPay : secrets en écriture seule et mode déduit de la clé. */}
+          <div className={`rounded-2xl border p-5 transition-colors ${settings.payment_provider === 'saspay' ? 'bg-violet-50/30 border-violet-200' : 'bg-gray-50/50 border-gray-100'}`}>
+            <h4 className="text-xs font-bold text-gray-900 uppercase tracking-tight mb-2">SasPay</h4>
+            <p className="text-xs text-gray-500 mb-4">
+              Checkout hébergé mobile money et carte. Le mode est défini par la clé : sk_test_ pour les tests, sk_live_ pour la production.
+              {settings.saspay_mode && <strong> Mode actuel : {settings.saspay_mode === 'live' ? 'production' : 'test'}.</strong>}
+            </p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="saspay-api-key" className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Clé API secrète</label>
+                <input
+                  id="saspay-api-key"
+                  type="password"
+                  autoComplete="new-password"
+                  value={settings.saspay_api_key || ''}
+                  onChange={e => updateField('saspay_api_key', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 font-mono"
+                  placeholder={settings.saspay_api_key_set ? 'Configurée — laisser vide pour conserver' : 'sk_test_... ou sk_live_...'}
+                />
+              </div>
+              <div>
+                <label htmlFor="saspay-webhook-secret" className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Secret de signature du webhook</label>
+                <input
+                  id="saspay-webhook-secret"
+                  type="password"
+                  autoComplete="new-password"
+                  value={settings.saspay_webhook_secret || ''}
+                  onChange={e => updateField('saspay_webhook_secret', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 font-mono"
+                  placeholder={settings.saspay_webhook_secret_set ? 'Configuré — laisser vide pour conserver' : 'Secret de signature SasPay'}
+                />
+              </div>
+              <div className="md:col-span-2 bg-white rounded-xl p-3 border border-gray-100">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-tight mb-1">URL du webhook</p>
+                <p className="text-xs text-gray-600 font-mono break-all">{settings.saspay_webhook_url || 'https://votre-domaine.com/api/saspay/webhook'}</p>
+                <p className="text-[11px] text-gray-500 mt-2">Créez ce webhook dans le tableau de bord SasPay et abonnez-le à transaction.success et webhook.test. Copiez son secret, affiché une seule fois.</p>
+                {!settings.saspay_webhook_url && <p className="text-[11px] text-amber-700 mt-2">Configurez APP_URL avec l&apos;URL publique HTTPS de PosMarket sur le serveur avant d&apos;activer SasPay.</p>}
+              </div>
+            </div>
+            <p className="text-[11px] text-violet-700 mt-3 flex items-start gap-2"><Lock size={14} className="shrink-0" /> Les secrets enregistrés ne sont jamais réaffichés. Ne changez pas de clé tant que des paiements sont en attente.</p>
           </div>
         </div>
       </div>
@@ -678,6 +760,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      {saveError && <p role="alert" className="text-sm text-red-600 text-center">{saveError}</p>}
       <button
         onClick={handleSave}
         disabled={saving || !dirty}

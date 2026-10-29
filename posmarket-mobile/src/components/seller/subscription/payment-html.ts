@@ -16,8 +16,10 @@
 
 import type { PaymentProvider, SubscriptionDuration } from '@/api/seller-subscription';
 
+type WidgetPaymentProvider = Exclude<PaymentProvider, 'saspay'>;
+
 export interface PaymentHtmlParams {
-  provider: PaymentProvider;
+  provider: WidgetPaymentProvider;
   amount: number;
   transactionId: string;
   tier: string;
@@ -34,7 +36,7 @@ export interface PaymentHtmlParams {
   feexpayEnv: 'sandbox' | 'live';
 }
 
-const SCRIPT_URLS: Record<PaymentProvider, string> = {
+const SCRIPT_URLS: Record<WidgetPaymentProvider, string> = {
   kkiapay: 'https://cdn.kkiapay.me/k.js',
   fedapay: 'https://cdn.fedapay.com/checkout.js?v=1.1.7',
   feexpay: 'https://api-v2.feexpay.me/feexpay-javascript-sdk/index.js',

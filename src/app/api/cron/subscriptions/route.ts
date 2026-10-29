@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncKkiapaySubscriptions } from '@/lib/subscriptionSync';
+import { syncSaspaySubscriptions } from '@/lib/saspaySubscriptions';
+import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
@@ -11,8 +13,10 @@ async function handleCron(request: NextRequest) {
   }
 
   try {
+    const config = await loadPaymentConfig();
     const result = await syncKkiapaySubscriptions();
-    return NextResponse.json({ ok: true, ...result });
+    const saspay = await syncSaspaySubscriptions(config.saspayApiKey);
+    return NextResponse.json({ ok: true, ...result, saspay });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : String(e) },

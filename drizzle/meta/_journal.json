@@ -132,6 +132,13 @@
       "version": "7",
       "when": 1791221307795,
       "tag": "0018_variant_v2"
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793298502259,
+      "tag": "0025_saspay_subscriptions",
+      "breakpoints": true
     }
   ]
 }

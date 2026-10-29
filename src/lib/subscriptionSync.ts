@@ -1,7 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { db } from '@/db';
 import { subscriptionPayments } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull, or } from 'drizzle-orm';
 import { verifyKkiapayTransaction } from '@/lib/kkiapay';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
@@ -24,11 +24,11 @@ export async function syncKkiapaySubscriptions(userId?: string): Promise<Kkiapay
   const pending = await db
     .select()
     .from(subscriptionPayments)
-    .where(
-      userId
-        ? and(eq(subscriptionPayments.userId, userId), eq(subscriptionPayments.status, 'PENDING'))
-        : eq(subscriptionPayments.status, 'PENDING'),
-    );
+    .where(and(
+      eq(subscriptionPayments.status, 'PENDING'),
+      or(isNull(subscriptionPayments.provider), eq(subscriptionPayments.provider, 'kkiapay')),
+      userId ? eq(subscriptionPayments.userId, userId) : undefined,
+    ));
 
   for (const row of pending) {
     summary.scanned++;

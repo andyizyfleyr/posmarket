@@ -53,6 +53,7 @@ const WEBHOOK_PATHS = [
   '/api/kkiapay/webhook',
   '/api/feexpay/webhook',
   '/api/fedapay/webhook',
+  '/api/saspay/webhook',
   '/api/whatsapp/webhook',
 ];
 

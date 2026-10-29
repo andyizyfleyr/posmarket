@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       }
 
       for (const row of rows) {
+        if (row.provider && row.provider !== 'fedapay') continue;
         try {
           // La transaction est rapprochée de la facture : sans cette vérification,
           // une seule transaction réellement payée pouvait faire approuver
@@ -128,6 +129,7 @@ export async function POST(request: Request) {
         .limit(10);
 
       for (const row of rows) {
+        if (row.provider && row.provider !== 'fedapay') continue;
         await db
           .update(subscriptionPayments)
           .set({ status: 'DECLINED', reference: fTxId, updatedAt: new Date() })

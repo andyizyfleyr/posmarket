@@ -16,7 +16,8 @@
     "test:k6:smoke": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/smoke.js",
     "test:k6:writes": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/writes.js",
     "test:k6:spike": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/spike.js",
-    "test:k6:full": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/full.js"
+    "test:k6:full": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/full.js",
+    "test:saspay": "tsx --test tests/saspay/*.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1116.0",
@@ -46,6 +47,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
@@ -53,9 +55,11 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "^1.0.0",
     "drizzle-kit": "^0.30.4",
+    "esbuild": "^0.19.12",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

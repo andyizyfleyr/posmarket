@@ -22,12 +22,13 @@ interface SubscriptionClientWrapperProps {
   feexpayShopId?: string;
   feexpayApiKey?: string;
   feexpayEnv?: 'sandbox' | 'live';
-  paymentProvider?: 'kkiapay' | 'fedapay' | 'feexpay';
+  paymentProvider?: 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay';
   userName?: string;
   userEmail?: string;
   userAvatarUrl?: string | null;
   userPhone?: string;
   paymentReturned?: boolean;
+  saspayPaymentResult?: 'approved' | 'pending' | 'failed' | 'not_found' | 'error';
   userRole?: string;
 }
 
@@ -48,6 +49,7 @@ export default function SubscriptionClientWrapper({
   userEmail = '',
   userPhone = '',
   paymentReturned,
+  saspayPaymentResult,
   userRole,
 }: SubscriptionClientWrapperProps) {
   const router = useRouter();
@@ -76,6 +78,27 @@ export default function SubscriptionClientWrapper({
     }, 0);
     return () => clearTimeout(id);
   }, [paymentReturned, router]);
+
+  useEffect(() => {
+    if (!saspayPaymentResult) return;
+    const id = setTimeout(() => {
+      const approved = saspayPaymentResult === 'approved';
+      setModalData({
+        status: approved ? 'success' : 'error',
+        title: approved ? 'Paiement confirmé !' : saspayPaymentResult === 'pending' ? 'Paiement en attente' : 'Paiement non confirmé',
+        message: approved
+          ? 'Votre paiement SasPay a été vérifié et votre abonnement est actif.'
+          : saspayPaymentResult === 'pending' || saspayPaymentResult === 'error'
+            ? 'Votre paiement n’est pas encore confirmé. Actualisez cette page plus tard ou contactez le support.'
+            : 'Cette session de paiement est expirée ou introuvable. Contactez le support si vous avez été débité.',
+        provider: 'saspay',
+        date: new Date(),
+      });
+      setIsModalOpen(true);
+      router.replace('/subscription', { scroll: false });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [saspayPaymentResult, router]);
 
   const handlePay = useCallback(async (tier: SubscriptionTier, duration: SubscriptionDuration): Promise<{ success: boolean; error?: string }> => {
     setLastAttempt({ tier, duration });
@@ -107,7 +130,14 @@ export default function SubscriptionClientWrapper({
       return direct;
     }
 
-    const res = await onCreatePayment(tier, duration);
+    let res: Awaited<ReturnType<NonNullable<SubscriptionClientWrapperProps['onCreatePayment']>>>;
+    try {
+      res = await onCreatePayment(tier, duration);
+    } catch {
+      setModalData({ status: 'error', title: 'Initialisation échouée', message: 'La connexion a été interrompue. Veuillez réessayer.', tier, duration, date: new Date() });
+      setIsModalOpen(true);
+      return { success: false };
+    }
 
     if (!res.success) {
       setModalData({
@@ -133,6 +163,22 @@ export default function SubscriptionClientWrapper({
       });
       setIsModalOpen(true);
       return { success: false };
+    }
+
+    if (paymentProvider === 'saspay' || res.paymentUrl) {
+      if (!res.paymentUrl) {
+        setModalData({
+          status: 'error',
+          title: 'Guichet indisponible',
+          message: 'La page de paiement SasPay n’a pas pu être ouverte. Veuillez réessayer.',
+          tier, duration, amount: res.amount, provider: 'saspay', date: new Date(),
+        });
+        setIsModalOpen(true);
+        return { success: false };
+      }
+      // L'URL est issue exclusivement de la session créée et contrôlée côté serveur.
+      window.location.assign(res.paymentUrl);
+      return { success: true };
     }
 
     if (paymentProvider === 'feexpay') {

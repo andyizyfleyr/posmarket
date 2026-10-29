@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       }
 
       for (const row of rows) {
+        if (row.provider && row.provider !== 'kkiapay') continue;
         try {
           const tx = await verifyKkiapayTransaction(kTxId);
           const expectedStatus = tx.status === 'SUCCESS' ? 'APPROVED' : 'DECLINED';
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
         )
         .limit(10);
       for (const row of rows) {
+        if (row.provider && row.provider !== 'kkiapay') continue;
         await db.update(subscriptionPayments)
           .set({ status: 'DECLINED', reference: kTxId, updatedAt: new Date() })
           .where(and(

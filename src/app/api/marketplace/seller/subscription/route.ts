@@ -7,6 +7,8 @@ import { requireSellerSpace } from '@/lib/mobile-space';
 import { parseBody } from '@/lib/validation';
 import { subscriptionActionSchema } from '@/lib/schemas';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
+import { createSaspaySubscriptionPayment, reconcileSaspaySubscription, syncSaspaySubscriptions } from '@/lib/saspaySubscriptions';
+import { publicSaspayError } from '@/lib/saspay';
 import {
   activateSubscription,
   isPayableTier,
@@ -46,6 +48,8 @@ export async function GET() {
     if (!guard.ok) return guard.response;
 
     const config = await loadPaymentConfig();
+    // Récupère les paiements SasPay dont le client a quitté le guichet.
+    await syncSaspaySubscriptions(config.saspayApiKey, guard.userId).catch(() => undefined);
     const [profile] = await db
       .select({
         email: profiles.email,
@@ -103,8 +107,8 @@ export async function GET() {
  * `{ action: 'create', tier, duration }` : facture PENDING (comme
  * `createSubscriptionPaymentAction`).
  * `{ action: 'confirm', transactionId, reference }` : vérification et
- * activation (comme `confirmKkiapayPaymentAction` / FedaPay / FeexPay).
- * `{ action: 'update', tier, duration }` : activation directe.
+ * activation (comme `confirmKkiapayPaymentAction` / FedaPay / FeexPay / SasPay).
+ * `{ action: 'update', tier, duration }` : ancien endpoint, activation payante refusée.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -121,6 +125,13 @@ export async function POST(req: NextRequest) {
       const tier = body.tier as SubscriptionTier;
       const duration = (body.duration || 'monthly') as SubscriptionDuration;
 
+      if (config.provider === 'saspay') {
+        try {
+          return NextResponse.json(await createSaspaySubscriptionPayment(guard.userId, tier, duration, config.saspayApiKey));
+        } catch (error) {
+          return NextResponse.json({ success: false, error: publicSaspayError(error) });
+        }
+      }
       if (config.provider === 'fedapay') {
         if (!fedapayConfigured()) {
           return NextResponse.json({
@@ -168,6 +179,7 @@ export async function POST(req: NextRequest) {
           transactionId,
           reference: '',
           status: 'PENDING',
+          provider: config.provider,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -178,26 +190,14 @@ export async function POST(req: NextRequest) {
 
     if (action === 'update') {
       const tier = body.tier as SubscriptionTier;
-      const duration = (body.duration || 'monthly') as SubscriptionDuration;
       if (!isPayableTier(tier)) {
         return NextResponse.json({
           success: false,
           error: `Formule d'abonnement ${tier} invalide`,
         });
       }
-      await activateSubscription(guard.userId, tier, duration);
-      await notify({
-        userId: guard.userId,
-        phone: await getProfilePhone(guard.userId),
-        email: await getProfileEmail(guard.userId),
-        eventType: 'ABONNEMENT_ACTIVE',
-        title: 'Abonnement activé',
-        body: `Votre abonnement ${tier} (${duration}) est actif. Bienvenue parmi les commerçants PosMarket !`,
-        templateParams: [String(tier), durationLabel(duration)],
-        emailData: { tier, duration: durationLabel(duration) },
-      });
-      refreshTag('marketplace');
-      return NextResponse.json({ success: true });
+      // L'API mobile ne doit pas permettre l'activation directe d'une formule payante.
+      return NextResponse.json({ success: false, error: 'Un paiement confirmé est nécessaire pour activer cette formule.' });
     }
 
     if (action !== 'confirm') {
@@ -224,7 +224,26 @@ export async function POST(req: NextRequest) {
       )
       .limit(1);
 
-    if (!payment || payment.status !== 'PENDING') {
+    if (payment?.provider === 'saspay') {
+      let result;
+      try {
+        result = await reconcileSaspaySubscription({ transactionId, userId: guard.userId, apiKey: config.saspayApiKey });
+      } catch (error) {
+        return NextResponse.json({ success: false, code: 'PENDING', error: `${publicSaspayError(error)} Actualisez votre abonnement avant de payer à nouveau.` });
+      }
+      if (result === 'approved') {
+        refreshTag('marketplace');
+        return NextResponse.json({ success: true, message: 'Paiement SasPay vérifié. Abonnement activé.' });
+      }
+      return NextResponse.json({
+        success: false,
+        code: result === 'pending' ? 'PENDING' : undefined,
+        error: result === 'pending'
+          ? 'Paiement en attente de confirmation. Actualisez votre abonnement un peu plus tard.'
+          : 'Paiement SasPay non confirmé ou session expirée.',
+      });
+    }
+    if (!payment || payment.status !== 'PENDING' || config.provider === 'saspay' || (payment.provider && payment.provider !== config.provider)) {
       return NextResponse.json({
         success: false,
         error: 'Facture introuvable ou déjà traitée.',
