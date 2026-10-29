@@ -106,13 +106,31 @@ test('checkout serveur, statuts API enveloppés, URL autorisée et erreurs sans 
     assert.equal(JSON.stringify(result).includes(KEY), false);
   });
 
+  await t.test('accepte le domaine réel checkout.saspay.me', async () => {
+    globalThis.fetch = async () => envelope({ id: SESSION, checkout_url: 'https://checkout.saspay.me/example-session' }, 201);
+    const result = await createSaspayCheckout(KEY, input);
+    assert.deepEqual(result, { id: SESSION, checkoutUrl: 'https://checkout.saspay.me/example-session' });
+  });
+
   await t.test('refuse une URL ou un identifiant de session forgé', async () => {
-    for (const url of ['https://pay.saspay.me.evil.test/checkout', 'http://pay.saspay.me/checkout', 'https://evil@pay.saspay.me/checkout']) {
+    for (const url of [
+      'https://pay.saspay.me.evil.test/checkout',
+      'https://checkout.saspay.me.evil.test/checkout',
+      'https://other.saspay.me/checkout',
+      'http://checkout.saspay.me/example-session',
+      'https://checkout.saspay.me:8443/example-session',
+      'https://evil@checkout.saspay.me/example-session',
+      'https://checkout.saspay.me@evil.test/example-session',
+      'http://pay.saspay.me/checkout',
+      'https://evil@pay.saspay.me/checkout',
+    ]) {
       globalThis.fetch = async () => envelope({ id: SESSION, checkout_url: url });
-      await assert.rejects(createSaspayCheckout(KEY, input), SaspayApiError);
+      await assert.rejects(createSaspayCheckout(KEY, input), error => error instanceof SaspayApiError && error.reason === 'checkout_url_not_allowed');
     }
+    globalThis.fetch = async () => envelope({ id: SESSION, checkout_url: 'not-a-url' });
+    await assert.rejects(createSaspayCheckout(KEY, input), error => error.reason === 'invalid_checkout_url');
     globalThis.fetch = async () => envelope({ id: 'not-uuid', checkout_url: 'https://pay.saspay.me/checkout/abc' });
-    await assert.rejects(createSaspayCheckout(KEY, input), SaspayApiError);
+    await assert.rejects(createSaspayCheckout(KEY, input), error => error.reason === 'invalid_checkout_id');
   });
 
   await t.test('la session fournit la transaction puis verify confirme son montant et sa devise', async () => {
@@ -149,11 +167,18 @@ test('checkout serveur, statuts API enveloppés, URL autorisée et erreurs sans 
       };
       await assert.rejects(createSaspayCheckout(KEY, input), error => {
         assert.equal(error.status, code);
+        assert.equal(error.reason, 'http');
         assert.equal(publicSaspayError(error).includes(KEY), false);
         return true;
       });
       assert.equal(calls, 1);
     }
+    globalThis.fetch = async () => { throw new Error(KEY); };
+    await assert.rejects(createSaspayCheckout(KEY, input), error => {
+      assert.equal(error.reason, 'transport');
+      assert.equal(publicSaspayError(error).includes(KEY), false);
+      return true;
+    });
     assert.equal(publicSaspayError(new Error(KEY)).includes(KEY), false);
   });
 });

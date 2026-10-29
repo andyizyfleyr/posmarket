@@ -21,6 +21,7 @@ const sessions = [
   'c9a17e2c-4b1a-4f0e-9c3d-2a1b3c4d5e71',
   'c9a17e2c-4b1a-4f0e-9c3d-2a1b3c4d5e72',
   'c9a17e2c-4b1a-4f0e-9c3d-2a1b3c4d5e73',
+  'c9a17e2c-4b1a-4f0e-9c3d-2a1b3c4d5e74',
 ];
 const transactions = [
   '9c3f2a10-4b7e-4f1a-9d2e-9b6a7c1e4a02',
@@ -28,6 +29,7 @@ const transactions = [
   '9c3f2a10-4b7e-4f1a-9d2e-9b6a7c1e4a04',
   '9c3f2a10-4b7e-4f1a-9d2e-9b6a7c1e4a05',
   '9c3f2a10-4b7e-4f1a-9d2e-9b6a7c1e4a06',
+  '9c3f2a10-4b7e-4f1a-9d2e-9b6a7c1e4a07',
 ];
 
 // Les seuls remplacements sont l'accès Neon, les notifications et le contexte
@@ -104,6 +106,7 @@ test('parcours réel du service et du webhook sur PostgreSQL local', async t => 
   const oldFetch = globalThis.fetch;
   const oldAppUrl = process.env.APP_URL;
   const oldConsoleError = console.error;
+  const logs = [];
   t.after(async () => {
     globalThis.fetch = oldFetch;
     console.error = oldConsoleError;
@@ -116,7 +119,7 @@ test('parcours réel du service et du webhook sur PostgreSQL local', async t => 
     delete globalThis.__saspayCacheRefreshes;
     await pg.close();
   });
-  console.error = () => {}; // erreur simulée attendue dans le test de webhook
+  console.error = (...args) => { logs.push(args); }; // erreurs simulées attendues
   await pg.exec(`
     CREATE TABLE profiles (
       id uuid PRIMARY KEY, email text NOT NULL, full_name text, phone text,
@@ -160,7 +163,7 @@ test('parcours réel du service et du webhook sur PostgreSQL local', async t => 
       current.localTransactionId = sent.metadata.posmarket_payment_id;
       if (createFailure === 'network') throw new Error('Coupure réseau simulée');
       if (createFailure === 422) return new Response('{}', { status: 422 });
-      return response({ id: current.session, checkout_url: `https://pay.saspay.me/checkout/${checkoutIndex}` }, 201);
+      return response({ id: current.session, checkout_url: `https://checkout.saspay.me/example-session-${checkoutIndex}` }, 201);
     }
     if (target.pathname === '/api/v1/checkout-sessions/') {
       return response({ results: state.filter(s => s.status === 'PAID').map(s => ({ id: s.session, transaction: s.transaction, metadata: { posmarket_payment_id: s.localTransactionId } })) });
@@ -182,7 +185,7 @@ test('parcours réel du service et du webhook sur PostgreSQL local', async t => 
   const created = await mobile.POST(mobileRequest({ action: 'create', tier: 'STARTER', duration: 'monthly' }));
   const first = await created.json();
   assert.equal(first.success, true);
-  assert.match(first.paymentUrl, /^https:\/\/pay\.saspay\.me\//);
+  assert.match(first.paymentUrl, /^https:\/\/checkout\.saspay\.me\//);
   assert.ok(first.returnUrl.includes(first.transactionId));
   assert.equal(JSON.stringify(first).includes(KEY), false);
   assert.equal(await service.reconcileSaspaySubscription({ transactionId: first.transactionId, userId: OTHER_USER, apiKey: KEY }), 'not_found');
@@ -269,4 +272,26 @@ test('parcours réel du service et du webhook sur PostgreSQL local', async t => 
   await assert.rejects(service.createSaspaySubscriptionPayment(USER, 'PRO', 'monthly', KEY));
   const rejected = (await pg.query('SELECT status FROM subscription_payments WHERE transaction_id = $1', [state[4].localTransactionId])).rows[0];
   assert.equal(rejected.status, 'DECLINED');
+
+  // Une panne BD après la création distante ne doit pas exposer l'erreur SQL,
+  // et la facture doit rester en attente pour un éventuel rapprochement.
+  createFailure = null;
+  await pg.exec(`
+    CREATE FUNCTION reject_checkout_update() RETURNS trigger AS $$
+    BEGIN RAISE EXCEPTION 'fake-signing-secret'; END; $$ LANGUAGE plpgsql;
+    CREATE TRIGGER reject_checkout BEFORE UPDATE OF saspay_checkout_id
+      ON subscription_payments FOR EACH ROW EXECUTE FUNCTION reject_checkout_update();
+  `);
+  await assert.rejects(service.createSaspaySubscriptionPayment(USER, 'PRO', 'monthly', KEY), /vérifiez votre abonnement/i);
+  const unsaved = (await pg.query('SELECT status, saspay_checkout_id FROM subscription_payments WHERE transaction_id = $1', [state[5].localTransactionId])).rows[0];
+  assert.equal(unsaved.status, 'PENDING');
+  assert.equal(unsaved.saspay_checkout_id, null);
+
+  const diagnostics = logs.filter(([message]) => message === '[SasPay] Initialisation impossible').map(([, details]) => details);
+  assert.ok(diagnostics.some(item => item.stage === 'provider' && item.reason === 'transport' && item.status === 0));
+  assert.ok(diagnostics.some(item => item.stage === 'provider' && item.reason === 'http' && item.status === 422));
+  assert.ok(diagnostics.some(item => item.stage === 'persistence' && item.reason === 'internal' && item.status === null));
+  assert.equal(JSON.stringify(logs).includes(KEY), false);
+  assert.equal(JSON.stringify(logs).includes(SECRET), false);
+  assert.equal(JSON.stringify(logs).includes('seller@example.test'), false);
 });

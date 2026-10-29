@@ -22,7 +22,7 @@ Cette commande ne lit pas les secrets enregistrés dans l'admin. Les anciens cli
 
 ## Confirmation et reprise
 
-- Le checkout est créé côté serveur ; son identifiant est conservé avec la facture. Le montant transmis est une chaîne décimale en XOF.
+- Le checkout est créé côté serveur ; son identifiant est conservé avec la facture. Le montant transmis est une chaîne décimale en XOF. Les URL HTTPS `checkout.saspay.me` (liens actuels) et `pay.saspay.me` (exemples de la documentation SasPay) sont acceptées ; les autres hôtes sont refusés.
 - Le retour du navigateur ou de l'application ne prouve pas le paiement. Le serveur interroge le statut de la session puis vérifie sa transaction via `/payments/{id}/verify/`. Il exige `SUCCESS`, l'identifiant de transaction associé à la session, le montant demandé exact et la devise de la facture.
 - L'approbation de la facture et l'activation du profil sont atomiques. Un index unique et une transition conditionnelle empêchent qu'un même paiement ou un webhook répété active plusieurs fois un abonnement.
 - Les webhooks vérifient HMAC-SHA256 sur les octets bruts et l'horodatage, avec une tolérance de cinq minutes. SasPay n'inclut pas l'ID du checkout dans le webhook : les sessions payées récentes sont consultées pour trouver la transaction. Si elle n'est pas encore visible ou ne figure pas parmi les 100 premières sessions, le webhook répond 503 pour demander une nouvelle livraison ; le retour client, l'ouverture de la page abonnement ou le cron `/api/cron/subscriptions` revérifient également les factures dotées d'un identifiant de session. Le cron existant s'exécute une fois par jour et traite au plus 25 factures SasPay par passage ; vérifier qu'il est activé et que `CRON_SECRET` est configuré.
