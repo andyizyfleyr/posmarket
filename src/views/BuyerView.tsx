@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useNavigate } from '@/components/RouterPolyfill';
 import {
   ArrowLeft,
@@ -19,11 +20,21 @@ import {
 import { useBuyerData } from '@/components/buyer/useBuyerData';
 import { OrdersTab, ReviewTargetProduct } from '@/components/buyer/OrdersTab';
 import { OrderCard } from '@/components/buyer/OrderCard';
-import { StoresTab } from '@/components/buyer/StoresTab';
-import { AddressesTab } from '@/components/buyer/AddressesTab';
-import { ReviewsTab } from '@/components/buyer/ReviewsTab';
-import { NotificationsTab } from '@/components/buyer/NotificationsTab';
-import { ProfileTab } from '@/components/buyer/ProfileTab';
+
+/*
+ * Les onglets secondaires de l'espace compte s'affichent UN SEUL à la fois :
+ * les charger à l'ouverture du compte faisait télécharger les six, y compris
+ * par un acheteur qui venait seulement consulter ses commandes. `next/dynamic`
+ * les transforme en chunks séparés, chargés au premier clic sur l'onglet.
+ *
+ * `OrdersTab` et `OrderCard` restent statiques : ils sont aussi rendus dans la
+ * vue d'ensemble (dernières commandes) et dans les tuiles de raccourci.
+ */
+const StoresTab = dynamic(() => import('@/components/buyer/StoresTab').then((m) => m.StoresTab));
+const AddressesTab = dynamic(() => import('@/components/buyer/AddressesTab').then((m) => m.AddressesTab));
+const ReviewsTab = dynamic(() => import('@/components/buyer/ReviewsTab').then((m) => m.ReviewsTab));
+const NotificationsTab = dynamic(() => import('@/components/buyer/NotificationsTab').then((m) => m.NotificationsTab));
+const ProfileTab = dynamic(() => import('@/components/buyer/ProfileTab').then((m) => m.ProfileTab));
 import { AddressModal } from '@/components/buyer/AddressModal';
 import { ReviewModal } from '@/components/buyer/ReviewModal';
 import { Modal } from '@/components/buyer/Modal';
