@@ -420,6 +420,18 @@ export const catalogQuerySchema = z.object({
   userId: z.string().trim().max(64).optional(),
 });
 
-export const pathIdSchema = z.object({
-  id: z.string().trim().min(1, 'Identifiant manquant.').max(128),
-});
+/**
+ * Paramètres d'URL nommés.
+ *
+ * `pathIdSchema` validait un champ `id`, mais les routes Next exposent le nom
+ * du segment : `[productId]` arrive sous la clé `productId`, `[storeId]` sous
+ * `storeId`. Zod ignorait la clé inconnue et `id` restait `undefined` : les deux
+ * endpoints d'avis répondaient systématiquement
+ * `{"error":"Données invalides.","details":[{"path":"id",…}]}`, quel que soit
+ * l'identifiant fourni. D'où un schéma par nom de segment.
+ */
+const pathParam = z.string().trim().min(1, 'Identifiant manquant.').max(128);
+
+export const pathIdSchema = z.object({ id: pathParam });
+export const pathProductIdSchema = z.object({ productId: pathParam });
+export const pathStoreIdSchema = z.object({ storeId: pathParam });
