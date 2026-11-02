@@ -51,6 +51,16 @@ export default function ImportProductsModal({
   const [resetStock, setResetStock] = useState<boolean>(false);
   const [forceOnlineStatus, setForceOnlineStatus] = useState<'keep' | 'online' | 'pos'>('keep');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  /**
+   * Nombre de produits envoyés par appel serveur.
+   *
+   * Assez petit pour qu'un paquet reste sous les limites de la plateforme même
+   * avec des images en base64 (~40 Ko chacune), assez grand pour ne pas
+   * multiplier les allers-retours. Avec des photos HD, 10 produits pèsent
+   * environ 600 Ko.
+   */
+  const IMPORT_BATCH_SIZE = 10;
   const [importResult, setImportResult] = useState<{
     createdCount: number;
     updatedCount: number;
@@ -71,6 +81,7 @@ export default function ImportProductsModal({
     setImportResult(null);
     setGeneralError(null);
     setIsProcessing(false);
+    setProgress({ done: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -150,27 +161,64 @@ export default function ImportProductsModal({
     setGeneralError(null);
 
     try {
-      const res = await importProductsBatchAction(targetStoreId, parseResult.valid, {
-        duplicateStrategy,
-        resetStock,
-        forceOnlineStatus,
-      });
+      // Import par paquets.
+      //
+      // Un envoi unique fait deux choses que la plateforme ne pardonne pas :
+      // il dépasse la taille maximale de requête dès que les images sont en
+      // base64, et il tient la fonction serveur ouverte pendant autant
+      // d'allers-retours vers la base qu'il y a de produits. Passé le délai
+      // d'exécution, Vercel renvoie sa propre page d'erreur, que Next.js ne
+      // sait pas lire : l'utilisateur voit « An unexpected response was
+      // received from the server » au lieu de la vraie cause.
+      //
+      // Le découpage borne les deux : chaque paquet reste petit et court.
+      const total = parseResult.valid.length;
+      setProgress({ done: 0, total });
 
-      if (!res.success) {
-        throw new Error(res.error || "Une erreur est survenue lors de l'import.");
+      const totals = { createdCount: 0, updatedCount: 0, skippedCount: 0 };
+      const allErrors: string[] = [];
+      let lastError: string | null = null;
+
+      for (let index = 0; index < total; index += IMPORT_BATCH_SIZE) {
+        const batch = parseResult.valid.slice(index, index + IMPORT_BATCH_SIZE);
+
+        const res = await importProductsBatchAction(targetStoreId, batch, {
+          duplicateStrategy,
+          resetStock,
+          forceOnlineStatus,
+        });
+
+        // Un paquet en échec n'annule pas les précédents : on note l'erreur et
+        // on continue, sinon un seul produit récalcitrant bloquerait tout.
+        if (!res.success) {
+          lastError = res.error || "Une erreur est survenue lors de l'import.";
+          break;
+        }
+
+        totals.createdCount += res.createdCount;
+        totals.updatedCount += res.updatedCount;
+        totals.skippedCount += res.skippedCount;
+        if (res.errors?.length) allErrors.push(...res.errors);
+
+        setProgress({ done: Math.min(index + batch.length, total), total });
+      }
+
+      // Rien n'a été traité du tout : c'est un vrai échec, on remonte l'erreur.
+      if (lastError && totals.createdCount + totals.updatedCount + totals.skippedCount === 0) {
+        throw new Error(lastError);
       }
 
       setImportResult({
-        createdCount: res.createdCount,
-        updatedCount: res.updatedCount,
-        skippedCount: res.skippedCount,
-        errors: res.errors || [],
+        createdCount: totals.createdCount,
+        updatedCount: totals.updatedCount,
+        skippedCount: totals.skippedCount,
+        errors: allErrors,
       });
 
       onImportSuccess({
-        createdCount: res.createdCount,
-        updatedCount: res.updatedCount,
-        skippedCount: res.skippedCount,
+        createdCount: totals.createdCount,
+        updatedCount: totals.updatedCount,
+        skippedCount: totals.skippedCount,
       });
 
       setStep('complete');
@@ -514,7 +562,27 @@ export default function ImportProductsModal({
                 <p className="text-xs text-gray-500 mt-1 max-w-sm">
                   Création des fiches produits, association des catégories et calcul des matrices de variantes.
                 </p>
+                {progress.total > 0 && (
+                  <p className="text-sm font-bold text-brand mt-3">
+                    {progress.done} / {progress.total} produits
+                  </p>
+                )}
               </div>
+              {progress.total > 0 && (
+                <div
+                  className="w-64 h-2 bg-gray-100 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={progress.total}
+                  aria-valuenow={progress.done}
+                  aria-label="Progression de l'importation"
+                >
+                  <div
+                    className="h-full bg-brand rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
           )}
 

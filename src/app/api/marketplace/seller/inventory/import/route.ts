@@ -6,6 +6,18 @@ import { sellerInventoryImportSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * L'import crée les produits un par un, avec un aller-retour par catégorie.
+ * Sur un plan où le défaut est de 10 s, une cinquantaine de produits suffit à
+ * dépasser le délai : la fonction est tuée et la plateforme renvoie sa propre
+ * page d'erreur, que le client ne sait pas interpréter. Le message affiché
+ * devient alors « An unexpected response was received from the server »,
+ * sans rapport apparent avec la vraie cause.
+ *
+ * Les crons du projet déclarent déjà 60 s pour la même raison.
+ */
+export const maxDuration = 60;
+
 /** POST /api/marketplace/seller/inventory/import — import groupé CSV/JSON. */
 export async function POST(req: NextRequest) {
   try {
