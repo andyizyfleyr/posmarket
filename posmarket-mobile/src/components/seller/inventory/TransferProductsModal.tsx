@@ -18,7 +18,6 @@ import {
   View,
 } from 'react-native';
 import { AlertCircle, ArrowRightLeft, CheckCircle2, Store, X } from 'lucide-react-native';
-import { COLORS } from '@/theme';
 import { fetchSellerManageableStores, transferSellerProducts } from '@/api/seller';
 import type { Product } from '@/types';
 

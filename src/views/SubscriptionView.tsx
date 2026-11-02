@@ -16,6 +16,13 @@ interface SubscriptionViewProps {
     saspayDirect?: boolean;
 }
 
+/** Formules proposées, dans l'ordre d'affichage. */
+const SUBSCRIPTION_PLAN_LIST = [
+    SUBSCRIPTION_PLANS.STARTER,
+    SUBSCRIPTION_PLANS.PRO,
+    SUBSCRIPTION_PLANS.ENTERPRISE,
+];
+
 export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onPay, notify, userRole, saspayDirect = false }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
@@ -27,7 +34,10 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
     const [duration, setDuration] = useState<SubscriptionDuration>(currentSubscription.duration || 'monthly');
     const [loading, setLoading] = useState<string | null>(null);
 
-    const plans = [SUBSCRIPTION_PLANS.STARTER, SUBSCRIPTION_PLANS.PRO, SUBSCRIPTION_PLANS.ENTERPRISE];
+    // Liste figée au chargement du module : elle ne dépend d'aucune prop, la
+    // recréer à chaque rendu n'apportait rien et faussait la liste de
+    // dépendances du calcul d'économies.
+    const plans = SUBSCRIPTION_PLAN_LIST;
 
     // Calculate dynamic savings for each plan
     const savings = useMemo(() => {
@@ -45,7 +55,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
             result[plan.tier] = { quarterly: quarterlySave, annual: annualSave, quarterlyPct, annualPct };
         });
         return result;
-    }, []);
+    }, [plans]);
 
     const handleSubscribe = async (plan: SubscriptionPlan) => {
         if (hasActivePlan && plan.tier === currentTierPlan?.tier) {
@@ -324,7 +334,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                             >
                                 {loading === plan.tier ? (
                                     <span className="flex items-center justify-center gap-2">
-                                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin spinner-always" />
                                         Activation...
                                     </span>
                                 ) : getButtonText(plan)}

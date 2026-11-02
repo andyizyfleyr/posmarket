@@ -197,7 +197,7 @@ export default function UserAccountEditor(user: UserAccountEditorProps) {
                   disabled={saving}
                   className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-brand hover:bg-[#d55a20] transition-all active:scale-95 shadow-lg shadow-orange-100 disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <IdCard size={16} />}
+                  {saving ? <Loader2 size={16} className="animate-spin spinner-always" /> : <IdCard size={16} />}
                   {saving ? 'Enregistrement…' : 'Enregistrer'}
                 </button>
               </div>

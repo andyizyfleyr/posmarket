@@ -586,7 +586,7 @@ export default function StoreBoostPanel({
           className={dangerButtonClass}
           title="Supprimer toutes les données fabriquées par ce panneau et recalculer les agrégats"
         >
-          {busy === 'unboost' ? <Loader2 size={13} className="animate-spin" /> : <Undo2 size={13} />}
+          {busy === 'unboost' ? <Loader2 size={13} className="animate-spin spinner-always" /> : <Undo2 size={13} />}
           Débooster
         </button>
       </header>
@@ -712,7 +712,7 @@ export default function StoreBoostPanel({
                 className={primaryButtonClass}
                 title={target ? 'Un produit ciblé est sélectionné : passez en « Tous les produits » pour booster la boutique' : 'Ajouter des vues à la boutique'}
               >
-                {busy === 'views-store' ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
+                {busy === 'views-store' ? <Loader2 size={13} className="animate-spin spinner-always" /> : <Eye size={13} />}
                 Boutique
               </button>
               <button
@@ -729,7 +729,7 @@ export default function StoreBoostPanel({
                 className={secondaryButtonClass}
                 title={noProduct ? disabledReason : 'Répartir les vues sur les produits'}
               >
-                {busy === 'views-products' ? <Loader2 size={13} className="animate-spin" /> : <Package size={13} />}
+                {busy === 'views-products' ? <Loader2 size={13} className="animate-spin spinner-always" /> : <Package size={13} />}
                 Produits
               </button>
             </div>
@@ -785,7 +785,7 @@ export default function StoreBoostPanel({
               className={`${primaryButtonClass} w-full py-2.5`}
               title={noProduct ? disabledReason : 'Générer des commandes livrées'}
             >
-              {busy === 'orders' ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
+              {busy === 'orders' ? <Loader2 size={13} className="animate-spin spinner-always" /> : <ShoppingBag size={13} />}
               Générer {orderCount} commande{orderCount > 1 ? 's' : ''}
             </button>
           </div>
@@ -956,7 +956,7 @@ export default function StoreBoostPanel({
                     : 'Générer des avis produits'
               }
             >
-              {busy === 'reviews' ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
+              {busy === 'reviews' ? <Loader2 size={13} className="animate-spin spinner-always" /> : <Star size={13} />}
               {isCustomReview ? `Importer ${jsonPreview.count} avis` : `Générer ${reviewCount} avis`}
             </button>
           </div>

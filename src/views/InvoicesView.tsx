@@ -71,7 +71,9 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
             };
         }
         return () => setSelectedInvoiceItems([]);
-    }, [selectedInvoice?.id]);
+        // Dépendre de l'objet entier : `setSelectedInvoice(updated)` conserve le
+        // même id et ne relançait donc pas l'effet (lignes détaillées périmées).
+    }, [selectedInvoice]);
 
     // Create Form State
     const [newInvoice, setNewInvoice] = useState<Partial<Invoice>>({
@@ -672,7 +674,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                     disabled={isSavingInvoice}
                                     className="flex-grow md:flex-none px-12 py-4 bg-brand text-white font-bold rounded-2xl shadow-xl shadow-orange-100 hover:bg-[#d55a20] transition-all active:scale-95 text-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    {isSavingInvoice && <Loader2 size={16} className="animate-spin" />}
+                                    {isSavingInvoice && <Loader2 size={16} className="animate-spin spinner-always" />}
                                     {isSavingInvoice ? 'Enregistrement...' : 'Enregistrer la Facture'}
                                 </button>
                             )}
@@ -735,7 +737,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                 <div className="overflow-x-auto -mx-6 px-6 md:mx-0 md:px-0 mb-8">
                                     {loadingInvoiceItems ? (
                                         <div className="flex items-center justify-center py-12">
-                                            <Loader2 className="animate-spin text-brand" size={24} />
+                                            <Loader2 className="animate-spin text-brand spinner-always" size={24} />
                                         </div>
                                     ) : (
                                     <table className="w-full text-left min-w-[500px] md:min-w-0">
@@ -838,7 +840,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
                                         className="flex-grow md:w-full py-2.5 md:py-3.5 bg-brand text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-lg shadow-orange-100 active:scale-95 transition-all text-[11px] md:text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         {isDownloadingPdf ? (
-                                            <Loader2 size={16} className="animate-spin md:size-[18px]" />
+                                            <Loader2 size={16} className="animate-spin md:size-[18px] spinner-always" />
                                         ) : (
                                             <Download size={16} className="md:size-[18px]" />
                                         )}

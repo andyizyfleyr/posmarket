@@ -301,7 +301,7 @@ export default function ExportProductsModal({
           >
             {isExporting ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin spinner-always" />
                 Génération en cours...
               </>
             ) : exportSuccess ? (

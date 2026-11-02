@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import NextTopLoader from 'nextjs-toploader';
+// Police auto-hébergée : `next/font/google` téléchargeait Inter au moment du
+// build, ce qui faisait échouer `next build` dès que fonts.googleapis.com
+// n'était pas joignable (CI isolée, panne DNS, environnement hors ligne).
+// Le paquet `@fontsource-variable/inter` embarque les .woff2 dans le bundle :
+// build déterministe, aucun appel réseau, et les polices sont servies depuis
+// le même domaine (pas de requête tierce).
+import "@fontsource-variable/inter";
 import "./globals.css";
 import Providers from "./providers";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -79,8 +83,12 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://updrjzaapvbtjdnpicra.supabase.co" />
         <link rel="dns-prefetch" href="https://pub-18d489375e4146f48984e82e8f24581f.r2.dev" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
-        <NextTopLoader 
+      <body className="font-sans antialiased" suppressHydrationWarning>
+        {/* Barre de progression des navigations. `showSpinner={false}` : le
+            spinner du haut restait parfois bloqué après une navigation annulée
+            (import abandonné, retour arrière), et se cumulait avec les
+            indicateurs de chargement des pages. La barre seule suffit. */}
+        <NextTopLoader
           color="#f56b2a"
           initialPosition={0.08}
           crawlSpeed={200}

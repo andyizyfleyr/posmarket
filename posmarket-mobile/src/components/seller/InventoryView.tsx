@@ -24,7 +24,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   AlertCircle,
@@ -89,7 +88,6 @@ export function SellerInventoryView({
   onDiscoverPlans,
 }: SellerInventoryViewProps) {
   const { notify } = useToast();
-  const insets = useSafeAreaInsets();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [productType, setProductType] = useState<SellerProductTypeFilter>('all');

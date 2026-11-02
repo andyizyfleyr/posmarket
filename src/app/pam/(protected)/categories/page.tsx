@@ -503,7 +503,7 @@ export default function AdminCategoriesPage() {
           className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-400 hover:text-gray-700 transition-all disabled:opacity-50"
           title="Actualiser"
         >
-          <RefreshCcw size={16} className={busy ? 'animate-spin' : ''} />
+          <RefreshCcw size={16} className={busy ? 'animate-spin spinner-always' : ''} />
         </button>
       </div>
 
@@ -737,7 +737,7 @@ export default function AdminCategoriesPage() {
                     }`}
                   >
                     {processing.has(selected.id) ? (
-                      <RefreshCcw size={14} className="animate-spin" />
+                      <RefreshCcw size={14} className="animate-spin spinner-always" />
                     ) : selected.isActive ? (
                       <Eye size={14} />
                     ) : (
@@ -924,7 +924,7 @@ export default function AdminCategoriesPage() {
                                   title={child.isActive ? 'Masquer' : 'Afficher'}
                                 >
                                   {childBusy ? (
-                                    <RefreshCcw size={14} className="animate-spin" />
+                                    <RefreshCcw size={14} className="animate-spin spinner-always" />
                                   ) : child.isActive ? (
                                     <Eye size={15} />
                                   ) : (
@@ -967,7 +967,7 @@ export default function AdminCategoriesPage() {
                         className="p-2.5 rounded-xl bg-brand text-white hover:bg-[#d55a20] transition-colors disabled:opacity-60"
                         title="Valider (Entrée)"
                       >
-                        {newChild.saving ? <Loader2 size={16} className="animate-spin" /> : <CornerDownLeft size={16} />}
+                        {newChild.saving ? <Loader2 size={16} className="animate-spin spinner-always" /> : <CornerDownLeft size={16} />}
                       </button>
                       <button
                         onClick={() => setNewChild(null)}
@@ -1134,7 +1134,7 @@ export default function AdminCategoriesPage() {
                   disabled={saving}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-95 shadow-md disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  {saving ? <Loader2 size={16} className="animate-spin spinner-always" /> : <CheckCircle2 size={16} />}
                   {saving ? 'Enregistrement…' : 'Enregistrer'}
                 </button>
               </div>
@@ -1209,7 +1209,7 @@ function InlineImpact({
   if (edit.saving) {
     return (
       <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400">
-        <Loader2 size={12} className="animate-spin" /> Enregistrement…
+        <Loader2 size={12} className="animate-spin spinner-always" /> Enregistrement…
       </p>
     );
   }
@@ -1217,7 +1217,7 @@ function InlineImpact({
   if (edit.checking) {
     return (
       <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400">
-        <Loader2 size={12} className="animate-spin" /> Vérification de l&apos;impact…
+        <Loader2 size={12} className="animate-spin spinner-always" /> Vérification de l&apos;impact…
       </p>
     );
   }

@@ -17,11 +17,17 @@
     "test:k6:writes": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/writes.js",
     "test:k6:spike": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/spike.js",
     "test:k6:full": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/full.js",
-    "test:saspay": "tsx --test tests/saspay/*.test.mjs"
+    "test:saspay": "tsx --test tests/saspay/*.test.mjs",
+    "db:check": "node scripts/check-migration-journal.mjs",
+    "check": "npm run db:check && tsc --noEmit",
+    "typecheck:mobile": "tsc --noEmit --project posmarket-mobile/tsconfig.json",
+    "test:security": "tsx --test tests/security/*.test.mjs",
+    "test": "npm run test:security && npm run test:saspay"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1116.0",
     "@clerk/nextjs": "^7.0.6",
+    "@fontsource-variable/inter": "^5.3.0",
     "@neondatabase/serverless": "^0.10.4",
     "@prisma/client": "^7.7.0",
     "@supabase/ssr": "^0.9.0",

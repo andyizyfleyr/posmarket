@@ -285,7 +285,7 @@ export default function ExportProductImagesModal({
           <div className="p-4 rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50/60 to-white">
             {isLoadingSummary ? (
               <div className="flex items-center gap-3 text-sm text-gray-500">
-                <Loader2 size={18} className="animate-spin text-brand" />
+                <Loader2 size={18} className="animate-spin text-brand spinner-always" />
                 Comptage des photos en cours…
               </div>
             ) : !summary ? (
@@ -469,7 +469,7 @@ export default function ExportProductImagesModal({
           >
             {isDownloading ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin spinner-always" />
                 Préparation du ZIP…
               </>
             ) : downloadSuccess ? (

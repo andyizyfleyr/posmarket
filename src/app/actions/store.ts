@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { refreshTag } from '@/lib/revalidate'
-import { dbFetchStores, dbFetchStoreData, dbCreateStore, StoreDataFields } from '@/db/api'
+import { dbFetchStoreData, dbCreateStore, StoreDataFields } from '@/db/api'
 import { db } from '@/db'
 import { stores, profiles } from '@/db/schema'
 import { eq, count, inArray } from 'drizzle-orm'

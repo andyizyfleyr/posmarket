@@ -199,7 +199,7 @@ export default function TransferProductsModal({
 
                 {isLoadingStores ? (
                   <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-center gap-2 text-xs text-gray-500">
-                    <Loader2 size={16} className="animate-spin text-blue-600" /> Chargement de vos boutiques...
+                    <Loader2 size={16} className="animate-spin text-blue-600 spinner-always" /> Chargement de vos boutiques...
                   </div>
                 ) : availableStores.length === 0 ? (
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800">
@@ -457,7 +457,7 @@ export default function TransferProductsModal({
               >
                 {isTransferring ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Transfert en cours...
+                    <Loader2 size={16} className="animate-spin spinner-always" /> Transfert en cours...
                   </>
                 ) : (
                   <>

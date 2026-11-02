@@ -80,7 +80,7 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
                 disabled={isRetrying}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-brand to-[#ff7d3b] hover:from-[#e45a19] hover:to-brand text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md shadow-brand/25 hover:shadow-lg transition-all cursor-pointer disabled:opacity-70"
               >
-                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin spinner-always' : ''}`} />
                 <span>{isRetrying ? 'Rechargement...' : 'Réessayer'}</span>
               </button>
 

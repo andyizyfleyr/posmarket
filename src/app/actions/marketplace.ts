@@ -8,7 +8,6 @@ import { revalidatePath } from 'next/cache'
 import { refreshTag } from '@/lib/revalidate'
 import { getCurrentSession } from '@/app/actions/session'
 import { notify, getStorePhone } from '@/lib/notifications'
-import { orderEmailProducts } from '@/lib/email'
 import { generateProductSlug } from '@/utils/slug'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
@@ -22,33 +21,7 @@ import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTi
 
 const CATALOG_TAG = 'marketplace'
 
-type CheckoutStoreOrder = {
-  items?: Array<{
-    product?: { id?: string; price?: number | string } | null;
-    /** Prix indicatif du navigateur : jamais utilisé pour la facturation. */
-    price?: number | string;
-    quantity?: number;
-    variantId?: string | null;
-    variantLabel?: string | null;
-    variantSku?: string | null;
-    selectedOptions?: Record<string, string> | null;
-  }>;
-  subtotal?: number | string;
-  discountAmount?: number | string;
-  shippingCost?: number | string;
-  total?: number | string;
-  promoCode?: string | null;
-  paymentMethod?: string;
-}
 
-type CheckoutCustomer = {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  zip?: string;
-}
 
 type SaveAddressPayload = {
   id?: string;

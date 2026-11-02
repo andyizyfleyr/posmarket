@@ -320,6 +320,14 @@ export async function submitCheckoutAction(
             orderId: replayed[0],
             orderIds: replayed,
             orders: await loadCheckoutOrders(replayed),
+            // Même forme que la réponse nominale : le rejeu d'une clé
+            // d'idempotence doit permettre au mobile d'enregistrer le jeton
+            // push de l'invité, comme la première réponse.
+            customer: {
+              name: String(customer.name || ''),
+              email: String(customer.email || '').trim() || null,
+              phone: String(customer.phone || '').replace(/\D/g, '') || null,
+            },
             error: undefined,
           }
         }
@@ -429,6 +437,7 @@ export async function submitCheckoutAction(
     }
     const address = toText(customer.address, 300) || null
     const buyerEmail = email || null
+    const buyerPhone = phone || null
 
     const storeCheckouts: StoreCheckout[] = []
 
@@ -914,11 +923,11 @@ export async function submitCheckoutAction(
       batch.push(
         db.execute(
           sql`INSERT INTO orders (
-                id, store_id, customer_id, buyer_user_id, buyer_email,
+                id, store_id, customer_id, buyer_user_id, buyer_email, buyer_phone,
                 total, subtotal, discount_amount, promo_code, payment_method,
                 status, type, date
               ) VALUES (
-                ${sc.orderId}::uuid, ${sc.storeId}::uuid, ${customerIdSql}, ${user?.id || null}::uuid, ${buyerEmail},
+                ${sc.orderId}::uuid, ${sc.storeId}::uuid, ${customerIdSql}, ${user?.id || null}::uuid, ${buyerEmail}, ${buyerPhone},
                 ${sc.total}, ${sc.subtotal}, ${sc.discount}, ${sc.promoCode}, ${sc.paymentMethod},
                 'PENDING', 'ONLINE', ${new Date()}
               )`,
@@ -1148,6 +1157,11 @@ export async function submitCheckoutAction(
       orderId: createdOrderIds[0],
       orderIds: createdOrderIds,
       orders: await loadCheckoutOrders(createdOrderIds),
+      // Coordonnées réellement associées à la commande. Le mobile s'en sert
+      // pour lier le jeton push de l'invité : sans ce champ, il lisait
+      // `response.customer` (inexistant) et n'enregistrait jamais le jeton,
+      // privant l'acheteur de tout suivi de commande.
+      customer: { name: customerName, email: buyerEmail, phone: buyerPhone },
       error: undefined,
     }
   } catch (error) {

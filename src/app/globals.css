@@ -9,7 +9,7 @@
 @theme inline {
   --color-background: #f3f4f6;
   --color-foreground: #171717;
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Marque */
@@ -46,7 +46,7 @@ html {
 }
 
 html, body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   background-color: #f3f4f6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -509,16 +509,47 @@ input[type="date"]::-webkit-clear-button {
     }
 }
 
-/* Respect des préférences système : on coupe animations et transitions non essentielles. */
+/* Respect des préférences système : on coupe les animations décoratives.
+   ATTENTION : les indicateurs de chargement sont exclus de cette remise à zéro.
+   Avec `animation-duration: 0.01ms` + `animation-iteration-count: 1`, un
+   `animate-spin` faisait un unique tour en 0,01 ms puis s'arrêtait à 360°
+   (soit 0°) : le spinner paraissait figé et l'utilisateur ne savait plus si
+   l'application chargeait encore. Un spinner n'est pas décoratif : sa rotation
+   EST l'information. On la conserve donc, simplement plus lente. */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *:not(.animate-spin):not(.button-loading-icon):not(.skeleton):not(.skeleton-dark),
+    *:not(.animate-spin):not(.button-loading-icon):not(.skeleton):not(.skeleton-dark)::before,
+    *:not(.animate-spin):not(.button-loading-icon):not(.skeleton):not(.skeleton-dark)::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+
+    /* Indicateurs de progression : rotation lente, jamais figée. */
+    .animate-spin,
+    .button-loading-icon {
+        animation-duration: 1.5s !important;
+        animation-iteration-count: infinite !important;
+        animation-timing-function: linear !important;
+    }
+
+    /* Squelettes : pulsation douce au lieu d'un dégradé immobile. */
+    .skeleton,
+    .skeleton-dark {
+        animation: skeleton-pulse-reduced 1.8s ease-in-out infinite !important;
+    }
+}
+
+@keyframes skeleton-pulse-reduced {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* Filet de sécurité : si un conteneur parent a `animation: none` (anciennes
+   feuilles de style, styles inline), le spinner doit continuer de tourner. */
+.spinner-always {
+    animation: spin 1s linear infinite !important;
 }
 
 /* Thinner font weights on mobile (one step below desktop) */

@@ -200,7 +200,9 @@ export default function CartScreen() {
       setIsTransitioning(false);
       router.push('/checkout' as never);
     }, 500);
-  }, [isTransitioning, notify, router, storeGroups, stores]);
+    // `referenceItemPrice` détermine si une ligne bénéficie du tarif de gros :
+    // l'omettre laissait une version obsolète du calculateur dans la closure.
+  }, [isTransitioning, notify, router, storeGroups, stores, referenceItemPrice]);
 
   const handleSwipeDelete = useCallback(
     (item: CartItem) => {

@@ -47,7 +47,7 @@ export default function NotFound() {
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="px-4 py-1.5 rounded-full bg-white/90 border border-orange-200 shadow-md flex items-center gap-2 text-xs font-bold text-brand uppercase tracking-wider backdrop-blur-sm">
-                <Compass className="w-4 h-4 animate-spin" style={{ animationDuration: '10s' }} />
+                <Compass className="w-4 h-4 animate-spin spinner-always" style={{ animationDuration: '10s' }} />
                 Page introuvable
               </div>
             </div>

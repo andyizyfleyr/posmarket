@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useSeller } from '@/context/SellerContext';
 import { SellerInventoryView } from '@/components/seller/InventoryView';
 

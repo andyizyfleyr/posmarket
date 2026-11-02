@@ -396,7 +396,7 @@ export default function CheckoutScreen() {
         // les mises à jour de statut (prête / livrée / annulée).
         const successOrderId = response.orderIds?.[0] || response.orderId || null;
         if (successOrderId) {
-          const customer = (response as any).customer || {};
+          const customer = response.customer || {};
           (async () => {
             try {
               const granted = await requestNotificationPermissions();

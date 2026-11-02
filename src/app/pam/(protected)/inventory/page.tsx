@@ -152,7 +152,7 @@ export default function AdminInventoryPage() {
                         className="p-2.5 bg-white text-slate-300 border border-gray-100 rounded-xl hover:text-red-500 hover:border-red-200 transition-all disabled:opacity-50"
                         title="Supprimer le produit"
                       >
-                        {processing.has(p.id) ? <RefreshCcw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        {processing.has(p.id) ? <RefreshCcw size={16} className="animate-spin spinner-always" /> : <Trash2 size={16} />}
                       </button>
                     </td>
                   </tr>

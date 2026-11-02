@@ -124,10 +124,10 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     setCompletedOrderTotal, setExpandedCartStores, setSwipeState, setCustomerInfo,
     setPaymentMethod, setIsCheckoutTransitioning,
     setIsWhatsAppLoading,
-    safeNavigate, localNotify, formatCurrency, formatPhoneSN, isValidPhoneSN,
+    safeNavigate, localNotify, formatCurrency,
     getEffectiveItemPrice, handleCheckoutSubmit, handleStageChange, removeFromCart,
     updateQuantity, handlePromoApply, promoApplied, setPromoApplied, promoCodeInput, setPromoCodeInput,
-    isPromoOpen, setIsPromoOpen, isApplyingPromo, setIsApplyingPromo,
+    isPromoOpen, setIsPromoOpen, isApplyingPromo,
     retailCartTotal, wholesaleSavings, discountAmount, cartTotal,
     completedOrderStores, completedOrderItems, completedOrderTotal,
     isCheckoutSubmitting,
@@ -910,7 +910,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           className="m-1.5 flex items-center justify-center w-[40px] h-[40px] shrink-0 rounded-xl bg-brand text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                           aria-label="Appliquer le code promo"
                         >
-                          {isApplyingPromo ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
+                          {isApplyingPromo ? <Loader2 size={17} className="animate-spin spinner-always" /> : <Check size={17} />}
                         </button>
                       </div>
                       {!isApplyingPromo && (

@@ -224,7 +224,7 @@ export default function NoStoreFound() {
             >
               {isCreating ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={18} className="animate-spin spinner-always" />
                   <span>Création en cours...</span>
                 </>
               ) : (

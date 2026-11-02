@@ -715,8 +715,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             <img
               src={review.avatarUrl}
               alt=""
-              className="w-full h-full object-cover"
-            />
+              className="w-full h-full object-cover" loading="lazy" decoding="async" />
           ) : (
             review.author?.[0]?.toUpperCase() || "A"
           )}
@@ -1516,7 +1515,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                               }`}
                             >
                               {isAdding ? (
-                                <Loader2 size={11} className="animate-spin" />
+                                <Loader2 size={11} className="animate-spin spinner-always" />
                               ) : isAdded ? (
                                 <Check size={11} strokeWidth={3} />
                               ) : (
@@ -1756,7 +1755,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                               }`}
                             >
                               {isAdding ? (
-                                <Loader2 size={11} className="animate-spin" />
+                                <Loader2 size={11} className="animate-spin spinner-always" />
                               ) : isAdded ? (
                                 <Check size={11} strokeWidth={3} />
                               ) : (
@@ -1952,7 +1951,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               <div className="divide-y divide-gray-50">
                 {selectedProductId && loadingReviews[selectedProductId] ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 text-brand animate-spin" />
+                    <Loader2 className="w-5 h-5 text-brand animate-spin spinner-always" />
                   </div>
                 ) : reviews.length > 0 ? (
                   <>

@@ -235,14 +235,12 @@ const Navbar: React.FC<NavbarProps> = ({
                 <img
                   src={userAvatarUrl}
                   alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
+                  className="w-full h-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <img
                   src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`}
                   alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
+                  className="w-full h-full object-cover" loading="lazy" decoding="async" />
               )}
             </button>
 
@@ -257,8 +255,7 @@ const Navbar: React.FC<NavbarProps> = ({
                           src={userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || 'user'}`}
                           alt=""
                           aria-hidden="true"
-                          className="w-full h-full object-cover"
-                        />
+                          className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-gray-900 leading-none truncate max-w-[120px]">{userEmail?.split('@')[0]}</span>

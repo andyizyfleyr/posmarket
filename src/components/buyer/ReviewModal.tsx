@@ -119,7 +119,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ product, onClose, onSu
           disabled={submitting}
           className="w-full flex items-center justify-center gap-2 py-4 bg-ink text-white rounded-2xl font-bold text-xs shadow-md shadow-gray-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-60"
         >
-          {submitting ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+          {submitting ? <Loader2 size={16} className="animate-spin spinner-always" /> : <ArrowRight size={16} />}
           Publier mon avis
         </button>
       </form>

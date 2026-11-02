@@ -126,7 +126,7 @@ export const TransactionResultModal: React.FC<TransactionResultModalProps> = ({
             )}
 
             {status === 'loading' && (
-              <div className="relative w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center border-4 border-blue-200 border-t-blue-600 animate-spin">
+              <div className="relative w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center border-4 border-blue-200 border-t-blue-600 animate-spin spinner-always">
                 <Loader2 size={32} className="text-blue-600 animate-pulse" />
               </div>
             )}

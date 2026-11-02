@@ -730,7 +730,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="relative flex-grow max-w-md">
             <Search size={16} className="absolute left-3 top-2.5 md:top-3 text-gray-400 md:w-[18px] md:h-[18px]" />
             {isLoadingMore && (
-              <Loader2 size={16} className="absolute right-3 top-2.5 md:top-3 animate-spin text-brand" />
+              <Loader2 size={16} className="absolute right-3 top-2.5 md:top-3 animate-spin text-brand spinner-always" />
             )}
             <input
               type="text"
@@ -997,7 +997,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 className="flex items-center gap-2 px-8 py-3 bg-white border-2 border-gray-100 rounded-2xl shadow-sm text-sm font-bold text-gray-600 hover:text-brand hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoadingMore ? (
-                  <Loader2 size={16} className="animate-spin text-brand" />
+                  <Loader2 size={16} className="animate-spin text-brand spinner-always" />
                 ) : (
                   <Plus size={16} className="text-brand" />
                 )}
@@ -1181,7 +1181,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                         {(formData.images || []).map((img, idx) => (
                           <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-xs">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img} alt={`Image ${idx + 1} du produit`} className="w-full h-full object-cover" />
+                            <img src={img} alt={`Image ${idx + 1} du produit`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             <button
                               type="button"
                               onClick={() => {
@@ -1664,7 +1664,7 @@ if (formData.images.length >= 8) {
                       <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
                         {formData.images && formData.images[0] ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={formData.images[0]} alt="Aperçu" className="w-full h-full object-cover" />
+                          <img src={formData.images[0]} alt="Aperçu" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-300">
                             <Package size={20} />

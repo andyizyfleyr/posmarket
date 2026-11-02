@@ -10,7 +10,7 @@ import { notify, getStorePhone, getProfilePhone, getProfileEmail } from '@/lib/n
 import { sendPushToGuest } from '@/lib/push'
 import { buildPushContent } from '@/lib/push-templates'
 import { orderEmailProducts } from '@/lib/email'
-import { requireStoreAccess, ACCES_REFUSE } from '@/lib/authorization'
+import { requireStoreAccess } from '@/lib/authorization'
 
 // ---------------------------------------------------------------------------
 // Garde-fous d'accès
@@ -109,7 +109,7 @@ async function sendStatusNotifications(orderId: string, status: string) {
         // Invité sans compte : envoyer le push directement aux appareils liés à cette commande
         if (!order.buyerUserId) {
             try {
-                const pushContent = buildPushContent(eventName as any, {
+                const pushContent = buildPushContent(eventName, {
                     title: labels[eventName as keyof typeof labels],
                     body: bodies[eventName as keyof typeof bodies],
                     emailData: { order: shortId, orderId: order.id, store: storeLabel, storeSlug: storeInfo?.slug || '', total: totalStr },

@@ -846,7 +846,7 @@ export default function VariantMatrixEditor({
                           >
                             {variant.image ? (
                               /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={variant.image} alt="" className="w-full h-full object-cover rounded-xl" />
+                              <img src={variant.image} alt="" className="w-full h-full object-cover rounded-xl" loading="lazy" decoding="async" />
                             ) : (
                               <ImageIcon size={14} />
                             )}
@@ -893,7 +893,7 @@ export default function VariantMatrixEditor({
                                       }`}
                                     >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={img} alt="" className="w-full h-full object-cover" />
+                                      <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                     </button>
                                   ))}
                                   <button

@@ -202,6 +202,10 @@ export const orders = pgTable('orders', {
   customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
   buyerUserId: uuid('buyer_user_id').references(() => profiles.id, { onDelete: 'set null' }),
   buyerEmail: text('buyer_email'),
+  // Téléphone saisi au moment de la commande. Indispensable au suivi des
+  // commandes invitées (push, WhatsApp, vérification du jeton push) : sans
+  // cette colonne, la vérification par téléphone était silencieusement morte.
+  buyerPhone: text('buyer_phone'),
   total: numeric('total', { precision: 12, scale: 2 }).notNull(),
   subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull(),
   discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).default('0'),

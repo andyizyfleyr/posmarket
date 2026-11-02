@@ -726,7 +726,7 @@ export default function AdminSettingsPage() {
             disabled={sendingTest || !selectedEvent || !testEmail}
             className="flex-1 py-3.5 text-white font-bold text-[10px] uppercase tracking-[0.18em] rounded-2xl transition-all bg-brand hover:bg-[#d55a20] shadow-xl shadow-orange-100 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {sendingTest ? <RefreshCcw size={15} className="animate-spin" /> : <Send size={15} />}
+            {sendingTest ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <Send size={15} />}
             {sendingTest ? 'Envoi en cours...' : 'Envoyer ce test'}
           </button>
           <button
@@ -734,7 +734,7 @@ export default function AdminSettingsPage() {
             disabled={sendingAll || !testEmail}
             className="flex-1 py-3.5 text-white font-bold text-[10px] uppercase tracking-[0.18em] rounded-2xl transition-all bg-violet-600 hover:bg-violet-500 shadow-xl shadow-violet-100 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {sendingAll ? <RefreshCcw size={15} className="animate-spin" /> : <ClipboardList size={15} />}
+            {sendingAll ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <ClipboardList size={15} />}
             {sendingAll ? 'Envoi en cours...' : `Tout envoyer (${testEvents.length})`}
           </button>
         </div>
@@ -768,7 +768,7 @@ export default function AdminSettingsPage() {
           saved ? 'bg-emerald-500 shadow-lg shadow-emerald-100' : 'bg-brand hover:bg-[#d55a20] shadow-xl shadow-orange-100'
         }`}
       >
-        {saving ? <RefreshCcw size={16} className="animate-spin" /> : saved ? <CheckCircle2 size={16} /> : null}
+        {saving ? <RefreshCcw size={16} className="animate-spin spinner-always" /> : saved ? <CheckCircle2 size={16} /> : null}
         {saving ? 'Synchronisation...' : saved ? 'Configurations enregistrées' : dirty ? 'Enregistrer les Protocoles' : 'Aucune modification'}
       </button>
     </div>

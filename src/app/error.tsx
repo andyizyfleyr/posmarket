@@ -103,7 +103,7 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
                 disabled={isRetrying}
                 className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-brand to-[#ff7d3b] hover:from-[#e45a19] hover:to-brand text-white text-sm font-bold rounded-2xl shadow-lg shadow-brand/30 hover:shadow-xl hover:shadow-brand/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all disabled:opacity-70 cursor-pointer"
               >
-                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin spinner-always' : ''}`} />
                 <span>{isRetrying ? 'Rechargement...' : 'Recharger la page'}</span>
               </button>
 

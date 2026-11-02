@@ -158,7 +158,7 @@ export default function ConfirmationModal({
               disabled={isLoading}
               className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-colors focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${typeConfig.confirmBtn}`}
             >
-              {isLoading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
+              {isLoading && <Loader2 size={16} className="animate-spin spinner-always" aria-hidden="true" />}
               <span>{resolvedConfirmText}</span>
             </button>
           </div>

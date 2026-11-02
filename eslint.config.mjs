@@ -21,6 +21,22 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    /**
+     * Application mobile (React Native / Expo).
+     *
+     * Les règles `jsx-a11y/alt-text` et `@next/next/no-img-element` sont des
+     * règles du web : elles exigeaient `alt` sur des `<Image>` de `expo-image`
+     * (qui utilise `accessibilityLabel` et `alt` uniquement depuis Expo SDK 51+)
+     * et interdisaient `<img>`, qui n'existe pas hors DOM. Elles produisaient
+     * 28 faux positifs qui masquaient les vrais avertissements.
+     */
+    files: ["posmarket-mobile/**/*.{ts,tsx}"],
+    rules: {
+      "jsx-a11y/alt-text": "off",
+      "@next/next/no-img-element": "off",
+    },
+  },
+  {
     files: ["tests/k6/**/*.js"],
     rules: {
       // k6 n'exécute que le `export default function () {}` : le nom de la

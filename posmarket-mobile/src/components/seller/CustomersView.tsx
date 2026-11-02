@@ -40,7 +40,6 @@ import { WhatsAppIcon } from '@/components/seller/WhatsAppIcon';
 import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PhoneField } from '@/components/PhoneField';
-import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
 import { formatCurrency } from '@/utils';
 import { formatPhoneNumber, parsePhoneNumber } from '@/constants/countries';
@@ -328,18 +327,6 @@ export function SellerCustomersView({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.length === filteredCustomers.length) setSelectedIds([]);
-    else setSelectedIds(filteredCustomers.map((customer) => customer.id));
-  };
-
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((customerId) => customerId !== id) : [...prev, id],
-    );
   };
 
   /** Lien WhatsApp du client (numéro international sans « + »). */

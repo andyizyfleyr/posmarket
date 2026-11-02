@@ -258,6 +258,13 @@ interface CheckoutResponse {
   orderId?: string;
   orderIds?: string[];
   orders?: CheckoutResponseOrder[];
+  /**
+   * Coordonnées associées à la commande, renvoyées par `submitCheckoutAction`.
+   * Elles servent à lier le jeton push de l'invité : le champ existait côté
+   * serveur mais était absent de ce type, et le mobile lisait
+   * `(response as any).customer`, donc toujours `undefined`.
+   */
+  customer?: { name?: string | null; email?: string | null; phone?: string | null };
   error?: string;
 }
 

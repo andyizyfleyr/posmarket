@@ -6,7 +6,7 @@
  *   avec le parcours en 4 étapes et son état « Dossier finalisé ».
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -86,24 +86,24 @@ export function StoreVerification({
 }: StoreVerificationProps) {
   const isRejected = store.status === 'REJECTED';
   const [activeStep, setActiveStep] = useState(1);
-  const [formData, setFormData] = useState({
-    email: '',
-    phone: '',
-    address: '',
-    description: '',
-  });
 
-  useEffect(() => {
-    setActiveStep(1);
-    if (store && store.status === 'PENDING') {
-      setFormData({
-        email: String(store.settings?.email || ''),
-        phone: String(store.settings?.phone || ''),
-        address: String(store.settings?.address || ''),
-        description: String(store.settings?.description || ''),
-      });
-    }
-  }, [store]);
+  /**
+   * Pré-remplissage initial des champs depuis la boutique.
+   *
+   * Auparavant, un `useEffect` sur `[store]` appelait `setActiveStep(1)` et
+   * `setFormData(...)` : chaque rendu du parent (rafraîchissement, polling du
+   * statut) relançait deux rendus en cascade et RÉÉCRIVAIT la saisie en cours
+   * avec les valeurs serveur — l'utilisateur voyait son champ se vider.
+   *
+   * On initialise une seule fois, à partir de la boutique du premier rendu :
+   * l'état local reste ensuite maître jusqu'à l'enregistrement.
+   */
+  const [formData, setFormData] = useState(() => ({
+    email: String(store?.settings?.email || ''),
+    phone: String(store?.settings?.phone || ''),
+    address: String(store?.settings?.address || ''),
+    description: String(store?.settings?.description || ''),
+  }));
 
   const handleFinalize = useCallback(() => {
     void onSave(formData);

@@ -129,7 +129,9 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                 if (!cancelled) setLoadingOrderItems(false);
             });
         return () => { cancelled = true; };
-    }, [selectedOrder?.id]);
+        // Dépendre de l'objet entier : une mise à jour à id constant
+        // (statut, lignes) doit recharger les articles affichés.
+    }, [selectedOrder]);
 
     const filteredOrders = useMemo(() => {
         return localOrders.filter(order => {
@@ -289,7 +291,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         />
                     </div>
                     <button className="p-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-400 hover:text-brand shadow-sm transition-colors relative">
-                        {isSearching ? <Loader2 size={18} className="animate-spin text-brand" /> : <Filter size={18} className="md:w-5 md:h-5" />}
+                        {isSearching ? <Loader2 size={18} className="animate-spin text-brand spinner-always" /> : <Filter size={18} className="md:w-5 md:h-5" />}
                     </button>
                 </div>
             </div>
@@ -346,7 +348,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 disabled={!!bulkUpdatingStatus}
                                 className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
                             >
-                                {bulkUpdatingStatus === 'PENDING' && <Loader2 size={12} className="animate-spin" />}
+                                {bulkUpdatingStatus === 'PENDING' && <Loader2 size={12} className="animate-spin spinner-always" />}
                                 Commandées
                             </button>
                             <button 
@@ -354,7 +356,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 disabled={!!bulkUpdatingStatus}
                                 className="px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
                             >
-                                {bulkUpdatingStatus === 'READY' && <Loader2 size={12} className="animate-spin" />}
+                                {bulkUpdatingStatus === 'READY' && <Loader2 size={12} className="animate-spin spinner-always" />}
                                 En cours
                             </button>
                             <button 
@@ -362,7 +364,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 disabled={!!bulkUpdatingStatus}
                                 className="px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
                             >
-                                {bulkUpdatingStatus === 'COMPLETED' && <Loader2 size={12} className="animate-spin" />}
+                                {bulkUpdatingStatus === 'COMPLETED' && <Loader2 size={12} className="animate-spin spinner-always" />}
                                 Livrées
                             </button>
                             <button 
@@ -452,7 +454,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-500 hover:text-brand hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
                                 >
                                     {isLoadingMore ? (
-                                        <Loader2 size={14} className="animate-spin text-brand" />
+                                        <Loader2 size={14} className="animate-spin text-brand spinner-always" />
                                     ) : (
                                         <Plus size={14} className="text-brand" />
                                     )}
@@ -471,7 +473,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                         <div className="h-full flex flex-col items-center justify-center p-20 text-center gap-4">
                             {isSearching ? (
                                 <>
-                                    <Loader2 size={40} className="animate-spin text-brand/70" />
+                                    <Loader2 size={40} className="animate-spin text-brand/70 spinner-always" />
                                     <div>
                                         <p className="text-lg font-bold text-gray-900 leading-tight">Recherche en cours…</p>
                                         <p className="text-xs text-gray-500 mt-1">Chargement de vos commandes.</p>
@@ -556,7 +558,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                     </div>
                                     {loadingOrderItems ? (
                                         <div className="flex items-center justify-center py-8">
-                                            <Loader2 className="animate-spin text-brand" size={20} />
+                                            <Loader2 className="animate-spin text-brand spinner-always" size={20} />
                                         </div>
                                     ) : (
                                     <div className="space-y-2 md:space-y-3">
@@ -570,7 +572,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                             return (
                                             <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-3 border border-gray-50 rounded-xl md:rounded-2xl hover:bg-gray-50/50 transition-colors">
                                                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-2xl overflow-hidden border border-gray-100 flex-shrink-0">
-                                                    {product?.image ? <img src={product.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100" />}
+                                                    {product?.image ? <img src={product.image} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <div className="w-full h-full bg-gray-100" />}
                                                 </div>
                                                 <div className="flex-grow min-w-0">
                                                     <div className="text-xs md:text-sm font-bold text-gray-900 truncate">{product?.name || 'Article'}</div>
@@ -650,7 +652,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 }`}
                             >
                                 {updatingOrderId === selectedOrder.id ? (
-                                    <Loader2 size={16} className="animate-spin md:w-[18px] md:h-[18px]" />
+                                    <Loader2 size={16} className="animate-spin md:w-[18px] md:h-[18px] spinner-always" />
                                 ) : (
                                     <CheckCircle2 size={16} className="md:w-[18px] md:h-[18px]" />
                                 )}

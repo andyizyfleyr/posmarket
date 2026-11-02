@@ -19,7 +19,7 @@ export const normalizeImage = (uri?: string | null): string => {
   return uri;
 };
 
-export const getStatusInfo = (status: string, businessType?: string) => {
+export const getStatusInfo = (status: string, _businessType?: string) => {
   switch (status) {
     case 'COMPLETED':
       return {

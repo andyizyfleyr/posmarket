@@ -58,11 +58,18 @@ try {
 
         let savedCustomer;
         if (customer.id && !customer.id.startsWith('temp-')) {
+            // `requireStoreAccess(storeId)` valide la boutique déclarée par
+            // l'appelant, pas la boutique du client ciblé : sans la condition
+            // sur `storeId`, un vendeur pouvait modifier le client d'une
+            // boutique concurrente en connaissant son identifiant.
             [savedCustomer] = await db
                 .update(customers)
                 .set(dataToSave)
-                .where(eq(customers.id, customer.id))
+                .where(and(eq(customers.id, customer.id), eq(customers.storeId, storeId)))
                 .returning();
+            if (!savedCustomer) {
+                return { success: false, error: 'Client introuvable dans cette boutique.' };
+            }
         } else {
             [savedCustomer] = await db
                 .insert(customers)

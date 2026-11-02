@@ -99,7 +99,7 @@ function ChannelToggle({ row, channel, icon: Icon, label, saving, onToggle }: Ch
       }`}
     >
       {saving ? (
-        <Loader2 size={14} className="animate-spin shrink-0" aria-hidden="true" />
+        <Loader2 size={14} className="animate-spin shrink-0 spinner-always" aria-hidden="true" />
       ) : (
         <Icon size={14} className="shrink-0" aria-hidden="true" />
       )}
@@ -191,7 +191,7 @@ export const NotificationsTab: React.FC<NotificationsTabProps> = ({ notify }) =>
   if (loading) {
     return (
       <div className="bg-white rounded-card border border-line shadow-sm p-8 flex flex-col items-center gap-3">
-        <Loader2 size={22} className="animate-spin text-brand" aria-hidden="true" />
+        <Loader2 size={22} className="animate-spin text-brand spinner-always" aria-hidden="true" />
         <p className="text-sm font-semibold text-gray-500" role="status">Chargement des préférences…</p>
       </div>
     );

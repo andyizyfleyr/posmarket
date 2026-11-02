@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
               disabled={bulkBusy}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
             >
-              {bulkBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              {bulkBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <Trash2 size={15} />}
               Supprimer
             </button>
           </div>
@@ -262,7 +262,7 @@ export default function AdminUsersPage() {
                         }`}
                         title={u.is_super_admin ? 'Révoquer les droits admin' : 'Promouvoir super admin'}
                       >
-                        {processing.has(`admin-${u.id}`) ? <RefreshCcw size={16} className="animate-spin" /> : <Shield size={16} />}
+                        {processing.has(`admin-${u.id}`) ? <RefreshCcw size={16} className="animate-spin spinner-always" /> : <Shield size={16} />}
                       </button>
                       <button
                         onClick={() => setConfirm({ id: u.id, name: u.full_name || u.email || 'Utilisateur', action: 'delete' })}
@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
                         className="p-2.5 bg-white text-slate-300 border border-gray-100 rounded-xl hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center min-w-[40px] disabled:opacity-50"
                         title="Supprimer le compte"
                       >
-                        {processing.has(`delete-${u.id}`) ? <RefreshCcw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        {processing.has(`delete-${u.id}`) ? <RefreshCcw size={16} className="animate-spin spinner-always" /> : <Trash2 size={16} />}
                       </button>
                     </div>
                   </td>

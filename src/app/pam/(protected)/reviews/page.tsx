@@ -153,8 +153,7 @@ export default function AdminReviewsPage() {
                           <img
                             src={r.author_avatar}
                             alt=""
-                            className="w-full h-full object-cover rounded-xl"
-                          />
+                            className="w-full h-full object-cover rounded-xl" loading="lazy" decoding="async" />
                         ) : (
                           r.author_name?.[0]?.toUpperCase() || 'A'
                         )}
@@ -207,7 +206,7 @@ export default function AdminReviewsPage() {
                   className="p-2.5 bg-white text-slate-300 border border-gray-100 rounded-xl hover:text-red-500 hover:border-red-200 transition-all disabled:opacity-50 flex-shrink-0"
                   title="Supprimer l'avis"
                 >
-                  {processing.has(r.id) ? <RefreshCcw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {processing.has(r.id) ? <RefreshCcw size={16} className="animate-spin spinner-always" /> : <Trash2 size={16} />}
                 </button>
               </div>
             </div>

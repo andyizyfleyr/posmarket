@@ -505,7 +505,7 @@ export default function ImportProductsModal({
           {step === 'importing' && (
             <div className="py-12 flex flex-col items-center justify-center text-center gap-4">
               <div className="p-4 bg-orange-50 text-brand rounded-full animate-bounce">
-                <Loader2 size={36} className="animate-spin text-brand" />
+                <Loader2 size={36} className="animate-spin text-brand spinner-always" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-900">

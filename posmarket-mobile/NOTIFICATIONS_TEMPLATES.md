@@ -14,7 +14,7 @@
 | Modèle `NotificationEvent` | `src/types.ts` |
 | Textes push par événement | `src/lib/push-templates.ts` → `buildPushContent()` |
 | Envoi Expo Push | `src/lib/push.ts` → `sendPush()` |
-| Jetons d'appareils | table `push_tokens` (migration `drizzle/0024_push_tokens.sql`) |
+| Jetons d'appareils | table `push_tokens` (migration `drizzle/0031_push_tokens.sql`) |
 | API jeton mobile | `POST/DELETE /api/marketplace/push-token` |
 | Templates e-mail | `src/lib/email.ts` |
 | Répartition des canaux | `notify()` dans `src/lib/notifications.ts` |
@@ -252,7 +252,7 @@ le jour où le déclencheur est ajouté, `notify()` l'envoie sans autre travail.
 
 ### 8.1 Base de données
 
-Migration `drizzle/0024_push_tokens.sql` :
+Migration `drizzle/0031_push_tokens.sql` :
 
 ```sql
 CREATE TABLE IF NOT EXISTS push_tokens (

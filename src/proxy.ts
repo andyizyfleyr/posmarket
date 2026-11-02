@@ -11,6 +11,20 @@ const { auth } = NextAuth(authConfig)
 const BAD_BOT_RE =
   /(semrush|ahrefs|majestic|dotbot|petalbot|mj12bot|screaming ?frog|buzzsumo|megaindex|linkpad|serpstat|python-requests|python-urllib|scrapy|curl\/|wget|httpclient|okhttp|go-http-client|libwww|axios\/|node-fetch|java\/|apache-httpclient|zgrab|masscan|nikto|sqlmap)/i;
 
+/**
+ * Routes de webhook exemptées du filtre anti-bots.
+ *
+ * Liste volontairement explicite (et non un motif `/webhook`) : une nouvelle
+ * route publique ne doit pas hériter du contournement par simple nommage.
+ */
+const WEBHOOK_PATHS = new Set([
+  '/api/kkiapay/webhook',
+  '/api/fedapay/webhook',
+  '/api/feexpay/webhook',
+  '/api/saspay/webhook',
+  '/api/whatsapp/webhook',
+]);
+
 export async function proxy(request: NextRequest) {
   try {
     // Limitation de débit : appliquée en premier, avant toute session, pour
@@ -26,10 +40,15 @@ export async function proxy(request: NextRequest) {
     const isMobileApp =
       request.headers.get('x-posmarket-client') === 'mobile-app';
     const ua = request.headers.get('user-agent') || '';
-    // SasPay peut appeler le webhook sans User-Agent navigateur. Sa signature
-    // et son horodatage sont vérifiés dans le route handler lui-même.
-    const isSaspayWebhook = request.nextUrl.pathname === '/api/saspay/webhook' && request.method === 'POST';
-    if (!isMobileApp && !isSaspayWebhook && (!ua || BAD_BOT_RE.test(ua))) {
+    // Les webhooks sont appelés par des serveurs, pas par un navigateur : leur
+    // User-Agent peut être vide ou ressembler à un client HTTP (curl, OkHttp,
+    // python-requests…). Ils étaient donc rejetés en 403 AVANT d'atteindre la
+    // vérification de signature — FedaPay, FeexPay, Kkiapay et WhatsApp
+    // perdaient silencieusement leurs notifications. La sécurité de ces routes
+    // repose sur la signature HMAC vérifiée dans le route handler, pas sur l'UA.
+    const isWebhook =
+      request.method === 'POST' && WEBHOOK_PATHS.has(request.nextUrl.pathname);
+    if (!isMobileApp && !isWebhook && (!ua || BAD_BOT_RE.test(ua))) {
       return new Response('Forbidden', {
         status: 403,
         headers: { 'content-type': 'text/plain' },

@@ -16,13 +16,47 @@ const SESSION_MAX_AGE = 60 * 60 * 8; // 8 heures
 const LOGIN_LIMIT = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
-function getSigningSecret(): string {
-  // Secret de signature stable, dérivé de DATABASE_URL si ADMIN_AUTH_SECRET absent.
-  return process.env.ADMIN_AUTH_SECRET || createHmac('sha256', 'pam-admin').update(process.env.DATABASE_URL || '').digest('base64');
+const MIN_SECRET_LENGTH = 32;
+
+/**
+ * Secret de signature des cookies d'administration.
+ *
+ * Auparavant, en l'absence de `ADMIN_AUTH_SECRET`, la clé était dérivée de
+ * `DATABASE_URL` : toute fuite de la chaîne de connexion (journal, sauvegarde,
+ * variable exposée) permettait alors de FORGER un cookie admin valide, puisque
+ * le mot de passe de la base devenait un secret partagé de signature.
+ *
+ * On refuse désormais de signer sans secret dédié suffisamment long. En
+ * développement uniquement, un secret éphémère est généré : il invalide les
+ * cookies à chaque redémarrage, ce qui est le comportement attendu en local.
+ */
+let ephemeralDevSecret: string | null = null;
+
+function getSigningSecret(): string | null {
+  const configured = (process.env.ADMIN_AUTH_SECRET || '').trim();
+  if (configured.length >= MIN_SECRET_LENGTH) return configured;
+  if (configured.length > 0) {
+    console.error(
+      `[auth] ADMIN_AUTH_SECRET trop court (${configured.length} caractères, minimum ${MIN_SECRET_LENGTH}).`,
+    );
+    return null;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[auth] ADMIN_AUTH_SECRET est absent : connexion à /pam impossible.');
+    return null;
+  }
+  if (!ephemeralDevSecret) {
+    ephemeralDevSecret = createHmac('sha256', 'pam-admin-dev')
+      .update(`${Date.now()}-${Math.random()}`)
+      .digest('base64');
+  }
+  return ephemeralDevSecret;
 }
 
-function sign(payload: string): string {
-  const hmac = createHmac('sha256', getSigningSecret());
+function sign(payload: string): string | null {
+  const secret = getSigningSecret();
+  if (!secret) return null;
+  const hmac = createHmac('sha256', secret);
   hmac.update(payload);
   return hmac.digest('hex');
 }
@@ -65,7 +99,14 @@ export async function adminLogin(usernameOrEmail: string, password: string): Pro
     }
 
     const payload = `${admin.id}.${Date.now()}`;
-    const token = `${payload}.${sign(payload)}`;
+    const signature = sign(payload);
+    if (!signature) {
+      return {
+        success: false,
+        error: 'Administration non configurée : ADMIN_AUTH_SECRET est requis (32 caractères minimum).',
+      };
+    }
+    const token = `${payload}.${signature}`;
 
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE, token, {
@@ -107,9 +148,19 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const [id, , signature] = parts;
-    const payload = `${id}.${parts[1]}`;
-    if (!safeEqual(sign(payload), signature)) return null;
+    const [id, issuedAt, signature] = parts;
+
+    // Expiration : l'horodatage était signé mais jamais comparé à l'heure
+    // courante. Un cookie volé restait donc valide indéfiniment, alors que le
+    // navigateur, lui, l'oubliait au bout de 8 h.
+    const issuedAtMs = Number(issuedAt);
+    if (!Number.isFinite(issuedAtMs) || issuedAtMs <= 0) return null;
+    const ageMs = Date.now() - issuedAtMs;
+    if (ageMs < 0 || ageMs > SESSION_MAX_AGE * 1000) return null;
+
+    const payload = `${id}.${issuedAt}`;
+    const expected = sign(payload);
+    if (!expected || !safeEqual(expected, signature)) return null;
 
     const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.id, id)).limit(1);
     if (!admin || !admin.isActive) return null;

@@ -112,12 +112,18 @@ export async function registerGuestPushToken(input: {
     .onConflictDoUpdate({
       target: guestPushTokens.token,
       set: {
+        // Un même jeton d'appareil peut servir plusieurs commandes invitées :
+        // on le rattache à la plus récente, mais SANS écraser la coordonnée
+        // qui a servi de preuve pour la précédente (elle est vérifiée par
+        // l'appelant). L'e-mail/téléphone est donc conservé s'il est fourni.
         orderId: input.orderId,
         email: input.email || null,
         phone: input.phone || null,
         platform: input.platform,
         enabled: true,
         lastSeenAt: new Date(),
+        // Un jeton réutilisé repart pour 30 jours.
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
 }

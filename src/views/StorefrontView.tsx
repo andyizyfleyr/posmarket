@@ -90,16 +90,6 @@ export interface StorefrontProduct extends Product {
   rankScore?: number;
 }
 
-type FtsRow = {
-  id: string;
-  name: string;
-  price: number | string;
-  image: string | null;
-  stock: number | null;
-  category: string | null;
-  store_id: string;
-  isOnline: boolean | null;
-};
 
 /** Clé de mémorisation de la feuille « Voir tout » ouverte (par onglet). */
 const SHEET_STATE_KEY = "storefront_sheet_v1";
@@ -227,7 +217,6 @@ interface StorefrontViewProps {
   stores: StoreData[];
   initialCategory?: string;
   initialStoreId?: string;
-  onBackToApp: () => void | Promise<void>;
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
@@ -289,7 +278,6 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
   initialCategory,
   initialStoreId,
-  onBackToApp,
   onMarketplaceCheckout,
   onNotifyCartInterest,
   onNotifyPostCheckout,
@@ -1221,7 +1209,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isAccountViewUrl, user, isMounted, isSessionChecking]);
+  }, [isAccountViewUrl, user, isMounted, isSessionChecking, location.pathname, safeNavigate]);
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
@@ -1797,8 +1785,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
 const SECTION_PREVIEW_COUNT = 6;
 
 const WHOLESALE_FILTER = "wholesale";
-  // Sections depliees a la demande (cle verticale::categorie).
-  const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({});
   const categories = useMemo(() => {
     // Les onglets ne doivent proposer que des catégories effectivement
     // présentes dans le catalogue affiché, et la Restauration (grossiste)
@@ -1885,6 +1871,7 @@ const WHOLESALE_FILTER = "wholesale";
     ftsResults,
     searchTerm,
     selectedCategory,
+    selectedStoreParam,
     selectedStoreId,
   ]);
 
@@ -2315,7 +2302,9 @@ const WHOLESALE_FILTER = "wholesale";
         showCartNotif();
       }
     },
-    [buzz, showCartNotif],
+    // `showStockNotice` est utilisé dans la branche d'alerte de stock : sans
+    // lui, une fermeture de `showCartNotif` obsolète restait capturée.
+    [buzz, showCartNotif, showStockNotice],
   );
 
   const removeFromCart = (
@@ -3097,7 +3086,7 @@ const WHOLESALE_FILTER = "wholesale";
         >
           <div className="flex flex-col items-center gap-6   duration-500">
             <div className="relative">
-              <div className="w-20 h-20 border-[4px] border-gray-100 border-t-brand rounded-full animate-spin shadow-inner" />
+              <div className="w-20 h-20 border-[4px] border-gray-100 border-t-brand rounded-full animate-spin shadow-inner spinner-always" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <ShoppingBasketIcon
                   size={32}
@@ -3238,8 +3227,7 @@ const WHOLESALE_FILTER = "wholesale";
                         <img
                           src={user.avatarUrl}
                           alt=""
-                          className="w-full h-full object-cover"
-                        />
+                          className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <User size={18} strokeWidth={3} />
                       )}
@@ -3749,8 +3737,7 @@ const WHOLESALE_FILTER = "wholesale";
                             width={720}
                             height={560}
                             fetchPriority="high"
-                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
-                          />
+                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover" loading="lazy" decoding="async" />
                         </picture>
                       </button>
 
@@ -3772,8 +3759,7 @@ const WHOLESALE_FILTER = "wholesale";
                             alt="Offre acheteurs — C'est le moment d'acheter : trouvez vos produits au meilleur prix."
                             width={720}
                             height={560}
-                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
-                          />
+                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover" loading="lazy" decoding="async" />
                         </picture>
                       </button>
 
@@ -3795,8 +3781,7 @@ const WHOLESALE_FILTER = "wholesale";
                             alt="Vente en gros — produits à acheter directement aux commerçants"
                             width={720}
                             height={560}
-                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover"
-                          />
+                            className="block w-full h-auto aspect-[720/560] md:aspect-[1504/340] object-cover" loading="lazy" decoding="async" />
                         </picture>
                       </button>
                     </div>
@@ -4135,7 +4120,7 @@ const WHOLESALE_FILTER = "wholesale";
                     >
                       {isLoadingMore && (
                         <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-                          <Loader2 size={22} className="animate-spin text-brand" aria-hidden="true" />
+                          <Loader2 size={22} className="animate-spin text-brand spinner-always" aria-hidden="true" />
                           <p className="text-sm font-medium text-gray-500">
                             Chargement des produits…
                           </p>
@@ -4172,7 +4157,7 @@ const WHOLESALE_FILTER = "wholesale";
                     role="status"
                     aria-live="polite"
                   >
-                    <Loader2 size={40} className="text-brand animate-spin" aria-hidden="true" />
+                    <Loader2 size={40} className="text-brand animate-spin spinner-always" aria-hidden="true" />
                     <p className="text-sm font-medium text-gray-500 mt-4">
                       Chargement du catalogue…
                     </p>
@@ -4435,7 +4420,7 @@ const WHOLESALE_FILTER = "wholesale";
                         <div className="flex flex-col items-center gap-3">
                           <Loader2
                             size={32}
-                            className="text-brand animate-spin"
+                            className="text-brand animate-spin spinner-always"
                           />
                           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                             Chargement des produits...
@@ -4450,7 +4435,7 @@ const WHOLESALE_FILTER = "wholesale";
                       <div className="flex flex-col items-center justify-center py-20">
                         <Loader2
                           size={32}
-                          className="text-brand animate-spin mb-4"
+                          className="text-brand animate-spin mb-4 spinner-always"
                         />
                         <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">
                           Chargement des avis...
@@ -4542,8 +4527,7 @@ const WHOLESALE_FILTER = "wholesale";
                                       <img
                                         src={review.avatarUrl}
                                         alt=""
-                                        className="w-full h-full object-cover"
-                                      />
+                                        className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                     ) : (
                                       review.author?.[0]?.toUpperCase() || "A"
                                     )}
@@ -4705,7 +4689,7 @@ const WHOLESALE_FILTER = "wholesale";
           >
             {isCartButtonLoading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin spinner-always" />
                 <span className="whitespace-nowrap">Chargement...</span>
               </>
             ) : (

@@ -165,7 +165,7 @@ if (res?.success) {
         <div className="flex items-center gap-4">
 <div className="w-14 h-14 bg-gradient-to-tr from-brand to-orange-400 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange-200/50 overflow-hidden shrink-0">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             ) : (
               (user.name || 'U')[0].toUpperCase()
             )}
@@ -182,7 +182,7 @@ if (res?.success) {
           <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-brand to-orange-400 flex items-center justify-center text-white text-base font-bold shrink-0">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                <img src={avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 (user.name || 'U')[0].toUpperCase()
               )}
@@ -269,7 +269,7 @@ if (res?.success) {
             disabled={saving || loadingProfile}
             className="w-full flex items-center justify-center gap-2 py-3.5 bg-brand text-white rounded-2xl font-bold text-xs shadow-md shadow-orange-100 hover:bg-[#e55a1b] active:scale-[0.98] transition-all disabled:opacity-60"
           >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {saving ? <Loader2 size={16} className="animate-spin spinner-always" /> : <Save size={16} />}
             Enregistrer mes informations
           </button>
         </form>

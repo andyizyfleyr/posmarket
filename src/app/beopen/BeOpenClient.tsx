@@ -164,8 +164,7 @@ export default function BeOpenClient() {
                   <img
                     src="/images/beopen/hero_pos_shop.jpg"
                     alt="Commerçante souriante avec caisse enregistreuse PosMarket"
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                  />
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
                 </div>
 
@@ -247,8 +246,7 @@ export default function BeOpenClient() {
                   <img
                     src="/images/beopen/pos_checkout_touch.jpg"
                     alt="Caisse tactile et imprimante de reçus"
-                    className="w-full h-56 sm:h-72 md:h-80 object-cover object-center"
-                  />
+                    className="w-full h-56 sm:h-72 md:h-80 object-cover object-center" loading="lazy" decoding="async" />
                 </div>
               </div>
             </div>
@@ -261,8 +259,7 @@ export default function BeOpenClient() {
                   <img
                     src="/images/beopen/storefront_online_order.jpg"
                     alt="Commande en ligne sur vitrine e-commerce 24/7"
-                    className="w-full h-56 sm:h-72 md:h-80 object-cover object-center"
-                  />
+                    className="w-full h-56 sm:h-72 md:h-80 object-cover object-center" loading="lazy" decoding="async" />
                 </div>
               </div>
               <div className="lg:col-span-6">
@@ -333,8 +330,7 @@ export default function BeOpenClient() {
                   <img
                     src="/images/beopen/merchant_dashboard_growth.jpg"
                     alt="Commerçant confiant avec tableau de bord et ventes"
-                    className="w-full h-56 sm:h-72 md:h-80 object-cover object-center"
-                  />
+                    className="w-full h-56 sm:h-72 md:h-80 object-cover object-center" loading="lazy" decoding="async" />
                 </div>
               </div>
             </div>

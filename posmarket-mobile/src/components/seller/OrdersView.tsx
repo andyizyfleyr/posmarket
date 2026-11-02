@@ -104,7 +104,9 @@ export function SellerOrdersView({ storeId, onUnauthorized }: SellerOrdersViewPr
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>(
     'ALL',
   );
-  const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
+  // `setSelectedVertical` n'est pas exposé : le filtre vertical est piloté par
+  // la navigation, l'état ne sert qu'à l'affichage.
+  const [selectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [bulkUpdatingStatus, setBulkUpdatingStatus] = useState<string | null>(null);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);

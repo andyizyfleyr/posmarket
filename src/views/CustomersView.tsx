@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import { useRouter } from 'next/navigation';
 import { Users, Search, Plus, Phone, History, Star, X, Edit, Trash2, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
@@ -60,24 +60,31 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     setTimeout(() => setToast({ message: '', type: null }), 3000);
   };
 
-  // Search effect
+  // Recherche serveur : anti-rebond + numéro de séquence.
+  // Sans le numéro de séquence, la réponse d'une frappe ancienne pouvait
+  // arriver APRÈS celle d'une frappe récente et réafficher des résultats qui ne
+  // correspondaient plus au champ de recherche (réponses hors ordre).
+  const searchSeqRef = useRef(0);
   useEffect(() => {
+    const seq = ++searchSeqRef.current;
     const delayDebounceFn = setTimeout(async () => {
-        if (currentStoreId) {
-            setIsSearching(true);
-            try {
-                const res = await getCustomersAction(currentStoreId, 0, 10, searchTerm);
-                if (res.success && res.customers) {
-                    setLocalCustomers(res.customers as unknown as Customer[]);
-                    setOffset(res.customers.length);
-                    setHasMore(res.hasMore || false);
-                }
-            } catch (err) {
-                console.error('Error searching customers:', err);
-                showToast('Erreur lors de la recherche', 'error');
-            } finally {
-                setIsSearching(false);
+        if (!currentStoreId) return;
+        if (seq !== searchSeqRef.current) return;
+        setIsSearching(true);
+        try {
+            const res = await getCustomersAction(currentStoreId, 0, 10, searchTerm);
+            if (seq !== searchSeqRef.current) return;
+            if (res.success && res.customers) {
+                setLocalCustomers(res.customers as unknown as Customer[]);
+                setOffset(res.customers.length);
+                setHasMore(res.hasMore || false);
             }
+        } catch (err) {
+            if (seq !== searchSeqRef.current) return;
+            console.error('Error searching customers:', err);
+            showToast('Erreur lors de la recherche', 'error');
+        } finally {
+            if (seq === searchSeqRef.current) setIsSearching(false);
         }
     }, 500);
 
@@ -163,7 +170,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     });
 
     return result;
-  }, [localCustomers, searchTerm, activeSegment, sortConfig]);
+  }, [localCustomers, activeSegment, sortConfig]);
 
   const handleSort = (key: keyof Customer) => {
     setSortConfig(prev => ({
@@ -393,7 +400,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
           <div className="relative max-w-md flex-grow">
             <Search size={16} className="absolute left-3 top-2.5 md:top-3 text-gray-400 md:w-[18px] md:h-[18px]" />
             {isSearching && (
-              <Loader2 size={16} className="absolute right-3 top-2.5 md:top-3 animate-spin text-brand" />
+              <Loader2 size={16} className="absolute right-3 top-2.5 md:top-3 animate-spin text-brand spinner-always" />
             )}
             <input
               type="text"
@@ -572,7 +579,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                 className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-bold text-gray-400 hover:text-brand hover:border-orange-100 transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoadingMore ? (
-                  <Loader2 size={14} className="animate-spin text-brand" />
+                  <Loader2 size={14} className="animate-spin text-brand spinner-always" />
                 ) : (
                   <Plus size={14} className="text-brand" />
                 )}
@@ -590,7 +597,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
               {isSearching ? (
                 <>
-                  <Loader2 size={48} className="animate-spin text-brand opacity-70" />
+                  <Loader2 size={48} className="animate-spin text-brand opacity-70 spinner-always" />
                   <p className="font-normal">Recherche en cours…</p>
                 </>
               ) : (
@@ -650,7 +657,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
                   disabled={isSubmitting}
                   className="flex-grow py-2.5 md:py-4 bg-brand text-white font-bold rounded-xl md:rounded-2xl text-[10px] md:text-sm hover:bg-[#d55a20] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-orange-100 active:scale-95 whitespace-nowrap flex items-center justify-center gap-2"
                 >
-                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                  {isSubmitting && <Loader2 size={16} className="animate-spin spinner-always" />}
                   {isSubmitting ? 'Enregistrement...' : (editingCustomer ? 'Actualiser' : 'Enregistrer')}
                 </button>
               </div>

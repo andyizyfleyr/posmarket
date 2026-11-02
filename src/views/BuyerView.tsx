@@ -483,7 +483,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
             className="p-2 text-gray-400 hover:text-brand active:scale-90 transition-transform"
             aria-label="Rafraîchir"
           >
-            <RefreshCcw size={20} className={data.refreshing ? 'animate-spin text-brand' : ''} />
+            <RefreshCcw size={20} className={data.refreshing ? 'animate-spin text-brand spinner-always' : ''} />
           </button>
         </div>
       </div>
@@ -502,8 +502,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                     <img
                       src={user.avatarUrl}
                       alt=""
-                      className="w-full h-full object-cover"
-                    />
+                      className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     avatarInitial(user.name)
                   )}
@@ -517,7 +516,7 @@ export const BuyerView: React.FC<BuyerViewProps> = ({
                   </p>
                   {data.refreshing && (
                     <p className="text-xs text-brand font-semibold mt-1 inline-flex items-center gap-1" role="status">
-                      <RefreshCcw size={12} className="animate-spin" aria-hidden="true" /> Synchronisation…
+                      <RefreshCcw size={12} className="animate-spin spinner-always" aria-hidden="true" /> Synchronisation…
                     </p>
                   )}
                 </div>

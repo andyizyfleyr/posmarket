@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { StoreData } from '@/types';
 import type { CheckoutStoreOrderDraft, CheckoutCustomerDraft } from '@/views/StorefrontView';
 
@@ -17,7 +17,12 @@ interface StorefrontWrapperProps {
   stores: StoreData[];
   initialCategory?: string;
   initialStoreId?: string;
-  onBackToApp?: () => Promise<void>;
+  /**
+   * Conservé pour la compatibilité des 5 pages qui le fournissent. La prop
+   * n'était pas consommée par `StorefrontView` : elle est délibérément absente
+   * de la destructuration ci-dessous (paramètre déclaré sans usage = lint).
+   */
+  onBackToApp?: () => void | Promise<void>;
   onMarketplaceCheckout: (
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
@@ -37,8 +42,7 @@ interface StorefrontWrapperProps {
   ) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
-export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onBackToApp, onMarketplaceCheckout, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
-  const router = useRouter();
+export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onMarketplaceCheckout, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const pathname = usePathname();
 
   return (
@@ -47,13 +51,6 @@ export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onB
       stores={stores}
       initialCategory={initialCategory}
       initialStoreId={initialStoreId}
-      onBackToApp={async () => {
-        if (onBackToApp) {
-          await onBackToApp();
-        } else {
-          router.push('/dashboard');
-        }
-      }}
       onMarketplaceCheckout={async (ordersData, customerData, idempotencyKey) => {
         const result = await onMarketplaceCheckout(
           ordersData,

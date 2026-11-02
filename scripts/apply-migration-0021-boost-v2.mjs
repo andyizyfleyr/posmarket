@@ -10,7 +10,7 @@ import { runSqlFile } from './lib/sql.mjs';
 config({ path: '.env.local' });
 const sql = neon(process.env.DATABASE_URL);
 
-const DDL_FILE = 'drizzle/0021_boost_v2.sql';
+const DDL_FILE = 'drizzle/0028_boost_v2.sql';
 await runSqlFile(sql, DDL_FILE);
 
 const tables = await sql`

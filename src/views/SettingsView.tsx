@@ -346,7 +346,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     disabled={isSaving}
                     className={`flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 text-white rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold transition-all shadow-lg active:scale-95 whitespace-nowrap ${isSaving ? 'opacity-70 cursor-not-allowed' : ''} ${saveFeedback ? 'bg-green-500 shadow-green-100' : 'bg-brand shadow-orange-100 hover:bg-[#d55a20]'}`}
                 >
-                    {isSaving ? <Loader2 size={16} className="md:size-[18px] animate-spin" /> : saveFeedback ? <ShieldCheck size={16} className="md:size-[18px]" /> : <Save size={16} className="md:size-[18px]" />}
+                    {isSaving ? <Loader2 size={16} className="md:size-[18px] animate-spin spinner-always" /> : saveFeedback ? <ShieldCheck size={16} className="md:size-[18px]" /> : <Save size={16} className="md:size-[18px]" />}
                     {isSaving ? 'Traitement...' : saveFeedback ? 'Prêt !' : 'Enregistrer'}
                 </button>
             </div>
@@ -537,8 +537,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                         <img 
                                             src={profilePhoto || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + userEmail} 
                                             className="w-full h-full object-cover" 
-                                            alt="Profil"
-                                        />
+                                            alt="Profil" loading="lazy" decoding="async" />
                                     </div>
                                     <label className="absolute -bottom-2 -right-2 bg-white text-brand p-2.5 md:p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-90 transition-all cursor-pointer border border-brand/10">
                                         <Camera size={18} className="md:size-5" />
@@ -584,7 +583,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             disabled={isUpdatingProfile}
                                             className="w-full py-4.5 bg-brand text-white rounded-2xl text-sm font-bold shadow-xl shadow-orange-100/50 hover:bg-[#d55a20] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
-                                            {isUpdatingProfile ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                            {isUpdatingProfile ? <Loader2 size={18} className="animate-spin spinner-always" /> : <Save size={18} />}
                                             {isUpdatingProfile ? 'Mise à jour...' : 'Sauvegarder les modifications'}
                                         </button>
                                     </div>
@@ -677,7 +676,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             disabled={!newCouponCode.trim() || loadingCoupons}
                                             className="px-6 py-2.5 bg-brand text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm shadow-xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2 active:scale-95 transition-all"
                                         >
-                                            {loadingCoupons ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                            {loadingCoupons ? <Loader2 size={16} className="animate-spin spinner-always" /> : <Save size={16} />}
                                             {loadingCoupons ? 'Action...' : 'Ajouter'}
                                         </button>
                                     </div>
@@ -799,7 +798,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     type="submit" disabled={isSubmittingStaff}
                                     className="flex-grow py-4 bg-brand text-white font-bold rounded-2xl shadow-2xl shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                                 >
-                                    {isSubmittingStaff ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                                    {isSubmittingStaff ? <Loader2 size={20} className="animate-spin spinner-always" /> : <Save size={20} />}
                                     {isSubmittingStaff ? 'Création...' : 'Valider'}
                                 </button>
                             </div>

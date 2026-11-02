@@ -239,7 +239,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                   {selectedOrder.items.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-2.5 md:gap-4 p-2 md:p-3 bg-white border border-gray-50 rounded-xl md:rounded-2xl shadow-sm">
                       <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden border border-gray-100 flex-shrink-0">
-                        <img src={item.product.image} className="w-full h-full object-cover" />
+                        <img src={item.product.image} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       </div>
                       <div className="flex-grow min-w-0">
                         <div className="text-[10px] md:text-sm font-bold text-gray-900 truncate whitespace-nowrap">{item.product.name}</div>
@@ -309,7 +309,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
                     className="w-full py-3 md:py-4 bg-brand text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-base flex items-center justify-center gap-2 hover:bg-[#d55a20] shadow-xl shadow-orange-100 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isDownloadingPdf ? (
-                      <Loader2 size={16} className="animate-spin md:w-[18px] md:h-[18px]" />
+                      <Loader2 size={16} className="animate-spin md:w-[18px] md:h-[18px] spinner-always" />
                     ) : (
                       <Download size={16} className="md:w-[18px] md:h-[18px]" />
                     )}

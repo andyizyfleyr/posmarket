@@ -191,7 +191,7 @@ title={address ? 'Modifier l’adresse' : 'Ajouter une adresse'}
             disabled={saving}
             className="flex-[2] py-3 px-4 bg-brand text-white font-semibold text-sm rounded-2xl shadow-md shadow-orange-100 hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {saving && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
+            {saving && <Loader2 size={14} className="animate-spin spinner-always" aria-hidden="true" />}
             Enregistrer
           </button>
         </div>

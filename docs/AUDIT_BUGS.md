@@ -1,5 +1,7 @@
 # Audit technique — bugs et risques détectés
 
+> **Statut : 22/22 points corrigés** (voir le journal des corrections en fin de document).
+
 Date : 2026-11-02 · Périmètre : `src/` (web Next.js 16), `posmarket-mobile/`, `drizzle/`, config.
 Méthode : `tsc --noEmit`, `eslint`, lecture ciblée des flux sensibles (paiement, auth, checkout, push), vérification des migrations et des variables d'environnement.
 
@@ -123,3 +125,88 @@ Avertissement ESLint `exhaustive-deps` sur un `useCallback` de calcul de prix (`
 5. **n°7** : régénérer le journal drizzle et ajouter le test CI de parité schéma/migrations.
 6. **n°9** : exempter tous les webhooks du filtre anti-bots.
 7. Ensuite : tests d'autorisation (n°10), puis les points 🟡.
+
+
+---
+
+## Journal des corrections
+
+### Bug signalé : les spinners ne tournent pas
+
+**Cause.** `src/app/globals.css` contenait une règle globale de respect de
+`prefers-reduced-motion` appliquée à `*` :
+
+```css
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+```
+
+Un `animate-spin` (rotation de 360°) exécutait donc **un seul tour en 0,01 ms**
+puis s'arrêtait à 360° ≡ 0° : l'indicateur paraissait figé, et l'utilisateur ne
+savait plus si l'application chargeait encore. Le bug touchait **tous** les
+spinners de l'application dès que le système était réglé sur « réduire les
+animations » (option fréquente sur Android et iOS).
+
+**Correctifs.**
+1. Les sélecteurs excluent désormais les indicateurs (`.animate-spin`,
+   `.button-loading-icon`, `.skeleton`) de la remise à zéro.
+2. Sous `reduced-motion`, un spinner tourne **lentement mais continûment**
+   (1,5 s, `infinite`) : sa rotation porte l'information, elle n'est pas
+   décorative. Les squelettes pulsent doucement au lieu de rester figés.
+3. Nouvelle classe `.spinner-always` (`animation: spin … !important`) appliquée
+   aux 80 occurrences de l'application : elle résiste à un `animation: none`
+   hérité d'un conteneur ou d'une ancienne feuille de style.
+4. `Loader` réécrit : `shrink-0` (le conteneur ne se redimensionne pas pendant la
+   rotation), `aria-live="polite"`, et la durée de l'animation n'est plus écrasée.
+
+### Sécurité
+
+| Point | Correction |
+|---|---|
+| 1 | `POST /api/set-store` exige désormais une session et `requireStoreAccess` + quota d'écriture. Réponse unique « Accès refusé » (pas d'oracle d'existence). |
+| 2 | `guest/push-token` : quota « sensitive », UUID validé, **un seul** message de refus (fin de l'énumération), et une coordonnée absente côté commande ne vaut plus validation. |
+| 3 | Colonne `orders.buyer_phone` ajoutée (schéma + migration `0033` + écriture au checkout). Les `as any` disparaissent, la vérification par téléphone refonctionne. |
+| 4 | Le secret PAM n'est plus dérivé de `DATABASE_URL` : `ADMIN_AUTH_SECRET` (≥ 32 car.) est obligatoire en production, secret éphémère en développement. **L'expiration du cookie est enfin vérifiée** (elle était signée mais jamais comparée à l'heure courante). |
+| 5 | `/api/ping` ne renvoie plus que `{ ok: false }` ; le détail reste dans les journaux serveur. |
+
+### Bugs fonctionnels
+
+| Point | Correction |
+|---|---|
+| 6 | `submitCheckoutAction` renvoie `customer: { name, email, phone }` (réponse nominale **et** rejeu d'idempotence) ; le mobile le lit via un type explicite. Le push invité est enfin enregistré. |
+| 7 | Les 7 SQL non journalisés sont renumérotés `0026`–`0032`, le doublon `0025` disparaît, `_journal.json` est complété (30 entrées). Script `npm run db:check` + test automatisé contre toute nouvelle dérive. |
+| 8 | `saveCustomerAction` ajoute `eq(customers.storeId, storeId)` au `WHERE` de l'UPDATE : plus d'écriture inter-boutiques. |
+| 9 | Le filtre anti-bots exempte **tous** les webhooks (liste explicite) : FedaPay, FeexPay, Kkiapay et WhatsApp ne perdent plus leurs notifications en 403 silencieux. |
+| 10 | Suite `tests/security/` : 21 tests sur les gardes (set-store, push-token, ping, cookie PAM, migrations, spinners). |
+
+### Robustesse et qualité
+
+| Point | Correction |
+|---|---|
+| 11 | Recherche clients : numéro de séquence (fin des réponses hors ordre) et dépendance `searchTerm` superflue retirée du tri. |
+| 12 | `InvoicesView` / `OrdersView` : l'effet dépend de l'objet complet — une mise à jour à id constant recharge les lignes. |
+| 13 | `updateSystemSettings` : écriture **transactionnelle** (tout ou rien) + `refreshTag('marketplace')` en plus des `revalidatePath`. |
+| 14 | `cart.tsx` : `referenceItemPrice` ajouté aux dépendances du calcul de frais de gros. |
+| 15 | 24 `<img>` : `loading="lazy"` + `decoding="async"` ; les 2 `alt` manquants sont ajoutés. |
+| 16 | Police **auto-hébergée** (`@fontsource-variable/inter`) : `next build` ne dépend plus de fonts.googleapis.com. Le build passe désormais hors ligne. |
+| 17 | Les 8 erreurs `no-explicit-any` sont éliminées (typage réel de la réponse checkout et de `buildPushContent`). |
+| 18 | `SellerGates` : plus de `setState` dans un effet (initialisation paresseuse) — la saisie n'est plus réécrite à chaque rendu du parent. |
+| 19 | Script `typecheck:mobile` ajouté (`tsc -p posmarket-mobile`) : l'app mobile n'est plus exclue du contrôle. |
+| 20 | Code mort supprimé (`FtsRow`, `onBackToApp`, `expandedSections`, `toggleSelect*`, `insets`, imports inutilisés…). |
+| 21 | `eslint.config.mjs` : override dédié à React Native — les règles web (`alt-text`, `no-img-element`) ne produisent plus 28 faux positifs sur l'app mobile. |
+| 22 | `npm run check` = migrations + `tsc` ; `npm test` = sécurité + SasPay. |
+
+### Résultats mesurés
+
+| Indicateur | Avant | Après |
+|---|---|---|
+| `tsc --noEmit` | 0 erreur | 0 erreur |
+| ESLint (erreurs) | **8** | **0** |
+| ESLint (avertissements) | 60 | 14 (13 `<img>` assumés, 1 dépendance d'effet) |
+| `next build` | échoue (police Google) | **réussit** |
+| Tests | 12 (SasPay seul) | **33** (12 SasPay + 21 sécurité) |
+| Migrations traçables | 22/29 (+1 doublon) | **30/30** |

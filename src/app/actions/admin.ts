@@ -688,33 +688,51 @@ export async function updateSystemSettings(settings: Partial<SystemSettingsData>
 
     // Activer le fournisseur en dernier, après la sauvegarde de ses secrets.
     const entries = Object.entries(settings).sort(([a], [b]) => a === 'payment_provider' ? 1 : b === 'payment_provider' ? -1 : 0);
+
+    /**
+     * Toutes les clés sont écrites dans UNE transaction.
+     *
+     * Sans elle, une coupure au milieu de la boucle laissait un état mixte :
+     * nouvelle clé SasPay enregistrée mais ancien fournisseur encore actif (ou
+     * l'inverse), avec des pages déjà rendues sur l'ancienne configuration.
+     * La transaction garantit « tout ou rien ».
+     */
+    const rows: Array<{ key: string; value: string }> = [];
     for (const [key, value] of entries) {
       if (value === undefined || value === null) continue;
       // Les secrets masqués ne sont remplacés que lorsqu'une valeur est saisie.
       if (key === 'smtp_pass' || key === 'saspay_api_key' || key === 'saspay_webhook_secret') {
-        if (String(value).trim()) {
-          await db.insert(systemSettings)
-            .values({ key, value: String(value).trim() })
-            .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value).trim(), updatedAt: new Date() } });
-        }
+        if (String(value).trim()) rows.push({ key, value: String(value).trim() });
         continue;
       }
       if (booleanKeys.includes(key)) {
-        await db.insert(systemSettings)
-          .values({ key, value: String(value) })
-          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value), updatedAt: new Date() } });
+        rows.push({ key, value: String(value) });
       } else if (allowedStringKeys.includes(key)) {
-        await db.insert(systemSettings)
-          .values({ key, value: String(value || '') })
-          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value || ''), updatedAt: new Date() } });
+        rows.push({ key, value: String(value || '') });
       } else if (allowedEnvKeys.includes(key)) {
-        await db.insert(systemSettings)
-          .values({ key, value: String(value || 'sandbox') })
-          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value || 'sandbox'), updatedAt: new Date() } });
+        rows.push({ key, value: String(value || 'sandbox') });
       }
     }
+
+    if (rows.length > 0) {
+      await db.transaction(async (tx) => {
+        for (const row of rows) {
+          await tx.insert(systemSettings)
+            .values({ key: row.key, value: row.value })
+            .onConflictDoUpdate({
+              target: systemSettings.key,
+              set: { value: row.value, updatedAt: new Date() },
+            });
+        }
+      });
+    }
+
     revalidatePath('/pam/settings');
     revalidatePath('/subscription');
+    // Le fournisseur de paiement conditionne l'affichage de la page abonnement
+    // et des pages boutique : invalider aussi le tag applicatif, pas seulement
+    // les deux routes.
+    refreshTag('marketplace');
     return { success: true };
   } catch {
     // Les erreurs SQL peuvent contenir les paramètres, dont des secrets.

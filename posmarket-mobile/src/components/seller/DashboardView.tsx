@@ -771,7 +771,7 @@ function PerformanceChart({
 
   /** Progression décalée d'un élément (équivalent du `animationDelay` web). */
   const staggered = useCallback(
-    (progress: Animated.Value, index: number, startMs: number, stepMs: number) =>
+    (progress: Animated.Value, index: number, startMs: number, _stepMs: number) =>
       progress.interpolate({
         inputRange: [
           Math.max(0, startMs / 1600),

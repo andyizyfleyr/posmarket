@@ -293,7 +293,7 @@ export default function AdminStoresPage() {
               disabled={bulkBusy}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60 ${bulkBusy ? 'bg-red-400' : 'bg-red-500 hover:bg-red-600'}`}
             >
-              {bulkBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              {bulkBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <Trash2 size={15} />}
               Supprimer
             </button>
           </div>
@@ -447,7 +447,7 @@ export default function AdminStoresPage() {
                                     disabled={statusBusy}
                                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-all shadow-sm disabled:opacity-50"
                                   >
-                                    {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} Approuver
+                                    {statusBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <CheckCircle2 size={15} />} Approuver
                                   </button>
                                   <button
                                     onClick={() => setConfirmOpen({ type: 'status', id: s.id, status: 'REJECTED' })}
@@ -464,7 +464,7 @@ export default function AdminStoresPage() {
                                   disabled={statusBusy}
                                   className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-semibold ring-1 ring-emerald-200 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
                                 >
-                                  {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <RotateCcw size={15} />} Réactiver
+                                  {statusBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <RotateCcw size={15} />} Réactiver
                                 </button>
                               )}
                               {s.status === 'APPROVED' && (
@@ -473,7 +473,7 @@ export default function AdminStoresPage() {
                                   disabled={statusBusy}
                                   className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-slate-500 rounded-xl text-sm font-semibold ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-700 transition-all disabled:opacity-50"
                                 >
-                                  {statusBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Ban size={15} />} Désactiver
+                                  {statusBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <Ban size={15} />} Désactiver
                                 </button>
                               )}
                               <div className="flex gap-2 lg:w-full">
@@ -489,7 +489,7 @@ export default function AdminStoresPage() {
                                   className="inline-flex items-center justify-center px-3 py-2 bg-white text-rose-500 rounded-xl ring-1 ring-rose-200 hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50"
                                   title="Supprimer"
                                 >
-                                  {deleteBusy ? <RefreshCcw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                                  {deleteBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <Trash2 size={15} />}
                                 </button>
                               </div>
                             </div>
