@@ -25,7 +25,9 @@
     "test": "npm run test:security && npm run test:saspay",
     "db:check:sql": "node scripts/check-migrations-sql.mjs",
     "db:apply": "node scripts/apply-pending-migrations.mjs",
-    "db:apply:dry": "node scripts/apply-pending-migrations.mjs --dry-run"
+    "db:apply:dry": "node scripts/apply-pending-migrations.mjs --dry-run",
+    "sync:status": "node scripts/sync-status.mjs",
+    "sync:check": "node scripts/sync-status.mjs --files"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1116.0",
