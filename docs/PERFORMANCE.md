@@ -151,13 +151,66 @@ pas si un lot a réellement servi.
 - Réécrire l'architecture en SPA : le `key={currentView}` et les vues
   monolithiques sont traités au lot 4, sans refonte.
 
-## 5. Ordre de livraison proposé
+## 5. Réalisation
 
-```
-Lot 1  →  mesure  →  Lot 2  →  mesure  →  Lot 3  →  Lot 4  →  Lot 5
-```
+Les cinq lots ont été livrés, un commit par lot.
 
-Les lots 1 et 2 sont ceux qui répondent à « les pages mettent du temps » et
-« les clics répondent mollement ». Le lot 3 est du gain gratuit sur les deux
-surfaces et peut être fusionné en parallèle si tu préfères voir un résultat
-rapide sur le poids de page.
+| Lot | Commit | Ce qui a changé |
+|---|---|---|
+| 1 | `2a5bb75` | lectures redondantes supprimées, résolution dédupliquée |
+| 2 | `9b47ade` | 7 squelettes dédiés, `key` de démontage corrigée |
+| 3 | `9b47ade` | jsPDF/html2canvas différés, modales d'inventaire différées, `sizes` par contexte |
+| 4 | `c4df1b6` | recherche POS différée (`useDeferredValue`) |
+| 5 | `2fb8caf` | onglets de l'espace acheteur chargés à la demande |
+| 2b | `f852630` | attente de navigation enfin visible (`useTransition`) |
+
+### Résultats mesurés au build
+
+| Indicateur | Avant | Après |
+|---|---|---|
+| jsPDF + html2canvas dans le bundle commun | oui (chunk de 412 Ko) | **non — 0 page les référence** |
+| Modales d'inventaire dans le bundle de la page | oui (1 900 lignes) | non — chargées à l'ouverture |
+| Onglets de l'espace acheteur | 6 statiques | 5 à la demande |
+| Bundle commun (toutes pages) | 430 Ko | 430 Ko (inchangé, c'est le socle React) |
+| `sizes` des vignettes POS | 33vw (figé) | 15vw (réel) |
+
+### Requêtes serveur par navigation
+
+Le chemin du layout ne pose plus **aucune** requête qui lui soit propre : les
+quatre `supabase.from` (profil, boutiques, équipe) et le second `getStoreCookie`
+ont disparu. Les pages réutilisent le résultat, mémoïsé par requête.
+
+Restent les requêtes métier, légitimes et déjà parallélisées : produits,
+clients, commandes, boutiques (7 lectures dans un `Promise.all`) et l'entrée
+d'équipe — cette dernière uniquement si l'utilisateur n'est pas propriétaire.
+
+Le décompte exact avant/après par page n'a pas pu être instrumenté : il faudrait
+une session authentifiée en production. Le gain se lit donc dans le code
+(requêtes qui ne sont plus émises) et non dans un chiffre de temps mesuré — ce
+point reste la principale limite de ce rapport.
+
+### Points tranchés en cours de route
+
+- **`useDeferredValue` n'a pas été ajouté à l'inventaire.** Le filtrage y est
+  fait côté serveur avec un débounce de 500 ms : la valeur différée n'aurait
+  rien retiré du chemin critique. Une première tentative a été annulée plutôt
+  que laissée comme code mort.
+- **Le panier du POS n'a pas reçu d'optimistic UI.** Il est déjà en état local
+  (`setCart` synchrone) : l'ajout est instantané, il n'y a pas d'aller-retour
+  serveur à masquer.
+- **La prop `notify` non transmise à `POSView` n'a pas été « corrigée ».** Les
+  erreurs s'affichent déjà à l'écran via des toasts locaux (`localNotify`) ;
+  la prop n'était qu'un complément.
+- **`loading.tsx` ne suffit pas.** Il ne couvre que le premier chargement d'une
+  route ; entre deux vues déjà visitées, Next restaure un arbre préchargé. C'est
+  `useTransition` qui rend l'attente visible (lot 2b).
+
+### Non traité
+
+- Le découpage de `StorefrontView` (5 044 lignes) : il faudrait une refonte en
+  sous-composants, pas une optimisation ponctuelle.
+- Les 36 `router.refresh()` : leur remplacement par des mises à jour ciblées
+  exige de toucher chaque action serveur. À faire si le re-rendu complet se
+  confirme gênant en usage réel.
+- Le cache public du storefront (`revalidate`) : il ne concerne pas l'espace
+  vendeur et mérite sa propre mesure.
