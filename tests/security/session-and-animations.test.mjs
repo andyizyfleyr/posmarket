@@ -7,6 +7,18 @@ import { createHmac } from 'node:crypto';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
+/**
+ * Lit un fichier source en normalisant les fins de ligne en LF.
+ *
+ * Sans cela, les tests qui découpent le contenu sur '\n' passent sous Linux et
+ * échouent sous Windows : un checkout en CRLF (core.autocrlf=true, réglage par
+ * défaut de Git for Windows) rend '\n}\n' introuvable, et `indexOf` renvoie -1.
+ * Le code testé, lui, est identique — seul le test se cassait.
+ */
+function readSource(relativePath) {
+  return readFileSync(path.join(root, relativePath), 'utf8').replace(/\r\n/g, '\n');
+}
+
 // ── Cookie de session PAM ──────────────────────────────────────────────────
 
 /** Rejoue la validation de `getAdminSession` sans base de données. */
@@ -71,7 +83,7 @@ test('cookie PAM : l’horodatage signé ne peut pas être modifié', () => {
 });
 
 test('cookie PAM : le secret n’est jamais dérivé de DATABASE_URL', () => {
-  const source = readFileSync(path.join(root, 'src/app/actions/admin-auth.ts'), 'utf8');
+  const source = readSource('src/app/actions/admin-auth.ts');
   assert.equal(
     source.includes("update(process.env.DATABASE_URL"),
     false,
@@ -86,7 +98,7 @@ test('cookie PAM : le secret n’est jamais dérivé de DATABASE_URL', () => {
 
 // ── Spinners ──────────────────────────────────────────────────────────────
 
-const css = readFileSync(path.join(root, 'src/app/globals.css'), 'utf8');
+const css = readSource('src/app/globals.css');
 
 test('spinners : la règle « reduced motion » ne les fige plus', () => {
   const reduceBlock = css.slice(css.indexOf('prefers-reduced-motion: reduce'));
@@ -133,7 +145,7 @@ test('spinners : toutes les occurrences portent la classe de sécurité', () => 
   ];
   const offenders = [];
   for (const file of files) {
-    const source = readFileSync(path.join(root, file), 'utf8');
+    const source = readSource(file);
     const lines = source.split('\n');
     lines.forEach((line, index) => {
       if (!line.includes('animate-spin')) return;
@@ -159,10 +171,10 @@ test('migrations : chaque fichier SQL est référencé dans le journal', async (
 });
 
 test('migrations : orders.buyer_phone existe côté schéma ET migration', () => {
-  const schema = readFileSync(path.join(root, 'src/db/schema.ts'), 'utf8');
+  const schema = readSource('src/db/schema.ts');
   assert.ok(schema.includes("buyerPhone: text('buyer_phone')"), 'colonne absente du schéma Drizzle');
 
-  const migration = readFileSync(path.join(root, 'drizzle/0033_orders_buyer_phone.sql'), 'utf8');
+  const migration = readSource('drizzle/0033_orders_buyer_phone.sql');
   assert.ok(migration.includes('buyer_phone'), 'colonne absente de la migration');
   assert.ok(migration.includes('IF NOT EXISTS'), 'la migration doit être rejouable');
 });

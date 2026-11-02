@@ -1,0 +1,36 @@
+# Normaliser les fins de ligne à la place du dépôt.
+#
+# Objectif : quel que soit le système (Windows, macOS, Linux), le fichier
+# récupéré sur GitHub est identique octet pour octet. Sans cela, un checkout
+# Windows en CRLF fait apparaître chaque ligne comme modifiée et casse les
+# scripts qui découpent du texte sur "\n".
+#
+# `eol=lf` s'applique au contenu stocké ET au fichier de travail : pas de
+# conversion dans un sens ni dans l'autre, donc pas de faux diff.
+
+* text=auto eol=lf
+
+# Binaires : jamais de conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+
+# Scripts Windows lancés par cmd/PowerShell : doivent rester en CRLF,
+# sinon ils ne s'exécutent pas correctement.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Fichiers générés ou verrouillés par un outil : éviter le bruit dans les diffs.
+package-lock.json text eol=lf
+*.sql text eol=lf
+*.md text eol=lf

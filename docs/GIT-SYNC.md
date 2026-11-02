@@ -102,12 +102,15 @@ git commit -m "chore: normaliser les fins de ligne"
 Ne **pas** committer ces fichiers en l'état : GitHub verrait le fichier entier
 changer, et le diff deviendrait illisible pour toute l'équipe.
 
-Pour forcer un type de fin de ligne par extension, ajouter un `.gitattributes` :
+Le dépôt contient désormais un `.gitattributes` qui impose `eol=lf` partout
+(sauf `*.bat`/`*.cmd`/`*.ps1` en CRLF, et les binaires). Combiné à
+`core.autocrlf true` côté Windows, les fichiers récupérés sont identiques
+octet pour octet à ceux de GitHub.
 
-```
-* text=auto eol=lf
-*.png binary
-```
+> Déjà rencontré : un test qui découpait `globals.css` sur `'\n}\n'` passait
+> sous Linux et échouait sous Windows (`indexOf` renvoyait `-1`, donc un bloc de
+> 2 caractères). Le code testé était correct ; c'est le test qui était fragile.
+> Tout test qui lit un fichier source doit normaliser les fins de ligne.
 
 ## 5. Et le dossier `node_modules` ?
 
