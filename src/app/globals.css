@@ -259,6 +259,19 @@ button, a, [role="button"], input, select, textarea {
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
+/* Indicateur de navigation entre vues (MainLayout) : barre fine qui balaie
+   l'écran pendant qu'une nouvelle page se prépare. Non bloquante, elle informe
+   sans interrompre — contrairement à un écran de chargement plein. */
+@keyframes nav-progress {
+    0%   { transform: translateX(-100%); }
+    50%  { transform: translateX(150%); }
+    100% { transform: translateX(400%); }
+}
+
+.nav-progress-bar {
+    animation: nav-progress 1s ease-in-out infinite;
+}
+
 @keyframes skeleton-shimmer {
     0% {
         background-position: 200% 0;
@@ -532,6 +545,15 @@ input[type="date"]::-webkit-clear-button {
         animation-duration: 1.5s !important;
         animation-iteration-count: infinite !important;
         animation-timing-function: linear !important;
+    }
+
+    /* Barre de navigation : le balayage s'arrêterait hors écran (translateX
+       400 %) et l'indicateur disparaîtrait. On la fixe pleine largeur : l'état
+       reste signalé, sans mouvement. */
+    .nav-progress-bar {
+        animation: none !important;
+        transform: none !important;
+        width: 100% !important;
     }
 
     /* Squelettes : pulsation douce au lieu d'un dégradé immobile. */

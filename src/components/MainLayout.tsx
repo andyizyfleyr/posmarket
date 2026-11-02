@@ -31,6 +31,8 @@ interface MainLayoutProps {
   toastNotifications: ToastNotification[];
   removeToast: (id: string) => void;
   isSaving: boolean;
+  /** Vrai pendant une navigation entre vues (voir `useTransition`). */
+  isNavigating?: boolean;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -51,7 +53,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   isOnline,
   toastNotifications,
   removeToast,
-  isSaving
+  isSaving,
+  isNavigating = false
 }) => {
   const router = useRouter();
   
@@ -357,6 +360,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
         </main>
       </div>
+
+      {/*
+        Indicateur de navigation : une barre fine en haut de l'écran, sans
+        bloquer l'interface. Le contenu précédent reste visible pendant le
+        rendu de la nouvelle vue — c'est ce qui distingue cette attente d'un
+        écran vide.
+      */}
+      {isNavigating && (
+        <div className="fixed top-0 left-0 right-0 z-[9998] h-0.5 bg-brand/20 overflow-hidden" role="status" aria-label="Chargement de la vue">
+          <div className="nav-progress-bar h-full w-1/3 bg-brand" />
+        </div>
+      )}
 
       <BottomNav currentView={currentView} onViewChange={onViewChange} userRole={currentUserRole} businessType={currentStore?.business_type} />
       {isSaving && (

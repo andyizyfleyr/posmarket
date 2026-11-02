@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useTransition } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { StoreData, StaffRole, SubscriptionPlan, UserSubscription, ViewType, ToastNotification, NotificationType } from '@/types';
 import { useRouter, usePathname } from '@/components/RouterPolyfill';
@@ -34,6 +34,19 @@ export default function LayoutClientWrapper({
   currentUserRole: StaffRole;
 }) {
   const router = useRouter();
+  /*
+   * Navigation entre vues.
+   *
+   * `loading.tsx` ne couvre QUE le premier chargement d'une route : entre deux
+   * vues déjà visitées, Next restaure un arbre préchargé et `loading.tsx` ne
+   * s'affiche jamais. Rien n'indiquait donc qu'un clic avait été pris en
+   * compte pendant l'attente du serveur — d'où l'impression de « clics mous ».
+   *
+   * `useTransition` expose exactement cette attente, sans écran blanc : le
+   * contenu précédent reste affiché, et une barre de progression discrète
+   * s'affiche en haut pendant que la nouvelle vue se prépare.
+   */
+  const [isNavigating, startNavigation] = useTransition();
   const pathname = usePathname();
 
   // Extract ViewType from pathname
@@ -198,7 +211,7 @@ export default function LayoutClientWrapper({
         currentUserRole={currentUserRole}
         currentView={currentView}
         isSubscriptionValid={isSubscriptionValid}
-        onViewChange={(view) => router.push(`/${view}`)}
+        onViewChange={(view) => startNavigation(() => router.push(`/${view}`))}
         onLogout={handleLogout}
         stores={stores}
         currentStore={currentStore}
@@ -212,6 +225,7 @@ export default function LayoutClientWrapper({
         toastNotifications={toastNotifications}
         removeToast={(id) => setToastNotifications(prev => prev.filter(n => n.id !== id))}
         isSaving={isSaving}
+        isNavigating={isNavigating}
       >
         {/* We pass a context provider here to easily send 'notify' to children without Prop Drilling */}
         {children}
