@@ -1,59 +1,27 @@
-import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import { getCurrentSession } from '@/app/actions/session';
-import { getStoreCookie } from '@/utils/store-cookie';
 import LayoutClientWrapper from '@/components/LayoutClientWrapper';
 import { StoreData, SubscriptionTier, SubscriptionDuration, StaffRole, UserSubscription } from '@/types';
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
-import { safeSupabaseFetch } from '@/utils/supabase/retry';
-import { canAccessSellerSpace, landingPathFor, resolveAccountAccess } from '@/utils/account-access';
+import { canAccessSellerSpace, landingPathFor } from '@/utils/account-access';
+import { getStoreCookie } from '@/utils/store-cookie';
+import { getAccountAccess, getSessionUser } from '@/lib/request-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-interface ProfileData {
-  id: string;
-  email?: string | null;
-  full_name?: string | null;
-  is_super_admin?: boolean | null;
-  account_type?: string | null;
-  subscription_tier?: string | null;
-  subscription_duration?: string | null;
-  subscription_start_date?: string | null;
-  subscription_end_date?: string | null;
-  subscription_status?: string | null;
-}
-
-interface StoreRowData {
-  id: string;
-  user_id?: string | null;
-  name?: string | null;
-  slug?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  ninea?: string | null;
-  description?: string | null;
-  logo?: string | null;
-  theme?: string | null;
-  business_type?: string | null;
-  status?: string | null;
-  views?: number | null;
-  settings?: unknown;
-  created_at?: string | null;
-}
-
-interface StaffEntryData {
-  id: string;
-  store_id: string;
-  role: string;
-}
+// Les types locaux (ProfileData / StoreRowData / StaffEntryData) ont été retirés :
+// les données viennent désormais de Drizzle, typées par `resolveAccountAccess`.
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // `createClient()` masque volontairement les profils acheteurs : la session
   // brute est donc lue séparément, sinon un client qui ouvre /pos serait
   // renvoyé vers /login au lieu de son espace compte.
-  const { user } = await getCurrentSession();
+  //
+  // Les deux lectures sont mémoïsées par requête : les pages enfants appellent
+  // les mêmes fonctions, elles ne repaieront pas les requêtes. Sans cela, le
+  // rendu lisait `profiles`, `stores` et `store_staff` deux fois par chemin
+  // (une fois ici, une fois dans chaque page).
+  const user = await getSessionUser();
 
   if (!user) {
     redirect('/login');
@@ -61,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Résolution partagée avec la garde de `/mon-compte` : un seul calcul de
   // rôle pour les deux espaces, donc aucun conflit de redirection possible.
-  const access = await resolveAccountAccess(user.id);
+  const access = await getAccountAccess(user.id);
 
   if (!canAccessSellerSpace(access.space)) {
     // 'none'/'anonymous' retombent sur l'espace compte : `canAccessBuyerSpace`
@@ -69,75 +37,55 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect(landingPathFor(access.space));
   }
 
-  const supabase = await createClient();
-
-  // Fetch basic profile + stores + staff entries in parallel
-  const [profileRes, ownedStoresRes, staffEntriesRes] = await Promise.all([
-    safeSupabaseFetch<ProfileData>(
-      () => supabase.from('profiles').select('*').eq('id', user.id).single()
-    ),
-    safeSupabaseFetch<StoreRowData[]>(
-      () => supabase.from('stores').select('*').eq('user_id', user.id)
-    ),
-    safeSupabaseFetch<StaffEntryData[]>(
-      () => supabase.from('store_staff').select('id, store_id, role').eq('user_id', user.id)
-    )
-  ]);
-
-  const { data: profile } = profileRes;
-  const { data: ownedStores } = ownedStoresRes;
-  const { data: staffEntries } = staffEntriesRes;
-
-  const staffStoreIds = staffEntries?.map(s => s.store_id) || [];
+  // Seules sources de vérité désormais : `access` (profil + boutiques) déjà
+  // chargé par `getAccountAccess`, et le cookie de boutique. Les trois requêtes
+  // Supabase qui relisaient `profiles`, `stores` et `store_staff` juste après
+  // `resolveAccountAccess` sont supprimées — elles lisaient les mêmes lignes.
+  const profile = access.profile;
+  const ownedStores = access.ownedStores;
+  const staffEntries = access.staffEntries;
+  const staffStores = access.staffStores;
 
   const userSubscription: UserSubscription = {
-    tier: (profile?.subscription_tier as SubscriptionTier) || 'NONE',
-    duration: (profile?.subscription_duration as SubscriptionDuration) || 'monthly',
-    startDate: profile?.subscription_start_date || new Date().toISOString(),
-    endDate: profile?.subscription_end_date || new Date().toISOString(),
-    status: (profile?.subscription_status as UserSubscription['status']) || 'NONE'
+    tier: (profile?.subscriptionTier as SubscriptionTier) || 'NONE',
+    duration: (profile?.subscriptionDuration as SubscriptionDuration) || 'monthly',
+    startDate: profile?.subscriptionStartDate?.toISOString() || new Date().toISOString(),
+    endDate: profile?.subscriptionEndDate?.toISOString() || new Date().toISOString(),
+    status: (profile?.subscriptionStatus as UserSubscription['status']) || 'NONE'
   };
 
   const currentPlan = getSubscriptionPlan(userSubscription.tier) || SUBSCRIPTION_PLANS.PRO;
 
-  let staffStores: StoreRowData[] = [];
-  if (staffStoreIds.length > 0) {
-    const { data } = await safeSupabaseFetch<StoreRowData[]>(
-       () => supabase.from('stores').select('*').in('id', staffStoreIds)
-    );
-    staffStores = data || [];
-  }
-
   const allRawStores = [
-    ...(ownedStores || []),
-    ...(staffStores || [])
+    ...ownedStores,
+    ...staffStores,
   ]
   .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) // Deduplicate
-  .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()); // Ensure oldest first
+  .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()); // Ensure oldest first
 
   const stores = allRawStores.map(s => {
-    const staffEntry = staffEntries?.find(entry => entry.store_id === s.id);
+    const staffEntry = staffEntries.find(entry => entry.storeId === s.id);
     return {
       id: s.id,
       slug: s.slug,
       name: s.name,
       status: s.status,
       description: s.description || (s.settings as Record<string, unknown>)?.description || '',
-      ownerId: s.user_id,
+      ownerId: s.userId,
       views: s.views || 0,
-      settings: { 
-        name: s.name, 
-        email: s.email || '', 
-        phone: s.phone || '', 
-        address: s.address || '', 
+      settings: {
+        name: s.name,
+        email: s.email || '',
+        phone: s.phone || '',
+        address: s.address || '',
         ninea: s.ninea || '',
         ...(s.settings as Record<string, unknown>) // Merge with JSONB settings if exists
       },
-      staff: staffEntry ? [{ 
-        id: staffEntry.id || '', 
-        userId: user.id, 
+      staff: staffEntry ? [{
+        id: staffEntry.id || '',
+        userId: user.id,
         storeId: s.id,
-        role: staffEntry.role 
+        role: staffEntry.role
       }] : [],
       products: [],
       customers: [],
@@ -158,11 +106,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const currentStore = stores.find(s => s.id === currentStoreId) || stores[0] || null;
 
   let currentUserRole: StaffRole = 'OWNER';
-  if (profile?.is_super_admin) {
+  if (profile?.isSuperAdmin) {
     currentUserRole = 'SUPER_ADMIN';
   } else if (currentStore) {
     if (currentStore.ownerId !== user.id) {
-        const staffInThisStore = staffEntries?.find(st => st.store_id === currentStore.id);
+        const staffInThisStore = staffEntries.find(st => st.storeId === currentStore.id);
         if (staffInThisStore) currentUserRole = staffInThisStore.role as StaffRole;
     }
   }

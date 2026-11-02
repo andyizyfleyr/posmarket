@@ -1,19 +1,15 @@
 import OrdersView from '@/views/OrdersView';
 import { fetchStoreData } from '@/app/actions/store';
 import { loadOrdersForStore } from '@/lib/load-store-data';
-import { getEffectiveStoreId } from '@/utils/store-cookie';
-import { createClient } from '@/utils/supabase/server';
-import { getPermissionsForUser } from '@/utils/permissions';
+import { FULL_PERMISSIONS } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 import { Order, StaffRole, StaffPermissions } from '@/types';
+import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
 
 export default async function OrdersPage() {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) return null;
-
-  const storeId = await getEffectiveStoreId(supabase, session);
+  // La boutique courante est dédupliquée par requête : le layout a déjà
+  // chargé le profil et les boutiques, cette résolution ne requête plus la base.
+  const storeId = await resolveCurrentStoreId();
 
   if (!storeId) return <NoStoreFound />;
   
@@ -22,7 +18,7 @@ export default async function OrdersPage() {
     fetchStoreData(storeId, undefined, { products: false, customers: false, invoices: false })
   ]);
   const { store } = storeData;
-  const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
+  const { permissions, role } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
   return (
     <OrdersView 

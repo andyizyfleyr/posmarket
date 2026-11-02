@@ -1,7 +1,7 @@
 import SettingsView from '@/views/SettingsView';
-import { getEffectiveStoreId } from '@/utils/store-cookie';
 import { createClient } from '@/utils/supabase/server';
-import { getPermissionsForUser, FULL_PERMISSIONS } from '@/utils/permissions';
+import { FULL_PERMISSIONS } from '@/utils/permissions';
+import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
 import { StoreSettings, StoreData, Staff, StaffRole, StaffPermissions, Coupon } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +24,8 @@ export default async function SettingsPage() {
   
   if (!session) return null;
 
-  const storeId = await getEffectiveStoreId(supabase, session);
+  // Boutique courante dédupliquée : profil et boutiques déjà chargés par le layout.
+  const storeId = await resolveCurrentStoreId();
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
   
   let currentStore: StoreRowLite | null = null;
@@ -76,7 +77,7 @@ export default async function SettingsPage() {
     const { data: couponData } = await supabase.from('coupons').select('*').eq('store_id', storeId);
     coupons = (couponData || []) as unknown as Coupon[];
 
-    const perms = await getPermissionsForUser(supabase, session.user.id, storeId);
+    const perms = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
     permissions = perms.permissions as unknown as StaffPermissions;
     role = perms.role as StaffRole;
   }

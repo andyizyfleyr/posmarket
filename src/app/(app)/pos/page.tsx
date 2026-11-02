@@ -1,23 +1,19 @@
 import POSView from '@/views/POSView';
 import { fetchStoreData } from '@/app/actions/store';
-import { getEffectiveStoreId } from '@/utils/store-cookie';
-import { createClient } from '@/utils/supabase/server';
-import { getPermissionsForUser } from '@/utils/permissions';
+import { FULL_PERMISSIONS } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 import { Product, Customer, StaffPermissions, StoreSettings } from '@/types';
+import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
 
 export default async function POSPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return null;
-
-  const storeId = await getEffectiveStoreId(supabase, { user });
+  // La boutique courante est dédupliquée par requête : le layout a déjà
+  // chargé le profil et les boutiques, cette résolution ne requête plus la base.
+  const storeId = await resolveCurrentStoreId();
 
   if (!storeId) return <NoStoreFound />;
   
   const { products, customers, store } = await fetchStoreData(storeId, undefined, { orders: false, invoices: false });
-  const { permissions} = await getPermissionsForUser(supabase, user.id, storeId);
+  const { permissions } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
   return (
     <POSView 

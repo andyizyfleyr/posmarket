@@ -1,24 +1,20 @@
 import CustomersView from '@/views/CustomersView';
 import { fetchStoreData } from '@/app/actions/store';
 import { saveCustomerAction, deleteCustomerAction, bulkDeleteCustomersAction } from '@/app/actions/customers';
-import { getEffectiveStoreId } from '@/utils/store-cookie';
-import { createClient } from '@/utils/supabase/server';
-import { getPermissionsForUser } from '@/utils/permissions';
+import { FULL_PERMISSIONS } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 import { Customer, StaffRole, StaffPermissions } from '@/types';
+import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
 
 export default async function CustomersPage() {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) return null;
-
-  const storeId = await getEffectiveStoreId(supabase, session);
+  // La boutique courante est dédupliquée par requête : le layout a déjà
+  // chargé le profil et les boutiques, cette résolution ne requête plus la base.
+  const storeId = await resolveCurrentStoreId();
 
   if (!storeId) return <NoStoreFound />;
   
   const { customers } = await fetchStoreData(storeId, undefined, { products: false, orders: false, invoices: false });
-  const { permissions, role } = await getPermissionsForUser(supabase, session.user.id, storeId);
+  const { permissions, role } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
   // Define client-side compatible wrappers for server actions
   async function onSaveCustomer(customer: Customer) {
