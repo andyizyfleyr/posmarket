@@ -34,7 +34,7 @@ import { playSuccessSound, formatCurrency } from '@/utils';
 import { cartNoun } from '@/constants';
 import { getEffectiveWholesaleUnitPrice, getNormalizedWholesaleTiers } from '@/utils/wholesale';
 import { printPosReceipt, downloadPosReceiptPdf, ReceiptData } from '@/utils/receipt';
-import ProductImage from '../components/ProductImage';
+import ProductImage, { IMAGE_SIZES } from '@/components/ProductImage';
 import { Product, CartItem as ICartItem, Customer, PaymentMethod, Order, StoreSettings, StaffPermissions, NotificationType, ToastNotification, Coupon } from '@/types';
 import Loader from '../components/Loader';
 import Toast from '@/components/Toast';
@@ -113,6 +113,7 @@ const POSProductCard = React.memo(({
           containerClassName="w-full h-full"
           objectFit="cover"
           showZoomEffect={false}
+          sizes={IMAGE_SIZES.posGrid}
         />
         {/* Tap feedback overlay */}
         <div className={`absolute inset-0 bg-brand/10 transition-opacity duration-200 pointer-events-none ${tapped ? 'opacity-100' : 'opacity-0'}`} />
@@ -194,6 +195,7 @@ const POSCartItem = React.memo(({
         <ProductImage
           src={variant?.image || item.product.image}
           alt={item.product.name}
+          sizes={IMAGE_SIZES.cartThumb}
           containerClassName="w-full h-full"
           objectFit="cover"
           showZoomEffect={false}

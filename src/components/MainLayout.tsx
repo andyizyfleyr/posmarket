@@ -341,7 +341,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           />
         )}
         <main className="flex-grow flex flex-col bg-white pb-20 md:pb-0 relative overflow-hidden">
-          <div key={`${currentView}-${currentStore?.id}`} className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-y-auto">
+          {/*
+            Pas de `key` ici. Elle contenait `${currentView}-${currentStore?.id}`,
+            ce qui démontait TOUT le sous-arbre à chaque changement de vue : pour
+            la même page, React recréait les composants et perdait l'état local
+            (recherche, filtres, brouillon). Le changement de boutique, lui, doit
+            toujours remonter la vue — c'est le seul cas où le remontage est
+            voulu, et il reste porté par la clé de la vue elle-même.
+          */}
+          <div
+            key={currentStore?.id}
+            className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300 overflow-y-auto"
+          >
             {children}
           </div>
         </main>

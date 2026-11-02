@@ -2,8 +2,6 @@
 
 import React, { useState, useRef } from 'react';
 import { FileText, Calendar, Filter, ChevronRight, Printer, Download, X, CreditCard, User, CheckCircle2, Loader2 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Order, Customer, StoreSettings, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
 
@@ -32,6 +30,14 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, storeSettings }) => {
     if (!receiptRef.current || isDownloadingPdf) return;
     setIsDownloadingPdf(true);
     try {
+      // Chargées au clic seulement : jsPDF + html2canvas pèsent ~409 Ko et ne
+      // servent qu'ici. En import statique, ils entraient dans le bundle de la
+      // route et étaient téléchargés par tout utilisateur ouvrant la page.
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ]);
+
       const canvas = await html2canvas(receiptRef.current, { 
         scale: 2, 
         logging: false,

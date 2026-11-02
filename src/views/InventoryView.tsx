@@ -38,15 +38,24 @@ import type { ProductCategoryNode } from '@/app/actions/categories';
 import { Product, StaffPermissions, StaffRole, UserSubscription, BusinessVertical } from '@/types';
 import { formatCurrency, formatNumber } from '@/utils';
 import { Skeleton, ProductSkeleton } from '../components/Skeleton';
-import ProductImage from '../components/ProductImage';
+import ProductImage, { IMAGE_SIZES } from '@/components/ProductImage';
 import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
-import ExportProductsModal from '@/components/inventory/ExportProductsModal';
-import ExportProductImagesModal from '@/components/inventory/ExportProductImagesModal';
-import ImportProductsModal from '@/components/inventory/ImportProductsModal';
-import TransferProductsModal from '@/components/inventory/TransferProductsModal';
+import dynamic from 'next/dynamic';
+
+/*
+ * Les quatre modales d'inventaire ne s'ouvrent QUE sur action de l'utilisateur
+ * (export, import, transfert). En import statique, leurs 1 900 lignes de code
+ * entraient dans le bundle de la page et étaient téléchargées à chaque visite,
+ * y compris par un vendeur qui venait seulement consulter son stock.
+ * `ssr: false` est sans risque : aucune n'est visible au premier rendu.
+ */
+const ExportProductsModal = dynamic(() => import('@/components/inventory/ExportProductsModal'), { ssr: false });
+const ExportProductImagesModal = dynamic(() => import('@/components/inventory/ExportProductImagesModal'), { ssr: false });
+const ImportProductsModal = dynamic(() => import('@/components/inventory/ImportProductsModal'), { ssr: false });
+const TransferProductsModal = dynamic(() => import('@/components/inventory/TransferProductsModal'), { ssr: false });
 import ConfirmationModal from '@/components/ConfirmationModal';
 import {
   normalizeOptions,
@@ -825,6 +834,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                             <ProductImage
                               src={product.image}
                               alt={product.name}
+                              sizes={IMAGE_SIZES.inventoryGrid}
                               containerClassName="rounded-md md:rounded-lg border border-gray-100 shadow-sm"
                               showZoomEffect={false}
                             />
@@ -969,6 +979,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <ProductImage
                       src={product.image}
                       alt={product.name}
+                      sizes={IMAGE_SIZES.inventoryGrid}
                       containerClassName="rounded-md md:rounded-lg border border-gray-50 bg-white"
                     />
                     <span className={`absolute bottom-1 right-1 text-[7px] md:text-[8px] font-bold px-1 md:px-1.5 py-0 md:py-0.5 rounded-full whitespace-nowrap ${product.isOnline !== false ? 'bg-green-100/90 text-green-600' : 'bg-blue-100/90 text-blue-600'}`}>
@@ -1835,8 +1846,8 @@ if (formData.images.length >= 8) {
         </div>
       )}
 
-      {/* Export Modal */}
-      <ExportProductsModal
+      {/* Export Modal — montée à l'ouverture seulement (voir commentaire des imports) */}
+      {isExportModalOpen && <ExportProductsModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         currentStoreId={currentStoreId || ''}
@@ -1846,10 +1857,10 @@ if (formData.images.length >= 8) {
         selectedProductIds={Array.from(selectedIds)}
         totalProductsCount={totalProductsCount || localProducts.length}
         localProducts={localProducts}
-      />
+      />}
 
       {/* Images Export Modal */}
-      <ExportProductImagesModal
+      {isImagesModalOpen && <ExportProductImagesModal
         isOpen={isImagesModalOpen}
         onClose={() => setIsImagesModalOpen(false)}
         storeId={currentStoreId || ''}
@@ -1857,20 +1868,20 @@ if (formData.images.length >= 8) {
         selectedProductIds={Array.from(selectedIds)}
         selectedProductsCount={selectedIds.size}
         totalProductsCount={totalProductsCount || localProducts.length}
-      />
+      />}
 
       {/* Import Modal */}
-      <ImportProductsModal
+      {isImportModalOpen && <ImportProductsModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         targetStoreId={currentStoreId || ''}
         targetStoreName={storeName}
         businessType={businessType}
         onImportSuccess={handleImportSuccess}
-      />
+      />}
 
       {/* Inter-Store Transfer Modal */}
-      <TransferProductsModal
+      {isTransferModalOpen && <TransferProductsModal
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
         sourceStoreId={currentStoreId || ''}
@@ -1881,7 +1892,7 @@ if (formData.images.length >= 8) {
         totalProductsCount={totalProductsCount || localProducts.length}
         localProducts={localProducts}
         onTransferSuccess={handleTransferSuccess}
-      />
+      />}
 
       {/* Delete Product Confirmation Modal */}
       <ConfirmationModal

@@ -18,8 +18,6 @@ import {
     Trash2,
     Loader2
 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Invoice, InvoiceItem, StoreSettings, Customer, Product, StaffPermissions, StaffRole, NotificationType } from '@/types';
 import { formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
@@ -127,7 +125,15 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ invoices, onSaveInvoice, pr
         setIsDownloadingPdf(true);
         try {
         // Force the element to have A4-proportional width during capture
-        const canvas = await html2canvas(invoiceRef.current, { 
+        // Chargées au clic seulement : jsPDF + html2canvas pèsent ~409 Ko et ne
+      // servent qu'ici. En import statique, ils entraient dans le bundle de la
+      // route et étaient téléchargés par tout utilisateur ouvrant la page.
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ]);
+
+      const canvas = await html2canvas(invoiceRef.current, { 
             scale: 2, 
             backgroundColor: '#ffffff',
             useCORS: true,
