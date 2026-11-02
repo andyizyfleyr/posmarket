@@ -18,26 +18,31 @@
  * Ce script écrit donc `image` et `images` ensemble, et ne touche à aucune
  * autre colonne.
  *
+ * ── Trois façons de travailler ─────────────────────────────────────────────
+ *
+ *   --dir <dossier>          appariement automatique par similarité de noms
+ *   --dump <fichier.csv>     exporte les produits dans un CSV à remplir à la main
+ *   --map <fichier.csv>      applique une table de correspondance explicite
+ *
+ * L'appariement automatique ne fonctionne que si les fichiers portent des noms
+ * proches de ceux des produits. Quand le vocabulaire diffère (« pot
+ * cosmétique » d'un côté, « boite » de l'autre), il ne peut rien décider : il
+ * faut passer par `--dump` puis `--map`.
+ *
  * ── Sécurité ───────────────────────────────────────────────────────────────
  *
  *   - simulation par défaut : rien n'est écrit sans `--apply` ;
  *   - une sauvegarde JSON est produite avant toute écriture ;
  *   - `--rollback` restaure les anciennes valeurs depuis cette sauvegarde ;
  *   - seuls les produits de la boutique ciblée sont modifiés ;
- *   - les produits sans correspondance sont listés, jamais devinés.
+ *   - un fichier ne peut atterrir que sur un seul produit.
  *
  * ── Usage (PowerShell) ─────────────────────────────────────────────────────
  *
- *   # 1. Inventaire des fichiers et des produits, sans rien écrire
- *   npm run images:replace -- --store 5b5ca452-6660-4405-88e8-500f08f4e402 --dir "D:\Photos HD"
- *
- *   # 2. Vérifier le rapport produit par produit (matching.csv)
- *
- *   # 3. Appliquer
- *   npm run images:replace -- --store … --dir "…" --apply
- *
- *   # 4. En cas de problème
- *   npm run images:replace -- --rollback backups/images-agla-<date>.json
+ *   npm run images:replace -- --store <uuid> --dir "D:\Photos HD"
+ *   npm run images:replace -- --store <uuid> --dump correspondance.csv
+ *   npm run images:replace -- --store <uuid> --dir "D:\Photos HD" --map correspondance.csv --apply
+ *   npm run images:replace -- --rollback backups/images-<date>.json
  *
  * Les clés R2 (`CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
  * `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`) sont lues dans
@@ -62,13 +67,6 @@ function loadEnv() {
   }
 }
 
-/**
- * Valeur d'une option.
- *
- * Le garde `--` couvre l'appel via npm : `npm run x -- --store abc` transmet
- * bien `abc`, mais un `--dir` relatif peut être précédé d'artefacts selon le
- * shell. On ignore donc les valeurs qui commencent par un tiret.
- */
 function arg(name, fallback = undefined) {
   const i = process.argv.indexOf(`--${name}`);
   if (i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--')) {
@@ -78,29 +76,24 @@ function arg(name, fallback = undefined) {
 }
 
 /** Sur Windows, PowerShell coupe parfois les chemins contenant des espaces. */
-function cleanDir(p) {
-  return String(p || '').trim().replace(/^["']|["']$/g, '');
-}
+const cleanPath = (p) => String(p || '').trim().replace(/^["']|["']$/g, '');
 
 const hasFlag = (name) => process.argv.includes(`--${name}`);
 
 loadEnv();
 
-const STORE_ID = arg('store');
-const DIR = cleanDir(arg('dir'));
+const STORE_ID = cleanPath(arg('store'));
+const DIR = cleanPath(arg('dir'));
+const MAP_FILE = cleanPath(arg('map'));
+const DUMP_FILE = cleanPath(arg('dump'));
+const ROLLBACK = cleanPath(arg('rollback'));
 const APPLY = hasFlag('apply');
-const ROLLBACK = arg('rollback');
 const MIN_SCORE = Number(arg('min-score', '0.82'));
-const FORCE = hasFlag('force');
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif']);
-
 const MIME = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.webp': 'image/webp', '.avif': 'image/avif',
 };
 
 const C = {
@@ -111,6 +104,9 @@ const ok = (m) => console.log(`${C.green}✓${C.reset} ${m}`);
 const ko = (m) => console.log(`${C.red}✗${C.reset} ${m}`);
 const warn = (m) => console.log(`${C.yellow}!${C.reset} ${m}`);
 const step = (m) => console.log(`${C.cyan}→${C.reset} ${m}`);
+
+/** Horodatage utilisable dans un nom de fichier. */
+const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
 // ── Connexion base (même double transport que les migrations) ─────────────
 
@@ -257,163 +253,23 @@ function score(name, filename) {
   return Math.max(0, Math.min(1, value));
 }
 
-// ── Rollback ──────────────────────────────────────────────────────────────
+// ── Écriture : sauvegarde, envoi R2, mise à jour ──────────────────────────
 
-async function rollback(file) {
-  if (!fs.existsSync(file)) {
-    ko(`sauvegarde introuvable : ${file}`);
-    process.exit(1);
-  }
-  const backup = JSON.parse(fs.readFileSync(file, 'utf8'));
-  step(`restauration de ${backup.rows.length} produit(s) depuis ${path.basename(file)}`);
-
-  const db = await makeRunner();
-  console.log(`  transport : ${db.transport}`);
-  let restored = 0;
-  for (const row of backup.rows) {
-    await db.run(
-      `UPDATE products SET image = $1, images = $2::jsonb WHERE id = $3 AND store_id = $4`,
-      [row.image, JSON.stringify(row.images ?? []), row.id, backup.storeId],
-    );
-    restored += 1;
-  }
-  await db.close();
-  ok(`${restored} produit(s) restauré(s). Pense à revalider le cache de la marketplace.`);
-}
-
-// ── Programme principal ───────────────────────────────────────────────────
-
-async function main() {
-  if (ROLLBACK) return rollback(ROLLBACK);
-
-  if (!STORE_ID) {
-    console.error('Usage : npm run images:replace -- --store <uuid> --dir "<dossier photos>" [--apply]');
-    process.exit(1);
-  }
-  if (!DIR || !fs.existsSync(DIR)) {
-    ko(`dossier introuvable : ${DIR || '(non fourni)'}`);
-    process.exit(1);
-  }
-
-  // 1. Les fichiers du dossier (récursif : les sous-dossiers sont acceptés)
-  const files = [];
-  const walk = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (IMAGE_EXT.has(path.extname(entry.name).toLowerCase())) files.push(full);
-    }
-  };
-  walk(DIR);
-
-  if (files.length === 0) {
-    ko(`aucune image (${[...IMAGE_EXT].join(', ')}) trouvée dans ${DIR}`);
-    process.exit(1);
-  }
-  step(`${files.length} image(s) trouvée(s) dans ${DIR}`);
-
-  // 2. Les produits de la boutique
-  const db = await makeRunner();
-  console.log(`  transport base : ${db.transport}`);
-
-  const [store] = await db.run(
-    `SELECT id, name, slug FROM stores WHERE id = $1`,
-    [STORE_ID],
-  );
-  if (!store) {
-    ko(`boutique introuvable : ${STORE_ID}`);
-    process.exit(1);
-  }
-  ok(`boutique : ${store.name}`);
-
-  const products = await db.run(
-    `SELECT id, name, image, images FROM products WHERE store_id = $1 ORDER BY name`,
-    [STORE_ID],
-  );
-  step(`${products.length} produit(s) en base`);
-
-  // 3. Appariement : pour chaque fichier, le meilleur produit libre
-  const candidates = [];
-  for (const file of files) {
-    const base = path.basename(file, path.extname(file));
-    for (const product of products) {
-      candidates.push({ file, product, value: score(product.name, base) });
-    }
-  }
-  candidates.sort((a, b) => b.value - a.value);
-
-  const usedFiles = new Set();
-  const usedProducts = new Map();
-  for (const c of candidates) {
-    if (c.value < MIN_SCORE) continue;
-    if (usedFiles.has(c.file) || usedProducts.has(c.product.id)) continue;
-    usedFiles.add(c.file);
-    usedProducts.set(c.product.id, c);
-  }
-
-  const matched = [...usedProducts.values()].sort((a, b) => b.value - a.value);
-  const unmatchedProducts = products.filter((p) => !usedProducts.has(p.id));
-  const unmatchedFiles = files.filter((f) => !usedFiles.has(f));
-
-  // 4. Rapport lisible + CSV pour vérification à la main
-  console.log('');
-  console.log(`${C.bold}Appariement${C.reset} (seuil ${MIN_SCORE})`);
-  for (const m of matched) {
-    const pct = Math.round(m.value * 100);
-    const color = pct >= 90 ? C.green : pct >= 80 ? C.yellow : C.red;
-    console.log(`  ${color}${String(pct).padStart(3)}%${C.reset}  ${m.product.name}`);
-    console.log(`         ${C.dim}← ${path.basename(m.file)}${C.reset}`);
-  }
-
+/**
+ * Applique une liste de correspondances `{ product, file }`.
+ *
+ * Écrit `image` et `images` ensemble et rien d'autre. Une sauvegarde est
+ * produite avant la première écriture.
+ */
+async function writeAll(db, store, matched) {
+  const backupPath = `backups/images-${store.slug || store.id}-${stamp()}.json`;
   fs.mkdirSync('backups', { recursive: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const csvPath = `backups/matching-${stamp}.csv`;
-  const csv = ['score;produit;fichier;ancienne_image;nouvelle_image',
-    ...matched.map((m) => [
-      (m.value * 100).toFixed(0),
-      m.product.name.replace(/;/g, ','),
-      path.basename(m.file),
-      m.product.image || '',
-      `(sera uploadée)`,
-    ].join(';')),
-    ...unmatchedProducts.map((p) => ['0', p.name.replace(/;/g, ','), '(aucun fichier)', p.image || '', ''].join(';')),
-  ].join('\r\n');
-  fs.writeFileSync(csvPath, '\ufeff' + csv, 'utf8');
-
-  console.log('');
-  ok(`${matched.length} correspondance(s) — rapport : ${csvPath}`);
-  if (unmatchedProducts.length > 0) {
-    warn(`${unmatchedProducts.length} produit(s) sans image correspondante :`);
-    for (const p of unmatchedProducts.slice(0, 20)) console.log(`    ${C.dim}${p.name}${C.reset}`);
-    if (unmatchedProducts.length > 20) console.log(`    ${C.dim}… et ${unmatchedProducts.length - 20} autre(s)${C.reset}`);
-  }
-  if (unmatchedFiles.length > 0) {
-    warn(`${unmatchedFiles.length} fichier(s) non utilisé(s) :`);
-    for (const f of unmatchedFiles.slice(0, 20)) console.log(`    ${C.dim}${path.basename(f)}${C.reset}`);
-  }
-
-  if (matched.length === 0) {
-    ko('aucune correspondance retenue : rien à faire.');
-    await db.close();
-    process.exit(1);
-  }
-
-  if (!APPLY) {
-    console.log('');
-    warn('mode simulation — AUCUNE écriture. Relance avec --apply pour appliquer.');
-    console.log(`${C.dim}  Vérifie d'abord ${csvPath} : les lignes à 0 % sont des produits non traités.${C.reset}`);
-    await db.close();
-    return;
-  }
-
-  // 5. Sauvegarde avant écriture
-  const backupPath = `backups/images-${store.slug || STORE_ID}-${stamp}.json`;
   fs.writeFileSync(
     backupPath,
     JSON.stringify(
       {
         createdAt: new Date().toISOString(),
-        storeId: STORE_ID,
+        storeId: store.id,
         storeName: store.name,
         rows: matched.map((m) => ({
           id: m.product.id,
@@ -429,7 +285,6 @@ async function main() {
   );
   ok(`sauvegarde : ${backupPath}`);
 
-  // 6. Upload R2 + écriture
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const bucket = process.env.R2_BUCKET;
@@ -437,8 +292,7 @@ async function main() {
 
   if (!accountId || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !bucket || !publicUrl) {
     ko('configuration R2 incomplète (CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL).');
-    await db.close();
-    process.exit(1);
+    return { done: 0, backupPath, failed: matched.length };
   }
 
   const s3 = new S3Client({
@@ -453,10 +307,11 @@ async function main() {
   console.log('');
   console.log(`${C.bold}Envoi${C.reset}`);
   let done = 0;
+  let failed = 0;
+
   for (const m of matched) {
     const ext = path.extname(m.file).toLowerCase();
     const key = `products/${Date.now()}-${crypto.randomUUID()}${ext}`;
-
     try {
       await s3.send(
         new PutObjectCommand({
@@ -469,26 +324,252 @@ async function main() {
       );
 
       const url = `${publicUrl}/${key}`;
-      // `image` ET `images` ensemble : sinon la fiche et la galerie divergent.
       await db.run(
         `UPDATE products SET image = $1, images = $2::jsonb WHERE id = $3 AND store_id = $4`,
-        [url, JSON.stringify([url]), m.product.id, STORE_ID],
+        [url, JSON.stringify([url]), m.product.id, store.id],
       );
 
       done += 1;
       console.log(`  ${C.green}✓${C.reset} ${m.product.name}`);
     } catch (error) {
+      failed += 1;
       ko(`${m.product.name} — ${error?.message || error}`);
     }
   }
 
-  await db.close();
-  console.log('');
-  ok(`${done}/${matched.length} produit(s) mis à jour.`);
-  console.log(`${C.dim}  Retour arrière possible : npm run images:replace -- --rollback ${backupPath}${C.reset}`);
-  if (!FORCE) {
-    console.log(`${C.dim}  Le cache CDN peut servir l'ancienne image quelques minutes : vérifie avec /product/<slug>?v=2${C.reset}`);
+  return { done, failed, backupPath };
+}
+
+// ── Rollback ──────────────────────────────────────────────────────────────
+
+async function rollback(file) {
+  if (!fs.existsSync(file)) {
+    ko(`sauvegarde introuvable : ${file}`);
+    process.exit(1);
   }
+  const backup = JSON.parse(fs.readFileSync(file, 'utf8'));
+  step(`restauration de ${backup.rows.length} produit(s) depuis ${path.basename(file)}`);
+
+  const db = await makeRunner();
+  console.log(`  transport : ${db.transport}`);
+  for (const row of backup.rows) {
+    await db.run(
+      `UPDATE products SET image = $1, images = $2::jsonb WHERE id = $3 AND store_id = $4`,
+      [row.image, JSON.stringify(row.images ?? []), row.id, backup.storeId],
+    );
+  }
+  await db.close();
+  ok(`${backup.rows.length} produit(s) restauré(s).`);
+}
+
+// ── Programme principal ───────────────────────────────────────────────────
+
+function listImages(dir) {
+  const files = [];
+  const walk = (d) => {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (IMAGE_EXT.has(path.extname(entry.name).toLowerCase())) files.push(full);
+    }
+  };
+  walk(dir);
+  return files;
+}
+
+async function main() {
+  if (ROLLBACK) return rollback(ROLLBACK);
+
+  if (!STORE_ID) {
+    console.error('Usage : npm run images:replace -- --store <uuid> [--dir <dossier> | --dump <csv> | --map <csv>] [--apply]');
+    process.exit(1);
+  }
+
+  const db = await makeRunner();
+  console.log(`  transport base : ${db.transport}`);
+
+  const [store] = await db.run(`SELECT id, name, slug FROM stores WHERE id = $1`, [STORE_ID]);
+  if (!store) {
+    ko(`boutique introuvable : ${STORE_ID}`);
+    await db.close();
+    process.exit(1);
+  }
+  ok(`boutique : ${store.name}`);
+
+  const products = await db.run(
+    `SELECT id, name, image, images FROM products WHERE store_id = $1 ORDER BY name`,
+    [STORE_ID],
+  );
+  step(`${products.length} produit(s) en base`);
+
+  // ── Mode 1 : export d'un CSV à remplir à la main ────────────────────────
+  if (DUMP_FILE) {
+    const lines = ['produit_id;nom;image_actuelle;fichier_a_associer'];
+    for (const p of products) {
+      lines.push([p.id, (p.name || '').replace(/;/g, ','), p.image || '', ''].join(';'));
+    }
+    fs.mkdirSync(path.dirname(path.resolve(DUMP_FILE)), { recursive: true });
+    fs.writeFileSync(DUMP_FILE, '\ufeff' + lines.join('\r\n'), 'utf8');
+    ok(`${products.length} produit(s) écrits dans ${DUMP_FILE}`);
+    console.log(`${C.dim}  Remplis la dernière colonne avec le nom du fichier, puis relance avec --map ${DUMP_FILE} --apply${C.reset}`);
+    await db.close();
+    return;
+  }
+
+  // ── Mode 2 et 3 : il faut le dossier des images ─────────────────────────
+  if (!DIR || !fs.existsSync(DIR)) {
+    ko(`dossier introuvable : ${DIR || '(non fourni)'}`);
+    await db.close();
+    process.exit(1);
+  }
+  const files = listImages(DIR);
+  if (files.length === 0) {
+    ko(`aucune image (${[...IMAGE_EXT].join(', ')}) trouvée dans ${DIR}`);
+    await db.close();
+    process.exit(1);
+  }
+  step(`${files.length} image(s) trouvée(s) dans ${DIR}`);
+
+  let matched;
+  let unmatchedProducts;
+  let unmatchedFiles;
+
+  if (MAP_FILE) {
+    // ── Mode table explicite : aucune heuristique ────────────────────────
+    if (!fs.existsSync(MAP_FILE)) {
+      ko(`table de correspondance introuvable : ${MAP_FILE}`);
+      await db.close();
+      process.exit(1);
+    }
+    const rows = fs
+      .readFileSync(MAP_FILE, 'utf8')
+      .replace(/^\ufeff/, '')
+      .split(/\r?\n/)
+      .map((l) => l.split(';'))
+      .filter((r) => r.length >= 2 && r[0].trim() && r[1].trim() && !/^produit_id$/i.test(r[0].trim()));
+
+    const byId = new Map(products.map((p) => [p.id, p]));
+    matched = [];
+    const rejected = [];
+    const usedProducts = new Set();
+
+    for (const [rawId, rawFile] of rows) {
+      const idOrName = rawId.trim();
+      const wanted = rawFile.trim();
+      const product =
+        byId.get(idOrName) ||
+        products.find((p) => normalize(p.name) === normalize(idOrName));
+      const filePath =
+        files.find((f) => path.basename(f) === wanted) ||
+        files.find((f) => normalize(path.basename(f, path.extname(f))) === normalize(wanted)) ||
+        files.find((f) => normalize(path.basename(f, path.extname(f))).includes(normalize(wanted)));
+
+      if (!product) { rejected.push(`${idOrName} → produit introuvable`); continue; }
+      if (!filePath) { rejected.push(`${wanted} → fichier introuvable`); continue; }
+      if (usedProducts.has(product.id)) { rejected.push(`${idOrName} → produit déjà associé`); continue; }
+      usedProducts.add(product.id);
+      matched.push({ product, file: filePath, value: 1 });
+    }
+
+    unmatchedProducts = products.filter((p) => !usedProducts.has(p.id));
+    const usedFiles = new Set(matched.map((m) => m.file));
+    unmatchedFiles = files.filter((f) => !usedFiles.has(f));
+
+    console.log('');
+    console.log(`${C.bold}Table ${path.basename(MAP_FILE)}${C.reset}`);
+    for (const m of matched) {
+      console.log(`  ${C.green}✓${C.reset} ${m.product.name}`);
+      console.log(`      ${C.dim}← ${path.basename(m.file)}${C.reset}`);
+    }
+    if (rejected.length > 0) {
+      warn(`${rejected.length} ligne(s) ignorée(s) :`);
+      for (const r of rejected) console.log(`    ${C.dim}${r}${C.reset}`);
+    }
+  } else {
+    // ── Mode automatique : appariement par similarité de noms ────────────
+    const candidates = [];
+    for (const file of files) {
+      const base = path.basename(file, path.extname(file));
+      for (const product of products) {
+        candidates.push({ file, product, value: score(product.name, base) });
+      }
+    }
+    candidates.sort((a, b) => b.value - a.value);
+
+    const usedFiles = new Set();
+    const usedProducts = new Map();
+    for (const c of candidates) {
+      if (c.value < MIN_SCORE) continue;
+      if (usedFiles.has(c.file) || usedProducts.has(c.product.id)) continue;
+      usedFiles.add(c.file);
+      usedProducts.set(c.product.id, c);
+    }
+
+    matched = [...usedProducts.values()].sort((a, b) => b.value - a.value);
+    unmatchedProducts = products.filter((p) => !usedProducts.has(p.id));
+    unmatchedFiles = files.filter((f) => !usedFiles.has(f));
+
+    console.log('');
+    console.log(`${C.bold}Appariement${C.reset} (seuil ${MIN_SCORE})`);
+    for (const m of matched) {
+      const pct = Math.round(m.value * 100);
+      const color = pct >= 90 ? C.green : pct >= 80 ? C.yellow : C.red;
+      console.log(`  ${color}${String(pct).padStart(3)}%${C.reset}  ${m.product.name}`);
+      console.log(`         ${C.dim}← ${path.basename(m.file)}${C.reset}`);
+    }
+  }
+
+  // ── Rapport CSV, dans les deux modes ───────────────────────────────────
+  fs.mkdirSync('backups', { recursive: true });
+  const csvPath = `backups/matching-${stamp()}.csv`;
+  const csv = [
+    'score;produit;fichier;ancienne_image',
+    ...matched.map((m) => [
+      (m.value * 100).toFixed(0),
+      m.product.name.replace(/;/g, ','),
+      path.basename(m.file),
+      m.product.image || '',
+    ].join(';')),
+    ...unmatchedProducts.map((p) =>
+      ['0', p.name.replace(/;/g, ','), '(aucun fichier)', p.image || ''].join(';')),
+  ].join('\r\n');
+  fs.writeFileSync(csvPath, '\ufeff' + csv, 'utf8');
+
+  console.log('');
+  ok(`${matched.length} correspondance(s) — rapport : ${csvPath}`);
+  if (unmatchedProducts.length > 0) {
+    warn(`${unmatchedProducts.length} produit(s) sans image :`);
+    for (const p of unmatchedProducts.slice(0, 15)) console.log(`    ${C.dim}${p.name}${C.reset}`);
+    if (unmatchedProducts.length > 15) console.log(`    ${C.dim}… et ${unmatchedProducts.length - 15} autre(s)${C.reset}`);
+  }
+  if (unmatchedFiles.length > 0) {
+    warn(`${unmatchedFiles.length} fichier(s) non utilisé(s) :`);
+    for (const f of unmatchedFiles.slice(0, 15)) console.log(`    ${C.dim}${path.basename(f)}${C.reset}`);
+  }
+
+  if (matched.length === 0) {
+    ko('aucune correspondance retenue.');
+    console.log(`${C.dim}  Si les noms de fichiers ne ressemblent pas aux noms de produits,`);
+    console.log(`  utilise --dump <csv> pour produire une table à remplir à la main.${C.reset}`);
+    await db.close();
+    process.exit(1);
+  }
+
+  if (!APPLY) {
+    console.log('');
+    warn('mode simulation — AUCUNE écriture. Relance avec --apply pour appliquer.');
+    await db.close();
+    return;
+  }
+
+  const { done, failed, backupPath } = await writeAll(db, store, matched);
+  await db.close();
+
+  console.log('');
+  ok(`${done}/${matched.length} produit(s) mis à jour${failed ? `, ${failed} échec(s)` : ''}.`);
+  console.log(`${C.dim}  Retour arrière : npm run images:replace -- --rollback ${backupPath}${C.reset}`);
+  console.log(`${C.dim}  Le CDN peut servir l'ancienne image quelques minutes.${C.reset}`);
+  if (failed > 0) process.exit(1);
 }
 
 main().catch((error) => {
