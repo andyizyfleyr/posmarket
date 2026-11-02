@@ -82,6 +82,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   businessType = 'shopping',
   storeName = 'Boutique',
 }) => {
+  // Pas de `useDeferredValue` ici, contrairement au POS : le filtrage de
+  // l'inventaire est fait côté serveur avec un débounce de 500 ms (voir l'effet
+  // plus bas). Ajouter une valeur différée ne ferait que dupliquer le travail
+  // sans rien retirer du chemin critique.
   const [searchTerm, setSearchTerm] = useState('');
   const [viewType, setViewType] = useState<'grid' | 'table'>('table');
   const [productType, setProductType] = useState<'all' | 'pos' | 'marketplace'>('all');

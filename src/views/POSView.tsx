@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { supabase } from '@/supabase';
 import { useRouter } from '@/components/RouterPolyfill';
 import { createOrderAction } from '@/app/actions/orders';
@@ -255,6 +255,13 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   // Un resto parle de « commande », pas de « panier ».
   const cartWord = cartNoun(businessType === 'food' ? 'food' : 'shopping');
   const [searchTerm, setSearchTerm] = useState('');
+  /*
+   * La saisie met à jour l'état immédiatement (le champ reste synchrone), mais
+   * le filtrage des ~200 produits utilise une valeur différée : React peut
+   * abandonner un filtrage intermédiaire si une frappe arrive avant qu'il ne
+   * soit terminé. Sur un catalogue fourni, la frappe cesse de saccader.
+   */
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkPickerProduct, setBulkPickerProduct] = useState<Product | null>(null);
   const [variantPickerProduct, setVariantPickerProduct] = useState<Product | null>(null);
@@ -349,14 +356,15 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const term = deferredSearchTerm.toLowerCase();
+      const matchesSearch = (p.name || '').toLowerCase().includes(term) ||
+        (p.category || '').toLowerCase().includes(term.toLowerCase());
       const matchesCategory = selectedCategory === 'all' ||
         (p.category?.trim() === selectedCategory) ||
         (p.mainCategory?.trim() === selectedCategory);
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory, products]);
+  }, [deferredSearchTerm, selectedCategory, products]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return [];
