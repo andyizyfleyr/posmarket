@@ -177,3 +177,59 @@ npm run db:apply:dry
 
 Ou, côté application : `GET /api/cron/schema-check` doit maintenant renvoyer
 `{"ok":true,"missing":[],"checked":21}`.
+
+## Incident du 2026-11-02 — `DATABASE_URL` contenait la commande `psql`
+
+Symptôme : **toutes les pages qui lisent la base renvoyaient 500**, tandis que
+`/api/ping` répondait `{"ok":false}`. Le message renvoyé par une route publique
+(avant correction) était sans ambiguïté :
+
+```
+Database connection string provided to `neon()` is not a valid URL.
+Connection string: psql 'postgresql://neondb_owner:…@ep-billowing-snow-…neon.tech/neondb?sslmode=require&channel_binding=require'
+```
+
+La variable d'environnement Vercel contenait **la ligne de commande complète**
+(préfixe `psql`, guillemets simples, paramètre `channel_binding`), et non l'URL
+seule. `new URL()` la rejette : `ERR_INVALID_URL`.
+
+### Correctif
+
+`src/lib/database-url.ts` normalise la valeur avant qu'elle n'atteigne le
+pilote :
+
+| Forme reçue | Résultat |
+|---|---|
+| `psql 'postgresql://…'` | `postgresql://…` (préfixe et guillemets retirés) |
+| `"postgresql://…"` | idem |
+| `postgres://…` | `postgresql://…` |
+| `…&channel_binding=require` | paramètre retiré (rejeté par les pilotes) |
+| `  …  ` | espaces retirés |
+
+`src/db/index.ts` l'applique à la connexion, et lève à la place un message
+explicite **sans mot de passe ni hôte** :
+
+```
+[db] DATABASE_URL contient la commande shell complète (préfixe « psql » ou
+guillemets) au lieu de la seule URL. Attendu : postgresql://user:motdepasse@hote/base?sslmode=require
+```
+
+11 tests couvrent ces cas (`tests/security/database-url.test.mjs`), y compris
+la non-divulgation du mot de passe.
+
+### Action requise côté Vercel
+
+Dans **Settings → Environment Variables** du projet `posmarket`, remplacer la
+valeur de `DATABASE_URL` par l'URL seule, sans `psql`, sans guillemets :
+
+```
+postgresql://neondb_owner:MOT_DE_PASSE@ep-billowing-snow-aye011mg-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
+```
+
+Puis **Redeploy**. Le correctif applicatif rend le système tolérant, mais la
+variable doit rester propre : c'est elle que lit aussi `drizzle-kit`, qui ne
+passe pas par la normalisation.
+
+> Le paramètre `channel_binding=require` est inutilement strict : ni
+> `@neondatabase/serverless` ni `pg` n'implémentent le channel binding SCRAM,
+> et ce pooler ne l'annonce pas.
