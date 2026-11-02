@@ -33,8 +33,6 @@ import { useCartAddToast } from '@/components/CartAddToast';
 interface ProductTileProps {
   product: StorefrontProduct;
   onPress?: (product: StorefrontProduct) => void;
-  /** Affiche un discret badge avec la boutique d'origine. */
-  showStore?: boolean;
   /** Réduit les statistiques (une étoile) sur les très petits écrans. */
   compact?: boolean;
 }
@@ -82,7 +80,6 @@ function Stars({ rating }: { rating: number }) {
 function ProductTileComponent({
   product,
   onPress,
-  showStore = false,
   compact = false,
 }: ProductTileProps) {
   const { addToCart } = useCartActions();
@@ -134,7 +131,6 @@ function ProductTileComponent({
   const rating = product.rating ?? 0;
   const reviewCount = product.reviewCount ?? 0;
   const hasStats = salesCount > 0 || rating > 0;
-  const storeName = product.storeName?.trim();
 
   const stockLabel = isOutOfStock
     ? ', rupture de stock'
@@ -147,11 +143,9 @@ function ProductTileComponent({
           reviewCount > 0 ? `, ${formatNumber(reviewCount)} avis` : ''
         }`
       : '';
-  const storeLabel =
-    showStore && storeName ? `, vendu par ${storeName}` : '';
   const cardLabel = `${product.name}, ${priceLabel}${
     product.unit ? ` / ${product.unit}` : ''
-  }${discount > 0 ? `, ${discount}% de réduction` : ''}${ratingLabel}${stockLabel}${storeLabel}`;
+  }${discount > 0 ? `, ${discount}% de réduction` : ''}${ratingLabel}${stockLabel}`;
 
   return (
     <Pressable
@@ -197,14 +191,6 @@ function ProductTileComponent({
           <View style={styles.lowStockBadge}>
             <Text style={styles.lowStockText} maxFontSizeMultiplier={1.1}>
               Plus que {stock}
-            </Text>
-          </View>
-        ) : null}
-
-        {showStore && storeName ? (
-          <View style={styles.storeBadge}>
-            <Text style={styles.storeBadgeText} numberOfLines={1}>
-              {storeName}
             </Text>
           </View>
         ) : null}
@@ -406,21 +392,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 0.2,
-  },
-  storeBadge: {
-    position: 'absolute',
-    left: 5,
-    bottom: 5,
-    maxWidth: '68%',
-    backgroundColor: 'rgba(17, 24, 39, 0.58)',
-    borderRadius: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  storeBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '600',
   },
   quickAdd: {
     position: 'absolute',

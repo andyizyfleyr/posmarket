@@ -24,7 +24,6 @@ interface ProductGridProps {
   paddingHorizontal?: number;
   columnGap?: number;
   rowGap?: number;
-  showStore?: boolean;
   /** Force le nombre de colonnes (sinon calcul selon la largeur). */
   columns?: number;
 }
@@ -35,7 +34,6 @@ export function ProductGrid({
   paddingHorizontal = PRODUCT_GRID_PADDING,
   columnGap = PRODUCT_GRID_COLUMN_GAP,
   rowGap = PRODUCT_GRID_ROW_GAP,
-  showStore = false,
   columns: forcedColumns,
 }: ProductGridProps) {
   const { width } = useWindowDimensions();
@@ -61,7 +59,6 @@ export function ProductGrid({
           onPress={onPress}
           paddingHorizontal={paddingHorizontal}
           columnGap={columnGap}
-          showStore={showStore}
           style={index < rows.length - 1 ? { marginBottom: rowGap } : undefined}
         />
       ))}

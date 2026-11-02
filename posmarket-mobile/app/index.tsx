@@ -1213,7 +1213,6 @@ export default function HomeScreen() {
               products={item.products}
               columns={productColumns}
               onPress={navigateToProduct}
-              showStore
               style={styles.homeProductRow}
             />
           );
@@ -1493,7 +1492,6 @@ export default function HomeScreen() {
                   <View style={[styles.sheetTile, { width: sheetCardWidth }]}>
                     <ProductTile
                       product={item}
-                      showStore
                       compact={compactCards}
                       onPress={(product) => {
                         setSheetSectionKey(null);

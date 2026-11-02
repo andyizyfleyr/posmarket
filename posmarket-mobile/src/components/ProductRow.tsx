@@ -28,7 +28,6 @@ interface ProductRowProps {
   onPress?: (product: StorefrontProduct) => void;
   paddingHorizontal?: number;
   columnGap?: number;
-  showStore?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -38,7 +37,6 @@ export function ProductRow({
   onPress,
   paddingHorizontal = PRODUCT_GRID_PADDING,
   columnGap = PRODUCT_GRID_COLUMN_GAP,
-  showStore = false,
   style,
 }: ProductRowProps) {
   const { width } = useWindowDimensions();
@@ -61,7 +59,6 @@ export function ProductRow({
           <ProductTile
             product={product}
             onPress={onPress}
-            showStore={showStore}
             compact={compact}
           />
         </View>
