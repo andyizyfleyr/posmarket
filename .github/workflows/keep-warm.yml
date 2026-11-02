@@ -1,13 +1,58 @@
 name: keep-warm
 
+# Sonde de disponibilité toutes les 5 minutes.
+#
+# Pourquoi un workflow GitHub et non un Cron Vercel : le plan Hobby limite les
+# crons Vercel à une exécution par JOUR et par tâche. Une sonde par jour ne
+# réveille pas une base Neon suspendue — d'où ce workflow, qui n'est pas soumis
+# à cette limite.
+#
+# Pourquoi toutes les 5 minutes : GitHub facture les minutes d'Actions et cet
+# espace de travail est en plan gratuit (2 000 min/mois). 288 exécutions/jour
+# × ~5 s ≈ 24 min/jour ≈ 720 min/mois, soit 36 % du quota. Passer cette même
+# tâche à `*/3` (comme avant) doublait la consommation à ~1 200 min/mois et
+# rapprochait du plafond. Cinq minutes suffisent : Neon suspend après quelques
+# minutes d'inactivité et la sonde évite surtout les réveils à froid du matin.
+
 on:
   schedule:
-    - cron: '*/3 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+
+# Une seule sonde à la fois : deux exécutions simultanées ne servent à rien.
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - name: Ping Neon
-        run: curl -fsS --max-time 30 https://posmarket-eight.vercel.app/api/ping
+      - name: Ping de disponibilité
+        env:
+          # Domaine principal du projet (posmarket-eight.vercel.app redirige
+          # vers une page de connexion Vercel : chaque exécution échouait en
+          # 401 et remplissait l'onglet Actions de faux échecs).
+          PING_URL: https://posmarket-topaz.vercel.app/api/ping
+        run: |
+          set -euo pipefail
+
+          # L'application s'identifie : le filtre anti-bots du proxy (src/proxy.ts)
+          # refuse les User-Agent de clients HTTP bruts (`curl/…`) par 403.
+          response="$(curl -sS --max-time 20 \
+            -H 'x-posmarket-client: uptime-probe' \
+            -w '\n%{http_code}' "$PING_URL")"
+
+          status="$(printf '%s' "$response" | tail -n1)"
+          body="$(printf '%s' "$response" | sed '$d')"
+
+          echo "status=$status body=$body"
+
+          if [ "$status" != "200" ] || ! printf '%s' "$body" | grep -q '"ok":true'; then
+            echo "::error::Sonde en échec (status $status). La base de données ou l'application ne répond pas."
+            exit 1
+          fi
