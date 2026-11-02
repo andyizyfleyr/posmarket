@@ -89,13 +89,9 @@ if (!Array.isArray(entries) || entries.length === 0) {
   process.exit(1);
 }
 
-await runSqlFile(sql, path.join('drizzle', '0020_review_authors.sql'));
-
-const entries = JSON.parse(fs.readFileSync(source, 'utf8'));
-if (!Array.isArray(entries) || entries.length === 0) {
-  console.error('❌ JSON vide ou invalide.');
-  process.exit(1);
-}
+// Les migrations ont été renumérotées (0020 → 0027) : pointer le fichier
+// courant, sinon le script s'arrête sur un chemin inexistant.
+await runSqlFile(sql, path.join('drizzle', '0027_review_authors.sql'));
 
 const [before] = await sql`SELECT count(*)::int AS total FROM "review_authors"`;
 

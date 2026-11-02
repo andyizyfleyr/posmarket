@@ -19,10 +19,11 @@
     "test:k6:full": ".tools/k6/k6-v2.2.0-windows-amd64/k6.exe run tests/k6/full.js",
     "test:saspay": "tsx --test tests/saspay/*.test.mjs",
     "db:check": "node scripts/check-migration-journal.mjs",
-    "check": "npm run db:check && tsc --noEmit",
+    "check": "npm run db:check && npm run db:check:sql && tsc --noEmit",
     "typecheck:mobile": "tsc --noEmit --project posmarket-mobile/tsconfig.json",
     "test:security": "tsx --test tests/security/*.test.mjs",
-    "test": "npm run test:security && npm run test:saspay"
+    "test": "npm run test:security && npm run test:saspay",
+    "db:check:sql": "node scripts/check-migrations-sql.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1116.0",

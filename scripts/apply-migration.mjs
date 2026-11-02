@@ -3,6 +3,7 @@
 // Usage:
 //   node scripts/apply-migration.mjs drizzle/0008_fedapay_subscriptions.sql
 import { neon } from '@neondatabase/serverless';
+import { splitSqlStatements } from './lib/sql.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -32,10 +33,9 @@ async function main() {
     process.exit(1);
   }
   const sql = neon(url);
-  const statements = sqlText
-    .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  // Découpage robuste : un `split(';')` naïf casse les blocs `DO $$ … $$`
+  // (migrations 0014/0015) et les apostrophes des commentaires.
+  const statements = splitSqlStatements(sqlText).filter((s) => s.trim().length > 0);
   for (const stmt of statements) {
     await sql(stmt);
   }
