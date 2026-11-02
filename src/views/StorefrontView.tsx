@@ -3997,7 +3997,6 @@ const WHOLESALE_FILTER = "wholesale";
                             }
                             onAddToCart={handleCardAddToCart}
                             className="w-full"
-                            showStore={!selectedStoreParam}
                           />
                         );
 

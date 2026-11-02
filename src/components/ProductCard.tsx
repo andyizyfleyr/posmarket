@@ -13,13 +13,6 @@ interface ProductCardProps {
   onClick?: () => void;
   onPrefetch?: () => void;
   className?: string;
-  /** Affiche un discret badge avec la boutique d'origine. */
-  showStore?: boolean;
-}
-
-// Champs optionnels utilisés par la carte côté marketplace
-interface CardProductExtras {
-  storeName?: string;
 }
 
 const STAR_SIZE = 9;
@@ -47,8 +40,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 const ProductCard: React.FC<ProductCardProps> = memo(
-  ({ product, onAddToCart, onClick, onPrefetch, className = '', showStore = false }) => {
-    const extras = product as CardProductExtras;
+  ({ product, onAddToCart, onClick, onPrefetch, className = '' }) => {
     const hasOptions =
       (Array.isArray(product.options) && product.options.length > 0) ||
       (Array.isArray(product.variants) && product.variants.length > 0);
@@ -73,7 +65,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(
     const rating = product.rating ?? 0;
     const reviewCount = product.reviewCount ?? 0;
     const hasStats = salesCount > 0 || rating > 0;
-    const storeName = extras.storeName?.trim();
 
     // Un produit à variantes affiche « dès X » : le prix dépend des options.
     const priceRange = variantPriceRange(product);
@@ -147,11 +138,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(
               </span>
             )}
 
-            {showStore && storeName && (
-              <span className="absolute bottom-1.5 left-1.5 z-10 max-w-[68%] truncate rounded-md bg-gray-900/60 px-1.5 py-0.5 text-[8px] font-semibold text-white">
-                {storeName}
-              </span>
-            )}
           </a>
 
           {/* Ajout rapide posé sur l'image : la carte garde une hauteur unique. */}
