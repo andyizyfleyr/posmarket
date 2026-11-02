@@ -12,9 +12,11 @@ interface SubscriptionViewProps {
     onPay?: (tier: SubscriptionTier, duration: SubscriptionDuration) => Promise<{ success: boolean; error?: string }>;
     notify?: (message: string, type: NotificationType, title?: string) => void;
     userRole?: StaffRole;
+    /** SasPay est le fournisseur actif : toutes les durées sont payables en ligne. */
+    saspayDirect?: boolean;
 }
 
-export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onPay, notify, userRole }) => {
+export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onPay, notify, userRole, saspayDirect = false }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
     const isExpired = new Date(currentSubscription.endDate) < new Date();
@@ -50,7 +52,9 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
             return;
         }
 
-        if (duration !== 'monthly') {
+        // SasPay actif : le trimestriel et l'annuel se paient directement en
+        // ligne, comme le mensuel. Sinon on conserve le contact commercial.
+        if (duration !== 'monthly' && !saspayDirect) {
             const price = duration === 'quarterly' ? plan.priceQuarterly : plan.priceAnnual;
             const durationLabel = duration === 'quarterly' ? 'Trimestriel' : 'Annuel';
             const msg = encodeURIComponent(`Bonjour l'équipe PosMarket, je souhaite souscrire à la formule ${plan.name} (${durationLabel}) au tarif de ${formatCurrency(price)}.`);
@@ -95,7 +99,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
         if (isSeller) return 'Accès Restreint';
         if (hasActivePlan && plan.tier === currentTierPlan?.tier) return 'Plan Actuel';
         if (currentTierPlan?.tier === plan.tier && isExpired) return 'Réactiver';
-        if (duration !== 'monthly') return 'Contactez-nous';
+        if (duration !== 'monthly' && !saspayDirect) return 'Contactez-nous';
         return hasActivePlan ? `Passer à ${plan.name}` : `Choisir ${plan.name}`;
     };
 
@@ -195,6 +199,16 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                     ))}
                 </div>
             </div>
+
+            {/* Paiement en ligne de toutes les durées (SasPay) */}
+            {saspayDirect && (
+                <div className="w-full max-w-5xl mb-6 md:mb-8 -mt-2 md:-mt-4">
+                    <p className="flex items-center justify-center gap-2 text-[11px] md:text-xs font-semibold text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-center">
+                        <Shield size={14} className="shrink-0" />
+                        Paiement en ligne sécurisé avec SasPay — mensuel, trimestriel et annuel.
+                    </p>
+                </div>
+            )}
 
             {/* Plans Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full max-w-5xl mb-8">

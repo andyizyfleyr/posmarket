@@ -20,6 +20,14 @@ node scripts/check-saspay.mjs
 
 Cette commande ne lit pas les secrets enregistrés dans l'admin. Les anciens clients mobiles doivent être mis à jour pour utiliser le checkout SasPay.
 
+## Page abonnement
+
+Tant que SasPay n'est pas le fournisseur sélectionné, les formules **trimestrielle** et **annuelle** affichent le bouton « Contactez-nous » et ouvrent WhatsApp : seules les formules mensuelles sont payables en ligne.
+
+Dès que **SasPay** est le fournisseur actif (**PAM → Paramètres système → Passerelle de paiement**, les deux secrets SasPay étant renseignés), la page `/subscription` (et l'écran abonnement de l'application mobile) bascule entièrement sur le paiement en ligne : les trois durées ouvrent directement le checkout SasPay via « Choisir … » / « Passer à … ». Le bouton « Contactez-nous » et la redirection WhatsApp ne sont plus proposés, et un bandeau « Paiement en ligne sécurisé avec SasPay » le signale. Le serveur applique le même montant que celui affiché (`SUBSCRIPTION_PLANS` : trimestriel et annuel).
+
+Si un autre fournisseur (Kkiapay, FedaPay, FeexPay) est sélectionné alors que la clé SasPay est configurée, le comportement commercial précédent est conservé.
+
 ## Confirmation et reprise
 
 - Le checkout est créé côté serveur ; son identifiant est conservé avec la facture. Le montant transmis est une chaîne décimale en XOF. Les URL HTTPS `checkout.saspay.me` (liens actuels) et `pay.saspay.me` (exemples de la documentation SasPay) sont acceptées ; les autres hôtes sont refusés.

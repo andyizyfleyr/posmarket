@@ -6,7 +6,9 @@
  * - les widgets de paiement des opérateurs (SDK JavaScript navigateur) sont
  *   chargés dans une WebView (`payment-html.ts`), puis le résultat est
  *   confirmé côté serveur comme au web ;
- * - « Trimestriel » / « Annuel » ouvrent WhatsApp (comme `window.open`) ;
+ * - « Trimestriel » / « Annuel » ouvrent WhatsApp (comme `window.open`), sauf
+ *   quand SasPay est le fournisseur actif : toutes les durées se paient alors
+ *   directement dans la WebView, sans page de contact ;
  * - l'état de l'abonnement vient du bootstrap vendeur (`useSeller`) et est
  *   rafraîchi après chaque mutation (`onRefresh` ≡ `router.refresh()`).
  */
@@ -191,6 +193,9 @@ export function SellerSubscriptionView({
     (): PaymentProvider => config?.provider || 'kkiapay',
     [config],
   );
+
+  /** SasPay actif : trimestriel et annuel sont payables directement (plus de WhatsApp). */
+  const saspayDirect = providerOf() === 'saspay';
 
   /** Confirmation serveur après retour du guichet (par opérateur). */
   const confirmPayment = useCallback(
@@ -530,7 +535,9 @@ export function SellerSubscriptionView({
     async (plan: SubscriptionPlan) => {
       if (hasActivePlan && plan.tier === currentTierPlan?.tier) return;
 
-      if (duration !== 'monthly') {
+      // SasPay actif : le trimestriel et l'annuel passent par le guichet en
+      // ligne (WebView), comme le mensuel. Sinon on garde le contact WhatsApp.
+      if (duration !== 'monthly' && !saspayDirect) {
         const price = duration === 'quarterly' ? plan.priceQuarterly : plan.priceAnnual;
         const durationLabel = duration === 'quarterly' ? 'Trimestriel' : 'Annuel';
         const message = `Bonjour l'équipe PosMarket, je souhaite souscrire à la formule ${plan.name} (${durationLabel}) au tarif de ${formatCurrency(price)}.`;
@@ -545,7 +552,7 @@ export function SellerSubscriptionView({
         setLoading(null);
       }
     },
-    [currentTierPlan?.tier, duration, handlePay, hasActivePlan],
+    [currentTierPlan?.tier, duration, handlePay, hasActivePlan, saspayDirect],
   );
 
   const getButtonText = (plan: SubscriptionPlan) => {
@@ -553,7 +560,7 @@ export function SellerSubscriptionView({
     if (isSeller) return 'Accès Restreint';
     if (hasActivePlan && plan.tier === currentTierPlan?.tier) return 'Plan Actuel';
     if (currentTierPlan?.tier === plan.tier && isExpired) return 'Réactiver';
-    if (duration !== 'monthly') return 'Contactez-nous';
+    if (duration !== 'monthly' && !saspayDirect) return 'Contactez-nous';
     return hasActivePlan ? `Passer à ${plan.name}` : `Choisir ${plan.name}`;
   };
 
@@ -734,6 +741,16 @@ export function SellerSubscriptionView({
             })}
           </View>
         </View>
+
+        {/* Paiement en ligne de toutes les durées (SasPay) */}
+        {saspayDirect ? (
+          <View style={styles.saspayNotice}>
+            <Shield size={14} color="#15803D" />
+            <Text style={styles.saspayNoticeText}>
+              Paiement en ligne sécurisé avec SasPay — mensuel, trimestriel et annuel.
+            </Text>
+          </View>
+        ) : null}
 
         {/* Grille des formules */}
         <View style={styles.plansGrid}>
@@ -1043,6 +1060,22 @@ const styles = StyleSheet.create({
     maxWidth: 448,
   },
   sellerNoticeText: { flex: 1, fontSize: 12, color: '#475569' },
+
+  saspayNotice: {
+    marginTop: -12,
+    marginBottom: 24,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  saspayNoticeText: { flexShrink: 1, fontSize: 11, fontWeight: '600', color: '#15803D', textAlign: 'center' },
 
   durationWrap: { marginBottom: 32 },
   durationPill: {

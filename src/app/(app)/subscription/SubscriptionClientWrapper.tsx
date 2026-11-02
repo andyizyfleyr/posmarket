@@ -558,6 +558,8 @@ export default function SubscriptionClientWrapper({
         userRole={userRole as StaffRole}
         onUpdateSubscription={onUpdateSubscription}
         onPay={handlePay}
+        // SasPay actif : trimestriel et annuel se paient en ligne (plus de « Contactez-nous »).
+        saspayDirect={paymentProvider === 'saspay'}
       />
 
       <TransactionResultModal
