@@ -60,3 +60,6 @@ posmarket-mobile/android/.gradle/
 posmarket-mobile/android/build/
 *.apk
 
+
+# sauvegardes et rapports du script de remplacement d'images
+/backups/

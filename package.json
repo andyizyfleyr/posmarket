@@ -27,7 +27,8 @@
     "db:apply": "node scripts/apply-pending-migrations.mjs",
     "db:apply:dry": "node scripts/apply-pending-migrations.mjs --dry-run",
     "sync:status": "node scripts/sync-status.mjs",
-    "sync:check": "node scripts/sync-status.mjs --files"
+    "sync:check": "node scripts/sync-status.mjs --files",
+    "images:replace": "node scripts/replace-product-images.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1116.0",
