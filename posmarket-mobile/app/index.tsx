@@ -793,8 +793,14 @@ export default function HomeScreen() {
   ]);
 
   // ── Produits réellement commercialisables (image + stock disponible) ──
+  //
+  // La restauration est écartée de l'accueil : un plat se parcourt dans le
+  // contexte de son restaurant, pas au milieu d'un catalogue d'objets. Les
+  // sections éditoriales (meilleures ventes, promos, nouveautés) et les
+  // sections par catégorie partent toutes de cette liste, donc un seul filtre
+  // suffit. Les produits restent visibles sur la page de leur boutique.
   const marketableProducts = useMemo(
-    () => allProducts.filter(isMarketableProduct),
+    () => allProducts.filter((p) => isMarketableProduct(p) && verticalOfProduct(p) !== 'food'),
     [allProducts],
   );
 

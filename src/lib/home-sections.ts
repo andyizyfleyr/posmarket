@@ -7,6 +7,12 @@
  *
  * Chaque section affiche un aperçu de six produits, triés par score de
  * classement et diversifiés pour qu'une boutique ne domine pas la section.
+ *
+ * Les produits de restauration sont exclus de l'accueil, sections éditoriales
+ * comprises. Un plat ou une boisson se parcourt dans le contexte de son
+ * restaurant (carte, horaires, préparation), pas au milieu d'un catalogue
+ * d'objets. Ils restent visibles sur la page de leur boutique et dans
+ * l'onglet Restaurants.
  */
 
 import {
@@ -127,13 +133,16 @@ export function diversifyProducts<T extends HomeProduct>(
 
 /**
  * Construit les sections de l'accueil : éditoriales d'abord, puis les
- * catégories (commerce avant restauration, ordre historique à l'intérieur).
+ * catégories (ordre historique à l'intérieur). La restauration est écartée.
  */
 export function buildHomeSections<T extends HomeProduct>(
   products: T[],
   previewCount: number = SECTION_PREVIEW_COUNT,
 ): HomeSection<T>[] {
-  const marketable = products.filter((p) => isMarketableProduct(p));
+  // Restauration hors accueil : voir l'en-tête du fichier.
+  const marketable = products.filter(
+    (p) => isMarketableProduct(p) && verticalOfProduct(p) !== 'food',
+  );
   const sections: HomeSection<T>[] = [];
 
   // ── Meilleures ventes ──
