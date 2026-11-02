@@ -97,10 +97,10 @@ const ProductCard: React.FC<ProductCardProps> = memo(
 
     return (
       <div
-        className={`group relative flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm will-change-transform ${className}`}
+        className={`group relative flex h-full flex-col will-change-transform ${className}`}
       >
         {/* Image + badges + ajout rapide */}
-        <div className="relative px-1 pt-1 md:px-2 md:pt-2">
+        <div className="relative">
           <a
             href={`/product/${generateProductSlug(product)}`}
             onTouchStart={onPrefetch}
@@ -178,7 +178,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(
             e.preventDefault();
             handleClick();
           }}
-          className="flex flex-grow cursor-pointer flex-col px-1.5 pb-1.5 pt-1.5 md:px-2 md:pb-2"
+          className="flex flex-grow cursor-pointer flex-col px-[1px] pb-[1px] pt-[6px]"
         >
           <h3 className="line-clamp-1 text-[11px] font-normal leading-tight text-gray-800 md:text-[12px]">
             {product.name}
