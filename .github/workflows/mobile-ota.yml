@@ -1,0 +1,71 @@
+name: mobile-ota
+
+# Publie une mise à jour JavaScript de l'application mobile (EAS Update).
+#
+# Pourquoi ici : le sandbox de l'assistant n'atteint pas api.expo.dev, et un
+# PC éteint ne peut pas lancer `eas update`. Un runner GitHub, lui, a un accès
+# réseau normal — c'est le même raisonnement que pour `migrate.yml`.
+#
+# Mise en place (une seule fois) :
+#   1. Récupérer un jeton sur https://expo.dev/settings/access-tokens
+#   2. gh secret set EXPO_TOKEN --repo <owner>/<repo>
+#
+# Sans ce secret, le workflow s'arrête avant tout envoi.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branche de publication EAS (preview = APK de test, production = Play Store)"
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+      message:
+        description: "Message de la mise à jour"
+        type: string
+        default: "mise a jour"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: posmarket-mobile/package-lock.json
+
+      - name: Vérifier le jeton Expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Le secret EXPO_TOKEN n'est pas configuré. Voir l'en-tête de ce fichier."
+            exit 1
+          fi
+
+      - name: Installer les dépendances
+        working-directory: posmarket-mobile
+        run: npm ci
+
+      - name: Vérifier les types
+        working-directory: posmarket-mobile
+        run: npx tsc --noEmit
+
+      - name: Publier la mise à jour
+        working-directory: posmarket-mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli update \
+            --branch "${{ inputs.branch }}" \
+            --message "${{ inputs.message }}" \
+            --non-interactive
