@@ -1,28 +1,38 @@
 #!/usr/bin/env node
 /**
- * Applique les migrations manquantes à la base pointée par `DATABASE_URL`.
+ * Applique à la base les migrations manquantes, et rien d'autre.
  *
- * Utilité : la limitation de débit distribuée (`api_rate_limits`), les jetons
- * push (`push_tokens`, `guest_push_tokens`) et le suivi des commandes invitées
- * (`orders.buyer_phone`) sont livrés dans le code mais **ne fonctionnent pas
- * tant que leur migration n'est pas jouée**. Ce script ne joue QUE les
- * migrations absentes, contrairement à `npm run db:migrate` qui rejoue le
- * journal depuis 0000.
+ * Contexte : plusieurs fonctionnalités livrées dans le code restent inertes
+ * tant que leur migration n'est pas jouée —
  *
- * Détection : pour chaque migration à partir de `0025`, on vérifie la présence
- * de son objet principal (table, colonne ou index) dans `information_schema`.
- * Une migration déjà appliquée n'est donc jamais rejouée.
+ *   - `api_rate_limits`      → limitation de débit partagée entre instances
+ *   - `push_tokens`          → notifications vendeur
+ *   - `guest_push_tokens`    → suivi des commandes invitées
+ *   - `orders.buyer_phone`   → vérification du téléphone au checkout
+ *
+ * et `npm run db:migrate` ne convient pas : il rejoue le journal Drizzle depuis
+ * 0000, alors que ces migrations ont longtemps été appliquées à la main.
+ *
+ * Ce script sonde `information_schema` pour chaque objet attendu et ne joue que
+ * les fichiers réellement absents. Il est donc idempotent et sans risque sur
+ * une base déjà à jour.
+ *
+ * Deux transports, choisis automatiquement :
+ *
+ *   1. `@neondatabase/serverless` (HTTPS) — le seul possible depuis Vercel.
+ *   2. `pg` (TCP + TLS) — nécessaire en local et depuis GitHub Actions :
+ *      `*.tech` sur Neon n'expose pas l'endpoint HTTP.
  *
  * Usage :
  *   DATABASE_URL="postgresql://…" node scripts/apply-pending-migrations.mjs
- *   node scripts/apply-pending-migrations.mjs --dry-run   # liste seulement
+ *   DATABASE_URL="postgresql://…" node scripts/apply-pending-migrations.mjs --dry-run
+ *   node scripts/apply-pending-migrations.mjs --force-pg   # forcer TCP/TLS
  *
- * Le script lit aussi `.env.local` s'il existe (même logique que
- * `scripts/apply-migration.mjs`), et accepte `DIRECT_URL` en repli.
+ * Le script lit aussi `.env.local` s'il existe, et accepte `DIRECT_URL` (chaîne
+ * non poolée) en repli — préférable pour du DDL.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { neon } from '@neondatabase/serverless';
 import { splitSqlStatements } from './lib/sql.mjs';
 
 function loadEnv() {
@@ -39,6 +49,7 @@ function loadEnv() {
 loadEnv();
 
 const dryRun = process.argv.includes('--dry-run');
+const forcePg = process.argv.includes('--force-pg');
 const url = process.env.DATABASE_URL || process.env.DIRECT_URL;
 
 if (!url) {
@@ -51,9 +62,8 @@ if (!url) {
 
 /**
  * Objet témoin de chaque migration : s'il existe, la migration est considérée
- * comme déjà appliquée. Volontairement indépendant du journal Drizzle, car les
- * migrations de ce dépôt ont longtemps été jouées à la main
- * (`scripts/apply-migration-*.mjs`).
+ * comme déjà appliquée. On ne se fie pas au journal Drizzle, puisque ces
+ * fichiers ont été joués hors journal.
  */
 const MIGRATIONS = [
   {
@@ -107,10 +117,61 @@ const MIGRATIONS = [
   },
 ];
 
-const sql = neon(url);
+/**
+ * Fabrique un exécuteur `run(sqlText) → lignes`.
+ *
+ * - `pg` : une seule connexion pour tout le script (DDL + plusieurs
+ *   instructions dans la même session, comme un `psql -f`).
+ * - Neon serverless : une requête HTTP par instruction ; on ne peut pas y
+ *   ouvrir de transaction longue, mais nos migrations sont idempotentes.
+ */
+async function makeRunner() {
+  if (!forcePg) {
+    try {
+      const { neon } = await import('@neondatabase/serverless');
+      const neonSql = neon(url);
+      // Sonde : si l'endpoint HTTP n'est pas disponible (base `.tech`), on
+      // bascule sur TCP plutôt que d'échouer avec « fetch failed ».
+      await neonSql`select 1 as ok`;
+      console.log('• transport : Neon serverless (HTTPS)');
+      return async (statement) => {
+        const result = await neonSql(statement);
+        return Array.isArray(result) ? result : [];
+      };
+    } catch (error) {
+      console.log(
+        `• transport HTTPS indisponible (${error?.message?.slice(0, 60) || 'échec'}) → bascule sur TCP/TLS`,
+      );
+    }
+  }
 
-let pending = 0;
+  const pg = (await import('pg')).default;
+  const client = new pg.Client({
+    connectionString: url,
+    // Neon impose TLS ; le certificat est signé par une AC publique, mais on
+    // ne durcit pas la vérification ici : le but est de faire passer du DDL
+    // depuis un environnement dont on ne maîtrise pas le magasin d'AC.
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 15000,
+  });
+  await client.connect();
+  console.log('• transport : pg (TCP + TLS)');
+  return async (statement) => {
+    const result = await client.query(statement);
+    return result.rows || [];
+  };
+}
+
+let runner;
+try {
+  runner = await makeRunner();
+} catch (error) {
+  console.error('✗ connexion impossible :', error?.message || error);
+  process.exit(1);
+}
+
 let applied = 0;
+let pending = 0;
 
 for (const migration of MIGRATIONS) {
   const filePath = path.resolve('drizzle', migration.file);
@@ -119,8 +180,8 @@ for (const migration of MIGRATIONS) {
     process.exit(1);
   }
 
-  const { rows } = await sql(migration.probe);
-  if (rows.length > 0) {
+  const existing = await runner(migration.probe);
+  if (existing.length > 0) {
     console.log(`= ${migration.file} — déjà appliquée (${migration.describe})`);
     continue;
   }
@@ -135,11 +196,13 @@ for (const migration of MIGRATIONS) {
     statement.trim(),
   );
   for (const statement of statements) {
-    await sql([statement]);
+    await runner(statement);
   }
   applied += 1;
   console.log(`✔ ${migration.file} appliquée (${statements.length} instruction(s))`);
 }
+
+if (typeof runner.close === 'function') await runner.close();
 
 if (dryRun) {
   console.log(

@@ -1,0 +1,61 @@
+name: migrate
+
+# Applique les migrations manquantes à la base Neon.
+#
+# Pourquoi ici et pas en local : la base expose du PostgreSQL sur le port 5432
+# avec TLS. Depuis certains environnements (conteneurs restreints, réseaux
+# d'entreprise), la connexion est coupée et seul un runner GitHub — ou Vercel —
+# peut l'atteindre. Ce workflow rend donc l'opération reproductible sans avoir à
+# sortir la chaîne de connexion de son coffre.
+#
+# Mise en place (une seule fois) :
+#   gh secret set DATABASE_URL --repo <owner>/<repo>
+#   gh variable set ENABLE_MIGRATIONS --body "true" --repo <owner>/<repo>
+#
+# Le second réglage est une sécurité : sans la variable, le workflow refuse de
+# démarrer. Un fork ou une copie du dépôt ne peut donc pas déclencher de DDL sur
+# la base simplement parce que le secret existe.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Lister les migrations manquantes sans rien appliquer'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    if: vars.ENABLE_MIGRATIONS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Installer les dépendances
+        run: npm ci --no-audit --no-fund
+
+      - name: État de la base avant migration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/apply-pending-migrations.mjs --dry-run
+
+      - name: Appliquer les migrations manquantes
+        if: ${{ inputs.dry_run == false }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/apply-pending-migrations.mjs
+
+      - name: État de la base après migration
+        if: ${{ inputs.dry_run == false }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/apply-pending-migrations.mjs --dry-run
