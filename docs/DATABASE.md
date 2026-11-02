@@ -114,3 +114,66 @@ Les deux sont corrigés ; le contrôle compare en plus les tables créées aux
 > ailleurs — projet Vercel en pause de l'ancien compte, ou base liée via
 > l'intégration Neon. À clarifier : c'est le principal risque de divergence entre
 > l'environnement déployé et ce dépôt.
+
+## État constaté le 2026-11-02
+
+Bascule effectuée depuis un poste Windows (`D:\PosMarket`) avec la chaîne Neon
+fournie. Sortie du script :
+
+```
+• transport : Neon serverless (HTTPS)
+= 0025_saspay_subscriptions.sql — déjà appliquée
+= 0026_boost_flags.sql          — déjà appliquée
+= 0027_review_authors.sql       — déjà appliquée
+= 0028_boost_v2.sql             — déjà appliquée
+= 0029_boost_logs_voided.sql    — déjà appliquée
+✔ 0030_api_rate_limits.sql      appliquée (2 instructions)
+✔ 0031_push_tokens.sql          appliquée (2 instructions)
+✔ 0032_guest_push_tokens.sql    appliquée (5 instructions)
+✔ 0033_orders_buyer_phone.sql   appliquée (2 instructions)
+```
+
+**Base à jour.** Les cinq migrations déjà présentes confirment au passage que
+les renommages `0019→0026` … `0023→0030` ne désignent bien qu'un seul et même
+objet : le contenu avait été joué, pas le nom.
+
+### Ce que cela débloque
+
+| Objet | Fonctionnalité jusque-là inerte |
+|---|---|
+| `api_rate_limits` | quota partagé entre instances (connexion, encaissement, admin) |
+| `push_tokens` | notifications push vendeur |
+| `guest_push_tokens` | suivi de commande pour un acheteur sans compte |
+| `orders.buyer_phone` | vérification du téléphone lors de l'enregistrement d'un jeton invité |
+
+### Note Windows / PowerShell
+
+`export VAR=…` est une syntaxe Bash : sous PowerShell, elle échoue
+(`Le terme « export » n'est pas reconnu`). Le script a fonctionné quand même
+parce qu'il lit `.env.local` / `.env`. Les équivalents :
+
+```powershell
+$env:DATABASE_URL = 'postgresql://…'   # pour la session courante
+npm run db:apply:dry
+```
+
+```powershell
+# ou, une seule commande, sans variable persistante :
+$env:DATABASE_URL='postgresql://…'; npm run db:apply
+```
+
+Et dans `.env.local` (jamais commité — `.env*` est déjà dans `.gitignore`) :
+
+```
+DATABASE_URL="postgresql://…"
+```
+
+### Vérification après coup
+
+```bash
+# aucune migration restante attendue
+npm run db:apply:dry
+```
+
+Ou, côté application : `GET /api/cron/schema-check` doit maintenant renvoyer
+`{"ok":true,"missing":[],"checked":21}`.

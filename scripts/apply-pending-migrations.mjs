@@ -35,13 +35,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { splitSqlStatements } from './lib/sql.mjs';
 
+/**
+ * Lit `.env.local` puis `.env` (premier gagnant).
+ *
+ * `.env.local` reste prioritaire : c'est la convention Next.js. `.env` est
+ * accepté en repli pour les machines où l'on garde une seule configuration.
+ */
 function loadEnv() {
-  const envPath = path.resolve(process.cwd(), '.env.local');
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
-    if (match && !(match[1] in process.env)) {
-      process.env[match[1]] = match[2].replace(/^["']|["']$/g, '');
+  for (const name of ['.env.local', '.env']) {
+    const envPath = path.resolve(process.cwd(), name);
+    if (!fs.existsSync(envPath)) continue;
+    for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+      const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
+      if (match && !(match[1] in process.env)) {
+        process.env[match[1]] = match[2].replace(/^["']|["']$/g, '');
+      }
     }
   }
 }

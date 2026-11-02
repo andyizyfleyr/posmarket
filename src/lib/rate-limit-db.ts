@@ -23,6 +23,13 @@ export async function rateLimitShared(
 ): Promise<RateLimitResult> {
   const now = new Date();
   try {
+    // Purge opportuniste : une ligne par couple (politique, groupe, IP) est
+    // créée puis jamais supprimée. Sans entretien, la table croît avec le
+    // nombre d'adresses vues. `purgeExpiredRateLimits` n'était appelée nulle
+    // part ; on déclenche donc la purge ici, au plus une fois par heure et par
+    // instance (variable de module, pas de stockage partagé nécessaire).
+    void maybePurge(now);
+
     // Incrémente le compteur et récupère la ligne courante en une requête.
     const rows = await db
       .update(apiRateLimits)
@@ -70,6 +77,27 @@ export async function rateLimitShared(
     // Table absente (migration non appliquée) ou base injoignable : on dégrade
     // proprement vers le limiteur en mémoire plutôt que de tout bloquer.
     return rateLimit(key, limit, windowMs);
+  }
+}
+
+/** Dernière purge connue de cette instance (mémoire du processus). */
+let lastPurgeAt = 0;
+const PURGE_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * Déclenche une purge au plus une fois par heure.
+ *
+ * Volontairement « fire and forget » : la purge ne doit jamais retarder ni faire
+ * échouer une requête utilisateur. Elle est silencieuse en cas d'erreur (table
+ * absente, base injoignable) — le limiteur en mémoire prend alors le relais.
+ */
+async function maybePurge(now: Date): Promise<void> {
+  if (now.getTime() - lastPurgeAt < PURGE_INTERVAL_MS) return;
+  lastPurgeAt = now.getTime();
+  try {
+    await purgeExpiredRateLimits();
+  } catch {
+    // ignore : entretien seulement
   }
 }
 
