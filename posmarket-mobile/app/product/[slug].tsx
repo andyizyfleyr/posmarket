@@ -360,7 +360,6 @@ export default function ProductDetailScreen() {
     [product, basePrice],
   );
   const mainCat = product?.mainCategory || product?.category || 'Boutique';
-  const realCategory = product?.mainCategory || product?.category || '';
   const isFood =
     product?.businessType === 'food' || mainCat === 'Restauration & Livraison Rapide';
   const wholesaleAllowedByStore = store?.settings?.wholesaleEnabled !== false;
@@ -888,20 +887,6 @@ export default function ProductDetailScreen() {
                 </Text>
                 <CheckCircle2 size={11} color={BRAND} />
               </View>
-              {realCategory ? (
-                <Pressable
-                  style={styles.categoryLink}
-                  onPress={() =>
-                    router.push(`/?cat=${encodeURIComponent(mainCat)}` as never)
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Voir la catégorie ${realCategory}`}
-                >
-                  <Text style={styles.categoryText} numberOfLines={1}>
-                    {realCategory}
-                  </Text>
-                </Pressable>
-              ) : null}
             </View>
             <ChevronRight size={14} color="#c4c9d1" />
           </Pressable>
@@ -1982,17 +1967,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1f2937',
-    flexShrink: 1,
-  },
-  categoryLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 1,
-  },
-  categoryText: {
-    fontSize: 9.5,
-    color: '#9ca3af',
     flexShrink: 1,
   },
   // ── Titre + stats ──

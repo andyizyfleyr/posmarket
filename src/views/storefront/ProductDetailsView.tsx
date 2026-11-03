@@ -156,13 +156,9 @@ function OptionSelectionHint({
 function ProductSeller({
   product,
   logo,
-  category,
-  onCategoryClick,
 }: {
   product: StorefrontProduct;
   logo?: string;
-  category: string;
-  onCategoryClick: () => void;
 }) {
   // Aligné à gauche pour démarrer au même point que le nom du produit. Un nom
   // long déborde donc du bord droit du bloc : la ligne se remplit de gauche à
@@ -209,16 +205,6 @@ function ProductSeller({
             className="text-brand flex-shrink-0"
           />
         </Link>
-        {category && (
-          <button
-            type="button"
-            onClick={onCategoryClick}
-            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
-          >
-            <span className="truncate">{category}</span>
-            <ChevronRight size={11} className="flex-shrink-0" />
-          </button>
-        )}
       </div>
     </div>
   );
@@ -680,9 +666,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       .slice(0, 10);
 
     const mainCat = product.mainCategory || product.category || "Boutique";
-    // Le breadcrumb ne montre que la vraie catégorie : le fallback "Boutique"
-    // de `mainCat` ferait afficher « Boutique › » comme un lien de navigation.
-    const realCategory = product.mainCategory || product.category || "";
     const isFood =
       product.businessType === "food" ||
       mainCat === "Restauration & Livraison Rapide";
@@ -1349,16 +1332,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             <div className="space-y-3.5 lg:space-y-0 lg:sticky lg:top-24">
               {/* DESKTOP CARD (Sleek, Compact, Clean) */}
               <div className="hidden lg:block bg-white rounded-2xl border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 xl:p-6 space-y-4">
-                <ProductSeller
-                  product={product}
-                  logo={storeLogo}
-                  category={realCategory}
-                  onCategoryClick={() =>
-                    safeNavigate("/", {
-                      action: () => setSelectedCategory(mainCat),
-                    })
-                  }
-                />
+                <ProductSeller product={product} logo={storeLogo} />
 
                 <ProductTitle product={product} />
 
@@ -1604,16 +1578,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
               {/* MOBILE CARD */}
               <div className="lg:hidden bg-white rounded-[24px] border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.02)] p-4">
                 <div className="mb-3">
-                  <ProductSeller
-                    product={product}
-                    logo={storeLogo}
-                    category={realCategory}
-                    onCategoryClick={() =>
-                      safeNavigate("/", {
-                        action: () => setSelectedCategory(mainCat),
-                      })
-                    }
-                  />
+                  <ProductSeller product={product} logo={storeLogo} />
                 </div>
 
                 <div className="mb-2">
