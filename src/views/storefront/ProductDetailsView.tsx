@@ -5,8 +5,8 @@ import Button from "@/components/Button";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber, maskName } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
-import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
-import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
+import { RichDescription, AutoHighlights, AutoSpecsGrid } from "@/components/storefront/RichDescription";
+import { extractDescriptionHighlights, buildAutoSpecs } from "@/utils/product-description";
 import { generateProductSlug } from "@/utils/slug";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
 import {
@@ -912,12 +912,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       isOutOfStock,
       stock: stockValue,
     });
-    const autoBadges = buildAutoBadges(product);
     const hasMoreContent =
       descriptionText.length > 180 ||
       autoSpecs.length > 0 ||
-      autoHighlights.length > 0 ||
-      autoBadges.length > 0;
+      autoHighlights.length > 0;
 
     // --- Gallery ---
     const galleryImages = [
@@ -1773,7 +1771,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 >
                   <RichDescription text={descriptionText} accentClass={accentText} />
                   <AutoHighlights items={autoHighlights} accentClass={accentText} />
-                  <AutoBadgesRow badges={autoBadges} />
                   <AutoSpecsGrid
                     specs={autoSpecs}
                     className="grid grid-cols-2 gap-2 mt-3.5"
@@ -1818,7 +1815,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           >
             <RichDescription text={descriptionText} accentClass={accentText} />
             <AutoHighlights items={autoHighlights} accentClass={accentText} />
-            <AutoBadgesRow badges={autoBadges} />
             <AutoSpecsGrid
               specs={autoSpecs}
               className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
