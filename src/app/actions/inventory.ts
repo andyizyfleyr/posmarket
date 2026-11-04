@@ -6,9 +6,19 @@ import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
-import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants, sanitizeStringArray, sanitizeWholesaleTiers, MAX_VARIANT_OPTIONS, MAX_VALUES_PER_OPTION, MAX_VARIANTS } from '@/utils/variants'
+import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants, sanitizeStringArray, sanitizeWholesaleTiers, MAX_VARIANT_OPTIONS, MAX_VALUES_PER_OPTION, MAX_VARIANTS, type ProductVariantDef } from '@/utils/variants'
 import { normalizeWholesaleTiersForSave } from '@/utils/wholesale'
-import { syncProductVariants } from '@/db/variants'
+import { syncProductVariants, resyncVariantsFromJson } from '@/db/variants'
+import {
+  MAX_BULK_PRODUCTS,
+  applyPriceOperation,
+  applyStockOperation,
+  sanitizeBulkPatch,
+  validateBulkPatch,
+  type BulkProductPatch,
+  type BulkProductUpdate,
+  type BulkUpdateResult,
+} from '@/utils/bulk-product-edit'
 import type { ProductImportItem } from '@/utils/product-import-export'
 
 type ProductInput = {
@@ -423,6 +433,203 @@ export async function bulkDeleteProductsAction(ids: string[], storeId: string) {
   } catch (error: unknown) {
     console.error('Error bulk deleting products with Drizzle:', error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Applique une modification commune à plusieurs produits de la boutique.
+ *
+ * Les identifiants sont toujours filtrés par `storeId` : glisser l'id d'un
+ * concurrent dans la sélection ne permet donc ni de le lire ni de l'écrire.
+ * Les produits à variantes voient leurs prix de variantes évoluer avec le prix
+ * de base ; leur stock global est laissé intact (il est la somme de la
+ * matrice), et le nombre de produits concernés est signalé à l'appelant.
+ */
+export async function bulkUpdateProductsAction(
+  ids: string[],
+  storeId: string,
+  rawPatch: BulkProductPatch,
+): Promise<BulkUpdateResult> {
+  const failure = (error: string): BulkUpdateResult => ({
+    success: false,
+    error,
+    updated: 0,
+    stockSkipped: 0,
+    skipped: 0,
+    errors: [],
+    updates: [],
+  });
+
+  try {
+    if (!storeId || typeof storeId !== 'string') return failure('Boutique inconnue');
+
+    const access = await requireStoreAccess(storeId);
+    if (!access.ok) return failure(access.error);
+
+    const targets = Array.from(
+      new Set(
+        (Array.isArray(ids) ? ids : []).filter(
+          (id): id is string => typeof id === 'string' && id.length > 0,
+        ),
+      ),
+    );
+    if (targets.length === 0) return failure('Aucun produit sélectionné');
+    if (targets.length > MAX_BULK_PRODUCTS) {
+      return failure(
+        `Vous ne pouvez pas modifier plus de ${MAX_BULK_PRODUCTS} produits à la fois.`,
+      );
+    }
+
+    const patch = sanitizeBulkPatch(rawPatch);
+    const validationError = validateBulkPatch(patch);
+    if (validationError) return failure(validationError);
+
+    // La verticale est celle de la BOUTIQUE : elle décide des catégories
+    // autorisées, exactement comme pour l'enregistrement d'un produit seul.
+    const [storeRow] = await db
+      .select({ businessType: stores.businessType })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    if (!storeRow) return failure('Boutique introuvable');
+    const storeVertical: 'shopping' | 'food' =
+      storeRow.businessType === 'food' ? 'food' : 'shopping';
+
+    if (patch.category) {
+      const wantedCategories = [patch.category.mainCategory, patch.category.category]
+        .map((name) => String(name || '').trim())
+        .filter(Boolean);
+      if (wantedCategories.length > 0) {
+        const categoryRows = await db
+          .select({ name: productCategories.name, businessType: productCategories.businessType })
+          .from(productCategories)
+          .where(inArray(productCategories.name, [...new Set(wantedCategories)]));
+        for (const row of categoryRows) {
+          if ((row.businessType === 'food' ? 'food' : 'shopping') !== storeVertical) {
+            return failure(
+              storeVertical === 'food'
+                ? `La catégorie « ${row.name} » n'appartient pas à la restauration.`
+                : `La catégorie « ${row.name} » n'appartient pas au commerce.`,
+            );
+          }
+        }
+      }
+    }
+
+    const rows = await db
+      .select({
+        id: products.id,
+        price: products.price,
+        stock: products.stock,
+        options: products.options,
+        variants: products.variants,
+      })
+      .from(products)
+      .where(and(inArray(products.id, targets), eq(products.storeId, storeId)));
+
+    if (rows.length === 0) return failure('Aucun produit modifiable dans cette boutique');
+
+    const updates: BulkProductUpdate[] = [];
+    const variantProductIds: string[] = [];
+    const errors: string[] = [];
+    let stockSkipped = 0;
+
+    for (const row of rows) {
+      const update: Partial<typeof products.$inferInsert> = {};
+      const safeUpdate: BulkProductUpdate = { id: row.id };
+
+      if (patch.price) {
+        const currentPrice = Number(row.price) || 0;
+        const nextPrice = applyPriceOperation(currentPrice, patch.price);
+        update.price = String(nextPrice);
+        safeUpdate.price = nextPrice;
+
+        // Le prix affiché est celui de la variante : sans alignement, le
+        // catalogue afficherait l'ancien tarif et une réédition écraserait la
+        // nouvelle valeur. Les stocks de variantes ne bougent pas.
+        const variants = (Array.isArray(row.variants) ? row.variants : []) as ProductVariantDef[];
+        if (variants.length > 0) {
+          const nextVariants = variants.map((variant) => ({
+            ...variant,
+            price: applyPriceOperation(Number(variant.price) || currentPrice, patch.price!),
+          }));
+          update.variants = nextVariants;
+          safeUpdate.variants = nextVariants;
+          variantProductIds.push(row.id);
+        }
+      }
+
+      if (patch.stock) {
+        const options = normalizeOptions(row.options);
+        const variants = Array.isArray(row.variants) ? row.variants : [];
+        if (options.length > 0 && variants.length > 0) {
+          // Le stock d'un produit à variantes est la somme de sa matrice :
+          // l'écraser globalement créerait un écart avec les variantes.
+          stockSkipped += 1;
+        } else {
+          const nextStock = applyStockOperation(Number(row.stock) || 0, patch.stock);
+          update.stock = nextStock;
+          safeUpdate.stock = nextStock;
+        }
+      }
+
+      if (patch.category) {
+        if (patch.category.mainCategory) {
+          update.mainCategory = patch.category.mainCategory;
+          safeUpdate.mainCategory = patch.category.mainCategory;
+        }
+        if (patch.category.category) {
+          update.category = patch.category.category;
+          safeUpdate.category = patch.category.category;
+        }
+      }
+
+      if (patch.unit !== undefined) {
+        update.unit = patch.unit;
+        safeUpdate.unit = patch.unit;
+      }
+
+      if (patch.isOnline !== undefined) {
+        update.isOnline = patch.isOnline;
+        safeUpdate.isOnline = patch.isOnline;
+      }
+
+      if (Object.keys(update).length === 0) continue;
+
+      await db
+        .update(products)
+        .set(update)
+        .where(and(eq(products.id, row.id), eq(products.storeId, storeId)));
+      updates.push(safeUpdate);
+    }
+
+    // La table relationnelle doit refléter les nouveaux prix de variantes.
+    // L'historique de matrice n'est pas dupliqué ici : seule la structure a
+    // changé de prix, pas la composition du produit.
+    if (variantProductIds.length > 0) {
+      try {
+        await resyncVariantsFromJson(db, variantProductIds);
+      } catch (error) {
+        console.error('Error resyncing variants after bulk price update:', error);
+        errors.push(
+          "Les prix ont été enregistrés, mais la table des variantes n'a pas pu être resynchronisée. Réenregistrez un des produits concernés.",
+        );
+      }
+    }
+
+    refreshTag('marketplace');
+
+    return {
+      success: true,
+      updated: updates.length,
+      stockSkipped,
+      skipped: targets.length - rows.length,
+      errors,
+      updates,
+    };
+  } catch (error: unknown) {
+    console.error('Error bulk updating products with Drizzle:', error);
+    return failure(error instanceof Error ? error.message : String(error));
   }
 }
 

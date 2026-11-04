@@ -5,6 +5,7 @@ import {
   Search,
   Plus,
   Edit,
+  PencilLine,
   Trash2,
   Download,
   Upload,
@@ -56,7 +57,9 @@ const ExportProductsModal = dynamic(() => import('@/components/inventory/ExportP
 const ExportProductImagesModal = dynamic(() => import('@/components/inventory/ExportProductImagesModal'), { ssr: false });
 const ImportProductsModal = dynamic(() => import('@/components/inventory/ImportProductsModal'), { ssr: false });
 const TransferProductsModal = dynamic(() => import('@/components/inventory/TransferProductsModal'), { ssr: false });
+const BulkEditProductsModal = dynamic(() => import('@/components/inventory/BulkEditProductsModal'), { ssr: false });
 import ConfirmationModal from '@/components/ConfirmationModal';
+import type { BulkUpdateSummary } from '@/utils/bulk-product-edit';
 import {
   normalizeOptions,
   normalizeVariants,
@@ -134,6 +137,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [totalProductsCount, setTotalProductsCount] = useState(initialProducts?.length || 0);
 
   // Sync local state when props change (after server re-render)
@@ -257,6 +261,29 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const handleTransferSuccess = (summary: { createdCount: number; updatedCount: number; skippedCount: number }) => {
     setShowSuccessToast(`Transfert terminé : ${summary.createdCount} crés, ${summary.updatedCount} mis à jour.`);
     setTimeout(() => setShowSuccessToast(null), 4500);
+  };
+
+  /**
+   * Fusionne les champs renvoyés par la modification en masse sans recharger la
+   * page : la pagination et le filtre courants restent intacts.
+   */
+  const handleBulkEditSuccess = (summary: BulkUpdateSummary) => {
+    if (summary.updates.length > 0) {
+      const updatesById = new Map(summary.updates.map((update) => [update.id, update]));
+      setLocalProducts((prev) =>
+        prev.map((product) => {
+          const update = updatesById.get(product.id);
+          return update ? ({ ...product, ...update } as Product) : product;
+        }),
+      );
+    }
+    setSelectedIds(new Set());
+    const updatedLabel = `${summary.updated} produit${summary.updated > 1 ? 's' : ''} modifié${summary.updated > 1 ? 's' : ''}`;
+    const stockLabel = summary.stockSkipped > 0
+      ? ` · ${summary.stockSkipped} stock${summary.stockSkipped > 1 ? 's' : ''} ignoré${summary.stockSkipped > 1 ? 's' : ''} (variantes)`
+      : '';
+    setShowSuccessToast(`${updatedLabel}${stockLabel}.`);
+    setTimeout(() => setShowSuccessToast(null), 4000);
   };
 
   // Handle Search with debounce or simple effect
@@ -559,6 +586,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
             {/* Bulk actions */}
             <div className="flex items-center gap-1.5 md:gap-2">
+              <button
+                onClick={() => setIsBulkEditModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-[#d55a20] text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-orange-900/20"
+                title="Modifier le prix, le stock, la catégorie ou le canal des produits sélectionnés"
+              >
+                <PencilLine size={14} />
+                <span>Modifier ({selectedIds.size})</span>
+              </button>
+
               <button
                 onClick={() => setIsExportModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all"
@@ -1896,6 +1932,19 @@ if (formData.images.length >= 8) {
         totalProductsCount={totalProductsCount || localProducts.length}
         localProducts={localProducts}
         onTransferSuccess={handleTransferSuccess}
+      />}
+
+      {/* Bulk Edit Modal — prix, stock, catégorie, unité et canal */}
+      {isBulkEditModalOpen && <BulkEditProductsModal
+        isOpen={isBulkEditModalOpen}
+        onClose={() => setIsBulkEditModalOpen(false)}
+        storeId={currentStoreId || ''}
+        businessType={businessType}
+        selectedProductIds={Array.from(selectedIds)}
+        selectedProducts={localProducts.filter((product) => selectedIds.has(product.id))}
+        mainCategories={filteredMainCategories}
+        categoryMapping={filteredCategoryMapping}
+        onSuccess={handleBulkEditSuccess}
       />}
 
       {/* Delete Product Confirmation Modal */}
