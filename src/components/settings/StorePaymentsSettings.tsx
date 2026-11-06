@@ -51,21 +51,18 @@ const PROVIDER_META: Record<
   StorePaymentProvider,
   {
     icon: React.ReactNode;
-    hint: string;
     shortLabel: string;
     secretFields: Array<{ key: keyof StorePaymentSecretPayload; label: string; placeholder: string }>;
   }
 > = {
   cod: {
     icon: <Truck size={20} />,
-    shortLabel: 'Espèces à la livraison',
-    hint: 'Le client paie en espèces à la livraison. Aucune clé requise.',
+    shortLabel: 'Espèces',
     secretFields: [],
   },
   kkiapay: {
     icon: <Smartphone size={20} />,
     shortLabel: 'Mobile Money / carte',
-    hint: 'Widget Mobile Money / carte. Clés depuis votre tableau de bord Kkiapay (mode production).',
     secretFields: [
       { key: 'privateKey', label: 'Clé privée', placeholder: 'sk_live_…' },
       { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_live_…' },
@@ -74,7 +71,6 @@ const PROVIDER_META: Record<
   fedapay: {
     icon: <Smartphone size={20} />,
     shortLabel: 'Mobile Money / carte',
-    hint: 'Widget Mobile Money / carte. Clés depuis votre tableau de bord FedaPay (mode production).',
     secretFields: [
       { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_live_…' },
     ],
@@ -82,7 +78,6 @@ const PROVIDER_META: Record<
   saspay: {
     icon: <CreditCard size={20} />,
     shortLabel: 'Guichet hébergé',
-    hint: 'Guichet hébergé SasPay : le client est redirigé pour payer, la commande est marquée payée après vérification.',
     secretFields: [
       { key: 'apiKey', label: 'Clé API', placeholder: 'sk_live_…' },
     ],
@@ -90,7 +85,6 @@ const PROVIDER_META: Record<
   ussd: {
     icon: <Phone size={20} />,
     shortLabel: 'Code USSD',
-    hint: 'Le client compose un code USSD puis paie ; vous vérifiez l’encaissement sur votre compte.',
     secretFields: [],
   },
 };
@@ -268,11 +262,8 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
           </div>
           <div className="min-w-0">
             <h3 className="text-xs md:text-sm font-bold text-gray-900 uppercase tracking-widest leading-tight">
-              Moyens de paiement de la boutique
+              Moyens de paiement
             </h3>
-            <p className="text-[10px] md:text-xs text-gray-500 font-normal leading-snug mt-1">
-              Encaissez directement sur vos comptes. Touchez un moyen pour le configurer.
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 pl-11 sm:pl-0">
@@ -328,8 +319,8 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                 <p className="text-[9px] md:text-[10px] text-gray-400 md:text-gray-500 font-medium leading-snug mt-1">
                   {meta.shortLabel}
                   {online && (method.hasSecret
-                    ? <> · <span className="text-green-600">Clés enregistrées{method.keyHint ? ` (${method.keyHint})` : ''}</span></>
-                    : ' · Aucune clé enregistrée')}
+                    ? <> · <span className="text-green-600">Clés{method.keyHint ? ` ${method.keyHint}` : ''}</span></>
+                    : ' · Aucune clé')}
                   {!online && method.config.ussdCode ? ` · ${method.config.ussdCode}` : ''}
                 </p>
               </div>
@@ -346,9 +337,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
       <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50 flex gap-3">
         <Info size={18} className="text-brand flex-shrink-0" />
         <p className="text-brand text-[10px] md:text-xs font-normal leading-relaxed">
-          <strong>Conseil :</strong> activez au moins le paiement à la livraison si vous ne disposez pas encore de compte Mobile Money.
-          Les paiements boutiques sont en <strong>mode production (live)</strong> uniquement et les clés de test (pk_test_, sk_test_, …) sont refusées.
-          Les paiements en ligne sont marqués « payés » seulement après vérification par le serveur auprès du fournisseur.
+          <strong>Conseil :</strong> activez au moins le paiement à la livraison.
         </p>
       </div>
 
@@ -372,7 +361,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-sm md:text-base font-bold text-gray-900 truncate">{activeMethod.label}</h2>
-                <p className="text-[9px] md:text-[10px] text-gray-500 font-semibold leading-snug mt-0.5">{activeMeta.shortLabel} · clés chiffrées, jamais réaffichées</p>
               </div>
               <button
                 onClick={() => setOpenProvider(null)}
@@ -385,13 +373,10 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
 
             {/* Corps */}
             <div className="p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto custom-scrollbar">
-              <p className="text-[10px] md:text-[11px] text-gray-500 leading-relaxed">{activeMeta.hint}</p>
-
               {/* Interrupteur Activer */}
               <label className="flex items-center justify-between gap-4 p-3 md:p-4 rounded-2xl border border-gray-100 bg-gray-50/60 cursor-pointer select-none">
                 <div className="min-w-0">
                   <p className="text-[11px] md:text-xs font-bold text-gray-900">Activer ce moyen</p>
-                  <p className="text-[9px] md:text-[10px] text-gray-400 font-medium mt-0.5">Proposé aux clients à l’étape paiement.</p>
                 </div>
                 <span className="relative inline-flex items-center shrink-0">
                   <input
@@ -439,14 +424,14 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                   {isOnline && (
                     <div>
                       <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-1.5">
-                        Secret webhook <span className="normal-case font-semibold text-gray-400">(optionnel)</span>
+                        Secret webhook <span className="normal-case font-semibold text-gray-400">(facultatif)</span>
                       </label>
                       <input
                         type="password"
                         className={inputCls}
                         value={activeDraft.webhookSecret}
                         onChange={(e) => update(openProvider, { webhookSecret: e.target.value })}
-                        placeholder={activeMethod.hasSecret ? 'Laisser vide pour conserver' : 'Pour vérifier la signature des webhooks'}
+                        placeholder={activeMethod.hasSecret ? 'Laisser vide pour conserver' : 'wh_live_…'}
                         autoComplete="off"
                       />
                     </div>
@@ -469,7 +454,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                           className={inputCls}
                           value={activeDraft.instructions}
                           onChange={(e) => update(openProvider, { instructions: e.target.value })}
-                          placeholder="Ex : Composez le code puis suivez les instructions"
+                          placeholder="Ex : *123*45# puis suivez les instructions"
                         />
                       </div>
                     </>
@@ -500,7 +485,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
             <div className="p-3 md:p-4 border-t border-gray-100 bg-white flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-[8px] md:text-[9px] font-semibold text-gray-400 min-w-0">
                 <KeyRound size={11} className="shrink-0 text-green-500" />
-                <span className="truncate">Secrets chiffrés · Mode production</span>
+                <span className="truncate">Secrets chiffrés</span>
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 <button
