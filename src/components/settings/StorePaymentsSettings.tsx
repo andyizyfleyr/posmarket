@@ -102,7 +102,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
     setLoading(true);
     try {
       const res = await fetchStorePaymentSettingsAction(storeId);
-      if (res.success && res.methods) {
+      if (res.success && res.methods && res.methods.length > 0) {
         setMethods(res.methods);
         setDrafts(
           Object.fromEntries(res.methods.map((m) => [m.provider, draftFromView(m)])),
