@@ -636,6 +636,70 @@ async function loadPaymentMethodConfig(storeId: string, provider: StorePaymentPr
 }
 
 /**
+ * Vérifie un paiement en ligne PRÉ-ENCAISSÉ (flux « paiement avant commande ») :
+ * statut succès, montant exact, partenaire concordant. N'écrit RIEN — la
+ * décision d'insérer la commande revient à l'appelant.
+ */
+export async function verifyPrepaidStorePayment(input: {
+  storeId: string;
+  provider: StorePaymentProvider;
+  amount: number;
+  reference: string;
+  partnerId?: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const provider = input.provider;
+  const reference = String(input.reference || '').trim();
+  const expectedAmount = Math.round(Number(input.amount));
+  if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+    return { ok: false, error: 'Montant invalide.' };
+  }
+  if (!reference) return { ok: false, error: 'Référence de paiement manquante.' };
+  if (provider === 'cod') return { ok: true };
+  const secrets = await loadStorePaymentCredential(input.storeId, provider);
+
+  if (provider === 'kkiapay') {
+    const { config } = await loadPaymentMethodConfig(input.storeId, provider);
+    if (!config.publicKey || !secrets) {
+      return { ok: false, error: 'Le paiement Kkiapay de cette boutique est indisponible.' };
+    }
+    if (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey)) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de test.' };
+    }
+    const tx = await verifyKkiapayWithCredentials(secrets, config.publicKey, reference);
+    if (String(tx.status || '').toUpperCase() !== 'SUCCESS') {
+      return { ok: false, error: tx.failureMessage || tx.reason || 'Paiement non abouti.' };
+    }
+    if (Number(tx.amount) !== expectedAmount) {
+      return { ok: false, error: 'Le montant payé ne correspond pas à la commande.' };
+    }
+    if (tx.partnerId && input.partnerId && String(tx.partnerId) !== input.partnerId) {
+      return { ok: false, error: 'Référence de transaction non concordante.' };
+    }
+    return { ok: true };
+  }
+
+  if (provider === 'fedapay') {
+    if (!secrets?.secretKey) {
+      return { ok: false, error: 'Le paiement FedaPay de cette boutique est indisponible.' };
+    }
+    if (Object.values(secrets).some(looksLikeSandboxKey)) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de test.' };
+    }
+    const tx = await verifyFedapayWithCredentials(secrets, reference);
+    const status = String(tx.status || '').toLowerCase();
+    if (!['approved', 'success', 'transferred', 'completed'].includes(status)) {
+      return { ok: false, error: `Paiement non abouti (statut : ${status || 'inconnu'}).` };
+    }
+    if (Number(tx.amount) !== expectedAmount) {
+      return { ok: false, error: 'Le montant payé ne correspond pas à la commande.' };
+    }
+    return { ok: true };
+  }
+
+  return { ok: false, error: 'Moyen de paiement inconnu.' };
+}
+
+/**
  * Vérifie un paiement auprès du fournisseur puis marque la commande payée.
  * `reference` est l'identifiant de transaction fourni par le widget (Kkiapay,
  * FedaPay) ; SasPay s'appuie sur la session créée côté serveur.

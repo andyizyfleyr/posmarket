@@ -27,6 +27,7 @@ interface StorefrontWrapperProps {
     ordersData: Record<string, CheckoutStoreOrderDraft>,
     customerData: CheckoutCustomerDraft,
     idempotencyKey?: string,
+    prepaidProofs?: Array<{ storeId: string; provider: string; reference: string }>,
   ) => Promise<{
     success: boolean;
     error?: string | undefined;
@@ -51,11 +52,12 @@ export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onM
       stores={stores}
       initialCategory={initialCategory}
       initialStoreId={initialStoreId}
-      onMarketplaceCheckout={async (ordersData, customerData, idempotencyKey) => {
+      onMarketplaceCheckout={async (ordersData, customerData, idempotencyKey, prepaidProofs) => {
         const result = await onMarketplaceCheckout(
           ordersData,
           customerData,
           idempotencyKey,
+          prepaidProofs,
         );
         return result;
       }}

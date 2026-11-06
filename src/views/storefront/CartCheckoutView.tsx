@@ -151,9 +151,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   const cartWord = cartNoun(cartVertical);
   const cartWordLower = cartNounLower(cartVertical);
 
-  // Une commande est-elle déjà enregistrée pour ce panier (règlement en
-  // attente sur l'étape paiement) ?
-  const pendingOrderPayment = storePayments.length > 0;
   // Le panier contient-il au moins un moyen de paiement en ligne ?
   const hasOnlineSelection = React.useMemo(
     () =>
@@ -166,27 +163,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
       }),
     [storePaymentSelections, storePaymentMethods],
   );
-  // Aboutissement d'un paiement en ligne (vérifié serveur) : met à jour la
-  // carte, et bascule sur la page de confirmation une fois TOUS les paiements
-  // en ligne réglés. Le COD ne bloque pas.
-  const settleOnlinePayment = React.useCallback(
-    (paymentId: string, paid: boolean) => {
-      setStorePayments(
-        storePayments.map((p) =>
-          p.id === paymentId ? { ...p, status: paid ? "PAID" : "FAILED" } : p,
-        ),
-      );
-    },
-    [storePayments, setStorePayments],
-  );
-  React.useEffect(() => {
-    if (checkoutStage !== "payment") return;
-    const online = storePayments.filter((p) => isOnlineProvider(p.provider));
-    if (online.length > 0 && online.every((p) => p.status === "PAID")) {
-      setCheckoutStage("success");
-    }
-  }, [storePayments, checkoutStage, setCheckoutStage]);
-
   /** Prix de référence (variante choisie sinon produit) d'une ligne. */
   const referencePrice = (item: CartLine): number => {
     if (item.variantId && item.product?.variants) {
@@ -758,23 +734,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </div>
                   </div>
                 )}
-              {checkoutStage === "payment" && pendingOrderPayment && (
-                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 py-14 text-center">
-                  <Loader2 size={26} className="animate-spin text-brand spinner-always mx-auto" />
-                  <p className="text-sm font-bold text-gray-900 text-center">
-                    Ouverture du paiement…
-                  </p>
-                  <StorePaymentPanel
-                    payments={storePayments}
-                    customer={customerInfo}
-                    formatCurrency={formatCurrency}
-                    notify={localNotify}
-                    autoStart
-                    onPaymentSettled={settleOnlinePayment}
-                  />
-                </div>
-              )}
-              {checkoutStage === "payment" && !pendingOrderPayment && (
+              {checkoutStage === "payment" && (
                 <div className="space-y-4   ">
                   {Array.from(
                     new Set(

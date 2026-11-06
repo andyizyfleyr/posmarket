@@ -26,7 +26,10 @@ import { buildHomeSections } from "@/lib/home-sections";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { fetchStorePaymentMethodsAction } from "@/app/actions/storePayments";
-import { isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { quoteCheckoutAction } from "@/app/actions/checkout";
+import { useKkiapay } from "@/hooks/useKkiapay";
+import { useFedapay } from "@/hooks/useFedapay";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
@@ -237,6 +240,12 @@ interface StorefrontViewProps {
     customerData: CheckoutCustomerDraft,
     /** Clé d'idempotence : évite qu'un rejeu ne duplique la commande. */
     idempotencyKey?: string,
+    /**
+     * Flux « paiement avant commande » : justificatifs confirmés par le
+     * fournisseur pour chaque boutique réglée en ligne. Quand ces preuves sont
+     * fournies, le serveur crée les commandes directement en PAID.
+     */
+    prepaidProofs?: Array<{ storeId: string; provider: string; reference: string }>,
   ) => Promise<{
     success: boolean;
     error?: string | undefined;
@@ -736,6 +745,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       }
     };
   }, [cart, isMounted]);
+
+  const kkiapay = useKkiapay();
+  const fedapay = useFedapay();
 
   const [checkoutStage, setCheckoutStage] = useState<
     "cart" | "shipping" | "payment" | "success" | "blocked"
@@ -2624,32 +2636,161 @@ const WHOLESALE_FILTER = "wholesale";
         storeOrder.paymentMethod = storePaymentSelections[storeId] || "cod";
       });
 
+      // ------------------------------------------------------------------
+      // Flux « paiement avant commande »
+      // Un panier 100 % paiement à la livraison part tel quel. Si au moins
+      // une boutique est réglée en ligne, le client paie AVANT la création :
+      // devis serveur (montants canoniques), widgets fournisseurs, puis envoi
+      // des preuves revérifiées côté serveur avant toute écriture. Rien
+      // n'est enregistré si un paiement échoue ou est annulé.
+      // ------------------------------------------------------------------
+      const widgetProviders = new Set(["kkiapay", "fedapay"]);
+      const onlineStoreIds = Object.keys(ordersData).filter((storeId) =>
+        widgetProviders.has(storePaymentSelections[storeId] || "cod"),
+      );
+      const customerPayload = {
+        ...customerInfo,
+        phone: (customerInfo.phone || "").replace(/\s/g, ""),
+        address: [customerInfo.address, customerInfo.city]
+          .filter(Boolean)
+          .join(", "),
+      };
+      const widgetEmail = (user?.email || "").trim() || "client@posmarket.com";
+      const widgetNameParts = (customerInfo.name || "").trim().split(/\s+/).filter(Boolean);
+      const widgetFirstName = widgetNameParts[0] || "Client";
+      const widgetLastName = widgetNameParts.slice(1).join(" ") || "PosMarket";
+
+      const openProviderWidget = (
+        storeQuote: { provider: string; amount: number; publicKey: string },
+        partnerId: string,
+      ): Promise<string | null> =>
+        new Promise((resolve) => {
+          if (storeQuote.provider === "kkiapay") {
+            kkiapay.openWidget({
+              amount: storeQuote.amount,
+              key: storeQuote.publicKey,
+              sandbox: false,
+              partnerId,
+              name: (customerInfo.name || "").trim() || "Client PosMarket",
+              email: widgetEmail,
+              phone: customerPayload.phone,
+              onSuccess: (transactionId) =>
+                resolve(String(transactionId || "").trim() || null),
+              onFailed: () => resolve(null),
+            });
+            return;
+          }
+          if (storeQuote.provider === "fedapay") {
+            fedapay.openWidget({
+              publicKey: storeQuote.publicKey,
+              amount: storeQuote.amount,
+              description: "Commande PosMarket",
+              environment: "live",
+              customer: {
+                email: widgetEmail,
+                firstname: widgetFirstName,
+                lastname: widgetLastName,
+              },
+              onSuccess: (tx) => {
+                const reference = tx?.id
+                  ? String(tx.id)
+                  : String(tx?.reference || "");
+                resolve(reference.trim() || null);
+              },
+              onFailed: () => resolve(null),
+            });
+            return;
+          }
+          resolve(null);
+        });
+
       (async () => {
           // Tant que l'appel serveur n'a pas rendu la main, le bouton de
           // confirmation reste en chargement : sans cela le client pouvait
           // appuyer plusieurs fois et ne voir aucun retour.
           setIsCheckoutSubmitting(true);
           try {
-            const response = await onMarketplaceCheckout(ordersData, {
-              ...customerInfo,
-              phone: (customerInfo.phone || "").replace(/\s/g, ""),
-              address: [customerInfo.address, customerInfo.city]
-                .filter(Boolean)
-                .join(", "),
-            }, checkoutIdempotencyKey);
+            let response: Awaited<ReturnType<typeof onMarketplaceCheckout>>;
+            if (onlineStoreIds.length > 0) {
+              // Le module du fournisseur doit être chargé AVANT d'ouvrir le
+              // widget : sinon il ne s'ouvre pas et le paiement échoue en silence.
+              const needsKkiapay = onlineStoreIds.some(
+                (storeId) =>
+                  (storePaymentSelections[storeId] || "cod") === "kkiapay" &&
+                  !kkiapay.ready,
+              );
+              const needsFedapay = onlineStoreIds.some(
+                (storeId) =>
+                  (storePaymentSelections[storeId] || "cod") === "fedapay" &&
+                  !fedapay.ready,
+              );
+              if (needsKkiapay || needsFedapay) {
+                localNotify(
+                  "Le module de paiement se charge encore. Réessayez dans un instant.",
+                  "error",
+                );
+                return;
+              }
+              // Devis serveur : montants canoniques et clés publiques, sans
+              // aucune écriture. C'est exactement ce devis qui est facturé.
+              const quote = await quoteCheckoutAction(
+                ordersData,
+                customerPayload,
+                checkoutIdempotencyKey,
+              );
+              if (!quote?.success) {
+                localNotify(
+                  quote?.error || "Impossible de préparer le paiement.",
+                  "error",
+                );
+                return;
+              }
+              const proofs: Array<{
+                storeId: string;
+                provider: string;
+                reference: string;
+              }> = [];
+              for (const storeQuote of quote.stores) {
+                const reference = await openProviderWidget(
+                  storeQuote,
+                  quote.partnerId || checkoutIdempotencyKey,
+                );
+                if (!reference) {
+                  // Aucun enregistrement n'a eu lieu : le panier est conservé.
+                  localNotify(
+                    "Paiement non finalisé — aucune commande n'a été créée.",
+                    "info",
+                  );
+                  return;
+                }
+                proofs.push({
+                  storeId: storeQuote.storeId,
+                  provider: storeQuote.provider,
+                  reference,
+                });
+              }
+              // Les preuves sont renvoyées puis revérifiées côté serveur
+              // (fournisseur, montant, référence) AVANT la moindre écriture :
+              // en cas d'échec, aucune commande n'est créée.
+              response = await onMarketplaceCheckout(
+                ordersData,
+                customerPayload,
+                checkoutIdempotencyKey,
+                proofs,
+              );
+            } else {
+              response = await onMarketplaceCheckout(
+                ordersData,
+                customerPayload,
+                checkoutIdempotencyKey,
+              );
+            }
             if (response?.success) {
               const serverPayments: StoreCheckoutPaymentView[] = Array.isArray(
                 response.payments,
               )
                 ? response.payments
                 : [];
-              // Dès qu'un paiement en ligne (Kkiapay/FedaPay) attend
-              // d'être réglé, on reste sur l'étape paiement : le règlement se
-              // lance immédiatement et la page de confirmation s'affiche une
-              // fois TOUS les paiements en ligne validés (voir CartCheckoutView).
-              const hasOnlinePayment = serverPayments.some(
-                (p) => isOnlineProvider(p.provider) && p.status !== "PAID",
-              );
               setStorePayments(serverPayments);
 
               const serverOrders =
@@ -2743,10 +2884,11 @@ const WHOLESALE_FILTER = "wholesale";
               }
               setPromoApplied(null);
               setPromoCodeInput("");
-              if (!hasOnlinePayment) {
-                playSuccessSound();
-                setCheckoutStage("success");
-              }
+              // Tout est confirmé à ce stade (paiement en ligne vérifié avant
+              // création, COD constaté à la livraison) : on passe directement
+              // à la confirmation.
+              playSuccessSound();
+              setCheckoutStage("success");
               setCart([]);
               onNotifyPostCheckout(ordersData);
               // Commande enregistrée : la tentative suivante est un nouvel
