@@ -106,25 +106,49 @@ const SASPAY_MOCK = `
 
 // ── Module sous test ───────────────────────────────────────────────────────
 
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+
+const TEST_KEY = Buffer.from('a'.repeat(64), 'hex');
+
+/** Chiffre un payload avec le même format que payment-secrets.ts. */
+function encryptPayload(obj) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', TEST_KEY, iv);
+  const enc = Buffer.concat([cipher.update(JSON.stringify(obj), 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return ['v1', iv.toString('base64url'), tag.toString('base64url'), enc.toString('base64url')].join(':');
+}
+
+function decryptPayload(value) {
+  const [, iv, tag, data] = String(value).split(':');
+  const decipher = createDecipheriv('aes-256-gcm', TEST_KEY, Buffer.from(iv, 'base64url'));
+  decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+  const dec = Buffer.concat([decipher.update(Buffer.from(data, 'base64url')), decipher.final()]);
+  return JSON.parse(dec.toString('utf8'));
+}
+
 /**
  * Base en mémoire : même surface de chaînes que le module réel, sans Neon.
- * Les lignes renvoyées par `select(...).from(...).where(...).limit(1)` sont
- * configurables ; les inserts sont capturés dans `globalThis.__storePaymentsTestState.inserted`.
+ * `rows` alimente order_payments ; `ordersRows` simule le statut de commande
+ * ; `credentialRows` fournit les credentials chiffrés existants.
+ * Les inserts sont capturés dans `globalThis.__storePaymentsTestState.inserted`.
  */
-async function loadWithDb({ rows = [], ordersRows = null } = {}) {
+async function loadWithDb({ rows = [], ordersRows = null, credentialRows = [] } = {}) {
   // État partagé via globalThis : les modules inlinés par esbuild ne peuvent
   // pas être importés par le test, le global est le canal fiable.
   globalThis.__storePaymentsTestState = { inserted: [] };
-  // ordersRows permet de simuler un statut de commande précis (ex. CANCELLED)
-  // tout en renvoyant `rows` pour les autres tables.
   const ordersJson = JSON.stringify(ordersRows ?? rows);
+  const credentialsJson = JSON.stringify(credentialRows);
+  const rowsJson = JSON.stringify(rows);
   const generated = `
+    const pick = (table) =>
+      table && table.__table === 'orders' ? ${ordersJson} : table && table.__table === 'store_payment_credentials' ? ${credentialsJson} : ${rowsJson};
     exports.db = {
       select: () => ({
         from: (table) => ({
           where: () => ({
-            limit: () => Promise.resolve(table && table.__table === 'orders' ? ${ordersJson} : ${JSON.stringify(rows)}),
-            then: (resolve) => resolve(table && table.__table === 'orders' ? ${ordersJson} : ${JSON.stringify(rows)}),
+            limit: () => Promise.resolve(pick(table)),
+            then: (resolve) => resolve(pick(table)),
           }),
         }),
       }),
@@ -301,4 +325,36 @@ test('confirmStorePayment refuse d’encaisser une commande annulée', async () 
   const res = await mod.confirmStorePayment({ orderId: 'order-1', token: 'token-1', reference: 'tx-1' });
   assert.equal(res.success, false);
   assert.match(res.error || '', /annulée/i);
+});
+
+test('saveStorePaymentMethod conserve les clés existantes quand seule une partie est réenregistrée', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const payload = encryptPayload({ privateKey: 'sk_live_priv_1', secretKey: 'sk_live_secret_1' });
+  const mod = await loadWithDb({ credentialRows: [{ payload }] });
+  const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
+    enabled: true,
+    config: { publicKey: 'pk_live_abc123' },
+    secrets: { webhookSecret: 'wh_live_xyz' },
+  });
+  assert.equal(res.success, true, res.error);
+  const inserted = globalThis.__storePaymentsTestState?.inserted || [];
+  const credInsert = inserted.find((v) => v && typeof v.payload === 'string');
+  assert.ok(credInsert, 'la ligne de credentials doit être capturée');
+  const merged = decryptPayload(credInsert.payload);
+  assert.equal(merged.privateKey, 'sk_live_priv_1');
+  assert.equal(merged.secretKey, 'sk_live_secret_1');
+  assert.equal(merged.webhookSecret, 'wh_live_xyz');
+});
+
+test('saveStorePaymentMethod refuse d’activer Kkiapay avec la clé secrète conservée de test', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const payload = encryptPayload({ privateKey: 'sk_live_priv_1', secretKey: 'sk_test_secret_1' });
+  const mod = await loadWithDb({ credentialRows: [{ payload }] });
+  const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
+    enabled: true,
+    config: { publicKey: 'pk_live_abc123' },
+    secrets: {},
+  });
+  assert.equal(res.success, false);
+  assert.match(res.error || '', /production/i);
 });

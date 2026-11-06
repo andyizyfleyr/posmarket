@@ -275,22 +275,28 @@ export async function saveStorePaymentMethod(
   const nextSecrets = pickSecretPayload(input.secrets);
   const hasNewSecret = Object.keys(nextSecrets).length > 0;
   const existingSecret = await loadStorePaymentCredential(storeId, provider);
+  // Fusion champ à champ : un champ laissé vide conserve le secret déjà
+  // enregistré (« Laisser vide pour conserver ») au lieu d'écraser toute la
+  // ligne avec les seuls champs nouvellement saisis.
+  const mergedSecrets: StorePaymentSecretPayload = hasNewSecret
+    ? { ...(existingSecret ?? {}), ...nextSecrets }
+    : (existingSecret ?? {});
 
   if (enabled) {
     if (provider === 'kkiapay') {
       if (!config.publicKey) return { success: false, error: 'Renseignez la clé publique Kkiapay.' };
-      if (!hasNewSecret && !existingSecret?.privateKey) {
+      if (!mergedSecrets.privateKey || !mergedSecrets.secretKey) {
         return { success: false, error: 'Renseignez les clés privée et secrète Kkiapay.' };
       }
     }
     if (provider === 'fedapay') {
       if (!config.publicKey) return { success: false, error: 'Renseignez la clé publique FedaPay.' };
-      if (!hasNewSecret && !existingSecret?.secretKey) {
+      if (!mergedSecrets.secretKey) {
         return { success: false, error: 'Renseignez la clé secrète FedaPay.' };
       }
     }
     if (provider === 'saspay') {
-      if (!hasNewSecret && !existingSecret?.apiKey) {
+      if (!mergedSecrets.apiKey) {
         return { success: false, error: 'Renseignez la clé API SasPay.' };
       }
     }
@@ -301,13 +307,12 @@ export async function saveStorePaymentMethod(
     // qu'elle soit nouvellement fournie ou conservée depuis un enregistrement
     // antérieur — y compris la clé publique (elle ouvre le widget).
     if (isOnlineStorePayment(provider)) {
-      const effectiveSecrets = hasNewSecret ? nextSecrets : (existingSecret ?? {});
       const candidates: Array<[string, string | undefined]> = [
         ['clé publique', config.publicKey],
-        ['clé privée', effectiveSecrets.privateKey],
-        ['clé secrète', effectiveSecrets.secretKey],
-        ['clé API', effectiveSecrets.apiKey],
-        ['secret webhook', effectiveSecrets.webhookSecret],
+        ['clé privée', mergedSecrets.privateKey],
+        ['clé secrète', mergedSecrets.secretKey],
+        ['clé API', mergedSecrets.apiKey],
+        ['secret webhook', mergedSecrets.webhookSecret],
       ];
       for (const [label, value] of candidates) {
         if (value && looksLikeSandboxKey(value)) {
@@ -331,7 +336,9 @@ export async function saveStorePaymentMethod(
   if (hasNewSecret) {
     let encrypted: string;
     try {
-      encrypted = encryptPaymentSecret(nextSecrets);
+      // On persiste la fusion complète : les clés conservées ne sont jamais
+      // perdues lorsque seule une partie est réenregistrée.
+      encrypted = encryptPaymentSecret(mergedSecrets);
     } catch (error) {
       return {
         success: false,
@@ -344,7 +351,7 @@ export async function saveStorePaymentMethod(
         storeId,
         provider,
         payload: encrypted,
-        keyHint: keyHintFor(provider, nextSecrets),
+        keyHint: keyHintFor(provider, mergedSecrets),
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
