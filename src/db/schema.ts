@@ -211,6 +211,11 @@ export const orders = pgTable('orders', {
   discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).default('0'),
   promoCode: text('promo_code'),
   paymentMethod: text('payment_method').notNull(),
+  // Encaissement réel : 'PENDING' tant que le fournisseur n'a pas confirmé,
+  // 'PAID' après vérification serveur, 'FAILED'/'CANCELLED' sinon.
+  paymentStatus: text('payment_status').default('PENDING').notNull(),
+  paymentReference: text('payment_reference'),
+  paymentProvider: text('payment_provider'),
   status: text('status').default('PENDING').notNull(),
   type: text('type').default('IN_STORE').notNull(),
   date: timestamp('date').defaultNow().notNull(),
@@ -221,8 +226,7 @@ export const orders = pgTable('orders', {
   boosted: boolean('boosted').default(false).notNull(),
 });
 
-export const orderItems = pgTable('order_items', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const orderItems = pgTable('order_items', {  id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
   productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
   quantity: integer('quantity').notNull(),
@@ -240,6 +244,62 @@ export const orderItems = pgTable('order_items', {
 }, (t) => [
   { variantIdx: { columns: [t.variantId], name: 'order_items_variant_id_idx' } as const },
   { productIdx: { columns: [t.productId], name: 'order_items_product_id_idx' } as const },
+]);
+
+/** Moyens de paiement activés par une boutique (configuration publique). */
+export const storePaymentMethods = pgTable('store_payment_methods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  /** 'cod' | 'kkiapay' | 'fedapay' | 'saspay' | 'ussd' */
+  provider: text('provider').notNull(),
+  enabled: boolean('enabled').default(false).notNull(),
+  config: jsonb('config').default({}).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex('store_payment_methods_store_provider_unique').on(t.storeId, t.provider),
+  index('store_payment_methods_store_enabled_idx').on(t.storeId).where(sql`${t.enabled} = true`),
+]);
+
+/**
+ * Secrets d'encaissement chiffrés (AES-256-GCM). Le payload n'est jamais
+ * renvoyé au client : il est déchiffré uniquement pour appeler le fournisseur.
+ */
+export const storePaymentCredentials = pgTable('store_payment_credentials', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  provider: text('provider').notNull(),
+  payload: text('payload').notNull(),
+  keyHint: text('key_hint'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex('store_payment_credentials_store_provider_unique').on(t.storeId, t.provider),
+]);
+
+/** Suivi d'encaissement d'une commande (un paiement par commande). */
+export const orderPayments = pgTable('order_payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  provider: text('provider').notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  currency: text('currency').default('XOF').notNull(),
+  /** 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' */
+  status: text('status').default('PENDING').notNull(),
+  token: text('token').notNull(),
+  reference: text('reference'),
+  checkoutUrl: text('checkout_url'),
+  providerCheckoutId: text('provider_checkout_id'),
+  failureReason: text('failure_reason'),
+  paidAt: timestamp('paid_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex('order_payments_order_unique').on(t.orderId),
+  uniqueIndex('order_payments_token_unique').on(t.token),
+  uniqueIndex('order_payments_provider_checkout_unique').on(t.providerCheckoutId).where(sql`${t.providerCheckoutId} IS NOT NULL`),
+  index('order_payments_pending_idx').on(t.provider, t.updatedAt).where(sql`${t.status} = 'PENDING'`),
 ]);
 
 export const invoices = pgTable('invoices', {

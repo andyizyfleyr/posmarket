@@ -7,7 +7,8 @@ import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import Image from "next/image";
 import { PhoneInput } from '@/components/PhoneInput';
 import { CountrySelect } from '@/components/CountrySelect';
-import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Trash2, Plus, CheckSquare, Square, X, Camera, Tag, Loader2, FileText, Info, Zap } from 'lucide-react';
+import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Trash2, Plus, CheckSquare, Square, X, Camera, Tag, Loader2, FileText, Info, Zap, CreditCard } from 'lucide-react';
+import { StorePaymentsSettings } from '@/components/settings/StorePaymentsSettings';
 
 import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
 import { supabase } from '@/supabase';
@@ -108,8 +109,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const activeTab = useMemo(() => {
         const tab = searchParams.get('tab');
-        const validTabs = ['store', 'user', 'staff', 'promos'];
-        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos';
+        const validTabs = ['store', 'user', 'staff', 'promos', 'payments'];
+        return (tab && validTabs.includes(tab) ? tab : 'store') as 'store' | 'user' | 'staff' | 'promos' | 'payments';
     }, [searchParams]);
 
     const setActiveTab = useCallback((tab: string) => {
@@ -359,6 +360,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         { id: 'user', label: 'Profil', icon: <User size={18} /> },
                         { id: 'staff', label: 'Équipe', icon: <Users size={18} />, hidden: !permissions.canManageStaff },
                         { id: 'promos', label: 'Promos', icon: <Tag size={18} /> },
+                        { id: 'payments', label: 'Paiements', icon: <CreditCard size={18} /> },
                     ].filter(t => !t.hidden).map(tab => (
                         <button
                             key={tab.id}
@@ -640,6 +642,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 )}
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'payments' && (
+                        <StorePaymentsSettings storeId={currentStoreId} notify={notify} />
                     )}
 
                     {activeTab === 'promos' && (

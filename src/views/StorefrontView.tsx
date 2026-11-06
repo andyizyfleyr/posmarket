@@ -25,6 +25,8 @@ import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
 import { buildHomeSections } from "@/lib/home-sections";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
+import { fetchStorePaymentMethodsAction } from "@/app/actions/storePayments";
+import type { StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
@@ -154,6 +156,19 @@ export type CheckoutStoreOrderDraft = {
   total: number;
 };
 
+/** Moyen de paiement activé par une boutique, renvoyé par le serveur. */
+export type CheckoutPaymentMethodOption = {
+  provider: string;
+  label: string;
+  isOnline: boolean;
+  config: {
+    instructions?: string;
+    ussdCode?: string;
+    publicKey?: string;
+    env?: "sandbox" | "live";
+  };
+};
+
 export type CheckoutCustomerDraft = {
   name?: string;
   email?: string;
@@ -228,6 +243,8 @@ interface StorefrontViewProps {
     /** Références des commandes créées, renvoyées par l'action serveur. */
     orderId?: string;
     orderIds?: string[];
+    /** Paiements par boutique (guichets en ligne, USSD, COD). */
+    payments?: StoreCheckoutPaymentView[];
     /**
      * Montants et lignes canoniques calculés par le serveur. Ils font foi pour
      * l'écran de succès et le message WhatsApp (prix, coupon, livraison).
@@ -1213,6 +1230,45 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
+  // Moyens de paiement activés par chaque boutique du panier + choix par boutique.
+  const [storePaymentMethods, setStorePaymentMethods] = useState<Record<string, CheckoutPaymentMethodOption[]>>({});
+  const [storePaymentSelections, setStorePaymentSelections] = useState<Record<string, string>>({});
+  const [storePayments, setStorePayments] = useState<StoreCheckoutPaymentView[]>([]);
+
+  // Charge les moyens activés par les boutiques du panier (clés publiques seulement).
+  const paymentCartStoreIdsKey = useMemo(
+    () =>
+      Array.from(new Set(cart.map((i) => i.product?.storeId).filter(Boolean))).sort().join(","),
+    [cart],
+  );
+  useEffect(() => {
+    const ids = paymentCartStoreIdsKey ? paymentCartStoreIdsKey.split(",") : [];
+    if (ids.length === 0) return;
+    let active = true;
+    fetchStorePaymentMethodsAction(ids)
+      .then((res) => {
+        if (!active || !res.success || !res.methods) return;
+        const methods = res.methods as Record<string, CheckoutPaymentMethodOption[]>;
+        setStorePaymentMethods(methods);
+        setStorePaymentSelections((prev) => {
+          const next: Record<string, string> = {};
+          for (const id of ids) {
+            const options = methods[id] || [];
+            const current = prev[id];
+            // Conserve le choix si le moyen est toujours proposé, sinon le premier.
+            next[id] =
+              current && options.some((o) => o.provider === current)
+                ? current
+                : options[0]?.provider || "cod";
+          }
+          return next;
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [paymentCartStoreIdsKey]);
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [isPromoOpen, setIsPromoOpen] = useState(false);
   const [expandedCartStores, setExpandedCartStores] = useState<Set<string>>(
@@ -2564,7 +2620,8 @@ const WHOLESALE_FILTER = "wholesale";
             : 0;
         storeOrder.shippingCost = proportionalShipping;
         storeOrder.total = discountedSubtotal + proportionalShipping;
-        storeOrder.paymentMethod = "ESPECES";
+        // Un moyen de paiement par boutique (choix de l'étape paiement).
+        storeOrder.paymentMethod = storePaymentSelections[storeId] || "cod";
       });
 
       (async () => {
@@ -2582,6 +2639,9 @@ const WHOLESALE_FILTER = "wholesale";
             }, checkoutIdempotencyKey);
             if (response?.success) {
               playSuccessSound();
+              setStorePayments(
+                Array.isArray(response.payments) ? response.payments : [],
+              );
 
               const serverOrders =
                 Array.isArray(response.orders) && response.orders.length > 0
@@ -2942,6 +3002,13 @@ const WHOLESALE_FILTER = "wholesale";
       completedOrderItems={completedOrderItems}
             completedOrderTotal={completedOrderTotal}
             isCheckoutSubmitting={isCheckoutSubmitting}
+            storePaymentMethods={storePaymentMethods}
+            storePaymentSelections={storePaymentSelections}
+            setStorePaymentSelection={(storeId, provider) =>
+              setStorePaymentSelections((prev) => ({ ...prev, [storeId]: provider }))
+            }
+            storePayments={storePayments}
+            setStorePayments={setStorePayments}
     />
   );
 

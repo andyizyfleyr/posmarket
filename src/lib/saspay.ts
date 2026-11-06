@@ -148,6 +148,82 @@ export interface SaspayCheckoutStatus {
   transaction_status?: string | null;
 }
 
+/**
+ * Guichet hébergé pour une commande boutique. Le metadata porte l'identifiant
+ * local de `order_payments` : c'est la seule façon de rattacher un webhook
+ * SasPay (qui ne contient pas l'id de session) à la bonne commande.
+ */
+export function saspayStoreReturnUrl(orderPaymentId: string): string {
+  if (!isSaspayId(orderPaymentId)) throw new SaspayPublicError('Paiement boutique invalide.');
+  const url = new URL(saspayAppOrigin());
+  url.pathname = '/api/store-payments/saspay/return';
+  url.searchParams.set('payment', orderPaymentId);
+  return url.toString();
+}
+
+export async function createSaspayStoreCheckout(
+  apiKey: string,
+  input: {
+    amount: number;
+    paymentId: string;
+    description: string;
+    customerEmail: string;
+    customerName: string;
+    returnUrl: string;
+  },
+) {
+  if (!Number.isSafeInteger(input.amount) || input.amount <= 0 || !isSaspayId(input.paymentId)) {
+    throw new SaspayPublicError('Montant ou paiement SasPay invalide.');
+  }
+  const data = await saspayRequest(apiKey, '/checkout-sessions/', {
+    amount: `${input.amount}.00`,
+    currency: 'XOF',
+    description: input.description.slice(0, 200),
+    customer_email: input.customerEmail,
+    customer_name: input.customerName,
+    return_url: input.returnUrl,
+    metadata: { posmarket_order_payment_id: input.paymentId },
+  });
+  if (!isSaspayId(data.id)) throw new SaspayApiError(0, 'invalid_checkout_id');
+  const checkoutUrl = typeof data.checkout_url === 'string' ? data.checkout_url : '';
+  let url: URL;
+  try {
+    url = new URL(checkoutUrl);
+  } catch {
+    throw new SaspayApiError(0, 'invalid_checkout_url');
+  }
+  if (url.protocol !== 'https:' || !CHECKOUT_HOSTS.has(url.hostname) || url.port || url.username || url.password) {
+    throw new SaspayApiError(0, 'checkout_url_not_allowed');
+  }
+  return { id: data.id, checkoutUrl: url.toString() };
+}
+
+/** Retrouve la session SasPay d'une transaction pour une commande boutique. */
+export async function findSaspayStoreCheckoutForPayment(
+  apiKey: string,
+  paymentId: string,
+): Promise<{ id: string; orderPaymentId?: string } | null> {
+  if (!isSaspayId(paymentId)) return null;
+  const data = await saspayRequest(apiKey, '/checkout-sessions/?status=PAID&page=1&page_size=100');
+  if (!Array.isArray(data.results)) throw new SaspayApiError(0);
+  for (const item of data.results) {
+    if (!item || typeof item !== 'object') continue;
+    const session = item as JsonObject;
+    if (session.transaction !== paymentId || !isSaspayId(session.id)) continue;
+    const metadata = session.metadata;
+    const localPaymentId =
+      metadata && typeof metadata === 'object'
+        ? (metadata as JsonObject).posmarket_order_payment_id
+        : undefined;
+    return {
+      id: session.id,
+      orderPaymentId: isSaspayId(localPaymentId) ? localPaymentId : undefined,
+    };
+  }
+  return null;
+}
+
+
 export async function getSaspayCheckoutStatus(apiKey: string, sessionId: string): Promise<SaspayCheckoutStatus> {
   if (!isSaspayId(sessionId)) throw new SaspayPublicError('Session SasPay invalide.');
   const data = await saspayRequest(apiKey, `/checkout-sessions/${encodeURIComponent(sessionId)}/status/`);

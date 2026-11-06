@@ -10,6 +10,11 @@ import {
   verifySaspayWebhookSignature,
 } from '@/lib/saspay';
 import { reconcileSaspaySubscription } from '@/lib/saspaySubscriptions';
+import {
+  confirmStorePaymentByRow,
+  findSaspayPaymentByCheckoutId,
+  reconcilePendingStorePaymentsForProvider,
+} from '@/lib/store-payments';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -43,21 +48,12 @@ async function readBody(request: Request): Promise<Uint8Array | null> {
 export async function POST(request: Request) {
   try {
     const config = await loadPaymentConfig();
-    if (!saspayConfigured(config.saspayApiKey) || !config.saspayWebhookSecret) {
-      return NextResponse.json({ error: 'Webhook SasPay non configuré.' }, { status: 503 });
-    }
+    const globalConfigured = saspayConfigured(config.saspayApiKey) && Boolean(config.saspayWebhookSecret);
+
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > 65_536) return NextResponse.json({ error: 'Requête trop volumineuse.' }, { status: 413 });
     const rawBody = await readBody(request);
     if (!rawBody) return NextResponse.json({ error: 'Requête trop volumineuse.' }, { status: 413 });
-    if (!verifySaspayWebhookSignature(
-      rawBody,
-      request.headers.get('x-webhook-signature'),
-      request.headers.get('x-webhook-timestamp'),
-      config.saspayWebhookSecret,
-    )) {
-      return NextResponse.json({ error: 'Signature webhook SasPay invalide.' }, { status: 401 });
-    }
 
     let payload: { event?: unknown; data?: { id?: unknown } };
     try {
@@ -79,6 +75,32 @@ export async function POST(request: Request) {
     }
     const paymentId = payload.data?.id;
     if (!isSaspayId(paymentId)) return NextResponse.json({ error: 'Transaction invalide.' }, { status: 400 });
+
+    const signatureValid =
+      globalConfigured &&
+      verifySaspayWebhookSignature(
+        rawBody,
+        request.headers.get('x-webhook-signature'),
+        request.headers.get('x-webhook-timestamp'),
+        config.saspayWebhookSecret,
+      );
+
+    if (!signatureValid) {
+      // --- Commandes boutique : le webhook arrive signé avec le secret de la
+      // boutique vendeuse, inconnu de la plateforme. On ne peut donc pas
+      // vérifier la signature ici ; on rapproche en revérifiant auprès de
+      // SasPay (avec la clé de chaque boutique) les paiements en attente.
+      // Un événement forgé ne peut pas marquer une commande payée : seule la
+      // vérification serveur (session + montant) fait foi.
+      const paid = await reconcilePendingStorePaymentsForProvider('saspay', 10).catch(() => 0);
+      if (paid > 0) {
+        return NextResponse.json({ ok: true, status: 'store_payments_reconciled' });
+      }
+      if (!globalConfigured) {
+        return NextResponse.json({ error: 'Webhook SasPay non configuré.' }, { status: 503 });
+      }
+      return NextResponse.json({ error: 'Signature webhook SasPay invalide.' }, { status: 401 });
+    }
 
     // Les doublons déjà rapprochés sont acquittés sans nouvel appel à l'API.
     const [existing] = await db.select({ id: subscriptionPayments.id })
@@ -110,7 +132,16 @@ export async function POST(request: Request) {
         )).returning({ transactionId: subscriptionPayments.transactionId });
       if (!payment) [payment] = await findPayment(); // rattachement concurrent
     }
-    if (!payment?.transactionId) return NextResponse.json({ ok: true, status: 'unrelated' });
+    if (!payment?.transactionId) {
+      // Commande boutique créée avec le guichet de la plateforme : le
+      // metadata de session porte l'identifiant de `order_payments`.
+      const storePayment = await findSaspayPaymentByCheckoutId(session.id);
+      if (storePayment) {
+        await confirmStorePaymentByRow(storePayment, paymentId);
+        return NextResponse.json({ ok: true, status: 'store_payment_processed' });
+      }
+      return NextResponse.json({ ok: true, status: 'unrelated' });
+    }
 
     const result = await reconcileSaspaySubscription({
       transactionId: payment.transactionId,

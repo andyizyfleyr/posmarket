@@ -66,7 +66,7 @@ export const useFedapay = () => {
         transaction: {
           amount: Math.round(Number(opts.amount) || 0),
           description: opts.description || '',
-          custom_metadata: opts.description ? { partnerId: opts.description.split(':').pop()?.replace(/[^a-f0-9-]/gi, '') || '' } : {},
+          custom_metadata: opts.description ? { partnerId: opts.description.split(':').pop()?.replace(/[^a-zA-Z0-9_-]/g, '') || '' } : {},
         },
         currency: { iso: 'XOF' },
         customer: {

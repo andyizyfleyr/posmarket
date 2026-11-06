@@ -123,6 +123,11 @@ const MIGRATIONS = [
     probe: `SELECT 1 FROM information_schema.columns
             WHERE table_name = 'orders' AND column_name = 'buyer_phone'`,
   },
+  {
+    file: '0034_store_payments.sql',
+    describe: 'table store_payment_methods',
+    probe: `SELECT 1 FROM information_schema.tables WHERE table_name = 'store_payment_methods'`,
+  },
 ];
 
 /**

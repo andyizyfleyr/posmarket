@@ -2,25 +2,46 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { subscriptionPayments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { loadPaymentConfig } from '@/lib/paymentConfig';
 import { fedapayConfigured, verifyFedapayTransaction, verifyFedapayWebhookSignature } from '@/lib/fedapay';
 import { notify, getAdminEmails, notifyPaymentFailed } from '@/lib/notifications';
+import {
+  confirmStorePaymentByRow,
+  findStorePaymentForWebhook,
+  loadStorePaymentCredential,
+  markStorePaymentFailed,
+} from '@/lib/store-payments';
+
+function verifyFedapaySignatureWithSecret(payloadRaw: string, signatureHeader: string | null, secret: string): boolean {
+  if (!secret || !signatureHeader) return false;
+  try {
+    let sig = signatureHeader;
+    if (signatureHeader.includes('s=')) {
+      const parts = signatureHeader.split(',').reduce<Record<string, string>>((acc, part) => {
+        const [k, v] = part.split('=');
+        if (k && v) acc[k.trim()] = v.trim();
+        return acc;
+      }, {});
+      sig = parts.s || parts.v1 || signatureHeader;
+    }
+    const hmac = createHmac('sha256', secret).update(payloadRaw).digest('hex');
+    const expected = Buffer.from(hmac);
+    const received = Buffer.from(sig);
+    return expected.length === received.length && timingSafeEqual(expected, received);
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: Request) {
   try {
     await loadPaymentConfig();
-    if (!fedapayConfigured()) {
-      return NextResponse.json({ error: 'FedaPay non configuré' }, { status: 503 });
-    }
 
     const signature = request.headers.get('x-fedapay-signature') || request.headers.get('X-FEDAPAY-SIGNATURE');
     const rawBody = await request.text();
-
-    if (!verifyFedapayWebhookSignature(rawBody, signature)) {
-      return NextResponse.json({ error: 'Signature webhook FedaPay invalide' }, { status: 401 });
-    }
 
     let payload: unknown;
     try {
@@ -51,16 +72,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Identifiant de transaction FedaPay manquant' }, { status: 400 });
     }
 
-    // Extraction du partnerId (UUID de transactionPosMarket)
+    // Extraction du partnerId (UUID de transactionPosMarket, ou jeton d'une
+    // commande boutique transmis dans la description du widget).
     let partnerId = entity.custom_metadata?.partnerId ? String(entity.custom_metadata.partnerId).trim() : '';
     if (!partnerId && entity.description) {
-      const match = String(entity.description).match(/ref:\s*([a-f0-9-]+)/i);
+      const desc = String(entity.description);
+      const match = desc.match(/ref:\s*([a-f0-9-]+)/i) || desc.match(/:([A-Za-z0-9_-]{20,})\s*$/);
       if (match && match[1]) {
         partnerId = match[1].trim();
       }
     }
 
     const isApproved = eventName === 'transaction.approved' || entity.status === 'approved';
+    const isDeclined =
+      eventName === 'transaction.canceled' ||
+      eventName === 'transaction.declined' ||
+      entity.status === 'declined' ||
+      entity.status === 'canceled';
+
+    // --- Commandes boutique (paiements encaissés directement par les vendeurs)
+    try {
+      const storePayment = await findStorePaymentForWebhook('fedapay', {
+        token: partnerId || null,
+        reference: fTxId,
+      });
+      if (storePayment) {
+        const secrets = await loadStorePaymentCredential(storePayment.storeId, 'fedapay');
+        const storeWebhookSecret = secrets?.webhookSecret;
+        if (storeWebhookSecret) {
+          if (!verifyFedapaySignatureWithSecret(rawBody, signature, storeWebhookSecret)) {
+            return NextResponse.json({ error: 'Signature webhook FedaPay invalide' }, { status: 401 });
+          }
+        }
+        if (isApproved) {
+          await confirmStorePaymentByRow(storePayment, fTxId);
+        } else if (isDeclined && storePayment.status === 'PENDING') {
+          await markStorePaymentFailed(storePayment.id, 'Paiement FedaPay refusé.');
+        }
+        return NextResponse.json({ ok: true, status: 'store_payment_processed' });
+      }
+    } catch (storeErr) {
+      console.error('[FedaPay webhook] Erreur rapprochement commande boutique:', storeErr);
+    }
+
+    // --- Abonnements (guichet de la plateforme)
+    if (!fedapayConfigured()) {
+      return NextResponse.json({ error: 'FedaPay non configuré' }, { status: 503 });
+    }
+
+    if (!verifyFedapayWebhookSignature(rawBody, signature)) {
+      return NextResponse.json({ error: 'Signature webhook FedaPay invalide' }, { status: 401 });
+    }
 
     if (isApproved) {
       // Double vérification auprès de l'API FedaPay avec la clé secrète
@@ -116,7 +178,7 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ ok: true, status: 'approved_processed' });
-    } else if (eventName === 'transaction.canceled' || eventName === 'transaction.declined' || entity.status === 'declined' || entity.status === 'canceled') {
+    } else if (isDeclined) {
       const rows = await db
         .select()
         .from(subscriptionPayments)

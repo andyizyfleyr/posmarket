@@ -2,22 +2,20 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { subscriptionPayments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { timingSafeEqual } from 'node:crypto';
 import { activateSubscription } from '@/lib/subscription';
 import type { SubscriptionTier, SubscriptionDuration } from '@/types';
 import { kkiapayConfigured, verifyKkiapayWebhookSecret, verifyKkiapayTransaction } from '@/lib/kkiapay';
 import { notify, getAdminEmails, notifyPaymentFailed } from '@/lib/notifications';
 import { kkiapayWebhookSchema } from '@/lib/schemas';
+import {
+  confirmStorePaymentByRow,
+  findStorePaymentForWebhook,
+  loadStorePaymentCredential,
+  markStorePaymentFailed,
+} from '@/lib/store-payments';
 
 export async function POST(request: Request) {
-  if (!kkiapayConfigured()) {
-    return NextResponse.json({ error: 'Kkiapay non configuré' }, { status: 503 });
-  }
-
-  const signature = request.headers.get('x-kkiapay-secret');
-  if (!verifyKkiapayWebhookSecret(signature)) {
-    return NextResponse.json({ error: 'Signature webhook invalide' }, { status: 401 });
-  }
-
   let raw: unknown;
   try {
     raw = await request.json();
@@ -38,6 +36,47 @@ export async function POST(request: Request) {
 
   if (!kTxId || (!partnerId && event !== '')) {
     return NextResponse.json({ error: 'transactionId ou partnerId manquant' }, { status: 400 });
+  }
+
+  // --- Commandes boutique (paiements encaissés directement par les vendeurs)
+  // Le `partnerId` d'une commande boutique est le jeton de `order_payments`.
+  // Si la boutique a configuré un secret webhook, il est vérifié ; sinon la
+  // vérification serveur auprès de l'API fait foi (montant + statut).
+  try {
+    const storePayment = await findStorePaymentForWebhook('kkiapay', {
+      token: partnerId || null,
+      reference: kTxId,
+    });
+    if (storePayment) {
+      const secrets = await loadStorePaymentCredential(storePayment.storeId, 'kkiapay');
+      const storeWebhookSecret = secrets?.webhookSecret;
+      if (storeWebhookSecret) {
+        const signature = request.headers.get('x-kkiapay-secret');
+        const expected = Buffer.from(storeWebhookSecret);
+        const received = Buffer.from(String(signature || ''));
+        if (!signature || expected.length !== received.length || !timingSafeEqual(expected, received)) {
+          return NextResponse.json({ error: 'Signature webhook invalide' }, { status: 401 });
+        }
+      }
+      if (isSuccess) {
+        await confirmStorePaymentByRow(storePayment, kTxId);
+      } else if (storePayment.status === 'PENDING') {
+        await markStorePaymentFailed(storePayment.id, 'Paiement Kkiapay refusé.');
+      }
+      return NextResponse.json({ ok: true, status: 'store_payment_processed' });
+    }
+  } catch (storeErr) {
+    console.error('[Kkiapay webhook] Erreur rapprochement commande boutique:', storeErr);
+  }
+
+  // --- Abonnements (guichet de la plateforme)
+  if (!kkiapayConfigured()) {
+    return NextResponse.json({ error: 'Kkiapay non configuré' }, { status: 503 });
+  }
+
+  const signature = request.headers.get('x-kkiapay-secret');
+  if (!verifyKkiapayWebhookSecret(signature)) {
+    return NextResponse.json({ error: 'Signature webhook invalide' }, { status: 401 });
   }
 
   try {

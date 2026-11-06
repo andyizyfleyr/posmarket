@@ -1,5 +1,6 @@
 import React from "react";
-import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe } from "lucide-react";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe, Phone, Smartphone } from "lucide-react";
+import { StorePaymentPanel, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -112,6 +113,12 @@ export interface CartCheckoutViewBundle {
   completedOrderTotal: number;
   /** Appel serveur de commande en cours : pilote le spinner de confirmation. */
   isCheckoutSubmitting: boolean;
+  /** Moyens de paiement activés par boutique (un choix par boutique). */
+  storePaymentMethods: Record<string, Array<{ provider: string; label: string; isOnline: boolean; config: { instructions?: string; ussdCode?: string } }>>;
+  storePaymentSelections: Record<string, string>;
+  setStorePaymentSelection: (storeId: string, provider: string) => void;
+  storePayments: StoreCheckoutPaymentView[];
+  setStorePayments: (payments: StoreCheckoutPaymentView[]) => void;
 }
 
 export function CartCheckoutView(props: CartCheckoutViewBundle) {
@@ -122,7 +129,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     keyboardOffset, isWhatsAppLoading, stores,
     setCheckoutStage, setCompletedOrderStores, setCompletedOrderItems,
     setCompletedOrderTotal, setExpandedCartStores, setSwipeState, setCustomerInfo,
-    setPaymentMethod, setIsCheckoutTransitioning,
+    setIsCheckoutTransitioning,
     setIsWhatsAppLoading,
     safeNavigate, localNotify, formatCurrency,
     getEffectiveItemPrice, handleCheckoutSubmit, handleStageChange, removeFromCart,
@@ -131,6 +138,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     retailCartTotal, wholesaleSavings, discountAmount, cartTotal,
     completedOrderStores, completedOrderItems, completedOrderTotal,
     isCheckoutSubmitting,
+    storePaymentMethods, storePaymentSelections, setStorePaymentSelection,
+    storePayments, setStorePayments,
   } = props;
 
   // La verticale se déduit du panier : les produits sont désormais forcés au
@@ -222,6 +231,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   setCompletedOrderStores([]);
                   setCompletedOrderItems([]);
                   setCompletedOrderTotal(0);
+                  setStorePayments([]);
                 },
               });
             }}
@@ -714,24 +724,79 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 )}
               {checkoutStage === "payment" && (
                 <div className="space-y-4   ">
-                  <div className="grid gap-4">
-                    <div
-                      onClick={() => setPaymentMethod("cod")}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === "cod" ? "border-brand bg-orange-50" : "border-gray-100 bg-white"}`}
-                    >
-                      <Truck
-                        size={24}
-                        className={
-                          paymentMethod === "cod"
-                            ? "text-brand"
-                            : "text-gray-600"
-                        }
-                      />
-                      <div className="mt-2 font-bold text-sm text-gray-900">
-                        Paiement à la livraison
+                  {Array.from(
+                    new Set(
+                      cart
+                        .filter((i) => i.product?.storeId)
+                        .map((item) => item.product.storeId),
+                    ),
+                  ).map((storeId) => {
+                    const storeObj = stores.find((s) => s.id === storeId);
+                    const storeName =
+                      cart.find((i) => i.product?.storeId === storeId)?.product?.storeName ||
+                      storeObj?.name ||
+                      "Boutique";
+                    const methods = storePaymentMethods[storeId] ||
+                      [{ provider: "cod", label: "Paiement à la livraison", isOnline: false, config: {} }];
+                    const selected = storePaymentSelections[storeId] || methods[0]?.provider || "cod";
+                    return (
+                      <div key={storeId} className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Store size={14} className="text-brand" />
+                          <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
+                            Paiement · {storeName}
+                          </h3>
+                        </div>
+                        <div className="grid gap-3">
+                          {methods.map((method) => {
+                            const isSelected = selected === method.provider;
+                            const Icon =
+                              method.provider === "cod"
+                                ? Truck
+                                : method.provider === "ussd"
+                                  ? Phone
+                                  : method.provider === "saspay"
+                                    ? CreditCard
+                                    : Smartphone;
+                            return (
+                              <div
+                                key={method.provider}
+                                onClick={() => setStorePaymentSelection(storeId, method.provider)}
+                                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50" : "border-gray-100 bg-white hover:border-gray-200"}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Icon
+                                    size={22}
+                                    className={isSelected ? "text-brand" : "text-gray-600"}
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-sm text-gray-900">
+                                      {method.label}
+                                    </div>
+                                    {method.provider === "ussd" && method.config.ussdCode && (
+                                      <div className="text-[11px] font-semibold text-gray-500">
+                                        Composez : {method.config.ussdCode}
+                                      </div>
+                                    )}
+                                    {method.isOnline && (
+                                      <div className="text-[11px] font-semibold text-gray-500">
+                                        Vous paierez en ligne après la confirmation de commande.
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`ml-auto w-5 h-5 rounded-full border-2 grid place-items-center shrink-0 ${isSelected ? "border-brand bg-brand text-white" : "border-gray-200"}`}
+                                  >
+                                    {isSelected && <Check size={12} />}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </form>
@@ -759,6 +824,13 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 <br className="hidden md:block" />
                 Le vendeur va traiter votre commande rapidement.
               </p>
+
+              <StorePaymentPanel
+                payments={storePayments}
+                customer={customerInfo}
+                formatCurrency={formatCurrency}
+                notify={localNotify}
+              />
 
               <div className="w-full flex flex-col items-center">
                 <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest text-center mb-3">
@@ -802,7 +874,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                   : "";
                                 return `${item.quantity}x ${item.name}${variant} - ${formatCurrency(item.total ?? item.price * item.quantity)}`;
                               })
-                              .join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${paymentMethod === "cod" ? "Especes" : "Carte"}`;
+                              .join("\n")}\n\nTotal: ${formatCurrency(completedOrderTotal)}\nMode de paiement: ${storePayments[0]?.providerLabel || (paymentMethod === "cod" ? "Especes" : "Carte")}`;
                             const waUrl = `https://wa.me/${storePhone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`;
                             setIsWhatsAppLoading(true);
                             window.open(waUrl, "_blank");

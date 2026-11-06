@@ -8,6 +8,7 @@ import {
   productStats,
   orders,
   orderItems,
+  orderPayments,
   customers,
   coupons,
   checkoutIdempotency,
@@ -22,6 +23,19 @@ import { generateProductSlug } from '@/utils/slug'
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale'
 import { getClientIp, rateLimit, rateLimitMessage } from '@/lib/rate-limit'
 import { checkoutActionSchema } from '@/lib/schemas'
+import {
+  createOrderPaymentToken,
+  describeStorePaymentForClient,
+  getEnabledStorePaymentMethods,
+  initializeStorePayment,
+  isOnlineStorePayment,
+  listStorePaymentsForOrders,
+  normalizeStorePaymentProvider,
+  orderPaymentMethodLabel,
+  STORE_PAYMENT_LABELS,
+  type StorePaymentClientView,
+  type StorePaymentProvider,
+} from '@/lib/store-payments'
 import type { Product, ProductOption, WholesaleTier } from '@/types'
 
 type CheckoutItemInput = {
@@ -86,7 +100,9 @@ type StoreCheckout = {
   shipping: number
   total: number
   promoCode: string | null
-  paymentMethod: 'ESPECES'
+  paymentProvider: StorePaymentProvider
+  paymentToken: string
+  paymentId: string
   customerCreated: boolean
 }
 
@@ -119,7 +135,6 @@ class CheckoutValidationError extends Error {}
 const MAX_STORES = 10
 const MAX_ITEMS = 100
 const MAX_QUANTITY = 999
-const ALLOWED_PAYMENT_METHODS = new Set(['ESPECES'])
 
 const roundMoney = (value: number): number =>
   Math.round((Number(value) + Number.EPSILON) * 100) / 100
@@ -239,6 +254,14 @@ const loadCheckoutOrders = async (orderIds: string[]): Promise<CheckoutOrderResp
     }))
 }
 
+const loadCheckoutPayments = async (orderIds: string[]): Promise<StorePaymentClientView[]> => {
+  if (orderIds.length === 0) return []
+  const rows = await listStorePaymentsForOrders(orderIds)
+  const orderIndex = new Map(orderIds.map((id, index) => [id, index]))
+  rows.sort((a, b) => (orderIndex.get(a.orderId) ?? 0) - (orderIndex.get(b.orderId) ?? 0))
+  return Promise.all(rows.map((row) => describeStorePaymentForClient(row)))
+}
+
 export async function submitCheckoutAction(
   order: Record<string, CheckoutStoreOrder> = {},
   customerData?: CheckoutCustomer,
@@ -320,6 +343,7 @@ export async function submitCheckoutAction(
             orderId: replayed[0],
             orderIds: replayed,
             orders: await loadCheckoutOrders(replayed),
+            payments: await loadCheckoutPayments(replayed),
             // Même forme que la réponse nominale : le rejeu d'une clé
             // d'idempotence doit permettre au mobile d'enregistrer le jeton
             // push de l'invité, comme la première réponse.
@@ -357,9 +381,9 @@ export async function submitCheckoutAction(
       const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
       if (items.length === 0) continue
       totalItemCount += items.length
-      const paymentMethod = String(storeOrder.paymentMethod || 'ESPECES').toUpperCase()
-      if (!ALLOWED_PAYMENT_METHODS.has(paymentMethod)) {
-        reject('Mode de paiement non disponible. Le paiement à la livraison est requis.')
+      const paymentMethod = normalizeStorePaymentProvider(storeOrder.paymentMethod)
+      if (!paymentMethod) {
+        reject('Mode de paiement non disponible pour cette boutique.')
       }
     }
     if (totalItemCount === 0) reject('Votre panier est vide.')
@@ -379,6 +403,26 @@ export async function submitCheckoutAction(
       .from(stores)
       .where(inArray(stores.id, storeIds))
     const storeMap = new Map(storeRows.map((row) => [row.id, row]))
+
+    // Moyens réellement activés par chaque boutique. Le client ne peut choisir
+    // qu'un moyen présent dans cette liste ; une boutique non configurée garde
+    // le paiement à la livraison.
+    const enabledMethodsByStore = await getEnabledStorePaymentMethods(storeIds)
+    const paymentSelection = new Map<string, StorePaymentProvider>()
+    for (const [storeId, storeOrder] of storeEntries) {
+      const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
+      if (items.length === 0) continue
+      const requested = normalizeStorePaymentProvider(storeOrder.paymentMethod) || 'cod'
+      const available = enabledMethodsByStore[storeId] || []
+      if (!available.some((method) => method.provider === requested)) {
+        reject(
+          `Le moyen de paiement choisi n'est pas disponible pour « ${
+            storeMap.get(storeId)?.name || 'cette boutique'
+          } ».`,
+        )
+      }
+      paymentSelection.set(storeId, requested)
+    }
 
     for (const storeId of storeIds) {
       const store = storeMap.get(storeId)
@@ -684,7 +728,9 @@ export async function submitCheckoutAction(
         shipping,
         total,
         promoCode: promoLabel,
-        paymentMethod: 'ESPECES',
+        paymentProvider: paymentSelection.get(storeId) || 'cod',
+        paymentToken: createOrderPaymentToken(),
+        paymentId: randomUUID(),
         customerCreated: Boolean(phone) && !existingCustomer,
       })
     }
@@ -925,13 +971,29 @@ export async function submitCheckoutAction(
           sql`INSERT INTO orders (
                 id, store_id, customer_id, buyer_user_id, buyer_email, buyer_phone,
                 total, subtotal, discount_amount, promo_code, payment_method,
+                payment_status, payment_provider,
                 status, type, date
               ) VALUES (
                 ${sc.orderId}::uuid, ${sc.storeId}::uuid, ${customerIdSql}, ${user?.id || null}::uuid, ${buyerEmail}, ${buyerPhone},
-                ${sc.total}, ${sc.subtotal}, ${sc.discount}, ${sc.promoCode}, ${sc.paymentMethod},
+                ${sc.total}, ${sc.subtotal}, ${sc.discount}, ${sc.promoCode}, ${orderPaymentMethodLabel(sc.paymentProvider)},
+                'PENDING', ${sc.paymentProvider},
                 'PENDING', 'ONLINE', ${new Date()}
               )`,
         ),
+      )
+
+      batch.push(
+        db.insert(orderPayments).values({
+          id: sc.paymentId,
+          orderId: sc.orderId,
+          storeId: sc.storeId,
+          provider: sc.paymentProvider,
+          amount: String(roundMoney(sc.total)),
+          currency: 'XOF',
+          status: 'PENDING',
+          token: sc.paymentToken,
+          updatedAt: new Date(),
+        }),
       )
 
       if (sc.items.length > 0) {
@@ -1001,6 +1063,23 @@ export async function submitCheckoutAction(
     await db.batch(batch as [BatchItem<'pg'>, ...BatchItem<'pg'>[]])
     completed = true
 
+    // --- Ouverture des guichets fournisseurs (après le commit) -----------
+    // Kkiapay/FedaPay s'ouvrent dans le navigateur avec leur clé publique ;
+    // SasPay exige la création d'une session hébergée côté serveur.
+    const paymentErrors = new Map<string, string>()
+    for (const sc of storeCheckouts) {
+      if (!isOnlineStorePayment(sc.paymentProvider)) continue
+      const init = await initializeStorePayment({
+        paymentId: sc.paymentId,
+        orderId: sc.orderId,
+        storeId: sc.storeId,
+        provider: sc.paymentProvider,
+        amount: sc.total,
+        customer: { name: customerName, email: buyerEmail, phone: buyerPhone },
+      })
+      if (!init.ok && init.error) paymentErrors.set(sc.paymentId, init.error)
+    }
+
     // --- Notifications (best-effort, après le commit) ---------------------
     for (const sc of storeCheckouts) {
       try {
@@ -1008,7 +1087,7 @@ export async function submitCheckoutAction(
         const shortId = sc.orderId.slice(0, 8).toUpperCase()
         const totalStr = new Intl.NumberFormat('fr-FR').format(sc.total || 0)
         const emailProducts = await orderEmailProducts(sc.orderId)
-        const paymentLabel = 'Espèces'
+        const paymentLabel = STORE_PAYMENT_LABELS[sc.paymentProvider]
 
         if (storeInfo) {
           await notify({
@@ -1025,7 +1104,7 @@ export async function submitCheckoutAction(
               buyer: customerName,
               phone: phone || undefined,
               total: totalStr,
-              payment: 'ESPECES',
+              payment: orderPaymentMethodLabel(sc.paymentProvider),
               paymentLabel,
               items: emailProducts.length || undefined,
               store: storeInfo?.name || '',
@@ -1067,7 +1146,7 @@ export async function submitCheckoutAction(
               store: sc.storeName,
               storeSlug: storeInfo?.slug || '',
               total: totalStr,
-              payment: 'ESPECES',
+              payment: orderPaymentMethodLabel(sc.paymentProvider),
               paymentLabel,
               items: emailProducts.length || undefined,
               products: emailProducts,
@@ -1157,6 +1236,17 @@ export async function submitCheckoutAction(
       orderId: createdOrderIds[0],
       orderIds: createdOrderIds,
       orders: await loadCheckoutOrders(createdOrderIds),
+      payments: await (async () => {
+        const payments = await loadCheckoutPayments(createdOrderIds)
+        for (const payment of payments) {
+          const initError = paymentErrors.get(payment.id)
+          if (initError) {
+            payment.status = 'FAILED'
+            payment.error = initError
+          }
+        }
+        return payments
+      })(),
       // Coordonnées réellement associées à la commande. Le mobile s'en sert
       // pour lier le jeton push de l'invité : sans ce champ, il lisait
       // `response.customer` (inexistant) et n'enregistrait jamais le jeton,
