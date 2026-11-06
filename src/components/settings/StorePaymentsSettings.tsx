@@ -32,11 +32,9 @@ interface Props {
   notify?: (message: string, type: NotificationType, title?: string) => void;
 }
 
-/** Les paiements boutiques sont en production uniquement (pas de sandbox). */
-const PAYMENT_ENV = 'live';
-
 type Draft = {
   enabled: boolean;
+  env: 'sandbox' | 'live';
   publicKey: string;
   instructions: string;
   privateKey: string;
@@ -81,6 +79,7 @@ const PROVIDER_ORDER: StorePaymentProvider[] = ['cod', 'kkiapay', 'fedapay'];
 function draftFromView(view: StorePaymentMethodView): Draft {
   return {
     enabled: view.enabled,
+    env: view.config.env === 'sandbox' ? 'sandbox' : 'live',
     publicKey: view.config.publicKey || '',
     instructions: view.config.instructions || '',
     privateKey: '',
@@ -103,7 +102,7 @@ const emptyView = (provider: StorePaymentProvider): StorePaymentMethodView => ({
   provider,
   label: DEFAULT_LABELS[provider] || provider,
   enabled: false,
-  config: { env: PAYMENT_ENV },
+  config: { env: 'live' },
   hasSecret: false,
   keyHint: null,
 });
@@ -189,7 +188,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
       if (draft.webhookSecret.trim()) secrets.webhookSecret = draft.webhookSecret.trim();
 
       const config: PublicStorePaymentConfig = {
-        env: PAYMENT_ENV,
+        env: draft.env === 'sandbox' ? 'sandbox' : 'live',
       };
       if (draft.publicKey.trim()) config.publicKey = draft.publicKey.trim();
       if (draft.instructions.trim()) config.instructions = draft.instructions.trim();
@@ -252,7 +251,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         <div className="flex items-center gap-2 shrink-0 pl-11 sm:pl-0">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-[9px] md:text-[10px] font-bold text-brand uppercase tracking-wider">
             <ShieldCheck size={12} />
-            Production uniquement
+            Production par défaut
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-[9px] md:text-[10px] font-bold text-gray-600 uppercase tracking-wider">
             {enabledCount} actif{enabledCount > 1 ? 's' : ''}
@@ -290,6 +289,11 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-[11px] md:text-[13px] font-bold text-gray-900 truncate">{method.label}</p>
+                  {method.config.env === 'sandbox' && (
+                    <span className="inline-flex items-center gap-1 text-[8px] md:text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-1.5 py-0.5">
+                      Sandbox
+                    </span>
+                  )}
                   {isActive ? (
                     <span className="inline-flex items-center gap-1 text-[8px] md:text-[9px] font-bold uppercase tracking-wider text-green-700 bg-green-100 border border-green-200 rounded-full px-1.5 py-0.5">
                       <CheckCircle2 size={9} /> Actif
@@ -372,6 +376,39 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                 </span>
               </label>
 
+              {activeDraft.enabled && isOnline && (
+                <div className="grid grid-cols-1 gap-3 md:gap-4">
+                  <div>
+                    <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-1.5">Mode</label>
+                    <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-gray-100 border border-gray-100">
+                      {(['live', 'sandbox'] as const).map((mode) => {
+                        const selected = (activeDraft.env || 'live') === mode;
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => update(openProvider, { env: mode })}
+                            className={`py-2 rounded-xl text-[10px] md:text-[11px] font-bold transition-all active:scale-95 ${
+                              selected
+                                ? mode === 'live'
+                                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                                  : 'bg-amber-400 text-amber-950 shadow-sm border border-amber-500'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          >
+                            {mode === 'live' ? 'Production' : 'Sandbox (tests)'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 text-[9px] md:text-[10px] font-semibold leading-snug text-gray-400">
+                      {activeDraft.env === 'sandbox'
+                        ? 'Aucune vraie transaction. Clés de test requises ; clés live refusées.'
+                        : 'Encaissements réels. Clés live requises ; clés de test refusées.'}
+                    </p>
+                  </div>
+                </div>
+              )}
               {activeDraft.enabled && (
                 <div className="grid grid-cols-1 gap-3 md:gap-4">
                   {needsPublicKey && (
@@ -381,7 +418,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                         className={inputCls}
                         value={activeDraft.publicKey}
                         onChange={(e) => update(openProvider, { publicKey: e.target.value })}
-                        placeholder="pk_live_…"
+                        placeholder={activeDraft.env === 'sandbox' ? 'pk_test_…' : 'pk_live_…'}
                         autoComplete="off"
                       />
                     </div>
@@ -399,7 +436,11 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                         className={inputCls}
                         value={activeDraft[field.key] || ''}
                         onChange={(e) => update(openProvider, { [field.key]: e.target.value } as Partial<Draft>)}
-                        placeholder={activeMethod.hasSecret ? 'Laisser vide pour conserver' : field.placeholder}
+                        placeholder={activeMethod.hasSecret
+                          ? 'Laisser vide pour conserver'
+                          : activeDraft.env === 'sandbox'
+                            ? field.placeholder.replace('_live_', '_test_')
+                            : field.placeholder}
                         autoComplete="off"
                       />
                     </div>
@@ -414,7 +455,11 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                         className={inputCls}
                         value={activeDraft.webhookSecret}
                         onChange={(e) => update(openProvider, { webhookSecret: e.target.value })}
-                        placeholder={activeMethod.hasSecret ? 'Laisser vide pour conserver' : 'wh_live_…'}
+                        placeholder={activeMethod.hasSecret
+                          ? 'Laisser vide pour conserver'
+                          : activeDraft.env === 'sandbox'
+                            ? 'wh_test_…'
+                            : 'wh_live_…'}
                         autoComplete="off"
                       />
                     </div>

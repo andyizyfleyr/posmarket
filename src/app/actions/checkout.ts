@@ -1425,6 +1425,7 @@ export async function quoteCheckoutAction(
       provider: StorePaymentProvider
       amount: number
       publicKey: string
+      env: 'sandbox' | 'live'
     }> = []
     for (const sc of storeCheckouts) {
       // Uniquement les moyens facturés AVANT la commande, avec widget
@@ -1454,6 +1455,7 @@ export async function quoteCheckoutAction(
         provider: sc.paymentProvider,
         amount: Math.round(sc.total),
         publicKey: init.publicKey,
+        env: init.env === 'sandbox' ? 'sandbox' : 'live',
       })
     }
     return { success: true as const, stores: storesQuote, partnerId, error: undefined }

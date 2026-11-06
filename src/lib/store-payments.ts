@@ -61,8 +61,11 @@ export type PublicStorePaymentConfig = {
   instructions?: string;
   ussdCode?: string;
   publicKey?: string;
-  /** Toujours « live » : les paiements boutiques sont en production uniquement. */
-  env?: 'live';
+  /**
+   * Environnement choisi par la boutique dans sa configuration
+   * (« live » par défaut, « sandbox » au choix pour les tests).
+   */
+  env?: 'sandbox' | 'live';
 };
 
 export type StorePaymentSecretPayload = {
@@ -91,17 +94,33 @@ export type CheckoutPaymentMethod = {
 const PROVIDER_SET = new Set<string>(STORE_PAYMENT_PROVIDERS);
 
 /**
- * Les paiements boutiques fonctionnent en production uniquement : toute
- * clé qui ressemble à une clé de test / sandbox est refusée. Le test porte
- * sur le mot entier (délimité par des non-alphanumériques ou des bords)
- * pour ne pas rejeter une clé aléatoire contenant « test » par hasard de
- * façon trop agressive, tout en attrapant pk_test_…, sk_test_…,
+ * En mode production (défaut), toute clé qui ressemble à une clé de test /
+ * sandbox est refusée. Le test porte sur le mot entier (délimité par des
+ * non-alphanumériques ou des bords) pour ne pas rejeter une clé aléatoire
+ * contenant « test » par hasard de façon trop agressive, tout en attrapant
+ * pk_test_…, sk_test_…, sk_sandbox_…, my_demo_key, etc.
  * sk_sandbox_…, my_demo_key, etc.
  */
 export function looksLikeSandboxKey(value: unknown): boolean {
   const v = String(value || '').trim().toLowerCase();
   if (!v) return false;
   return /(^|[^a-z0-9])(test|sandbox|demo)([^a-z]|$)/.test(v);
+}
+
+/**
+ * Miroir de `looksLikeSandboxKey` pour le mode Sandbox : une clé qui porte
+ * le marqueur « live » (pk_live_…, sk_live_…, wh_live_…) y est refusée afin
+ * qu'aucune vraie transaction ne parte avec une configuration de test.
+ */
+export function looksLikeLiveKey(value: unknown): boolean {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return false;
+  return /(^|[^a-z0-9])live([^a-z]|$)/.test(v);
+}
+
+/** Environnement normalisé d'une configuration publique (défaut : live). */
+export function publicConfigEnv(config: { env?: 'sandbox' | 'live' } | null | undefined): 'sandbox' | 'live' {
+  return config?.env === 'sandbox' ? 'sandbox' : 'live';
 }
 
 export function isStorePaymentProvider(value: unknown): value is StorePaymentProvider {
@@ -135,9 +154,9 @@ export function paymentMethodDisplayLabel(provider: string): string {
 }
 
 /**
- * Assainit la configuration publique d'un moyen de paiement. Les paiements
- * boutiques sont en production uniquement : `env` est toujours forcé à
- * « live », quelle que soit la valeur historique stockée en base.
+ * Assainit la configuration publique d'un moyen de paiement. `env` est
+ * conservé tel que choisi par la boutique ; toute valeur absente ou inconnue
+ * retombe sur « live » (production).
  */
 export function pickPublicConfig(raw: unknown): PublicStorePaymentConfig {
   const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
@@ -148,7 +167,7 @@ export function pickPublicConfig(raw: unknown): PublicStorePaymentConfig {
   if (instructions) config.instructions = instructions.slice(0, 500);
   if (ussdCode) config.ussdCode = ussdCode.slice(0, 80);
   if (publicKey) config.publicKey = publicKey.slice(0, 200);
-  config.env = 'live';
+  config.env = String(value.env || '').trim().toLowerCase() === 'sandbox' ? 'sandbox' : 'live';
   return config;
 }
 
@@ -308,10 +327,11 @@ export async function saveStorePaymentMethod(
         return { success: false, error: 'Renseignez la clé secrète FedaPay.' };
       }
     }
-    // Production uniquement : refuse toute clé ressemblant à une clé de test,
-    // qu'elle soit nouvellement fournie ou conservée depuis un enregistrement
-    // antérieur — y compris la clé publique (elle ouvre le widget).
+    // Cohérence mode ↔ clés : en production, toute clé ressemblant à une
+    // clé de test est refusée ; en Sandbox, toute clé live est refusée.
+    // S'applique aussi aux clés conservées depuis un enregistrement antérieur.
     if (isOnlineStorePayment(provider)) {
+      const env = publicConfigEnv(config);
       const candidates: Array<[string, string | undefined]> = [
         ['clé publique', config.publicKey],
         ['clé privée', mergedSecrets.privateKey],
@@ -320,10 +340,17 @@ export async function saveStorePaymentMethod(
         ['secret webhook', mergedSecrets.webhookSecret],
       ];
       for (const [label, value] of candidates) {
-        if (value && looksLikeSandboxKey(value)) {
+        if (!value) continue;
+        if (env === 'live' && looksLikeSandboxKey(value)) {
           return {
             success: false,
-            error: `La ${label} ressemble à une clé de test. Les paiements boutiques fonctionnent en mode production uniquement ; utilisez vos clés live.`,
+            error: `La ${label} ressemble à une clé de test. Les paiements boutiques fonctionnent en mode production par défaut ; utilisez vos clés live (ou basculez en Sandbox pour tester).`,
+          };
+        }
+        if (env === 'sandbox' && looksLikeLiveKey(value)) {
+          return {
+            success: false,
+            error: `La ${label} ressemble à une clé de production. En mode Sandbox, utilisez vos clés de test.`,
           };
         }
       }
@@ -430,18 +457,26 @@ export async function initializeStorePayment(input: {
       .limit(1);
     const config = pickPublicConfig(row?.config);
     const secrets = await loadStorePaymentCredential(input.storeId, input.provider);
+    const env = publicConfigEnv(config);
     if (!config.publicKey || !secrets) {
       return { ok: false, error: 'Le paiement en ligne de cette boutique est mal configuré.' };
     }
-    // Production uniquement : les clés de test, même enregistrées par erreur,
-    // ne peuvent pas ouvrir de widget — on refuse plutôt que d'encaisser à tort.
-    if (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey)) {
+    // Cohérence mode ↔ clés : une boutique en production refuse les clés de
+    // test (aucun widget ne s'ouvre), et une boutique en Sandbox refuse les
+    // clés live (aucune vraie transaction ne part par erreur).
+    if (env === 'live' && (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey))) {
       return {
         ok: false,
-        error: 'Les clés de cette boutique ressemblent à des clés de test. Le mode production est requis.',
+        error: 'Les clés de cette boutique ressemblent à des clés de test. Le mode production est requis (ou basculez la boutique en Sandbox pour tester).',
       };
     }
-    return { ok: true, publicKey: config.publicKey, env: 'live' };
+    if (env === 'sandbox' && (looksLikeLiveKey(config.publicKey) || Object.values(secrets).some(looksLikeLiveKey))) {
+      return {
+        ok: false,
+        error: 'Les clés de cette boutique ressemblent à des clés de production. En mode Sandbox, utilisez vos clés de test.',
+      };
+    }
+    return { ok: true, publicKey: config.publicKey, env };
   }
 
   // SasPay : le guichet est hébergé, il faut créer une session côté serveur.
@@ -492,16 +527,20 @@ type KkiapayStatusResponse = {
   reason?: string;
 };
 
-// Production uniquement : l'API sandbox Kkiapay n'est jamais utilisée pour
-// les encaissements boutiques.
-const KKIAPAY_API_BASE = 'https://api.kkiapay.me';
+// Hôtes fournisseurs selon l'environnement choisi par la boutique.
+const KKIAPAY_API_BASE_LIVE = 'https://api.kkiapay.me';
+const KKIAPAY_API_BASE_SANDBOX = 'https://api-sandbox.kkiapay.me';
+const FEDAPAY_API_BASE_LIVE = 'https://api.fedapay.com/v1';
+const FEDAPAY_API_BASE_SANDBOX = 'https://sandbox-api.fedapay.com/v1';
 
 async function verifyKkiapayWithCredentials(
   secrets: StorePaymentSecretPayload,
   publicKey: string,
   transactionId: string,
+  env: 'sandbox' | 'live' = 'live',
 ): Promise<KkiapayStatusResponse> {
-  const res = await fetch(`${KKIAPAY_API_BASE}/api/v1/transactions/status`, {
+  const apiBase = env === 'sandbox' ? KKIAPAY_API_BASE_SANDBOX : KKIAPAY_API_BASE_LIVE;
+  const res = await fetch(`${apiBase}/api/v1/transactions/status`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -537,11 +576,11 @@ type FedapayStatusResponse = {
 async function verifyFedapayWithCredentials(
   secrets: StorePaymentSecretPayload,
   transactionId: string,
+  env: 'sandbox' | 'live' = 'live',
 ): Promise<FedapayStatusResponse> {
   const secret = secrets.secretKey || '';
   if (!secret) throw new Error('Clé secrète FedaPay absente.');
-  // Production uniquement : l'API sandbox FedaPay n'est jamais utilisée.
-  const base = 'https://api.fedapay.com/v1';
+  const base = env === 'sandbox' ? FEDAPAY_API_BASE_SANDBOX : FEDAPAY_API_BASE_LIVE;
   const res = await fetch(`${base}/transactions/${encodeURIComponent(transactionId)}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
@@ -662,10 +701,14 @@ export async function verifyPrepaidStorePayment(input: {
     if (!config.publicKey || !secrets) {
       return { ok: false, error: 'Le paiement Kkiapay de cette boutique est indisponible.' };
     }
-    if (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey)) {
+    const env = publicConfigEnv(config);
+    if (env === 'live' && (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey))) {
       return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de test.' };
     }
-    const tx = await verifyKkiapayWithCredentials(secrets, config.publicKey, reference);
+    if (env === 'sandbox' && (looksLikeLiveKey(config.publicKey) || Object.values(secrets).some(looksLikeLiveKey))) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de production.' };
+    }
+    const tx = await verifyKkiapayWithCredentials(secrets, config.publicKey, reference, env);
     if (String(tx.status || '').toUpperCase() !== 'SUCCESS') {
       return { ok: false, error: tx.failureMessage || tx.reason || 'Paiement non abouti.' };
     }
@@ -679,13 +722,18 @@ export async function verifyPrepaidStorePayment(input: {
   }
 
   if (provider === 'fedapay') {
+    const { config } = await loadPaymentMethodConfig(input.storeId, provider);
+    const env = publicConfigEnv(config);
     if (!secrets?.secretKey) {
       return { ok: false, error: 'Le paiement FedaPay de cette boutique est indisponible.' };
     }
-    if (Object.values(secrets).some(looksLikeSandboxKey)) {
+    if (env === 'live' && Object.values(secrets).some(looksLikeSandboxKey)) {
       return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de test.' };
     }
-    const tx = await verifyFedapayWithCredentials(secrets, reference);
+    if (env === 'sandbox' && (looksLikeLiveKey(secrets.secretKey) || looksLikeLiveKey(config.publicKey))) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de production.' };
+    }
+    const tx = await verifyFedapayWithCredentials(secrets, reference, env);
     const status = String(tx.status || '').toLowerCase();
     if (!['approved', 'success', 'transferred', 'completed'].includes(status)) {
       return { ok: false, error: `Paiement non abouti (statut : ${status || 'inconnu'}).` };
@@ -742,6 +790,7 @@ export async function confirmStorePayment(input: {
       const reference = String(input.reference || '').trim();
       if (!reference) return { success: false, error: 'Référence Kkiapay manquante.' };
       const { config } = await loadPaymentMethodConfig(row.storeId, provider);
+      const env = publicConfigEnv(config);
       const secrets = await loadStorePaymentCredential(row.storeId, provider);
       if (!config.publicKey || !secrets) {
         return { success: false, error: 'Le paiement Kkiapay de cette boutique est indisponible.' };
@@ -750,6 +799,7 @@ export async function confirmStorePayment(input: {
         secrets,
         config.publicKey,
         reference,
+        env,
       );
       if (String(tx.status || '').toUpperCase() !== 'SUCCESS') {
         return { success: false, error: tx.failureMessage || tx.reason || 'Paiement non abouti.' };
@@ -767,11 +817,13 @@ export async function confirmStorePayment(input: {
     if (provider === 'fedapay') {
       const reference = String(input.reference || '').trim();
       if (!reference) return { success: false, error: 'Référence FedaPay manquante.' };
+      const { config } = await loadPaymentMethodConfig(row.storeId, provider);
+      const env = publicConfigEnv(config);
       const secrets = await loadStorePaymentCredential(row.storeId, provider);
       if (!secrets?.secretKey) {
         return { success: false, error: 'Le paiement FedaPay de cette boutique est indisponible.' };
       }
-      const tx = await verifyFedapayWithCredentials(secrets, reference);
+      const tx = await verifyFedapayWithCredentials(secrets, reference, env);
       const status = String(tx.status || '').toLowerCase();
       if (!['approved', 'success', 'transferred', 'completed'].includes(status)) {
         return { success: false, error: `Paiement non abouti (statut : ${status || 'inconnu'}).` };
@@ -913,7 +965,7 @@ export type StorePaymentClientView = {
   token: string;
   checkoutUrl: string | null;
   publicKey: string | null;
-  env: 'live';
+  env: 'sandbox' | 'live';
   ussdCode: string | null;
   instructions: string | null;
   reference: string | null;
@@ -926,8 +978,7 @@ export async function describeStorePaymentForClient(
 ): Promise<StorePaymentClientView> {
   const provider = isStorePaymentProvider(row.provider) ? row.provider : 'cod';
   const { config } = await loadPaymentMethodConfig(row.storeId, provider);
-  // Production uniquement : l'environnement rapporté est toujours « live ».
-  const env = 'live';
+  const env = publicConfigEnv(config);
   return {
     id: row.id,
     orderId: row.orderId,

@@ -12,10 +12,12 @@ import { fileURLToPath } from 'node:url';
  * les règles suivantes, décrites dans la feature « moyens de paiement par
  * boutique » :
  *
- * - les clés ressemblant à des clés de test / sandbox sont refusées, que le
- *   vendeur les saisisse ou les conserve depuis un enregistrement antérieur ;
- * - la configuration publique est toujours rapportée / persistée en « live »,
- *   même si la base contient historiquement `env: 'sandbox'` ;
+ * - en production (défaut), les clés ressemblant à des clés de test /
+ *   sandbox sont refusées, que le vendeur les saisisse ou les conserve depuis
+ *   un enregistrement antérieur ;
+ * - en Sandbox (au choix, par boutique), les clés live sont refusées, la
+ *   configuration publique est persistée en « sandbox » et le widget / la
+ *   vérification API basculent sur les hôtes sandbox ;
  * - le rapprochement webhook et la confirmation serveur refusent de démarrer
  *   sans secret en place ;
  * - la commande hors ligne (COD / USSD) est marquée collectée quand le
@@ -196,11 +198,13 @@ test('looksLikeSandboxKey détecte les clés de test et ignore les clés live', 
   assert.equal(looksLikeSandboxKey(undefined), false);
 });
 
-test('pickPublicConfig rapporte toujours env=live, même si la base contient sandbox', async () => {
+test('pickPublicConfig conserve le mode choisi et défaut à live', async () => {
   const mod = await loadWithDb();
   const { pickPublicConfig } = mod;
-  assert.equal(pickPublicConfig({ env: 'sandbox', publicKey: 'pk_live_abc' }).env, 'live');
+  assert.equal(pickPublicConfig({ env: 'sandbox', publicKey: 'pk_test_abc' }).env, 'sandbox');
+  assert.equal(pickPublicConfig({ env: 'SANDBOX', publicKey: 'pk_test_abc' }).env, 'sandbox');
   assert.equal(pickPublicConfig({ env: 'live', publicKey: 'pk_live_abc' }).env, 'live');
+  assert.equal(pickPublicConfig({ env: 'production', publicKey: 'pk_live_abc' }).env, 'live');
   assert.equal(pickPublicConfig({}).env, 'live');
   assert.equal(pickPublicConfig(null).env, 'live');
   assert.equal(pickPublicConfig({ instructions: '  Payez à la livraison  ' }).instructions, 'Payez à la livraison');
@@ -231,15 +235,49 @@ test('isOnlineStorePayment : seuls Kkiapay / FedaPay / SasPay sont en ligne', as
   assert.equal(isOnlineStorePayment('ussd'), false);
 });
 
-test('saveStorePaymentMethod refuse une clé publique de test (production uniquement)', async () => {
+test('saveStorePaymentMethod refuse une clé publique de test en production (défaut)', async () => {
   const mod = await loadWithDb();
   const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
     enabled: true,
-    config: { publicKey: 'pk_test_123456', env: 'sandbox' },
+    config: { publicKey: 'pk_test_123456' },
     secrets: { privateKey: 'sk_live_abc', secretKey: 'sk_live_def' },
   });
   assert.equal(res.success, false);
   assert.match(res.error || '', /production/i);
+});
+
+test('saveStorePaymentMethod accepte les clés de test en mode Sandbox', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const mod = await loadWithDb();
+  const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
+    enabled: true,
+    config: { publicKey: 'pk_test_123456', env: 'sandbox' },
+    secrets: { privateKey: 'sk_test_abc', secretKey: 'sk_test_def' },
+  });
+  assert.equal(res.success, true, res.error);
+  const inserted = globalThis.__storePaymentsTestState?.inserted || [];
+  assert.ok(inserted.length > 0, 'les valeurs insérées doivent être capturées');
+  assert.equal(inserted[0].config.env, 'sandbox');
+});
+
+test('saveStorePaymentMethod refuse les clés live en mode Sandbox', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const mod = await loadWithDb();
+  const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
+    enabled: true,
+    config: { publicKey: 'pk_live_123456', env: 'sandbox' },
+    secrets: { privateKey: 'sk_test_abc', secretKey: 'sk_test_def' },
+  });
+  assert.equal(res.success, false);
+  assert.match(res.error || '', /sandbox/i);
+
+  const resSecret = await mod.saveStorePaymentMethod('store-1', 'fedapay', {
+    enabled: true,
+    config: { publicKey: 'pk_test_123456', env: 'sandbox' },
+    secrets: { secretKey: 'sk_live_def456' },
+  });
+  assert.equal(resSecret.success, false);
+  assert.match(resSecret.error || '', /sandbox/i);
 });
 
 test('saveStorePaymentMethod refuse une clé secrète de test (production uniquement)', async () => {
@@ -291,12 +329,12 @@ test('saveStorePaymentMethod impose les prérequis avant tout enregistrement', a
   assert.match(ussdAttempt.error || '', /pris en charge/i);
 });
 
-test('saveStorePaymentMethod persiste env=live même si on envoie env=sandbox', async () => {
+test('saveStorePaymentMethod conserve env=live quand rien n’est demandé', async () => {
   process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
   const mod = await loadWithDb();
   const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
     enabled: true,
-    config: { publicKey: 'pk_live_abc123', env: 'sandbox', instructions: 'Payez à la livraison' },
+    config: { publicKey: 'pk_live_abc123', instructions: 'Payez à la livraison' },
     secrets: { privateKey: 'sk_live_abc', secretKey: 'sk_live_def' },
   });
   assert.equal(res.success, true, res.error);
@@ -349,7 +387,7 @@ test('saveStorePaymentMethod conserve les clés existantes quand seule une parti
   assert.equal(merged.webhookSecret, 'wh_live_xyz');
 });
 
-test('saveStorePaymentMethod refuse d’activer Kkiapay avec la clé secrète conservée de test', async () => {
+test('saveStorePaymentMethod refuse d’activer Kkiapay avec la clé secrète conservée de test en production', async () => {
   process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
   const payload = encryptPayload({ privateKey: 'sk_live_priv_1', secretKey: 'sk_test_secret_1' });
   const mod = await loadWithDb({ credentialRows: [{ payload }] });
@@ -360,4 +398,16 @@ test('saveStorePaymentMethod refuse d’activer Kkiapay avec la clé secrète co
   });
   assert.equal(res.success, false);
   assert.match(res.error || '', /production/i);
+});
+
+test('saveStorePaymentMethod accepte la clé secrète conservée de test en Sandbox', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const payload = encryptPayload({ privateKey: 'sk_test_priv_1', secretKey: 'sk_test_secret_1' });
+  const mod = await loadWithDb({ credentialRows: [{ payload }] });
+  const res = await mod.saveStorePaymentMethod('store-1', 'kkiapay', {
+    enabled: true,
+    config: { publicKey: 'pk_test_abc123', env: 'sandbox' },
+    secrets: {},
+  });
+  assert.equal(res.success, true, res.error);
 });

@@ -1,6 +1,6 @@
 # Moyens de paiement par boutique
 
-Chaque boutique configure **ses** moyens d'encaissement, indépendamment des autres boutiques et de la passerelle d'abonnements de la plateforme. Les moyens disponibles sont : **COD** (paiement à la livraison), **Kkiapay** et **FedaPay** (SasPay et USSD ont été retirés : aucune nouvelle activation possible ; l'historique et les réconciliations restent supportés). Les paiements boutiques fonctionnent **en mode production uniquement** : aucune clé de test / sandbox n'est acceptée, ni pour les clés secrètes chiffrées ni pour la clé publique.
+Chaque boutique configure **ses** moyens d'encaissement, indépendamment des autres boutiques et de la passerelle d'abonnements de la plateforme. Les moyens disponibles sont : **COD** (paiement à la livraison), **Kkiapay** et **FedaPay** (SasPay et USSD ont été retirés : aucune nouvelle activation possible ; l'historique et les réconciliations restent supportés). Les boutiques fonctionnent **en production par défaut** ; chaque boutique peut basculer ses moyens en ligne en **Sandbox** (tests) depuis sa popup de configuration — en Sandbox, seules les clés de test sont acceptées (les clés live sont refusées), le widget s'ouvre en mode sandbox et la vérification API utilise les hôtes de test (Kkiapay `api-sandbox.kkiapay.me`, FedaPay `sandbox-api.fedapay.com`).
 
 Une boutique sans configuration conserve le paiement à la livraison (mécanisme de repli pour ne pas bloquer les commandes).
 
@@ -11,12 +11,13 @@ Une boutique sans configuration conserve le paiement à la livraison (mécanisme
 3. Chaque vendeur ouvre **Paramètres → Cartes & paiement / Moyens de paiement de la boutique**, active les moyens souhaités et saisit ses clés **live** (Kkiapay `pk_live_…`/`sk_live_…`, FedaPay `pk_live_…`/`sk_live_…`). Les secrets sont chiffrés en AES-256-GCM (format `v1:<iv>:<tag>:<ciphertext>`) ; seuls le hint (4 derniers caractères) et les clés publiques reviennent au navigateur.
 4. Pour les paiements en ligne, configurer côté fournisseur les webhooks pointant vers les routes habituelles : `/api/kkiapay/webhook`, `/api/fedapay/webhook`, `/api/saspay/webhook`. Ces routes **distinguent désormais les commandes boutiques des abonnements plateforme** : le `partnerId` / jeton `order_payments` fait foi pour les commandes boutiques ; sans correspondance, le traitement historique d'abonnement s'applique.
 
-## Production uniquement
+## Environnements : production par défaut, Sandbox au choix
 
-- La configuration publique est assainie par le serveur : `env` y est toujours forcé à `live`, même si la base contient historiquement `env: 'sandbox'`.
-- `saveStorePaymentMethod` refuse (message « mode production uniquement ») toute clé ressemblant à une clé de test — `pk_test_…`, `sk_test_…`, `sk_sandbox_…`, … — qu'elle soit nouvellement saisie ou conservée depuis un enregistrement antérieur, que ce soit la clé publique, la clé privée/secrète ou le secret webhook.
-- Les appels fournisseurs côté serveur utilisent exclusivement les API de production (`api.kkiapay.me`, `api.fedapay.com`, `api.saspay.me`). Les widgets navigateur sont ouverts en mode live.
-- Seules les clés live passent l'initialisation du paiement ; une clé de test enregistrée par erreur bloque l'ouverture du widget avec un message clair.
+- Chaque moyen en ligne (Kkiapay, FedaPay) d'une boutique porte un **mode** `env` (`live` par défaut, `sandbox` au choix), réglé dans la popup de configuration (« Mode : Production / Sandbox ») et conservé tel quel en base.
+- En **Production** (défaut) : les clés ressemblant à des clés de test — `pk_test_…`, `sk_test_…`, `sk_sandbox_…`, … — sont refusées, qu'elles soient saisies ou conservées d'un enregistrement antérieur (clé publique, clés privée/secrète, secret webhook). Les widgets et la vérification API utilisent les hôtes de production (`api.kkiapay.me`, `api.fedapay.com`).
+- En **Sandbox** : seules les clés de test sont acceptées — toute clé portant le marqueur `live` (`pk_live_…`, `sk_live_…`, `wh_live_…`) est refusée afin qu'aucune vraie transaction ne parte par erreur. Les widgets s'ouvrent en mode sandbox (Kkiapay `sandbox: true`, FedaPay `environment: 'sandbox'`) et la vérification serveur utilise les hôtes de test (`api-sandbox.kkiapay.me`, `sandbox-api.fedapay.com/v1`).
+- Le mode ne s'inverse pas tout seul : une clé incohérente avec le mode choisi est refusée à l'enregistrement avec un message clair. La boutique voit un badge « Sandbox » sur sa liste de moyens quand le mode test est actif.
+- SasPay / USSD : toujours retirés pour les nouvelles commandes (les commandes historiques restent supportées en production).
 
 ## Panier multi-boutiques
 
@@ -61,6 +62,6 @@ npm run check   # journal migrations + rejeu SQL + tsc
 npm test        # tests sécurité (dont tests/security/store-payments.test.mjs) + tests saspay
 ```
 
-Les tests `tests/security/store-payments.test.mjs` verrouillent la politique « production uniquement » (clés de test refusées, `env` toujours `live`, prérequis d'activation, confirmation en échec sans ligne en base).
+Les tests `tests/security/store-payments.test.mjs` verrouillent la politique des environnements : clés de test refusées en production (défaut), clés live refusées en Sandbox, `env` conservé tel que choisi par la boutique, prérequis d'activation, confirmation en échec sans ligne en base.
 
 **Statut de vérification :** aucune clé live n'a été utilisée et aucun paiement réel n'a été exécuté dans cet environnement. La mise en service exige les clés live du vendeur et la déclaration des webhooks chez les fournisseurs.

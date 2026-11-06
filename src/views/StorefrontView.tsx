@@ -2661,7 +2661,12 @@ const WHOLESALE_FILTER = "wholesale";
       const widgetLastName = widgetNameParts.slice(1).join(" ") || "PosMarket";
 
       const openProviderWidget = (
-        storeQuote: { provider: string; amount: number; publicKey: string },
+        storeQuote: {
+          provider: string;
+          amount: number;
+          publicKey: string;
+          env?: "sandbox" | "live";
+        },
         partnerId: string,
       ): Promise<string | null> =>
         new Promise((resolve) => {
@@ -2669,7 +2674,7 @@ const WHOLESALE_FILTER = "wholesale";
             kkiapay.openWidget({
               amount: storeQuote.amount,
               key: storeQuote.publicKey,
-              sandbox: false,
+              sandbox: storeQuote.env === "sandbox",
               partnerId,
               name: (customerInfo.name || "").trim() || "Client PosMarket",
               email: widgetEmail,
@@ -2685,7 +2690,7 @@ const WHOLESALE_FILTER = "wholesale";
               publicKey: storeQuote.publicKey,
               amount: storeQuote.amount,
               description: "Commande PosMarket",
-              environment: "live",
+              environment: storeQuote.env === "sandbox" ? "sandbox" : "live",
               customer: {
                 email: widgetEmail,
                 firstname: widgetFirstName,
