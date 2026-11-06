@@ -91,7 +91,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
   const [methods, setMethods] = useState<StorePaymentMethodView[]>([]);
   const [drafts, setDrafts] = useState<Partial<Record<StorePaymentProvider, Draft>>>({});
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState<StorePaymentProvider | null>(null);
 
   const load = useCallback(async () => {
@@ -101,7 +100,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
       return;
     }
     setLoading(true);
-    setLoadError(null);
     try {
       const res = await fetchStorePaymentSettingsAction(storeId);
       if (res.success && res.methods) {
@@ -130,7 +128,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         setDrafts(
           Object.fromEntries(defaults.map((m) => [m.provider, draftFromView(m)])),
         );
-        setLoadError(res.error || 'Impossible de charger les moyens de paiement.');
       }
     } finally {
       setLoading(false);
@@ -208,12 +205,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
           Moyens de paiement de la boutique
         </h3>
       </div>
-
-      {loadError && (
-        <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-[10px] md:text-xs text-amber-800">
-          {loadError}
-        </div>
-      )}
 
       <p className="text-xs md:text-sm text-gray-500 leading-relaxed">
         Encaissez directement sur vos comptes : chaque moyen activé est proposé à vos clients
