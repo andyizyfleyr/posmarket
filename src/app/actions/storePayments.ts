@@ -61,7 +61,7 @@ export async function saveStorePaymentMethodAction(
 
 /**
  * Méthodes activées par les boutiques du panier. Action publique : elle ne
- * renvoie que les clés publiques, codes USSD et instructions.
+ * renvoie que les clés publiques et les instructions.
  */
 export async function fetchStorePaymentMethodsAction(
   storeIds: string[],
@@ -104,7 +104,7 @@ export async function confirmStorePaymentAction(
   }
 }
 
-/** Vérification manuelle (SasPay, retour de guichet, paiement mobile). */
+/** Vérification manuelle (retour de guichet, paiement mobile). */
 export async function refreshStorePaymentAction(
   orderId: string,
   token: string,

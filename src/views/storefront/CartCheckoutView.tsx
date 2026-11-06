@@ -1,5 +1,5 @@
 import React from "react";
-import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe, Phone, Smartphone } from "lucide-react";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe, Smartphone } from "lucide-react";
 import { StorePaymentPanel, isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
@@ -168,7 +168,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   );
   // Aboutissement d'un paiement en ligne (vérifié serveur) : met à jour la
   // carte, et bascule sur la page de confirmation une fois TOUS les paiements
-  // en ligne réglés. COD / USSD ne bloquent pas.
+  // en ligne réglés. Le COD ne bloque pas.
   const settleOnlinePayment = React.useCallback(
     (paymentId: string, paid: boolean) => {
       setStorePayments(
@@ -759,16 +759,10 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </div>
                 )}
               {checkoutStage === "payment" && pendingOrderPayment && (
-                <div className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <CreditCard size={16} className="text-brand" />
-                    <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
-                      Règlement de la commande
-                    </h3>
-                  </div>
-                  <p className="text-xs font-semibold text-gray-500">
-                    Votre commande est enregistrée. Finalisez le paiement ci-dessous :
-                    la page de confirmation s’affichera automatiquement une fois le paiement validé.
+                <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 py-14 text-center">
+                  <Loader2 size={26} className="animate-spin text-brand spinner-always mx-auto" />
+                  <p className="text-sm font-bold text-gray-900 text-center">
+                    Ouverture du paiement…
                   </p>
                   <StorePaymentPanel
                     payments={storePayments}
@@ -809,13 +803,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           {methods.map((method) => {
                             const isSelected = selected === method.provider;
                             const Icon =
-                              method.provider === "cod"
-                                ? Truck
-                                : method.provider === "ussd"
-                                  ? Phone
-                                  : method.provider === "saspay"
-                                    ? CreditCard
-                                    : Smartphone;
+                              method.provider === "cod" ? Truck : Smartphone;
                             return (
                               <div
                                 key={method.provider}
@@ -831,11 +819,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     <div className="font-bold text-sm text-gray-900">
                                       {method.label}
                                     </div>
-                                    {method.provider === "ussd" && method.config.ussdCode && (
-                                      <div className="text-[11px] font-semibold text-gray-500">
-                                        Composez : {method.config.ussdCode}
-                                      </div>
-                                    )}
                                     {method.isOnline && (
                                       <div className="text-[11px] font-semibold text-gray-500">
                                         Paiement en ligne au moment de « Payer ».

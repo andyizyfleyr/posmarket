@@ -243,7 +243,7 @@ interface StorefrontViewProps {
     /** Références des commandes créées, renvoyées par l'action serveur. */
     orderId?: string;
     orderIds?: string[];
-    /** Paiements par boutique (guichets en ligne, USSD, COD). */
+    /** Paiements par boutique (en ligne, COD). */
     payments?: StoreCheckoutPaymentView[];
     /**
      * Montants et lignes canoniques calculés par le serveur. Ils font foi pour
@@ -2643,7 +2643,7 @@ const WHOLESALE_FILTER = "wholesale";
               )
                 ? response.payments
                 : [];
-              // Dès qu'un paiement en ligne (Kkiapay/FedaPay/SasPay) attend
+              // Dès qu'un paiement en ligne (Kkiapay/FedaPay) attend
               // d'être réglé, on reste sur l'étape paiement : le règlement se
               // lance immédiatement et la page de confirmation s'affiche une
               // fois TOUS les paiements en ligne validés (voir CartCheckoutView).

@@ -16,7 +16,11 @@ import { refreshTag } from '@/lib/revalidate';
  *
  * Ce module est strictement serveur : il déchiffre les secrets des vendeurs et
  * appelle les API des fournisseurs. Les seules données renvoyées au navigateur
- * sont les clés publiques, le code USSD et les instructions d'encaissement.
+ * sont les clés publiques et les instructions d'encaissement.
+ *
+ * Moyens proposés aux boutiques : COD, Kkiapay, FedaPay. SasPay et USSD ont
+ * été retirés pour les nouvelles configurations ; les lignes historiques
+ * (commandes déjà passées) restent lisibles et réconciliables.
  */
 
 export type StorePaymentProvider = 'cod' | 'kkiapay' | 'fedapay' | 'saspay' | 'ussd';
@@ -38,6 +42,14 @@ export const STORE_PAYMENT_LABELS: Record<StorePaymentProvider, string> = {
 };
 
 const ONLINE_PROVIDERS = new Set<StorePaymentProvider>(['kkiapay', 'fedapay', 'saspay']);
+
+/** Moyens réellement proposés aux boutiques (SasPay / USSD retirés). */
+export const SUPPORTED_STORE_PROVIDERS: StorePaymentProvider[] = ['cod', 'kkiapay', 'fedapay'];
+const SUPPORTED_SET = new Set<string>(SUPPORTED_STORE_PROVIDERS);
+
+export function isSupportedStoreProvider(value: unknown): value is StorePaymentProvider {
+  return typeof value === 'string' && SUPPORTED_SET.has(value);
+}
 
 // Aligné sur src/db/api.ts (isCancelledOrderStatus) — dupliqué ici pour
 // garder ce module autonome.
@@ -107,8 +119,7 @@ export function normalizeStorePaymentProvider(value: unknown): StorePaymentProvi
   if (raw === 'especes' || raw === 'espèces' || raw === 'cash' || raw === 'cod') return 'cod';
   if (raw === 'kkiapay') return 'kkiapay';
   if (raw === 'fedapay') return 'fedapay';
-  if (raw === 'saspay') return 'saspay';
-  if (raw === 'ussd') return 'ussd';
+  // SasPay / USSD : retirés pour les nouvelles commandes.
   return null;
 }
 
@@ -173,7 +184,7 @@ export async function getEnabledStorePaymentMethods(
 
   for (const id of ids) result[id] = [];
   for (const row of rows) {
-    if (!isStorePaymentProvider(row.provider)) continue;
+    if (!isSupportedStoreProvider(row.provider)) continue;
     result[row.storeId]?.push({
       provider: row.provider,
       label: STORE_PAYMENT_LABELS[row.provider],
@@ -212,7 +223,7 @@ export async function listStorePaymentMethods(storeId: string): Promise<StorePay
   const methodMap = new Map(methods.map((row) => [row.provider, row]));
   const credentialMap = new Map(credentials.map((row) => [row.provider, row]));
 
-  return STORE_PAYMENT_PROVIDERS.map((provider) => {
+  return SUPPORTED_STORE_PROVIDERS.map((provider) => {
     const row = methodMap.get(provider);
     const credential = credentialMap.get(provider);
     return {
@@ -249,13 +260,9 @@ export async function loadStorePaymentCredential(
   }
 }
 
-function keyHintFor(provider: StorePaymentProvider, payload: StorePaymentSecretPayload): string | null {
+function keyHintFor(_provider: StorePaymentProvider, payload: StorePaymentSecretPayload): string | null {
   const value = payload.apiKey || payload.secretKey || payload.privateKey || '';
   if (!value) return null;
-  if (provider === 'saspay') {
-    const match = /^sk_(?:test|live)_(.+)$/.exec(value);
-    if (match?.[1]) return `…${match[1].slice(-4)}`;
-  }
   return `…${value.slice(-4)}`;
 }
 
@@ -270,6 +277,12 @@ export async function saveStorePaymentMethod(
   provider: StorePaymentProvider,
   input: SaveStorePaymentMethodInput,
 ): Promise<{ success: boolean; error?: string }> {
+  if (!isSupportedStoreProvider(provider)) {
+    return {
+      success: false,
+      error: 'Ce moyen de paiement n’est plus pris en charge pour les boutiques.',
+    };
+  }
   const enabled = Boolean(input.enabled);
   const config = pickPublicConfig(input.config);
   const nextSecrets = pickSecretPayload(input.secrets);
@@ -294,14 +307,6 @@ export async function saveStorePaymentMethod(
       if (!mergedSecrets.secretKey) {
         return { success: false, error: 'Renseignez la clé secrète FedaPay.' };
       }
-    }
-    if (provider === 'saspay') {
-      if (!mergedSecrets.apiKey) {
-        return { success: false, error: 'Renseignez la clé API SasPay.' };
-      }
-    }
-    if (provider === 'ussd' && !config.ussdCode) {
-      return { success: false, error: 'Renseignez le code USSD à composer.' };
     }
     // Production uniquement : refuse toute clé ressemblant à une clé de test,
     // qu'elle soit nouvellement fournie ou conservée depuis un enregistrement

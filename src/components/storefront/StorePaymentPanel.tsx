@@ -171,10 +171,18 @@ function PaymentCard({
   };
 
   // Auto-lancement unique : la commande est déjà enregistrée, le bouton
-  // « Payer » de l'étape paiement déclenche directement le règlement.
+  // « Payer » de l'étape paiement déclenche directement le règlement dès que
+  // le SDK du fournisseur est chargé (jamais avant, sinon le widget ne
+  // s'ouvre pas et le paiement part en échec silencieux).
   const autoFiredRef = useRef(false);
+  const sdkReady =
+    payment.provider === 'saspay'
+      ? true
+      : payment.provider === 'fedapay'
+        ? fedapay.ready
+        : kkiapay.ready;
   useEffect(() => {
-    if (!autoAction || autoFiredRef.current || status === 'PAID') return;
+    if (!autoAction || autoFiredRef.current || status === 'PAID' || !sdkReady) return;
     autoFiredRef.current = true;
     if (autoAction === 'redirect') {
       if (payment.checkoutUrl) window.location.assign(payment.checkoutUrl);
@@ -183,7 +191,7 @@ function PaymentCard({
     if (payment.provider === 'kkiapay') payKkiapay();
     else if (payment.provider === 'fedapay') payFedapay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoAction]);
+  }, [autoAction, sdkReady]);
 
   const isPaid = status === 'PAID';
   const isFailed = status === 'FAILED';

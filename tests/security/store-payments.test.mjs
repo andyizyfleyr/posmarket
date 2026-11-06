@@ -215,8 +215,9 @@ test('normalizeStorePaymentProvider normalise les alias historiques', async () =
   assert.equal(normalizeStorePaymentProvider(''), 'cod');
   assert.equal(normalizeStorePaymentProvider('kkiapay'), 'kkiapay');
   assert.equal(normalizeStorePaymentProvider('FEDAPAY'), 'fedapay');
-  assert.equal(normalizeStorePaymentProvider('saspay'), 'saspay');
-  assert.equal(normalizeStorePaymentProvider('ussd'), 'ussd');
+  // SasPay / USSD : retirés pour les boutiques — nouvelles commandes refusées.
+  assert.equal(normalizeStorePaymentProvider('saspay'), null);
+  assert.equal(normalizeStorePaymentProvider('ussd'), null);
   assert.equal(normalizeStorePaymentProvider('bitcoin'), null);
 });
 
@@ -252,15 +253,17 @@ test('saveStorePaymentMethod refuse une clé secrète de test (production unique
   assert.match(res.error || '', /production/i);
 });
 
-test('saveStorePaymentMethod refuse une clé API SasPay de test (production uniquement)', async () => {
+test('saveStorePaymentMethod refuse SasPay (moyen retiré pour les boutiques)', async () => {
   const mod = await loadWithDb();
-  const res = await mod.saveStorePaymentMethod('store-1', 'saspay', {
-    enabled: true,
-    config: {},
-    secrets: { apiKey: 'sk_test_123456' },
-  });
-  assert.equal(res.success, false);
-  assert.match(res.error || '', /production/i);
+  for (const secrets of [{ apiKey: 'sk_live_valid' }, { apiKey: 'sk_test_123456' }]) {
+    const res = await mod.saveStorePaymentMethod('store-1', 'saspay', {
+      enabled: true,
+      config: {},
+      secrets,
+    });
+    assert.equal(res.success, false);
+    assert.match(res.error || '', /pris en charge/i);
+  }
 });
 
 test('saveStorePaymentMethod impose les prérequis avant tout enregistrement', async () => {
@@ -280,12 +283,12 @@ test('saveStorePaymentMethod impose les prérequis avant tout enregistrement', a
   });
   assert.equal(noSecret.success, false);
 
-  const ussdWithoutCode = await mod.saveStorePaymentMethod('store-1', 'ussd', {
+  const ussdAttempt = await mod.saveStorePaymentMethod('store-1', 'ussd', {
     enabled: true,
-    config: {},
+    config: { ussdCode: '*123*45#' },
   });
-  assert.equal(ussdWithoutCode.success, false);
-  assert.match(ussdWithoutCode.error || '', /USSD/i);
+  assert.equal(ussdAttempt.success, false);
+  assert.match(ussdAttempt.error || '', /pris en charge/i);
 });
 
 test('saveStorePaymentMethod persiste env=live même si on envoie env=sandbox', async () => {

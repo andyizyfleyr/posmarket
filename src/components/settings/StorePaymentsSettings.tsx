@@ -7,7 +7,6 @@ import {
   Save,
   ShieldCheck,
   Truck,
-  Phone,
   Smartphone,
   Info,
   ChevronRight,
@@ -39,7 +38,6 @@ const PAYMENT_ENV = 'live';
 type Draft = {
   enabled: boolean;
   publicKey: string;
-  ussdCode: string;
   instructions: string;
   privateKey: string;
   secretKey: string;
@@ -47,14 +45,15 @@ type Draft = {
   webhookSecret: string;
 };
 
-const PROVIDER_META: Record<
+/** Métadonnées d'affichage des moyens proposés (SasPay et USSD retirés). */
+const PROVIDER_META: Partial<Record<
   StorePaymentProvider,
   {
     icon: React.ReactNode;
     shortLabel: string;
     secretFields: Array<{ key: keyof StorePaymentSecretPayload; label: string; placeholder: string }>;
   }
-> = {
+>> = {
   cod: {
     icon: <Truck size={20} />,
     shortLabel: 'Espèces',
@@ -75,27 +74,14 @@ const PROVIDER_META: Record<
       { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_live_…' },
     ],
   },
-  saspay: {
-    icon: <CreditCard size={20} />,
-    shortLabel: 'Guichet hébergé',
-    secretFields: [
-      { key: 'apiKey', label: 'Clé API', placeholder: 'sk_live_…' },
-    ],
-  },
-  ussd: {
-    icon: <Phone size={20} />,
-    shortLabel: 'Code USSD',
-    secretFields: [],
-  },
 };
 
-const PROVIDER_ORDER: StorePaymentProvider[] = ['cod', 'kkiapay', 'fedapay', 'saspay', 'ussd'];
+const PROVIDER_ORDER: StorePaymentProvider[] = ['cod', 'kkiapay', 'fedapay'];
 
 function draftFromView(view: StorePaymentMethodView): Draft {
   return {
     enabled: view.enabled,
     publicKey: view.config.publicKey || '',
-    ussdCode: view.config.ussdCode || '',
     instructions: view.config.instructions || '',
     privateKey: '',
     secretKey: '',
@@ -107,17 +93,15 @@ function draftFromView(view: StorePaymentMethodView): Draft {
 const inputCls =
   'w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:bg-white transition-all';
 
-const DEFAULT_LABELS: Record<StorePaymentProvider, string> = {
+const DEFAULT_LABELS: Partial<Record<StorePaymentProvider, string>> = {
   cod: 'Paiement à la livraison',
   kkiapay: 'Kkiapay (Mobile Money / carte)',
   fedapay: 'FedaPay (Mobile Money / carte)',
-  saspay: 'SasPay (Mobile Money)',
-  ussd: 'Paiement USSD',
 };
 
 const emptyView = (provider: StorePaymentProvider): StorePaymentMethodView => ({
   provider,
-  label: DEFAULT_LABELS[provider],
+  label: DEFAULT_LABELS[provider] || provider,
   enabled: false,
   config: { env: PAYMENT_ENV },
   hasSecret: false,
@@ -147,7 +131,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
           Object.fromEntries(res.methods.map((m) => [m.provider, draftFromView(m)])),
         );
       } else {
-        // Affichage dégradé : on propose quand même les 5 moyens par défaut
+        // Affichage dégradé : on propose quand même les 3 moyens par défaut
         // pour que le vendeur puisse les activer et enregistrer ses clés.
         const defaults = PROVIDER_ORDER.map(emptyView);
         setMethods(defaults);
@@ -208,7 +192,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         env: PAYMENT_ENV,
       };
       if (draft.publicKey.trim()) config.publicKey = draft.publicKey.trim();
-      if (draft.ussdCode.trim()) config.ussdCode = draft.ussdCode.trim();
       if (draft.instructions.trim()) config.instructions = draft.instructions.trim();
 
       const res = await saveStorePaymentMethodAction(storeId, provider, {
@@ -250,7 +233,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
   const activeDraft = openProvider ? drafts[openProvider] : undefined;
   const activeMeta = openProvider ? PROVIDER_META[openProvider] : null;
   const needsPublicKey = openProvider === 'kkiapay' || openProvider === 'fedapay';
-  const isOnline = openProvider === 'kkiapay' || openProvider === 'fedapay' || openProvider === 'saspay';
+  const isOnline = openProvider === 'kkiapay' || openProvider === 'fedapay';
 
   return (
     <div className="space-y-5 md:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -281,8 +264,9 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
       <div className="grid grid-cols-1 gap-2.5 md:gap-3">
         {methods.map((method) => {
           const meta = PROVIDER_META[method.provider];
+          if (!meta) return null;
           const isActive = method.enabled;
-          const online = method.provider === 'kkiapay' || method.provider === 'fedapay' || method.provider === 'saspay';
+          const online = method.provider === 'kkiapay' || method.provider === 'fedapay';
           return (
             <button
               key={method.provider}
@@ -321,7 +305,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                   {online && (method.hasSecret
                     ? <> · <span className="text-green-600">Clés{method.keyHint ? ` ${method.keyHint}` : ''}</span></>
                     : ' · Aucune clé')}
-                  {!online && method.config.ussdCode ? ` · ${method.config.ussdCode}` : ''}
                 </p>
               </div>
               <span className="flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-gray-400 group-hover:text-brand uppercase tracking-wider shrink-0">
@@ -435,29 +418,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                         autoComplete="off"
                       />
                     </div>
-                  )}
-                  {openProvider === 'ussd' && (
-                    <>
-                      <div>
-                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-1.5">Code USSD à composer</label>
-                        <input
-                          className={inputCls}
-                          value={activeDraft.ussdCode}
-                          onChange={(e) => update(openProvider, { ussdCode: e.target.value })}
-                          placeholder="Ex : *123*45#"
-                          autoComplete="off"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-1.5">Instructions (optionnel)</label>
-                        <input
-                          className={inputCls}
-                          value={activeDraft.instructions}
-                          onChange={(e) => update(openProvider, { instructions: e.target.value })}
-                          placeholder="Ex : *123*45# puis suivez les instructions"
-                        />
-                      </div>
-                    </>
                   )}
                   {openProvider === 'cod' && (
                     <div>
