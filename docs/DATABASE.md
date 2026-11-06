@@ -105,6 +105,7 @@ Les deux sont corrigés ; le contrôle compare en plus les tables créées aux
 | `ADMIN_AUTH_SECRET` | ≥ 32 caractères, signature du cookie `/pam` | oui — sans lui, la connexion admin est refusée en production (volontaire) |
 | `CRON_SECRET` | ≥ 16 caractères, protège `/api/cron/*` | oui |
 | `NEXTAUTH_SECRET` / `AUTH_SECRET` | sessions | oui |
+| `PAYMENT_CREDENTIALS_KEY` | chiffrement AES-256-GCM des clés de paiement boutiques (64 hex via `node scripts/generate-payment-key.mjs`) | recommandé — à défaut, clé dérivée de `AUTH_SECRET` avec avertissement en log |
 | `SASPAY_API_KEY`, `SASPAY_WEBHOOK_SECRET` | paiement abonnement | si SasPay activé |
 | `R2_*`, `CLOUDFLARE_ACCOUNT_ID` | stockage images | si upload d'images |
 | `SMTP_*`, `MAIL_FROM` | e-mails transactionnels | si e-mails activés |
