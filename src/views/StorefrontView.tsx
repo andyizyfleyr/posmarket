@@ -26,7 +26,7 @@ import { buildHomeSections } from "@/lib/home-sections";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { fetchStorePaymentMethodsAction } from "@/app/actions/storePayments";
-import type { StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
@@ -2638,10 +2638,19 @@ const WHOLESALE_FILTER = "wholesale";
                 .join(", "),
             }, checkoutIdempotencyKey);
             if (response?.success) {
-              playSuccessSound();
-              setStorePayments(
-                Array.isArray(response.payments) ? response.payments : [],
+              const serverPayments: StoreCheckoutPaymentView[] = Array.isArray(
+                response.payments,
+              )
+                ? response.payments
+                : [];
+              // Dès qu'un paiement en ligne (Kkiapay/FedaPay/SasPay) attend
+              // d'être réglé, on reste sur l'étape paiement : le règlement se
+              // lance immédiatement et la page de confirmation s'affiche une
+              // fois TOUS les paiements en ligne validés (voir CartCheckoutView).
+              const hasOnlinePayment = serverPayments.some(
+                (p) => isOnlineProvider(p.provider) && p.status !== "PAID",
               );
+              setStorePayments(serverPayments);
 
               const serverOrders =
                 Array.isArray(response.orders) && response.orders.length > 0
@@ -2734,7 +2743,10 @@ const WHOLESALE_FILTER = "wholesale";
               }
               setPromoApplied(null);
               setPromoCodeInput("");
-              setCheckoutStage("success");
+              if (!hasOnlinePayment) {
+                playSuccessSound();
+                setCheckoutStage("success");
+              }
               setCart([]);
               onNotifyPostCheckout(ordersData);
               // Commande enregistrée : la tentative suivante est un nouvel

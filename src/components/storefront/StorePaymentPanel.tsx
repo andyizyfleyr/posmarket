@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck, XCircle } from 'lucide-react';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
@@ -9,6 +9,10 @@ import {
   refreshStorePaymentAction,
 } from '@/app/actions/storePayments';
 import type { NotificationType } from '@/types';
+
+/** Moyens de paiement en ligne lançables immédiatement (le reste n'enclenche rien). */
+export const STORE_ONLINE_PROVIDERS = new Set(['kkiapay', 'fedapay', 'saspay']);
+export const isOnlineProvider = (provider: string): boolean => STORE_ONLINE_PROVIDERS.has(provider);
 
 /** Vue client d'un paiement boutique renvoyée par l'action checkout. */
 export type StoreCheckoutPaymentView = {
@@ -35,6 +39,13 @@ interface Props {
   customer: { name?: string | null; email?: string | null; phone?: string | null };
   formatCurrency: (n: number) => string;
   notify?: (msg: string, type: NotificationType) => void;
+  /**
+   * Lance automatiquement le règlement lorsqu'il ne reste qu'un seul paiement
+   * en ligne en attente (widget Kkiapay/FedaPay, ou redirection SasPay).
+   */
+  autoStart?: boolean;
+  /** Signale l'aboutissement d'un paiement (vérifié serveur) : PAID ou échec. */
+  onPaymentSettled?: (paymentId: string, paid: boolean) => void;
 }
 
 function ProviderIcon({ provider }: { provider: string }) {
@@ -56,11 +67,15 @@ function PaymentCard({
   customer,
   formatCurrency,
   notify,
+  autoAction,
+  onPaymentSettled,
 }: {
   payment: StoreCheckoutPaymentView;
   customer: Props['customer'];
   formatCurrency: (n: number) => string;
   notify?: Props['notify'];
+  autoAction: 'widget' | 'redirect' | null;
+  onPaymentSettled?: Props['onPaymentSettled'];
 }) {
   const [status, setStatus] = useState(payment.status);
   const [busy, setBusy] = useState(false);
@@ -69,7 +84,8 @@ function PaymentCard({
   const fedapay = useFedapay();
 
   const applyResult = (res: { success: boolean; status?: string; error?: string }) => {
-    if (res.success || res.status === 'PAID') {
+    const ok = Boolean(res.success || res.status === 'PAID');
+    if (ok) {
       setStatus('PAID');
       setError(null);
       notify?.('Paiement confirmé, merci !', 'success');
@@ -78,6 +94,7 @@ function PaymentCard({
       setError(res.error || 'Paiement non abouti.');
       notify?.(res.error || 'Paiement non abouti.', 'error');
     }
+    onPaymentSettled?.(payment.id, ok);
   };
 
   const payKkiapay = () => {
@@ -105,6 +122,7 @@ function PaymentCard({
       onFailed: () => {
         setBusy(false);
         setError('Paiement annulé ou non abouti.');
+        onPaymentSettled?.(payment.id, false);
       },
     });
   };
@@ -137,6 +155,7 @@ function PaymentCard({
       onFailed: () => {
         setBusy(false);
         setError('Paiement annulé ou non abouti.');
+        onPaymentSettled?.(payment.id, false);
       },
     });
   };
@@ -150,6 +169,21 @@ function PaymentCard({
       setBusy(false);
     }
   };
+
+  // Auto-lancement unique : la commande est déjà enregistrée, le bouton
+  // « Payer » de l'étape paiement déclenche directement le règlement.
+  const autoFiredRef = useRef(false);
+  useEffect(() => {
+    if (!autoAction || autoFiredRef.current || status === 'PAID') return;
+    autoFiredRef.current = true;
+    if (autoAction === 'redirect') {
+      if (payment.checkoutUrl) window.location.assign(payment.checkoutUrl);
+      return;
+    }
+    if (payment.provider === 'kkiapay') payKkiapay();
+    else if (payment.provider === 'fedapay') payFedapay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAction]);
 
   const isPaid = status === 'PAID';
   const isFailed = status === 'FAILED';
@@ -252,22 +286,38 @@ function PaymentCard({
   );
 }
 
-export function StorePaymentPanel({ payments, customer, formatCurrency, notify }: Props) {
+export function StorePaymentPanel({ payments, customer, formatCurrency, notify, autoStart, onPaymentSettled }: Props) {
   if (!payments || payments.length === 0) return null;
+  // Un seul paiement en ligne en attente ⇒ lancement automatique ; sinon le
+  // client déclenche chaque boutique lui-même (multi-boutique en ligne).
+  const pendingOnline = payments.filter(
+    (p) => isOnlineProvider(p.provider) && p.status !== 'PAID',
+  );
+  const autoId = autoStart && pendingOnline.length === 1 ? pendingOnline[0].id : null;
   return (
-    <div className="w-full flex flex-col items-center gap-3 mt-6">
+    <div className="w-full flex flex-col items-center gap-3 mt-2">
       <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest text-center">
         Paiement de votre commande
       </p>
-      {payments.map((payment) => (
-        <PaymentCard
-          key={payment.id}
-          payment={payment}
-          customer={customer}
-          formatCurrency={formatCurrency}
-          notify={notify}
-        />
-      ))}
+      {payments.map((payment) => {
+        const autoAction =
+          payment.id === autoId
+            ? payment.provider === 'saspay'
+              ? 'redirect'
+              : 'widget'
+            : null;
+        return (
+          <PaymentCard
+            key={payment.id}
+            payment={payment}
+            customer={customer}
+            formatCurrency={formatCurrency}
+            notify={notify}
+            autoAction={autoAction}
+            onPaymentSettled={onPaymentSettled}
+          />
+        );
+      })}
     </div>
   );
 }

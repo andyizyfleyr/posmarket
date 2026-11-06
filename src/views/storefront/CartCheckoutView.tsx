@@ -1,6 +1,6 @@
 import React from "react";
 import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe, Phone, Smartphone } from "lucide-react";
-import { StorePaymentPanel, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { StorePaymentPanel, isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -150,6 +150,42 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   );
   const cartWord = cartNoun(cartVertical);
   const cartWordLower = cartNounLower(cartVertical);
+
+  // Une commande est-elle déjà enregistrée pour ce panier (règlement en
+  // attente sur l'étape paiement) ?
+  const pendingOrderPayment = storePayments.length > 0;
+  // Le panier contient-il au moins un moyen de paiement en ligne ?
+  const hasOnlineSelection = React.useMemo(
+    () =>
+      Object.entries(storePaymentSelections).some(([storeId, provider]) => {
+        if (!provider) return false;
+        const match = (storePaymentMethods[storeId] || []).find(
+          (m) => m.provider === provider,
+        );
+        return match ? match.isOnline : isOnlineProvider(provider);
+      }),
+    [storePaymentSelections, storePaymentMethods],
+  );
+  // Aboutissement d'un paiement en ligne (vérifié serveur) : met à jour la
+  // carte, et bascule sur la page de confirmation une fois TOUS les paiements
+  // en ligne réglés. COD / USSD ne bloquent pas.
+  const settleOnlinePayment = React.useCallback(
+    (paymentId: string, paid: boolean) => {
+      setStorePayments(
+        storePayments.map((p) =>
+          p.id === paymentId ? { ...p, status: paid ? "PAID" : "FAILED" } : p,
+        ),
+      );
+    },
+    [storePayments, setStorePayments],
+  );
+  React.useEffect(() => {
+    if (checkoutStage !== "payment") return;
+    const online = storePayments.filter((p) => isOnlineProvider(p.provider));
+    if (online.length > 0 && online.every((p) => p.status === "PAID")) {
+      setCheckoutStage("success");
+    }
+  }, [storePayments, checkoutStage, setCheckoutStage]);
 
   /** Prix de référence (variante choisie sinon produit) d'une ligne. */
   const referencePrice = (item: CartLine): number => {
@@ -722,7 +758,29 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </div>
                   </div>
                 )}
-              {checkoutStage === "payment" && (
+              {checkoutStage === "payment" && pendingOrderPayment && (
+                <div className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard size={16} className="text-brand" />
+                    <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
+                      Règlement de la commande
+                    </h3>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-500">
+                    Votre commande est enregistrée. Finalisez le paiement ci-dessous :
+                    la page de confirmation s’affichera automatiquement une fois le paiement validé.
+                  </p>
+                  <StorePaymentPanel
+                    payments={storePayments}
+                    customer={customerInfo}
+                    formatCurrency={formatCurrency}
+                    notify={localNotify}
+                    autoStart
+                    onPaymentSettled={settleOnlinePayment}
+                  />
+                </div>
+              )}
+              {checkoutStage === "payment" && !pendingOrderPayment && (
                 <div className="space-y-4   ">
                   {Array.from(
                     new Set(
@@ -780,7 +838,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     )}
                                     {method.isOnline && (
                                       <div className="text-[11px] font-semibold text-gray-500">
-                                        Vous paierez en ligne après la confirmation de commande.
+                                        Paiement en ligne au moment de « Payer ».
                                       </div>
                                     )}
                                   </div>
@@ -1042,7 +1100,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     loading={isCheckoutSubmitting}
                     loadingText={
                       checkoutStage === "payment"
-                        ? "Traitement en cours..."
+                        ? hasOnlineSelection
+                          ? "Paiement en cours..."
+                          : "Traitement en cours..."
                         : "Passage au paiement..."
                     }
                     fullWidth
@@ -1051,7 +1111,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   >
                     {checkoutStage === "shipping"
                       ? "Passer au paiement"
-                      : "Confirmer la commande"}
+                      : hasOnlineSelection
+                        ? "Payer"
+                        : "Confirmer la commande"}
                   </Button>
                 )}
               </div>
@@ -1114,7 +1176,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   >
                     {checkoutStage === "shipping"
                       ? "Passer au paiement"
-                      : "Confirmer la commande"}
+                      : hasOnlineSelection
+                        ? "Payer"
+                        : "Confirmer la commande"}
                   </Button>
                 )}
               </div>

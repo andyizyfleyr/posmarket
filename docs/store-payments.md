@@ -27,6 +27,8 @@ Le panier marketplace est découpé par boutique ; chaque boutique propose **ses
 
 ## Cycle d'encaissement (commandes boutiques)
 
+0. **Côté tunnel acheteur** : dès qu'un moyen en ligne (Kkiapay/FedaPay/SasPay) est sélectionné, le bouton de confirmation devient **« Payer »** ; le clic enregistre la commande **puis lance immédiatement** le règlement (widget Kkiapay/FedaPay ouvert dans la page, redirection vers le guichet SasPay, ou cartes de paiement affichées en multi-boutique si plusieurs paiements en ligne sont en attente — dans ce dernier cas le client déclenche chaque boutique lui-même). La page **Commande réussie** ne s'affiche qu'une fois **tous** les paiements en ligne confirmés côté serveur ; COD/USSD ne bloquent pas la confirmation. Si le paiement échoue ou est annulé, le client reste sur l'étape paiement avec le bouton de l'action en échec pour réessayer (la commande est déjà enregistrée, aucun doublon possible).
+
 1. Après insertion des commandes (une par boutique), une ligne `order_payments` est créée par boutique (montant, devise XOF, statut `PENDING`, `token` aléatoire non devinable remis au navigateur, `provider_checkout_id` pour SasPay).
 2. Initialisation fournisseur :
    - **Kkiapay / FedaPay** : la clé **publique** revient au navigateur ; le widget s'ouvre côté client ; le secret ne quitte jamais le serveur.
