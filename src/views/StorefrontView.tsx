@@ -165,7 +165,7 @@ export type CheckoutPaymentMethodOption = {
     instructions?: string;
     ussdCode?: string;
     publicKey?: string;
-    env?: "sandbox" | "live";
+    env?: "live";
   };
 };
 

@@ -111,6 +111,12 @@ export interface Order {
   customer?: Customer;
   type?: 'IN_STORE' | 'PICKUP';
   status?: 'PENDING' | 'READY' | 'COMPLETED';
+  /** Encaissement : PENDING (en attente), PAID (vérifié / collecté), FAILED (échoué). */
+  paymentStatus?: string;
+  /** Moyen encaissé : cod, kkiapay, fedapay, saspay, ussd (commandes en ligne). */
+  paymentProvider?: string | null;
+  /** Référence fournisseur (transaction Kkiapay/FedaPay, paiement SasPay). */
+  paymentReference?: string | null;
 }
 
 export interface InvoiceItem {

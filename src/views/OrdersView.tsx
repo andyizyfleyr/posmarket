@@ -18,6 +18,43 @@ interface OrdersViewProps {
     store?: { id: string; name?: string | null; settings?: { [key: string]: unknown } | null } | null;
 }
 
+/** Libellés des moyens d'encaissement propres à une boutique. */
+const PAYMENT_PROVIDER_LABELS: Record<string, string> = {
+    cod: 'Paiement à la livraison',
+    kkiapay: 'Kkiapay',
+    fedapay: 'FedaPay',
+    saspay: 'SasPay',
+    ussd: 'USSD',
+};
+
+/**
+ * Pastille « encaissement » d'une commande en ligne. Rien n'est affiché pour
+ * les ventes en magasin (aucun moyen de paiement boutique associé).
+ */
+const PaymentStatusBadge: React.FC<{ status?: string | null; provider?: string | null }> = ({ status, provider }) => {
+    if (!provider) return null;
+    const s = String(status || 'PENDING').toUpperCase();
+    const offline = provider === 'cod' || provider === 'ussd';
+    let cls = 'bg-amber-50 text-amber-700 border-amber-200';
+    let label = 'En attente';
+    if (s === 'PAID') {
+        cls = 'bg-green-50 text-green-700 border-green-200';
+        label = 'Payée';
+    } else if (s === 'FAILED') {
+        cls = 'bg-red-50 text-red-600 border-red-200';
+        label = 'Échec paiement';
+    } else if (offline) {
+        cls = 'bg-blue-50 text-blue-700 border-blue-200';
+        label = 'À encaisser';
+    }
+    return (
+        <span className={`inline-flex items-center gap-1 text-[8px] md:text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border whitespace-nowrap ${cls}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+            {label}
+        </span>
+    );
+};
+
 const OrdersView: React.FC<OrdersViewProps> = ({ 
     orders: initialOrders, 
     currentStoreId,
@@ -436,6 +473,11 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                         {getStatusLabel(order.status || 'READY')}
                                                     </div>
                                                     <div className="text-[10px] text-gray-400 font-semibold uppercase">{order.paymentMethod}</div>
+                                                    {order.paymentProvider && (
+                                                        <div className="mt-1 flex justify-end">
+                                                            <PaymentStatusBadge status={order.paymentStatus} provider={order.paymentProvider} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 
                                                 <ChevronRight className="text-gray-300 group-hover:text-brand transition-colors md:w-4 md:h-4" size={14} />
@@ -624,6 +666,26 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                         <div className="flex items-center gap-1.5 mt-3 md:mt-4 text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                                             <CreditCard size={12} className="md:w-[14px] md:h-[14px]" /> Mode: <span className="text-gray-900">{selectedOrder.paymentMethod}</span>
                                         </div>
+                                        {selectedOrder.paymentProvider && (
+                                            <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 space-y-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                                                        {PAYMENT_PROVIDER_LABELS[selectedOrder.paymentProvider] || selectedOrder.paymentProvider}
+                                                    </span>
+                                                    <PaymentStatusBadge status={selectedOrder.paymentStatus} provider={selectedOrder.paymentProvider} />
+                                                </div>
+                                                {selectedOrder.paymentReference && (
+                                                    <p className="text-[9px] md:text-[10px] text-gray-400 font-mono break-all">
+                                                        Réf. : {selectedOrder.paymentReference}
+                                                    </p>
+                                                )}
+                                                {String(selectedOrder.paymentStatus || '').toUpperCase() !== 'PAID' && (selectedOrder.paymentProvider === 'kkiapay' || selectedOrder.paymentProvider === 'fedapay' || selectedOrder.paymentProvider === 'saspay') && (
+                                                    <p className="text-[9px] md:text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 font-semibold leading-snug">
+                                                        Ne remettez pas la commande tant que le paiement n’est pas confirmé par le fournisseur.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

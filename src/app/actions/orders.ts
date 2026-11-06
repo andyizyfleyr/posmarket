@@ -11,6 +11,7 @@ import { sendPushToGuest } from '@/lib/push'
 import { buildPushContent } from '@/lib/push-templates'
 import { orderEmailProducts } from '@/lib/email'
 import { requireStoreAccess } from '@/lib/authorization'
+import { markOfflineStorePaymentCollected } from '@/lib/store-payments'
 
 // ---------------------------------------------------------------------------
 // Garde-fous d'accès
@@ -279,6 +280,15 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
         const [existing] = await db.select({ status: orders.status, boosted: orders.boosted }).from(orders).where(eq(orders.id, orderId)).limit(1);
         await db.update(orders).set({ status }).where(eq(orders.id, orderId));
 
+        // Commande terminée = COD / USSD encaissés en main propre : le serveur
+        // marque le paiement off-line collecté. Les paiements en ligne restent
+        // soumis à la vérification fournisseur.
+        if (String(status || '').toUpperCase() === 'COMPLETED') {
+            await markOfflineStorePaymentCollected(orderId).catch((err) =>
+                console.error('[orders] encaissement hors ligne:', err),
+            );
+        }
+
         // Une commande annulée (pas déjà annulée) redonne son stock — sauf si
         // elle est boostée : celle-ci n'a jamais décrémenté ce stock, la
         // réintégrer ferait monter l'inventaire au-dessus du niveau réel.
@@ -383,6 +393,11 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
                 refreshTag('marketplace');
             }
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
+            if (String(status || '').toUpperCase() === 'COMPLETED') {
+                await Promise.allSettled(
+                    orderIds.map((id) => markOfflineStorePaymentCollected(String(id))),
+                );
+            }
             storeIds.forEach(sid => {
                 invalidateOrdersCache(sid);
                 revalidateTag(`orders:${sid}`, 'max');

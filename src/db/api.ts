@@ -19,6 +19,9 @@ type OrderRes = {
   status: string;
   type: string;
   paymentMethod: string;
+  paymentStatus: string;
+  paymentProvider: string | null;
+  paymentReference: string | null;
   subtotal: string | null;
   total: string | null;
   discountAmount: string | null;
@@ -298,6 +301,9 @@ async function getOrdersForStore(storeId: string) {
       status: orders.status,
       type: orders.type,
       paymentMethod: orders.paymentMethod,
+      paymentStatus: orders.paymentStatus,
+      paymentProvider: orders.paymentProvider,
+      paymentReference: orders.paymentReference,
       subtotal: orders.subtotal,
       total: orders.total,
       discountAmount: orders.discountAmount,
@@ -323,6 +329,9 @@ async function getOrdersForStore(storeId: string) {
     status: o.status,
     type: o.type,
     paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus,
+    paymentProvider: o.paymentProvider,
+    paymentReference: o.paymentReference,
     subtotal: o.subtotal,
     total: o.total,
     discountAmount: o.discountAmount,
@@ -403,6 +412,9 @@ function formatOrder(o: OrderRes, itemsByOrder: Record<string, OrderItemBundle[]
     status: o.status,
     type: o.type,
     paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus,
+    paymentProvider: o.paymentProvider,
+    paymentReference: o.paymentReference,
     subtotal: parseFloat(o.subtotal ?? '') || 0,
     total: parseFloat(o.total ?? '') || 0,
     discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,

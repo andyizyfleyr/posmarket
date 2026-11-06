@@ -9,6 +9,7 @@ import {
 } from '@/db/schema';
 import { decryptPaymentSecret, encryptPaymentSecret } from '@/lib/payment-secrets';
 import { publicSaspayError } from '@/lib/saspay';
+import { refreshTag } from '@/lib/revalidate';
 
 /**
  * Moyens de paiement par boutique.
@@ -38,11 +39,18 @@ export const STORE_PAYMENT_LABELS: Record<StorePaymentProvider, string> = {
 
 const ONLINE_PROVIDERS = new Set<StorePaymentProvider>(['kkiapay', 'fedapay', 'saspay']);
 
+// Aligné sur src/db/api.ts (isCancelledOrderStatus) — dupliqué ici pour
+// garder ce module autonome.
+const CANCELLED_ORDER_STATUSES = new Set(['CANCELLED', 'ANNULEE']);
+const isCancelledOrderStatus = (status?: string | null): boolean =>
+  CANCELLED_ORDER_STATUSES.has(String(status || '').toUpperCase());
+
 export type PublicStorePaymentConfig = {
   instructions?: string;
   ussdCode?: string;
   publicKey?: string;
-  env?: 'sandbox' | 'live';
+  /** Toujours « live » : les paiements boutiques sont en production uniquement. */
+  env?: 'live';
 };
 
 export type StorePaymentSecretPayload = {
@@ -69,6 +77,20 @@ export type CheckoutPaymentMethod = {
 };
 
 const PROVIDER_SET = new Set<string>(STORE_PAYMENT_PROVIDERS);
+
+/**
+ * Les paiements boutiques fonctionnent en production uniquement : toute
+ * clé qui ressemble à une clé de test / sandbox est refusée. Le test porte
+ * sur le mot entier (délimité par des non-alphanumériques ou des bords)
+ * pour ne pas rejeter une clé aléatoire contenant « test » par hasard de
+ * façon trop agressive, tout en attrapant pk_test_…, sk_test_…,
+ * sk_sandbox_…, my_demo_key, etc.
+ */
+export function looksLikeSandboxKey(value: unknown): boolean {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return false;
+  return /(^|[^a-z0-9])(test|sandbox|demo)([^a-z]|$)/.test(v);
+}
 
 export function isStorePaymentProvider(value: unknown): value is StorePaymentProvider {
   return typeof value === 'string' && PROVIDER_SET.has(value);
@@ -101,17 +123,21 @@ export function paymentMethodDisplayLabel(provider: string): string {
   return provider || 'Paiement';
 }
 
-function pickPublicConfig(raw: unknown): PublicStorePaymentConfig {
+/**
+ * Assainit la configuration publique d'un moyen de paiement. Les paiements
+ * boutiques sont en production uniquement : `env` est toujours forcé à
+ * « live », quelle que soit la valeur historique stockée en base.
+ */
+export function pickPublicConfig(raw: unknown): PublicStorePaymentConfig {
   const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const config: PublicStorePaymentConfig = {};
   const instructions = String(value.instructions || '').trim();
   const ussdCode = String(value.ussdCode || value.ussd_code || '').trim();
   const publicKey = String(value.publicKey || value.public_key || '').trim();
-  const env = value.env === 'live' ? 'live' : value.env === 'sandbox' ? 'sandbox' : undefined;
   if (instructions) config.instructions = instructions.slice(0, 500);
   if (ussdCode) config.ussdCode = ussdCode.slice(0, 80);
   if (publicKey) config.publicKey = publicKey.slice(0, 200);
-  if (env) config.env = env;
+  config.env = 'live';
   return config;
 }
 
@@ -271,6 +297,27 @@ export async function saveStorePaymentMethod(
     if (provider === 'ussd' && !config.ussdCode) {
       return { success: false, error: 'Renseignez le code USSD à composer.' };
     }
+    // Production uniquement : refuse toute clé ressemblant à une clé de test,
+    // qu'elle soit nouvellement fournie ou conservée depuis un enregistrement
+    // antérieur — y compris la clé publique (elle ouvre le widget).
+    if (isOnlineStorePayment(provider)) {
+      const effectiveSecrets = hasNewSecret ? nextSecrets : (existingSecret ?? {});
+      const candidates: Array<[string, string | undefined]> = [
+        ['clé publique', config.publicKey],
+        ['clé privée', effectiveSecrets.privateKey],
+        ['clé secrète', effectiveSecrets.secretKey],
+        ['clé API', effectiveSecrets.apiKey],
+        ['secret webhook', effectiveSecrets.webhookSecret],
+      ];
+      for (const [label, value] of candidates) {
+        if (value && looksLikeSandboxKey(value)) {
+          return {
+            success: false,
+            error: `La ${label} ressemble à une clé de test. Les paiements boutiques fonctionnent en mode production uniquement ; utilisez vos clés live.`,
+          };
+        }
+      }
+    }
   }
 
   await db
@@ -374,21 +421,27 @@ export async function initializeStorePayment(input: {
     if (!config.publicKey || !secrets) {
       return { ok: false, error: 'Le paiement en ligne de cette boutique est mal configuré.' };
     }
-    const env =
-      config.env ||
-      (config.publicKey.startsWith('pk_live') ||
-      config.publicKey.startsWith('live') ||
-      secrets.secretKey?.startsWith('sk_live') ||
-      secrets.privateKey?.startsWith('live')
-        ? 'live'
-        : 'sandbox');
-    return { ok: true, publicKey: config.publicKey, env };
+    // Production uniquement : les clés de test, même enregistrées par erreur,
+    // ne peuvent pas ouvrir de widget — on refuse plutôt que d'encaisser à tort.
+    if (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey)) {
+      return {
+        ok: false,
+        error: 'Les clés de cette boutique ressemblent à des clés de test. Le mode production est requis.',
+      };
+    }
+    return { ok: true, publicKey: config.publicKey, env: 'live' };
   }
 
   // SasPay : le guichet est hébergé, il faut créer une session côté serveur.
   const secrets = await loadStorePaymentCredential(input.storeId, 'saspay');
   if (!secrets?.apiKey) {
     return { ok: false, error: 'La clé API SasPay de cette boutique est absente.' };
+  }
+  if (looksLikeSandboxKey(secrets.apiKey)) {
+    return {
+      ok: false,
+      error: 'La clé API SasPay de cette boutique ressemble à une clé de test. Le mode production est requis.',
+    };
   }
   try {
     const { createSaspayStoreCheckout, saspayStoreReturnUrl } = await import('@/lib/saspay');
@@ -427,14 +480,16 @@ type KkiapayStatusResponse = {
   reason?: string;
 };
 
+// Production uniquement : l'API sandbox Kkiapay n'est jamais utilisée pour
+// les encaissements boutiques.
+const KKIAPAY_API_BASE = 'https://api.kkiapay.me';
+
 async function verifyKkiapayWithCredentials(
   secrets: StorePaymentSecretPayload,
   publicKey: string,
   transactionId: string,
-  env: 'sandbox' | 'live',
 ): Promise<KkiapayStatusResponse> {
-  const base = env === 'live' ? 'https://api.kkiapay.me' : 'https://api-sandbox.kkiapay.me';
-  const res = await fetch(`${base}/api/v1/transactions/status`, {
+  const res = await fetch(`${KKIAPAY_API_BASE}/api/v1/transactions/status`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -473,8 +528,8 @@ async function verifyFedapayWithCredentials(
 ): Promise<FedapayStatusResponse> {
   const secret = secrets.secretKey || '';
   if (!secret) throw new Error('Clé secrète FedaPay absente.');
-  const isLive = secret.startsWith('sk_live');
-  const base = isLive ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1';
+  // Production uniquement : l'API sandbox FedaPay n'est jamais utilisée.
+  const base = 'https://api.fedapay.com/v1';
   const res = await fetch(`${base}/transactions/${encodeURIComponent(transactionId)}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
@@ -521,6 +576,8 @@ async function markStorePaymentPaid(row: StorePaymentRow, reference: string): Pr
       paymentProvider: row.provider,
     })
     .where(eq(orders.id, row.orderId));
+  // Le vendeur doit voir « Payé » sans attendre l'expiration des caches.
+  refreshTag(`orders:${row.storeId}`);
 }
 
 export async function markStorePaymentFailed(
@@ -537,7 +594,7 @@ export async function markStorePaymentFailed(
     .where(and(eq(orderPayments.id, paymentId), eq(orderPayments.status, 'PENDING')));
 
   const [row] = await db
-    .select({ orderId: orderPayments.orderId })
+    .select({ orderId: orderPayments.orderId, storeId: orderPayments.storeId })
     .from(orderPayments)
     .where(eq(orderPayments.id, paymentId))
     .limit(1);
@@ -546,12 +603,8 @@ export async function markStorePaymentFailed(
       .update(orders)
       .set({ paymentStatus: 'FAILED' })
       .where(eq(orders.id, row.orderId));
+    refreshTag(`orders:${row.storeId}`);
   }
-}
-
-async function loadPaymentById(paymentId: string): Promise<StorePaymentRow | null> {
-  const [row] = await db.select().from(orderPayments).where(eq(orderPayments.id, paymentId)).limit(1);
-  return row || null;
 }
 
 async function loadPaymentByToken(token: string): Promise<StorePaymentRow | null> {
@@ -592,6 +645,22 @@ export async function confirmStorePayment(input: {
   const provider = isStorePaymentProvider(row.provider) ? row.provider : null;
   if (!provider) return { success: false, error: 'Moyen de paiement inconnu.' };
 
+  // Une commande annulée ne doit plus encaisser : on ferme le paiement
+  // (FAILED) plutôt que de laisser le client payer une commande morte.
+  try {
+    const [orderRow] = await db
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, row.orderId))
+      .limit(1);
+    if (orderRow && isCancelledOrderStatus(orderRow.status)) {
+      await markStorePaymentFailed(row.id, 'Commande annulée.');
+      return { success: false, error: 'Cette commande a été annulée.' };
+    }
+  } catch (error) {
+    console.error('[store-payments] vérification statut commande:', error);
+  }
+
   try {
     if (provider === 'kkiapay') {
       const reference = String(input.reference || '').trim();
@@ -605,7 +674,6 @@ export async function confirmStorePayment(input: {
         secrets,
         config.publicKey,
         reference,
-        config.env || 'sandbox',
       );
       if (String(tx.status || '').toUpperCase() !== 'SUCCESS') {
         return { success: false, error: tx.failureMessage || tx.reason || 'Paiement non abouti.' };
@@ -681,6 +749,40 @@ export async function confirmStorePayment(input: {
   }
 }
 
+/**
+ * Encaissement hors ligne (COD / USSD) marqué payé lorsque le vendeur mène
+ * la commande à son terme : l'argent est encaissé en main propre. Les
+ * paiements en ligne (Kkiapay / FedaPay / SasPay) sont volontairement
+ * exclus — seul le serveur les marque PAID, après vérification.
+ */
+export async function markOfflineStorePaymentCollected(orderId: string): Promise<void> {
+  const cleanOrderId = String(orderId || '').trim();
+  if (!cleanOrderId) return;
+  const rows = await db
+    .update(orderPayments)
+    .set({ status: 'PAID', paidAt: new Date(), updatedAt: new Date(), failureReason: null })
+    .where(
+      and(
+        eq(orderPayments.orderId, cleanOrderId),
+        eq(orderPayments.status, 'PENDING'),
+        inArray(orderPayments.provider, ['cod', 'ussd']),
+      ),
+    )
+    .returning({ storeId: orderPayments.storeId });
+  if (rows.length === 0) return;
+  await db
+    .update(orders)
+    .set({ paymentStatus: 'PAID' })
+    .where(
+      and(
+        eq(orders.id, cleanOrderId),
+        eq(orders.paymentStatus, 'PENDING'),
+        inArray(orders.paymentProvider, ['cod', 'ussd']),
+      ),
+    );
+  for (const row of rows) refreshTag(`orders:${row.storeId}`);
+}
+
 /** Rapprochement côté webhook : retrouve le paiement par jeton ou référence. */
 export async function findStorePaymentForWebhook(
   provider: StorePaymentProvider,
@@ -735,7 +837,7 @@ export type StorePaymentClientView = {
   token: string;
   checkoutUrl: string | null;
   publicKey: string | null;
-  env: 'sandbox' | 'live';
+  env: 'live';
   ussdCode: string | null;
   instructions: string | null;
   reference: string | null;
@@ -748,16 +850,8 @@ export async function describeStorePaymentForClient(
 ): Promise<StorePaymentClientView> {
   const provider = isStorePaymentProvider(row.provider) ? row.provider : 'cod';
   const { config } = await loadPaymentMethodConfig(row.storeId, provider);
-  const secrets = isOnlineStorePayment(provider)
-    ? await loadStorePaymentCredential(row.storeId, provider)
-    : null;
-  const env: 'sandbox' | 'live' =
-    config.env ||
-    (config.publicKey?.startsWith('pk_live') ||
-    secrets?.secretKey?.startsWith('sk_live') ||
-    secrets?.privateKey?.startsWith('live')
-      ? 'live'
-      : 'sandbox');
+  // Production uniquement : l'environnement rapporté est toujours « live ».
+  const env = 'live';
   return {
     id: row.id,
     orderId: row.orderId,

@@ -20,7 +20,7 @@ interface Props {
 }
 
 /** Les paiements boutiques sont en production uniquement (pas de sandbox). */
-const PAYMENT_ENV: 'sandbox' | 'live' = 'live';
+const PAYMENT_ENV = 'live';
 
 type Draft = {
   enabled: boolean;
@@ -336,7 +336,8 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         <p className="text-brand text-[10px] md:text-xs font-normal leading-relaxed">
           <strong>Conseil :</strong> activez au moins le paiement à la livraison si vous ne
           disposez pas encore de compte Mobile Money. Les paiements boutiques sont en
-          <strong>mode production (live)</strong> uniquement. Les paiements en ligne sont
+          <strong>mode production (live)</strong> uniquement et les clés de test
+          (pk_test_, sk_test_, …) sont refusées. Les paiements en ligne sont
           marqués « payés » seulement après vérification par le serveur auprès du fournisseur.
         </p>
       </div>
