@@ -19,10 +19,12 @@ interface Props {
   notify?: (message: string, type: NotificationType, title?: string) => void;
 }
 
+/** Les paiements boutiques sont en production uniquement (pas de sandbox). */
+const PAYMENT_ENV: 'sandbox' | 'live' = 'live';
+
 type Draft = {
   enabled: boolean;
   publicKey: string;
-  env: 'sandbox' | 'live';
   ussdCode: string;
   instructions: string;
   privateKey: string;
@@ -42,15 +44,15 @@ const PROVIDER_META: Record<
   },
   kkiapay: {
     icon: <Smartphone size={20} />,
-    hint: 'Widget Mobile Money / carte. Clés depuis votre tableau de bord Kkiapay.',
+    hint: 'Widget Mobile Money / carte. Clés depuis votre tableau de bord Kkiapay (mode production).',
     secretFields: [
-      { key: 'privateKey', label: 'Clé privée', placeholder: 'xoxb-…' },
-      { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_…' },
+      { key: 'privateKey', label: 'Clé privée', placeholder: 'sk_live_…' },
+      { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_live_…' },
     ],
   },
   fedapay: {
     icon: <Smartphone size={20} />,
-    hint: 'Widget Mobile Money / carte. Clés depuis votre tableau de bord FedaPay.',
+    hint: 'Widget Mobile Money / carte. Clés depuis votre tableau de bord FedaPay (mode production).',
     secretFields: [
       { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_live_…' },
     ],
@@ -64,7 +66,7 @@ const PROVIDER_META: Record<
   },
   ussd: {
     icon: <Phone size={20} />,
-    hint: 'Le client compose un code USSD (ex. marchand) puis paie : vous vérifiez l’encaissement sur votre compte.',
+    hint: 'Le client compose un code USSD puis paie ; vous vérifiez l’encaissement sur votre compte.',
     secretFields: [],
   },
 };
@@ -73,7 +75,6 @@ function draftFromView(view: StorePaymentMethodView): Draft {
   return {
     enabled: view.enabled,
     publicKey: view.config.publicKey || '',
-    env: view.config.env === 'live' ? 'live' : 'sandbox',
     ussdCode: view.config.ussdCode || '',
     instructions: view.config.instructions || '',
     privateKey: '',
@@ -90,14 +91,17 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
   const [methods, setMethods] = useState<StorePaymentMethodView[]>([]);
   const [drafts, setDrafts] = useState<Partial<Record<StorePaymentProvider, Draft>>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState<StorePaymentProvider | null>(null);
 
   const load = useCallback(async () => {
     if (!storeId) {
       setLoading(false);
+      setMethods([]);
       return;
     }
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetchStorePaymentSettingsAction(storeId);
       if (res.success && res.methods) {
@@ -105,13 +109,33 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         setDrafts(
           Object.fromEntries(res.methods.map((m) => [m.provider, draftFromView(m)])),
         );
-      } else if (notify) {
-        notify(res.error || 'Impossible de charger les moyens de paiement.', 'error');
+      } else {
+        // Affichage dégradé : on propose quand même les 5 moyens par défaut
+        // pour que le vendeur puisse les activer et enregistrer ses clés.
+        const defaults: StorePaymentMethodView[] = (['cod', 'kkiapay', 'fedapay', 'saspay', 'ussd'] as StorePaymentProvider[]).map((provider) => ({
+          provider,
+          label: {
+            cod: 'Paiement à la livraison',
+            kkiapay: 'Kkiapay (Mobile Money / carte)',
+            fedapay: 'FedaPay (Mobile Money / carte)',
+            saspay: 'SasPay (Mobile Money)',
+            ussd: 'Paiement USSD',
+          }[provider],
+          enabled: false,
+          config: { env: PAYMENT_ENV },
+          hasSecret: false,
+          keyHint: null,
+        }));
+        setMethods(defaults);
+        setDrafts(
+          Object.fromEntries(defaults.map((m) => [m.provider, draftFromView(m)])),
+        );
+        setLoadError(res.error || 'Impossible de charger les moyens de paiement.');
       }
     } finally {
       setLoading(false);
     }
-  }, [storeId, notify]);
+  }, [storeId]);
 
   useEffect(() => {
     void load();
@@ -135,9 +159,10 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
       if (draft.apiKey.trim()) secrets.apiKey = draft.apiKey.trim();
       if (draft.webhookSecret.trim()) secrets.webhookSecret = draft.webhookSecret.trim();
 
-      const config: PublicStorePaymentConfig = {};
+      const config: PublicStorePaymentConfig = {
+        env: PAYMENT_ENV,
+      };
       if (draft.publicKey.trim()) config.publicKey = draft.publicKey.trim();
-      config.env = draft.env;
       if (draft.ussdCode.trim()) config.ussdCode = draft.ussdCode.trim();
       if (draft.instructions.trim()) config.instructions = draft.instructions.trim();
 
@@ -184,6 +209,12 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         </h3>
       </div>
 
+      {loadError && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-[10px] md:text-xs text-amber-800">
+          {loadError}
+        </div>
+      )}
+
       <p className="text-xs md:text-sm text-gray-500 leading-relaxed">
         Encaissez directement sur vos comptes : chaque moyen activé est proposé à vos clients
         à l’étape paiement. Les clés secrètes sont chiffrées et ne sont jamais affichées.
@@ -193,7 +224,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         const meta = PROVIDER_META[method.provider];
         const draft = drafts[method.provider];
         if (!draft) return null;
-        const isOnline = method.provider === 'kkiapay' || method.provider === 'fedapay' || method.provider === 'saspay';
         const needsPublicKey = method.provider === 'kkiapay' || method.provider === 'fedapay';
         return (
           <div
@@ -232,22 +262,9 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                       className={inputCls}
                       value={draft.publicKey}
                       onChange={(e) => update(method.provider, { publicKey: e.target.value })}
-                      placeholder="pk_live_… ou pk_test_…"
+                      placeholder="pk_live_…"
                       autoComplete="off"
                     />
-                  </div>
-                )}
-                {isOnline && (
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Environnement</label>
-                    <select
-                      className={inputCls}
-                      value={draft.env}
-                      onChange={(e) => update(method.provider, { env: e.target.value as 'sandbox' | 'live' })}
-                    >
-                      <option value="sandbox">Test (sandbox)</option>
-                      <option value="live">Production (live)</option>
-                    </select>
                   </div>
                 )}
                 {meta.secretFields.map((field) => (
@@ -266,19 +283,6 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                     />
                   </div>
                 ))}
-                {isOnline && (
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Secret webhook (optionnel)</label>
-                    <input
-                      type="password"
-                      className={inputCls}
-                      value={draft.webhookSecret}
-                      onChange={(e) => update(method.provider, { webhookSecret: e.target.value })}
-                      placeholder="Laisser vide pour conserver"
-                      autoComplete="off"
-                    />
-                  </div>
-                )}
                 {method.provider === 'ussd' && (
                   <>
                     <div>
@@ -321,7 +325,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-400">
                 <ShieldCheck size={12} className="text-green-500" />
-                Secrets chiffrés, jamais exposés au navigateur
+                Secrets chiffrés, jamais exposés au navigateur · Mode production
               </span>
               <button
                 onClick={() => save(method.provider)}
@@ -340,8 +344,9 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         <Info size={18} className="text-brand flex-shrink-0" />
         <p className="text-brand text-[10px] md:text-xs font-normal leading-relaxed">
           <strong>Conseil :</strong> activez au moins le paiement à la livraison si vous ne
-          disposez pas encore de compte Mobile Money. Les paiements en ligne sont marqués
-          « payés » seulement après vérification par le serveur auprès du fournisseur.
+          disposez pas encore de compte Mobile Money. Les paiements boutiques sont en
+          <strong>mode production (live)</strong> uniquement. Les paiements en ligne sont
+          marqués « payés » seulement après vérification par le serveur auprès du fournisseur.
         </p>
       </div>
     </div>
