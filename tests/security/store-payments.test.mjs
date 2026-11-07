@@ -21,7 +21,10 @@ import { fileURLToPath } from 'node:url';
  * - le rapprochement webhook et la confirmation serveur refusent de démarrer
  *   sans secret en place ;
  * - la commande hors ligne (COD / USSD) est marquée collectée quand le
- *   vendeur la termine.
+ *   vendeur la termine ;
+ * - FeexPay : clés fp_ (live) / test_ (sandbox) préfixées — le mode est
+ *   porté par la clé (hôte unique api-v2.feexpay.me) ; l'identifiant boutique
+ *   (shopId) est public et conservé dans la config, la clé API reste chiffrée.
  */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -108,7 +111,7 @@ const SASPAY_MOCK = `
 
 // ── Module sous test ───────────────────────────────────────────────────────
 
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 const TEST_KEY = Buffer.from('a'.repeat(64), 'hex');
 
@@ -219,17 +222,20 @@ test('normalizeStorePaymentProvider normalise les alias historiques', async () =
   assert.equal(normalizeStorePaymentProvider(''), 'cod');
   assert.equal(normalizeStorePaymentProvider('kkiapay'), 'kkiapay');
   assert.equal(normalizeStorePaymentProvider('FEDAPAY'), 'fedapay');
+  assert.equal(normalizeStorePaymentProvider('feexpay'), 'feexpay');
+  assert.equal(normalizeStorePaymentProvider('FEEXPAY'), 'feexpay');
   // SasPay / USSD : retirés pour les boutiques — nouvelles commandes refusées.
   assert.equal(normalizeStorePaymentProvider('saspay'), null);
   assert.equal(normalizeStorePaymentProvider('ussd'), null);
   assert.equal(normalizeStorePaymentProvider('bitcoin'), null);
 });
 
-test('isOnlineStorePayment : seuls Kkiapay / FedaPay / SasPay sont en ligne', async () => {
+test('isOnlineStorePayment : Kkiapay / FedaPay / FeexPay / SasPay sont en ligne', async () => {
   const mod = await loadWithDb();
   const { isOnlineStorePayment } = mod;
   assert.equal(isOnlineStorePayment('kkiapay'), true);
   assert.equal(isOnlineStorePayment('fedapay'), true);
+  assert.equal(isOnlineStorePayment('feexpay'), true);
   assert.equal(isOnlineStorePayment('saspay'), true);
   assert.equal(isOnlineStorePayment('cod'), false);
   assert.equal(isOnlineStorePayment('ussd'), false);
@@ -410,4 +416,113 @@ test('saveStorePaymentMethod accepte la clé secrète conservée de test en Sand
     secrets: {},
   });
   assert.equal(res.success, true, res.error);
+});
+test('looksLikeFeexpayLiveKey / looksLikeFeexpaySandboxKey : préfixes déterministes', async () => {
+  const mod = await loadWithDb();
+  const { looksLikeFeexpayLiveKey, looksLikeFeexpaySandboxKey } = mod;
+  assert.equal(looksLikeFeexpayLiveKey('fp_live_abc123'), true);
+  assert.equal(looksLikeFeexpayLiveKey('FP_42'), true);
+  assert.equal(looksLikeFeexpayLiveKey('test_abc'), false);
+  assert.equal(looksLikeFeexpayLiveKey('sk_live_abc'), false);
+  assert.equal(looksLikeFeexpaySandboxKey('test_abc123'), true);
+  assert.equal(looksLikeFeexpaySandboxKey('TEST_42'), true);
+  assert.equal(looksLikeFeexpaySandboxKey('fp_live_abc'), false);
+  assert.equal(looksLikeFeexpaySandboxKey(''), false);
+});
+
+test('pickPublicConfig conserve shopId (identifiant public) et le mode', async () => {
+  const mod = await loadWithDb();
+  const { pickPublicConfig } = mod;
+  const cfg = pickPublicConfig({ shopId: '  664f2a6a  ', env: 'sandbox', publicKey: 'ignore' });
+  assert.equal(cfg.shopId, '664f2a6a');
+  assert.equal(cfg.env, 'sandbox');
+  assert.equal(pickPublicConfig({}).shopId, undefined);
+});
+
+test('saveStorePaymentMethod FeexPay exige shopId + clé API', async () => {
+  const mod = await loadWithDb();
+  const noShop = await mod.saveStorePaymentMethod('store-1', 'feexpay', {
+    enabled: true,
+    config: {},
+    secrets: { apiKey: 'fp_abc123' },
+  });
+  assert.equal(noShop.success, false);
+  assert.match(noShop.error || '', /identifiant/i);
+
+  const noKey = await mod.saveStorePaymentMethod('store-1', 'feexpay', {
+    enabled: true,
+    config: { shopId: 'shop-1' },
+    secrets: {},
+  });
+  assert.equal(noKey.success, false);
+  assert.match(noKey.error || '', /clé API/i);
+});
+
+test('saveStorePaymentMethod FeexPay : clé test_ refusée en production, acceptée en Sandbox', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const mod = await loadWithDb();
+  const liveRes = await mod.saveStorePaymentMethod('store-1', 'feexpay', {
+    enabled: true,
+    config: { shopId: 'shop-1' },
+    secrets: { apiKey: 'test_abc123' },
+  });
+  assert.equal(liveRes.success, false);
+  assert.match(liveRes.error || '', /production/i);
+
+  const sandboxRes = await mod.saveStorePaymentMethod('store-1', 'feexpay', {
+    enabled: true,
+    config: { shopId: 'shop-1', env: 'sandbox' },
+    secrets: { apiKey: 'test_abc123' },
+  });
+  assert.equal(sandboxRes.success, true, sandboxRes.error);
+  const inserted = globalThis.__storePaymentsTestState?.inserted || [];
+  assert.ok(inserted.length > 0);
+  assert.equal(inserted[0].config.env, 'sandbox');
+  assert.equal(inserted[0].config.shopId, 'shop-1');
+});
+
+test('saveStorePaymentMethod FeexPay : clé fp_ refusée en Sandbox, acceptée en production', async () => {
+  process.env.PAYMENT_CREDENTIALS_KEY = 'a'.repeat(64);
+  const mod = await loadWithDb();
+  const sandboxRes = await mod.saveStorePaymentMethod('store-1', 'feexpay', {
+    enabled: true,
+    config: { shopId: 'shop-1', env: 'sandbox' },
+    secrets: { apiKey: 'fp_live_abc123' },
+  });
+  assert.equal(sandboxRes.success, false);
+  assert.match(sandboxRes.error || '', /sandbox/i);
+
+  const liveRes = await mod.saveStorePaymentMethod('store-1', 'feexpay', {
+    enabled: true,
+    config: { shopId: 'shop-1' },
+    secrets: { apiKey: 'fp_live_abc123' },
+  });
+  assert.equal(liveRes.success, true, liveRes.error);
+  const inserted = globalThis.__storePaymentsTestState?.inserted || [];
+  assert.equal(inserted[0].config.env, 'live');
+});
+
+test('initializeStorePayment FeexPay sans configuration échoue sans appel réseau', async () => {
+  const mod = await loadWithDb({ rows: [], credentialRows: [] });
+  const res = await mod.initializeStorePayment({
+    paymentId: 'payment-1',
+    orderId: 'order-1',
+    storeId: 'store-1',
+    provider: 'feexpay',
+    amount: 1000,
+    customer: {},
+  });
+  assert.equal(res.ok, false);
+  assert.match(res.error || '', /mal configuré/i);
+});
+
+test('verifyFeexpayStoreWebhookSignature : sans secret, la revérification API fait foi', async () => {
+  const mod = await loadWithDb();
+  const { verifyFeexpayStoreWebhookSignature } = mod;
+  const body = '{"reference":"X"}';
+  assert.equal(verifyFeexpayStoreWebhookSignature(body, null, undefined), true);
+  assert.equal(verifyFeexpayStoreWebhookSignature(body, null, ''), true);
+  assert.equal(verifyFeexpayStoreWebhookSignature(body, 'anything', 'secret-1'), false);
+  assert.equal(verifyFeexpayStoreWebhookSignature(body, createHash('sha256').update(body).digest('hex'), 'secret-1'), true);
+  assert.equal(verifyFeexpayStoreWebhookSignature(body, 'secret-1', 'secret-1'), true);
 });

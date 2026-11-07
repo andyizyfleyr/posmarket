@@ -1425,15 +1425,17 @@ export async function quoteCheckoutAction(
       provider: StorePaymentProvider
       amount: number
       publicKey: string
+      /** Identifiant public de la boutique FeexPay (SDK officiel). */
+      shopId?: string
       env: 'sandbox' | 'live'
     }> = []
     for (const sc of storeCheckouts) {
       // Uniquement les moyens facturés AVANT la commande, avec widget
-      // (Kkiapay, FedaPay). Les autres sont réglés à la remise (COD).
-      if (sc.paymentProvider !== 'kkiapay' && sc.paymentProvider !== 'fedapay') continue
-      // initializeStorePayment ne fait AUCUNE écriture pour kkiapay/fedapay :
-      // il relit la configuration publique et les identifiants, puis renvoie
-      // la clé publique (ou une erreur si mal configurée / sandbox).
+      // (Kkiapay, FedaPay, FeexPay). Les autres sont réglés à la remise (COD).
+      if (!isOnlineStorePayment(sc.paymentProvider)) continue
+      // initializeStorePayment ne fait AUCUNE écriture : il relit la
+      // configuration publique et les identifiants, puis renvoie les
+      // identifiants du guichet (ou une erreur si mal configurée / sandbox).
       const init = await initializeStorePayment({
         paymentId: sc.paymentId,
         orderId: sc.orderId,
@@ -1455,6 +1457,7 @@ export async function quoteCheckoutAction(
         provider: sc.paymentProvider,
         amount: Math.round(sc.total),
         publicKey: init.publicKey,
+        shopId: init.shopId,
         env: init.env === 'sandbox' ? 'sandbox' : 'live',
       })
     }

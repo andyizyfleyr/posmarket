@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Truck,
   Smartphone,
+  Wallet,
   Info,
   ChevronRight,
   X,
@@ -40,6 +41,7 @@ type Draft = {
   privateKey: string;
   secretKey: string;
   apiKey: string;
+  shopId: string;
   webhookSecret: string;
 };
 
@@ -72,9 +74,16 @@ const PROVIDER_META: Partial<Record<
       { key: 'secretKey', label: 'Clé secrète', placeholder: 'sk_live_…' },
     ],
   },
+  feexpay: {
+    icon: <Wallet size={20} />,
+    shortLabel: 'Mobile Money / carte',
+    secretFields: [
+      { key: 'apiKey', label: 'Clé API', placeholder: 'fp_…' },
+    ],
+  },
 };
 
-const PROVIDER_ORDER: StorePaymentProvider[] = ['cod', 'kkiapay', 'fedapay'];
+const PROVIDER_ORDER: StorePaymentProvider[] = ['cod', 'kkiapay', 'fedapay', 'feexpay'];
 
 function draftFromView(view: StorePaymentMethodView): Draft {
   return {
@@ -82,6 +91,7 @@ function draftFromView(view: StorePaymentMethodView): Draft {
     env: view.config.env === 'sandbox' ? 'sandbox' : 'live',
     publicKey: view.config.publicKey || '',
     instructions: view.config.instructions || '',
+    shopId: view.config.shopId || '',
     privateKey: '',
     secretKey: '',
     apiKey: '',
@@ -96,6 +106,7 @@ const DEFAULT_LABELS: Partial<Record<StorePaymentProvider, string>> = {
   cod: 'Paiement à la livraison',
   kkiapay: 'Kkiapay (Mobile Money / carte)',
   fedapay: 'FedaPay (Mobile Money / carte)',
+  feexpay: 'FeexPay (Mobile Money / carte)',
 };
 
 const emptyView = (provider: StorePaymentProvider): StorePaymentMethodView => ({
@@ -191,6 +202,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
         env: draft.env === 'sandbox' ? 'sandbox' : 'live',
       };
       if (draft.publicKey.trim()) config.publicKey = draft.publicKey.trim();
+      if (draft.shopId.trim()) config.shopId = draft.shopId.trim();
       if (draft.instructions.trim()) config.instructions = draft.instructions.trim();
 
       const res = await saveStorePaymentMethodAction(storeId, provider, {
@@ -232,7 +244,8 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
   const activeDraft = openProvider ? drafts[openProvider] : undefined;
   const activeMeta = openProvider ? PROVIDER_META[openProvider] : null;
   const needsPublicKey = openProvider === 'kkiapay' || openProvider === 'fedapay';
-  const isOnline = openProvider === 'kkiapay' || openProvider === 'fedapay';
+  const needsShopId = openProvider === 'feexpay';
+  const isOnline = openProvider === 'kkiapay' || openProvider === 'fedapay' || openProvider === 'feexpay';
 
   return (
     <div className="space-y-5 md:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -265,7 +278,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
           const meta = PROVIDER_META[method.provider];
           if (!meta) return null;
           const isActive = method.enabled;
-          const online = method.provider === 'kkiapay' || method.provider === 'fedapay';
+          const online = method.provider === 'kkiapay' || method.provider === 'fedapay' || method.provider === 'feexpay';
           return (
             <button
               key={method.provider}
@@ -423,6 +436,18 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                       />
                     </div>
                   )}
+                  {needsShopId && (
+                    <div>
+                      <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-1.5">Identifiant boutique (Shop ID)</label>
+                      <input
+                        className={inputCls}
+                        value={activeDraft.shopId}
+                        onChange={(e) => update(openProvider, { shopId: e.target.value })}
+                        placeholder="Ex : 664f2a6a9b1c2d3e4f5a6b7c"
+                        autoComplete="off"
+                      />
+                    </div>
+                  )}
                   {activeMeta.secretFields.map((field) => (
                     <div key={field.key}>
                       <label className="block text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 md:mb-1.5">
@@ -438,9 +463,13 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                         onChange={(e) => update(openProvider, { [field.key]: e.target.value } as Partial<Draft>)}
                         placeholder={activeMethod.hasSecret
                           ? 'Laisser vide pour conserver'
-                          : activeDraft.env === 'sandbox'
-                            ? field.placeholder.replace('_live_', '_test_')
-                            : field.placeholder}
+                          : openProvider === 'feexpay'
+                            ? activeDraft.env === 'sandbox'
+                              ? 'test_…'
+                              : 'fp_…'
+                            : activeDraft.env === 'sandbox'
+                              ? field.placeholder.replace('_live_', '_test_')
+                              : field.placeholder}
                         autoComplete="off"
                       />
                     </div>
@@ -462,6 +491,15 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                             : 'wh_live_…'}
                         autoComplete="off"
                       />
+                    </div>
+                  )}
+                  {openProvider === 'feexpay' && (
+                    <div className="flex items-start gap-2 p-3 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-[9px] md:text-[10px] font-semibold leading-snug">
+                      <Info size={13} className="shrink-0 mt-0.5" />
+                      Le SDK FeexPay officiel reçoit la clé API côté navigateur (flux recommandé par
+                      FeexPay, comme pour l’abonnement plateforme). Vos versements restent protégés
+                      par votre compte FeexPay : régénérez la clé depuis votre dashboard si elle est
+                      compromise.
                     </div>
                   )}
                   {openProvider === 'cod' && (

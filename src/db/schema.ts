@@ -250,7 +250,7 @@ export const orderItems = pgTable('order_items', {  id: uuid('id').primaryKey().
 export const storePaymentMethods = pgTable('store_payment_methods', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
-  /** 'cod' | 'kkiapay' | 'fedapay' | 'saspay' | 'ussd' */
+  /** 'cod' | 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay' | 'ussd' */
   provider: text('provider').notNull(),
   enabled: boolean('enabled').default(false).notNull(),
   config: jsonb('config').default({}).notNull(),

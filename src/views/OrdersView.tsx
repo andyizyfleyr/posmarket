@@ -23,6 +23,7 @@ const PAYMENT_PROVIDER_LABELS: Record<string, string> = {
     cod: 'Paiement à la livraison',
     kkiapay: 'Kkiapay',
     fedapay: 'FedaPay',
+    feexpay: 'FeexPay',
     saspay: 'SasPay',
     ussd: 'USSD',
 };
@@ -679,7 +680,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                         Réf. : {selectedOrder.paymentReference}
                                                     </p>
                                                 )}
-                                                {String(selectedOrder.paymentStatus || '').toUpperCase() !== 'PAID' && (selectedOrder.paymentProvider === 'kkiapay' || selectedOrder.paymentProvider === 'fedapay' || selectedOrder.paymentProvider === 'saspay') && (
+                                                {String(selectedOrder.paymentStatus || '').toUpperCase() !== 'PAID' && (selectedOrder.paymentProvider === 'kkiapay' || selectedOrder.paymentProvider === 'fedapay' || selectedOrder.paymentProvider === 'feexpay' || selectedOrder.paymentProvider === 'saspay') && (
                                                     <p className="text-[9px] md:text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 font-semibold leading-snug">
                                                         Ne remettez pas la commande tant que le paiement n’est pas confirmé par le fournisseur.
                                                     </p>

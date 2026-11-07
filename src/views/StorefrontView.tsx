@@ -30,6 +30,7 @@ import { type StoreCheckoutPaymentView } from "@/components/storefront/StorePaym
 import { quoteCheckoutAction } from "@/app/actions/checkout";
 import { useKkiapay } from "@/hooks/useKkiapay";
 import { useFedapay } from "@/hooks/useFedapay";
+import { useFeexpay } from "@/hooks/useFeexpay";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
@@ -748,6 +749,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const kkiapay = useKkiapay();
   const fedapay = useFedapay();
+  const feexpay = useFeexpay();
 
   const [checkoutStage, setCheckoutStage] = useState<
     "cart" | "shipping" | "payment" | "success" | "blocked"
@@ -2644,7 +2646,7 @@ const WHOLESALE_FILTER = "wholesale";
       // des preuves revérifiées côté serveur avant toute écriture. Rien
       // n'est enregistré si un paiement échoue ou est annulé.
       // ------------------------------------------------------------------
-      const widgetProviders = new Set(["kkiapay", "fedapay"]);
+      const widgetProviders = new Set(["kkiapay", "fedapay", "feexpay"]);
       const onlineStoreIds = Object.keys(ordersData).filter((storeId) =>
         widgetProviders.has(storePaymentSelections[storeId] || "cod"),
       );
@@ -2665,6 +2667,7 @@ const WHOLESALE_FILTER = "wholesale";
           provider: string;
           amount: number;
           publicKey: string;
+          shopId?: string;
           env?: "sandbox" | "live";
         },
         partnerId: string,
@@ -2706,6 +2709,24 @@ const WHOLESALE_FILTER = "wholesale";
             });
             return;
           }
+          if (storeQuote.provider === "feexpay") {
+            feexpay.openWidget({
+              shopId: storeQuote.shopId || "",
+              token: storeQuote.publicKey,
+              amount: storeQuote.amount,
+              mode: storeQuote.env === "sandbox" ? "SANDBOX" : "LIVE",
+              description: "Commande PosMarket",
+              callbackInfo: partnerId,
+              onSuccess: (res) => {
+                const reference = String(
+                  res?.reference || res?.transaction_id || "",
+                ).trim();
+                resolve(reference || null);
+              },
+              onFailed: () => resolve(null),
+            });
+            return;
+          }
           resolve(null);
         });
 
@@ -2729,7 +2750,12 @@ const WHOLESALE_FILTER = "wholesale";
                   (storePaymentSelections[storeId] || "cod") === "fedapay" &&
                   !fedapay.ready,
               );
-              if (needsKkiapay || needsFedapay) {
+              const needsFeexpay = onlineStoreIds.some(
+                (storeId) =>
+                  (storePaymentSelections[storeId] || "cod") === "feexpay" &&
+                  !feexpay.ready,
+              );
+              if (needsKkiapay || needsFedapay || needsFeexpay) {
                 localNotify(
                   "Le module de paiement se charge encore. Réessayez dans un instant.",
                   "error",

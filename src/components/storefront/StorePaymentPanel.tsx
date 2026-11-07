@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck, XCircle } from 'lucide-react';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
+import { useFeexpay } from '@/hooks/useFeexpay';
 import {
   confirmStorePaymentAction,
   refreshStorePaymentAction,
@@ -11,7 +12,7 @@ import {
 import type { NotificationType } from '@/types';
 
 /** Moyens de paiement en ligne lançables immédiatement (le reste n'enclenche rien). */
-export const STORE_ONLINE_PROVIDERS = new Set(['kkiapay', 'fedapay', 'saspay']);
+export const STORE_ONLINE_PROVIDERS = new Set(['kkiapay', 'fedapay', 'feexpay', 'saspay']);
 export const isOnlineProvider = (provider: string): boolean => STORE_ONLINE_PROVIDERS.has(provider);
 
 /** Vue client d'un paiement boutique renvoyée par l'action checkout. */
@@ -27,6 +28,8 @@ export type StoreCheckoutPaymentView = {
   token: string;
   checkoutUrl: string | null;
   publicKey: string | null;
+  /** Identifiant public de la boutique FeexPay (guichet SDK). */
+  shopId?: string | null;
   env: 'sandbox' | 'live';
   ussdCode: string | null;
   instructions: string | null;
@@ -71,6 +74,7 @@ function PaymentCard({
   const [error, setError] = useState<string | null>(payment.error);
   const kkiapay = useKkiapay();
   const fedapay = useFedapay();
+  const feexpay = useFeexpay();
 
   const applyResult = (res: { success: boolean; status?: string; error?: string }) => {
     const ok = Boolean(res.success || res.status === 'PAID');
@@ -134,6 +138,35 @@ function PaymentCard({
       onSuccess: async (tx) => {
         try {
           const reference = tx.id ? String(tx.id) : tx.reference ? String(tx.reference) : '';
+          applyResult(await confirmStorePaymentAction(payment.orderId, payment.token, reference));
+        } finally {
+          setBusy(false);
+        }
+      },
+      onFailed: () => {
+        setBusy(false);
+        setError('Paiement annulé ou non abouti.');
+      },
+    });
+  };
+
+  const payFeexpay = () => {
+    if (!payment.publicKey || !payment.shopId) {
+      setError('Paiement FeexPay indisponible pour cette boutique.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    feexpay.openWidget({
+      shopId: payment.shopId,
+      token: payment.publicKey,
+      amount: Math.round(payment.amount),
+      mode: payment.env === 'live' ? 'LIVE' : 'SANDBOX',
+      description: 'Commande PosMarket',
+      callbackInfo: payment.token,
+      onSuccess: async (res) => {
+        try {
+          const reference = String(res?.reference || res?.transaction_id || '');
           applyResult(await confirmStorePaymentAction(payment.orderId, payment.token, reference));
         } finally {
           setBusy(false);
@@ -227,6 +260,16 @@ function PaymentCard({
               >
                 {busy ? <Loader2 size={14} className="animate-spin spinner-always" /> : <Smartphone size={14} />}
                 Payer avec FedaPay
+              </button>
+            )}
+            {payment.provider === 'feexpay' && (
+              <button
+                onClick={payFeexpay}
+                disabled={busy || !feexpay.ready}
+                className="flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95"
+              >
+                {busy ? <Loader2 size={14} className="animate-spin spinner-always" /> : <Smartphone size={14} />}
+                Payer avec FeexPay
               </button>
             )}
             {payment.provider === 'saspay' && payment.checkoutUrl && (
