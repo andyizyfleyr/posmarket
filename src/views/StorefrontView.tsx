@@ -31,6 +31,7 @@ import { quoteCheckoutAction } from "@/app/actions/checkout";
 import { useKkiapay } from "@/hooks/useKkiapay";
 import { useFedapay } from "@/hooks/useFedapay";
 import { useFeexpay } from "@/hooks/useFeexpay";
+import { widgetErrorReason } from "@/lib/widget-errors";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
@@ -2646,6 +2647,9 @@ const WHOLESALE_FILTER = "wholesale";
       // des preuves revérifiées côté serveur avant toute écriture. Rien
       // n'est enregistré si un paiement échoue ou est annulé.
       // ------------------------------------------------------------------
+      // Motif concret d'échec du guichet, remonté tel quel dans le message
+      // affiché (sans lui, l'acheteur ne voit qu'un message générique).
+      let widgetFailureReason: string | null = null;
       const widgetProviders = new Set(["kkiapay", "fedapay", "feexpay"]);
       const onlineStoreIds = Object.keys(ordersData).filter((storeId) =>
         widgetProviders.has(storePaymentSelections[storeId] || "cod"),
@@ -2684,7 +2688,13 @@ const WHOLESALE_FILTER = "wholesale";
               phone: customerPayload.phone,
               onSuccess: (transactionId) =>
                 resolve(String(transactionId || "").trim() || null),
-              onFailed: () => resolve(null),
+              onFailed: (err) => {
+                widgetFailureReason = widgetErrorReason(
+                  err,
+                  "Paiement Kkiapay non finalisé — aucune commande n'a été créée.",
+                );
+                resolve(null);
+              },
             });
             return;
           }
@@ -2705,7 +2715,13 @@ const WHOLESALE_FILTER = "wholesale";
                   : String(tx?.reference || "");
                 resolve(reference.trim() || null);
               },
-              onFailed: () => resolve(null),
+              onFailed: (err) => {
+                widgetFailureReason = widgetErrorReason(
+                  err,
+                  "Paiement FedaPay non finalisé — aucune commande n'a été créée.",
+                );
+                resolve(null);
+              },
             });
             return;
           }
@@ -2723,7 +2739,13 @@ const WHOLESALE_FILTER = "wholesale";
                 ).trim();
                 resolve(reference || null);
               },
-              onFailed: () => resolve(null),
+              onFailed: (err) => {
+                widgetFailureReason = widgetErrorReason(
+                  err,
+                  "Paiement FeexPay non finalisé — aucune commande n'a été créée.",
+                );
+                resolve(null);
+              },
             });
             return;
           }
@@ -2789,8 +2811,9 @@ const WHOLESALE_FILTER = "wholesale";
                 if (!reference) {
                   // Aucun enregistrement n'a eu lieu : le panier est conservé.
                   localNotify(
-                    "Paiement non finalisé — aucune commande n'a été créée.",
-                    "info",
+                    widgetFailureReason ||
+                      "Paiement non finalisé — aucune commande n'a été créée.",
+                    "error",
                   );
                   return;
                 }

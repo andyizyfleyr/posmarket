@@ -139,11 +139,13 @@ export const useFeexpay = () => {
 
           api.showPaymentModal();
           attempts += 1;
-          if (attempts > 60) {
+          if (attempts > 120) {
             window.clearInterval(timer);
             settle(() =>
               opts.onFailed?.(
-                new Error('Impossible d\'ouvrir le guichet FeexPay (shop ID ou clé API invalide).'),
+                new Error(
+                  'Impossible d\'ouvrir le guichet FeexPay — vérifiez l\'identifiant boutique et la clé API (et leur mode LIVE/SANDBOX).',
+                ),
               ),
             );
           }

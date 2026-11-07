@@ -5,6 +5,7 @@ import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck,
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
 import { useFeexpay } from '@/hooks/useFeexpay';
+import { widgetErrorReason } from '@/lib/widget-errors';
 import {
   confirmStorePaymentAction,
   refreshStorePaymentAction,
@@ -172,9 +173,9 @@ function PaymentCard({
           setBusy(false);
         }
       },
-      onFailed: () => {
+      onFailed: (err) => {
         setBusy(false);
-        setError('Paiement annulé ou non abouti.');
+        setError(widgetErrorReason(err, 'Paiement annulé ou non abouti.'));
       },
     });
   };
