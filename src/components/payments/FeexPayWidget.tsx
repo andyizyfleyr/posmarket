@@ -3,6 +3,23 @@
 import FeexPaySDK from 'react-sdk-feexpay';
 import { useCallback, useEffect, useRef } from 'react';
 
+// Le SDK v2 injecte une feuille globale (reset Tailwind v3) APRÈS le CSS de
+// l'app : elle basculerait la police globale (Inter → système) et forcerait
+// le conteneur sur les paliers v3 (640–1536px). On réaffirme ici les règles
+// que PosMarket ne veut pas voir basculer — sélecteurs plus spécifiques que
+// ceux du SDK et injectés après lui (la durée des modules suit l'ordre
+// d'import). Ce module n'est chargé que sur le parcours de paiement
+// (import dynamique), jamais pendant le rendu de la page d'accueil.
+if (typeof document !== 'undefined') {
+  const guard = document.createElement('style');
+  guard.setAttribute('data-posmarket-feexpay-guard', '');
+  guard.textContent = [
+    ":root :is(html, body) { font-family: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, sans-serif !important; }",
+    '.container.container { width: 100% !important; max-width: 96rem !important; }',
+  ].join('\n');
+  document.head.appendChild(guard);
+}
+
 /**
  * Guichet FeexPay — React SDK officiel v2 (react-sdk-feexpay).
  *

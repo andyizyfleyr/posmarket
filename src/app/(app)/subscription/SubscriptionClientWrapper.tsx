@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { SubscriptionView } from '@/views/SubscriptionView';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
-import FeexPayWidget, { type FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
+import type { FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
+
+// Chargé uniquement au moment du paiement (le SDK injecte une feuille globale).
+const FeexPayWidget = dynamic(() => import('@/components/payments/FeexPayWidget'), {
+  ssr: false,
+});
 import { TransactionResultModal, TransactionModalData } from '@/components/TransactionResultModal';
 import { UserSubscription, SubscriptionDuration, SubscriptionTier, StaffRole } from '@/types';
 import { confirmKkiapayPaymentAction } from '@/app/actions/subscription';

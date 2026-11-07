@@ -9,6 +9,12 @@ import React, {
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
+
+// Chargé uniquement au moment du paiement (pay-first) : le SDK FeexPay et sa
+// feuille de style injectée ne pèsent pas sur la page d'accueil.
+const FeexPayWidget = dynamic(() => import("@/components/payments/FeexPayWidget"), {
+  ssr: false,
+});
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
 import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Mail, MailCheck, AlertTriangle } from "lucide-react";
@@ -30,7 +36,7 @@ import { type StoreCheckoutPaymentView } from "@/components/storefront/StorePaym
 import { quoteCheckoutAction } from "@/app/actions/checkout";
 import { useKkiapay } from "@/hooks/useKkiapay";
 import { useFedapay } from "@/hooks/useFedapay";
-import FeexPayWidget, { type FeexPayWidgetAttempt } from "@/components/payments/FeexPayWidget";
+import type { FeexPayWidgetAttempt } from "@/components/payments/FeexPayWidget";
 import { widgetErrorReason } from "@/lib/widget-errors";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";

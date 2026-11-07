@@ -1,10 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck, XCircle } from 'lucide-react';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
-import FeexPayWidget, { type FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
+import type { FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
+
+// Chargé uniquement au clic sur « Payer avec FeexPay » (le SDK injecte une
+// feuille globale : on évite de la charger pour les paiements réglés autrement).
+const FeexPayWidget = dynamic(() => import('@/components/payments/FeexPayWidget'), {
+  ssr: false,
+});
 import { widgetErrorReason } from '@/lib/widget-errors';
 import {
   confirmStorePaymentAction,
