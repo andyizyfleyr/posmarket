@@ -696,8 +696,11 @@ async function verifyFedapayWithCredentials(
   };
 }
 
-// FeexPay : un seul hôte (le mode est porté par la clé fp_ / test_).
-const FEEXPAY_API_BASE = 'https://api-v2.feexpay.me';
+// FeexPay : deux hôtes distincts — production et sandbox (doc « Environnement
+// sandbox », 2026-10). Le mode n'est PAS porté par la clé seule : l'API de
+// statut n'existe que sur l'hôte correspondant à l'environnement.
+const FEEXPAY_API_BASE_LIVE = 'https://api-v2.feexpay.me';
+const FEEXPAY_API_BASE_SANDBOX = 'https://sandbox-api.feexpay.me';
 
 type FeexpayStatusResponse = {
   reference?: string;
@@ -711,11 +714,13 @@ type FeexpayStatusResponse = {
 async function verifyFeexpayWithCredentials(
   secrets: StorePaymentSecretPayload,
   reference: string,
+  env: 'sandbox' | 'live' = 'live',
 ): Promise<FeexpayStatusResponse> {
   const apiKey = secrets.apiKey || '';
   if (!apiKey) throw new Error('Clé API FeexPay absente.');
+  const apiBase = env === 'sandbox' ? FEEXPAY_API_BASE_SANDBOX : FEEXPAY_API_BASE_LIVE;
   const res = await fetch(
-    `${FEEXPAY_API_BASE}/api/transactions/public/single/status/${encodeURIComponent(reference)}`,
+    `${apiBase}/api/transactions/public/single/status/${encodeURIComponent(reference)}`,
     {
       method: 'GET',
       headers: { Accept: 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -935,7 +940,7 @@ export async function verifyPrepaidStorePayment(input: {
     if (env === 'sandbox' && looksLikeFeexpayLiveKey(secrets.apiKey)) {
       return { ok: false, error: 'La clé API de cette boutique est une clé de production (fp_).' };
     }
-    const tx = await verifyFeexpayWithCredentials(secrets, reference);
+    const tx = await verifyFeexpayWithCredentials(secrets, reference, env);
     if (!isFeexpayApproved(tx.status || '')) {
       return { ok: false, error: tx.responsemsg || tx.reason || 'Paiement non abouti.' };
     }
@@ -1056,7 +1061,7 @@ export async function confirmStorePayment(input: {
       if (env === 'sandbox' && looksLikeFeexpayLiveKey(secrets.apiKey)) {
         return { success: false, error: 'La clé API de cette boutique est une clé de production (fp_).' };
       }
-      const tx = await verifyFeexpayWithCredentials(secrets, reference);
+      const tx = await verifyFeexpayWithCredentials(secrets, reference, env);
       if (!isFeexpayApproved(tx.status || '')) {
         return { success: false, error: tx.responsemsg || tx.reason || 'Paiement non abouti.' };
       }

@@ -465,7 +465,7 @@ export function StorePaymentsSettings({ storeId, notify }: Props) {
                           ? 'Laisser vide pour conserver'
                           : openProvider === 'feexpay'
                             ? activeDraft.env === 'sandbox'
-                              ? 'test_…'
+                              ? 'test_key_…'
                               : 'fp_…'
                             : activeDraft.env === 'sandbox'
                               ? field.placeholder.replace('_live_', '_test_')
