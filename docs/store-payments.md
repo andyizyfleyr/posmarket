@@ -6,7 +6,7 @@ Une boutique sans configuration conserve le paiement à la livraison (mécanisme
 
 ## Mise en service
 
-1. Appliquer `drizzle/0034_store_payments.sql` à la base (`npm run db:migrate`). La migration crée `store_payment_methods`, `store_payment_credentials`, `order_payments` et ajoute `payment_status`, `payment_reference`, `payment_provider` à `orders`.
+1. Appliquer `drizzle/0034_store_payments.sql` **et** `drizzle/0035_feexpay_provider.sql` à la base (`node scripts/apply-pending-migrations.mjs --dry-run` puis sans `--dry-run`, ou le workflow GitHub Actions `migrate.yml`). `0034` crée `store_payment_methods`, `store_payment_credentials`, `order_payments` et ajoute `payment_status`, `payment_reference`, `payment_provider` à `orders` ; `0035` élargit les `CHECK` provider des deux tables (`feexpay` inclus) — **sans elle, toute tentative d'activation FeexPay échoue** (SQLSTATE 23514, « Impossible d'enregistrer ce moyen de paiement. »). Idempotente, rejouable.
 2. Configurer `PAYMENT_CREDENTIALS_KEY` dans l'environnement serveur (recommandé pour les secrets en ligne) : `node scripts/generate-payment-key.mjs` affiche une clé prête à l'emploi (64 caractères hexadécimaux). Sont aussi acceptés : 32 octets base64 ou une passphrase (dérivée en SHA-256). À défaut, l'application dérive une clé dédiée de `AUTH_SECRET` / `NEXTAUTH_SECRET` avec un contexte de dérivation propre (jamais la clé de session elle-même) et le consigne dans les logs ; sans aucun secret dans l'environnement, l'enregistrement est refusé plutôt que stocké en clair. Attention : si une clé dédiée était définie puis retirée de l'environnement, les secrets déjà chiffrés deviennent illisibles — la boutique doit alors ressaisir ses clés.
 3. Chaque vendeur ouvre **Paramètres → Cartes & paiement / Moyens de paiement de la boutique**, active les moyens souhaités et saisit ses clés **live** (Kkiapay `pk_live_…`/`sk_live_…`, FedaPay `pk_live_…`/`sk_live_…`, FeexPay `fp_…` + **Identifiant boutique** « Shop ID »). Les secrets sont chiffrés en AES-256-GCM (format `v1:<iv>:<tag>:<ciphertext>`) ; seuls le hint (4 derniers caractères) et les clés publiques reviennent au navigateur.
 4. Pour les paiements en ligne, configurer côté fournisseur les webhooks pointant vers les routes habituelles : `/api/kkiapay/webhook`, `/api/fedapay/webhook`, `/api/feexpay/webhook`, `/api/saspay/webhook`. Ces routes **distinguent désormais les commandes boutiques des abonnements plateforme** : le `partnerId` / jeton `order_payments` fait foi pour les commandes boutiques ; sans correspondance, le traitement historique d'abonnement s'applique.
@@ -61,7 +61,8 @@ Le panier marketplace est découpé par boutique ; chaque boutique propose **ses
 
 ```bash
 npm run check   # journal migrations + rejeu SQL + tsc
-npm test        # tests sécurité (dont tests/security/store-payments.test.mjs) + tests saspay
+npm test        # tests sécurité (dont tests/security/store-payments.test.mjs
+                # et store-payments-migration.test.mjs, rejeu PGlite de 0034/0035) + tests saspay
 ```
 
 Les tests `tests/security/store-payments.test.mjs` verrouillent la politique des environnements : clés de test refusées en production (défaut), clés live refusées en Sandbox, `env` conservé tel que choisi par la boutique, prérequis d'activation, confirmation en échec sans ligne en base.

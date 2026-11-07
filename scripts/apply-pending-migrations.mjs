@@ -128,6 +128,15 @@ const MIGRATIONS = [
     describe: 'table store_payment_methods',
     probe: `SELECT 1 FROM information_schema.tables WHERE table_name = 'store_payment_methods'`,
   },
+  {
+    file: '0035_feexpay_provider.sql',
+    describe: 'contraintes provider store_payment_* incluant feexpay',
+    // La version d'avant 0035 listait les providers connus sans « feexpay » :
+    // la sonde détecte la contrainte À JOUR (expression contenant feexpay).
+    probe: `SELECT 1 FROM information_schema.check_constraints
+            WHERE constraint_name = 'store_payment_credentials_provider_check'
+              AND check_clause LIKE '%feexpay%'`,
+  },
 ];
 
 /**

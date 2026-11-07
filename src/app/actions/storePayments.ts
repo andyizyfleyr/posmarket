@@ -55,6 +55,16 @@ export async function saveStorePaymentMethodAction(
     return result;
   } catch (error) {
     console.error('[store-payments] save:', error);
+    const code = (error as { code?: string } | null)?.code;
+    if (code === '23514') {
+      // Contrainte CHECK rejetée par la base : typiquement une migration en
+      // attente (ex. 0035_feexpay_provider pour le provider « feexpay »).
+      return {
+        success: false,
+        error:
+          'La base de données ne connaît pas ce moyen de paiement (migration en attente). Contactez l’administrateur du site.',
+      };
+    }
     return { success: false, error: 'Impossible d’enregistrer ce moyen de paiement.' };
   }
 }
