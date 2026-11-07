@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck, XCircle } from 'lucide-react';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
-import { useFeexpay } from '@/hooks/useFeexpay';
+import FeexPayWidget, { type FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
 import { widgetErrorReason } from '@/lib/widget-errors';
 import {
   confirmStorePaymentAction,
@@ -75,7 +75,7 @@ function PaymentCard({
   const [error, setError] = useState<string | null>(payment.error);
   const kkiapay = useKkiapay();
   const fedapay = useFedapay();
-  const feexpay = useFeexpay();
+  const [feexpayAttempt, setFeexpayAttempt] = useState<FeexPayWidgetAttempt | null>(null);
 
   const applyResult = (res: { success: boolean; status?: string; error?: string }) => {
     const ok = Boolean(res.success || res.status === 'PAID');
@@ -158,24 +158,33 @@ function PaymentCard({
     }
     setBusy(true);
     setError(null);
-    feexpay.openWidget({
+    setFeexpayAttempt({
+      key: `${Date.now()}`,
       shopId: payment.shopId,
       token: payment.publicKey,
       amount: Math.round(payment.amount),
       mode: payment.env === 'live' ? 'LIVE' : 'SANDBOX',
       description: 'Commande PosMarket',
       callbackInfo: payment.token,
-      onSuccess: async (res) => {
+      firstName: customer.name || undefined,
+      email: customer.email || undefined,
+      onSettled: async (reference, reason) => {
+        setFeexpayAttempt(null);
         try {
-          const reference = String(res?.reference || res?.transaction_id || '');
+          if (!reference) {
+            setError(
+              reason === 'dismissed'
+                ? 'Paiement annulé.'
+                : reason === 'open_timeout'
+                  ? "Impossible d'ouvrir le guichet FeexPay — vérifiez l'identifiant boutique et la clé API (et leur mode LIVE/SANDBOX)."
+                  : widgetErrorReason(reason ? new Error(reason) : null, 'Paiement annulé ou non abouti.'),
+            );
+            return;
+          }
           applyResult(await confirmStorePaymentAction(payment.orderId, payment.token, reference));
         } finally {
           setBusy(false);
         }
-      },
-      onFailed: (err) => {
-        setBusy(false);
-        setError(widgetErrorReason(err, 'Paiement annulé ou non abouti.'));
       },
     });
   };
@@ -194,6 +203,8 @@ function PaymentCard({
   const isFailed = status === 'FAILED';
 
   return (
+    <>
+    {feexpayAttempt && <FeexPayWidget attempt={feexpayAttempt} />}
     <div
       className={`w-full max-w-md rounded-2xl border p-4 text-left space-y-3 ${
         isPaid
@@ -266,7 +277,7 @@ function PaymentCard({
             {payment.provider === 'feexpay' && (
               <button
                 onClick={payFeexpay}
-                disabled={busy || !feexpay.ready}
+                disabled={busy}
                 className="flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95"
               >
                 {busy ? <Loader2 size={14} className="animate-spin spinner-always" /> : <Smartphone size={14} />}
@@ -298,6 +309,7 @@ function PaymentCard({
         </>
       )}
     </div>
+    </>
   );
 }
 

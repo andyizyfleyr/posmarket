@@ -745,7 +745,17 @@ async function verifyFeexpayWithCredentials(
   // La réponse v2 expose soit la transaction à plat, soit sous `transaction`.
   const raw = (body || {}) as Record<string, unknown>;
   const tx = (raw.transaction || raw.data || raw) as Record<string, unknown>;
-  const callbackInfo = tx.callback_info ?? raw.callback_info ?? null;
+  // callback_info est une chaîne (ancien SDK) ou un objet du type
+  // `{ partnerId }` (React SDK v2, utilisé par le guichet PosMarket) : on
+  // normalise vers l'identifiant de rapprochement à plat.
+  const cb = tx.callback_info ?? raw.callback_info ?? null;
+  let callbackInfo: string | null = null;
+  if (cb && typeof cb === 'object') {
+    const rec = cb as Record<string, unknown>;
+    callbackInfo = String(rec.partnerId ?? rec.reference ?? '').trim() || null;
+  } else if (cb !== null && cb !== undefined) {
+    callbackInfo = String(cb).trim() || null;
+  }
   return {
     reference: String(tx.reference ?? raw.reference ?? reference),
     amount: Number(tx.amount ?? raw.amount ?? 0),

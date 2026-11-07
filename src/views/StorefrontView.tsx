@@ -30,7 +30,7 @@ import { type StoreCheckoutPaymentView } from "@/components/storefront/StorePaym
 import { quoteCheckoutAction } from "@/app/actions/checkout";
 import { useKkiapay } from "@/hooks/useKkiapay";
 import { useFedapay } from "@/hooks/useFedapay";
-import { useFeexpay } from "@/hooks/useFeexpay";
+import FeexPayWidget, { type FeexPayWidgetAttempt } from "@/components/payments/FeexPayWidget";
 import { widgetErrorReason } from "@/lib/widget-errors";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
@@ -750,7 +750,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const kkiapay = useKkiapay();
   const fedapay = useFedapay();
-  const feexpay = useFeexpay();
+  const [feexpayAttempt, setFeexpayAttempt] = useState<FeexPayWidgetAttempt | null>(null);
 
   const [checkoutStage, setCheckoutStage] = useState<
     "cart" | "shipping" | "payment" | "success" | "blocked"
@@ -2726,25 +2726,35 @@ const WHOLESALE_FILTER = "wholesale";
             return;
           }
           if (storeQuote.provider === "feexpay") {
-            feexpay.openWidget({
+            // Monté hors écran, le guichet s'ouvre via l'événement
+            // `feexpay:trigger` (React SDK officiel v2 : l'hôte suit le mode —
+            // sandbox-api.feexpay.me en SANDBOX, api-v2.feexpay.me en LIVE).
+            setFeexpayAttempt({
+              key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
               shopId: storeQuote.shopId || "",
               token: storeQuote.publicKey,
               amount: storeQuote.amount,
               mode: storeQuote.env === "sandbox" ? "SANDBOX" : "LIVE",
               description: "Commande PosMarket",
               callbackInfo: partnerId,
-              onSuccess: (res) => {
-                const reference = String(
-                  res?.reference || res?.transaction_id || "",
-                ).trim();
-                resolve(reference || null);
-              },
-              onFailed: (err) => {
-                widgetFailureReason = widgetErrorReason(
-                  err,
-                  "Paiement FeexPay non finalisé — aucune commande n'a été créée.",
-                );
-                resolve(null);
+              firstName: widgetFirstName,
+              email: widgetEmail,
+              onSettled: (reference, reason) => {
+                setFeexpayAttempt(null);
+                if (!reference) {
+                  if (reason === "dismissed") {
+                    widgetFailureReason =
+                      "Paiement FeexPay annulé — aucune commande n'a été créée.";
+                  } else if (reason === "open_timeout") {
+                    widgetFailureReason =
+                      "Impossible d'ouvrir le guichet FeexPay — vérifiez l'identifiant boutique et la clé API (et leur mode LIVE/SANDBOX).";
+                  } else {
+                    widgetFailureReason = reason
+                      ? `Paiement FeexPay non abouti — ${reason}`
+                      : "Paiement FeexPay non finalisé — aucune commande n'a été créée.";
+                  }
+                }
+                resolve(reference);
               },
             });
             return;
@@ -2772,12 +2782,7 @@ const WHOLESALE_FILTER = "wholesale";
                   (storePaymentSelections[storeId] || "cod") === "fedapay" &&
                   !fedapay.ready,
               );
-              const needsFeexpay = onlineStoreIds.some(
-                (storeId) =>
-                  (storePaymentSelections[storeId] || "cod") === "feexpay" &&
-                  !feexpay.ready,
-              );
-              if (needsKkiapay || needsFedapay || needsFeexpay) {
+              if (needsKkiapay || needsFedapay) {
                 localNotify(
                   "Le module de paiement se charge encore. Réessayez dans un instant.",
                   "error",
@@ -5312,6 +5317,9 @@ const WHOLESALE_FILTER = "wholesale";
           )}
         </div>
       </BottomSheet>
+
+      {/* Guichet FeexPay v2 — monté hors écran, s'auto-ouvre (pay-first). */}
+      {feexpayAttempt && <FeexPayWidget attempt={feexpayAttempt} />}
 
     </div>
   );
