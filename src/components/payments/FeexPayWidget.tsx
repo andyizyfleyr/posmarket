@@ -1,6 +1,7 @@
 'use client';
 
 import FeexPaySDK from 'react-sdk-feexpay';
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef } from 'react';
 
 // Le SDK v2 injecte une feuille globale (reset Tailwind v3) APRÈS le CSS de
@@ -10,12 +11,26 @@ import { useCallback, useEffect, useRef } from 'react';
 // ceux du SDK et injectés après lui (la durée des modules suit l'ordre
 // d'import). Ce module n'est chargé que sur le parcours de paiement
 // (import dynamique), jamais pendant le rendu de la page d'accueil.
+//
+// Le SDK ne prévoit pas de bouton masquable : on masque donc SON CONTENEUR
+// (0×0, overflow hidden) mais jamais la modale — un `overflow` seul ne piège
+// pas un descendant en `position: fixed`. Le portail vers document.body
+// (plus bas) garantit que rien, dans l'arborescence de l'app, ne peut
+// recentrer, clipper ou empiler la modale (backdrop-filter / transform /
+// overflow sur un ancêtre casse le positionnement fixe).
 if (typeof document !== 'undefined') {
   const guard = document.createElement('style');
   guard.setAttribute('data-posmarket-feexpay-guard', '');
   guard.textContent = [
     ":root :is(html, body) { font-family: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, sans-serif !important; }",
     '.container.container { width: 100% !important; max-width: 96rem !important; }',
+    // La modale du SDK est livrée en z-50 : elle passerait SOUS nos couches
+    // (barre panier z-3000, en-têtes). On la hisse juste sous les toasts.
+    '[data-feexpay-portal] .fixed.inset-0 { z-index: 9998 !important; }',
+    // Garde-fou : la barre d\'en-tête (logo, marchand, fermeture) ne doit
+    // jamais être écrasée à quelques pixels par le flex en colonne de la
+    // modale lorsque son contenu dépasse max-h-[90vh].
+    '[data-feexpay-portal] .max-w-md > .border-b { flex: 0 0 auto !important; min-height: 44px !important; }',
   ].join('\n');
   document.head.appendChild(guard);
 }
@@ -104,11 +119,14 @@ export default function FeexPayWidget({ attempt }: { attempt: FeexPayWidgetAttem
     return () => window.clearInterval(timer);
   }, [emit]);
 
-  return (
+  // Portail vers document.body : aucun ancêtre (backdrop-filter, transform,
+  // overflow…) ne peut ancrer, clipper ou empiler la modale — le guichet
+  // doit couvrir tout le viewport, y compris le panier PosMarket.
+  return createPortal(
     <div
       ref={rootRef}
-      aria-hidden="true"
-      style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: 0 }}
+      data-feexpay-portal
+      style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden' }}
     >
       <FeexPaySDK
         amount={Math.max(1, Math.round(Number(attempt.amount) || 0))}
@@ -131,6 +149,7 @@ export default function FeexPayWidget({ attempt }: { attempt: FeexPayWidgetAttem
           }
         }}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
