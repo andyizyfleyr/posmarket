@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchMarketplaceData } from '@/app/actions/marketplace';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60;
+export const revalidate = 300;
 
 /**
  * GET /api/marketplace/catalog
@@ -15,7 +15,7 @@ export async function GET() {
     const stores = await fetchMarketplaceData();
     return NextResponse.json({ success: true, stores }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
     });
   } catch (error) {

@@ -6,7 +6,7 @@ import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutActio
 import { MAIN_CATEGORIES } from "@/constants";
 import { getHomepageLayout } from "@/lib/homepage-layout";
 
-export const revalidate = 60;
+export const revalidate = 300;
 export const dynamicParams = true;
 
 type Props = { params: Promise<{ slug: string }> };

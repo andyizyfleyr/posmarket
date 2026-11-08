@@ -257,7 +257,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
 
 const getCachedMarketplaceData = unstable_cache(fetchMarketplaceDataUncached, ['marketplace-catalog'], {
   tags: [CATALOG_TAG],
-  revalidate: 60,
+  revalidate: 300,
 });
 
 export async function fetchMarketplaceData(): Promise<StoreData[]> {
@@ -434,7 +434,7 @@ const getCachedHomeMarketplaceData = unstable_cache(
   ['marketplace-home'],
   {
     tags: [CATALOG_TAG],
-    revalidate: 60,
+    revalidate: 300,
   },
 );
 

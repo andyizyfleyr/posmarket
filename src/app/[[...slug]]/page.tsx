@@ -4,7 +4,7 @@ import { getHomepageLayout } from '@/lib/homepage-layout';
 import { StorefrontWrapper } from '@/components/StorefrontWrapper';
 
 // Next.js ISR: Cache the page on Vercel CDN for 60 seconds to eliminate Server TTFB delay.
-export const revalidate = 60;
+export const revalidate = 300;
 
 export default async function MarketplacePage() {
     const [stores, homepageLayout] = await Promise.all([

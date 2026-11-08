@@ -9,7 +9,7 @@ import {
 } from "@/app/actions/marketplace";
 
 // Next.js ISR: cache la page 60 s sur le CDN Vercel.
-export const revalidate = 60;
+export const revalidate = 300;
 
 const site =
     process.env.NEXT_PUBLIC_SITE_URL ||
