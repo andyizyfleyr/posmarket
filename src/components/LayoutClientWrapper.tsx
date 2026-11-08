@@ -98,7 +98,9 @@ export default function LayoutClientWrapper({
        flutterWindow.FlutterNotifications.postMessage('requestSession');
     }
 
-    syncSession();
+    if (flutterWindow.FlutterNotifications) {
+      syncSession();
+    }
   }, [currentStore?.id, router]);
 
   // Prevent bfcache restoration on back button after logout
