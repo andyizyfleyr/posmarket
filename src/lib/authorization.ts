@@ -1,9 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles, stores, storeStaff } from '@/db/schema';
-import { createClient } from '@/utils/supabase/server';
 import { getAdminSession, type AdminSession } from '@/app/actions/admin-auth';
-import { getAccountAccess } from '@/lib/request-cache';
+import { getAccountAccess, getSessionUser } from '@/lib/request-cache';
 
 /**
  * Garde-fous d'autorisation partagés par les server actions.
@@ -20,12 +19,11 @@ export type AccessResult =
   | { ok: true; userId: string; isSuperAdmin: boolean; storeIds: string[] }
   | { ok: false; error: string };
 
-/** Identifiant de l'utilisateur authentifié (Auth.js), ou null. */
+/** Identifiant de l'utilisateur authentifié (session NextAuth, mémoïsée par requête), ou null. */
 export async function getAuthUserId(): Promise<string | null> {
   try {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    return data?.user?.id ? String(data.user.id) : null;
+    const user = await getSessionUser();
+    return user?.id ? String(user.id) : null;
   } catch {
     return null;
   }
@@ -58,18 +56,22 @@ export async function authorizeSeller(): Promise<AccessResult> {
   const userId = await getAuthUserId();
   if (!userId) return { ok: false, error: 'Non authentifié' };
 
-  const [profile] = await db
-    .select({ isSuperAdmin: profiles.isSuperAdmin, accountType: profiles.accountType })
-    .from(profiles)
-    .where(eq(profiles.id, userId))
-    .limit(1);
+  // Données de compte déjà lues par le layout et les pages (mémoïsées par
+  // requête) : aucun aller-retour Neon supplémentaire ici.
+  const access = await getAccountAccess(userId);
+  const profile = access.profile;
 
-  // Le compte PAM (admin_users) n'est pas un profil : on le laisse passer, ses
-  // actions passent par `requirePamAdmin` et non par ce chemin.
-  if (!profile) return { ok: false, error: 'Profil introuvable' };
+  // Même garde qu'avant : un compte acheteur/« none » n'entre pas dans les
+  // actions vendeur — sauf super admin / admin.
+  const spaceAllowed =
+    access.space === 'seller' || access.space === 'admin' || !!profile?.isSuperAdmin;
+  if (!profile || !spaceAllowed) return { ok: false, error: 'Profil introuvable' };
 
   const isSuperAdmin = !!profile.isSuperAdmin;
-  const storeIds = await getManageableStoreIds(userId);
+  const storeIds = Array.from(new Set<string>([
+    ...access.ownedStores.map((s) => s.id),
+    ...access.staffEntries.map((e) => e.storeId),
+  ]));
   return { ok: true, userId, isSuperAdmin, storeIds };
 }
 
