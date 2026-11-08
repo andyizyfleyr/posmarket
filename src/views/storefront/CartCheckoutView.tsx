@@ -1,6 +1,6 @@
 import React from "react";
-import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Bell, AlertTriangle, Loader2, Globe, RotateCcw, Copy } from "lucide-react";
-import SuccessCheckLottie, { type SuccessCheckLottieHandle } from "@/components/storefront/SuccessCheckLottie";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Bell, AlertTriangle, Loader2, Globe, Copy } from "lucide-react";
+import SuccessCheckLottie from "@/components/storefront/SuccessCheckLottie";
 import { PAYMENT_PROVIDER_LOGOS } from "@/lib/payment-logos";
 import { StorePaymentPanel, isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
@@ -146,12 +146,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     storePayments, setStorePayments,
   } = props;
 
-  // Écran « Commande réussie » : relance de l'animation Lottie + copie de la référence.
-  const successLottieRef = React.useRef<SuccessCheckLottieHandle | null>(null);
+  // Écran « Commande réussie » : copie de la référence de commande.
   const [referenceCopiee, setReferenceCopiee] = React.useState(false);
-  const replaySuccessAnimation = React.useCallback(() => {
-    successLottieRef.current?.replay();
-  }, []);
   const copierReferenceCommande = React.useCallback(
     (reference: string) => {
       void (async () => {
@@ -864,19 +860,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 className="pointer-events-none absolute left-1/2 top-28 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.16)_0%,rgba(34,197,94,0)_70%)]"
               />
 
-              {/* Animation de confirmation — Lottie, jouée une fois, rejouable */}
-              <SuccessCheckLottie
-                ref={successLottieRef}
-                className="relative h-36 w-36 md:h-40 md:w-40"
-              />
-              <button
-                type="button"
-                onClick={replaySuccessAnimation}
-                className="relative mt-2 inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-white px-3.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-green-700 shadow-sm transition-all hover:border-green-300 hover:text-green-800 hover:shadow active:scale-95"
-              >
-                <RotateCcw size={11} strokeWidth={2.5} />
-                Revoir l&apos;animation
-              </button>
+              {/* Animation de confirmation — Lottie, jouée une fois */}
+              <SuccessCheckLottie className="relative h-36 w-36 md:h-40 md:w-40" />
 
               <h3 className="relative mt-5 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl leading-tight">
                 Commande <span className="text-green-600">réussie&nbsp;!</span>
