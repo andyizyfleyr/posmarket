@@ -42,9 +42,9 @@ export const STORE_PAYMENT_PROVIDERS: StorePaymentProvider[] = [
 
 export const STORE_PAYMENT_LABELS: Record<StorePaymentProvider, string> = {
   cod: 'Paiement à la livraison',
-  kkiapay: 'Kkiapay (Mobile Money / carte)',
-  fedapay: 'FedaPay (Mobile Money / carte)',
-  feexpay: 'FeexPay (Mobile Money / carte)',
+  kkiapay: 'Kkiapay',
+  fedapay: 'FedaPay',
+  feexpay: 'FeexPay',
   saspay: 'SasPay (Mobile Money)',
   ussd: 'Paiement USSD',
 };

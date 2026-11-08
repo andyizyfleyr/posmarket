@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck, XCircle } from 'lucide-react';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
+import { PAYMENT_PROVIDER_LOGOS } from '@/lib/payment-logos';
 import type { FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
 
 // Chargé uniquement au clic sur « Payer avec FeexPay » (le SDK injecte une
@@ -61,8 +62,21 @@ function ProviderIcon({ provider }: { provider: string }) {
       return <Phone size={18} className={cls} />;
     case 'saspay':
       return <CreditCard size={18} className={cls} />;
-    default:
-      return <Smartphone size={18} className={cls} />;
+    default: {
+      const logo = PAYMENT_PROVIDER_LOGOS[provider];
+      return logo ? (
+        // Logo officiel du fournisseur (assets locaux)
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logo.src}
+          alt={logo.alt}
+          draggable={false}
+          className="h-4 w-auto max-w-[54px] object-contain shrink-0"
+        />
+      ) : (
+        <Smartphone size={18} className={cls} />
+      );
+    }
   }
 }
 

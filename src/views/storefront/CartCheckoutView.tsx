@@ -1,5 +1,7 @@
 import React from "react";
-import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe, Smartphone } from "lucide-react";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Bell, AlertTriangle, Loader2, Globe, RotateCcw, Copy } from "lucide-react";
+import SuccessCheckLottie, { type SuccessCheckLottieHandle } from "@/components/storefront/SuccessCheckLottie";
+import { PAYMENT_PROVIDER_LOGOS } from "@/lib/payment-logos";
 import { StorePaymentPanel, isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
@@ -13,6 +15,8 @@ import type { Coupon, NotificationType, StoreData } from "@/types";
 import type { StorefrontProduct } from "../StorefrontView";
 
 const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(", ");
+
+
 
 /** Ligne de panier acheteur — même forme que l'état `cart` de StorefrontView. */
 type CartLine = {
@@ -141,6 +145,27 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     storePaymentMethods, storePaymentSelections, setStorePaymentSelection,
     storePayments, setStorePayments,
   } = props;
+
+  // Écran « Commande réussie » : relance de l'animation Lottie + copie de la référence.
+  const successLottieRef = React.useRef<SuccessCheckLottieHandle | null>(null);
+  const [referenceCopiee, setReferenceCopiee] = React.useState(false);
+  const replaySuccessAnimation = React.useCallback(() => {
+    successLottieRef.current?.replay();
+  }, []);
+  const copierReferenceCommande = React.useCallback(
+    (reference: string) => {
+      void (async () => {
+        try {
+          await navigator.clipboard.writeText(reference);
+          setReferenceCopiee(true);
+          window.setTimeout(() => setReferenceCopiee(false), 1800);
+        } catch {
+          localNotify("Référence impossible à copier sur cet appareil", "info");
+        }
+      })();
+    },
+    [localNotify],
+  );
 
   // La verticale se déduit du panier : les produits sont désormais forcés au
   // type de leur boutique, donc le panier est homogène. Un resto parle de
@@ -762,26 +787,48 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         <div className="grid gap-3">
                           {methods.map((method) => {
                             const isSelected = selected === method.provider;
-                            const Icon =
-                              method.provider === "cod" ? Truck : Smartphone;
+                            const logo = PAYMENT_PROVIDER_LOGOS[method.provider];
                             return (
                               <div
                                 key={method.provider}
+                                role="radio"
+                                aria-checked={isSelected}
+                                tabIndex={0}
                                 onClick={() => setStorePaymentSelection(storeId, method.provider)}
-                                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50" : "border-gray-100 bg-white hover:border-gray-200"}`}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    setStorePaymentSelection(storeId, method.provider);
+                                  }
+                                }}
+                                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"}`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <Icon
-                                    size={22}
-                                    className={isSelected ? "text-brand" : "text-gray-600"}
-                                  />
+                                  {logo ? (
+                                    <span className="flex h-10 w-[76px] shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white px-2 shadow-sm">
+                                      {/* Logo officiel du fournisseur (assets locaux) */}
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={logo.src}
+                                        alt={logo.alt}
+                                        draggable={false}
+                                        className="max-h-5 max-w-full object-contain"
+                                      />
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className={`flex h-10 w-[76px] shrink-0 items-center justify-center rounded-xl border transition-colors ${isSelected ? "border-orange-200 bg-orange-100 text-brand" : "border-gray-100 bg-gray-50 text-gray-500"}`}
+                                    >
+                                      <Truck size={20} strokeWidth={2} />
+                                    </span>
+                                  )}
                                   <div className="min-w-0">
                                     <div className="font-bold text-sm text-gray-900">
                                       {method.label}
                                     </div>
                                     {method.isOnline && (
-                                      <div className="text-[11px] font-semibold text-gray-500">
-                                        Paiement en ligne au moment de « Payer ».
+                                      <div className="text-[11px] font-semibold leading-snug text-gray-500">
+                                        Paiement depuis votre mobile money ou votre carte de crédit.
                                       </div>
                                     )}
                                   </div>
@@ -802,29 +849,78 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               )}
             </form>
           )}
-          {checkoutStage === "success" && (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center relative overflow-hidden">
-              <div className="relative mb-10">
-                <div className="absolute inset-0 bg-green-100 rounded-full blur-2xl opacity-50 scale-150 animate-pulse" />
-                <div className="relative w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center shadow-2xl success-glow animate-success-bounce">
-                  <CheckCircle2 size={48} strokeWidth={3} />
-                </div>
-                <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce">
-                  <Star size={18} fill="currentColor" />
-                </div>
-              </div>
+          {checkoutStage === "success" && (() => {
+            const referenceCommande =
+              completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() || null;
+            const prenomClient = (customerInfo.name || "").trim().split(/\s+/)[0] || null;
+            const articlesLabel = `${completedOrderItems.length} article${
+              completedOrderItems.length > 1 ? "s" : ""
+            }`;
+            return (
+            <div className="relative flex min-h-[56vh] flex-col items-center justify-center overflow-y-auto px-4 py-10 text-center">
+              {/* Halo décoratif derrière l'animation */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-1/2 top-28 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.16)_0%,rgba(34,197,94,0)_70%)]"
+              />
 
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 tracking-tight leading-tight">
-                Commande <span className="text-green-500">Réussie !</span>
+              {/* Animation de confirmation — Lottie, jouée une fois, rejouable */}
+              <SuccessCheckLottie
+                ref={successLottieRef}
+                className="relative h-36 w-36 md:h-40 md:w-40"
+              />
+              <button
+                type="button"
+                onClick={replaySuccessAnimation}
+                className="relative mt-2 inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-white px-3.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-green-700 shadow-sm transition-all hover:border-green-300 hover:text-green-800 hover:shadow active:scale-95"
+              >
+                <RotateCcw size={11} strokeWidth={2.5} />
+                Revoir l&apos;animation
+              </button>
+
+              <h3 className="relative mt-5 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl leading-tight">
+                Commande <span className="text-green-600">réussie&nbsp;!</span>
               </h3>
 
-              <div className="w-10 h-1 bg-green-500 rounded-full mb-4 mx-auto" />
-
-              <p className="text-gray-500 max-w-sm mb-8 font-semibold text-sm leading-relaxed">
-                Votre commande a été enregistrée avec succès.
-                <br className="hidden md:block" />
-                Le vendeur va traiter votre commande rapidement.
+              <p className="relative mt-2 max-w-sm text-sm font-semibold leading-relaxed text-gray-500">
+                Merci pour votre achat
+                {prenomClient ? (
+                  <>
+                    ,&nbsp;<span className="text-gray-800">{prenomClient}</span>
+                  </>
+                ) : null}
+                &nbsp;! Le vendeur prépare votre commande — vous serez prévenu dès qu&apos;elle part.
               </p>
+
+              {/* Référence de commande + récapitulatif rapide */}
+              <div className="relative mt-4 flex flex-wrap items-center justify-center gap-2">
+                {referenceCommande && (
+                  <button
+                    type="button"
+                    onClick={() => copierReferenceCommande(referenceCommande)}
+                    title="Copier la référence"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2 shadow-sm transition-all hover:border-green-300 hover:shadow active:scale-[0.98]"
+                  >
+                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                      Réf. commande
+                    </span>
+                    <span className="text-sm font-extrabold tabular-nums tracking-[0.08em] text-gray-900">
+                      {referenceCommande}
+                    </span>
+                    {referenceCopiee ? (
+                      <Check size={14} strokeWidth={3} className="text-green-600" />
+                    ) : (
+                      <Copy size={14} className="text-gray-400" />
+                    )}
+                  </button>
+                )}
+                <span className="inline-flex items-center gap-1.5 rounded-2xl bg-gray-50 px-3 py-2 text-[11px] font-semibold text-gray-500">
+                  {articlesLabel} ·{" "}
+                  <span className="font-bold tabular-nums text-gray-800">
+                    {formatCurrency(completedOrderTotal)}
+                  </span>
+                </span>
+              </div>
 
               <StorePaymentPanel
                 payments={storePayments}
@@ -833,11 +929,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 notify={localNotify}
               />
 
-              <div className="w-full flex flex-col items-center">
-                <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest text-center mb-3">
-                  Cliquez sur un bouton pour continuer
-                </p>
-                <div className="flex gap-3 w-full max-w-sm">
+              <div className="relative mt-8 flex w-full flex-col items-center">
+                <div className="flex w-full max-w-sm gap-3">
                   <Button
                     onClick={() => safeNavigate("/")}
                     loading={isNavigating}
@@ -866,7 +959,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                             // refléter la commande qui vient d'être validée,
                             // pas l'instant de rendu de l'écran.
                             const orderRef =
-                              completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() ||
+                              referenceCommande ||
                               Date.now().toString().slice(-6);
                             const waMsg = `NOUVELLE COMMANDE ${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems
                               .map((item) => {
@@ -920,7 +1013,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 )}
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
         {checkoutStage !== "success" && cart.length > 0 && (
           <>

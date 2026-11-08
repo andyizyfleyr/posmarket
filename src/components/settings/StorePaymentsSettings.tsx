@@ -104,9 +104,9 @@ const inputCls =
 
 const DEFAULT_LABELS: Partial<Record<StorePaymentProvider, string>> = {
   cod: 'Paiement à la livraison',
-  kkiapay: 'Kkiapay (Mobile Money / carte)',
-  fedapay: 'FedaPay (Mobile Money / carte)',
-  feexpay: 'FeexPay (Mobile Money / carte)',
+  kkiapay: 'Kkiapay',
+  fedapay: 'FedaPay',
+  feexpay: 'FeexPay',
 };
 
 const emptyView = (provider: StorePaymentProvider): StorePaymentMethodView => ({
