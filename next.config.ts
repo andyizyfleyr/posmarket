@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   images: {
+    // Optimiseur Vercel désactivé (voir src/lib/imageLoader.ts) :
+    // les octets sortent directement de R2 au lieu de transiter par l'edge.
+    loader: 'custom',
+    loaderFile: './src/lib/imageLoader.ts',
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'api.dicebear.com' },

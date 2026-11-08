@@ -7,7 +7,7 @@ export const loadOrdersForStore = async (storeId: string) => {
     ['store-orders', storeId],
     {
       tags: [`orders:${storeId}`],
-      revalidate: 20,
+      revalidate: 60,
     }
   );
   return getCached(storeId);

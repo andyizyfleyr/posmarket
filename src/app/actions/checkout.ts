@@ -1159,6 +1159,7 @@ export async function submitCheckoutAction(
     // (le stock vient d'être décrémenté atomiquement ci-dessus).
     for (const sc of storeCheckouts) {
       refreshTag(`products:${sc.storeId}`)
+      refreshTag(`customers:${sc.storeId}`)
     }
 
     // --- Ouverture des guichets fournisseurs (après le commit) -----------
