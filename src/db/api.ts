@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { db } from './index';
 import { products, customers, orders, orderItems, stores, profiles, productStats, invoices } from './schema';
 import { eq, desc, inArray, sql, and } from 'drizzle-orm';
@@ -91,7 +92,53 @@ export interface StoreDataFields {
   orders?: boolean;
   customers?: boolean;
   invoices?: boolean;
+  /** false : saute product_stats + l'agrégat order_items (compteurs de ventes/avis). Défaut : true. */
+  productStats?: boolean;
 }
+
+// ---- Bundle produits mis en cache (par boutique) -------------------------
+//
+// Sans ce cache, chaque ouverture de page vendeur rejouait trois requêtes
+// (dont un GROUP BY order_items ⋈ products très coûteux pour les grosses
+// boutiques). Le bundle est mis en cache 2 minutes et invalidé via
+// `refreshTag('products:<storeId>')` sur chaque écriture vendeur (produits,
+// import, transfert, commande en ligne / POS, annulation → restock).
+const PRODUCTS_BUNDLE_REVALIDATE_S = 120;
+
+type SalesRow = { productId: string | null; qty: number | string };
+type ProductsBundle = {
+  productsRows: ProductRow[];
+  statsRows: ProductStatsRow[];
+  salesRows: SalesRow[];
+};
+
+async function fetchProductsBundle(storeId: string, withStats: boolean): Promise<ProductsBundle> {
+  const productsSel = db.select().from(products).where(eq(products.storeId, storeId)).limit(200);
+  const statsSel = withStats
+    ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => [] as ProductStatsRow[])
+    : Promise.resolve([] as ProductStatsRow[]);
+  const salesSel = withStats
+    ? db
+        .select({
+          productId: orderItems.productId,
+          qty: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
+        })
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .where(eq(products.storeId, storeId))
+        .groupBy(orderItems.productId)
+        .catch(() => [] as SalesRow[])
+    : Promise.resolve([] as SalesRow[]);
+  const [productsRows, statsRows, salesRows] = await Promise.all([productsSel, statsSel, salesSel]);
+  return { productsRows, statsRows, salesRows };
+}
+
+const getCachedProductsBundle = (storeId: string, withStats: boolean): Promise<ProductsBundle> =>
+  unstable_cache(
+    () => fetchProductsBundle(storeId, withStats),
+    ['store-products-bundle', storeId, withStats ? 'stats' : 'light'],
+    { tags: [`products:${storeId}`], revalidate: PRODUCTS_BUNDLE_REVALIDATE_S },
+  )();
 
 // ---- Orders cache (per store, short TTL, invalidated on writes) ----
 const ORDER_CACHE_TTL = 20_000;
@@ -449,52 +496,39 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     orders: fields?.orders !== false,
     customers: fields?.customers !== false,
     invoices: fields?.invoices !== false,
+    productStats: fields?.productStats !== false,
   };
 
+  const emptyBundle: ProductsBundle = { productsRows: [], statsRows: [], salesRows: [] };
   const tasks = [
     db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
-    needs.products ? db.select().from(products).where(eq(products.storeId, storeId)).limit(200) : Promise.resolve([]),
+    needs.products
+      ? getCachedProductsBundle(storeId, needs.productStats)
+      : Promise.resolve(emptyBundle),
     needs.orders ? getOrdersForStore(storeId) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
     needs.customers ? db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100) : Promise.resolve([]),
     needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
-    needs.products ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => []) : Promise.resolve([]),
-    needs.products
-      ? db
-          .select({
-        productId: orderItems.productId,
-        variantId: orderItems.variantId,
-        variantLabel: orderItems.variantLabel,
-        variantSku: orderItems.variantSku,
-            qty: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
-          })
-          .from(orderItems)
-          .innerJoin(products, eq(orderItems.productId, products.id))
-          .where(eq(products.storeId, storeId))
-          .groupBy(orderItems.productId)
-          .catch(() => [])
-      : Promise.resolve([]),
     ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
   ];
 
   const [
     storeRes,
-    productsRes,
+    bundle,
     ordersData,
     customersRes,
     invoicesRes,
-    statsRes,
-    orderSalesRes,
     profileRes
   ] = (await Promise.all(tasks)) as [
     StoreRow[],
-    ProductRow[],
+    ProductsBundle,
     OrdersCacheData,
     CustomerRow[],
     InvoiceRow[],
-    ProductStatsRow[],
-    Array<{ productId: string | null; qty: number | string }>,
     ProfileRow[]
   ];
+  const productsRes = bundle.productsRows;
+  const statsRes = bundle.statsRows;
+  const orderSalesRes = bundle.salesRows;
 
   const store = storeRes[0] || null;
   const { ordersRes, itemsByOrder } = ordersData;

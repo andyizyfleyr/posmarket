@@ -12,7 +12,7 @@ export default async function POSPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, customers, store } = await fetchStoreData(storeId, undefined, { orders: false, invoices: false });
+  const { products, customers, store } = await fetchStoreData(storeId, undefined, { orders: false, invoices: false, productStats: false });
   const { permissions } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
   return (

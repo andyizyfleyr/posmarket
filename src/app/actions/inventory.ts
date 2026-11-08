@@ -360,6 +360,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     );
 
     refreshTag('marketplace');
+    refreshTag(`products:${storeId}`);
 
     const safe = {
       id: savedProduct.id,
@@ -419,6 +420,7 @@ export async function deleteProductAction(id: string, storeId: string) {
     if (deleted.length === 0) return { success: false, error: 'Produit introuvable' };
 
     refreshTag('marketplace');
+    refreshTag(`products:${storeId}`);
     return { success: true };
   } catch (error: unknown) {
     console.error('Error deleting product with Drizzle:', error);
@@ -443,6 +445,7 @@ export async function bulkDeleteProductsAction(ids: string[], storeId: string) {
     if (deleted.length === 0) return { success: false, error: 'Aucun produit supprimable' };
 
     refreshTag('marketplace');
+    refreshTag(`products:${storeId}`);
     return { success: true, deleted: deleted.length };
   } catch (error: unknown) {
     console.error('Error bulk deleting products with Drizzle:', error);
@@ -632,6 +635,7 @@ export async function bulkUpdateProductsAction(
     }
 
     refreshTag('marketplace');
+    refreshTag(`products:${storeId}`);
 
     return {
       success: true,
@@ -1152,6 +1156,7 @@ export async function importProductsBatchAction(
     }
 
     refreshTag('marketplace');
+    refreshTag(`products:${targetStoreId}`);
 
     return {
       success: true,
