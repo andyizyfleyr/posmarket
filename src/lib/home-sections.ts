@@ -131,6 +131,21 @@ export function diversifyProducts<T extends HomeProduct>(
   return picked;
 }
 
+export interface BuildHomeSectionsOptions {
+  /** Collections éditoriales souhaitées (défaut : tout). */
+  editorial?: {
+    bestSellers?: boolean;
+    promotions?: boolean;
+    newArrivals?: boolean;
+  };
+  /** Affiche les sections par catégorie (défaut : true). */
+  categoriesEnabled?: boolean;
+  /** Catégories masquées, noms exacts. */
+  categoryHidden?: string[];
+  /** Ordre d'affichage des sections catégorie, noms exacts. */
+  categoryOrder?: string[];
+}
+
 /**
  * Construit les sections de l'accueil : éditoriales d'abord, puis les
  * catégories (ordre historique à l'intérieur). La restauration est écartée.
@@ -138,7 +153,17 @@ export function diversifyProducts<T extends HomeProduct>(
 export function buildHomeSections<T extends HomeProduct>(
   products: T[],
   previewCount: number = SECTION_PREVIEW_COUNT,
+  options: BuildHomeSectionsOptions = {},
 ): HomeSection<T>[] {
+  const {
+    editorial,
+    categoriesEnabled = true,
+    categoryHidden,
+    categoryOrder,
+  } = options;
+  const wantBest = editorial?.bestSellers !== false;
+  const wantPromotions = editorial?.promotions !== false;
+  const wantNew = editorial?.newArrivals !== false;
   // Restauration hors accueil : voir l'en-tête du fichier.
   const marketable = products.filter(
     (p) => isMarketableProduct(p) && verticalOfProduct(p) !== 'food',
@@ -147,11 +172,13 @@ export function buildHomeSections<T extends HomeProduct>(
 
   // ── Meilleures ventes ──
   const bestSellers = rankProducts(
-    marketable.filter((p) => (p.salesCount ?? 0) > 0).sort(
-      (a, b) =>
-        (b.salesCount ?? 0) - (a.salesCount ?? 0) ||
-        productRankScore(b) - productRankScore(a),
-    ),
+    wantBest
+      ? marketable.filter((p) => (p.salesCount ?? 0) > 0).sort(
+        (a, b) =>
+          (b.salesCount ?? 0) - (a.salesCount ?? 0) ||
+          productRankScore(b) - productRankScore(a),
+      )
+      : [],
   );
   const bestPreview = diversifyProducts(bestSellers, previewCount);
   if (bestPreview.length > 0) {
@@ -164,7 +191,7 @@ export function buildHomeSections<T extends HomeProduct>(
   }
 
   // ── Promotions ──
-  const promotions = [...marketable]
+  const promotions = (wantPromotions ? [...marketable] : [])
     .filter((p) => productDiscountPercent(p) > 0)
     .sort(
       (a, b) =>
@@ -182,7 +209,7 @@ export function buildHomeSections<T extends HomeProduct>(
   }
 
   // ── Nouveautés ──
-  const newArrivals = [...marketable]
+  const newArrivals = (wantNew ? [...marketable] : [])
     .filter(
       (p) =>
         Boolean(p.createdAt) &&
@@ -211,25 +238,40 @@ export function buildHomeSections<T extends HomeProduct>(
     groups.get(key)!.push(p);
   });
 
-  const categorySections = Array.from(groups.entries())
-    .sort(([a], [b]) => {
-      const [va, ca] = a.split('::');
-      const [vb, cb] = b.split('::');
-      if (va !== vb) return va === 'shopping' ? -1 : 1;
-      const ia = MAIN_CATEGORIES.indexOf(ca);
-      const ib = MAIN_CATEGORIES.indexOf(cb);
-      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-    })
-    .map(([key, items]) => {
-      const sep = key.indexOf('::');
-      return {
-        key,
-        title: key.slice(sep + 2),
-        vertical: key.slice(0, sep) as 'shopping' | 'food',
-        preview: diversifyProducts(rankProducts(items), previewCount),
-        canSeeAll: true,
-      };
-    });
+  const hidden = new Set(categoryHidden ?? []);
+  const orderRank = new Map(
+    (categoryOrder ?? []).map((name, index) => [name, index] as const),
+  );
+  const fallbackIndex = (name: string) => {
+    const i = MAIN_CATEGORIES.indexOf(name);
+    return MAIN_CATEGORIES.length + (i === -1 ? 1000 : i);
+  };
+
+  const categorySections = categoriesEnabled
+    ? Array.from(groups.entries())
+        .filter(([key]) => !hidden.has(key.slice(key.indexOf('::') + 2)))
+        .sort(([a], [b]) => {
+          const [va, ca] = a.split('::');
+          const [vb, cb] = b.split('::');
+          if (va !== vb) return va === 'shopping' ? -1 : 1;
+          const ra = orderRank.get(ca);
+          const rb = orderRank.get(cb);
+          if (ra !== undefined && rb !== undefined) return ra - rb;
+          if (ra !== undefined) return -1;
+          if (rb !== undefined) return 1;
+          return fallbackIndex(ca) - fallbackIndex(cb);
+        })
+        .map(([key, items]) => {
+          const sep = key.indexOf('::');
+          return {
+            key,
+            title: key.slice(sep + 2),
+            vertical: key.slice(0, sep) as 'shopping' | 'food',
+            preview: diversifyProducts(rankProducts(items), previewCount),
+            canSeeAll: true,
+          } satisfies HomeSection<T>;
+        })
+    : [];
 
   return [...sections, ...categorySections];
 }

@@ -4,6 +4,7 @@ import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { submitCheckoutAction } from '@/app/actions/checkout';
 import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { getStoreSeo, absoluteImage } from "@/utils/catalog-seo";
+import { getHomepageLayout } from "@/lib/homepage-layout";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -38,9 +39,10 @@ export default async function StorePage({ params, searchParams }: Props) {
     const { slug } = await params;
     const { cat } = await searchParams;
     const initialCategory = cat && cat !== "all" ? cat : undefined;
-    const [stores, store] = await Promise.all([
+    const [stores, store, homepageLayout] = await Promise.all([
         fetchMarketplaceData(),
         getStoreSeo(slug),
+        getHomepageLayout(),
     ]);
     const storeId = store?.id || "";
 
@@ -98,6 +100,7 @@ export default async function StorePage({ params, searchParams }: Props) {
             )}
             <StorefrontWrapper
                 stores={stores}
+                homepageLayout={homepageLayout}
                 initialStoreId={storeId}
                 initialCategory={initialCategory}
                 onBackToApp={async () => {

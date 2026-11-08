@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchHomeMarketplaceData } from '@/app/actions/marketplace';
+import { getHomepageLayout } from '@/lib/homepage-layout';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
@@ -13,9 +14,12 @@ export const revalidate = 60;
  */
 export async function GET() {
   try {
-    const stores = await fetchHomeMarketplaceData();
+    const [stores, homepage] = await Promise.all([
+      fetchHomeMarketplaceData(),
+      getHomepageLayout(),
+    ]);
     return NextResponse.json(
-      { success: true, stores },
+      { success: true, stores, homepage },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',

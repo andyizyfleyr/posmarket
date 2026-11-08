@@ -29,6 +29,7 @@ import {
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
 import { buildHomeSections } from "@/lib/home-sections";
+import { DEFAULT_HOMEPAGE_LAYOUT, type HomepageLayout } from "@/lib/homepage-layout";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { fetchStorePaymentMethodsAction } from "@/app/actions/storePayments";
@@ -241,6 +242,8 @@ const saveRecentSearch = (term: string): string[] => {
 
 interface StorefrontViewProps {
   stores: StoreData[];
+  /** Mise en page de l'accueil choisie par l'admin (défauts = tout visible). */
+  homepageLayout?: HomepageLayout;
   initialCategory?: string;
   initialStoreId?: string;
   onMarketplaceCheckout: (
@@ -310,6 +313,7 @@ function categoryToSlug(cat: string): string {
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
+  homepageLayout = DEFAULT_HOMEPAGE_LAYOUT,
   initialCategory,
   initialStoreId,
   onMarketplaceCheckout,
@@ -1956,8 +1960,18 @@ const WHOLESALE_FILTER = "wholesale";
    * catégorie, avec un aperçu de six produits triés et diversifiés.
    */
   const homeSections = useMemo(
-    () => buildHomeSections(allProducts),
-    [allProducts],
+    () =>
+      buildHomeSections(allProducts, undefined, {
+        editorial: {
+          bestSellers: homepageLayout.bestSellers,
+          promotions: homepageLayout.promotions,
+          newArrivals: homepageLayout.newArrivals,
+        },
+        categoriesEnabled: homepageLayout.categoriesEnabled,
+        categoryHidden: homepageLayout.categoryHidden,
+        categoryOrder: homepageLayout.categoryOrder,
+      }),
+    [allProducts, homepageLayout],
   );
 
   // Un terme de recherche « actif » est un terme d'au moins 2 caractères :
@@ -3987,7 +4001,7 @@ const WHOLESALE_FILTER = "wholesale";
               <>
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
-                {!searchTerm && selectedCategory === "all" && (
+                {!searchTerm && selectedCategory === "all" && homepageLayout.hero && (
                   <div
                     className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden border border-brand-tint rounded-[24px] md:rounded-[32px]"
                     style={{ touchAction: "pan-y" }}
@@ -4075,6 +4089,7 @@ const WHOLESALE_FILTER = "wholesale";
                 {/* Partners */}
                 {!searchTerm &&
                   selectedCategory === "all" &&
+                  homepageLayout.partners &&
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
                       <div className="mb-3 flex items-center gap-2.5 md:mb-5">

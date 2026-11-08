@@ -1,5 +1,6 @@
 import { submitCheckoutAction } from '@/app/actions/checkout';
 import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from '@/app/actions/marketplace';
+import { getHomepageLayout } from '@/lib/homepage-layout';
 import { StorefrontWrapper } from '@/components/StorefrontWrapper';
 
 // La garde de rôle vit dans `layout.tsx` : elle dépend de la session, la page
@@ -14,11 +15,15 @@ export const dynamic = 'force-dynamic';
  * route l'onglet actif depuis `location.pathname`.
  */
 export default async function MonComptePage() {
-    const stores = await fetchMarketplaceData();
+    const [stores, homepageLayout] = await Promise.all([
+        fetchMarketplaceData(),
+        getHomepageLayout(),
+    ]);
 
     return (
         <StorefrontWrapper
             stores={stores}
+            homepageLayout={homepageLayout}
             onBackToApp={async () => {
                 'use server';
                 // Navigation client, rien à faire côté serveur.

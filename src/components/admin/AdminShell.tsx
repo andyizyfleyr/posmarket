@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Shield,
   LayoutDashboard,
+  LayoutTemplate,
   Store,
   Users,
   Wallet,
@@ -26,6 +27,7 @@ interface AdminNavItem {
 
 const NAV_ITEMS: AdminNavItem[] = [
   { href: '/pam', label: 'Surveillance', icon: <LayoutDashboard size={20} /> },
+  { href: '/pam/accueil', label: 'Accueil', icon: <LayoutTemplate size={20} /> },
   { href: '/pam/stores', label: 'Boutiques', icon: <Store size={20} /> },
   { href: '/pam/users', label: 'Utilisateurs', icon: <Users size={20} /> },
   { href: '/pam/orders', label: 'Transactions', icon: <Wallet size={20} /> },

@@ -4,6 +4,7 @@ import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { submitCheckoutAction } from '@/app/actions/checkout';
 import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { MAIN_CATEGORIES } from "@/constants";
+import { getHomepageLayout } from "@/lib/homepage-layout";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -41,7 +42,10 @@ export default async function CategoryPage({ params }: Props) {
     const { slug } = await params;
     const category = decodeCategorySlug(slug);
     const site = process.env.NEXT_PUBLIC_SITE_URL || "https://posmarket-eight.vercel.app";
-    const stores = await fetchMarketplaceData();
+    const [stores, homepageLayout] = await Promise.all([
+        fetchMarketplaceData(),
+        getHomepageLayout(),
+    ]);
 
     const categoryProducts = (stores || [])
         .flatMap((s) => (s.products || []).map((p) => ({ ...p, __storeName: s.settings?.name || s.name || "" })))
@@ -72,6 +76,7 @@ export default async function CategoryPage({ params }: Props) {
             />
             <StorefrontWrapper
                 stores={stores}
+                homepageLayout={homepageLayout}
                 initialCategory={category}
                 onBackToApp={async () => {
                     "use server";

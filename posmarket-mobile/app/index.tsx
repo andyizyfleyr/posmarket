@@ -75,6 +75,10 @@ import {
   productColumnsForWidth,
   productDiscountPercent,
 } from '@/utils';
+import {
+  parseHomepageLayout,
+  applyHomepageCategories,
+} from '@/utils/homepage';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchSellerBootstrap } from '@/api/seller';
@@ -711,7 +715,7 @@ export default function HomeScreen() {
   const [sheetSectionKey, setSheetSectionKey] = useState<string | null>(null);
   const listRef = useRef<FlatList<HomeItem>>(null);
 
-  // ── Catalogue allégé de l'accueil ──
+  // ── Catalogue allégé de l'accueil (+ mise en page admin) ──
   const {
     data: catalogData,
     isLoading,
@@ -752,6 +756,12 @@ export default function HomeScreen() {
     staleTime: 30_000,
     retry: 1,
   });
+
+  // ── Mise en page de l'accueil (défauts = tout visible) ──
+  const homepage = useMemo(
+    () => parseHomepageLayout(catalogData?.homepage),
+    [catalogData?.homepage],
+  );
 
   // ── Produits en ligne de toutes les boutiques ──
   const allProducts = useMemo(() => {
@@ -806,6 +816,7 @@ export default function HomeScreen() {
 
   // ── Sections catégorie : classées, diversifiées, 6 aperçus ──
   const categorySections = useMemo<HomeSection[]>(() => {
+    if (!homepage.categoriesEnabled) return [];
     const groups = new Map<string, StorefrontProduct[]>();
     marketableProducts.forEach((p) => {
       const cat = p.mainCategory || p.category || 'Autres';
@@ -813,28 +824,20 @@ export default function HomeScreen() {
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(p);
     });
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => {
-        const [va, ca] = a.split('::');
-        const [vb, cb] = b.split('::');
-        if (va !== vb) return va === 'shopping' ? -1 : 1;
-        const ia = MAIN_CATEGORIES.indexOf(ca);
-        const ib = MAIN_CATEGORIES.indexOf(cb);
-        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      })
-      .map(([key, products]) => {
-        const sep = key.indexOf('::');
-        const ranked = rankProducts(products);
-        return {
-          key,
-          title: key.slice(sep + 2),
-          vertical: key.slice(0, sep) as 'shopping' | 'food',
-          products: ranked,
-          preview: diversifyProducts(ranked, SECTION_PREVIEW_COUNT),
-          canSeeAll: true,
-        };
-      });
-  }, [marketableProducts]);
+    const sections = Array.from(groups.entries()).map(([key, products]) => {
+      const sep = key.indexOf('::');
+      const ranked = rankProducts(products);
+      return {
+        key,
+        title: key.slice(sep + 2),
+        vertical: key.slice(0, sep) as 'shopping' | 'food',
+        products: ranked,
+        preview: diversifyProducts(ranked, SECTION_PREVIEW_COUNT),
+        canSeeAll: true,
+      };
+    });
+    return applyHomepageCategories(sections, homepage, MAIN_CATEGORIES);
+  }, [marketableProducts, homepage]);
 
   // ── Sections éditoriales : meilleures ventes, promos, nouveautés ──
   const curatedSections = useMemo<HomeSection[]>(() => {
@@ -847,7 +850,9 @@ export default function HomeScreen() {
           (b.salesCount ?? 0) - (a.salesCount ?? 0) ||
           productRankScore(b) - productRankScore(a),
       );
-    const bestPreview = diversifyProducts(bestSellers, SECTION_PREVIEW_COUNT);
+    const bestPreview = homepage.bestSellers
+      ? diversifyProducts(bestSellers, SECTION_PREVIEW_COUNT)
+      : [];
     if (bestPreview.length > 0) {
       curated.push({
         key: 'collection-best-sellers',
@@ -865,7 +870,9 @@ export default function HomeScreen() {
           productDiscountPercent(b) - productDiscountPercent(a) ||
           productRankScore(b) - productRankScore(a),
       );
-    const promoPreview = diversifyProducts(promotions, SECTION_PREVIEW_COUNT);
+    const promoPreview = homepage.promotions
+      ? diversifyProducts(promotions, SECTION_PREVIEW_COUNT)
+      : [];
     if (promoPreview.length > 0) {
       curated.push({
         key: 'collection-promotions',
@@ -887,7 +894,9 @@ export default function HomeScreen() {
           Date.parse(b.createdAt as string) -
           Date.parse(a.createdAt as string),
       );
-    const newPreview = diversifyProducts(newArrivals, SECTION_PREVIEW_COUNT);
+    const newPreview = homepage.newArrivals
+      ? diversifyProducts(newArrivals, SECTION_PREVIEW_COUNT)
+      : [];
     if (newPreview.length > 0) {
       curated.push({
         key: 'collection-new-arrivals',
@@ -899,7 +908,7 @@ export default function HomeScreen() {
     }
 
     return curated;
-  }, [marketableProducts]);
+  }, [marketableProducts, homepage]);
 
   const homeSections = useMemo(
     () => [...curatedSections, ...categorySections],
@@ -1072,8 +1081,10 @@ export default function HomeScreen() {
       return items;
     }
 
-    items.push({ key: 'hero', type: 'hero' });
-    if (partnerStores.length > 0) {
+    if (homepage.hero) {
+      items.push({ key: 'hero', type: 'hero' });
+    }
+    if (homepage.partners && partnerStores.length > 0) {
       items.push({ key: 'partners', type: 'partners' });
     }
     homeSections.forEach((section) => {
@@ -1093,6 +1104,7 @@ export default function HomeScreen() {
     items.push({ key: 'footer', type: 'footer' });
     return items;
   }, [
+    homepage,
     homeSections,
     partnerStores,
     searchMatchingStores,

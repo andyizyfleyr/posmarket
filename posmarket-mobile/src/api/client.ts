@@ -139,9 +139,22 @@ import type {
   NotificationOutboxItem,
 } from '@/types';
 
+export type HomepageLayoutPayload = {
+  hero: boolean;
+  partners: boolean;
+  bestSellers: boolean;
+  promotions: boolean;
+  newArrivals: boolean;
+  categoriesEnabled: boolean;
+  categoryOrder: string[];
+  categoryHidden: string[];
+};
+
 interface CatalogResponse {
   success: boolean;
   stores: StoreData[];
+  /** Mise en page de l'accueil (facultatif : absente = défaut). */
+  homepage?: HomepageLayoutPayload;
   error?: string;
 }
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
+import { getHomepageLayout } from "@/lib/homepage-layout";
 import { submitCheckoutAction } from "@/app/actions/checkout";
 import {
     fetchMarketplaceData,
@@ -29,11 +30,15 @@ export const metadata: Metadata = {
 };
 
 export default async function WholesalePage() {
-    const stores = await fetchMarketplaceData();
+    const [stores, homepageLayout] = await Promise.all([
+        fetchMarketplaceData(),
+        getHomepageLayout(),
+    ]);
 
     return (
         <StorefrontWrapper
             stores={stores}
+            homepageLayout={homepageLayout}
             initialCategory="wholesale"
             onBackToApp={async () => {
                 "use server";

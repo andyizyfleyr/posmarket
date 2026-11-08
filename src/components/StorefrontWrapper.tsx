@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { StoreData } from '@/types';
+import type { HomepageLayout } from '@/lib/homepage-layout';
 import type { CheckoutStoreOrderDraft, CheckoutCustomerDraft } from '@/views/StorefrontView';
 
 const StorefrontView = dynamic(
@@ -15,6 +16,8 @@ const StorefrontView = dynamic(
 
 interface StorefrontWrapperProps {
   stores: StoreData[];
+  /** Mise en page de l'accueil (blocs + catégories), choisie par l'admin. */
+  homepageLayout?: HomepageLayout;
   initialCategory?: string;
   initialStoreId?: string;
   /**
@@ -43,13 +46,14 @@ interface StorefrontWrapperProps {
   ) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
-export function StorefrontWrapper({ stores, initialCategory, initialStoreId, onMarketplaceCheckout, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
+export function StorefrontWrapper({ stores, homepageLayout, initialCategory, initialStoreId, onMarketplaceCheckout, onNotifyCartInterest, onNotifyPostCheckout }: StorefrontWrapperProps) {
   const pathname = usePathname();
 
   return (
     <StorefrontView
       key={pathname || '/'}
       stores={stores}
+      homepageLayout={homepageLayout}
       initialCategory={initialCategory}
       initialStoreId={initialStoreId}
       onMarketplaceCheckout={async (ordersData, customerData, idempotencyKey, prepaidProofs) => {
