@@ -137,6 +137,18 @@ const MIGRATIONS = [
             WHERE constraint_name = 'store_payment_credentials_provider_check'
               AND check_clause LIKE '%feexpay%'`,
   },
+  {
+    file: '0036_store_verified.sql',
+    describe: 'stores.verified_at',
+    probe: `SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'stores' AND column_name = 'verified_at'`,
+  },
+  {
+    file: '0037_product_barcode_low_stock.sql',
+    describe: 'products.barcode',
+    probe: `SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'products' AND column_name = 'barcode'`,
+  },
 ];
 
 /**
