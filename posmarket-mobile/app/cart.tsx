@@ -39,12 +39,10 @@ import {
   ChevronUp,
   CreditCard,
   MapPin,
-  ShieldCheck,
   ShoppingCart,
   Store,
   Tag,
   Trash2,
-  Truck,
   X,
   Zap,
 } from 'lucide-react-native';
@@ -322,18 +320,6 @@ export default function CartScreen() {
             <View style={styles.content}>
               {cart.length > 0 ? (
                 <>
-                  {/* Réassurance */}
-                  <View style={styles.reassurance}>
-                    <View style={styles.reassuranceItem}>
-                      <ShieldCheck size={13} color="#22C55E" />
-                      <Text style={styles.reassuranceText}>Paiement sécurisé</Text>
-                    </View>
-                    <View style={styles.reassuranceItem}>
-                      <Truck size={13} color={COLORS.brand} />
-                      <Text style={styles.reassuranceText}>Payez à la livraison</Text>
-                    </View>
-                  </View>
-
                   {storeGroups.map(({ id: storeId, items }) => {
                     const storeObj = stores.find((s) => s.id === storeId);
                     const storeMinOrder = Number(
@@ -1027,35 +1013,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(249,250,251,0.5)',
     padding: 10,
   },
-  reassurance: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-  },
-  reassuranceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  reassuranceText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.9,
-  },
-
   // Cartes boutique
   storeCard: {
     marginTop: 12,

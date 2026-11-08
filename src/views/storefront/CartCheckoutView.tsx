@@ -321,18 +321,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
         <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-1.5 sm:p-2 md:p-4">
           {(checkoutStage === "cart" && cart.length > 0) && (
             <div className="space-y-2">
-              {/* Réassurance */}
-              <div className="flex items-center justify-center gap-4 py-1 bg-white rounded-full border border-gray-100 shadow-sm text-[8px] font-bold uppercase tracking-widest text-gray-500">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={13} className="text-green-500" />
-                  Paiement sécurisé
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Truck size={13} className="text-brand" />
-                  Payez à la livraison
-                </span>
-              </div>
-
               {Array.from(
                 new Set(
                   cart
