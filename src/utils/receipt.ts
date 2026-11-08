@@ -27,6 +27,10 @@ export interface ReceiptData {
     amount: number;
   };
   total: number;
+  /** Paiement espèces : montant remis par le client. */
+  tendered?: number;
+  /** Paiement espèces : monnaie rendue. */
+  change?: number;
 }
 
 /**
@@ -129,6 +133,8 @@ function buildReceiptHtml(data: ReceiptData): string {
       <div class="row"><span>SOUS-TOTAL:</span><span>${formatCurrency(data.subtotal)}</span></div>
       ${data.discount ? `<div class="row"><span>REMISE (${data.discount.code}):</span><span>-${formatCurrency(data.discount.amount)}</span></div>` : ''}
       <div class="total-row border-t"><span>TOTAL:</span><span>${formatCurrency(data.total)}</span></div>
+      ${typeof data.tendered === 'number' ? `<div class="row"><span>MONTANT REÇU:</span><span>${formatCurrency(data.tendered)}</span></div>` : ''}
+      ${typeof data.change === 'number' ? `<div class="row"><span>MONNAIE RENDUE:</span><span>${formatCurrency(data.change)}</span></div>` : ''}
     </div>
 
     <div class="center" style="margin-top: 14px; font-size: 8.5pt;">
@@ -200,7 +206,7 @@ export async function downloadPosReceiptPdf(data: ReceiptData): Promise<void> {
   const jsPDF = jspdfModule.jsPDF ?? jspdfModule.default;
 
   const itemHeight = 6;
-  const baseHeight = 85 + (data.discount ? 8 : 0) + (data.customerName ? 6 : 0);
+  const baseHeight = 85 + (data.discount ? 8 : 0) + (data.customerName ? 6 : 0) + (typeof data.tendered === 'number' ? 9 : 0);
   const calculatedHeight = Math.max(110, baseHeight + data.items.length * itemHeight);
   const pdfWidth = 80;
 
@@ -295,7 +301,23 @@ export async function downloadPosReceiptPdf(data: ReceiptData): Promise<void> {
   doc.setFontSize(10.5);
   doc.text('TOTAL:', leftX, y);
   doc.text(formatCurrency(data.total), rightX, y, { align: 'right' });
-  y += 7;
+  y += 3.5;
+
+  if (typeof data.tendered === 'number') {
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7.5);
+    doc.text('MONTANT REÇU:', leftX, y);
+    doc.text(formatCurrency(data.tendered), rightX, y, { align: 'right' });
+    y += 3.5;
+  }
+  if (typeof data.change === 'number') {
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7.5);
+    doc.text('MONNAIE RENDUE:', leftX, y);
+    doc.text(formatCurrency(data.change), rightX, y, { align: 'right' });
+    y += 3.5;
+  }
+  y += 3.5;
 
   // Footer
   doc.setFont('courier', 'normal');

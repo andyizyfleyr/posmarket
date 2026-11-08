@@ -270,6 +270,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [tendered, setTendered] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showCartSheet, setShowCartSheet] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState('');
@@ -578,7 +579,15 @@ return [...prev, {
   };
 
   /* ─── Checkout ─── */
+  const tenderedNumber = Number(tendered) || 0;
+  const changeDue = tenderedNumber - totals.total;
+  const cashReady = paymentMethod !== PaymentMethod.CASH || tenderedNumber >= totals.total;
+
   const handleCheckout = () => {
+    if (!cashReady) {
+      if (notify) notify(`Montant reçu insuffisant : il manque ${formatCurrency(totals.total - tenderedNumber)}.`, 'error', 'Encaissement');
+      return;
+    }
     const newOrderId = 'CMD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     setCurrentOrderId(newOrderId);
     setIsProcessing(true);
@@ -646,9 +655,11 @@ return [...prev, {
         code: promoApplied.code,
         amount: totals.discountAmount
       } : undefined,
-      total: totals.total
+      total: totals.total,
+      tendered: paymentMethod === PaymentMethod.CASH && tenderedNumber > 0 ? tenderedNumber : undefined,
+      change: paymentMethod === PaymentMethod.CASH && tenderedNumber > 0 ? tenderedNumber - totals.total : undefined,
     };
-  }, [currentOrderId, storeSettings, orderType, paymentMethod, selectedCustomer, cart, totals, promoApplied, unitPriceOf]);
+  }, [currentOrderId, storeSettings, orderType, paymentMethod, selectedCustomer, cart, totals, promoApplied, unitPriceOf, tenderedNumber]);
 
   const handlePrint = useCallback(() => {
     try {
@@ -678,6 +689,7 @@ return [...prev, {
 
   const closeCheckout = () => {
     setShowCheckoutModal(false);
+    setTendered('');
     setCart([]);
     setSelectedCustomer(null);
     setShowCartSheet(false);
@@ -823,7 +835,10 @@ return [...prev, {
                 ]).map(pm => (
                   <button
                     key={pm.id}
-                    onClick={() => setPaymentMethod(pm.id)}
+                    onClick={() => {
+                      setPaymentMethod(pm.id);
+                      if (pm.id !== PaymentMethod.CASH) setTendered('');
+                    }}
                     className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all border active:scale-95
                       ${paymentMethod === pm.id
                         ? 'bg-brand border-brand text-white shadow-md shadow-orange-200/50'
@@ -866,6 +881,54 @@ return [...prev, {
 
       {/* Totals & checkout button - sticky bottom */}
       <div className="px-4 py-3 md:py-4 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+        {cart.length > 0 && paymentMethod === PaymentMethod.CASH && (
+          <div className="mb-2.5 bg-orange-50/60 border border-orange-100 rounded-2xl p-2.5 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="tendered-input" className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Montant reçu</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  id="tendered-input"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={tendered}
+                  onChange={(e) => setTendered(e.target.value.replace(/\D/g, ''))}
+                  placeholder="0"
+                  className="w-28 md:w-32 text-right px-2 py-1.5 bg-white border-2 border-orange-200 focus:border-brand rounded-xl text-base md:text-lg font-black text-gray-900 tabular-nums outline-none transition-colors"
+                />
+                <span className="text-[10px] font-bold text-gray-400">XOF</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setTendered(String(totals.total))}
+                className="px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/30 text-[10px] font-bold text-brand hover:bg-brand hover:text-white active:scale-95 transition-all"
+              >
+                Exact
+              </button>
+              {[500, 1000, 2000, 5000, 10000, 20000, 50000].map((billet) => (
+                <button
+                  key={billet}
+                  type="button"
+                  onClick={() => setTendered(String(billet))}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-[10px] font-bold text-gray-600 hover:border-brand hover:text-brand active:scale-95 transition-all tabular-nums"
+                >
+                  {billet >= 1000 ? `${billet / 1000}k` : billet}
+                </button>
+              ))}
+            </div>
+            {tenderedNumber > 0 && (
+              <div className="flex items-center justify-between border-t border-orange-100 pt-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  {changeDue >= 0 ? 'Monnaie à rendre' : 'Manque'}
+                </span>
+                <span className={`text-lg md:text-xl font-black tabular-nums ${changeDue >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {changeDue >= 0 ? formatCurrency(changeDue) : `−${formatCurrency(-changeDue)}`}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
         {cart.length > 0 && (
           <>
             <div className="space-y-1 mb-3">
@@ -887,9 +950,15 @@ return [...prev, {
           </>
         )}
         {permissions.canManageOrders ? (
+          <>
+          {paymentMethod === PaymentMethod.CASH && !cashReady && cart.length > 0 && (
+            <p className="text-center text-[10px] font-semibold text-red-500 mb-1.5">
+              Montant reçu insuffisant : il manque {formatCurrency(totals.total - tenderedNumber)}
+            </p>
+          )}
           <button
             onClick={handleCheckout}
-            disabled={cart.length === 0 || isProcessing}
+            disabled={cart.length === 0 || isProcessing || !cashReady}
             className="w-full bg-gradient-to-r from-brand to-[#e04e0f] text-white font-bold text-sm md:text-base py-3.5 md:py-4 rounded-2xl flex items-center justify-center gap-2.5 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 shadow-xl shadow-orange-200/40 transition-all active:scale-[0.98] hover:shadow-2xl hover:shadow-orange-200/60"
           >
             {isProcessing ? (
@@ -899,6 +968,7 @@ return [...prev, {
             )}
             {isProcessing ? 'Envoi...' : cart.length === 0 ? `${cartWord} vide` : 'Encaisser'}
           </button>
+          </>
         ) : (
           <div className="p-3 bg-red-50 text-red-500 rounded-xl text-[10px] font-semibold text-center border border-red-100 flex items-center justify-center gap-2">
             <X size={13} /> Permission insuffisante
@@ -1095,6 +1165,18 @@ return [...prev, {
                   <span className="text-sm font-bold text-gray-900">Total payé</span>
                   <span className="text-xl font-bold text-brand">{formatCurrency(totals.total)}</span>
                 </div>
+                {paymentMethod === PaymentMethod.CASH && tenderedNumber > 0 && (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 font-normal">Montant reçu</span>
+                      <span className="font-semibold text-gray-700 tabular-nums">{formatCurrency(tenderedNumber)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500 font-normal">Monnaie rendue</span>
+                      <span className="font-bold text-green-600 tabular-nums">{formatCurrency(tenderedNumber - totals.total)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center gap-3 pt-2 border-t border-gray-200 text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
                   <span className="flex items-center gap-1">
                     {paymentMethod === PaymentMethod.CASH ? <Banknote size={12} /> : <Smartphone size={12} />}
