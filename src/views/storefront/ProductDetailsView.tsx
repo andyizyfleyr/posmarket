@@ -1670,20 +1670,26 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   <RichDescription text={descriptionText} accentClass={accentText} />
                   <AutoHighlights items={autoHighlights} accentClass={accentText} />
                 </div>
-                {hasMoreContent && (
-                  <button
-                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors ${accentText}`}
-                  >
-                    {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
-                    <ChevronRight
-                      size={10}
-                      className={`transition-transform duration-300 ${
-                        isDescriptionExpanded ? "-rotate-90" : "rotate-90"
-                      }`}
-                    />
-                  </button>
-                )}
+                {hasMoreContent &&
+                  (!isDescriptionExpanded ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionExpanded(true)}
+                      className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors touch-manipulation select-none ${accentText}`}
+                    >
+                      Lire la suite
+                      <ChevronRight size={10} className="rotate-90 transition-transform duration-300" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionExpanded(false)}
+                      className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors touch-manipulation select-none ${accentText}`}
+                    >
+                      Réduire
+                      <ChevronRight size={10} className="-rotate-90 transition-transform duration-300" />
+                    </button>
+                  ))}
               </div>
             </div>
           </div>
@@ -1711,20 +1717,26 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             <AutoHighlights items={autoHighlights} accentClass={accentText} />
           </div>
 
-          {hasMoreContent && (
-            <button
-              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-              className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform text-brand"
-            >
-              {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
-              <ChevronRight
-                size={10}
-                className={`transition-transform duration-300 ${
-                  isDescriptionExpanded ? "-rotate-90" : "rotate-90"
-                }`}
-              />
-            </button>
-          )}
+          {hasMoreContent &&
+            (!isDescriptionExpanded ? (
+              <button
+                type="button"
+                onClick={() => setIsDescriptionExpanded(true)}
+                className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
+              >
+                Lire la suite
+                <ChevronRight size={10} className="rotate-90 transition-transform duration-300" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsDescriptionExpanded(false)}
+                className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
+              >
+                Réduire
+                <ChevronRight size={10} className="-rotate-90 transition-transform duration-300" />
+              </button>
+            ))}
         </section>
         {/* ================= AVIS (CARD-BASED) ================= */}
         <section
