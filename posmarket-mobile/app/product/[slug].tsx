@@ -29,7 +29,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
-  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -443,11 +442,6 @@ export default function ProductDetailScreen() {
   // libellé doit annoncer cette action plutôt qu'un ajout impossible.
   const wholesaleNeedsOptions = hasOptions && !allSelected;
 
-  const goBack = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/' as never);
-  }, [router]);
-
   const goToCart = useCallback(() => {
     router.push('/cart' as never);
   }, [router]);
@@ -733,21 +727,9 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Topbar compacte : retour uniquement. Le nom de boutique n'y est
-          plus affiché et la hauteur est divisée par deux (une seule ligne,
-          bouton 32px, paddings réduits). ── */}
+      {/* ── Topbar : un simple filet horizontal (ni retour, ni nom) ── */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
-        <View style={styles.topBarRow}>
-          <Pressable
-            style={styles.backBtn}
-            onPress={goBack}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Retour"
-          >
-            <ArrowLeft size={18} color="#111827" />
-          </Pressable>
-        </View>
+        <View style={styles.topBarRule} />
       </SafeAreaView>
 
       <ScrollView
@@ -1731,24 +1713,12 @@ const styles = StyleSheet.create({
   // ── Topbar ──
   topBar: {
     backgroundColor: 'rgba(255,255,255,0.97)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(243,244,246,0.7)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(229,231,235,0.9)',
   },
-  topBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 3,
-  },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
+  topBarRule: {
+    height: 3,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingBottom: 160,

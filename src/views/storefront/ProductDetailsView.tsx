@@ -1,12 +1,12 @@
 import React from "react";
 import Image from "next/image";
-import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingBag, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown, Eye } from "lucide-react";
+import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown } from "lucide-react";
 import Button from "@/components/Button";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber, maskName } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
-import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
-import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
+import { RichDescription, AutoHighlights } from "@/components/storefront/RichDescription";
+import { extractDescriptionHighlights } from "@/utils/product-description";
 import { generateProductSlug } from "@/utils/slug";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
 import {
@@ -236,77 +236,6 @@ function ProductTitle({ product }: { product: StorefrontProduct }) {
     <h1 className="text-[17px] lg:text-[22px] font-bold text-gray-950 leading-[1.25] tracking-[-0.01em]">
       {product.name}
     </h1>
-  );
-}
-
-/**
- * Preuve sociale : note, avis, ventes, vues.
- *
- * Les cinq étoiles restent visibles — réduire la note à un nombre encadré
- * jetait l'information la plus lue d'une fiche produit. Le tout tient sur une
- * ligne, avec des séparateurs `·` qui ne peuvent pas se retrouver orphelins
- * comme ceux d'un `flex-wrap`.
- */
-function ProductSocialProof({
-  rating,
-  reviewTotal,
-  salesCount,
-  viewCount,
-  isFood,
-  onReviewsClick,
-}: {
-  rating: number;
-  reviewTotal: number;
-  salesCount: number;
-  viewCount: number;
-  isFood: boolean;
-  onReviewsClick: () => void;
-}) {
-  // Ventes et vues ne s'affichent qu'au-dessus de zéro : « 0 vendus » est un
-  // signal négatif, et un « 0 · 0 » sur une fiche neuve n'aide personne.
-  const counters = [
-    salesCount > 0 && {
-      icon: <ShoppingBag size={11} className="flex-shrink-0" />,
-      label: `${formatNumber(salesCount)} ${isFood ? "commandes" : "vendus"}`,
-    },
-    viewCount > 0 && {
-      icon: <Eye size={11} className="flex-shrink-0" />,
-      label: `${formatNumber(viewCount)} vues`,
-    },
-  ].filter(Boolean) as { icon: React.ReactNode; label: string }[];
-
-  return (
-    <div className="flex items-center gap-2 text-[11px] text-gray-400">
-      <button
-        type="button"
-        onClick={onReviewsClick}
-        aria-label={`Voir les ${reviewTotal} avis`}
-        className="flex items-center gap-1.5 min-w-0 rounded-md hover:opacity-70 active:opacity-60 transition-opacity cursor-pointer"
-      >
-        <span className="flex text-amber-400 gap-px flex-shrink-0">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <Star
-              key={s}
-              size={12}
-              strokeWidth={1.5}
-              fill={s <= Math.round(rating) ? "currentColor" : "none"}
-            />
-          ))}
-        </span>
-        <span className="font-semibold text-gray-700">{rating.toFixed(1)}</span>
-        <span className="truncate">({formatNumber(reviewTotal)} avis)</span>
-      </button>
-
-      {counters.map((c) => (
-        <span key={c.label} className="flex items-center gap-2 min-w-0">
-          <span className="text-gray-300 flex-shrink-0">·</span>
-          <span className="flex items-center gap-1 min-w-0 truncate">
-            {c.icon}
-            {c.label}
-          </span>
-        </span>
-      ))}
-    </div>
   );
 }
 
@@ -654,7 +583,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     handleCardAddToCart,
     warmProduct,
     safeNavigate,
-    handleGoBack,
     setSelectedCategory,
     addWholesaleToCart,
     isDescriptionExpanded,
@@ -914,19 +842,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
 
     // --- Description enrichie (auto, sans action du vendeur) ---
     const autoHighlights = extractDescriptionHighlights(descriptionText);
-    const autoSpecs = buildAutoSpecs(product, {
-      mainCategory: mainCat,
-      storeName: product.storeName,
-      isFood,
-      isOutOfStock,
-      stock: stockValue,
-    });
-    const autoBadges = buildAutoBadges(product);
     const hasMoreContent =
-      descriptionText.length > 180 ||
-      autoSpecs.length > 0 ||
-      autoHighlights.length > 0 ||
-      autoBadges.length > 0;
+      descriptionText.length > 180 || autoHighlights.length > 0;
 
     // --- Gallery ---
     const galleryImages = [
@@ -1070,11 +987,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       if (img) setSelectedDetailImage(img);
     };
 
-    const scrollToSection = (id: string) => {
-      document
-        .getElementById(id)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
 
     return (
       <div className="max-w-6xl mx-auto px-4 md:px-6 pb-40 lg:pb-16 bg-[#f8f9fc] lg:bg-transparent -mx-4 lg:mx-auto">
@@ -1109,24 +1021,14 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </span>
         </nav>
 
-        {/* ================= TOPBAR MOBILE (compacte) =================
-            Barre conservée : retour uniquement. Le nom de boutique n'y est
-            plus affiché, et la hauteur est divisée par deux — safe-area iOS
-            + 4px, bouton 32px, pas de deuxième ligne. Desktop (lg+) garde
-            son fil d'Ariane. */}
+        {/* ================= TOPBAR MOBILE (fin trait) =================
+            Un simple filet horizontal : ni bouton retour, ni nom de boutique.
+            Desktop (lg+) garde son fil d'Ariane. */}
         <div
-          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/70 px-3 flex items-center"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 2px)", paddingBottom: 2 }}
-        >
-          <button
-            type="button"
-            onClick={() => handleGoBack("/")}
-            aria-label="Retour"
-            className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-800 shadow-sm active:bg-gray-100 transition-colors cursor-pointer"
-          >
-            <ChevronLeft size={18} />
-          </button>
-        </div>
+          aria-hidden="true"
+          className="lg:hidden sticky top-0 z-[100] -mx-4 h-[3px] border-b border-gray-100/80 bg-white/95 backdrop-blur-md"
+          style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
+        />
 
         {/* ================= PRODUIT ================= */}
         <div id="pd-produit" className="scroll-mt-14">
@@ -1351,15 +1253,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 />
 
                 <ProductTitle product={product} />
-
-                <ProductSocialProof
-                  rating={product.rating || 0}
-                  reviewTotal={reviewTotal}
-                  salesCount={product.salesCount || 0}
-                  viewCount={product.views || 0}
-                  isFood={isFood}
-                  onReviewsClick={() => scrollToSection("pd-avis")}
-                />
 
                 {/* Price block: compact & refined */}
                 <div className="bg-gray-50/90 rounded-xl p-3.5 border border-gray-200/70 flex items-center justify-between gap-3">
@@ -1610,17 +1503,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   <ProductTitle product={product} />
                 </div>
 
-                <div className="mb-3.5">
-                  <ProductSocialProof
-                    rating={product.rating || 0}
-                    reviewTotal={reviewTotal}
-                    salesCount={product.salesCount || 0}
-                    viewCount={product.views || 0}
-                    isFood={isFood}
-                    onReviewsClick={() => scrollToSection("pd-avis")}
-                  />
-                </div>
-
                 {/* Price block: Fine, sleek & compact */}
                 <div className="p-3 rounded-xl bg-gray-50/80 border border-gray-100 mb-2.5 flex items-center justify-between gap-3">
                   <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
@@ -1798,11 +1680,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 >
                   <RichDescription text={descriptionText} accentClass={accentText} />
                   <AutoHighlights items={autoHighlights} accentClass={accentText} />
-                  <AutoBadgesRow badges={autoBadges} />
-                  <AutoSpecsGrid
-                    specs={autoSpecs}
-                    className="grid grid-cols-2 gap-2 mt-3.5"
-                  />
                 </div>
                 {hasMoreContent && (
                   <button
@@ -1843,11 +1720,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           >
             <RichDescription text={descriptionText} accentClass={accentText} />
             <AutoHighlights items={autoHighlights} accentClass={accentText} />
-            <AutoBadgesRow badges={autoBadges} />
-            <AutoSpecsGrid
-              specs={autoSpecs}
-              className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
-            />
           </div>
 
           {hasMoreContent && (
