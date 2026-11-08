@@ -743,17 +743,21 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Retour flottant (presque invisible sur la galerie) ── */}
-      <SafeAreaView edges={['top']} style={styles.floatingBackWrap} pointerEvents="box-none">
-        <Pressable
-          style={styles.floatingBackBtn}
-          onPress={goBack}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
-        >
-          <ArrowLeft size={20} color="#111827" />
-        </Pressable>
+      {/* ── Topbar compacte : retour uniquement. Le nom de boutique n'y est
+          plus affiché et la hauteur est divisée par deux (une seule ligne,
+          bouton 32px, paddings réduits). ── */}
+      <SafeAreaView edges={['top']} style={styles.topBar}>
+        <View style={styles.topBarRow}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={goBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
+            <ArrowLeft size={18} color="#111827" />
+          </Pressable>
+        </View>
       </SafeAreaView>
 
       <ScrollView
@@ -1735,26 +1739,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   // ── Topbar ──
-  floatingBackWrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    zIndex: 20,
+  topBar: {
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(243,244,246,0.7)',
   },
-  floatingBackBtn: {
-    marginTop: 10,
-    marginLeft: 12,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+  topBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
   scrollContent: {
     paddingBottom: 160,

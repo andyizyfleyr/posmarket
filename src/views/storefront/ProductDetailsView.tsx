@@ -654,6 +654,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     handleCardAddToCart,
     warmProduct,
     safeNavigate,
+    handleGoBack,
     setSelectedCategory,
     addWholesaleToCart,
     isDescriptionExpanded,
@@ -1116,6 +1117,25 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             {product.name}
           </span>
         </nav>
+
+        {/* ================= TOPBAR MOBILE (compacte) =================
+            Barre conservée : retour uniquement. Le nom de boutique n'y est
+            plus affiché, et la hauteur est divisée par deux — safe-area iOS
+            + 4px, bouton 32px, pas de deuxième ligne. Desktop (lg+) garde
+            son fil d'Ariane. */}
+        <div
+          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/70 px-3 flex items-center"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 2px)", paddingBottom: 2 }}
+        >
+          <button
+            type="button"
+            onClick={() => handleGoBack("/")}
+            aria-label="Retour"
+            className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-800 shadow-sm active:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        </div>
 
         {/* ================= PRODUIT ================= */}
         <div id="pd-produit" className="scroll-mt-14">
