@@ -743,25 +743,17 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Topbar boutique (nom centré + trait) ── */}
-      <SafeAreaView edges={['top']} style={styles.topBar}>
-        <View style={styles.topBarRow}>
-          <Pressable
-            style={styles.backBtn}
-            onPress={goBack}
-            hitSlop={8}
-            accessibilityLabel="Retour"
-          >
-            <ArrowLeft size={20} color="#111827" />
-          </Pressable>
-          <Pressable style={styles.storeLink} onPress={openStore}>
-            <Text style={styles.storeLinkText} numberOfLines={2}>
-              {product.storeName}
-            </Text>
-          </Pressable>
-          <View style={styles.backGhost} />
-        </View>
-        <View style={styles.storeUnderline} />
+      {/* ── Retour flottant (presque invisible sur la galerie) ── */}
+      <SafeAreaView edges={['top']} style={styles.floatingBackWrap} pointerEvents="box-none">
+        <Pressable
+          style={styles.floatingBackBtn}
+          onPress={goBack}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <ArrowLeft size={20} color="#111827" />
+        </Pressable>
       </SafeAreaView>
 
       <ScrollView
@@ -1743,52 +1735,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   // ── Topbar ──
-  topBar: {
-    backgroundColor: 'rgba(255,255,255,0.97)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(243,244,246,0.7)',
+  floatingBackWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 20,
   },
-  topBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    gap: 8,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
+  floatingBackBtn: {
+    marginTop: 10,
+    marginLeft: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backGhost: {
-    width: 36,
-    height: 36,
-  },
-  storeLink: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  storeLinkText: {
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
-    color: '#111827',
-    textAlign: 'center',
-  },
-  storeUnderline: {
-    alignSelf: 'center',
-    width: 28,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: BRAND,
-    marginTop: 4,
-    marginBottom: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   scrollContent: {
     paddingBottom: 160,

@@ -33,16 +33,19 @@ import { useQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import Svg, { Path } from 'react-native-svg';
+import LottieView from 'lottie-react-native';
+import * as Clipboard from 'expo-clipboard';
 import {
   ArrowRight,
+  Check,
   CheckCircle2,
   ChevronLeft,
+  Copy,
   CreditCard,
   Globe,
   MapPin,
   ShieldCheck,
   ShoppingCart,
-  Star,
   Truck,
   User,
 } from 'lucide-react-native';
@@ -63,6 +66,7 @@ const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(', ');
 
 /** Hauteur minimale de l'écran de succès (min-h-[60vh] du web). */
 const SUCCESS_MIN_HEIGHT = Dimensions.get('window').height * 0.6;
+const SUCCESS_LOTTIE = require('../assets/lottie/success.json');
 
 type CheckoutStage = 'shipping' | 'payment' | 'success' | 'blocked';
 
@@ -481,6 +485,21 @@ export default function CheckoutScreen() {
     return phone || null;
   }, [completedOrderItems.length, completedOrderStores, stores]);
 
+  // Écran « Commande réussie » : référence copiable dans le presse-papier.
+  const successOrderRef =
+    completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() || null;
+  const [referenceCopiee, setReferenceCopiee] = useState(false);
+  const copySuccessReference = useCallback(async () => {
+    if (!successOrderRef) return;
+    try {
+      await Clipboard.setStringAsync(successOrderRef);
+      setReferenceCopiee(true);
+      setTimeout(() => setReferenceCopiee(false), 1800);
+    } catch {
+      notify('Référence impossible à copier sur cet appareil', 'info');
+    }
+  }, [successOrderRef, notify]);
+
   const openWhatsApp = useCallback(() => {
     if (!storePhoneForWhatsApp) return;
     // La référence est générée au clic : le message doit refléter la commande
@@ -671,31 +690,35 @@ export default function CheckoutScreen() {
 
               {stage === 'success' && (
                 <View style={styles.successWrap}>
-                  <View style={styles.successIconOuter}>
-                    <View style={styles.successGlow} />
-                    <View style={styles.successCircle}>
-                      <CheckCircle2 size={48} color="#FFFFFF" strokeWidth={3} />
-                    </View>
-                    <View style={styles.successStar}>
-                      <Star size={18} color="#FFFFFF" fill="#FFFFFF" />
-                    </View>
-                  </View>
+                  <LottieView
+                    source={SUCCESS_LOTTIE}
+                    autoPlay
+                    loop={false}
+                    resizeMode="contain"
+                    style={styles.successLottie}
+                  />
 
-                  <Text style={styles.successTitle}>
-                    Commande <Text style={styles.successTitleAccent}>Réussie !</Text>
-                  </Text>
+                  <Text style={styles.successTitle}>Commande réussie !</Text>
 
-                  <View style={styles.successBar} />
+                  <Text style={styles.successText}>Merci pour votre achat !</Text>
 
-                  <Text style={styles.successText}>
-                    Votre commande a été enregistrée avec succès. Le vendeur va traiter
-                    votre commande rapidement.
-                  </Text>
+                  {successOrderRef && (
+                    <Pressable
+                      onPress={copySuccessReference}
+                      accessibilityRole="button"
+                      accessibilityLabel="Copier la référence de commande"
+                      style={({ pressed }) => [styles.refPill, pressed && styles.btnPressed]}
+                    >
+                      <Text style={styles.refPillText}>RÉF. {successOrderRef}</Text>
+                      {referenceCopiee ? (
+                        <Check size={12} color="#16A34A" strokeWidth={3} />
+                      ) : (
+                        <Copy size={12} color="#9CA3AF" />
+                      )}
+                    </Pressable>
+                  )}
 
                   <View style={styles.successActions}>
-                    <Text style={styles.successHint}>
-                      Cliquez sur un bouton pour continuer
-                    </Text>
                     <View style={styles.successButtons}>
                       <Pressable
                         onPress={goShopping}
@@ -1135,83 +1158,47 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 16,
   },
-  successIconOuter: {
-    marginBottom: 40,
-  },
-  successGlow: {
-    position: 'absolute',
-    top: -16,
-    left: -16,
-    right: -16,
-    bottom: -16,
-    borderRadius: 999,
-    backgroundColor: '#DCFCE7',
-    opacity: 0.5,
-  },
-  successCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#22C55E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 10,
-    shadowColor: '#22C55E',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-  },
-  successStar: {
-    position: 'absolute',
-    right: -8,
-    top: -8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FACC15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
+  successLottie: {
+    width: 170,
+    height: 170,
   },
   successTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#111827',
     textAlign: 'center',
     letterSpacing: -0.5,
-    marginBottom: 12,
-  },
-  successTitleAccent: {
-    color: '#22C55E',
-  },
-  successBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: '#22C55E',
-    marginBottom: 16,
+    marginTop: 8,
   },
   successText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
     textAlign: 'center',
-    maxWidth: 360,
-    lineHeight: 22,
-    marginBottom: 32,
+    marginTop: 8,
+  },
+  refPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 18,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  refPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6B7280',
+    letterSpacing: 1.3,
   },
   successActions: {
     width: '100%',
     alignItems: 'center',
-  },
-  successHint: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#4B5563',
-    textTransform: 'uppercase',
-    letterSpacing: 0.9,
-    textAlign: 'center',
-    marginBottom: 12,
+    marginTop: 34,
   },
   successButtons: {
     flexDirection: 'row',
