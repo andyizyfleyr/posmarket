@@ -246,6 +246,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
         revalidatePath('/inventory');
         revalidatePath('/dashboard');
         refreshTag('marketplace');
+        refreshTag(`products:${storeId}`);
 
         try {
           const storeInfo = await getStorePhone(storeId);
@@ -299,6 +300,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
             if (!existing.boosted) await adjustProductStock(storeId, items, 'restore');
             await decrementProductSales(storeId, items);
             refreshTag('marketplace');
+            refreshTag(`products:${storeId}`);
         }
 
         sendStatusNotifications(orderId, status).catch(() => {});
@@ -327,6 +329,7 @@ export async function deleteOrderAction(id: string) {
             if (!existing.boosted) await adjustProductStock(storeId, items, 'restore');
             await decrementProductSales(storeId, items);
             refreshTag('marketplace');
+            refreshTag(`products:${storeId}`);
         }
         await db.delete(orders).where(eq(orders.id, id));
         invalidateOrdersCache(storeId);
@@ -355,6 +358,7 @@ export async function bulkDeleteOrdersAction(ids: string[]) {
                     if (!existing.boosted) await adjustProductStock(sid, items, 'restore');
                     await decrementProductSales(sid, items);
                     refreshTag('marketplace');
+            refreshTag(`products:${sid}`);
                 }
             }
             await db.delete(orders).where(inArray(orders.id, ids));
@@ -391,6 +395,7 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
                 if (!existing.boosted) await adjustProductStock(sid, items, 'restore');
                 await decrementProductSales(sid, items);
                 refreshTag('marketplace');
+            refreshTag(`products:${sid}`);
             }
             await db.update(orders).set({ status }).where(inArray(orders.id, orderIds));
             if (String(status || '').toUpperCase() === 'COMPLETED') {

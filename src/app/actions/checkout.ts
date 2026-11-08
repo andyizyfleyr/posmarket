@@ -38,6 +38,7 @@ import {
   type StorePaymentProvider,
 } from '@/lib/store-payments'
 import type { Product, ProductOption, WholesaleTier } from '@/types'
+import { refreshTag } from '@/lib/revalidate'
 
 type CheckoutItemInput = {
   product?: { id?: string; price?: number | string } | null
@@ -1154,6 +1155,11 @@ export async function submitCheckoutAction(
 
     await db.batch(batch as [BatchItem<'pg'>, ...BatchItem<'pg'>[]])
     completed = true
+    // Chaque boutique impactée : purge le bundle produits rendu en cache
+    // (le stock vient d'être décrémenté atomiquement ci-dessus).
+    for (const sc of storeCheckouts) {
+      refreshTag(`products:${sc.storeId}`)
+    }
 
     // --- Ouverture des guichets fournisseurs (après le commit) -----------
     // Kkiapay/FedaPay s'ouvrent dans le navigateur avec leur clé publique ;
