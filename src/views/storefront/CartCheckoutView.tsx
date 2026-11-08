@@ -2,7 +2,7 @@ import React from "react";
 import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, AlertTriangle, Loader2, Globe, Copy } from "lucide-react";
 import SuccessCheckLottie from "@/components/storefront/SuccessCheckLottie";
 import { PAYMENT_PROVIDER_LOGOS } from "@/lib/payment-logos";
-import { StorePaymentPanel, isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -848,21 +848,20 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             const referenceCommande =
               completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() || null;
             return (
-            <div className="relative flex min-h-[56vh] flex-col items-center justify-center px-4 py-8">
-              <div className="relative flex w-full max-w-md flex-col items-center rounded-3xl border border-gray-100 bg-white px-6 py-9 text-center shadow-sm md:py-10">
+            <div className="relative flex min-h-[60vh] flex-col items-center justify-center px-4 py-10 text-center md:py-14">
               {/* Halo décoratif derrière l'animation */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute left-1/2 top-20 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.18)_0%,rgba(34,197,94,0)_70%)]"
+                className="pointer-events-none absolute left-1/2 top-16 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.18)_0%,rgba(34,197,94,0)_70%)] md:h-80 md:w-80"
               />
 
               {/* Animation de confirmation — Lottie, jouée une fois */}
-              <SuccessCheckLottie className="relative h-40 w-40 md:h-44 md:w-44" />
+              <SuccessCheckLottie className="relative h-40 w-40 md:h-48 md:w-48" />
 
-              <h3 className="relative mt-3 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+              <h3 className="relative mt-2 text-3xl font-extrabold tracking-tight text-gray-900 md:text-4xl">
                 Commande réussie&nbsp;!
               </h3>
-              <p className="relative mt-1.5 text-sm font-semibold text-gray-500">
+              <p className="relative mt-2 text-sm font-semibold text-gray-500 md:text-base">
                 Merci pour votre achat&nbsp;!
               </p>
 
@@ -871,7 +870,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   type="button"
                   onClick={() => copierReferenceCommande(referenceCommande)}
                   title="Copier la référence"
-                  className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-gray-100/80 px-3.5 py-1.5 text-[10px] font-bold tabular-nums tracking-[0.14em] text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800 active:scale-[0.98]"
+                  className="relative mt-5 inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white px-4 py-2 text-[11px] font-bold tabular-nums tracking-[0.14em] text-gray-500 transition-all hover:border-gray-300 hover:text-gray-800 active:scale-[0.98]"
                 >
                   RÉF. {referenceCommande}
                   {referenceCopiee ? (
@@ -882,14 +881,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 </button>
               )}
 
-              <StorePaymentPanel
-                payments={storePayments}
-                customer={customerInfo}
-                formatCurrency={formatCurrency}
-                notify={localNotify}
-              />
-
-              <div className="relative mt-8 flex w-full gap-3">
+              <div className="relative mt-9 flex w-full max-w-xs gap-3 sm:max-w-sm">
                   <Button
                     onClick={() => safeNavigate("/")}
                     loading={isNavigating}
@@ -956,7 +948,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     return null;
                   })()}
                 </div>
-              </div>
             </div>
             );
           })()}
