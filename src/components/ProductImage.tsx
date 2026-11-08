@@ -70,6 +70,10 @@ const ProductImage: React.FC<ProductImageProps> = ({
                     className={`relative z-10 ${showZoomEffect ? 'group-hover:scale-105' : ''} ${className}`}
                     style={{ objectFit: objectFit }}
                     onError={() => setError(true)}
+                    /* Toute la grille doit s'afficher d'un coup, pas au scroll :
+                       sur réseau saturé, le lazy par défaut laissait les
+                       vignettes vides tant que l'utilisateur ne défilait pas. */
+                    loading="eager"
                     priority={false}
                     placeholder="blur"
                     blurDataURL={PRODUCT_BLUR_DATA_URL}

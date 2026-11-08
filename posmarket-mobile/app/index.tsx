@@ -1436,9 +1436,9 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={8}
+        initialNumToRender={14}
         maxToRenderPerBatch={10}
-        windowSize={7}
+        windowSize={11}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1505,7 +1505,7 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
                 initialNumToRender={productColumns * 2}
                 maxToRenderPerBatch={productColumns * 2}
-                windowSize={7}
+                windowSize={11}
                 renderItem={({ item }) => (
                   <View style={[styles.sheetTile, { width: sheetCardWidth }]}>
                     <ProductTile
