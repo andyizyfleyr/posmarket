@@ -94,15 +94,44 @@ Notes :
 - Pas de stock requis en numérique : `products.stock` ignoré pour ces lignes (voir §4).
 - Même commission de plateforme que le physique (paiements vendeurs = `store_payments`, inchangé).
 
-## 2. Stockage des fichiers (décision clé)
+## 2. Stockage des fichiers (décision clé — SUPABASE N'EST PLUS UTILISÉ)
 
-**Recommandation : bucket privé Supabase Storage `digital-products`**, aucune URL publique.
+> Constat : PosMarket n'utilise **plus de Supabase**. Les modules `src/utils/supabase/*`
+> et `src/supabase.ts` / `src/supabase-api.ts` sont des **shims** (compatibilité de
+> noms) branchés sur `getCurrentSession`, Drizzle et `DATABASE_URL` — Postgres seul.
+> Les paquets `@supabase/supabase-js` et `@supabase/ssr` ne sont importés nulle part ;
+> dépendances mortes (à retirer lors d'un nettoyage dédié). Le plan **abandonne
+> Supabase Storage**. Trois options viables — décision requise avant P0 :
 
-- Le projet dépend déjà de Supabase (auth acheteur, images FRONT via `products.image`).
-  Activer le bucket + une policy `deny public` ; accès en lecture **jamais direct** :
-  toujours via `createSignedUrl(key, 120)` émis côté serveur.
+- **Option A — Vercel Blob (`@vercel/blob`)** *(recommandé si on reste sur Vercel)*
+  - `put(key, file, { access: 'private' })` + lecture via le SDK côté serveur →
+    aucune URL publique persistante ; URL signée courte (≤ 5 min) émise par la route
+    `/api/download/[token]`.
+  - Upload **direct navigateur → Blob** (`upload()` client SDK + jeton serveur,
+    `@vercel/blob/client`) : indispensable, la limite de corps des routes Next/Vercel
+    interdit de faire transiter les fichiers par l'API (≈ 4,5 Mo).
+  - Zéro infra, facturation à l'usage, intégration native Vercel.
+- **Option B — Stockage objet S3-compatible** (Cloudflare R2, OVH Object Storage,
+  AWS S3, MinIO auto-hébergé)
+  - URL présignées `GetObject` 120 s (lecture) et `PutObject` présignée (upload, hors
+    API route) ; meilleur coût par To et portabilité ; demande des clés en env `S3_*`
+    et un bucket privé créé une fois.
+- **Option C — Postgres `bytea`** ❌ écartée (documents < 2 Mo seulement, bande passante
+  serveur, pas de streaming, risque mémoire).
+
+Recommandation v1 : **Option A** si PosMarket reste sur Vercel ; **Option B** si un
+bucket S3/R2 existe déjà. L'interface `src/lib/digital-storage.ts` abstrait les deux
+(`saveAsset`, `createReadUrl`, `removeAsset`, `statUsage`) : aucun autre changement
+dans le plan selon le choix.
+
 - Clé : `{storeId}/{productId}/{uuid}-{nom-sanitisé}` ; `Cache-Control: private, no-store`.
-- Avantages : aucun nouveau fournisseur, coût inclus dans le plan Supabase, RLS possible.
+- Quota par boutique (configurables, extensibles sans migration) :
+  - `DIGITAL_MAX_FILE_MB` = 200 Mo ; Starter 2 Go / Pro 20 Go / Entreprise illimité ;
+  - quota affiché dans l'écran vendeur.
+- Upload : **jamais** de fuite partielle — upload annulé si checksum client ≠ serveur
+  (SHA-256), `digital_assets` écrit uniquement après succès complet.
+- **Interdit** : base64 dans `products.image` (pattern actuel images, OK pour 300 Ko,
+  inacceptable pour un ebook), data URI en `digital_assets`.
 - **Limites** (vérifiables dans le plan d'abonnement PosMarket) :
   - `DIGITAL_MAX_FILE_MB` = 200 Mo (plafond par fichier, configurable par palier) ;
   - quota total par boutique : Starter 2 Go / Pro 20 Go / Entreprise illimité
@@ -241,7 +270,7 @@ Fichier : `src/app/api/download/[grantToken]/route.ts` (nouveau).
 4. Si `used_count >= max_uses` → 410 « Nombre de téléchargements atteint ».
 5. Sinon : `UPDATE ... SET used_count = used_count + 1 WHERE id=$1 AND used_count < max_uses RETURNING used_count`
    (incrément atomique, pas de course), puis `createSignedDownloadUrl(assetKey, 120)` →
-   **302 vers l'URL signée** (Supabase) avec `Cache-Control: no-store`.
+   **302 vers l'URL signée** (Vercel Blob ou S3/R2 selon option retenue) avec `Cache-Control: no-store`.
 6. Fichiers multiples : page intermédiaire minimale (ou liste) avec un lien signé par
    fichier (chaque clic 302 → signée dédiée). Chaque asset consomme 1 « use » par
    téléchargement ? v1 : `used_count` par grant, pas par fichier, affiché à l'utilisateur.
@@ -351,9 +380,9 @@ Total : **~10 jours-homme**. MVP livrable (P0+P1+P2+P3) : **~7,5 j**.
    déjà émis restent valables (expiration/plafonds s'appliquent) ; aucune donnée n'est
    supprimée. Revert SQL complet possible tant qu'aucune vente digitale n'a été faite,
    sinon marquer `product_type='physical'` et fermer les grants (`revoked_at = now()`).
-5. Aucun secret côté client : seule la clé PUBLISHABLE Supabase (si client SDK utilisé
-   pour l'upload) est exposée ; l'upload peut aussi transiter 100 % par le serveur
-   (recommandé v1) — alors même Supabase anon key n'expose rien.
+5. Aucun secret côté client : seul un jeton serveur **à usage unique** autorise l'upload
+   direct (Vercel Blob `handleUpload` ou présigné S3) ; la lecture passe toujours par
+   l'URL signée courte côté serveur. Aucun chemin de fichier n'est devinable sans jeton.
 
 ## 12. Hors scope explicite v1 (à valider séparément)
 
@@ -374,8 +403,8 @@ Total : **~10 jours-homme**. MVP livrable (P0+P1+P2+P3) : **~7,5 j**.
 
 ## 14. Risques majeurs restants (à trancher avant P0)
 
-1. **Stockage** : confirmer le bucket Supabase existant ou activer Supabase Storage sur
-   le projet — coût OK jusqu'à X Go. Sinon repli Vercel Blob.
+1. **Stockage** : confirmer l'option (A Vercel Blob — recommandé, zéro infra ; ou
+   B bucket S3/R2/OVH/MinIO) et fournir les clés d'environnement. Décision bloquant P0.
 2. **Livraison aux invités** : email obligatoire → UX checkout légèrement plus strict.
 3. **Mixte physique+numérique** : v1 = 100 % prépayé pour la commande entière
    (le numérique "tire" la commande vers l'en ligne, même option que les autres
