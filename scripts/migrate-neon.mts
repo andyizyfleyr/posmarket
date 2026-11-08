@@ -83,6 +83,7 @@ async function listColumns(
   const { rows } = await client.query<{ column_name: string; udt_name: string }>(
     `select column_name, udt_name from information_schema.columns
       where table_schema = 'public' and table_name = $1
+        and is_generated = 'NEVER'
       order by ordinal_position`,
     [table],
   );
