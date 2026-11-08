@@ -35,6 +35,24 @@ if (!OLD_URL || !NEW_URL) {
   process.exit(1);
 }
 
+// Garde-fou CRITIQUE : refuser si les deux URL visent la même destination.
+// (Tableaux vides + ON CONFLICT DO NOTHING donneraient un faux "succès".)
+const hostOf = (raw: string): string => {
+  try {
+    return new URL(raw).host;
+  } catch {
+    return '';
+  }
+};
+const srcHost = hostOf(OLD_URL);
+const dstHost = hostOf(NEW_URL);
+if (srcHost && dstHost && srcHost === dstHost) {
+  console.error(`✘  Les deux URL pointent sur le même hôte (${srcHost}). Vérifiez vos clés.`);
+  process.exit(1);
+}
+console.log(`Ancienne base : ${srcHost || '(url illisible)'}`);
+console.log(`Nouvelle base : ${dstHost || '(url illisible)'}\n`);
+
 const clientOpts = (connectionString: string) => ({
   connectionString,
   // Neon exige TLS ; le paramètre sslmode de la chaîne suffit normalement,
@@ -152,6 +170,21 @@ async function main() {
 
   const oldTables = await listTables(src);
   const newTables = new Set(await listTables(dst));
+  if (!VERIFY_ONLY) {
+    // Garde-fou : refuser de copier depuis une source totalement vide
+    // (probable inversion de clés — sinon copie silencieuse de rien).
+    let sourceRows = 0;
+    for (const t of oldTables) {
+      const { rows } = await src.query<{ c: string }>(`select count(*)::text as c from "${t}"`);
+      sourceRows += Number(rows[0].c);
+      if (sourceRows > 0) break;
+    }
+    if (sourceRows === 0) {
+      console.error('✘  La base "source" semble VIDE (0 ligne sur toutes les tables).');
+      console.error('   Probable inversion DATABASE_URL / OLD_DATABASE_URL — vérifiez les deux clés.');
+      process.exit(1);
+    }
+  }
   const missing = oldTables.filter((t) => !newTables.has(t));
   if (missing.length) {
     console.error(`✘  Tables ABSENTES sur la nouvelle base : ${missing.join(', ')}`);
