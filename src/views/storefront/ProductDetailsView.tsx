@@ -149,17 +149,13 @@ function OptionSelectionHint({
  * tree d'accessibilité, donc un seul `<h1>` reste exposé à la fois.
  */
 
-/** Fil du vendeur : logo réel, nom vérifié, catégorie. */
+/** Fil du vendeur : logo réel, nom vérifié. */
 function ProductSeller({
   product,
   logo,
-  category,
-  onCategoryClick,
 }: {
   product: StorefrontProduct;
   logo?: string;
-  category: string;
-  onCategoryClick: () => void;
 }) {
   // Aligné à gauche pour démarrer au même point que le nom du produit. Un nom
   // long déborde donc du bord droit du bloc : la ligne se remplit de gauche à
@@ -206,16 +202,6 @@ function ProductSeller({
             className="text-brand flex-shrink-0"
           />
         </Link>
-        {category && (
-          <button
-            type="button"
-            onClick={onCategoryClick}
-            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
-          >
-            <span className="truncate">{category}</span>
-            <ChevronRight size={11} className="flex-shrink-0" />
-          </button>
-        )}
       </div>
     </div>
   );
@@ -604,9 +590,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       .slice(0, 10);
 
     const mainCat = product.mainCategory || product.category || "Boutique";
-    // Le breadcrumb ne montre que la vraie catégorie : le fallback "Boutique"
-    // de `mainCat` ferait afficher « Boutique › » comme un lien de navigation.
-    const realCategory = product.mainCategory || product.category || "";
     const isFood =
       product.businessType === "food" ||
       mainCat === "Restauration & Livraison Rapide";
@@ -1225,12 +1208,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 <ProductSeller
                   product={product}
                   logo={storeLogo}
-                  category={realCategory}
-                  onCategoryClick={() =>
-                    safeNavigate("/", {
-                      action: () => setSelectedCategory(mainCat),
-                    })
-                  }
                 />
 
                 <ProductTitle product={product} />
@@ -1471,12 +1448,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   <ProductSeller
                     product={product}
                     logo={storeLogo}
-                    category={realCategory}
-                    onCategoryClick={() =>
-                      safeNavigate("/", {
-                        action: () => setSelectedCategory(mainCat),
-                      })
-                    }
                   />
                 </div>
 
@@ -1852,8 +1823,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 Dans la même boutique
               </h3>
             </div>
-            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-4 lg:grid-cols-4 md:gap-5">
-              {relatedProducts.slice(0, 8).map((relProduct: StorefrontProduct) => (
+            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-3 lg:grid-cols-6 md:gap-4">
+              {relatedProducts.slice(0, 6).map((relProduct: StorefrontProduct) => (
                 <ProductCard
                   key={`${relProduct.storeId}-${relProduct.id}`}
                   product={relProduct}
