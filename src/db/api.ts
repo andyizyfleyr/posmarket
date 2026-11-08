@@ -499,6 +499,24 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     productStats: fields?.productStats !== false,
   };
 
+  // Liste clients de la boutique (onglet « Clients » / POS / page dédiée),
+  // 5 minutes en cache, invalidée par `customers:<storeId>` sur chaque écriture.
+  const CUSTOMERS_BUNDLE_REVALIDATE_S = 300;
+  async function fetchCustomersBundle(storeIdInner: string) {
+    return db
+      .select()
+      .from(customers)
+      .where(eq(customers.storeId, storeIdInner))
+      .orderBy(desc(customers.createdAt))
+      .limit(100);
+  }
+  const getCachedCustomersBundle = (storeIdInner: string) =>
+    unstable_cache(
+      () => fetchCustomersBundle(storeIdInner),
+      ['store-customers-bundle', storeIdInner],
+      { tags: [`customers:${storeIdInner}`], revalidate: CUSTOMERS_BUNDLE_REVALIDATE_S },
+    )();
+
   const emptyBundle: ProductsBundle = { productsRows: [], statsRows: [], salesRows: [] };
   const tasks = [
     db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
@@ -506,7 +524,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
       ? getCachedProductsBundle(storeId, needs.productStats)
       : Promise.resolve(emptyBundle),
     needs.orders ? getOrdersForStore(storeId) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
-    needs.customers ? db.select().from(customers).where(eq(customers.storeId, storeId)).orderBy(desc(customers.createdAt)).limit(100) : Promise.resolve([]),
+    needs.customers ? getCachedCustomersBundle(storeId) : Promise.resolve([]),
     needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
     ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
   ];

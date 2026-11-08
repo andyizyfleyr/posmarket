@@ -303,7 +303,11 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
 
   useEffect(() => {
     refreshStock();
-    const id = setInterval(refreshStock, 5000);
+    const id = setInterval(() => {
+      // Onglet caché = aucun compteur de stock à rafraîchir (économie réseau).
+      if (typeof document !== 'undefined' && document.hidden) return;
+      refreshStock();
+    }, 30000);
     return () => clearInterval(id);
   }, [refreshStock]);
 

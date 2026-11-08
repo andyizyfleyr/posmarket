@@ -247,6 +247,7 @@ export async function createOrderAction(order: OrderInput, storeId: string) {
         revalidatePath('/dashboard');
         refreshTag('marketplace');
         refreshTag(`products:${storeId}`);
+        refreshTag(`customers:${storeId}`);
 
         try {
           const storeInfo = await getStorePhone(storeId);

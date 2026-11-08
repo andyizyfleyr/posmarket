@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { refreshTag } from '@/lib/revalidate'
 import { db } from '@/db'
 import { customers } from '@/db/schema'
 import { eq, or, and, sql, inArray, desc } from 'drizzle-orm'
@@ -77,6 +78,7 @@ try {
                 .returning();
         }
 
+        refreshTag(`customers:${storeId}`);
         revalidatePath('/customers');
         return { success: true, customer: savedCustomer };
     } catch (error: unknown) {
@@ -90,6 +92,7 @@ try {
             const access = await requireCustomerStoreAccess(id);
             if (!access.ok) return { success: false, error: access.error };
             await db.delete(customers).where(eq(customers.id, id));
+        refreshTag(`customers:${access.storeId}`);
         revalidatePath('/customers');
         return { success: true };
     } catch (error: unknown) {
@@ -105,7 +108,10 @@ try {
                     const access = await requireCustomerStoreAccess(id);
                     if (!access.ok) return { success: false, error: access.error };
                 }
+                const affected = await db.select({ storeId: customers.storeId }).from(customers).where(inArray(customers.id, ids));
+                const affectedStoreIds = Array.from(new Set(affected.map((r) => r.storeId)));
                 await db.delete(customers).where(inArray(customers.id, ids));
+                for (const sid of affectedStoreIds) refreshTag(`customers:${sid}`);
             }
         revalidatePath('/customers');
         return { success: true };
