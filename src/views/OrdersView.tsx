@@ -329,12 +329,16 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                     <h1 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight truncate">
                         Commandes
                     </h1>
+                    {/* Le filtre vertical n'a de sens que si la boutique n'a pas
+                       de verticale bloquée (sinon c'est la seule possible) —
+                       même convention que le tableau de bord. */}
+                    {!storeVertical && (
                     <div className="flex items-center gap-2 mt-1 md:mt-2">
                              {[
                                 { id: 'all' as const, label: 'Toutes', icon: Package, color: 'gray' },
                                 { id: 'shopping' as const, label: 'Shop', icon: ShoppingBag, color: 'orange' },
                                 { id: 'food' as const, label: 'Resto', icon: Zap, color: 'yellow' }
-                            ].filter(v => v.id === 'all' || !storeVertical || v.id === storeVertical).map(v => (
+                            ].map(v => (
                                 <button
                                     key={v.id}
                                     onClick={() => setSelectedVertical(v.id)}
@@ -344,6 +348,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                             </button>
                         ))}
                     </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative flex-grow md:flex-none">
