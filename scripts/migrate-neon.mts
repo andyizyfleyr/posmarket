@@ -75,6 +75,23 @@ async function listTables(client: Client): Promise<string[]> {
     .filter((t) => !t.startsWith('__drizzle') && t !== 'schema_migrations');
 }
 
+/** PK mono-colonne d'une table (null si composite ou absente). */
+async function primaryKeyColumn(client: Client, table: string): Promise<string | null> {
+  const { rows } = await client.query<{ column_name: string }>(
+    `select kcu.column_name
+       from information_schema.table_constraints tc
+       join information_schema.key_column_usage kcu
+         on kcu.table_schema = tc.table_schema
+        and kcu.table_name = tc.table_name
+        and kcu.constraint_name = tc.constraint_name
+      where tc.table_schema = 'public' and tc.table_name = $1
+        and tc.constraint_type = 'PRIMARY KEY'
+      order by kcu.ordinal_position`,
+    [table],
+  );
+  return rows.length === 1 ? rows[0].column_name : null;
+}
+
 /** Colonnes (dans l'ordre) + type de chaque colonne, pour une table. */
 async function listColumns(
   client: Client,
@@ -83,6 +100,7 @@ async function listColumns(
   const { rows } = await client.query<{ column_name: string; udt_name: string }>(
     `select column_name, udt_name from information_schema.columns
       where table_schema = 'public' and table_name = $1
+        and is_generated = 'NEVER'
       order by ordinal_position`,
     [table],
   );
@@ -211,6 +229,29 @@ async function main() {
       ]);
       const nA = Number(a.rows[0].c);
       const nB = Number(b.rows[0].c);
+      const pk = await primaryKeyColumn(src, table);
+
+      // PK mono-colonne : prouve que chaque ligne de l'ancienne base existe
+      // dans la nouvelle (les lignes en plus côté nouveau base — seed 0011 —
+      // sont saines et ne font pas échouer la vérif).
+      if (pk && nA > 0) {
+        const { rows: pkRows } = await src.query<{ v: string }>(
+          `select "${pk}"::text as v from "${table}"`,
+        );
+        const { rows: m } = await dst.query<{ c: string }>(
+          `select count(*)::text as c from "${table}" where "${pk}"::text = any($1::text[])`,
+          [pkRows.map((r) => r.v)],
+        );
+        const matched = Number(m[0].c);
+        const ok = matched === nA;
+        if (!ok) failures++;
+        console.log(
+          `${ok ? '✓' : '✘'} ${table.padEnd(28)} présentes ${matched}/${nA} (NEW ${nB})`,
+        );
+        summary.push({ table, srcRows: nA });
+        continue;
+      }
+
       const ok = nA === nB;
       if (!ok) failures++;
       summary.push({ table, srcRows: nA });
