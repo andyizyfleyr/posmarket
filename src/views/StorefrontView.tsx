@@ -4599,8 +4599,13 @@ const WHOLESALE_FILTER = "wholesale";
                             // La verticale entre dans la clef : une section ne doit jamais
                           // regrouper un plat et un produit de commerce sous la
                           // meme categorie.
-                          const groups: Record<string, typeof pagedProducts> = {};
-                          pagedProducts.forEach((p) => {
+                          // Toute la liste filtrée est groupée (pas seulement
+                          // le premier lot de 20 de la pagination paresseuse) :
+                          // sinon certaines sections n'affichaient un seul
+                          // produit tant que l'utilisateur ne défilait pas.
+                          // Chaque section reste plafonnée à SECTION_PREVIEW_COUNT.
+                          const groups: Record<string, typeof filteredProducts> = {};
+                          filteredProducts.forEach((p) => {
                             const cat = p.mainCategory || p.category || "Autre";
                             const key = `${verticalOfProduct(p)}::${cat}`;
                             if (!groups[key]) groups[key] = [];
