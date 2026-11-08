@@ -869,7 +869,7 @@ export default function ProductDetailScreen() {
             accessibilityLabel={
               rating > 0
                 ? `Note ${formatRating(rating)} sur 5, ${formatNumber(reviewTotal)} avis. Voir les avis.`
-                : `Nouveau produit, ${formatNumber(reviewTotal)} avis. Voir les avis.`
+                : `Aucune note pour l’instant, ${formatNumber(reviewTotal)} avis. Voir les avis.`
             }
           >
             {rating > 0 ? (
@@ -877,9 +877,7 @@ export default function ProductDetailScreen() {
                 <Star size={11} color="#EAB308" fill="#EAB308" />
                 <Text style={styles.ratingValue}>{formatRating(rating)}</Text>
               </>
-            ) : (
-              <Text style={styles.newLabel}>Nouveau</Text>
-            )}
+            ) : null}
             <Text style={styles.proofText} numberOfLines={1}>
               ({formatNumber(reviewTotal)} avis)
             </Text>

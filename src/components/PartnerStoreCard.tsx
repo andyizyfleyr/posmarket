@@ -78,11 +78,7 @@ export function PartnerStoreCard({ store, stats, onOpen }: PartnerStoreCardProps
           </span>
         ) : null}
       </span>
-    ) : (
-      <span key="new" className="font-bold text-brand">
-        Nouveau
-      </span>
-    ),
+    ) : null,
   );
 
   if (stats.salesCount > 0) {

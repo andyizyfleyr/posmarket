@@ -399,11 +399,7 @@ function PartnersRow({
                   </Text>
                 ) : null}
               </Text>
-            ) : (
-              <Text key="new" style={styles.partnerNew}>
-                Nouveau
-              </Text>
-            ),
+            ) : null,
           );
 
           if (salesCount > 0) {
