@@ -671,20 +671,10 @@ export default function ProductDetailScreen() {
     const tone = AVATAR_TONES[idx % AVATAR_TONES.length];
     return (
       <View key={review.id ?? String(idx)} style={styles.reviewCard}>
-        <View style={[styles.reviewAvatar, { backgroundColor: review.avatarUrl ? '#f3f4f6' : tone.bg }]}>
-          {review.avatarUrl ? (
-            <Image
-              source={{ uri: resolveImageUrl(review.avatarUrl) }}
-              style={styles.reviewAvatarImg}
-              contentFit="cover"
-              alt=""
-              accessible={false}
-            />
-          ) : (
-            <Text style={[styles.reviewAvatarText, { color: tone.fg }]}>
-              {review.author?.[0]?.toUpperCase() || 'A'}
-            </Text>
-          )}
+        <View style={[styles.reviewAvatar, { backgroundColor: tone.bg }]}>
+          <Text style={[styles.reviewAvatarText, { color: tone.fg }]}>
+            {review.author?.[0]?.toUpperCase() || 'A'}
+          </Text>
         </View>
         <View style={styles.reviewBody}>
           <View style={styles.reviewTopRow}>
@@ -2548,10 +2538,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  reviewAvatarImg: {
-    width: '100%',
-    height: '100%',
   },
   reviewAvatarText: {
     fontSize: 12,

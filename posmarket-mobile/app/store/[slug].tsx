@@ -391,19 +391,9 @@ export default function StoreScreen() {
         <View style={styles.reviewHeadRow}>
           <View style={styles.reviewAuthorRow}>
             <View style={styles.reviewAvatar}>
-              {review.avatarUrl ? (
-                <Image
-                  source={{ uri: resolveImageUrl(review.avatarUrl) }}
-                  style={styles.reviewAvatarImg}
-                  contentFit="cover"
-                  alt=""
-                  accessible={false}
-                />
-              ) : (
-                <Text style={styles.reviewAvatarText}>
-                  {review.author?.[0]?.toUpperCase() || 'A'}
-                </Text>
-              )}
+              <Text style={styles.reviewAvatarText}>
+                {review.author?.[0]?.toUpperCase() || 'A'}
+              </Text>
             </View>
             <View style={styles.reviewAuthorCol}>
               <Text style={styles.reviewAuthorName} numberOfLines={1}>
@@ -1389,10 +1379,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  reviewAvatarImg: {
-    width: '100%',
-    height: '100%',
   },
   reviewAvatarText: {
     fontSize: 12,
