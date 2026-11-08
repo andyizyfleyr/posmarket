@@ -698,7 +698,7 @@ return [...prev, {
   };
 
   /* ─── Cart Panel Content (shared between desktop sidebar & mobile bottom sheet) ─── */
-  const CartContent = () => (
+  const renderCartContent = () => (
     <>
       {/* Cart header */}
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
@@ -1091,7 +1091,7 @@ return [...prev, {
 
       {/* ─── RIGHT: Cart Sidebar (Desktop) ─── */}
       <div className="hidden md:flex w-[360px] lg:w-[400px] xl:w-[420px] flex-shrink-0 flex-col h-full bg-white border-l border-gray-100 shadow-[-4px_0_20px_rgba(0,0,0,0.02)]">
-        <CartContent />
+        {renderCartContent()}
       </div>
 
       {/* ─── MOBILE: Bottom Cart Bar ─── */}
@@ -1129,7 +1129,7 @@ return [...prev, {
             <div className="flex justify-center py-2">
               <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
-            <CartContent />
+            {renderCartContent()}
           </div>
         </div>
       )}
