@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useSearchParams } from 'next/navigation';
-import { updateStoreSettingsAction, createStoreAction, saveCouponAction, deleteCouponAction, addStaffAction, deleteStaffAction, updateProfileAction } from '@/app/actions/settings';
+import { updateStoreSettingsAction, createStoreAction, saveCouponAction, deleteCouponAction, toggleCouponAction, addStaffAction, deleteStaffAction, updateProfileAction } from '@/app/actions/settings';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
 import Image from "next/image";
 import { PhoneInput } from '@/components/PhoneInput';
@@ -11,7 +11,6 @@ import { Store, User, ShieldCheck, Building, Mail, Save, ChevronRight, Users, Tr
 import { StorePaymentsSettings } from '@/components/settings/StorePaymentsSettings';
 
 import { StoreSettings, Staff, StaffRole, StaffPermissions, NotificationType, StoreData, Coupon } from '@/types';
-import { supabase } from '@/supabase';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 interface SettingsViewProps {
@@ -193,10 +192,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         
         const coupon = localCoupons.find(c => c.id === id);
         if (!coupon) return;
-        
-        const { error } = await supabase.from('coupons').update({ active: !coupon.active }).eq('id', id);
-        if (error) {
-            if (notify) notify("Erreur de mise à jour", "error");
+
+        const res = await toggleCouponAction(id, !coupon.active);
+        if (!res.success) {
+            if (notify) notify(res.error || "Erreur de mise à jour", "error");
             setLocalCoupons(initialCoupons);
         } else {
             router.refresh();

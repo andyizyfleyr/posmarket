@@ -30,6 +30,15 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    // Les pages vendeur sont dynamiques, donc non mises en cache par défaut :
+    // chaque retour sur une page déjà visitée relançait un rendu serveur
+    // complet. 30 s de cache client rendent la navigation instantanée ; les
+    // actions serveur (revalidatePath/revalidateTag) invalident ce cache dès
+    // qu'une donnée change.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
     serverActions: {
       bodySizeLimit: '30mb',
       allowedOrigins: [

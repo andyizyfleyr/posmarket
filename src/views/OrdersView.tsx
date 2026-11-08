@@ -4,7 +4,6 @@ import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditC
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency, formatPaymentMethod } from '@/utils';
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
-import { fetchOrderItems } from '../hooks/useSupabaseData';
 import { updateOrderStatusAction, deleteOrderAction, bulkUpdateOrderStatusAction, bulkDeleteOrdersAction, getOrdersAction } from '@/app/actions/orders';
 import { exportOrdersCsvAction } from '@/app/actions/export';
 import { downloadCsv } from '@/utils/csv-download';
@@ -169,26 +168,10 @@ const OrdersView: React.FC<OrdersViewProps> = ({
             setSelectedOrderItems([]);
             return;
         }
-        let cancelled = false;
-        const fallback = (selectedOrder.items || []) as unknown as CartItem[];
-        setSelectedOrderItems(fallback);
-        setLoadingOrderItems(fallback.length === 0);
-        fetchOrderItems(selectedOrder.id)
-            .then(items => {
-                if (cancelled) return;
-                const enriched = items && items.length > 0 ? items : fallback;
-                setSelectedOrderItems(enriched as unknown as CartItem[]);
-            })
-            .catch(err => {
-                console.error('Error loading order items:', err);
-                if (!cancelled) setSelectedOrderItems(fallback);
-            })
-            .finally(() => {
-                if (!cancelled) setLoadingOrderItems(false);
-            });
-        return () => { cancelled = true; };
-        // Dépendre de l'objet entier : une mise à jour à id constant
-        // (statut, lignes) doit recharger les articles affichés.
+        // Les lignes sont déjà jointes à la commande par le rendu serveur :
+        // plus de requête Supabase (polyfill) à chaque ouverture du détail.
+        setSelectedOrderItems((selectedOrder.items || []) as unknown as CartItem[]);
+        setLoadingOrderItems(false);
     }, [selectedOrder]);
 
     /** Export CSV des 500 dernières ventes (côté serveur). */

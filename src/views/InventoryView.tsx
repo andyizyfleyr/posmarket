@@ -44,7 +44,6 @@ import ProductImage, { IMAGE_SIZES } from '@/components/ProductImage';
 import Button from '../components/Button';
 import { saveProductAction, deleteProductAction, bulkDeleteProductsAction, getProductsAction } from '@/app/actions/inventory';
 import { optimizeImage, fileToBase64 } from '@/utils/image-optimization';
-import VariantMatrixEditor from '@/components/inventory/VariantMatrixEditor';
 import dynamic from 'next/dynamic';
 
 /*
@@ -59,6 +58,9 @@ const ExportProductImagesModal = dynamic(() => import('@/components/inventory/Ex
 const ImportProductsModal = dynamic(() => import('@/components/inventory/ImportProductsModal'), { ssr: false });
 const TransferProductsModal = dynamic(() => import('@/components/inventory/TransferProductsModal'), { ssr: false });
 const BulkEditProductsModal = dynamic(() => import('@/components/inventory/BulkEditProductsModal'), { ssr: false });
+// L'éditeur de variantes n'apparaît que dans le formulaire produit, sur action
+// de l'utilisateur : le sortir du bundle initial allège chaque visite du stock.
+const VariantMatrixEditor = dynamic(() => import('@/components/inventory/VariantMatrixEditor'), { ssr: false });
 import ConfirmationModal from '@/components/ConfirmationModal';
 import type { BulkUpdateSummary } from '@/utils/bulk-product-edit';
 import {

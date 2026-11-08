@@ -2,13 +2,11 @@ import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
 import Email from 'next-auth/providers/email';
 import Google from 'next-auth/providers/google';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { profiles } from '@/db/schema';
 import { authConfig } from '@/lib/auth.config';
 import { authAdapter } from '@/db/auth-adapter';
 import { sendMagicLinkEmail } from '@/lib/email';
 import { captureMagicLinkUrl } from '@/lib/magic-link-capture';
+import { getProfileById } from '@/lib/profile-by-id';
 import {
   ensureAuthProfile,
   linkGoogleAccount,
@@ -112,11 +110,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const userId = String(user?.id ?? token.id ?? token.sub ?? '');
       if (userId) {
         try {
-          const [profile] = await db
-            .select()
-            .from(profiles)
-            .where(eq(profiles.id, userId))
-            .limit(1);
+          const profile = await getProfileById(userId);
           if (profile) {
             token.id = profile.id;
             token.email = profile.email;

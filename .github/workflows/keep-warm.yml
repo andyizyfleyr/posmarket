@@ -34,16 +34,18 @@ jobs:
     steps:
       - name: Ping de disponibilité
         env:
-          # Domaine principal du projet (posmarket-eight.vercel.app redirige
-          # vers une page de connexion Vercel : chaque exécution échouait en
-          # 401 et remplissait l'onglet Actions de faux échecs).
-          PING_URL: https://posmarket-topaz.vercel.app/api/ping
+          # Domaine canonique de production (celui de NEXT_PUBLIC_SITE_URL).
+          # L'ancien domaine `posmarket-topaz` ne sert plus l'application :
+          # la sonde réveillait une autre cible et laissait Neon s'endormir.
+          PING_URL: https://posmarket-eight.vercel.app/api/ping
         run: |
           set -euo pipefail
 
-          # L'application s'identifie : le filtre anti-bots du proxy (src/proxy.ts)
-          # refuse les User-Agent de clients HTTP bruts (`curl/…`) par 403.
+          # UA explicite : le filtre anti-bots du proxy (src/proxy.ts) refuse
+          # les User-Agent de clients HTTP bruts (`curl/…`) par 403. L'en-tête
+          # x-posmarket-client ne suffit pas : seul `mobile-app` est exempté.
           response="$(curl -sS --max-time 20 \
+            -A 'PosMarketKeepWarm/1.0' \
             -H 'x-posmarket-client: uptime-probe' \
             -w '\n%{http_code}' "$PING_URL")"
 

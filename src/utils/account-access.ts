@@ -3,6 +3,7 @@ import 'server-only';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles, stores, storeStaff } from '@/db/schema';
+import { getProfileById } from '@/lib/profile-by-id';
 
 /**
  * Résolution d'accès shared par l'espace vendeur (`(app)`) et l'espace compte
@@ -47,8 +48,10 @@ export async function resolveAccountAccess(userId: string | null | undefined): P
     // Une seule vague : profil, boutiques possédées et boutiques d'équipe
     // (jointure store_staff ⋈ stores) partent en parallèle. L'ancienne version
     // enchaînait quatre allers-retours vers Neon sur le chemin de CHAQUE page.
-    const [profileRows, ownedStores, staffRows] = await Promise.all([
-      db.select().from(profiles).where(eq(profiles.id, userId)).limit(1),
+    // `getProfileById` est mémoïsé : le callback `jwt` d'Auth.js a déjà lu ce
+    // profil pendant la même requête, cette vague ne le relit donc pas.
+    const [profile, ownedStores, staffRows] = await Promise.all([
+      getProfileById(userId),
       db.select().from(stores).where(eq(stores.userId, userId)).catch(() => []),
       db
         .select({ entry: storeStaff, store: stores })
@@ -58,7 +61,6 @@ export async function resolveAccountAccess(userId: string | null | undefined): P
         .catch(() => []),
     ]);
 
-    const profile = profileRows[0];
     if (!profile) return empty;
 
     const staffEntries = staffRows.map((row) => row.entry);

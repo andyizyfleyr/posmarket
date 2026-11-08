@@ -4,7 +4,6 @@ import React, { useState, useCallback, useTransition } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { StoreData, StaffRole, SubscriptionPlan, UserSubscription, ViewType, ToastNotification, NotificationType } from '@/types';
 import { useRouter, usePathname } from '@/components/RouterPolyfill';
-import { createClient } from '@/utils/supabase/client';
 import { quickDeleteStoreAction, clearStoreCookieAction } from '@/app/actions/store';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { ConfirmProvider } from '@/context/ConfirmContext';
@@ -63,12 +62,17 @@ export default function LayoutClientWrapper({
   
   // Notify Flutter App if we are running inside the WebView
   React.useEffect(() => {
-    const supabase = createClient();
     const flutterWindow = window as unknown as FlutterWindow;
 
+    // Le pont de session ne sert QUE dans la WebView Flutter. Le module
+    // `@/supabase` (polyfill de server actions) est donc importé à la demande :
+    // auparavant il entrait dans le bundle de toutes les pages vendeur, même
+    // dans un navigateur classique où il ne servait à rien.
     flutterWindow.restoreSession = async (sessionJson: string) => {
       try {
         const session = JSON.parse(sessionJson);
+        const { createClient } = await import('@/utils/supabase/client');
+        const supabase = createClient();
         await supabase.auth.setSession(session);
         // Refresh the page to apply changes
         router.refresh();
@@ -77,30 +81,32 @@ export default function LayoutClientWrapper({
       }
     };
 
-    const syncSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data: { user } } = await supabase.auth.getUser();
+    const bridge = flutterWindow.FlutterNotifications;
+    if (!bridge) return;
 
-      if (flutterWindow.FlutterNotifications) {
+    // 1. Request session from mobile app on startup
+    bridge.postMessage('requestSession');
+
+    // 2. Sync the web session back to the mobile app
+    void (async () => {
+      try {
+        const { createClient } = await import('@/utils/supabase/client');
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user } } = await supabase.auth.getUser();
+
         if (session) {
-          flutterWindow.FlutterNotifications.postMessage(`setSession:${JSON.stringify(session)}`);
+          bridge.postMessage(`setSession:${JSON.stringify(session)}`);
         }
         if (user?.id) {
-          flutterWindow.FlutterNotifications.postMessage(`subscribe:${user.id}`);
+          bridge.postMessage(`subscribe:${user.id}`);
         } else if (currentStore?.id) {
-          flutterWindow.FlutterNotifications.postMessage(`subscribe:${currentStore.id}`);
+          bridge.postMessage(`subscribe:${currentStore.id}`);
         }
+      } catch (err) {
+        console.error('Error syncing session:', err);
       }
-    };
-
-    // 2. Request session from mobile app on startup
-    if (flutterWindow.FlutterNotifications) {
-       flutterWindow.FlutterNotifications.postMessage('requestSession');
-    }
-
-    if (flutterWindow.FlutterNotifications) {
-      syncSession();
-    }
+    })();
   }, [currentStore?.id, router]);
 
   // Prevent bfcache restoration on back button after logout

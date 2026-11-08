@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { useRouter } from '@/components/RouterPolyfill';
+import dynamic from 'next/dynamic';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
@@ -8,9 +9,13 @@ import Toast from './Toast';
 import Loader from './Loader';
 import { Lock, ArrowRight, Clock, Ban, Mail, FileText, Save, CheckCircle2 } from 'lucide-react';
 import { updateStoreSettingsAction } from '@/app/actions/settings';
-import { PhoneInput } from '@/components/PhoneInput';
-import { CountrySelect } from '@/components/CountrySelect';
 import { ViewType, StaffRole, StoreData, SubscriptionPlan, UserSubscription, ToastNotification } from '@/types';
+
+// Ces deux champs n'apparaissent que dans l'onboarding (étapes 2 et 3) ;
+// les charger à la demande évite d'embarquer leurs listes de pays dans le
+// bundle partagé par toutes les pages vendeur.
+const PhoneInput = dynamic(() => import('@/components/PhoneInput').then((m) => m.PhoneInput), { ssr: false });
+const CountrySelect = dynamic(() => import('@/components/CountrySelect').then((m) => m.CountrySelect), { ssr: false });
 
 interface MainLayoutProps {
   children: React.ReactNode;

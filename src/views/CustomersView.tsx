@@ -1,11 +1,9 @@
 'use client';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { supabase } from '@/supabase';
-import { useRouter } from 'next/navigation';
 import { Users, Search, Plus, Phone, History, Star, X, Edit, Trash2, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Download } from 'lucide-react';
 import { Customer, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency, formatPhoneNumber } from '@/utils';
-import { getCustomersAction } from '@/app/actions/customers';
+import { getCustomersAction, saveCustomerAction, deleteCustomerAction, bulkDeleteCustomersAction } from '@/app/actions/customers';
 import { exportCustomersCsvAction } from '@/app/actions/export';
 import { downloadCsv } from '@/utils/csv-download';
 import { PhoneInput } from '@/components/PhoneInput';
@@ -30,7 +28,6 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   permissions,
   currentStoreId
 }) => {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [localCustomers, setLocalCustomers] = useState<Customer[]>(initialCustomers || []);
   const [offset, setOffset] = useState(initialCustomers?.length || 0);
@@ -251,37 +248,24 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     setDeleteConfirm(prev => ({ ...prev, isLoading: true }));
     try {
       if (deleteConfirm.isBulk) {
-        if (onBulkDeleteCustomers) {
-          const res = await onBulkDeleteCustomers(Array.from(selectedIds));
-          if (res && !res.success) {
-            showToast(res.error || "Erreur lors de la suppression", 'error');
-            return;
-          }
-        } else {
-          const { error } = await supabase.from('customers').delete().in('id', Array.from(selectedIds));
-          if (error) {
-            showToast("Erreur lors de la suppression", 'error');
-            return;
-          }
-          router.refresh();
+        const ids = Array.from(selectedIds);
+        const res = onBulkDeleteCustomers
+          ? await onBulkDeleteCustomers(ids)
+          : await bulkDeleteCustomersAction(ids);
+        if (res && !res.success) {
+          showToast(res.error || "Erreur lors de la suppression", 'error');
+          return;
         }
         showToast(`${selectedIds.size} clients supprimés`, 'info');
         setSelectedIds(new Set());
       } else if (deleteConfirm.id) {
         const id = deleteConfirm.id;
-        if (onDeleteCustomer) {
-          const res = await onDeleteCustomer(id);
-          if (res && !res.success) {
-            showToast(res.error || "Erreur lors de la suppression", 'error');
-            return;
-          }
-        } else {
-          const { error } = await supabase.from('customers').delete().eq('id', id);
-          if (error) {
-            showToast("Erreur lors de la suppression", 'error');
-            return;
-          }
-          router.refresh();
+        const res = onDeleteCustomer
+          ? await onDeleteCustomer(id)
+          : await deleteCustomerAction(id);
+        if (res && !res.success) {
+          showToast(res.error || "Erreur lors de la suppression", 'error');
+          return;
         }
         showToast("Client supprimé", 'info');
         setSelectedIds(prev => {
@@ -320,15 +304,6 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     setIsSubmitting(true);
     try {
       const customerData = editingCustomer ? { ...editingCustomer, ...formData } : formData;
-      const dbCustomer = {
-        ...(customerData.id && { id: customerData.id }),
-        store_id: currentStoreId || (localCustomers[0] as unknown as { store_id?: string })?.store_id,
-        name: customerData.name,
-        phone: customerData.phone,
-        address: customerData.address,
-        total_spent: customerData.totalSpent || 0,
-        orders_count: customerData.ordersCount || 0
-      };
 
       if (onSaveCustomer) {
         const res = await onSaveCustomer(customerData as Customer);
@@ -337,9 +312,16 @@ const CustomersView: React.FC<CustomersViewProps> = ({
           return;
         }
       } else {
-        const { error } = await supabase.from('customers').upsert(dbCustomer);
-        if (error) throw error;
-        router.refresh();
+        const storeId = currentStoreId || (localCustomers[0] as unknown as { store_id?: string })?.store_id;
+        if (!storeId) {
+          showToast("Boutique introuvable", 'error');
+          return;
+        }
+        const res = await saveCustomerAction(customerData as Customer, storeId);
+        if (!res.success) {
+          showToast(res.error || "Erreur lors de l'enregistrement", 'error');
+          return;
+        }
       }
       showToast(editingCustomer ? "Client mis à jour" : "Client ajouté", 'success');
       setIsModalOpen(false);
