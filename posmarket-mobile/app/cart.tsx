@@ -453,15 +453,6 @@ export default function CartScreen() {
                           </View>
                         )}
 
-                        {/* Total boutique */}
-                        <View style={styles.storeTotal}>
-                          <Text style={styles.storeTotalText}>
-                            Total {storeName} :{' '}
-                            <Text style={styles.storeTotalValue}>
-                              {formatCurrency(storeSubtotal)}
-                            </Text>
-                          </Text>
-                        </View>
                       </View>
                     );
                   })}
@@ -787,27 +778,6 @@ function CartRow({
             </Pressable>
           </View>
 
-          <View style={styles.itemChips}>
-            {item.variantId && variantName && (
-              <View style={styles.variantChip}>
-                <Tag size={9} color="#6B7280" />
-                <Text style={styles.variantChipText}>{variantName}</Text>
-              </View>
-            )}
-            {optionChips.map((option) => (
-              <View key={option.optionId} style={styles.variantChip}>
-                <Tag size={9} color="#6B7280" />
-                <Text style={styles.variantChipText}>{option.label}</Text>
-              </View>
-            ))}
-            {showCouponChip && (
-              <View style={styles.couponChip}>
-                <CheckCircle2 size={9} color="#16A34A" />
-                <Text style={styles.couponChipText}>Coupon</Text>
-              </View>
-            )}
-          </View>
-
           <View style={styles.itemBottomRow}>
             <View style={styles.stepper}>
               <Pressable
@@ -852,6 +822,27 @@ function CartRow({
               )}
             </View>
           </View>
+          <View style={styles.itemChips}>
+            {item.variantId && variantName && (
+              <View style={styles.variantChip}>
+                <Tag size={9} color="#6B7280" />
+                <Text style={styles.variantChipText}>{variantName}</Text>
+              </View>
+            )}
+            {optionChips.map((option) => (
+              <View key={option.optionId} style={styles.variantChip}>
+                <Tag size={9} color="#6B7280" />
+                <Text style={styles.variantChipText}>{option.label}</Text>
+              </View>
+            ))}
+            {showCouponChip && (
+              <View style={styles.couponChip}>
+                <CheckCircle2 size={9} color="#16A34A" />
+                <Text style={styles.couponChipText}>Coupon</Text>
+              </View>
+            )}
+          </View>
+
         </View>
       </Animated.View>
     </View>
@@ -1105,22 +1096,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#78350F',
   },
-  storeTotal: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(249,250,251,0.7)',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  storeTotalText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  storeTotalValue: {
-    color: '#111827',
-    fontWeight: '700',
-  },
 
   // Lignes article
   rowWrap: {
@@ -1229,8 +1204,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.45,
   },
   itemBottomRow: {
-    marginTop: 'auto',
-    paddingTop: 2,
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',

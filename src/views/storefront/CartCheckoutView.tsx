@@ -474,26 +474,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                   <Trash2 size={13} />
                                 </button>
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-h-[18px]">
-                                {item.variantId && item.product.variants && (
-                                  <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2 py-px text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
-                                    <Tag size={9} />
-                                    {
-                                      item.product.variants.find(
-                                        (v) => v.id === item.variantId,
-                                      )?.name
-                                    }
-                                  </span>
-                                )}
-                                {promoApplied &&
-                                  promoApplied.store_id ===
-                                    item.product.storeId && (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-green-600 uppercase tracking-wider">
-                                      <CheckCircle2 size={9} /> Coupon
-                                    </span>
-                                  )}
-                              </div>
-                              <div className="mt-auto pt-1.5 flex items-end justify-between gap-3">
+                              <div className="mt-1 flex items-center justify-between gap-3">
                                 <div className="flex items-center bg-gray-100/70 border border-gray-200/80 rounded-full p-[2px]">
                                   <button
                                     onClick={() =>
@@ -549,6 +530,25 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                   )}
                                 </div>
                               </div>
+                              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap min-h-[18px]">
+                                {item.variantId && item.product.variants && (
+                                  <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2 py-px text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+                                    <Tag size={9} />
+                                    {
+                                      item.product.variants.find(
+                                        (v) => v.id === item.variantId,
+                                      )?.name
+                                    }
+                                  </span>
+                                )}
+                                {promoApplied &&
+                                  promoApplied.store_id ===
+                                    item.product.storeId && (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-green-600 uppercase tracking-wider">
+                                      <CheckCircle2 size={9} /> Coupon
+                                    </span>
+                                  )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -594,12 +594,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                       </div>
                     )}
 
-                    {/* Total Boutique */}
-                    <div className="px-2.5 py-1.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-gray-500">
-                        Total {storeName} : <strong className="text-gray-900">{formatCurrency(storeSubtotal)}</strong>
-                      </span>
-                    </div>
                   </div>
                 );
               })}
