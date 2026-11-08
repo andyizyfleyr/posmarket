@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles, stores, storeStaff } from '@/db/schema';
 
@@ -44,27 +44,25 @@ export async function resolveAccountAccess(userId: string | null | undefined): P
   if (!userId) return empty;
 
   try {
-    const [profile] = await db
-      .select()
-      .from(profiles)
-      .where(eq(profiles.id, userId))
-      .limit(1);
-
-    if (!profile) return empty;
-
-    const [ownedStores, staffEntries] = await Promise.all([
+    // Une seule vague : profil, boutiques possédées et boutiques d'équipe
+    // (jointure store_staff ⋈ stores) partent en parallèle. L'ancienne version
+    // enchaînait quatre allers-retours vers Neon sur le chemin de CHAQUE page.
+    const [profileRows, ownedStores, staffRows] = await Promise.all([
+      db.select().from(profiles).where(eq(profiles.id, userId)).limit(1),
       db.select().from(stores).where(eq(stores.userId, userId)).catch(() => []),
-      db.select().from(storeStaff).where(eq(storeStaff.userId, userId)).catch(() => []),
+      db
+        .select({ entry: storeStaff, store: stores })
+        .from(storeStaff)
+        .innerJoin(stores, eq(storeStaff.storeId, stores.id))
+        .where(eq(storeStaff.userId, userId))
+        .catch(() => []),
     ]);
 
-    const staffStoreIds = staffEntries.map((entry) => entry.storeId);
-    const staffStores = staffStoreIds.length
-      ? await db
-          .select()
-          .from(stores)
-          .where(inArray(stores.id, staffStoreIds))
-          .catch(() => [])
-      : [];
+    const profile = profileRows[0];
+    if (!profile) return empty;
+
+    const staffEntries = staffRows.map((row) => row.entry);
+    const staffStores = staffRows.map((row) => row.store);
 
     const isAdmin = profile.isSuperAdmin || profile.accountType === 'admin';
     const accountType = profile.accountType || 'buyer';

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
-import { supabase } from '@/supabase';
 import { useRouter } from '@/components/RouterPolyfill';
 import { createOrderAction } from '@/app/actions/orders';
 import { getStockCountsAction } from '@/app/actions/inventory';
@@ -38,7 +37,6 @@ import ProductImage, { IMAGE_SIZES } from '@/components/ProductImage';
 import { Product, CartItem as ICartItem, Customer, PaymentMethod, Order, StoreSettings, StaffPermissions, NotificationType, ToastNotification, Coupon } from '@/types';
 import Loader from '../components/Loader';
 import Toast from '@/components/Toast';
-
 interface POSViewProps {
   products: Product[];
   customers: Customer[];
@@ -47,6 +45,8 @@ interface POSViewProps {
   permissions: StaffPermissions;
   notify?: (message: string, type: NotificationType, title?: string) => void;
   businessType?: string;
+  /** Coupons actifs chargés côté serveur (évite une requête au montage). */
+  coupons?: Coupon[];
 }
 
 /* ─── POS Product Card (inline, compact, no links) ─── */
@@ -250,7 +250,7 @@ const POSCartItem = React.memo(({
 POSCartItem.displayName = 'POSCartItem';
 
 /* ─── MAIN POS VIEW ─── */
-const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify, businessType }) => {
+const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, storeSettings, permissions, notify, businessType, coupons = [] }) => {
   const router = useRouter();
   // Un resto parle de « commande », pas de « panier ».
   const cartWord = cartNoun(businessType === 'food' ? 'food' : 'shopping');
@@ -277,7 +277,6 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   const [orderType, setOrderType] = useState<'IN_STORE' | 'PICKUP'>('IN_STORE');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [promoApplied, setPromoApplied] = useState<{ code: string, discountPct: number } | null>(null);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [liveTime, setLiveTime] = useState('');
@@ -312,21 +311,7 @@ const POSView: React.FC<POSViewProps> = ({ products, customers, currentStoreId, 
   }, [refreshStock]);
 
   // Load coupons
-  useEffect(() => {
-    const loadCoupons = async () => {
-      try {
-        const { data } = await supabase
-          .from('coupons')
-          .select('*')
-          .eq('active', true)
-          .eq('store_id', currentStoreId);
-        if (data) setCoupons(data as unknown as Coupon[]);
-      } catch {
-        console.log('Coupons table not available');
-      }
-    };
-    if (currentStoreId) loadCoupons();
-  }, [currentStoreId]);
+  // (chargés côté serveur : plus aucune requête au montage)
 
   const categoriesRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);

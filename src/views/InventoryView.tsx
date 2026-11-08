@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Package,
   Search,
@@ -78,6 +78,8 @@ interface InventoryViewProps {
   storeName?: string;
   /** Seuil d'alerte « stock bas » par défaut de la boutique (unités). */
   lowStockThreshold?: number;
+  /** Nombre total de références (le rendu serveur ne charge que la première page). */
+  totalProducts?: number;
 }
 
 const InventoryView: React.FC<InventoryViewProps> = ({
@@ -88,6 +90,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   subscription,
   businessType = 'shopping',
   storeName = 'Boutique',
+  totalProducts,
 }) => {
   // Seuil effectif : produit → boutique → 10 unités.
   const lowStockOf = (product: Product) =>
@@ -150,17 +153,19 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
-  const [totalProductsCount, setTotalProductsCount] = useState(initialProducts?.length || 0);
+  const [totalProductsCount, setTotalProductsCount] = useState(totalProducts ?? initialProducts?.length ?? 0);
 
   // Sync local state when props change (after server re-render)
   useEffect(() => {
     setLocalProducts(initialProducts || []);
     setOffset(initialProducts?.length || 0);
     setHasMore(initialProducts?.length === 10);
-    if (initialProducts?.length) {
+    if (typeof totalProducts === 'number') {
+      setTotalProductsCount(totalProducts);
+    } else if (initialProducts?.length) {
       setTotalProductsCount((prev) => Math.max(prev, initialProducts.length));
     }
-  }, [initialProducts]);
+  }, [initialProducts, totalProducts]);
 
   const [formData, setFormData] = useState<Partial<Product> & { isOnline: boolean, images: string[] }>({
     name: '',
@@ -299,7 +304,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // Handle Search with debounce or simple effect
+  // Le serveur a déjà rendu la première page : on ne rejoue pas la même requête
+  // au montage. Les fetchs suivants (recherche, filtres) restent inchangés.
+  const skipInitialFetchRef = useRef(true);
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      if (!searchTerm && productType === 'all' && selectedVertical === 'all') {
+        return;
+      }
+    }
     const delayDebounceFn = setTimeout(async () => {
       setIsLoadingMore(true);
       try {

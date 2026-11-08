@@ -14,7 +14,7 @@ export default async function OrdersPage() {
   if (!storeId) return <NoStoreFound />;
   
   const [orders, storeData] = await Promise.all([
-    loadOrdersForStore(storeId),
+    loadOrdersForStore(storeId, 10),
     fetchStoreData(storeId, undefined, { products: false, customers: false, invoices: false })
   ]);
   const { store } = storeData;

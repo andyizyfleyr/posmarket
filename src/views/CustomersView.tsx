@@ -68,7 +68,15 @@ const CustomersView: React.FC<CustomersViewProps> = ({
   // arriver APRÈS celle d'une frappe récente et réafficher des résultats qui ne
   // correspondaient plus au champ de recherche (réponses hors ordre).
   const searchSeqRef = useRef(0);
+  // Le serveur rend déjà la première page : pas de refetch identique au montage.
+  const skipInitialFetchRef = useRef(true);
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      if (!searchTerm) {
+        return;
+      }
+    }
     const seq = ++searchSeqRef.current;
     const delayDebounceFn = setTimeout(async () => {
         if (!currentStoreId) return;

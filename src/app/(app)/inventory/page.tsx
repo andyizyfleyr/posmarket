@@ -12,7 +12,7 @@ export default async function InventoryPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { products, subscription, store } = await fetchStoreData(storeId, undefined, { orders: false, customers: false, invoices: false });
+  const { products, productsTotal, subscription, store } = await fetchStoreData(storeId, undefined, { orders: false, customers: false, invoices: false, productsLimit: 10 });
   const { permissions, role } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
   const settings = store?.settings as { lowStockThreshold?: number } | undefined;
   const threshold = typeof settings?.lowStockThreshold === 'number' ? settings.lowStockThreshold : undefined;
@@ -27,6 +27,7 @@ export default async function InventoryPage() {
       businessType={store?.business_type as BusinessVertical | undefined}
       storeName={store?.name}
       lowStockThreshold={threshold}
+      totalProducts={productsTotal}
     />
   );
 }

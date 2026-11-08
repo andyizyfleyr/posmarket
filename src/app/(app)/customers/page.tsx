@@ -13,7 +13,7 @@ export default async function CustomersPage() {
 
   if (!storeId) return <NoStoreFound />;
   
-  const { customers } = await fetchStoreData(storeId, undefined, { products: false, orders: false, invoices: false });
+  const { customers } = await fetchStoreData(storeId, undefined, { products: false, orders: false, invoices: false, customersLimit: 10 });
   const { permissions, role } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
   // Define client-side compatible wrappers for server actions

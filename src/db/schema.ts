@@ -65,7 +65,9 @@ export const stores = pgTable('stores', {
   boostedViews: integer('boosted_views').default(0).notNull(),
   settings: jsonb('settings').default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (t) => [
+  { userIdIdx: { columns: [t.userId], name: 'stores_user_id_idx' } as const },
+]);
 
 export const categories = pgTable('categories', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -186,7 +188,9 @@ export const customers = pgTable('customers', {
   totalSpent: numeric('total_spent', { precision: 12, scale: 2 }).default('0').notNull(),
   ordersCount: integer('orders_count').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (t) => [
+  { storeCreatedIdx: { columns: [t.storeId, t.createdAt], name: 'customers_store_created_idx' } as const },
+]);
 
 export const buyerAddresses = pgTable('buyer_addresses', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -228,7 +232,9 @@ export const orders = pgTable('orders', {
   // son stock n'a jamais été décrémenté, annulation/suppression ne doit donc
   // rien réintégrer (voir `updateOrderStatusAction` / `deleteOrderAction`).
   boosted: boolean('boosted').default(false).notNull(),
-});
+}, (t) => [
+  { storeDateIdx: { columns: [t.storeId, t.date], name: 'orders_store_date_idx' } as const },
+]);
 
 export const orderItems = pgTable('order_items', {  id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
@@ -246,6 +252,7 @@ export const orderItems = pgTable('order_items', {  id: uuid('id').primaryKey().
   productUnit: text('product_unit'),
   productImage: text('product_image'),
 }, (t) => [
+  { orderIdx: { columns: [t.orderId], name: 'order_items_order_id_idx' } as const },
   { variantIdx: { columns: [t.variantId], name: 'order_items_variant_id_idx' } as const },
   { productIdx: { columns: [t.productId], name: 'order_items_product_id_idx' } as const },
 ]);

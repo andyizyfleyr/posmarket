@@ -1,7 +1,10 @@
 import SettingsView from '@/views/SettingsView';
-import { createClient } from '@/utils/supabase/server';
+import { db } from '@/db';
+import { coupons, profiles, stores, storeStaff } from '@/db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { FULL_PERMISSIONS } from '@/utils/permissions';
 import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
+import { getAccountAccess, getSessionUser } from '@/lib/request-cache';
 import { StoreSettings, StoreData, Staff, StaffRole, StaffPermissions, Coupon } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -16,68 +19,85 @@ type StoreRowLite = {
   settings?: StoreSettings | null;
 };
 
-type RawStaffRow = Record<string, unknown>;
-
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) return null;
+  // Session et accès déjà mémoïsés par le layout : aucune requête en double.
+  const user = await getSessionUser();
+  if (!user) return null;
 
   // Boutique courante dédupliquée : profil et boutiques déjà chargés par le layout.
-  const storeId = await resolveCurrentStoreId();
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-  
+  const [storeId, access] = await Promise.all([
+    resolveCurrentStoreId(),
+    getAccountAccess(user.id),
+  ]);
+
+  // Boutiques gérables (possédées + équipe), déjà chargées : zéro requête.
+  const manageableStores = [...access.ownedStores, ...access.staffStores].filter(
+    (s, i, arr) => arr.findIndex((x) => x.id === s.id) === i,
+  );
+
+  const storesData: StoreData[] = manageableStores.map((s) => ({
+    id: s.id,
+    slug: s.slug || '',
+    settings: (s.settings || {}) as StoreSettings,
+    user_id: s.userId,
+    name: s.name || '',
+    email: s.email || '',
+    phone: s.phone || '',
+    address: s.address || '',
+    description: s.description || '',
+  }));
+
   let currentStore: StoreRowLite | null = null;
   let staff: Staff[] = [];
-  let coupons: Coupon[] = [];
-  let stores: StoreData[] = [];
+  let couponsList: Coupon[] = [];
   let permissions: StaffPermissions = FULL_PERMISSIONS;
   let role: StaffRole = 'OWNER';
 
-  // Fetch all stores owned by this user
-  const { data: allStores } = await supabase.from('stores').select('*').eq('user_id', session.user.id);
-  
-  if (allStores) {
-    stores = allStores.map(s => ({
-        id: String(s.id),
-        slug: String(s.slug || ''),
-        settings: (s.settings || {}) as StoreSettings,
-        user_id: String(s.user_id),
-        name: String(s.name)
-    }));
-  }
-
   if (storeId) {
-    const { data: storeRes } = await supabase.from('stores').select('*').eq('id', storeId).single();
-    currentStore = storeRes as unknown as StoreRowLite;
+    // Tout part en parallèle : boutique, équipe, coupons et permissions.
+    const [storeRows, staffRows, couponRows, perms] = await Promise.all([
+      db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
+      db.select().from(storeStaff).where(eq(storeStaff.storeId, storeId)),
+      db.select().from(coupons).where(eq(coupons.storeId, storeId)),
+      resolveStorePermissions(storeId, FULL_PERMISSIONS),
+    ]);
 
-    // Fetch staff with profile emails
-    const { data: staffData } = await supabase.from('store_staff').select('*').eq('store_id', storeId);
-    const staffList = (staffData || []).map((row: RawStaffRow) => ({
-      ...row,
-      userId: String(row.user_id ?? row.userId ?? ''),
-      storeId: String(row.store_id ?? row.storeId ?? ''),
+    currentStore = (storeRows[0] as unknown as StoreRowLite) ?? null;
+
+    const staffUserIds = staffRows.map((s) => s.userId).filter(Boolean);
+    const profilesRows = staffUserIds.length
+      ? await db
+          .select({
+            id: profiles.id,
+            email: profiles.email,
+            fullName: profiles.fullName,
+          })
+          .from(profiles)
+          .where(inArray(profiles.id, staffUserIds))
+      : [];
+    const profilesMap = new Map(profilesRows.map((p) => [p.id, p]));
+
+    staff = staffRows.map((s) => {
+      const p = profilesMap.get(s.userId);
+      return {
+        id: s.id,
+        userId: s.userId,
+        storeId: s.storeId,
+        role: s.role as StaffRole,
+        email: p?.email,
+        fullName: p?.fullName,
+      } as unknown as Staff;
+    });
+
+    couponsList = couponRows.map((c) => ({
+      id: c.id,
+      code: c.code,
+      discount_pct: Number(c.discountPct) || 0,
+      active: c.active !== false,
+      store_id: c.storeId,
+      created_at: c.createdAt ? c.createdAt.toISOString() : undefined,
     }));
 
-    // Fetch profiles for staff members
-    const staffUserIds = staffList.map((s) => s.userId).filter(Boolean);
-    if (staffUserIds.length > 0) {
-      const { data: profilesData } = await supabase.from('profiles').select('id, email, full_name').in('id', staffUserIds);
-      const profilesMap = new Map((profilesData || []).map((p: Record<string, unknown>) => [String(p.id), p]));
-      staff = staffList.map((s) => {
-        const profile = profilesMap.get(String(s.userId));
-        return { ...s, email: profile?.email, fullName: profile?.full_name };
-      }) as unknown as Staff[];
-    } else {
-      staff = staffList as unknown as Staff[];
-    }
-    
-    // Fetch coupons
-    const { data: couponData } = await supabase.from('coupons').select('*').eq('store_id', storeId);
-    coupons = (couponData || []) as unknown as Coupon[];
-
-    const perms = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
     permissions = perms.permissions as unknown as StaffPermissions;
     role = perms.role as StaffRole;
   }
@@ -85,7 +105,7 @@ export default async function SettingsPage() {
   // Merging real store columns with settings object
   const mergedSettings: StoreSettings = {
     name: currentStore?.name || 'Ma Boutique',
-    email: currentStore?.email || session.user.email || '',
+    email: currentStore?.email || user.email || '',
     phone: currentStore?.phone || '',
     address: currentStore?.address || '',
     ninea: currentStore?.ninea || '',
@@ -97,18 +117,18 @@ export default async function SettingsPage() {
   };
 
   return (
-    <SettingsView 
+    <SettingsView
       storeSettings={mergedSettings}
       staff={staff}
-      coupons={coupons}
+      coupons={couponsList}
       userRole={role}
       permissions={permissions}
-      stores={stores}
+      stores={storesData}
       currentStoreId={storeId || ''}
-      currentUserId={session.user.id}
-      userName={(profile?.full_name as string) || session.user.email?.split('@')[0] || ''}
-      userEmail={session.user.email}
-            userAvatarUrl={session.user.avatarUrl}
+      currentUserId={user.id}
+      userName={user.user_metadata.full_name || user.email?.split('@')[0] || ''}
+      userEmail={user.email}
+      userAvatarUrl={user.avatarUrl}
     />
   );
 }

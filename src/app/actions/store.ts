@@ -35,12 +35,13 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
     // commandes, clients et factures d'une boutique concurrente en passant son
     // identifiant en argument.
     const access = await requireStoreAccess(storeId);
-    if (!access.ok) return { store: null, products: [], orders: [], customers: [], invoices: [], subscription: null, error: access.error } as never;
+    if (!access.ok) return { store: null, products: [], productsTotal: 0, orders: [], customers: [], invoices: [], subscription: null, error: access.error } as never;
 
     const data = await dbFetchStoreData(storeId, ownerId, fields);
     
     return {
       products: data.products,
+      productsTotal: data.productsTotal,
       orders: data.orders,
       customers: data.customers,
       invoices: data.invoices,
@@ -64,6 +65,7 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
     console.error('Error fetching store data with Drizzle:', error);
     return {
       products: [],
+      productsTotal: 0,
       orders: [],
       customers: [],
       invoices: [],

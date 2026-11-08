@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap, Download } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency, formatPaymentMethod } from '@/utils';
@@ -99,7 +99,16 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     };
 
     // Search and filter effect
+    // La première page est déjà rendue par le serveur : inutile de rejouer la
+    // même requête au montage. On ne refetch qu'au changement de filtre/recherche.
+    const skipInitialFetchRef = useRef(true);
     useEffect(() => {
+        if (skipInitialFetchRef.current) {
+            skipInitialFetchRef.current = false;
+            if (!searchTerm && filterStatus === 'ALL') {
+                return;
+            }
+        }
         const delayDebounceFn = setTimeout(async () => {
             if (currentStoreId) {
                 setIsSearching(true);

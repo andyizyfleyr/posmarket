@@ -94,6 +94,12 @@ export interface StoreDataFields {
   invoices?: boolean;
   /** false : saute product_stats + l'agrégat order_items (compteurs de ventes/avis). Défaut : true. */
   productStats?: boolean;
+  /** Nombre de produits chargés au rendu serveur (défaut : 200). */
+  productsLimit?: number;
+  /** Nombre de clients chargés au rendu serveur (défaut : 100). */
+  customersLimit?: number;
+  /** Nombre de commandes chargées au rendu serveur (défaut : 100). */
+  ordersLimit?: number;
 }
 
 // ---- Bundle produits mis en cache (par boutique) -------------------------
@@ -110,10 +116,17 @@ type ProductsBundle = {
   productsRows: ProductRow[];
   statsRows: ProductStatsRow[];
   salesRows: SalesRow[];
+  total: number;
 };
 
-async function fetchProductsBundle(storeId: string, withStats: boolean): Promise<ProductsBundle> {
-  const productsSel = db.select().from(products).where(eq(products.storeId, storeId)).limit(200);
+async function fetchProductsBundle(storeId: string, withStats: boolean, limit: number): Promise<ProductsBundle> {
+  const productsSel = db.select().from(products).where(eq(products.storeId, storeId)).limit(limit);
+  const totalSel = db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(products)
+    .where(eq(products.storeId, storeId))
+    .then((rows) => Number(rows[0]?.count) || 0)
+    .catch(() => 0);
   const statsSel = withStats
     ? db.select().from(productStats).where(eq(productStats.storeId, storeId)).catch(() => [] as ProductStatsRow[])
     : Promise.resolve([] as ProductStatsRow[]);
@@ -129,14 +142,23 @@ async function fetchProductsBundle(storeId: string, withStats: boolean): Promise
         .groupBy(orderItems.productId)
         .catch(() => [] as SalesRow[])
     : Promise.resolve([] as SalesRow[]);
-  const [productsRows, statsRows, salesRows] = await Promise.all([productsSel, statsSel, salesSel]);
-  return { productsRows, statsRows, salesRows };
+  const [productsRows, statsRows, salesRows, total] = await Promise.all([
+    productsSel,
+    statsSel,
+    salesSel,
+    totalSel,
+  ]);
+  return { productsRows, statsRows, salesRows, total };
 }
 
-const getCachedProductsBundle = (storeId: string, withStats: boolean): Promise<ProductsBundle> =>
+const getCachedProductsBundle = (
+  storeId: string,
+  withStats: boolean,
+  limit = 200,
+): Promise<ProductsBundle> =>
   unstable_cache(
-    () => fetchProductsBundle(storeId, withStats),
-    ['store-products-bundle', storeId, withStats ? 'stats' : 'light'],
+    () => fetchProductsBundle(storeId, withStats, limit),
+    ['store-products-bundle', storeId, withStats ? 'stats' : 'light', String(limit)],
     { tags: [`products:${storeId}`], revalidate: PRODUCTS_BUNDLE_REVALIDATE_S },
   )();
 
@@ -334,8 +356,8 @@ export async function adjustProductStock(
   );
 }
 
-async function getOrdersForStore(storeId: string) {
-  const key = `orders:${storeId}`;
+async function getOrdersForStore(storeId: string, limit = 100) {
+  const key = `orders:${storeId}:${limit}`;
   const hit = ordersCache.get(key);
   if (hit && Date.now() - hit.ts < ORDER_CACHE_TTL) return hit.data;
 
@@ -366,7 +388,7 @@ async function getOrdersForStore(storeId: string) {
     .leftJoin(customers, eq(orders.customerId, customers.id))
     .where(eq(orders.storeId, storeId))
     .orderBy(desc(orders.date))
-    .limit(100);
+    .limit(limit);
 
   const ordersRes: OrderRes[] = (rows || []).map((o) => ({
     id: o.id,
@@ -485,8 +507,8 @@ function formatOrder(o: OrderRes, itemsByOrder: Record<string, OrderItemBundle[]
   };
 }
 
-export async function fetchFormattedOrders(storeId: string) {
-  const { ordersRes, itemsByOrder } = await getOrdersForStore(storeId);
+export async function fetchFormattedOrders(storeId: string, limit = 100) {
+  const { ordersRes, itemsByOrder } = await getOrdersForStore(storeId, limit);
   return (ordersRes || []).map((o) => formatOrder(o, itemsByOrder));
 }
 
@@ -499,32 +521,36 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
     productStats: fields?.productStats !== false,
   };
 
+  const productsLimit = fields?.productsLimit ?? 200;
+  const customersLimit = fields?.customersLimit ?? 100;
+  const ordersLimit = fields?.ordersLimit ?? 100;
+
   // Liste clients de la boutique (onglet « Clients » / POS / page dédiée),
   // 5 minutes en cache, invalidée par `customers:<storeId>` sur chaque écriture.
   const CUSTOMERS_BUNDLE_REVALIDATE_S = 300;
-  async function fetchCustomersBundle(storeIdInner: string) {
+  async function fetchCustomersBundle(storeIdInner: string, limit: number) {
     return db
       .select()
       .from(customers)
       .where(eq(customers.storeId, storeIdInner))
       .orderBy(desc(customers.createdAt))
-      .limit(100);
+      .limit(limit);
   }
-  const getCachedCustomersBundle = (storeIdInner: string) =>
+  const getCachedCustomersBundle = (storeIdInner: string, limit: number) =>
     unstable_cache(
-      () => fetchCustomersBundle(storeIdInner),
-      ['store-customers-bundle', storeIdInner],
+      () => fetchCustomersBundle(storeIdInner, limit),
+      ['store-customers-bundle', storeIdInner, String(limit)],
       { tags: [`customers:${storeIdInner}`], revalidate: CUSTOMERS_BUNDLE_REVALIDATE_S },
     )();
 
-  const emptyBundle: ProductsBundle = { productsRows: [], statsRows: [], salesRows: [] };
+  const emptyBundle: ProductsBundle = { productsRows: [], statsRows: [], salesRows: [], total: 0 };
   const tasks = [
     db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
     needs.products
-      ? getCachedProductsBundle(storeId, needs.productStats)
+      ? getCachedProductsBundle(storeId, needs.productStats, productsLimit)
       : Promise.resolve(emptyBundle),
-    needs.orders ? getOrdersForStore(storeId) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
-    needs.customers ? getCachedCustomersBundle(storeId) : Promise.resolve([]),
+    needs.orders ? getOrdersForStore(storeId, ordersLimit) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
+    needs.customers ? getCachedCustomersBundle(storeId, customersLimit) : Promise.resolve([]),
     needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
     ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
   ];
@@ -597,6 +623,7 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
   return {
     store: toSnakeStore(store),
     products: formattedProducts,
+    productsTotal: bundle.total,
     orders: formattedOrders,
     customers: formattedCustomers,
     invoices: invoicesRes || [],
