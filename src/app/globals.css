@@ -43,6 +43,10 @@ html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  /* Le navigateur (Chrome/WebView) ne doit plus interpréter le geste « tiré
+     vers le bas en haut de page » comme un rechargement : il se déclenchait
+     EN MÊME TEMPS que le pull-to-refresh React → double rechargement. */
+  overscroll-behavior-y: contain;
 }
 
 html, body {
