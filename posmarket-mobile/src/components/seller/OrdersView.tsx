@@ -46,7 +46,7 @@ import { useToast } from '@/components/ToastProvider';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { SellerCheckbox } from '@/components/seller/ui';
 import { COLORS } from '@/theme';
-import { formatCurrency, getEffectiveWholesaleUnitPrice } from '@/utils';
+import { formatCurrency, formatPaymentMethod, getEffectiveWholesaleUnitPrice } from '@/utils';
 import type { Product } from '@/types';
 import { resolveImageUrl } from '@/api/client';
 import {
@@ -903,7 +903,7 @@ return (
                       <CreditCard size={12} color="#9CA3AF" />
                       <Text style={styles.paymentModeLabel}>
                         Mode:{' '}
-                        <Text style={styles.paymentModeValue}>{selectedOrder.paymentMethod}</Text>
+                        <Text style={styles.paymentModeValue}>{formatPaymentMethod(selectedOrder.paymentMethod)}</Text>
                       </Text>
                     </View>
                   </View>

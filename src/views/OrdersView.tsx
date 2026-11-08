@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap, Download } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatPaymentMethod } from '@/utils';
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
 import { fetchOrderItems } from '../hooks/useSupabaseData';
 import { updateOrderStatusAction, deleteOrderAction, bulkUpdateOrderStatusAction, bulkDeleteOrdersAction, getOrdersAction } from '@/app/actions/orders';
@@ -515,7 +515,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                     <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${getStatusColor(order.status || 'READY')}`}>
                                                         {getStatusLabel(order.status || 'READY')}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400 font-semibold uppercase">{order.paymentMethod}</div>
+                                                    <div className="text-[10px] text-gray-400 font-semibold uppercase">{formatPaymentMethod(order.paymentMethod)}</div>
                                                     {order.paymentProvider && (
                                                         <div className="mt-1 flex justify-end">
                                                             <PaymentStatusBadge status={order.paymentStatus} provider={order.paymentProvider} />
@@ -707,7 +707,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                             </div>
                                         )}
                                         <div className="flex items-center gap-1.5 mt-3 md:mt-4 text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                                            <CreditCard size={12} className="md:w-[14px] md:h-[14px]" /> Mode: <span className="text-gray-900">{selectedOrder.paymentMethod}</span>
+                                            <CreditCard size={12} className="md:w-[14px] md:h-[14px]" /> Mode: <span className="text-gray-900">{formatPaymentMethod(selectedOrder.paymentMethod)}</span>
                                         </div>
                                         {selectedOrder.paymentProvider && (
                                             <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 space-y-2">
