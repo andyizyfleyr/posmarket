@@ -807,7 +807,11 @@ function ProductRow({
       ? variants.reduce((sum, v) => sum + Math.max(0, Number(v.stock) || 0), 0)
       : Number(product.stock) || 0;
   const online = product.isOnline !== false;
-  const stockTone = stock === 0 ? 'out' : stock <= 10 ? 'low' : 'ok';
+  const effectiveLow =
+    typeof product.lowStockThreshold === 'number' && product.lowStockThreshold >= 0
+      ? product.lowStockThreshold
+      : 10;
+  const stockTone = stock === 0 ? 'out' : stock <= effectiveLow ? 'low' : 'ok';
 
   return (
     <Pressable

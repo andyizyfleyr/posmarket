@@ -106,6 +106,10 @@ export const products = pgTable('products', {
   price: numeric('price', { precision: 12, scale: 2 }).notNull(),
   originalPrice: numeric('original_price', { precision: 12, scale: 2 }),
   stock: integer('stock').default(0).notNull(),
+  /** Seuil d'alerte stock bas propre au produit (sinon celui de la boutique). */
+  lowStockThreshold: integer('low_stock_threshold'),
+  /** Code-barres EAN/UPC/Code 128 — scannable au POS (douchette). */
+  barcode: text('barcode'),
   image: text('image'),
   images: jsonb('images').default([]),
   unit: text('unit'),

@@ -24,6 +24,8 @@ export interface Product {
   id: string;
   sku?: string;
   barcode?: string;
+  /** Seuil d'alerte stock bas propre au produit (sinon réglage boutique, sinon 10). */
+  lowStockThreshold?: number;
   name: string;
   price: number;
   originalPrice?: number;
@@ -160,6 +162,8 @@ export interface StoreSettings {
   description?: string;
   wholesaleEnabled?: boolean;
   wholesaleMinOrderAmount?: number;
+  /** Seuil d'alerte stock bas par défaut de la boutique (unités). */
+  lowStockThreshold?: number;
 }
 
 // GiftCard interface removed as the feature is being deleted
@@ -198,8 +202,6 @@ export interface SubscriptionFeatures {
   maxStores: number;
   maxProducts: number;
   enableStorefront: boolean;
-  enableAdvancedReports: boolean;
-  enableCustomReceipts: boolean;
 }
 
 export interface SubscriptionPlan {
@@ -229,7 +231,6 @@ export interface StaffPermissions {
   canManageCustomers: boolean;
   canManageOrders: boolean;
   canViewReports: boolean;
-  canManageInvoices: boolean;
   canManageSettings: boolean;
   canManageStaff: boolean;
 }

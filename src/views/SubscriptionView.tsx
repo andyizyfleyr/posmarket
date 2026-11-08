@@ -292,8 +292,6 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                     { label: 'Point de Vente (POS)', included: true },
                                     { label: 'Gestion stocks & clients', included: true },
                                     { label: 'Boutique en ligne', included: plan.features.enableStorefront },
-                                    { label: 'Rapports avancés', included: plan.features.enableAdvancedReports },
-                                    { label: 'Tickets personnalisés', included: plan.features.enableCustomReceipts },
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         {feature.included ? (

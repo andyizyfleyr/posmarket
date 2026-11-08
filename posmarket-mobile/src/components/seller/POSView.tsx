@@ -568,6 +568,36 @@ export function SellerPosView({
     [addToCartQty],
   );
 
+  /**
+   * Lecture d'un code (douchette ou clavier) : correspondance exacte sur le
+   * code-barres du produit, ou sur le SKU d'une variante ; sinon ouverture
+   * du sélecteur de déclinaison.
+   */
+  const handleBarcodeScan = useCallback(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return;
+    for (const p of products) {
+      if ((p.barcode || '').trim().toLowerCase() === term) {
+        addToCart(p);
+        setSearchTerm('');
+        return;
+      }
+      const variants = Array.isArray(p.variants) ? p.variants : [];
+      const variant = variants.find((v) => (v.sku || '').trim().toLowerCase() === term);
+      if (variant) {
+        addToCartQty(p, 1, {
+          id: variant.id,
+          name: variant.name,
+          sku: variant.sku,
+          price: Number(variant.price) || 0,
+        });
+        setSearchTerm('');
+        return;
+      }
+    }
+    notify(`Aucun produit ne correspond au code « ${term} »`, 'error', 'Scan');
+  }, [searchTerm, products, addToCart, addToCartQty, notify]);
+
   const addToCartBulk = useCallback(
     (product: Product) => {
       const tiers = getNormalizedWholesaleTiers(product);
@@ -1130,9 +1160,12 @@ export function SellerPosView({
             <TextInput
               value={searchTerm}
               onChangeText={setSearchTerm}
-              placeholder="Rechercher un produit..."
+              placeholder="Rechercher ou scanner un code-barres..."
               placeholderTextColor="#9CA3AF"
               style={styles.searchInput}
+              returnKeyType="search"
+              onSubmitEditing={handleBarcodeScan}
+              blurOnSubmit={false}
             />
             {searchTerm ? (
               <Pressable

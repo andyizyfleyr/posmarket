@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap } from 'lucide-react';
+import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap, Download } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
 import { fetchOrderItems } from '../hooks/useSupabaseData';
 import { updateOrderStatusAction, deleteOrderAction, bulkUpdateOrderStatusAction, bulkDeleteOrdersAction, getOrdersAction } from '@/app/actions/orders';
+import { exportOrdersCsvAction } from '@/app/actions/export';
+import { downloadCsv } from '@/utils/csv-download';
 import { useRouter } from '@/components/RouterPolyfill';
 import { Plus } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -72,6 +74,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [loadingOrderItems, setLoadingOrderItems] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>('ALL');
     const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+    const [isExportingCsv, setIsExportingCsv] = useState(false);
     const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
@@ -170,6 +173,23 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         // Dépendre de l'objet entier : une mise à jour à id constant
         // (statut, lignes) doit recharger les articles affichés.
     }, [selectedOrder]);
+
+    /** Export CSV des 500 dernières ventes (côté serveur). */
+    const handleExportOrdersCsv = async () => {
+        if (!currentStoreId || isExportingCsv) return;
+        setIsExportingCsv(true);
+        try {
+            const result = await exportOrdersCsvAction(currentStoreId);
+            if (!result.success) {
+                setToast({ message: result.error || 'Export impossible pour le moment.', type: 'error' });
+                return;
+            }
+            downloadCsv(result.csv, result.filename);
+            setToast({ message: `${result.count} commande${result.count > 1 ? 's' : ''} exportée${result.count > 1 ? 's' : ''} (CSV).`, type: 'success' });
+        } finally {
+            setIsExportingCsv(false);
+        }
+    };
 
     const filteredOrders = useMemo(() => {
         return localOrders.filter(order => {
@@ -328,6 +348,15 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                             className="w-full md:w-64 pl-9 pr-4 py-1.5 md:py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                         />
                     </div>
+                    <button
+                        onClick={handleExportOrdersCsv}
+                        disabled={isExportingCsv}
+                        title="Exporter les ventes (CSV)"
+                        className="flex items-center gap-1.5 px-2.5 md:px-3 py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-500 hover:text-brand hover:border-orange-200 shadow-sm transition-colors"
+                    >
+                        {isExportingCsv ? <Loader2 size={18} className="animate-spin text-brand spinner-always" /> : <Download size={18} className="md:w-5 md:h-5" />}
+                        <span className="hidden lg:inline text-[11px] font-bold">Export CSV</span>
+                    </button>
                     <button className="p-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-400 hover:text-brand shadow-sm transition-colors relative">
                         {isSearching ? <Loader2 size={18} className="animate-spin text-brand spinner-always" /> : <Filter size={18} className="md:w-5 md:h-5" />}
                     </button>

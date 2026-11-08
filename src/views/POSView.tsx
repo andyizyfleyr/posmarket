@@ -462,6 +462,38 @@ return [...prev, {
     addToCartQty(product, 1);
   }, [addToCartQty]);
 
+  /**
+   * Lecture d'un code (douchette USB/BT) : correspondance exacte sur le
+   * code-barres produit, ou sur le SKU d'une variante ; sinon ajout direct
+   * de la variante, sinon ouverture du sélecteur de déclinaison.
+   */
+  const handleBarcodeScan = useCallback(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return;
+    for (const p of products) {
+      if ((p.barcode || '').trim().toLowerCase() === term) {
+        addToCart(p);
+        setSearchTerm('');
+        searchRef.current?.focus();
+        return;
+      }
+      const variants = Array.isArray(p.variants) ? p.variants : [];
+      const variant = variants.find((v) => (v.sku || '').trim().toLowerCase() === term);
+      if (variant) {
+        addToCartQty(p, 1, {
+          id: variant.id,
+          name: variant.name,
+          sku: variant.sku,
+          price: Number(variant.price) || 0,
+        });
+        setSearchTerm('');
+        searchRef.current?.focus();
+        return;
+      }
+    }
+    if (notify) notify(`Aucun produit ne correspond au code « ${term} »`, 'error', 'Scan');
+  }, [searchTerm, products, addToCart, addToCartQty, notify]);
+
   const addToCartBulk = useCallback((product: Product) => {
     const tiers = getNormalizedWholesaleTiers(product);
     addToCartQty(product, tiers.length > 0 ? tiers[0].minQty : 1);
@@ -899,8 +931,14 @@ return [...prev, {
               ref={searchRef}
               type="text"
               value={searchTerm}
-              placeholder="Rechercher un produit..."
+              placeholder="Rechercher ou scanner un code-barres..."
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleBarcodeScan();
+                }
+              }}
               className="w-full pl-9 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30 text-xs md:text-sm font-normal transition-all"
             />
             {searchTerm && (

@@ -16,8 +16,6 @@ export interface SubscriptionPlan {
     maxStores: number;
     maxProducts: number;
     enableStorefront: boolean;
-    enableAdvancedReports: boolean;
-    enableCustomReceipts: boolean;
   };
 }
 
@@ -33,8 +31,6 @@ export const SUBSCRIPTION_PLANS: Record<PlanTier, SubscriptionPlan> = {
       maxStores: 1,
       maxProducts: 50,
       enableStorefront: false,
-      enableAdvancedReports: false,
-      enableCustomReceipts: false,
     },
   },
   PRO: {
@@ -48,8 +44,6 @@ export const SUBSCRIPTION_PLANS: Record<PlanTier, SubscriptionPlan> = {
       maxStores: 3,
       maxProducts: 500,
       enableStorefront: true,
-      enableAdvancedReports: true,
-      enableCustomReceipts: false,
     },
   },
   ENTERPRISE: {
@@ -63,8 +57,6 @@ export const SUBSCRIPTION_PLANS: Record<PlanTier, SubscriptionPlan> = {
       maxStores: 999,
       maxProducts: 999999,
       enableStorefront: true,
-      enableAdvancedReports: true,
-      enableCustomReceipts: true,
     },
   },
 };

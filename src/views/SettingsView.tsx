@@ -521,6 +521,33 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                             </p>
                                         </div>
                                     )}
+
+                                    {/* Alerte de stock bas */}
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                                        <label className="block text-[10px] md:text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                            Seuil d&apos;alerte stock bas (unités)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                placeholder="10 (défaut)"
+                                                className="w-full pl-4 pr-16 py-2.5 md:py-3 bg-white border border-gray-200 rounded-xl text-xs md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+                                                value={localSettings.lowStockThreshold ?? ''}
+                                                onChange={(e) => setLocalSettings(prev => ({
+                                                    ...prev,
+                                                    lowStockThreshold: e.target.value === '' ? undefined : Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                                                }))}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+                                                unités
+                                            </span>
+                                        </div>
+                                        <p className="text-[9px] md:text-[10px] text-gray-500 font-normal">
+                                            Sous ce nombre d&apos;unités, un produit est signalé « stock bas » dans vos notifications et le POS. Modifiable produit par produit depuis la fiche produit. Vide = 10 unités.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 

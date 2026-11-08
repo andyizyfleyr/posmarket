@@ -10,7 +10,6 @@ export const FULL_PERMISSIONS = {
   canManageOrders: true,
   canManageCustomers: true,
   canManageSettings: true,
-  canManageInvoices: true
 };
 
 type SupabaseClientLike = { from: (table: string) => QueryBuilder };

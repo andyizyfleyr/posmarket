@@ -14,6 +14,8 @@ export default async function InventoryPage() {
   
   const { products, subscription, store } = await fetchStoreData(storeId, undefined, { orders: false, customers: false, invoices: false });
   const { permissions, role } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
+  const settings = store?.settings as { lowStockThreshold?: number } | undefined;
+  const threshold = typeof settings?.lowStockThreshold === 'number' ? settings.lowStockThreshold : undefined;
 
   return (
     <InventoryView 
@@ -24,6 +26,7 @@ export default async function InventoryPage() {
       subscription={subscription || undefined}
       businessType={store?.business_type as BusinessVertical | undefined}
       storeName={store?.name}
+      lowStockThreshold={threshold}
     />
   );
 }

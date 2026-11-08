@@ -1251,11 +1251,27 @@ export async function submitCheckoutAction(
           new Set(sc.items.map((line) => line.productId)),
         )
         if (requestedProductIds.length > 0) {
+          // Seuil par défaut de la boutique (12 unités historiques = 10),
+          // surchargeable par produit ; les variantes suivent le seuil du produit.
+          const [storeSettingsRow] = await db
+            .select({ settings: stores.settings })
+            .from(stores)
+            .where(eq(stores.id, sc.storeId))
+            .limit(1)
+          const rawStoreThreshold = Number(
+            (storeSettingsRow?.settings as { lowStockThreshold?: unknown } | null)?.lowStockThreshold,
+          )
+          const storeThreshold =
+            Number.isFinite(rawStoreThreshold) && rawStoreThreshold >= 0
+              ? Math.floor(rawStoreThreshold)
+              : 10
+
           const lowProducts = await db
             .select({
               id: products.id,
               name: products.name,
               stock: products.stock,
+              lowStockThreshold: products.lowStockThreshold,
               options: products.options,
               variants: products.variants,
             })
@@ -1263,6 +1279,10 @@ export async function submitCheckoutAction(
             .where(inArray(products.id, requestedProductIds))
 
           for (const p of lowProducts) {
+            const threshold =
+              typeof p.lowStockThreshold === 'number' && p.lowStockThreshold >= 0
+                ? p.lowStockThreshold
+                : storeThreshold
             const rawVariants = Array.isArray(p.variants)
               ? (p.variants as Array<{ name?: string; stock?: number; enabled?: boolean }>)
               : []
@@ -1275,7 +1295,7 @@ export async function submitCheckoutAction(
                   name: String(v.name || 'Variante'),
                   stock: Math.max(0, Number(v.stock) || 0),
                 }))
-                .filter((v) => v.stock <= 10)
+                .filter((v) => v.stock <= threshold)
               if (lowVariants.length === 0 || !storeInfo) continue
 
               const ruptures = lowVariants.filter((v) => v.stock === 0)
@@ -1302,7 +1322,7 @@ export async function submitCheckoutAction(
               })
             } else {
               const stock = Math.max(0, Number(p.stock) || 0)
-              if (stock > 10 || !storeInfo) continue
+              if (stock > threshold || !storeInfo) continue
               await notify({
                 userId: storeInfo.ownerId,
                 phone: storeInfo.phone,

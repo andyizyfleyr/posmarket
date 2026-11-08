@@ -35,6 +35,7 @@ import {
   Layers,
   Monitor,
   Package,
+  ScanLine,
   Plus,
   ShoppingBag,
   Sparkles,
@@ -102,6 +103,8 @@ interface ProductFormState {
   name?: string;
   price?: number;
   stock?: number;
+  barcode?: string;
+  lowStockThreshold?: number;
   category: string;
   mainCategory: string;
   image: string;
@@ -647,6 +650,56 @@ export function ProductFormModal({
                   </Text>
                 </View>
 
+                {/* Code-barres & seuil de stock bas */}
+                <View>
+                  <View style={styles.labelLeft}>
+                    <ScanLine size={14} color={COLORS.brand} />
+                    <Text style={styles.labelText}>Code-barres</Text>
+                  </View>
+                  <TextInput
+                    value={formData.barcode ?? ''}
+                    onChangeText={(value) =>
+                      setFormData((prev) => ({ ...prev, barcode: value }))
+                    }
+                    placeholder="Ex : 6001234567890"
+                    placeholderTextColor="#9CA3AF"
+                    autoCapitalize="none"
+                    style={styles.stockInput}
+                  />
+                  <Text style={styles.fieldHint}>
+                    Scannez avec une douchette sur ce champ. Facultatif.
+                  </Text>
+                </View>
+
+                <View>
+                  <View style={styles.labelLeft}>
+                    <Package size={14} color={COLORS.brand} />
+                    <Text style={styles.labelText}>Alerte stock bas</Text>
+                  </View>
+                  <TextInput
+                    value={
+                      formData.lowStockThreshold !== undefined
+                        ? String(formData.lowStockThreshold)
+                        : ''
+                    }
+                    onChangeText={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        lowStockThreshold:
+                          value === '' ? undefined : Math.max(0, Math.floor(Number(value.replace(/\D/g, '')) || 0)),
+                      }))
+                    }
+                    placeholder="Défaut boutique"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="number-pad"
+                    style={styles.stockInput}
+                  />
+                  <Text style={styles.fieldHint}>
+                    Sous ce nombre d’unités, le produit est signalé « stock bas ».
+                    Vide = seuil de la boutique (Paramètres).
+                  </Text>
+                </View>
+
                 {/* Unité de vente (shopping) */}
                 {formData.businessType === 'shopping' ? (
                   <View>
@@ -1154,6 +1207,8 @@ function buildInitialForm(
       name: product.name || '',
       price: product.price ?? undefined,
       stock: product.stock ?? undefined,
+      lowStockThreshold: product.lowStockThreshold ?? undefined,
+      barcode: product.barcode || '',
       category: product.category || 'Général',
       mainCategory:
         product.mainCategory || CATEGORY_MAPPING[product.category || ''] || 'Divers',
@@ -1192,6 +1247,8 @@ function buildInitialForm(
     name: '',
     price: undefined,
     stock: undefined,
+    lowStockThreshold: undefined,
+    barcode: '',
     category: businessType === 'food' ? 'Plats Cuisinés' : 'Général',
     mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : 'Divers',
     image: '',

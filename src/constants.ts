@@ -137,8 +137,6 @@ export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', Subscr
       maxStores: 1,
       maxProducts: 50,
       enableStorefront: false,
-      enableAdvancedReports: false,
-      enableCustomReceipts: false
     }
   },
   PRO: {
@@ -152,8 +150,6 @@ export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', Subscr
       maxStores: 3,
       maxProducts: 500,
       enableStorefront: true,
-      enableAdvancedReports: true,
-      enableCustomReceipts: false
     }
   },
   ENTERPRISE: {
@@ -167,8 +163,6 @@ export const SUBSCRIPTION_PLANS: Record<'STARTER' | 'PRO' | 'ENTERPRISE', Subscr
       maxStores: 999,
       maxProducts: 999999,
       enableStorefront: true,
-      enableAdvancedReports: true,
-      enableCustomReceipts: true
     }
   }
 };
