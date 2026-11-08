@@ -359,6 +359,44 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   cartRef.current = cart;
 
   /**
+   * Panier mono-boutique : toute tentative d'ajout d'un article d'une autre
+   * boutique est interceptée et confirmée (garder son panier, ou le vider
+   * pour adopter la nouvelle boutique).
+   */
+  const [pendingStoreSwitch, setPendingStoreSwitch] = useState<{
+    currentStore: string;
+    targetStore: string;
+    apply: () => void;
+  } | null>(null);
+
+  const gateStoreSwitch = useCallback(
+    (
+      targetStoreId: string | undefined,
+      targetStoreName: string | undefined,
+      apply: () => void,
+    ) => {
+      const other = targetStoreId
+        ? cartRef.current.find(
+            (i) => i.product.storeId && i.product.storeId !== targetStoreId,
+          )
+        : undefined;
+      if (other) {
+        setPendingStoreSwitch({
+          currentStore: other.product.storeName || "une autre boutique",
+          targetStore: targetStoreName || "cette boutique",
+          apply: () => {
+            setCart([]);
+            apply();
+          },
+        });
+        return;
+      }
+      apply();
+    },
+    [],
+  );
+
+  /**
    * Ajouts de panier demandés depuis une autre vue (espace client, bouton
    * « Recommander »). L'événement porte les lignes prêtes à être fusionnées :
    * le panier en mémoire reste la source de vérité, sinon la sauvegarde
@@ -2211,7 +2249,8 @@ const WHOLESALE_FILTER = "wholesale";
         return;
       }
     }
-    setCart((prev) => {
+    const applyAdd = () => {
+      setCart((prev) => {
       const vid = variantId || null;
 
       const existing = prev.find(
@@ -2247,12 +2286,15 @@ const WHOLESALE_FILTER = "wholesale";
       variantId && product.variants
         ? product.variants.find((v) => v.id === variantId)
         : null;
-    setLastAddedProduct(
-      addedVariant ? { ...product, price: addedVariant.price } : product,
-    );
-    buzz();
-    showCartNotif();
-    onNotifyCartInterest(product.storeId, product.name);
+      setLastAddedProduct(
+        addedVariant ? { ...product, price: addedVariant.price } : product,
+      );
+      buzz();
+      showCartNotif();
+      onNotifyCartInterest(product.storeId, product.name);
+    };
+    // Une seule boutique par panier : toute autre boutique est interceptée et confirmée.
+    gateStoreSwitch(product.storeId, product.storeName, applyAdd);
   };
 
   const buyNow = (
@@ -2311,6 +2353,7 @@ const WHOLESALE_FILTER = "wholesale";
       return;
     }
     const effectiveQty = qty;
+    const applyAdd = () => {
     setCart((prev) => {
       const lineKey = (item: CartItem) =>
         `${item.product.id}::${item.product.storeId}::${item.variantId ?? 'base'}::${JSON.stringify(item.selectedOptions ?? {})}`;
@@ -2342,6 +2385,8 @@ const WHOLESALE_FILTER = "wholesale";
     setCheckoutStage("cart"); // Go straight to cart to see savings
     // Alert the store owner
     onNotifyCartInterest(product.storeId, product.name);
+    };
+    gateStoreSwitch(product.storeId, product.storeName, applyAdd);
   };
 
   const handleBulkAddToCart = useCallback(
@@ -2360,40 +2405,67 @@ const WHOLESALE_FILTER = "wholesale";
           `Quantité limitée pour « ${firstClipped.product.name} » : ${stock} restant${(stock ?? 0) > 1 ? "s" : ""}.`,
         );
       }
-      setCart((prev) => {
-        const next = [...prev];
-        for (const item of clippedItems) {
-          if (item.quantity <= 0) continue;
-          const sp = item.product as StorefrontProduct;
-          const idx = next.findIndex(
-            (i) =>
-              i.product.id === sp.id &&
-              i.product.storeId === sp.storeId &&
-              !i.variantId,
-          );
-          if (idx >= 0) {
-            next[idx] = {
-              ...next[idx],
-              quantity: Math.min(next[idx].quantity + item.quantity, getStockFor(sp) ?? Infinity),
-            };
-          } else {
-            next.push({
-              product: sp,
-              quantity: item.quantity,
-            });
-          }
-        }
-        return next;
-      });
-      if (items.length > 0) {
-        setLastAddedProduct(items[0].product as StorefrontProduct);
-        buzz();
-        showCartNotif();
+      // Une seule boutique par panier : on ne fusionne que la boutique
+      // la plus représentée des articles bulk (les autres sont écartées).
+      const storeCounts = new Map<string, number>();
+      for (const item of clippedItems) {
+        const sid = item.product.storeId;
+        if (sid) storeCounts.set(sid, (storeCounts.get(sid) ?? 0) + 1);
       }
+      let dominantStoreId: string | undefined;
+      let dominantCount = 0;
+      for (const [sid, n] of storeCounts) {
+        if (n > dominantCount) {
+          dominantCount = n;
+          dominantStoreId = sid;
+        }
+      }
+      const scoped = dominantStoreId
+        ? clippedItems.filter((item) => item.product.storeId === dominantStoreId)
+        : clippedItems;
+      if (scoped.length !== clippedItems.length) {
+        showStockNotice(
+          "Une seule boutique par panier — les articles des autres boutiques ont été ignorés.",
+        );
+      }
+      const dominantStoreName = scoped[0]?.product.storeName;
+      const applyBulk = () => {
+        setCart((prev) => {
+          const next = [...prev];
+          for (const item of scoped) {
+            if (item.quantity <= 0) continue;
+            const sp = item.product as StorefrontProduct;
+            const idx = next.findIndex(
+              (i) =>
+                i.product.id === sp.id &&
+                i.product.storeId === sp.storeId &&
+                !i.variantId,
+            );
+            if (idx >= 0) {
+              next[idx] = {
+                ...next[idx],
+                quantity: Math.min(next[idx].quantity + item.quantity, getStockFor(sp) ?? Infinity),
+              };
+            } else {
+              next.push({
+                product: sp,
+                quantity: item.quantity,
+              });
+            }
+          }
+          return next;
+        });
+        if (items.length > 0) {
+          setLastAddedProduct(items[0].product as StorefrontProduct);
+          buzz();
+          showCartNotif();
+        }
+      };
+      gateStoreSwitch(dominantStoreId, dominantStoreName, applyBulk);
     },
     // `showStockNotice` est utilisé dans la branche d'alerte de stock : sans
     // lui, une fermeture de `showCartNotif` obsolète restait capturée.
-    [buzz, showCartNotif, showStockNotice],
+    [buzz, showCartNotif, showStockNotice, gateStoreSwitch],
   );
 
   const removeFromCart = (
@@ -5329,6 +5401,60 @@ const WHOLESALE_FILTER = "wholesale";
           )}
         </div>
       </BottomSheet>
+
+      {/* Confirmation : panier mono-boutique */}
+      {pendingStoreSwitch && (
+        <div
+          className="fixed inset-0 z-[4000] flex items-end justify-center md:items-center md:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="store-switch-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-black/45 backdrop-blur-[2px]"
+            aria-label="Fermer"
+            onClick={() => setPendingStoreSwitch(null)}
+          />
+          <div className="relative w-full rounded-t-3xl bg-white px-5 pb-[calc(16px+env(safe-area-inset-bottom))] pt-4 shadow-2xl md:max-w-sm md:rounded-3xl md:pb-5">
+            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-gray-200 md:hidden" aria-hidden="true" />
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-2 grid h-12 w-12 place-items-center rounded-full bg-orange-50 text-brand">
+                <Store size={22} />
+              </div>
+              <h3 id="store-switch-title" className="text-base font-extrabold text-gray-900">
+                Une seule boutique par panier
+              </h3>
+              <p className="mt-1 text-[12px] font-medium leading-snug text-gray-500">
+                Votre panier contient déjà des articles de la boutique{" "}
+                <span className="font-bold text-gray-800">{pendingStoreSwitch.currentStore}</span>.
+                Le vider pour ajouter des articles de{" "}
+                <span className="font-bold text-gray-800">{pendingStoreSwitch.targetStore}</span> ?
+              </p>
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const apply = pendingStoreSwitch.apply;
+                  setPendingStoreSwitch(null);
+                  apply();
+                }}
+                className="h-11 w-full rounded-2xl bg-brand text-[13px] font-extrabold uppercase tracking-wide text-white transition-all hover:bg-[#e55a1d] active:scale-[0.98]"
+              >
+                Vider et ajouter
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingStoreSwitch(null)}
+                className="h-11 w-full rounded-2xl border border-gray-200 bg-white text-[13px] font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98]"
+              >
+                Garder mon panier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Guichet FeexPay v2 — monté hors écran, s'auto-ouvre (pay-first). */}
       {feexpayAttempt && <FeexPayWidget attempt={feexpayAttempt} />}
