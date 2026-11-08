@@ -6,10 +6,8 @@ const PROTECTED_PREFIXES = [
   '/inventory',
   '/customers',
   '/orders',
-  '/reports',
   '/settings',
   '/subscription',
-  '/invoices',
 ]
 
 export async function updateSession(request: NextRequest, sessionUserId?: string | null) {

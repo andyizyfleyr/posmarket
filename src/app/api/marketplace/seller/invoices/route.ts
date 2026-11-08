@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/marketplace/seller/invoices?storeId=...
  *
  * Données de la page « Factures » mobile — mêmes sources que
- * `src/app/(app)/invoices/page.tsx` : factures (100 max, sans tri), produits
+ * ancienne page web `(app)/invoices` (supprimée) : factures (100 max, sans tri), produits
  * (sélecteur d'articles de la modale de création) et boutique (réglages
  * affichés sur la facture). Les `numeric` (`subtotal`, `total`) sont
  * normalisés en nombres pour l'app.

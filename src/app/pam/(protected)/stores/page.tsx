@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   ShieldCheck,
   Package,
-  LogIn
+  LogIn,
+  BadgeCheck
 } from 'lucide-react';
 import {
   getAllStores,
@@ -27,7 +28,8 @@ import {
   deleteStoreAdmin,
   deleteStoresBulk,
   getAllUsers,
-  getAllStoreProductCounts
+  getAllStoreProductCounts,
+  setStoreVerifiedAction,
 } from '@/app/actions/admin';
 import Loader from '@/components/Loader';
 import { formatNumber } from '@/utils';
@@ -48,6 +50,8 @@ interface StoreRow {
   created_at?: Date | string | null;
   address?: string | null;
   ninea?: string | null;
+  /** Badge « vérifiée » distribué par l'admin (migration 0036). */
+  is_verified?: boolean | null;
 }
 
 interface ProfileRow {
@@ -144,6 +148,19 @@ export default function AdminStoresPage() {
     await deleteStoreAdmin(storeId);
     setProcessingId(`delete-${storeId}`, false);
     await fetchData();
+  };
+
+  // Badge « boutique vérifiée » — distribution exclusivement côté admin.
+  const handleVerifyToggle = async (store: StoreRow) => {
+    const next = !store.is_verified;
+    setProcessingId(`verified-${store.id}`, true);
+    const res = await setStoreVerifiedAction(store.id, next);
+    if (res?.success) {
+      setStores(prev => prev.map(x => (x.id === store.id ? { ...x, is_verified: next } : x)));
+    } else {
+      alert(res?.error || 'Impossible de mettre à jour le badge « Vérifiée ».');
+    }
+    setProcessingId(`verified-${store.id}`, false);
   };
 
   const handleBulkDeleteStores = async () => {
@@ -396,6 +413,11 @@ export default function AdminStoresPage() {
                                       {s.name || 'Boutique sans nom'}
                                     </Link>
                                     <StatusBadge status={s.status} />
+                                    {s.is_verified && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md ring-1 ring-emerald-200">
+                                        <BadgeCheck size={12} /> Vérifiée
+                                      </span>
+                                    )}
                                     {s.business_type && (
                                       <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
                                         {s.business_type === 'food' ? 'Alimentation' : 'Shopping'}
@@ -476,6 +498,23 @@ export default function AdminStoresPage() {
                                   {statusBusy ? <RefreshCcw size={15} className="animate-spin spinner-always" /> : <Ban size={15} />} Désactiver
                                 </button>
                               )}
+                              {/* Distribution du badge « Vérifiée » — exclusivement admin */}
+                              <button
+                                onClick={() => handleVerifyToggle(s)}
+                                disabled={processing.has(`verified-${s.id}`)}
+                                aria-pressed={s.is_verified === true}
+                                title={s.is_verified ? 'Retirer le badge « Vérifiée » (visible publiquement)' : 'Distribuer le badge « Vérifiée » (visible publiquement)'}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 ${
+                                  s.is_verified
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-white text-blue-600 ring-1 ring-blue-200 hover:bg-blue-50'
+                                }`}
+                              >
+                                {processing.has(`verified-${s.id}`)
+                                  ? <RefreshCcw size={14} className="animate-spin spinner-always" />
+                                  : <BadgeCheck size={14} />}
+                                {s.is_verified ? 'Vérifiée ✓' : 'Vérifiée'}
+                              </button>
                               <div className="flex gap-2 lg:w-full">
                                 <Link
                                   href={`/pam/stores/${s.id}`}

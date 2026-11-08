@@ -50,6 +50,9 @@ export function usePullToRefresh(
         setPull(0);
         return;
       }
+      // Empêche le geste de partir au navigateur (double déclenchement avec
+      // le pull-to-refresh natif). On n'empêche jamais le scroll vers le bas.
+      if (e.cancelable) e.preventDefault();
       const d = Math.min(110, Math.round(dy * 0.45));
       pullRef.current = d;
       setPull(d);
@@ -71,7 +74,8 @@ export function usePullToRefresh(
     };
 
     window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    // Non-passif : nécessaire pour preventDefault ci-dessus (anti double déclenchement).
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
     return () => {
       window.removeEventListener('touchstart', onTouchStart);

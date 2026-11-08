@@ -12,7 +12,7 @@ import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { fetchCatalog } from '@/api/client';
-import { useCartActions } from '@/context/CartContext';
+import { useCart } from '@/context/CartContext';
 import { useToast } from '@/components/ToastProvider';
 import { findVariantByOptions } from '@/utils/variants';
 import { effectiveProductStock } from '@/utils';
@@ -21,7 +21,7 @@ import type { BuyerOrder, StoreData, StorefrontProduct } from '@/types';
 const CATALOG_QUERY_KEY = ['catalog'];
 
 export function useReorder() {
-  const { addToCart } = useCartActions();
+  const { cart, addToCart } = useCart();
   const { notify } = useToast();
   const queryClient = useQueryClient();
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
@@ -58,6 +58,38 @@ export function useReorder() {
 
         const added: string[] = [];
         const skipped: string[] = [];
+        const otherStoreSkipped: string[] = [];
+
+        // Une seule boutique par panier : on ne remet au panier que les
+        // articles de la boutique la plus représentée de la commande.
+        const storeCount = new Map<string, number>();
+        for (const item of items) {
+          const reference = item.products?.[0];
+          const resolved = reference?.id ? products.get(reference.id) : undefined;
+          if (resolved?.storeId) {
+            storeCount.set(resolved.storeId, (storeCount.get(resolved.storeId) ?? 0) + 1);
+          }
+        }
+        let dominantStoreId: string | undefined;
+        let dominantCount = 0;
+        for (const [id, n] of storeCount) {
+          if (n > dominantCount) {
+            dominantCount = n;
+            dominantStoreId = id;
+          }
+        }
+        // Le panier contient déjà des articles d'une autre boutique : on n'y
+        // touche pas plutôt que d'afficher une feuille par ligne ajoutée.
+        if (
+          dominantStoreId &&
+          cart.some((line) => line.product.storeId && line.product.storeId !== dominantStoreId)
+        ) {
+          notify(
+            "Votre panier contient déjà des articles d'une autre boutique. Videz-le pour remettre cette commande au panier.",
+            'warning',
+          );
+          return;
+        }
 
         for (const item of items) {
           const reference = item.products?.[0];
@@ -65,6 +97,10 @@ export function useReorder() {
           const product = reference?.id ? products.get(reference.id) : undefined;
           if (!product || product.isOnline === false) {
             skipped.push(name);
+            continue;
+          }
+          if (dominantStoreId && product.storeId !== dominantStoreId) {
+            otherStoreSkipped.push(name);
             continue;
           }
 
@@ -120,6 +156,12 @@ export function useReorder() {
             'warning',
           );
         }
+        if (otherStoreSkipped.length > 0) {
+          notify(
+            `Une seule boutique par panier — ${otherStoreSkipped.length} article(s) d'autres boutiques ignoré(s).`,
+            'info',
+          );
+        }
         router.push('/cart' as never);
       } catch {
         notify('Impossible de remettre cette commande au panier.', 'error');
@@ -127,7 +169,7 @@ export function useReorder() {
         setPendingOrderId(null);
       }
     },
-    [addToCart, notify, queryClient],
+    [cart, addToCart, notify, queryClient],
   );
 
   return { reorder, pendingOrderId };

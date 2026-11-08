@@ -742,16 +742,6 @@ export function SellerSubscriptionView({
           </View>
         </View>
 
-        {/* Paiement en ligne de toutes les durées (SasPay) */}
-        {saspayDirect ? (
-          <View style={styles.saspayNotice}>
-            <Shield size={14} color="#15803D" />
-            <Text style={styles.saspayNoticeText}>
-              Paiement en ligne sécurisé avec SasPay — mensuel, trimestriel et annuel.
-            </Text>
-          </View>
-        ) : null}
-
         {/* Grille des formules */}
         <View style={styles.plansGrid}>
           {plans.map((plan) => {
@@ -853,11 +843,6 @@ export function SellerSubscriptionView({
                     { label: 'Point de Vente (POS)', included: true },
                     { label: 'Gestion stocks & clients', included: true },
                     { label: 'Boutique en ligne', included: plan.features.enableStorefront },
-                    { label: 'Rapports avancés', included: plan.features.enableAdvancedReports },
-                    {
-                      label: 'Tickets personnalisés',
-                      included: plan.features.enableCustomReceipts,
-                    },
                   ].map((feature) => (
                     <View key={feature.label} style={styles.featureRow}>
                       {feature.included ? (
@@ -1060,22 +1045,6 @@ const styles = StyleSheet.create({
     maxWidth: 448,
   },
   sellerNoticeText: { flex: 1, fontSize: 12, color: '#475569' },
-
-  saspayNotice: {
-    marginTop: -12,
-    marginBottom: 24,
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  saspayNoticeText: { flexShrink: 1, fontSize: 11, fontWeight: '600', color: '#15803D', textAlign: 'center' },
 
   durationWrap: { marginBottom: 32 },
   durationPill: {

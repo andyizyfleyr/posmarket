@@ -8,6 +8,7 @@ import {
   ProductNameLink,
   ProductThumb,
   StatusBadge,
+  PaymentBadge,
 } from './accountUtils';
 
 export type ReviewTargetProduct = {
@@ -80,10 +81,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <StatusBadge status={order.status} businessType={businessType} />
       </div>
 
-      <p className="mt-0.5 text-[10px] font-medium text-gray-400">
-        {articleCount} article{articleCount > 1 ? 's' : ''}
-        {dateLabel ? ` · ${dateLabel}` : ''}
-      </p>
+      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-gray-400">
+        <span>
+          {articleCount} article{articleCount > 1 ? 's' : ''}
+          {dateLabel ? ` · ${dateLabel}` : ''}
+        </span>
+        {order.paymentProvider && (
+          <PaymentBadge status={order.paymentStatus} provider={order.paymentProvider} />
+        )}
+      </div>
 
       <div className="mt-3 space-y-2 border-t border-gray-100 pt-3 pb-3.5">
         {items.map((item, idx) => {

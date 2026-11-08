@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap } from 'lucide-react';
+import { ShoppingBag, Search, Filter, ChevronRight, Clock, CheckCircle2, CreditCard, Package, ArrowLeft, X, AlertCircle, Loader2, Trash2, Calendar, Zap, Download } from 'lucide-react';
 import { Order, CartItem, StaffPermissions, StaffRole } from '@/types';
 import { formatCurrency } from '@/utils';
 import { getEffectiveWholesaleUnitPrice } from '@/utils/wholesale';
 import { fetchOrderItems } from '../hooks/useSupabaseData';
 import { updateOrderStatusAction, deleteOrderAction, bulkUpdateOrderStatusAction, bulkDeleteOrdersAction, getOrdersAction } from '@/app/actions/orders';
+import { exportOrdersCsvAction } from '@/app/actions/export';
+import { downloadCsv } from '@/utils/csv-download';
 import { useRouter } from '@/components/RouterPolyfill';
 import { Plus } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -15,12 +17,51 @@ interface OrdersViewProps {
     currentStoreId?: string;
     permissions?: StaffPermissions;
     userRole?: StaffRole;
-    store?: { id: string; name?: string | null; settings?: { [key: string]: unknown } | null } | null;
+    store?: { id: string; name?: string | null; business_type?: string | null; settings?: { [key: string]: unknown } | null } | null;
 }
+
+/** Libellés des moyens d'encaissement propres à une boutique. */
+const PAYMENT_PROVIDER_LABELS: Record<string, string> = {
+    cod: 'Paiement à la livraison',
+    kkiapay: 'Kkiapay',
+    fedapay: 'FedaPay',
+    feexpay: 'FeexPay',
+    saspay: 'SasPay',
+    ussd: 'USSD',
+};
+
+/**
+ * Pastille « encaissement » d'une commande en ligne. Rien n'est affiché pour
+ * les ventes en magasin (aucun moyen de paiement boutique associé).
+ */
+const PaymentStatusBadge: React.FC<{ status?: string | null; provider?: string | null }> = ({ status, provider }) => {
+    if (!provider) return null;
+    const s = String(status || 'PENDING').toUpperCase();
+    const offline = provider === 'cod' || provider === 'ussd';
+    let cls = 'bg-amber-50 text-amber-700 border-amber-200';
+    let label = 'En attente';
+    if (s === 'PAID') {
+        cls = 'bg-green-50 text-green-700 border-green-200';
+        label = 'Payée';
+    } else if (s === 'FAILED') {
+        cls = 'bg-red-50 text-red-600 border-red-200';
+        label = 'Échec paiement';
+    } else if (offline) {
+        cls = 'bg-blue-50 text-blue-700 border-blue-200';
+        label = 'À encaisser';
+    }
+    return (
+        <span className={`inline-flex items-center gap-1 text-[8px] md:text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border whitespace-nowrap ${cls}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+            {label}
+        </span>
+    );
+};
 
 const OrdersView: React.FC<OrdersViewProps> = ({ 
     orders: initialOrders, 
     currentStoreId,
+    store,
 }) => {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
@@ -34,6 +75,14 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [loadingOrderItems, setLoadingOrderItems] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>('ALL');
     const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+    const [isExportingCsv, setIsExportingCsv] = useState(false);
+    // Verticale bloquante de la boutique courante : une boutique « shop »
+    // ne doit pas proposer le filtre « Resto » (et inversement).
+    const storeVertical = store?.business_type === 'food'
+        ? 'food' as const
+        : store?.business_type === 'shopping'
+            ? 'shopping' as const
+            : null;
     const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
@@ -132,6 +181,23 @@ const OrdersView: React.FC<OrdersViewProps> = ({
         // Dépendre de l'objet entier : une mise à jour à id constant
         // (statut, lignes) doit recharger les articles affichés.
     }, [selectedOrder]);
+
+    /** Export CSV des 500 dernières ventes (côté serveur). */
+    const handleExportOrdersCsv = async () => {
+        if (!currentStoreId || isExportingCsv) return;
+        setIsExportingCsv(true);
+        try {
+            const result = await exportOrdersCsvAction(currentStoreId);
+            if (!result.success) {
+                setToast({ message: result.error || 'Export impossible pour le moment.', type: 'error' });
+                return;
+            }
+            downloadCsv(result.csv, result.filename);
+            setToast({ message: `${result.count} commande${result.count > 1 ? 's' : ''} exportée${result.count > 1 ? 's' : ''} (CSV).`, type: 'success' });
+        } finally {
+            setIsExportingCsv(false);
+        }
+    };
 
     const filteredOrders = useMemo(() => {
         return localOrders.filter(order => {
@@ -263,6 +329,10 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                     <h1 className="text-lg md:text-2xl font-bold text-gray-900 tracking-tight truncate">
                         Commandes
                     </h1>
+                    {/* Le filtre vertical n'a de sens que si la boutique n'a pas
+                       de verticale bloquée (sinon c'est la seule possible) —
+                       même convention que le tableau de bord. */}
+                    {!storeVertical && (
                     <div className="flex items-center gap-2 mt-1 md:mt-2">
                              {[
                                 { id: 'all' as const, label: 'Toutes', icon: Package, color: 'gray' },
@@ -278,6 +348,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                             </button>
                         ))}
                     </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative flex-grow md:flex-none">
@@ -290,6 +361,15 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                             className="w-full md:w-64 pl-9 pr-4 py-1.5 md:py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                         />
                     </div>
+                    <button
+                        onClick={handleExportOrdersCsv}
+                        disabled={isExportingCsv}
+                        title="Exporter les ventes (CSV)"
+                        className="flex items-center gap-1.5 px-2.5 md:px-3 py-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-500 hover:text-brand hover:border-orange-200 shadow-sm transition-colors"
+                    >
+                        {isExportingCsv ? <Loader2 size={18} className="animate-spin text-brand spinner-always" /> : <Download size={18} className="md:w-5 md:h-5" />}
+                        <span className="hidden lg:inline text-[11px] font-bold">Export CSV</span>
+                    </button>
                     <button className="p-2 bg-white border border-gray-100 rounded-lg md:rounded-xl text-gray-400 hover:text-brand shadow-sm transition-colors relative">
                         {isSearching ? <Loader2 size={18} className="animate-spin text-brand spinner-always" /> : <Filter size={18} className="md:w-5 md:h-5" />}
                     </button>
@@ -436,6 +516,11 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                                         {getStatusLabel(order.status || 'READY')}
                                                     </div>
                                                     <div className="text-[10px] text-gray-400 font-semibold uppercase">{order.paymentMethod}</div>
+                                                    {order.paymentProvider && (
+                                                        <div className="mt-1 flex justify-end">
+                                                            <PaymentStatusBadge status={order.paymentStatus} provider={order.paymentProvider} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 
                                                 <ChevronRight className="text-gray-300 group-hover:text-brand transition-colors md:w-4 md:h-4" size={14} />
@@ -624,6 +709,26 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                         <div className="flex items-center gap-1.5 mt-3 md:mt-4 text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                                             <CreditCard size={12} className="md:w-[14px] md:h-[14px]" /> Mode: <span className="text-gray-900">{selectedOrder.paymentMethod}</span>
                                         </div>
+                                        {selectedOrder.paymentProvider && (
+                                            <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 space-y-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                                                        {PAYMENT_PROVIDER_LABELS[selectedOrder.paymentProvider] || selectedOrder.paymentProvider}
+                                                    </span>
+                                                    <PaymentStatusBadge status={selectedOrder.paymentStatus} provider={selectedOrder.paymentProvider} />
+                                                </div>
+                                                {selectedOrder.paymentReference && (
+                                                    <p className="text-[9px] md:text-[10px] text-gray-400 font-mono break-all">
+                                                        Réf. : {selectedOrder.paymentReference}
+                                                    </p>
+                                                )}
+                                                {String(selectedOrder.paymentStatus || '').toUpperCase() !== 'PAID' && (selectedOrder.paymentProvider === 'kkiapay' || selectedOrder.paymentProvider === 'fedapay' || selectedOrder.paymentProvider === 'feexpay' || selectedOrder.paymentProvider === 'saspay') && (
+                                                    <p className="text-[9px] md:text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 font-semibold leading-snug">
+                                                        Ne remettez pas la commande tant que le paiement n’est pas confirmé par le fournisseur.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

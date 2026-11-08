@@ -39,6 +39,10 @@ export interface ReceiptData {
     amount: number;
   };
   total: number;
+  /** Paiement espèces : montant remis par le client. */
+  tendered?: number;
+  /** Paiement espèces : monnaie rendue. */
+  change?: number;
 }
 
 /**
@@ -143,6 +147,8 @@ export function buildPosReceiptHtml(data: ReceiptData): string {
       <div class="row"><span>SOUS-TOTAL:</span><span>${formatCurrency(data.subtotal)}</span></div>
       ${data.discount ? `<div class="row"><span>REMISE (${data.discount.code}):</span><span>-${formatCurrency(data.discount.amount)}</span></div>` : ''}
       <div class="total-row border-t"><span>TOTAL:</span><span>${formatCurrency(data.total)}</span></div>
+      ${typeof data.tendered === 'number' ? `<div class="row"><span>MONTANT REÇU:</span><span>${formatCurrency(data.tendered)}</span></div>` : ''}
+      ${typeof data.change === 'number' ? `<div class="row"><span>MONNAIE RENDUE:</span><span>${formatCurrency(data.change)}</span></div>` : ''}
     </div>
 
     <div class="center" style="margin-top: 14px; font-size: 8.5pt;">

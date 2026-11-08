@@ -106,6 +106,10 @@ export const products = pgTable('products', {
   price: numeric('price', { precision: 12, scale: 2 }).notNull(),
   originalPrice: numeric('original_price', { precision: 12, scale: 2 }),
   stock: integer('stock').default(0).notNull(),
+  /** Seuil d'alerte stock bas propre au produit (sinon celui de la boutique). */
+  lowStockThreshold: integer('low_stock_threshold'),
+  /** Code-barres EAN/UPC/Code 128 — scannable au POS (douchette). */
+  barcode: text('barcode'),
   image: text('image'),
   images: jsonb('images').default([]),
   unit: text('unit'),
@@ -250,7 +254,7 @@ export const orderItems = pgTable('order_items', {  id: uuid('id').primaryKey().
 export const storePaymentMethods = pgTable('store_payment_methods', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
-  /** 'cod' | 'kkiapay' | 'fedapay' | 'saspay' | 'ussd' */
+  /** 'cod' | 'kkiapay' | 'fedapay' | 'feexpay' | 'saspay' | 'ussd' */
   provider: text('provider').notNull(),
   enabled: boolean('enabled').default(false).notNull(),
   config: jsonb('config').default({}).notNull(),

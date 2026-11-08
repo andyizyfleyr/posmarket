@@ -29,7 +29,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
-  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -99,12 +98,6 @@ const formatGrouped = (v: number) =>
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-const AVATAR_TONES = [
-  { bg: '#ffedd5', fg: '#c2410c' },
-  { bg: '#fef3c7', fg: '#b45309' },
-  { bg: '#ffe4e6', fg: '#e11d48' },
-];
-
 export default function ProductDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -142,6 +135,15 @@ export default function ProductDetailScreen() {
     minQty: number;
   } | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  // Verrou anti double activation : le même appui tactile peut déclencher
+  // deux bascules (déplie puis replie aussitôt). 400 ms de verrou global.
+  const descToggleLockRef = useRef(0);
+  const toggleDescription = useCallback((expand: boolean) => {
+    const now = Date.now();
+    if (now - descToggleLockRef.current < 400) return;
+    descToggleLockRef.current = now;
+    setIsDescriptionExpanded(expand);
+  }, []);
   const [descriptionContentHeight, setDescriptionContentHeight] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -360,7 +362,6 @@ export default function ProductDetailScreen() {
     [product, basePrice],
   );
   const mainCat = product?.mainCategory || product?.category || 'Boutique';
-  const realCategory = product?.mainCategory || product?.category || '';
   const isFood =
     product?.businessType === 'food' || mainCat === 'Restauration & Livraison Rapide';
   const wholesaleAllowedByStore = store?.settings?.wholesaleEnabled !== false;
@@ -442,11 +443,6 @@ export default function ProductDetailScreen() {
   // Sans combinaison complète, le bouton de gros ouvre le sélecteur : son
   // libellé doit annoncer cette action plutôt qu'un ajout impossible.
   const wholesaleNeedsOptions = hasOptions && !allSelected;
-
-  const goBack = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/' as never);
-  }, [router]);
 
   const goToCart = useCallback(() => {
     router.push('/cart' as never);
@@ -668,24 +664,8 @@ export default function ProductDetailScreen() {
   const prepTime = isFood ? product.preparationTime : undefined;
 
   const renderReview = (review: Review, idx: number, compact = false) => {
-    const tone = AVATAR_TONES[idx % AVATAR_TONES.length];
     return (
-      <View key={review.id ?? String(idx)} style={styles.reviewCard}>
-        <View style={[styles.reviewAvatar, { backgroundColor: review.avatarUrl ? '#f3f4f6' : tone.bg }]}>
-          {review.avatarUrl ? (
-            <Image
-              source={{ uri: resolveImageUrl(review.avatarUrl) }}
-              style={styles.reviewAvatarImg}
-              contentFit="cover"
-              alt=""
-              accessible={false}
-            />
-          ) : (
-            <Text style={[styles.reviewAvatarText, { color: tone.fg }]}>
-              {review.author?.[0]?.toUpperCase() || 'A'}
-            </Text>
-          )}
-        </View>
+      <View key={review.id ?? `review-${idx}`} style={styles.reviewCard}>
         <View style={styles.reviewBody}>
           <View style={styles.reviewTopRow}>
             <View style={styles.reviewHead}>
@@ -743,25 +723,9 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Topbar boutique (nom centré + trait) ── */}
+      {/* ── Topbar : un simple filet horizontal (ni retour, ni nom) ── */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
-        <View style={styles.topBarRow}>
-          <Pressable
-            style={styles.backBtn}
-            onPress={goBack}
-            hitSlop={8}
-            accessibilityLabel="Retour"
-          >
-            <ArrowLeft size={20} color="#111827" />
-          </Pressable>
-          <Pressable style={styles.storeLink} onPress={openStore}>
-            <Text style={styles.storeLinkText} numberOfLines={2}>
-              {product.storeName}
-            </Text>
-          </Pressable>
-          <View style={styles.backGhost} />
-        </View>
-        <View style={styles.storeUnderline} />
+        <View style={styles.topBarRule} />
       </SafeAreaView>
 
       <ScrollView
@@ -888,20 +852,6 @@ export default function ProductDetailScreen() {
                 </Text>
                 <CheckCircle2 size={11} color={BRAND} />
               </View>
-              {realCategory ? (
-                <Pressable
-                  style={styles.categoryLink}
-                  onPress={() =>
-                    router.push(`/?cat=${encodeURIComponent(mainCat)}` as never)
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Voir la catégorie ${realCategory}`}
-                >
-                  <Text style={styles.categoryText} numberOfLines={1}>
-                    {realCategory}
-                  </Text>
-                </Pressable>
-              ) : null}
             </View>
             <ChevronRight size={14} color="#c4c9d1" />
           </Pressable>
@@ -919,7 +869,7 @@ export default function ProductDetailScreen() {
             accessibilityLabel={
               rating > 0
                 ? `Note ${formatRating(rating)} sur 5, ${formatNumber(reviewTotal)} avis. Voir les avis.`
-                : `Nouveau produit, ${formatNumber(reviewTotal)} avis. Voir les avis.`
+                : `Aucune note pour l’instant, ${formatNumber(reviewTotal)} avis. Voir les avis.`
             }
           >
             {rating > 0 ? (
@@ -927,9 +877,7 @@ export default function ProductDetailScreen() {
                 <Star size={11} color="#EAB308" fill="#EAB308" />
                 <Text style={styles.ratingValue}>{formatRating(rating)}</Text>
               </>
-            ) : (
-              <Text style={styles.newLabel}>Nouveau</Text>
-            )}
+            ) : null}
             <Text style={styles.proofText} numberOfLines={1}>
               ({formatNumber(reviewTotal)} avis)
             </Text>
@@ -1172,7 +1120,7 @@ export default function ProductDetailScreen() {
           {hasMoreContent ? (
             <Pressable
               style={styles.readMorePill}
-              onPress={() => setIsDescriptionExpanded((v) => !v)}
+              onPress={() => toggleDescription(!isDescriptionExpanded)}
               accessibilityRole="button"
               accessibilityState={{ expanded: isDescriptionExpanded }}
               accessibilityLabel={
@@ -1745,50 +1693,12 @@ const styles = StyleSheet.create({
   // ── Topbar ──
   topBar: {
     backgroundColor: 'rgba(255,255,255,0.97)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(243,244,246,0.7)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(229,231,235,0.9)',
   },
-  topBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    gap: 8,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backGhost: {
-    width: 36,
-    height: 36,
-  },
-  storeLink: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  storeLinkText: {
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
-    color: '#111827',
-    textAlign: 'center',
-  },
-  storeUnderline: {
-    alignSelf: 'center',
-    width: 28,
+  topBarRule: {
     height: 3,
-    borderRadius: 2,
-    backgroundColor: BRAND,
-    marginTop: 4,
-    marginBottom: 12,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingBottom: 160,
@@ -1982,17 +1892,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1f2937',
-    flexShrink: 1,
-  },
-  categoryLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 1,
-  },
-  categoryText: {
-    fontSize: 9.5,
-    color: '#9ca3af',
     flexShrink: 1,
   },
   // ── Titre + stats ──
@@ -2570,22 +2469,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#f3f4f6',
-  },
-  reviewAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  reviewAvatarImg: {
-    width: '100%',
-    height: '100%',
-  },
-  reviewAvatarText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   reviewBody: {
     flex: 1,

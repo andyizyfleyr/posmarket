@@ -24,6 +24,8 @@ export interface Product {
   id: string;
   sku?: string;
   barcode?: string;
+  /** Seuil d'alerte stock bas propre au produit (sinon réglage boutique, sinon 10). */
+  lowStockThreshold?: number;
   name: string;
   price: number;
   originalPrice?: number;
@@ -50,6 +52,8 @@ export interface Product {
   preparationTime?: string;
   /** Date de publication ISO — sert au classement « Nouveautés ». */
   createdAt?: string;
+  /** La boutique qui vend ce produit a été vérifiée par l'admin. */
+  storeVerified?: boolean;
 }
 
 export interface ProductOption {
@@ -111,6 +115,12 @@ export interface Order {
   customer?: Customer;
   type?: 'IN_STORE' | 'PICKUP';
   status?: 'PENDING' | 'READY' | 'COMPLETED';
+  /** Encaissement : PENDING (en attente), PAID (vérifié / collecté), FAILED (échoué). */
+  paymentStatus?: string;
+  /** Moyen encaissé : cod, kkiapay, fedapay, saspay, ussd (commandes en ligne). */
+  paymentProvider?: string | null;
+  /** Référence fournisseur (transaction Kkiapay/FedaPay, paiement SasPay). */
+  paymentReference?: string | null;
 }
 
 export interface InvoiceItem {
@@ -136,7 +146,7 @@ export interface Invoice {
   notes?: string;
 }
 
-export type ViewType = 'dashboard' | 'pos' | 'orders' | 'inventory' | 'customers' | 'reports' | 'invoices' | 'settings' | 'storefront' | 'subscription' | 'admin'; // Core application views
+export type ViewType = 'dashboard' | 'pos' | 'orders' | 'inventory' | 'customers' | 'settings' | 'storefront' | 'subscription' | 'admin'; // Core application views
 
 export interface StoreSettings {
    businessType?: BusinessVertical;
@@ -152,11 +162,15 @@ export interface StoreSettings {
   description?: string;
   wholesaleEnabled?: boolean;
   wholesaleMinOrderAmount?: number;
+  /** Seuil d'alerte stock bas par défaut de la boutique (unités). */
+  lowStockThreshold?: number;
 }
 
 // GiftCard interface removed as the feature is being deleted
 
 export interface StoreData {
+  /** Badge « vérifiée » distribué par l'admin (/pam/stores). Absent/faux = jamais de badge. */
+  isVerified?: boolean;
   id: string;
   slug?: string;
   name?: string;
@@ -188,8 +202,6 @@ export interface SubscriptionFeatures {
   maxStores: number;
   maxProducts: number;
   enableStorefront: boolean;
-  enableAdvancedReports: boolean;
-  enableCustomReceipts: boolean;
 }
 
 export interface SubscriptionPlan {
@@ -219,7 +231,6 @@ export interface StaffPermissions {
   canManageCustomers: boolean;
   canManageOrders: boolean;
   canViewReports: boolean;
-  canManageInvoices: boolean;
   canManageSettings: boolean;
   canManageStaff: boolean;
 }

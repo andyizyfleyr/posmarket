@@ -63,8 +63,6 @@ export interface SellerPlan {
     maxStores: number;
     maxProducts: number;
     enableStorefront: boolean;
-    enableAdvancedReports: boolean;
-    enableCustomReceipts: boolean;
   };
 }
 

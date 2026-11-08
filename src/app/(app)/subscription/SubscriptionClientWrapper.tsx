@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { SubscriptionView } from '@/views/SubscriptionView';
 import { useRouter } from '@/components/RouterPolyfill';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
-import { useFeexpay } from '@/hooks/useFeexpay';
+import type { FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
+
+// Chargé uniquement au moment du paiement (le SDK injecte une feuille globale).
+const FeexPayWidget = dynamic(() => import('@/components/payments/FeexPayWidget'), {
+  ssr: false,
+});
 import { TransactionResultModal, TransactionModalData } from '@/components/TransactionResultModal';
 import { UserSubscription, SubscriptionDuration, SubscriptionTier, StaffRole } from '@/types';
 import { confirmKkiapayPaymentAction } from '@/app/actions/subscription';
@@ -55,7 +61,7 @@ export default function SubscriptionClientWrapper({
   const router = useRouter();
   const { ready: kkiapayReady, openWidget: openKkiapay } = useKkiapay();
   const { ready: fedapayReady, openWidget: openFedapay } = useFedapay();
-  const { ready: feexpayReady, openWidget: openFeexpay } = useFeexpay();
+  const [feexpayAttempt, setFeexpayAttempt] = useState<FeexPayWidgetAttempt | null>(null);
 
   const [modalData, setModalData] = useState<TransactionModalData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -195,30 +201,40 @@ export default function SubscriptionClientWrapper({
         setIsModalOpen(true);
         return { success: false };
       }
-      if (!feexpayReady) {
-        setModalData({
-          status: 'error',
-          title: 'Module en Chargement',
-          message: 'Le module de paiement FeexPay est encore en cours de chargement. Veuillez patienter un instant et réessayer.',
-          tier,
-          duration,
-          amount: res.amount,
-          date: new Date(),
-        });
-        setIsModalOpen(true);
-        return { success: false };
-      }
-
-      openFeexpay({
+      setFeexpayAttempt({
+        key: `${Date.now()}`,
         shopId: feexpayShopId,
         token: feexpayApiKey,
         amount: res.amount,
         mode: feexpayEnv === 'live' ? 'LIVE' : 'SANDBOX',
         description: `Abonnement ${tier} - ${duration}`,
         callbackInfo: res.transactionId!,
-        onSuccess: async (r) => {
+        firstName: userName || undefined,
+        email: userEmail || undefined,
+        onSettled: async (reference, reason) => {
+          setFeexpayAttempt(null);
+          if (reason) {
+            const dismissed = reason === 'dismissed';
+            setModalData({
+              status: dismissed ? 'cancelled' : 'error',
+              title: dismissed ? 'Paiement Annulé' : 'Paiement Non Abouti',
+              message: dismissed
+                ? 'Vous avez fermé le guichet de paiement sans finaliser la transaction.'
+                : reason === 'open_timeout'
+                  ? "Impossible d'ouvrir le guichet FeexPay — vérifiez l'identifiant boutique et la clé API (et leur mode LIVE/SANDBOX)."
+                  : `La transaction a été refusée ou interrompue (${reason}).`,
+              amount: res.amount,
+              tier,
+              duration,
+              transactionId: res.transactionId,
+              provider: 'feexpay',
+              date: new Date(),
+            });
+            setIsModalOpen(true);
+            return;
+          }
           try {
-            const fRef = String(r.reference || r.transaction_id || '').trim();
+            const fRef = String(reference || '').trim();
             if (!fRef) {
               setModalData({
                 status: 'error',
@@ -284,22 +300,6 @@ export default function SubscriptionClientWrapper({
             });
             setIsModalOpen(true);
           }
-        },
-        onFailed: (err?: unknown) => {
-          const e = err as { reason?: string; message?: string } | undefined;
-          const dismissed = e?.reason === 'dismissed';
-          setModalData({
-            status: dismissed ? 'cancelled' : 'error',
-            title: dismissed ? 'Paiement Annulé' : 'Paiement Non Abouti',
-            message: e?.message || (dismissed ? 'Vous avez fermé le guichet de paiement sans finaliser la transaction.' : 'La transaction a été refusée ou interrompue.'),
-            amount: res.amount,
-            tier,
-            duration,
-            transactionId: res.transactionId,
-            provider: 'feexpay',
-            date: new Date(),
-          });
-          setIsModalOpen(true);
         },
       });
     } else if (paymentProvider === 'fedapay') {
@@ -549,7 +549,7 @@ export default function SubscriptionClientWrapper({
     }
 
     return { success: true };
-  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, feexpayShopId, feexpayApiKey, feexpayEnv, feexpayReady, openFeexpay, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router]);
+  }, [onCreatePayment, onUpdateSubscription, kkiapayPublicKey, kkiapayEnv, kkiapayReady, openKkiapay, fedapayPublicKey, fedapayEnv, fedapayReady, openFedapay, feexpayShopId, feexpayApiKey, feexpayEnv, paymentProvider, userName, userEmail, userPhone, onConfirmPayment, router]);
 
   return (
     <>
@@ -562,6 +562,7 @@ export default function SubscriptionClientWrapper({
         saspayDirect={paymentProvider === 'saspay'}
       />
 
+      {feexpayAttempt && <FeexPayWidget attempt={feexpayAttempt} />}
       <TransactionResultModal
         isOpen={isModalOpen}
         data={modalData}

@@ -130,7 +130,6 @@ function ProductTileComponent({
   const salesCount = product.salesCount ?? 0;
   const rating = product.rating ?? 0;
   const reviewCount = product.reviewCount ?? 0;
-  const hasStats = salesCount > 0 || rating > 0;
 
   const stockLabel = isOutOfStock
     ? ', rupture de stock'
@@ -292,11 +291,6 @@ function ProductTileComponent({
             </View>
           ) : null}
 
-          {!hasStats ? (
-            <Text style={styles.newText} maxFontSizeMultiplier={1.2}>
-              Nouveau
-            </Text>
-          ) : null}
         </View>
 
         <View style={styles.priceRow}>

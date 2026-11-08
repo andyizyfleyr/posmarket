@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { StorefrontWrapper } from "@/components/StorefrontWrapper";
+import { getHomepageLayout } from "@/lib/homepage-layout";
 import { submitCheckoutAction } from "@/app/actions/checkout";
 import {
     fetchMarketplaceData,
@@ -8,7 +9,7 @@ import {
 } from "@/app/actions/marketplace";
 
 // Next.js ISR: cache la page 60 s sur le CDN Vercel.
-export const revalidate = 60;
+export const revalidate = 3600;
 
 const site =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -29,11 +30,15 @@ export const metadata: Metadata = {
 };
 
 export default async function WholesalePage() {
-    const stores = await fetchMarketplaceData();
+    const [stores, homepageLayout] = await Promise.all([
+        fetchMarketplaceData(),
+        getHomepageLayout(),
+    ]);
 
     return (
         <StorefrontWrapper
             stores={stores}
+            homepageLayout={homepageLayout}
             initialCategory="wholesale"
             onBackToApp={async () => {
                 "use server";

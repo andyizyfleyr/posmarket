@@ -39,12 +39,10 @@ import {
   ChevronUp,
   CreditCard,
   MapPin,
-  ShieldCheck,
   ShoppingCart,
   Store,
   Tag,
   Trash2,
-  Truck,
   X,
   Zap,
 } from 'lucide-react-native';
@@ -322,18 +320,6 @@ export default function CartScreen() {
             <View style={styles.content}>
               {cart.length > 0 ? (
                 <>
-                  {/* Réassurance */}
-                  <View style={styles.reassurance}>
-                    <View style={styles.reassuranceItem}>
-                      <ShieldCheck size={13} color="#22C55E" />
-                      <Text style={styles.reassuranceText}>Paiement sécurisé</Text>
-                    </View>
-                    <View style={styles.reassuranceItem}>
-                      <Truck size={13} color={COLORS.brand} />
-                      <Text style={styles.reassuranceText}>Payez à la livraison</Text>
-                    </View>
-                  </View>
-
                   {storeGroups.map(({ id: storeId, items }) => {
                     const storeObj = stores.find((s) => s.id === storeId);
                     const storeMinOrder = Number(
@@ -467,15 +453,6 @@ export default function CartScreen() {
                           </View>
                         )}
 
-                        {/* Total boutique */}
-                        <View style={styles.storeTotal}>
-                          <Text style={styles.storeTotalText}>
-                            Total {storeName} :{' '}
-                            <Text style={styles.storeTotalValue}>
-                              {formatCurrency(storeSubtotal)}
-                            </Text>
-                          </Text>
-                        </View>
                       </View>
                     );
                   })}
@@ -801,27 +778,6 @@ function CartRow({
             </Pressable>
           </View>
 
-          <View style={styles.itemChips}>
-            {item.variantId && variantName && (
-              <View style={styles.variantChip}>
-                <Tag size={9} color="#6B7280" />
-                <Text style={styles.variantChipText}>{variantName}</Text>
-              </View>
-            )}
-            {optionChips.map((option) => (
-              <View key={option.optionId} style={styles.variantChip}>
-                <Tag size={9} color="#6B7280" />
-                <Text style={styles.variantChipText}>{option.label}</Text>
-              </View>
-            ))}
-            {showCouponChip && (
-              <View style={styles.couponChip}>
-                <CheckCircle2 size={9} color="#16A34A" />
-                <Text style={styles.couponChipText}>Coupon</Text>
-              </View>
-            )}
-          </View>
-
           <View style={styles.itemBottomRow}>
             <View style={styles.stepper}>
               <Pressable
@@ -866,6 +822,27 @@ function CartRow({
               )}
             </View>
           </View>
+          <View style={styles.itemChips}>
+            {item.variantId && variantName && (
+              <View style={styles.variantChip}>
+                <Tag size={9} color="#6B7280" />
+                <Text style={styles.variantChipText}>{variantName}</Text>
+              </View>
+            )}
+            {optionChips.map((option) => (
+              <View key={option.optionId} style={styles.variantChip}>
+                <Tag size={9} color="#6B7280" />
+                <Text style={styles.variantChipText}>{option.label}</Text>
+              </View>
+            ))}
+            {showCouponChip && (
+              <View style={styles.couponChip}>
+                <CheckCircle2 size={9} color="#16A34A" />
+                <Text style={styles.couponChipText}>Coupon</Text>
+              </View>
+            )}
+          </View>
+
         </View>
       </Animated.View>
     </View>
@@ -880,21 +857,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   page: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   // Carte : l'ombre est portée par l'enveloppe (overflow hidden + radius iOS).
   cardShadow: {
-    borderRadius: 24,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 20,
+    shadowRadius: 14,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
@@ -904,7 +881,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
@@ -954,8 +931,8 @@ const styles = StyleSheet.create({
   // Indicateur d'étapes
   stepsBar: {
     backgroundColor: 'rgba(249,250,251,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -966,12 +943,12 @@ const styles = StyleSheet.create({
   },
   step: {
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -1027,35 +1004,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(249,250,251,0.5)',
     padding: 10,
   },
-  reassurance: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-  },
-  reassuranceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  reassuranceText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.9,
-  },
-
   // Cartes boutique
   storeCard: {
     marginTop: 12,
@@ -1148,22 +1096,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#78350F',
   },
-  storeTotal: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(249,250,251,0.7)',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  storeTotalText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  storeTotalValue: {
-    color: '#111827',
-    fontWeight: '700',
-  },
 
   // Lignes article
   rowWrap: {
@@ -1198,14 +1130,14 @@ const styles = StyleSheet.create({
   },
   rowContent: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 12,
+    gap: 8,
+    padding: 8,
     backgroundColor: '#FFFFFF',
   },
   itemImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     backgroundColor: '#F9FAFB',
@@ -1218,7 +1150,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 6,
   },
   itemNameBtn: {
     flexShrink: 1,
@@ -1227,7 +1159,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#111827',
-    lineHeight: 12,
+    lineHeight: 13,
   },
   itemTrash: {
     padding: 6,
@@ -1272,8 +1204,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.45,
   },
   itemBottomRow: {
-    marginTop: 'auto',
-    paddingTop: 8,
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -1286,29 +1217,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 999,
-    padding: 4,
+    padding: 2,
   },
   stepperBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepperMinus: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#6B7280',
   },
   stepperPlus: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.brand,
   },
   stepperQty: {
-    width: 28,
+    width: 20,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: '#111827',
     fontVariant: ['tabular-nums'],
@@ -1378,7 +1309,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   emptySub: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#6B7280',
     textAlign: 'center',
@@ -1414,19 +1345,19 @@ const styles = StyleSheet.create({
 
   // Récapitulatif
   summary: {
-    padding: 16,
+    padding: 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
   recapBox: {
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: 'rgba(249,250,251,0.8)',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    padding: 14,
-    gap: 6,
-    marginBottom: 16,
+    padding: 9,
+    gap: 4,
+    marginBottom: 8,
   },
   recapRow: {
     flexDirection: 'row',
@@ -1434,12 +1365,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   recapLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#6B7280',
   },
   recapValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#374151',
     fontVariant: ['tabular-nums'],
@@ -1450,12 +1381,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   recapGreen: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#16A34A',
   },
   recapGreenValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#16A34A',
     fontVariant: ['tabular-nums'],
@@ -1464,17 +1395,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 6,
+    paddingTop: 4,
     borderTopWidth: 1,
     borderTopColor: 'rgba(229,231,235,0.7)',
   },
   recapTotalLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#111827',
   },
   recapTotalValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.brand,
     fontVariant: ['tabular-nums'],
@@ -1482,20 +1413,20 @@ const styles = StyleSheet.create({
 
   // Code promo
   promoWrap: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   promoInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
+    height: 42,
     backgroundColor: 'rgba(249,250,251,0.7)',
     borderWidth: 1,
     borderColor: 'rgba(229,231,235,0.8)',
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   promoTagIcon: {
-    marginLeft: 16,
+    marginLeft: 12,
   },
   promoInput: {
     flex: 1,
@@ -1506,10 +1437,10 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   promoApplyBtn: {
-    width: 40,
-    height: 40,
-    margin: 6,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    margin: 5,
+    borderRadius: 9,
     backgroundColor: COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1531,8 +1462,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: 'rgba(209,213,219,0.8)',
@@ -1579,11 +1510,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingTop: 6,
   },
   cta: {
-    height: 52,
-    borderRadius: 16,
+    height: 44,
+    borderRadius: 13,
     backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1603,7 +1534,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   ctaText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
     textTransform: 'uppercase',

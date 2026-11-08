@@ -28,6 +28,8 @@ export interface Product {
   id: string;
   sku?: string;
   barcode?: string;
+  /** Seuil d'alerte stock bas propre au produit (sinon réglage boutique, sinon 10). */
+  lowStockThreshold?: number;
   name: string;
   price: number;
   originalPrice?: number;
@@ -95,9 +97,13 @@ export interface StoreSettings {
   description?: string;
   wholesaleEnabled?: boolean;
   wholesaleMinOrderAmount?: number;
+  /** Seuil d'alerte stock bas par défaut de la boutique (unités). */
+  lowStockThreshold?: number;
 }
 
 export interface StoreData {
+  /** Badge « vérifiée » distribué par l'admin PosMarket. */
+  isVerified?: boolean;
   id: string;
   slug?: string;
   name?: string;

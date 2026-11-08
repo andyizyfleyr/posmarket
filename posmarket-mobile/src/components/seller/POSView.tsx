@@ -415,6 +415,7 @@ export function SellerPosView({
   const [selectedCustomer, setSelectedCustomer] = useState<SellerCustomer | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'MOBILE_MONEY'>('CASH');
+  const [tendered, setTendered] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showCartSheet, setShowCartSheet] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState('');
@@ -568,6 +569,36 @@ export function SellerPosView({
     [addToCartQty],
   );
 
+  /**
+   * Lecture d'un code (douchette ou clavier) : correspondance exacte sur le
+   * code-barres du produit, ou sur le SKU d'une variante ; sinon ouverture
+   * du sélecteur de déclinaison.
+   */
+  const handleBarcodeScan = useCallback(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return;
+    for (const p of products) {
+      if ((p.barcode || '').trim().toLowerCase() === term) {
+        addToCart(p);
+        setSearchTerm('');
+        return;
+      }
+      const variants = Array.isArray(p.variants) ? p.variants : [];
+      const variant = variants.find((v) => (v.sku || '').trim().toLowerCase() === term);
+      if (variant) {
+        addToCartQty(p, 1, {
+          id: variant.id,
+          name: variant.name,
+          sku: variant.sku,
+          price: Number(variant.price) || 0,
+        });
+        setSearchTerm('');
+        return;
+      }
+    }
+    notify(`Aucun produit ne correspond au code « ${term} »`, 'error', 'Scan');
+  }, [searchTerm, products, addToCart, addToCartQty, notify]);
+
   const addToCartBulk = useCallback(
     (product: Product) => {
       const tiers = getNormalizedWholesaleTiers(product);
@@ -675,7 +706,19 @@ export function SellerPosView({
   };
 
   /* ─── Encaissement ─── */
+  const tenderedNumber = Number(tendered) || 0;
+  const changeDue = tenderedNumber - totals.total;
+  const cashReady = paymentMethod !== 'CASH' || tenderedNumber >= totals.total;
+
   const handleCheckout = () => {
+    if (!cashReady) {
+      notify(
+        `Montant reçu insuffisant : il manque ${formatCurrency(totals.total - tenderedNumber)}.`,
+        'error',
+        'Encaissement',
+      );
+      return;
+    }
     const newOrderId = 'CMD-' + Math.random().toString(36).slice(2, 11).toUpperCase();
     setCurrentOrderId(newOrderId);
     setIsProcessing(true);
@@ -745,6 +788,12 @@ export function SellerPosView({
         ? { code: promoApplied.code, amount: totals.discountAmount }
         : undefined,
       total: totals.total,
+      tendered:
+        paymentMethod === 'CASH' && tenderedNumber > 0 ? tenderedNumber : undefined,
+      change:
+        paymentMethod === 'CASH' && tenderedNumber > 0
+          ? tenderedNumber - totals.total
+          : undefined,
     }),
     [
       currentOrderId,
@@ -756,6 +805,7 @@ export function SellerPosView({
       totals,
       promoApplied,
       unitPriceOf,
+      tenderedNumber,
     ],
   );
 
@@ -790,6 +840,7 @@ export function SellerPosView({
 
   const closeCheckout = () => {
     setShowCheckoutModal(false);
+    setTendered('');
     setCart([]);
     setSelectedCustomer(null);
     setShowCartSheet(false);
@@ -982,7 +1033,10 @@ export function SellerPosView({
                   return (
                     <Pressable
                       key={pm.id}
-                      onPress={() => setPaymentMethod(pm.id)}
+                      onPress={() => {
+                        setPaymentMethod(pm.id);
+                        if (pm.id !== 'CASH') setTendered('');
+                      }}
                       style={[
                         styles.optionBtn,
                         active ? styles.optionBtnActive : styles.optionBtnIdle,
@@ -1045,6 +1099,56 @@ export function SellerPosView({
 
       {/* Totaux + encaissement */}
       <View style={[styles.sheetFooter, { paddingBottom: 12 + insets.bottom }]}>
+        {cart.length > 0 && paymentMethod === 'CASH' ? (
+          <View style={styles.tenderBlock}>
+            <View style={styles.tenderHeaderRow}>
+              <Text style={styles.tenderLabel}>Montant reçu</Text>
+              <View style={styles.tenderInputWrap}>
+                <TextInput
+                  value={tendered}
+                  onChangeText={(text) => setTendered(text.replace(/\D/g, ''))}
+                  placeholder="0"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="number-pad"
+                  style={styles.tenderInput}
+                />
+                <Text style={styles.tenderSuffix}>XOF</Text>
+              </View>
+            </View>
+            <View style={styles.tenderChipsRow}>
+              <Pressable
+                onPress={() => setTendered(String(totals.total))}
+                style={styles.tenderChipExact}
+              >
+                <Text style={styles.tenderChipExactText}>Exact</Text>
+              </Pressable>
+              {[500, 1000, 2000, 5000, 10000, 20000, 50000].map((billet) => (
+                <Pressable
+                  key={billet}
+                  onPress={() => setTendered(String(billet))}
+                  style={styles.tenderChip}
+                >
+                  <Text style={styles.tenderChipText}>
+                    {billet >= 1000 ? `${billet / 1000}k` : billet}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {tenderedNumber > 0 ? (
+              <View style={styles.changeRow}>
+                <Text style={styles.changeLabel}>
+                  {changeDue >= 0 ? 'Monnaie à rendre' : 'Manque'}
+                </Text>
+                <Text style={[styles.changeValue, changeDue >= 0 ? null : styles.changeValueShort]}>
+                  {changeDue >= 0
+                    ? formatCurrency(changeDue)
+                    : `−${formatCurrency(-changeDue)}`}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         {cart.length > 0 ? (
           <View style={styles.totalsBlock}>
             <View style={styles.totalRow}>
@@ -1066,13 +1170,21 @@ export function SellerPosView({
           </View>
         ) : null}
 
+        {canManageOrders && paymentMethod === 'CASH' && !cashReady && cart.length > 0 ? (
+          <Text style={styles.cashHint}>
+            Montant reçu insuffisant : il manque {formatCurrency(totals.total - tenderedNumber)}
+          </Text>
+        ) : null}
+
         {canManageOrders ? (
           <Pressable
             onPress={handleCheckout}
-            disabled={cart.length === 0 || isProcessing}
+            disabled={cart.length === 0 || isProcessing || !cashReady}
             style={[
               styles.checkoutBtn,
-              cart.length === 0 || isProcessing ? styles.checkoutBtnDisabled : null,
+              cart.length === 0 || isProcessing || !cashReady
+                ? styles.checkoutBtnDisabled
+                : null,
             ]}
           >
             {cart.length > 0 && !isProcessing ? (
@@ -1086,12 +1198,12 @@ export function SellerPosView({
             {isProcessing ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <CreditCard size={18} color={cart.length === 0 ? '#9CA3AF' : '#FFFFFF'} />
+              <CreditCard size={18} color={cart.length === 0 || !cashReady ? '#9CA3AF' : '#FFFFFF'} />
             )}
             <Text
               style={[
                 styles.checkoutBtnText,
-                cart.length === 0 ? styles.checkoutBtnTextDisabled : null,
+                cart.length === 0 || !cashReady ? styles.checkoutBtnTextDisabled : null,
               ]}
             >
               {isProcessing ? 'Envoi...' : cart.length === 0 ? `${cartWord} vide` : 'Encaisser'}
@@ -1130,9 +1242,12 @@ export function SellerPosView({
             <TextInput
               value={searchTerm}
               onChangeText={setSearchTerm}
-              placeholder="Rechercher un produit..."
+              placeholder="Rechercher ou scanner un code-barres..."
               placeholderTextColor="#9CA3AF"
               style={styles.searchInput}
+              returnKeyType="search"
+              onSubmitEditing={handleBarcodeScan}
+              blurOnSubmit={false}
             />
             {searchTerm ? (
               <Pressable
@@ -1347,6 +1462,22 @@ export function SellerPosView({
                   <Text style={styles.successTotalLabel}>Total payé</Text>
                   <Text style={styles.successTotalValue}>{formatCurrency(totals.total)}</Text>
                 </View>
+                {paymentMethod === 'CASH' && tenderedNumber > 0 ? (
+                  <>
+                    <View style={styles.successRow}>
+                      <Text style={styles.successRowLabel}>Montant reçu</Text>
+                      <Text style={styles.successRowValue}>
+                        {formatCurrency(tenderedNumber)}
+                      </Text>
+                    </View>
+                    <View style={styles.successRow}>
+                      <Text style={styles.successRowLabel}>Monnaie rendue</Text>
+                      <Text style={[styles.successRowValue, { color: '#16A34A' }]}>
+                        {formatCurrency(tenderedNumber - totals.total)}
+                      </Text>
+                    </View>
+                  </>
+                ) : null}
                 <View style={styles.successMetaRow}>
                   <View style={styles.successMetaItem}>
                     {paymentMethod === 'CASH' ? (
@@ -2662,6 +2793,115 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 6,
   },
+  /* ── Encaissement espèces (montant remis / monnaie rendue) ─────────── */
+  tenderBlock: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    borderRadius: 16,
+    padding: 10,
+    marginBottom: 10,
+    gap: 8,
+  },
+  tenderHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  tenderLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  tenderInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tenderInput: {
+    width: 112,
+    textAlign: 'right',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  tenderSuffix: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9CA3AF',
+  },
+  tenderChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tenderChipExact: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: '#FFEDD5',
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+  },
+  tenderChipExactText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.brand,
+  },
+  tenderChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tenderChipText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  changeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#FED7AA',
+    paddingTop: 8,
+  },
+  changeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  changeValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  changeValueShort: {
+    color: '#EF4444',
+  },
+  cashHint: {
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#EF4444',
+    marginBottom: 6,
+  },
+
   totalsBlock: {
     marginBottom: 12,
   },

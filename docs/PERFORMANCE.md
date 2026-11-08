@@ -55,7 +55,7 @@ les mêmes lignes via Drizzle. Les mêmes données sont payées deux fois.
 ### 1.3 JavaScript trop lourd
 
 - **409 Ko** dans un seul chunk, contenant uniquement `jsPDF` + `html2canvas`.
-  Cause : `InvoicesView.tsx` et `ReportsView.tsx` les importent statiquement.
+  Cause (historiquement) : `InvoicesView.tsx` et `ReportsView.tsx`, depuis supprimées.
   Or `src/utils/receipt.ts` fait déjà correctement `await import('jspdf')` —
   le bon modèle existe déjà dans le projet.
 - **Aucun** `next/dynamic` sur les vues. `StorefrontView` fait 5 044 lignes,
@@ -110,8 +110,8 @@ jamais une valeur fournie par le client. Un test de non-régression dédié
 
 ### Lot 3 — Alléger le JavaScript *(bénéficie aux deux surfaces d'un coup)*
 
-- `dynamic(() => import('@/views/InvoicesView'))` et idem `ReportsView`
-  → **−409 Ko** pour toutes les routes qui ne les affichent pas.
+- ~~`dynamic(() => import('@/views/InvoicesView'))` et idem `ReportsView`~~
+  → les deux vues ont depuis été supprimées.
 - Découper `StorefrontView` (5 044 lignes) en sous-composants chargés à la
   demande.
 - Corriger `sizes` de `ProductImage` selon le contexte (grille POS vs fiche

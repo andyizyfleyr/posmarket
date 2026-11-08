@@ -23,6 +23,12 @@ export type BuyerOrder = {
   subtotal: number;
   status: string;
   paymentMethod: string;
+  /** Encaissement boutique : PENDING, PAID, FAILED (absent pour l’historique). */
+  paymentStatus?: string;
+  /** Moyen réglé : cod, kkiapay, fedapay, saspay, ussd. */
+  paymentProvider?: string | null;
+  /** Référence fournisseur du règlement. */
+  paymentReference?: string | null;
   store_id?: string;
   stores: Array<{ name?: string; business_type?: string }>;
   order_items: BuyerOrderItem[];

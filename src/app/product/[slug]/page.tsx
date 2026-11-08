@@ -4,8 +4,9 @@ import { StorefrontWrapper } from "@/components/StorefrontWrapper";
 import { submitCheckoutAction } from '@/app/actions/checkout';
 import { fetchMarketplaceData, notifyCartInterestAction, notifyPostCheckoutAction } from "@/app/actions/marketplace";
 import { getProductSeo, absoluteImage } from "@/utils/catalog-seo";
+import { getHomepageLayout } from "@/lib/homepage-layout";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 type Props = { params: Promise<{ slug: string }> };
@@ -44,9 +45,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
     const { slug } = await params;
-    const [stores, found] = await Promise.all([
+    const [stores, found, homepageLayout] = await Promise.all([
         fetchMarketplaceData(),
         getProductSeo(slug),
+        getHomepageLayout(),
     ]);
 
     let jsonLd: Record<string, unknown>[] | null = null;
@@ -104,6 +106,7 @@ export default async function ProductPage({ params }: Props) {
             )}
             <StorefrontWrapper
                 stores={stores}
+                homepageLayout={homepageLayout}
                 onBackToApp={async () => {
                     "use server";
                 }}

@@ -64,7 +64,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(
     const salesCount = product.salesCount ?? 0;
     const rating = product.rating ?? 0;
     const reviewCount = product.reviewCount ?? 0;
-    const hasStats = salesCount > 0 || rating > 0;
 
     // Un produit à variantes affiche « dès X » : le prix dépend des options.
     const priceRange = variantPriceRange(product);
@@ -207,7 +206,6 @@ const ProductCard: React.FC<ProductCardProps> = memo(
               </span>
             ) : null}
 
-            {!hasStats ? <span className="text-[9.5px] text-gray-400">Nouveau</span> : null}
           </div>
 
           <div className="mt-auto flex items-baseline gap-1 pt-1">

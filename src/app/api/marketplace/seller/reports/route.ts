@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/marketplace/seller/reports?storeId=...
  *
  * Données de la page Rapports (Historique) mobile — mêmes sources que
- * `src/app/(app)/reports/page.tsx` : commandes formatées (`loadOrdersForStore`,
+ * ancienne page web `(app)/reports` (supprimée) : commandes formatées (`loadOrdersForStore`,
  * cache 20 s, 100 dernières, tri décroissant) et boutique (`fetchStoreData`,
  * dont `settings` pour le reçu). La vue mobile ne consomme ni produits ni
  * clients ni factures.

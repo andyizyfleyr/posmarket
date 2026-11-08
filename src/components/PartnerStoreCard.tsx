@@ -49,6 +49,8 @@ export function PartnerStoreCard({ store, stats, onOpen }: PartnerStoreCardProps
   const initials = name.trim().slice(0, 2).toUpperCase();
   const country = resolveCountryName(store.settings?.country);
   const logo = store.settings?.logo;
+  // Badge « Vérifié » : uniquement sur décision admin (/pam/stores).
+  const isVerified = !!store.isVerified;
 
   // Ordre de lecture : note + avis, puis ventes, puis vues. Les stats à zéro
   // sont masquées et le séparateur ne se place qu'entre deux blocs réellement
@@ -76,11 +78,7 @@ export function PartnerStoreCard({ store, stats, onOpen }: PartnerStoreCardProps
           </span>
         ) : null}
       </span>
-    ) : (
-      <span key="new" className="font-bold text-brand">
-        Nouveau
-      </span>
-    ),
+    ) : null,
   );
 
   if (stats.salesCount > 0) {
@@ -125,12 +123,14 @@ export function PartnerStoreCard({ store, stats, onOpen }: PartnerStoreCardProps
       <div className="relative h-11 overflow-hidden bg-gradient-to-br from-[#FFF6F0] to-[#FFE3D3]">
         <span className="absolute -right-6 -top-8 h-[76px] w-[76px] rounded-full bg-[rgba(245,107,42,0.10)]" />
         <span className="absolute bottom-[-22px] left-[30px] h-9 w-9 rounded-full bg-[rgba(255,255,255,0.55)]" />
-        <span className="absolute right-2.5 top-2 inline-flex shrink-0 items-center gap-[3px] rounded-full bg-[rgba(255,255,255,0.78)] px-1.5 py-[3px]">
-          <span className="text-[7.5px] font-bold tracking-[0.15px] text-[#22C55E]">
-            Vérifié
+        {isVerified && (
+          <span className="absolute right-2.5 top-2 inline-flex shrink-0 items-center gap-[3px] rounded-full bg-[rgba(255,255,255,0.78)] px-1.5 py-[3px]">
+            <span className="text-[7.5px] font-bold tracking-[0.15px] text-[#22C55E]">
+              Vérifié
+            </span>
+            <BadgeCheck size={9} strokeWidth={2.5} className="text-[#22C55E]" />
           </span>
-          <BadgeCheck size={9} strokeWidth={2.5} className="text-[#22C55E]" />
-        </span>
+        )}
       </div>
 
       {/* Logo, nom, pays, stats */}
@@ -152,9 +152,11 @@ export function PartnerStoreCard({ store, stats, onOpen }: PartnerStoreCardProps
               </span>
             )}
           </div>
-          <span className="absolute -bottom-px -right-px flex h-[15px] w-[15px] items-center justify-center rounded-full border-2 border-white bg-[#1877F2]">
-            <Check size={7} strokeWidth={4} className="text-white" />
-          </span>
+          {isVerified && (
+            <span className="absolute -bottom-px -right-px flex h-[15px] w-[15px] items-center justify-center rounded-full border-2 border-white bg-[#1877F2]">
+              <Check size={7} strokeWidth={4} className="text-white" />
+            </span>
+          )}
         </div>
 
         <div className="mt-1.5 flex items-center gap-1">

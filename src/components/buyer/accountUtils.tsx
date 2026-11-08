@@ -70,6 +70,47 @@ export const StatusBadge: React.FC<{
   );
 };
 
+/** Libellés courts des moyens d'encaissement d'une boutique. */
+export const PAYMENT_PROVIDER_LABELS: Record<string, string> = {
+  cod: 'Paiement à la livraison',
+  kkiapay: 'Kkiapay',
+  fedapay: 'FedaPay',
+  saspay: 'SasPay',
+  ussd: 'USSD',
+};
+
+/**
+ * Pastille « encaissement » d'une commande passée en ligne. Rien n'est affiché
+ * sans moyen connu (ventes en magasin ou commandes historiques).
+ */
+export const PaymentBadge: React.FC<{
+  status?: string | null;
+  provider?: string | null;
+}> = ({ status, provider }) => {
+  if (!provider) return null;
+  const s = String(status || 'PENDING').toUpperCase();
+  const offline = provider === 'cod' || provider === 'ussd';
+  let cls = 'bg-amber-100 text-amber-700';
+  let label = 'Paiement en attente';
+  if (s === 'PAID') {
+    cls = 'bg-green-100 text-green-700';
+    label = 'Paiement effectué';
+  } else if (s === 'FAILED') {
+    cls = 'bg-red-100 text-red-700';
+    label = 'Paiement échoué';
+  } else if (offline) {
+    cls = 'bg-blue-100 text-blue-700';
+    label = 'À régler à la livraison';
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap ${cls}`}
+    >
+      {label}
+    </span>
+  );
+};
+
 export const ProductThumb: React.FC<{
   src?: string | null;
   alt?: string;

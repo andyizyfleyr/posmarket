@@ -139,8 +139,45 @@ export async function getAllStores() {
   if (!(await requirePamAdmin())) throw new Error(ACCES_REFUSE);
   await applyAllDueViewBoosts();
   try {
-    const storesList = await db.select().from(stores).orderBy(desc(stores.createdAt));
-    return (storesList || []).map(toLegacyStore);
+    // Projection explicite : la sélection de toutes les colonnes du schéma
+    // doit rester en échec si elle ne colle pas à la base.
+    const storesList = await db
+      .select({
+        id: stores.id,
+        userId: stores.userId,
+        name: stores.name,
+        slug: stores.slug,
+        email: stores.email,
+        phone: stores.phone,
+        address: stores.address,
+        ninea: stores.ninea,
+        description: stores.description,
+        logo: stores.logo,
+        theme: stores.theme,
+        businessType: stores.businessType,
+        status: stores.status,
+        views: stores.views,
+        boostedViews: stores.boostedViews,
+        settings: stores.settings,
+        createdAt: stores.createdAt,
+      })
+      .from(stores)
+      .orderBy(desc(stores.createdAt));
+    // Badge « vérifiée » (migration 0036) — absent de la base tant que le SQL
+    // n'est pas appliqué : la liste reste fonctionnelle, sans badge.
+    let verifiedIds = new Set<string>();
+    try {
+      const rows = await db.execute(
+        sql`SELECT id::text AS id FROM stores WHERE verified_at IS NOT NULL`,
+      );
+      verifiedIds = new Set((rows.rows as Array<{ id: string }>).map((r) => r.id));
+    } catch {
+      // Migration 0036 absente — affichage sans badge, sans erreur.
+    }
+    return (storesList || []).map((row) => ({
+      ...toLegacyStore(row),
+      is_verified: verifiedIds.has(row.id),
+    }));
   } catch (error: unknown) {
     console.error('Error fetching all stores:', error);
     return [];
@@ -569,6 +606,43 @@ export async function deleteProduct(productId: string) {
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: errorMessage(error) };
+  }
+}
+
+/**
+ * Distribue (ou retire) le badge « boutique vérifiée » — réservé à l'admin.
+ * Écrit `verified_at`/`verified_by` en SQL direct : la colonne arrive avec la
+ * migration 0036 et on veut un message clair plutôt qu'un 500 si elle manque.
+ */
+export async function setStoreVerifiedAction(
+  storeId: string,
+  verified: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const session = await requirePamAdmin();
+  if (!session) throw new Error(ACCES_REFUSE);
+  try {
+    if (verified) {
+      await db.execute(
+        sql`UPDATE stores SET verified_at = now(), verified_by = ${session.username} WHERE id = ${storeId}`,
+      );
+    } else {
+      await db.execute(
+        sql`UPDATE stores SET verified_at = NULL, verified_by = NULL WHERE id = ${storeId}`,
+      );
+    }
+    revalidatePath('/pam/stores');
+    refreshTag('marketplace');
+    return { success: true };
+  } catch (error: unknown) {
+    const msg = errorMessage(error);
+    if (/verified_at/i.test(msg)) {
+      return {
+        success: false,
+        error: 'Migration 0036 (stores.verified_at) pas encore appliquée sur la base.',
+      };
+    }
+    console.error('[admin] setStoreVerifiedAction:', error);
+    return { success: false, error: msg };
   }
 }
 

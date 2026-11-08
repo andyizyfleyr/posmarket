@@ -651,7 +651,7 @@ ${productList(d.products)}
     render: (d) => {
       return bodyBlock(d, `${hero('Nouvel avis reçu', null, d.buyer ? `${d.buyer} a noté ${d.product || 'un de vos produits'}.` : `Un client a noté ${d.product || 'un de vos produits'}.`)}
       ${rows([['Produit', d.product], ['Client', d.buyer], ['Note', `${stars(d.rating)} (${d.rating}/5)`], ['Total des avis', d.count ? `${d.count} avis` : null]])}
-      ${CTA(`${siteUrl()}/reports`, 'Voir les avis')}
+      ${CTA(`${siteUrl()}/dashboard`, 'Voir les avis')}
       ${note('Répondez à vos clients : leurs avis améliorent la visibilité de votre boutique.')}`);
     },
   },

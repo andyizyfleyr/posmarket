@@ -210,16 +210,6 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                 </div>
             </div>
 
-            {/* Paiement en ligne de toutes les durées (SasPay) */}
-            {saspayDirect && (
-                <div className="w-full max-w-5xl mb-6 md:mb-8 -mt-2 md:-mt-4">
-                    <p className="flex items-center justify-center gap-2 text-[11px] md:text-xs font-semibold text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-center">
-                        <Shield size={14} className="shrink-0" />
-                        Paiement en ligne sécurisé avec SasPay — mensuel, trimestriel et annuel.
-                    </p>
-                </div>
-            )}
-
             {/* Plans Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full max-w-5xl mb-8">
                 {plans.map((plan) => {
@@ -302,8 +292,6 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                                     { label: 'Point de Vente (POS)', included: true },
                                     { label: 'Gestion stocks & clients', included: true },
                                     { label: 'Boutique en ligne', included: plan.features.enableStorefront },
-                                    { label: 'Rapports avancés', included: plan.features.enableAdvancedReports },
-                                    { label: 'Tickets personnalisés', included: plan.features.enableCustomReceipts },
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         {feature.included ? (

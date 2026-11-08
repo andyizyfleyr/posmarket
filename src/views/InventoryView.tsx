@@ -11,6 +11,7 @@ import {
   Upload,
   ArrowRightLeft,
   AlertCircle,
+  ScanLine,
   List,
   LayoutGrid,
   X,
@@ -75,16 +76,27 @@ interface InventoryViewProps {
   subscription?: UserSubscription;
   businessType?: BusinessVertical;
   storeName?: string;
+  /** Seuil d'alerte « stock bas » par défaut de la boutique (unités). */
+  lowStockThreshold?: number;
 }
 
 const InventoryView: React.FC<InventoryViewProps> = ({
   products: initialProducts,
   permissions,
+  lowStockThreshold,
   currentStoreId,
   subscription,
   businessType = 'shopping',
   storeName = 'Boutique',
 }) => {
+  // Seuil effectif : produit → boutique → 10 unités.
+  const lowStockOf = (product: Product) =>
+    typeof product.lowStockThreshold === 'number' && product.lowStockThreshold >= 0
+      ? product.lowStockThreshold
+      : typeof lowStockThreshold === 'number' && lowStockThreshold >= 0
+        ? lowStockThreshold
+        : 10;
+
   // Pas de `useDeferredValue` ici, contrairement au POS : le filtrage de
   // l'inventaire est fait côté serveur avec un débounce de 500 ms (voir l'effet
   // plus bas). Ajouter une valeur différée ne ferait que dupliquer le travail
@@ -363,6 +375,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         name: product.name || '',
         price: product.price ?? undefined,
         stock: product.stock ?? undefined,
+        lowStockThreshold: product.lowStockThreshold ?? undefined,
+        barcode: product.barcode || '',
         category: product.category || 'Général',
         mainCategory: product.mainCategory || CATEGORY_MAPPING[product.category || ''] || 'Divers',
         image: product.image || '',
@@ -396,6 +410,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         name: '',
         price: undefined,
         stock: undefined,
+        lowStockThreshold: undefined,
+        barcode: '',
         category: businessType === 'food' ? 'Plats Cuisinés' : 'Général',
         mainCategory: businessType === 'food' ? 'Restauration & Livraison Rapide' : 'Divers',
         image: '',
@@ -892,10 +908,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               </span>
                               <span className="text-[9px] text-gray-300">|</span>
                               <div className="flex items-center gap-1">
-                                <span className={`text-[9px] font-bold ${product.stock < 10 ? 'text-red-500' : 'text-gray-500'}`}>
+                                <span className={`text-[9px] font-bold ${product.stock < lowStockOf(product) ? 'text-red-500' : 'text-gray-500'}`}>
                                   {product.stock} {product.unit}
                                 </span>
-                                {product.stock < 10 && <AlertCircle size={9} className="text-red-500" />}
+                                {product.stock < lowStockOf(product) && <AlertCircle size={9} className="text-red-500" />}
                               </div>
                             </div>
                           </div>
@@ -949,8 +965,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="hidden md:table-cell px-4 py-2.5">
                       <div className="flex items-center gap-2">
                           <>
-                            <span className={`text-xs font-bold ${product.stock < 10 ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
-                            {product.stock < 10 && <AlertCircle size={12} className="text-red-500" />}
+                            <span className={`text-xs font-bold ${product.stock < lowStockOf(product) ? 'text-red-500' : 'text-gray-700'}`}>{product.stock}</span>
+                            {product.stock < lowStockOf(product) && <AlertCircle size={12} className="text-red-500" />}
                           </>
                       </div>
                     </div>
@@ -1032,7 +1048,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                     <span className="text-xs md:text-sm font-bold text-brand whitespace-nowrap">
                       {formatCurrency(product.price)}
                     </span>
-                    <span className={`text-[8px] md:text-[9px] font-bold px-1 py-0.5 rounded-full whitespace-nowrap ${product.stock < 10 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{product.stock}</span>
+                    <span className={`text-[8px] md:text-[9px] font-bold px-1 py-0.5 rounded-full whitespace-nowrap ${product.stock < lowStockOf(product) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{product.stock}</span>
                   </div>
                 </div>
               ))}
@@ -1370,6 +1386,39 @@ if (formData.images.length >= 8) {
                           ? 'Des variantes existent : le stock total sera calculé depuis vos déclinaisons.'
                           : 'Quantité totale disponible en réserve ou rayon.'}
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Code-barres & seuil de stock bas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <ScanLine size={14} className="text-brand" /> Code-barres
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={formData.barcode ?? ''}
+                        onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                        placeholder="Ex : 6001234567890"
+                        className="w-full px-4 md:px-5 py-3 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm md:text-base font-semibold text-gray-800 focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-brand transition-all outline-none"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1 font-medium">Scannez avec une douchette sur ce champ. Facultatif.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <AlertCircle size={14} className="text-brand" /> Alerte stock bas
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={formData.lowStockThreshold ?? ''}
+                        onChange={e => setFormData({ ...formData, lowStockThreshold: e.target.value === '' ? undefined : Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                        placeholder="Défaut boutique"
+                        className="w-full px-4 md:px-5 py-3 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-sm md:text-base font-semibold text-gray-800 focus:bg-white focus:ring-4 focus:ring-orange-100 focus:border-brand transition-all outline-none"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1 font-medium">Sous ce nombre d’unités, le produit est signalé « stock bas ». Vide = seuil de la boutique.</p>
                     </div>
                   </div>
 

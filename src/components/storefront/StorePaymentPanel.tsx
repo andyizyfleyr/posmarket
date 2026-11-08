@@ -1,14 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { CheckCircle2, CreditCard, Loader2, Phone, RefreshCw, Smartphone, Truck, XCircle } from 'lucide-react';
 import { useKkiapay } from '@/hooks/useKkiapay';
 import { useFedapay } from '@/hooks/useFedapay';
+import { PAYMENT_PROVIDER_LOGOS } from '@/lib/payment-logos';
+import type { FeexPayWidgetAttempt } from '@/components/payments/FeexPayWidget';
+
+// Chargé uniquement au clic sur « Payer avec FeexPay » (le SDK injecte une
+// feuille globale : on évite de la charger pour les paiements réglés autrement).
+const FeexPayWidget = dynamic(() => import('@/components/payments/FeexPayWidget'), {
+  ssr: false,
+});
+import { widgetErrorReason } from '@/lib/widget-errors';
 import {
   confirmStorePaymentAction,
   refreshStorePaymentAction,
 } from '@/app/actions/storePayments';
 import type { NotificationType } from '@/types';
+
+/** Moyens de paiement en ligne lançables immédiatement (le reste n'enclenche rien). */
+export const STORE_ONLINE_PROVIDERS = new Set(['kkiapay', 'fedapay', 'feexpay', 'saspay']);
+export const isOnlineProvider = (provider: string): boolean => STORE_ONLINE_PROVIDERS.has(provider);
 
 /** Vue client d'un paiement boutique renvoyée par l'action checkout. */
 export type StoreCheckoutPaymentView = {
@@ -23,6 +37,8 @@ export type StoreCheckoutPaymentView = {
   token: string;
   checkoutUrl: string | null;
   publicKey: string | null;
+  /** Identifiant public de la boutique FeexPay (guichet SDK). */
+  shopId?: string | null;
   env: 'sandbox' | 'live';
   ussdCode: string | null;
   instructions: string | null;
@@ -46,8 +62,21 @@ function ProviderIcon({ provider }: { provider: string }) {
       return <Phone size={18} className={cls} />;
     case 'saspay':
       return <CreditCard size={18} className={cls} />;
-    default:
-      return <Smartphone size={18} className={cls} />;
+    default: {
+      const logo = PAYMENT_PROVIDER_LOGOS[provider];
+      return logo ? (
+        // Logo officiel du fournisseur (assets locaux)
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logo.src}
+          alt={logo.alt}
+          draggable={false}
+          className="h-4 w-auto max-w-[54px] object-contain shrink-0"
+        />
+      ) : (
+        <Smartphone size={18} className={cls} />
+      );
+    }
   }
 }
 
@@ -67,9 +96,11 @@ function PaymentCard({
   const [error, setError] = useState<string | null>(payment.error);
   const kkiapay = useKkiapay();
   const fedapay = useFedapay();
+  const [feexpayAttempt, setFeexpayAttempt] = useState<FeexPayWidgetAttempt | null>(null);
 
   const applyResult = (res: { success: boolean; status?: string; error?: string }) => {
-    if (res.success || res.status === 'PAID') {
+    const ok = Boolean(res.success || res.status === 'PAID');
+    if (ok) {
       setStatus('PAID');
       setError(null);
       notify?.('Paiement confirmé, merci !', 'success');
@@ -141,6 +172,44 @@ function PaymentCard({
     });
   };
 
+  const payFeexpay = () => {
+    if (!payment.publicKey || !payment.shopId) {
+      setError('Paiement FeexPay indisponible pour cette boutique.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setFeexpayAttempt({
+      key: `${Date.now()}`,
+      shopId: payment.shopId,
+      token: payment.publicKey,
+      amount: Math.round(payment.amount),
+      mode: payment.env === 'live' ? 'LIVE' : 'SANDBOX',
+      description: 'Commande PosMarket',
+      callbackInfo: payment.token,
+      firstName: customer.name || undefined,
+      email: customer.email || undefined,
+      onSettled: async (reference, reason) => {
+        window.setTimeout(() => setFeexpayAttempt(null), 120);
+        try {
+          if (!reference) {
+            setError(
+              reason === 'dismissed'
+                ? 'Paiement annulé.'
+                : reason === 'open_timeout'
+                  ? "Impossible d'ouvrir le guichet FeexPay — vérifiez l'identifiant boutique et la clé API (et leur mode LIVE/SANDBOX)."
+                  : widgetErrorReason(reason ? new Error(reason) : null, 'Paiement annulé ou non abouti.'),
+            );
+            return;
+          }
+          applyResult(await confirmStorePaymentAction(payment.orderId, payment.token, reference));
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
   const verify = async () => {
     setBusy(true);
     setError(null);
@@ -155,6 +224,8 @@ function PaymentCard({
   const isFailed = status === 'FAILED';
 
   return (
+    <>
+    {feexpayAttempt && <FeexPayWidget attempt={feexpayAttempt} />}
     <div
       className={`w-full max-w-md rounded-2xl border p-4 text-left space-y-3 ${
         isPaid
@@ -224,6 +295,16 @@ function PaymentCard({
                 Payer avec FedaPay
               </button>
             )}
+            {payment.provider === 'feexpay' && (
+              <button
+                onClick={payFeexpay}
+                disabled={busy}
+                className="flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-100 hover:bg-[#d55a20] disabled:opacity-50 transition-all active:scale-95"
+              >
+                {busy ? <Loader2 size={14} className="animate-spin spinner-always" /> : <Smartphone size={14} />}
+                Payer avec FeexPay
+              </button>
+            )}
             {payment.provider === 'saspay' && payment.checkoutUrl && (
               <a
                 href={payment.checkoutUrl}
@@ -249,13 +330,14 @@ function PaymentCard({
         </>
       )}
     </div>
+    </>
   );
 }
 
 export function StorePaymentPanel({ payments, customer, formatCurrency, notify }: Props) {
   if (!payments || payments.length === 0) return null;
   return (
-    <div className="w-full flex flex-col items-center gap-3 mt-6">
+    <div className="w-full flex flex-col items-center gap-3 mt-2">
       <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest text-center">
         Paiement de votre commande
       </p>

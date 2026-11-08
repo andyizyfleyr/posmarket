@@ -21,6 +21,25 @@ import { StoreData, BusinessVertical, ProductOption, ProductVariant, WholesaleTi
 
 const CATALOG_TAG = 'marketplace'
 
+/**
+ * IDs des boutiques dont le badge « Vérifiée » est actif (`verified_at` non
+ * nul — distribué par l'admin via /pam/stores).
+ *
+ * Lecture brute : la colonne n'existe pas dans le schéma Drizzle tant que la
+ * migration 0036 n'est pas appliquée, et on refuse de faire tomber tout le
+ * catalogue pour un badge. Toute erreur → aucune boutique vérifiée.
+ */
+async function fetchVerifiedStoreIds(): Promise<Set<string>> {
+  try {
+    const rows = await db.execute(
+      sql`SELECT id::text AS id FROM stores WHERE verified_at IS NOT NULL`,
+    );
+    return new Set((rows.rows as Array<{ id: string }>).map((r) => r.id));
+  } catch {
+    return new Set();
+  }
+}
+
 
 
 type SaveAddressPayload = {
@@ -44,7 +63,8 @@ type ReviewPayload = {
 
 async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
   try {
-    const [storesData, productsData, productStatsData, salesCountsData, reviewsAggData] = await Promise.all([
+    const [verifiedIds, storesData, productsData, productStatsData, salesCountsData, reviewsAggData] = await Promise.all([
+      fetchVerifiedStoreIds(),
       db
         .select({
           id: stores.id,
@@ -173,6 +193,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
         views: s.views || 0,
         rating: storeReviewsMap[s.id]?.rating || 0,
         reviewCount: storeReviewsMap[s.id]?.reviewCount || 0,
+        isVerified: verifiedIds.has(s.id),
         settings: {
           name: s.name,
           email: s.email || '',
@@ -193,6 +214,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
               originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
               image: toImageRef(p.image, p.hasImage, p.id),
               images: toGalleryRefs(p.images, p.hasImage, p.id),
+              storeVerified: verifiedIds.has(s.id),
               unit: p.unit || undefined,
               deliveryTime: p.deliveryTime || undefined,
               preparationTime: p.preparationTime || undefined,
@@ -235,7 +257,7 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
 
 const getCachedMarketplaceData = unstable_cache(fetchMarketplaceDataUncached, ['marketplace-catalog'], {
   tags: [CATALOG_TAG],
-  revalidate: 60,
+  revalidate: 3600,
 });
 
 export async function fetchMarketplaceData(): Promise<StoreData[]> {
@@ -251,7 +273,8 @@ export async function fetchMarketplaceData(): Promise<StoreData[]> {
  */
 async function fetchHomeMarketplaceDataUncached(): Promise<StoreData[]> {
   try {
-    const [storesData, productsData, productStatsData, salesCountsData, reviewsAggData] = await Promise.all([
+    const [verifiedIds, storesData, productsData, productStatsData, salesCountsData, reviewsAggData] = await Promise.all([
+      fetchVerifiedStoreIds(),
       db
         .select({
           id: stores.id,
@@ -349,6 +372,7 @@ async function fetchHomeMarketplaceDataUncached(): Promise<StoreData[]> {
           views: s.views || 0,
           rating: storeReviewsMap[s.id]?.rating || 0,
           reviewCount: storeReviewsMap[s.id]?.reviewCount || 0,
+          isVerified: verifiedIds.has(s.id),
           business_type: (settingsObj.businessType as BusinessVertical) || undefined,
           settings: {
             name: s.name,
@@ -370,6 +394,7 @@ async function fetchHomeMarketplaceDataUncached(): Promise<StoreData[]> {
               price: Number(p.price) || 0,
               originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
               image: toImageRef(p.image, p.hasImage, p.id),
+              storeVerified: verifiedIds.has(s.id),
               stock: p.stock || 0,
               category: p.mainCategory || 'Autre',
               mainCategory: p.mainCategory || '',
@@ -409,7 +434,7 @@ const getCachedHomeMarketplaceData = unstable_cache(
   ['marketplace-home'],
   {
     tags: [CATALOG_TAG],
-    revalidate: 60,
+    revalidate: 3600,
   },
 );
 
@@ -775,6 +800,9 @@ export async function fetchBuyerOrdersAction(page: number = 1, pageSize: number 
         subtotal: orders.subtotal,
         status: orders.status,
         paymentMethod: orders.paymentMethod,
+        paymentStatus: orders.paymentStatus,
+        paymentProvider: orders.paymentProvider,
+        paymentReference: orders.paymentReference,
         storeId: orders.storeId,
         storeName: stores.name,
         storeBusinessType: stores.businessType,
@@ -823,6 +851,9 @@ export async function fetchBuyerOrdersAction(page: number = 1, pageSize: number 
         subtotal: Number(o.subtotal) || 0,
         status: o.status || 'PENDING',
         paymentMethod: o.paymentMethod || '',
+        paymentStatus: o.paymentStatus || 'PENDING',
+        paymentProvider: o.paymentProvider || null,
+        paymentReference: o.paymentReference || null,
         store_id: o.storeId,
         stores: [{ name: o.storeName, business_type: o.storeBusinessType }],
         order_items: (itemsByOrder[o.id] || []).map((i) => ({

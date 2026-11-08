@@ -2,10 +2,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import { useRouter } from 'next/navigation';
-import { Users, Search, Plus, Phone, History, Star, X, Edit, Trash2, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { Users, Search, Plus, Phone, History, Star, X, Edit, Trash2, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Download } from 'lucide-react';
 import { Customer, StaffRole, StaffPermissions } from '@/types';
 import { formatCurrency, formatPhoneNumber } from '@/utils';
 import { getCustomersAction } from '@/app/actions/customers';
+import { exportCustomersCsvAction } from '@/app/actions/export';
+import { downloadCsv } from '@/utils/csv-download';
 import { PhoneInput } from '@/components/PhoneInput';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
@@ -54,6 +56,7 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     isLoading?: boolean;
   }>({ isOpen: false });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -137,6 +140,23 @@ const CustomersView: React.FC<CustomersViewProps> = ({
     totalSpent: 0,
     ordersCount: 0
   });
+
+  /** Export CSV des clients (dépenses décroissantes). */
+  const handleExportCustomersCsv = async () => {
+    if (!currentStoreId || isExportingCsv) return;
+    setIsExportingCsv(true);
+    try {
+      const result = await exportCustomersCsvAction(currentStoreId);
+      if (!result.success) {
+        showToast(result.error || 'Export impossible pour le moment.', 'error');
+        return;
+      }
+      downloadCsv(result.csv, result.filename);
+      showToast(`${result.count} client${result.count > 1 ? 's' : ''} exporté${result.count > 1 ? 's' : ''} (CSV).`, 'success');
+    } finally {
+      setIsExportingCsv(false);
+    }
+  };
 
   const filteredCustomers = useMemo(() => {
     const result = [...localCustomers].filter(c => {
@@ -410,6 +430,15 @@ const CustomersView: React.FC<CustomersViewProps> = ({
               className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 bg-gray-50 border border-gray-100 rounded-lg md:rounded-xl text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </div>
+          <button
+            onClick={handleExportCustomersCsv}
+            disabled={isExportingCsv}
+            title="Exporter les clients (CSV)"
+            className="flex items-center gap-1.5 px-2.5 md:px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg md:rounded-xl text-gray-500 hover:text-brand hover:border-orange-200 transition-colors"
+          >
+            {isExportingCsv ? <Loader2 size={16} className="animate-spin text-brand spinner-always" /> : <Download size={16} />}
+            <span className="hidden lg:inline text-[11px] font-bold">Export CSV</span>
+          </button>
           <div className="md:hidden flex items-center gap-2">
             <input 
                 type="checkbox" 

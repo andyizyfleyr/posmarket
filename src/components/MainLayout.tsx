@@ -102,7 +102,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   };
 
   // Redirect SELLER away from restricted views
-  if (currentUserRole === 'SELLER' && ['settings', 'reports'].includes(currentView)) {
+  if (currentUserRole === 'SELLER' && ['settings'].includes(currentView)) {
     router.replace('/dashboard');
     return null;
   }

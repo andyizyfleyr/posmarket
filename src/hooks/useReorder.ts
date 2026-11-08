@@ -108,8 +108,41 @@ export function useReorder(notify?: NotifyFn) {
 
         const added: string[] = [];
         const skipped: string[] = [];
+        const otherStoreSkipped: string[] = [];
         /** Lignes prêtes à être fusionnées dans le panier. */
         const toAdd: CartLine[] = [];
+
+        // Une seule boutique par panier : on ne remet au panier que les
+        // articles de la boutique la plus représentée de la commande.
+        const storeCount = new Map<string, number>();
+        for (const item of items) {
+          const reference = item.products?.[0];
+          const product = reference?.id ? products.get(reference.id) : undefined;
+          if (product?.storeId) {
+            storeCount.set(product.storeId, (storeCount.get(product.storeId) ?? 0) + 1);
+          }
+        }
+        let dominantStoreId: string | undefined;
+        let dominantCount = 0;
+        for (const [id, n] of storeCount) {
+          if (n > dominantCount) {
+            dominantCount = n;
+            dominantStoreId = id;
+          }
+        }
+        // Le panier contient déjà des articles d'une autre boutique : on n'y touche pas.
+        const persistedStoreId = readCart().find((l) => l.product.storeId)?.product.storeId;
+        if (
+          dominantStoreId &&
+          persistedStoreId &&
+          persistedStoreId !== dominantStoreId
+        ) {
+          notify?.(
+            "Votre panier contient déjà des articles d'une autre boutique. Videz-le pour remettre cette commande au panier.",
+            'warning',
+          );
+          return;
+        }
 
         for (const item of items) {
           const reference = item.products?.[0];
@@ -117,6 +150,10 @@ export function useReorder(notify?: NotifyFn) {
           const product = reference?.id ? products.get(reference.id) : undefined;
           if (!product || product.isOnline === false) {
             skipped.push(name);
+            continue;
+          }
+          if (dominantStoreId && product.storeId !== dominantStoreId) {
+            otherStoreSkipped.push(name);
             continue;
           }
 
@@ -201,6 +238,12 @@ export function useReorder(notify?: NotifyFn) {
         );
         if (skipped.length > 0) {
           notify?.(`Indisponible : ${skipped.join(', ')}.`, 'warning');
+        }
+        if (otherStoreSkipped.length > 0) {
+          notify?.(
+            `Une seule boutique par panier — ${otherStoreSkipped.length} article(s) d'autres boutiques ignoré(s).`,
+            'info',
+          );
         }
         navigate('/cart');
       } catch {

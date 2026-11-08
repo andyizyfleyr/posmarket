@@ -1,12 +1,11 @@
 import React from "react";
 import Image from "next/image";
-import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingBag, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown, Eye } from "lucide-react";
+import { Package, ArrowRight, ChevronRight, Maximize2, Zap, Clock, Star, ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, RotateCcw, Truck, ChevronLeft, Loader2, Store, CheckCircle2, X, ChevronDown } from "lucide-react";
 import Button from "@/components/Button";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber, maskName } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
-import { RichDescription, AutoHighlights, AutoBadgesRow, AutoSpecsGrid } from "@/components/storefront/RichDescription";
-import { extractDescriptionHighlights, buildAutoSpecs, buildAutoBadges } from "@/utils/product-description";
+import { ExpandableDescription } from "@/components/storefront/ExpandableDescription";
 import { generateProductSlug } from "@/utils/slug";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
 import {
@@ -70,8 +69,6 @@ type ProductDetailsProps = {
   safeNavigate: (path: string, options?: { action?: () => void }) => void;
   setSelectedCategory: (category: string) => void;
   addWholesaleToCart: (product: StorefrontProduct, minQty?: number, variantId?: string | null) => void;
-  isDescriptionExpanded: boolean;
-  setIsDescriptionExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   stores?: StoreData[];
   cartItemsCount: number;
   /**
@@ -152,17 +149,13 @@ function OptionSelectionHint({
  * tree d'accessibilité, donc un seul `<h1>` reste exposé à la fois.
  */
 
-/** Fil du vendeur : logo réel, nom vérifié, catégorie. */
+/** Fil du vendeur : logo réel, nom vérifié. */
 function ProductSeller({
   product,
   logo,
-  category,
-  onCategoryClick,
 }: {
   product: StorefrontProduct;
   logo?: string;
-  category: string;
-  onCategoryClick: () => void;
 }) {
   // Aligné à gauche pour démarrer au même point que le nom du produit. Un nom
   // long déborde donc du bord droit du bloc : la ligne se remplit de gauche à
@@ -202,23 +195,15 @@ function ProductSeller({
           <span className="text-[13px] font-semibold text-gray-800 truncate min-w-0 group-hover/vendor:text-brand transition-colors">
             {product.storeName}
           </span>
-          <CheckCircle2
-            size={13}
-            role="img"
-            aria-label="Boutique vérifiée"
-            className="text-brand flex-shrink-0"
-          />
+          {product.storeVerified === true && (
+            <CheckCircle2
+              size={13}
+              role="img"
+              aria-label="Boutique vérifiée"
+              className="text-brand flex-shrink-0"
+            />
+          )}
         </Link>
-        {category && (
-          <button
-            type="button"
-            onClick={onCategoryClick}
-            className="mt-0.5 flex items-center gap-0.5 text-[11px] text-gray-400 hover:text-brand transition-colors cursor-pointer min-w-0 max-w-full"
-          >
-            <span className="truncate">{category}</span>
-            <ChevronRight size={11} className="flex-shrink-0" />
-          </button>
-        )}
       </div>
     </div>
   );
@@ -236,77 +221,6 @@ function ProductTitle({ product }: { product: StorefrontProduct }) {
     <h1 className="text-[17px] lg:text-[22px] font-bold text-gray-950 leading-[1.25] tracking-[-0.01em]">
       {product.name}
     </h1>
-  );
-}
-
-/**
- * Preuve sociale : note, avis, ventes, vues.
- *
- * Les cinq étoiles restent visibles — réduire la note à un nombre encadré
- * jetait l'information la plus lue d'une fiche produit. Le tout tient sur une
- * ligne, avec des séparateurs `·` qui ne peuvent pas se retrouver orphelins
- * comme ceux d'un `flex-wrap`.
- */
-function ProductSocialProof({
-  rating,
-  reviewTotal,
-  salesCount,
-  viewCount,
-  isFood,
-  onReviewsClick,
-}: {
-  rating: number;
-  reviewTotal: number;
-  salesCount: number;
-  viewCount: number;
-  isFood: boolean;
-  onReviewsClick: () => void;
-}) {
-  // Ventes et vues ne s'affichent qu'au-dessus de zéro : « 0 vendus » est un
-  // signal négatif, et un « 0 · 0 » sur une fiche neuve n'aide personne.
-  const counters = [
-    salesCount > 0 && {
-      icon: <ShoppingBag size={11} className="flex-shrink-0" />,
-      label: `${formatNumber(salesCount)} ${isFood ? "commandes" : "vendus"}`,
-    },
-    viewCount > 0 && {
-      icon: <Eye size={11} className="flex-shrink-0" />,
-      label: `${formatNumber(viewCount)} vues`,
-    },
-  ].filter(Boolean) as { icon: React.ReactNode; label: string }[];
-
-  return (
-    <div className="flex items-center gap-2 text-[11px] text-gray-400">
-      <button
-        type="button"
-        onClick={onReviewsClick}
-        aria-label={`Voir les ${reviewTotal} avis`}
-        className="flex items-center gap-1.5 min-w-0 rounded-md hover:opacity-70 active:opacity-60 transition-opacity cursor-pointer"
-      >
-        <span className="flex text-amber-400 gap-px flex-shrink-0">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <Star
-              key={s}
-              size={12}
-              strokeWidth={1.5}
-              fill={s <= Math.round(rating) ? "currentColor" : "none"}
-            />
-          ))}
-        </span>
-        <span className="font-semibold text-gray-700">{rating.toFixed(1)}</span>
-        <span className="truncate">({formatNumber(reviewTotal)} avis)</span>
-      </button>
-
-      {counters.map((c) => (
-        <span key={c.label} className="flex items-center gap-2 min-w-0">
-          <span className="text-gray-300 flex-shrink-0">·</span>
-          <span className="flex items-center gap-1 min-w-0 truncate">
-            {c.icon}
-            {c.label}
-          </span>
-        </span>
-      ))}
-    </div>
   );
 }
 
@@ -656,8 +570,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     safeNavigate,
     setSelectedCategory,
     addWholesaleToCart,
-    isDescriptionExpanded,
-    setIsDescriptionExpanded,
   cartItemsCount,
   isVariantInCart,
 } = props;
@@ -680,9 +592,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       .slice(0, 10);
 
     const mainCat = product.mainCategory || product.category || "Boutique";
-    // Le breadcrumb ne montre que la vraie catégorie : le fallback "Boutique"
-    // de `mainCat` ferait afficher « Boutique › » comme un lien de navigation.
-    const realCategory = product.mainCategory || product.category || "";
     const isFood =
       product.businessType === "food" ||
       mainCat === "Restauration & Livraison Rapide";
@@ -699,28 +608,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     const reviews: Review[] = Array.isArray(product.reviews) ? product.reviews : [];
 
     const renderReviewCard = (review: Review, idx: number) => (
-      <div key={idx} className="flex gap-3 py-4 first:pt-1 last:pb-0">
-        <div
-          className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold overflow-hidden ${
-            review.avatarUrl
-              ? "bg-gray-100"
-              : [
-                  "bg-gradient-to-br from-orange-100 to-orange-200 text-[#d55a20]",
-                  "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700",
-                  "bg-gradient-to-br from-rose-100 to-rose-200 text-rose-600",
-                ][idx % 3]
-          }`}
-        >
-          {review.avatarUrl ? (
-            <img
-              src={review.avatarUrl}
-              alt=""
-              className="w-full h-full object-cover" loading="lazy" decoding="async" />
-          ) : (
-            review.author?.[0]?.toUpperCase() || "A"
-          )}
-        </div>
-        <div className="flex-grow min-w-0">
+      <div key={review.id || idx} className="py-4 first:pt-1 last:pb-0">
+        <div className="min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div>
               <h4 className="text-xs font-bold text-gray-900 truncate">
@@ -921,20 +810,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             : "Ajouter au panier";
 
     // --- Description enrichie (auto, sans action du vendeur) ---
-    const autoHighlights = extractDescriptionHighlights(descriptionText);
-    const autoSpecs = buildAutoSpecs(product, {
-      mainCategory: mainCat,
-      storeName: product.storeName,
-      isFood,
-      isOutOfStock,
-      stock: stockValue,
-    });
-    const autoBadges = buildAutoBadges(product);
-    const hasMoreContent =
-      descriptionText.length > 180 ||
-      autoSpecs.length > 0 ||
-      autoHighlights.length > 0 ||
-      autoBadges.length > 0;
 
     // --- Gallery ---
     const galleryImages = [
@@ -1078,11 +953,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
       if (img) setSelectedDetailImage(img);
     };
 
-    const scrollToSection = (id: string) => {
-      document
-        .getElementById(id)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
 
     return (
       <div className="max-w-6xl mx-auto px-4 md:px-6 pb-40 lg:pb-16 bg-[#f8f9fc] lg:bg-transparent -mx-4 lg:mx-auto">
@@ -1117,26 +987,14 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </span>
         </nav>
 
-        {/* ================= MOBILE APP-BAR (M3 style) =================
-            Bouton de retour uniquement. Le panier vit dans la barre du bas :
-            le dupliquer ici affichait deux boutons pointant vers la meme
-            destination sur le meme ecran. */}
-        {/* ================= TOPBAR MOBILE =================
-            Nom de boutique cliquable (vitrine de la boutique), centré, sur
-            deux lignes si le nom est long (pas d'ellipse). Espace du haut
-            toujours visible : safe-area iOS + 12px minimum. */}
+        {/* ================= TOPBAR MOBILE (fin trait) =================
+            Un simple filet horizontal : ni bouton retour, ni nom de boutique.
+            Desktop (lg+) garde son fil d'Ariane. */}
         <div
-          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/70 px-5 pb-3 flex flex-col items-center gap-1"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
-        >
-          <Link
-            to={`/store/${product.storeSlug || product.storeId}`}
-            className="max-w-full text-center text-[15px] font-bold leading-snug text-gray-900 break-words line-clamp-2 transition-colors hover:text-brand active:text-brand"
-          >
-            {product.storeName}
-          </Link>
-          <span className="h-[3px] w-7 rounded-full bg-brand" aria-hidden="true" />
-        </div>
+          aria-hidden="true"
+          className="lg:hidden sticky top-0 z-[100] -mx-4 h-[3px] border-b border-gray-100/80 bg-white/95 backdrop-blur-md"
+          style={{ marginTop: "env(safe-area-inset-top, 0px)" }}
+        />
 
         {/* ================= PRODUIT ================= */}
         <div id="pd-produit" className="scroll-mt-14">
@@ -1352,24 +1210,9 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 <ProductSeller
                   product={product}
                   logo={storeLogo}
-                  category={realCategory}
-                  onCategoryClick={() =>
-                    safeNavigate("/", {
-                      action: () => setSelectedCategory(mainCat),
-                    })
-                  }
                 />
 
                 <ProductTitle product={product} />
-
-                <ProductSocialProof
-                  rating={product.rating || 0}
-                  reviewTotal={reviewTotal}
-                  salesCount={product.salesCount || 0}
-                  viewCount={product.views || 0}
-                  isFood={isFood}
-                  onReviewsClick={() => scrollToSection("pd-avis")}
-                />
 
                 {/* Price block: compact & refined */}
                 <div className="bg-gray-50/90 rounded-xl p-3.5 border border-gray-200/70 flex items-center justify-between gap-3">
@@ -1607,28 +1450,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   <ProductSeller
                     product={product}
                     logo={storeLogo}
-                    category={realCategory}
-                    onCategoryClick={() =>
-                      safeNavigate("/", {
-                        action: () => setSelectedCategory(mainCat),
-                      })
-                    }
                   />
                 </div>
 
                 <div className="mb-2">
                   <ProductTitle product={product} />
-                </div>
-
-                <div className="mb-3.5">
-                  <ProductSocialProof
-                    rating={product.rating || 0}
-                    reviewTotal={reviewTotal}
-                    salesCount={product.salesCount || 0}
-                    viewCount={product.views || 0}
-                    isFood={isFood}
-                    onReviewsClick={() => scrollToSection("pd-avis")}
-                  />
                 </div>
 
                 {/* Price block: Fine, sleek & compact */}
@@ -1799,35 +1625,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     {isFood ? 'Détails du plat' : 'Description produit'}
                   </h3>
                 </div>
-                <div
-                  className={`relative ${
-                    !isDescriptionExpanded
-                      ? "max-h-32 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
-                      : ""
-                  }`}
-                >
-                  <RichDescription text={descriptionText} accentClass={accentText} />
-                  <AutoHighlights items={autoHighlights} accentClass={accentText} />
-                  <AutoBadgesRow badges={autoBadges} />
-                  <AutoSpecsGrid
-                    specs={autoSpecs}
-                    className="grid grid-cols-2 gap-2 mt-3.5"
-                  />
-                </div>
-                {hasMoreContent && (
-                  <button
-                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors ${accentText}`}
-                  >
-                    {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
-                    <ChevronRight
-                      size={10}
-                      className={`transition-transform duration-300 ${
-                        isDescriptionExpanded ? "-rotate-90" : "rotate-90"
-                      }`}
-                    />
-                  </button>
-                )}
+                <ExpandableDescription
+                  key={product?.id ? `m-desc-${product.id}` : undefined}
+                  text={descriptionText}
+                  accentClass={accentText}
+                />
               </div>
             </div>
           </div>
@@ -1844,36 +1646,12 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             </div>
           </div>
 
-          <div
-            className={`relative ${
-              !isDescriptionExpanded
-                ? "max-h-56 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
-                : ""
-            }`}
-          >
-            <RichDescription text={descriptionText} accentClass={accentText} />
-            <AutoHighlights items={autoHighlights} accentClass={accentText} />
-            <AutoBadgesRow badges={autoBadges} />
-            <AutoSpecsGrid
-              specs={autoSpecs}
-              className="grid grid-cols-2 gap-2 pt-3.5 mt-3.5 border-t border-gray-100 text-xs"
-            />
-          </div>
-
-          {hasMoreContent && (
-            <button
-              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-              className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform text-brand"
-            >
-              {isDescriptionExpanded ? "Réduire" : "Lire la suite"}
-              <ChevronRight
-                size={10}
-                className={`transition-transform duration-300 ${
-                  isDescriptionExpanded ? "-rotate-90" : "rotate-90"
-                }`}
-              />
-            </button>
-          )}
+          <ExpandableDescription
+            key={product?.id ? `d-desc-${product.id}` : undefined}
+            text={descriptionText}
+            accentClass={accentText}
+            buttonClassName="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
+          />
         </section>
         {/* ================= AVIS (CARD-BASED) ================= */}
         <section
@@ -2047,8 +1825,8 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                 Dans la même boutique
               </h3>
             </div>
-            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-4 lg:grid-cols-4 md:gap-5">
-              {relatedProducts.slice(0, 8).map((relProduct: StorefrontProduct) => (
+            <div className="flex overflow-x-auto no-scrollbar gap-3 snap-x snap-mandatory pb-4 pr-4 -mr-4 md:mr-0 md:pb-0 md:pr-0 md:grid md:grid-cols-3 lg:grid-cols-6 md:gap-4">
+              {relatedProducts.slice(0, 6).map((relProduct: StorefrontProduct) => (
                 <ProductCard
                   key={`${relProduct.storeId}-${relProduct.id}`}
                   product={relProduct}

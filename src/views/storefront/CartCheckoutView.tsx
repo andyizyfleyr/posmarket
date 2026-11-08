@@ -1,6 +1,8 @@
 import React from "react";
-import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Star, Bell, AlertTriangle, Loader2, Globe, Phone, Smartphone } from "lucide-react";
-import { StorePaymentPanel, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, AlertTriangle, Loader2, Globe, Copy } from "lucide-react";
+import SuccessCheckLottie from "@/components/storefront/SuccessCheckLottie";
+import { PAYMENT_PROVIDER_LOGOS } from "@/lib/payment-logos";
+import { isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
 import ProductImage from "@/components/ProductImage";
 import Button from "@/components/Button";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -8,11 +10,12 @@ import { isValidPhoneNumber } from "@/utils";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { generateProductSlug } from "@/utils/slug";
 import { cartNoun, cartNounLower, verticalOfProduct } from "@/constants";
-import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { Coupon, NotificationType, StoreData } from "@/types";
 import type { StorefrontProduct } from "../StorefrontView";
 
 const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(", ");
+
+
 
 /** Ligne de panier acheteur — même forme que l'état `cart` de StorefrontView. */
 type CartLine = {
@@ -142,6 +145,23 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
     storePayments, setStorePayments,
   } = props;
 
+  // Écran « Commande réussie » : copie de la référence de commande.
+  const [referenceCopiee, setReferenceCopiee] = React.useState(false);
+  const copierReferenceCommande = React.useCallback(
+    (reference: string) => {
+      void (async () => {
+        try {
+          await navigator.clipboard.writeText(reference);
+          setReferenceCopiee(true);
+          window.setTimeout(() => setReferenceCopiee(false), 1800);
+        } catch {
+          localNotify("Référence impossible à copier sur cet appareil", "info");
+        }
+      })();
+    },
+    [localNotify],
+  );
+
   // La verticale se déduit du panier : les produits sont désormais forcés au
   // type de leur boutique, donc le panier est homogène. Un resto parle de
   // « commande », un shop de « panier ».
@@ -151,6 +171,18 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   const cartWord = cartNoun(cartVertical);
   const cartWordLower = cartNounLower(cartVertical);
 
+  // Le panier contient-il au moins un moyen de paiement en ligne ?
+  const hasOnlineSelection = React.useMemo(
+    () =>
+      Object.entries(storePaymentSelections).some(([storeId, provider]) => {
+        if (!provider) return false;
+        const match = (storePaymentMethods[storeId] || []).find(
+          (m) => m.provider === provider,
+        );
+        return match ? match.isOnline : isOnlineProvider(provider);
+      }),
+    [storePaymentSelections, storePaymentMethods],
+  );
   /** Prix de référence (variante choisie sinon produit) d'une ligne. */
   const referencePrice = (item: CartLine): number => {
     if (item.variantId && item.product?.variants) {
@@ -198,9 +230,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   };
 
   return (
-﻿      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col">
-        <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
-          <h2 className="text-sm md:text-lg font-bold flex items-center gap-2 leading-tight min-w-0">
+﻿      <div className="max-w-4xl mx-auto bg-white w-full rounded-2xl shadow-md md:shadow-xl border border-gray-100 md:border-0 overflow-hidden flex flex-col">
+        <div className="px-2 py-1.5 md:px-3 md:py-2 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
+          <h2 className="text-[12px] md:text-sm font-bold flex items-center gap-1.5 leading-tight min-w-0">
             {checkoutStage === "cart" ? (
               <ShoppingCart className="text-brand shrink-0" size={16} />
             ) : (
@@ -235,7 +267,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 },
               });
             }}
-            className="px-3 py-2 -mr-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-bold text-[10px] uppercase tracking-tight flex items-center gap-1 whitespace-nowrap"
+            className="px-2 py-1 md:px-3 md:py-1.5 -mr-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-bold text-[9px] uppercase tracking-tight flex items-center gap-1 whitespace-nowrap"
           >
             <ChevronLeft size={12} /> Continuer les achats
           </button>
@@ -243,7 +275,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
 
         {/* Step Indicator */}
         {checkoutStage !== "success" && (
-          <div className="bg-gray-50/50 px-4 md:px-8 py-2 border-b border-gray-100">
+          <div className="bg-gray-50/50 px-2 md:px-6 py-1 border-b border-gray-100">
             <div className="flex items-center justify-between max-w-2xl mx-auto">
               {[
                 { id: "cart", label: cartWord, icon: ShoppingCart },
@@ -256,14 +288,14 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   array.findIndex((s) => s.id === checkoutStage) > idx;
                 return (
                   <React.Fragment key={stage.id}>
-                    <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-center gap-1 shrink-0">
                       <div
-                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-brand text-white shadow-lg shadow-orange-100 scale-110" : isPast ? "bg-green-100 text-green-600" : "bg-white border-2 border-gray-100 text-gray-500"}`}
+                        className={`w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-brand text-white shadow-lg shadow-orange-100 scale-110" : isPast ? "bg-green-100 text-green-600" : "bg-white border-2 border-gray-100 text-gray-500"}`}
                       >
                         {isPast ? (
-                          <CheckCircle2 size={18} />
+                          <CheckCircle2 size={15} />
                         ) : (
-                          <Icon size={isActive ? 18 : 16} />
+                          <Icon size={isActive ? 16 : 14} />
                         )}
                       </div>
                       <span
@@ -286,21 +318,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
           </div>
         )}
 
-        <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-2.5 sm:p-3 md:p-8">
+        <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-1.5 sm:p-2 md:p-4">
           {(checkoutStage === "cart" && cart.length > 0) && (
-            <div className="space-y-3">
-              {/* Réassurance */}
-              <div className="flex items-center justify-center gap-5 py-2.5 bg-white rounded-full border border-gray-100 shadow-sm text-[9px] font-bold uppercase tracking-widest text-gray-500">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={13} className="text-green-500" />
-                  Paiement sécurisé
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Truck size={13} className="text-brand" />
-                  Payez à la livraison
-                </span>
-              </div>
-
+            <div className="space-y-2">
               {Array.from(
                 new Set(
                   cart
@@ -339,9 +359,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 return (
                   <div
                     key={storeId}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
                   >
-                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-gray-50/70 border-b border-gray-100">
+                    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-gray-50/70 border-b border-gray-100">
                       <div className="flex items-center gap-2 min-w-0">
                         <Store size={12} className="text-brand shrink-0" />
                         <span className="text-[9px] md:text-[11px] font-bold text-gray-900 truncate">
@@ -398,7 +418,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                 </div>
                                 {/* Contenu glissant */}
                                 <div
-                                  className="relative p-3 flex gap-3 bg-white"
+                                  className="relative p-1.5 flex gap-1.5 bg-white"
                                   style={{ transform: `translateX(${swipeDx}px)`, transition: swipeDx !== 0 ? 'none' : 'transform 0.25s ease' }}
                                   onTouchStart={(e) => {
                                     swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -417,11 +437,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     swipeStartRef.current = null;
                                   }}
                                 >
-                            <div className="w-16 h-16 shrink-0">
+                            <div className="w-12 h-12 md:w-14 md:h-14 shrink-0">
                               <ProductImage
                                 src={item.product.image}
                                 alt={item.product.name || "Product Image"}
-                                containerClassName="rounded-xl border border-gray-100 shadow-sm"
+                                containerClassName="rounded-lg border border-gray-100 shadow-sm"
                                 showZoomEffect={false}
                               />
                             </div>
@@ -436,7 +456,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     )
                                   }
                                   disabled={!item.product.id}
-                                  className="text-left text-[10px] md:text-sm font-semibold text-gray-900 leading-tight line-clamp-1 hover:underline decoration-dotted underline-offset-4 transition-all"
+                                  className="text-left text-[11px] md:text-[12px] font-semibold text-gray-900 leading-tight line-clamp-1 hover:underline decoration-dotted underline-offset-4 transition-all"
                                 >
                                   {item.product.name || "Unknown Product"}
                                 </button>
@@ -449,12 +469,68 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     )
                                   }
                                   aria-label={`Retirer ${item.product.name || "le produit"} du ${cartWordLower}`}
-                                  className="shrink-0 p-2.5 -m-1.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
+                                  className="shrink-0 p-1.5 -m-0.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
                                 >
-                                  <Trash2 size={15} />
+                                  <Trash2 size={13} />
                                 </button>
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-h-[18px]">
+                              <div className="mt-1 flex items-center justify-between gap-3">
+                                <div className="flex items-center bg-gray-100/70 border border-gray-200/80 rounded-full p-[2px]">
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(
+                                        item.product.id,
+                                        item.product.storeId,
+                                        -1,
+                                        item.variantId,
+                                      )
+                                    }
+                                    aria-label="Diminuer la quantité"
+                                    className="w-6 h-6 grid place-items-center rounded-full font-bold text-[13px] leading-none text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-5 text-center text-[10px] font-bold text-gray-900 tabular-nums">
+                                    {qty}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(
+                                        item.product.id,
+                                        item.product.storeId,
+                                        1,
+                                        item.variantId,
+                                      )
+                                    }
+                                    aria-label="Augmenter la quantité"
+                                    className="w-6 h-6 grid place-items-center rounded-full font-bold text-[13px] leading-none text-brand hover:bg-orange-50 active:bg-orange-100 transition-all"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className="text-[11px] font-bold text-gray-900 whitespace-nowrap tabular-nums">
+                                    {formatCurrency(unitPrice * qty)}
+                                  </span>
+                                  {hasWholesale && (
+                                    <span
+                                      className={`flex items-center gap-1 text-[8px] font-bold uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-brand"}`}
+                                    >
+                                      {wholesaleActive ? (
+                                        <>
+                                          <CheckCircle2 size={9} /> Prix de gros
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Zap size={9} fill="currentColor" />{" "}
+                                          +{wholesaleLeft} = prix de gros
+                                        </>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap min-h-[18px]">
                                 {item.variantId && item.product.variants && (
                                   <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2 py-px text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
                                     <Tag size={9} />
@@ -473,62 +549,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     </span>
                                   )}
                               </div>
-                              <div className="mt-auto pt-2 flex items-end justify-between gap-3">
-                                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-full p-1 md:p-0.5">
-                                  <button
-                                    onClick={() =>
-                                      updateQuantity(
-                                        item.product.id,
-                                        item.product.storeId,
-                                        -1,
-                                        item.variantId,
-                                      )
-                                    }
-                                    aria-label="Diminuer la quantité"
-                                    className="w-9 h-9 md:w-7 md:h-7 grid place-items-center rounded-full font-bold text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
-                                  >
-                                    −
-                                  </button>
-                                  <span className="w-7 text-center text-xs font-bold text-gray-900 tabular-nums">
-                                    {qty}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      updateQuantity(
-                                        item.product.id,
-                                        item.product.storeId,
-                                        1,
-                                        item.variantId,
-                                      )
-                                    }
-                                    aria-label="Augmenter la quantité"
-                                    className="w-9 h-9 md:w-7 md:h-7 grid place-items-center rounded-full font-bold text-brand hover:bg-orange-50 active:bg-orange-100 transition-all"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <div className="flex flex-col items-end gap-0.5">
-                                  <span className="text-[10px] md:text-sm font-bold text-gray-900 whitespace-nowrap tabular-nums">
-                                    {formatCurrency(unitPrice * qty)}
-                                  </span>
-                                  {hasWholesale && (
-                                    <span
-                                      className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-brand"}`}
-                                    >
-                                      {wholesaleActive ? (
-                                        <>
-                                          <CheckCircle2 size={9} /> Prix de gros
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Zap size={9} fill="currentColor" />{" "}
-                                          +{wholesaleLeft} = prix de gros
-                                        </>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -546,7 +566,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           })
                         }
                         aria-expanded={isStoreExpanded}
-                        className="w-full flex items-center justify-center gap-1.5 py-3 border-t border-gray-50 text-[10px] font-bold uppercase tracking-widest text-brand hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
+                        className="w-full flex items-center justify-center gap-1 py-1.5 border-t border-gray-50 text-[9px] font-bold uppercase tracking-widest text-brand hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
                       >
                         {isStoreExpanded ? (
                           <>
@@ -563,8 +583,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
 
                     {/* Alerte Minimum de Commande B2B */}
                     {isBelowMinOrder && (
-                      <div className="p-3 bg-amber-50 border-t border-amber-200/60 flex items-start gap-2.5">
-                        <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div className="p-2 bg-amber-50 border-t border-amber-200/60 flex items-start gap-2">
+                        <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
                         <div className="text-[11px] text-amber-800 leading-tight">
                           <span className="font-semibold">Minimum de commande de gros :</span> {formatCurrency(storeMinOrder)}.
                           <span className="block text-amber-700 mt-0.5">
@@ -574,23 +594,17 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                       </div>
                     )}
 
-                    {/* Total Boutique */}
-                    <div className="px-4 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-gray-500">
-                        Total {storeName} : <strong className="text-gray-900">{formatCurrency(storeSubtotal)}</strong>
-                      </span>
-                    </div>
                   </div>
                 );
               })}
             </div>
           )}
           {(checkoutStage === "cart" && cart.length === 0) && (
-            <div className="h-full flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="h-full flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="relative mb-5">
                 <div className="absolute inset-0 bg-orange-100 rounded-full blur-2xl opacity-60 scale-125" />
-                <div className="relative w-20 h-20 bg-white border border-gray-100 rounded-3xl grid place-items-center shadow-sm">
-                  <ShoppingCart size={30} className="text-brand/60" />
+                <div className="relative w-16 h-16 bg-white border border-gray-100 rounded-2xl grid place-items-center shadow-sm">
+                  <ShoppingCart size={26} className="text-brand/60" />
                 </div>
               </div>
               <p className="text-lg font-bold text-gray-900">
@@ -614,7 +628,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             </div>
           )}
           {checkoutStage === "blocked" && (
-            <div className="h-full flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="h-full flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="relative mb-5">
                 <div className="absolute inset-0 bg-amber-100 rounded-full blur-2xl opacity-60 scale-125" />
                 <div className="relative w-20 h-20 bg-white border border-amber-200 rounded-3xl grid place-items-center shadow-sm">
@@ -658,29 +672,29 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             <form
               id="checkout-form"
               onSubmit={handleCheckoutSubmit}
-              className="space-y-6"
+              className="space-y-3"
             >
               {checkoutStage === "shipping" && (
-                <div className="space-y-6   ">
+                <div className="space-y-3">
                   {/* Section 1: Informations Personnelles */}
-                  <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 text-brand flex items-center justify-center font-bold text-sm">
+                  <div className="bg-white rounded-2xl p-3 md:p-4 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <div className="w-6 h-6 rounded-md bg-orange-50 text-brand flex items-center justify-center font-bold text-[10px]">
                         1
                       </div>
-                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
+                      <h3 className="text-[11px] md:text-xs font-bold text-gray-900 uppercase tracking-widest">
                         Contact à livrer
                       </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-600 uppercase ml-1">
+                    <div className="grid grid-cols-1 min-[520px]:grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-gray-500 uppercase ml-0.5">
                           Nom Complet
                         </label>
                         <div className="relative group">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-brand transition-colors">
-                            <User size={18} />
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-brand transition-colors">
+                            <User size={14} />
                           </div>
                           <input
                             required
@@ -693,12 +707,12 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                 name: e.target.value,
                               })
                             }
-                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border placeholder-gray-400"
+                            className="w-full h-10 md:h-11 pl-9 pr-3 text-[13px] md:text-sm bg-gray-50/50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border placeholder-gray-400"
                           />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-600 uppercase ml-1">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-gray-500 uppercase ml-0.5">
                           Téléphone Mobile
                         </label>
                         <PhoneInput
@@ -740,9 +754,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                       [{ provider: "cod", label: "Paiement à la livraison", isOnline: false, config: {} }];
                     const selected = storePaymentSelections[storeId] || methods[0]?.provider || "cod";
                     return (
-                      <div key={storeId} className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Store size={14} className="text-brand" />
+                      <div key={storeId} className="bg-white rounded-2xl p-3.5 md:p-4 shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Store size={12} className="text-brand" />
                           <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
                             Paiement · {storeName}
                           </h3>
@@ -750,42 +764,53 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         <div className="grid gap-3">
                           {methods.map((method) => {
                             const isSelected = selected === method.provider;
-                            const Icon =
-                              method.provider === "cod"
-                                ? Truck
-                                : method.provider === "ussd"
-                                  ? Phone
-                                  : method.provider === "saspay"
-                                    ? CreditCard
-                                    : Smartphone;
+                            const logo = PAYMENT_PROVIDER_LOGOS[method.provider];
                             return (
                               <div
                                 key={method.provider}
+                                role="radio"
+                                aria-checked={isSelected}
+                                tabIndex={0}
                                 onClick={() => setStorePaymentSelection(storeId, method.provider)}
-                                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50" : "border-gray-100 bg-white hover:border-gray-200"}`}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    setStorePaymentSelection(storeId, method.provider);
+                                  }
+                                }}
+                                className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"}`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <Icon
-                                    size={22}
-                                    className={isSelected ? "text-brand" : "text-gray-600"}
-                                  />
+                                  {logo ? (
+                                    <span className="flex h-8 w-14 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white px-2 shadow-sm">
+                                      {/* Logo officiel du fournisseur (assets locaux) */}
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={logo.src}
+                                        alt={logo.alt}
+                                        draggable={false}
+                                        className="max-h-4 max-w-full object-contain"
+                                      />
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className={`flex h-8 w-14 shrink-0 items-center justify-center rounded-lg border transition-colors ${isSelected ? "border-orange-200 bg-orange-100 text-brand" : "border-gray-100 bg-gray-50 text-gray-500"}`}
+                                    >
+                                      <Truck size={17} strokeWidth={2} />
+                                    </span>
+                                  )}
                                   <div className="min-w-0">
-                                    <div className="font-bold text-sm text-gray-900">
+                                    <div className="font-bold text-[12px] text-gray-900">
                                       {method.label}
                                     </div>
-                                    {method.provider === "ussd" && method.config.ussdCode && (
-                                      <div className="text-[11px] font-semibold text-gray-500">
-                                        Composez : {method.config.ussdCode}
-                                      </div>
-                                    )}
                                     {method.isOnline && (
-                                      <div className="text-[11px] font-semibold text-gray-500">
-                                        Vous paierez en ligne après la confirmation de commande.
+                                      <div className="text-[9px] font-semibold leading-snug text-gray-500">
+                                        Paiement depuis votre mobile money ou votre carte de crédit.
                                       </div>
                                     )}
                                   </div>
                                   <span
-                                    className={`ml-auto w-5 h-5 rounded-full border-2 grid place-items-center shrink-0 ${isSelected ? "border-brand bg-brand text-white" : "border-gray-200"}`}
+                                    className={`ml-auto w-4 h-4 rounded-full border-2 grid place-items-center shrink-0 ${isSelected ? "border-brand bg-brand text-white" : "border-gray-200"}`}
                                   >
                                     {isSelected && <Check size={12} />}
                                   </span>
@@ -801,42 +826,44 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               )}
             </form>
           )}
-          {checkoutStage === "success" && (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] py-12 px-4 text-center relative overflow-hidden">
-              <div className="relative mb-10">
-                <div className="absolute inset-0 bg-green-100 rounded-full blur-2xl opacity-50 scale-150 animate-pulse" />
-                <div className="relative w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center shadow-2xl success-glow animate-success-bounce">
-                  <CheckCircle2 size={48} strokeWidth={3} />
-                </div>
-                <div className="absolute -right-2 -top-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce">
-                  <Star size={18} fill="currentColor" />
-                </div>
-              </div>
-
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 tracking-tight leading-tight">
-                Commande <span className="text-green-500">Réussie !</span>
-              </h3>
-
-              <div className="w-10 h-1 bg-green-500 rounded-full mb-4 mx-auto" />
-
-              <p className="text-gray-500 max-w-sm mb-8 font-semibold text-sm leading-relaxed">
-                Votre commande a été enregistrée avec succès.
-                <br className="hidden md:block" />
-                Le vendeur va traiter votre commande rapidement.
-              </p>
-
-              <StorePaymentPanel
-                payments={storePayments}
-                customer={customerInfo}
-                formatCurrency={formatCurrency}
-                notify={localNotify}
+          {checkoutStage === "success" && (() => {
+            const referenceCommande =
+              completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() || null;
+            return (
+            <div className="relative flex min-h-[40vh] flex-col items-center justify-center px-4 py-4 text-center md:py-8">
+              {/* Halo décoratif derrière l'animation */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-1/2 top-12 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.18)_0%,rgba(34,197,94,0)_70%)] md:h-56 md:w-56"
               />
 
-              <div className="w-full flex flex-col items-center">
-                <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-widest text-center mb-3">
-                  Cliquez sur un bouton pour continuer
-                </p>
-                <div className="flex gap-3 w-full max-w-sm">
+              {/* Animation de confirmation — Lottie, jouée une fois */}
+              <SuccessCheckLottie className="relative h-24 w-24 md:h-28 md:w-28" />
+
+              <h3 className="relative mt-1 text-xl md:text-2xl font-extrabold tracking-tight text-gray-900">
+                Commande réussie&nbsp;!
+              </h3>
+              <p className="relative mt-1 text-xs font-semibold text-gray-500 md:text-sm">
+                Merci pour votre achat&nbsp;!
+              </p>
+
+              {referenceCommande && (
+                <button
+                  type="button"
+                  onClick={() => copierReferenceCommande(referenceCommande)}
+                  title="Copier la référence"
+                  className="relative mt-3 inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white px-4 py-2 text-[11px] font-bold tabular-nums tracking-[0.14em] text-gray-500 transition-all hover:border-gray-300 hover:text-gray-800 active:scale-[0.98]"
+                >
+                  RÉF. {referenceCommande}
+                  {referenceCopiee ? (
+                    <Check size={12} strokeWidth={3} className="text-green-600" />
+                  ) : (
+                    <Copy size={12} className="text-gray-400" />
+                  )}
+                </button>
+              )}
+
+              <div className="relative mt-4 flex w-full max-w-xs gap-2 sm:max-w-sm">
                   <Button
                     onClick={() => safeNavigate("/")}
                     loading={isNavigating}
@@ -865,7 +892,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                             // refléter la commande qui vient d'être validée,
                             // pas l'instant de rendu de l'écran.
                             const orderRef =
-                              completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() ||
+                              referenceCommande ||
                               Date.now().toString().slice(-6);
                             const waMsg = `NOUVELLE COMMANDE ${orderRef}\n\nClient: ${customerInfo.name || "Anonyme"}\nTelephone: ${customerInfo.phone || "Non fourni"}\n\nArticles:\n${completedOrderItems
                               .map((item) => {
@@ -903,30 +930,16 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     return null;
                   })()}
                 </div>
-                {isPushSupported() && (
-                  <button
-                    onClick={async () => {
-                      const r = await enablePushNotifications();
-                      localNotify(
-                        r.ok ? "Notifications activées" : r.reason === "denied" ? "Notifications refusées" : "Notifications indisponibles",
-                        r.ok ? "success" : "info",
-                      );
-                    }}
-                    className="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-brand transition-colors"
-                  >
-                    <Bell size={12} className="inline -mt-0.5" /> M&apos;alerter de ma commande
-                  </button>
-                )}
-              </div>
             </div>
-          )}
+            );
+          })()}
         </div>
         {checkoutStage !== "success" && cart.length > 0 && (
           <>
-            <div className="p-4 md:p-5 bg-white border-t border-gray-100 pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-5">
+            <div className="px-2 pt-2 pb-[calc(60px+env(safe-area-inset-bottom))] md:px-3 md:pt-3 md:pb-3 bg-white border-t border-gray-100">
               {/* Récapitulatif */}
-              <div className="rounded-2xl bg-gray-50/80 border border-gray-100 p-3.5 space-y-1.5 mb-4">
-                <div className="flex justify-between items-center text-xs font-semibold text-gray-500">
+              <div className="rounded-xl bg-gray-50/80 border border-gray-100 px-2.5 py-2 space-y-0.5 mb-2">
+                <div className="flex justify-between items-center text-[10px] md:text-[11px] font-semibold text-gray-500">
                   <span>
                     Sous-total · {cartItemsCount} article
                     {cartItemsCount > 1 ? "s" : ""}
@@ -936,7 +949,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </span>
                 </div>
                 {wholesaleSavings > 0 && (
-                  <div className="flex justify-between items-center text-xs font-semibold text-green-600">
+                  <div className="flex justify-between items-center text-[10px] md:text-[11px] font-semibold text-green-600">
                     <span>Économies prix de gros</span>
                     <span className="tabular-nums">
                       -{formatCurrency(wholesaleSavings)}
@@ -944,7 +957,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </div>
                 )}
                 {promoApplied && (
-                  <div className="flex justify-between items-center text-xs font-semibold text-green-600">
+                  <div className="flex justify-between items-center text-[10px] md:text-[11px] font-semibold text-green-600">
                     <span className="flex items-center gap-1">
                       <CheckCircle2 size={11} /> Code {promoApplied.code}
                     </span>
@@ -953,7 +966,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-1.5 border-t border-gray-200/70 text-base font-bold text-gray-900">
+                <div className="flex justify-between items-center pt-1 border-t border-gray-200/70 text-[13px] md:text-sm font-bold text-gray-900">
                   <span>Total</span>
                   <span className="text-brand tabular-nums">
                     {formatCurrency(Number(cartTotal) || 0)}
@@ -963,10 +976,10 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
 
               {/* Code promo */}
               {checkoutStage === "cart" && !promoApplied && (
-                <div className="mb-4">
+                <div className="mb-2.5">
                   {isPromoOpen ? (
                     <div>
-                      <div className="flex items-center h-[52px] bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
+                      <div className="flex items-center h-11 bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
                         <Tag size={14} className="ml-4 shrink-0 text-gray-400" />
                         <input
                           type="text"
@@ -979,10 +992,10 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         <button
                           onClick={handlePromoApply}
                           disabled={!promoCodeInput.trim() || isApplyingPromo}
-                          className="m-1.5 flex items-center justify-center w-[40px] h-[40px] shrink-0 rounded-xl bg-brand text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="m-1.5 flex items-center justify-center w-9 h-9 shrink-0 rounded-lg bg-brand text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                           aria-label="Appliquer le code promo"
                         >
-                          {isApplyingPromo ? <Loader2 size={17} className="animate-spin spinner-always" /> : <Check size={17} />}
+                          {isApplyingPromo ? <Loader2 size={15} className="animate-spin spinner-always" /> : <Check size={15} />}
                         </button>
                       </div>
                       {!isApplyingPromo && (
@@ -997,16 +1010,16 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   ) : (
                     <button
                       onClick={() => setIsPromoOpen(true)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-brand hover:border-brand/40 hover:bg-orange-50/30 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-brand hover:border-brand/40 hover:bg-orange-50/30 transition-colors"
                     >
-                      <Tag size={13} /> Ajouter un code promo
+                      <Tag size={11} /> Ajouter un code promo
                     </button>
                   )}
                 </div>
               )}
 
               {promoApplied && (
-                <div className="mb-4 flex items-center justify-between gap-2 bg-green-50 px-3.5 py-2 rounded-xl border border-green-100">
+                <div className="mb-2.5 flex items-center justify-between gap-2 bg-green-50 px-3.5 py-2 rounded-xl border border-green-100">
                   <span className="flex items-center gap-1.5 text-green-700 font-bold text-xs">
                     <CheckCircle2 size={12} /> Code {promoApplied.code} appliqué
                   </span>
@@ -1020,15 +1033,15 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 </div>
               )}
 
-              <div className="hidden md:flex flex-col gap-3">
+              <div className="hidden md:flex flex-col gap-2">
                 {checkoutStage === "cart" && (
                   <Button
                     onClick={handleProceedToShipping}
                     loading={isCheckoutTransitioning}
                     loadingText="Chargement..."
                     fullWidth
-                    size="xl"
-                    icon={<ArrowRight size={18} />}
+                    size="lg"
+                    icon={<ArrowRight size={16} />}
                     iconPosition="right"
                   >
                     Passer à la livraison
@@ -1042,16 +1055,20 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     loading={isCheckoutSubmitting}
                     loadingText={
                       checkoutStage === "payment"
-                        ? "Traitement en cours..."
+                        ? hasOnlineSelection
+                          ? "Paiement en cours..."
+                          : "Traitement en cours..."
                         : "Passage au paiement..."
                     }
                     fullWidth
-                    size="xl"
+                    size="lg"
                     variant="secondary"
                   >
                     {checkoutStage === "shipping"
                       ? "Passer au paiement"
-                      : "Confirmer la commande"}
+                      : hasOnlineSelection
+                        ? "Payer"
+                        : "Confirmer la commande"}
                   </Button>
                 )}
               </div>
@@ -1084,7 +1101,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 bottom: keyboardOffset || 0,
               }}
             >
-              <div className="px-3 pt-2.5">
+              <div className="px-2.5 pt-2">
                 {checkoutStage === "cart" && (
                   <Button
                     onClick={handleProceedToShipping}
@@ -1092,7 +1109,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     loadingText="Chargement..."
                     fullWidth
                     size="lg"
-                    className="!py-4 !text-sm uppercase tracking-wide"
+                    className="!py-3 !text-[13px] uppercase tracking-wide"
                     icon={<ArrowRight size={16} />}
                     iconPosition="right"
                   >
@@ -1108,13 +1125,15 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     loadingText="Chargement..."
                     fullWidth
                     size="lg"
-                    className="!py-4 !text-sm uppercase tracking-wide"
+                    className="!py-3 !text-[13px] uppercase tracking-wide"
                     icon={<ArrowRight size={16} />}
                     iconPosition="right"
                   >
                     {checkoutStage === "shipping"
                       ? "Passer au paiement"
-                      : "Confirmer la commande"}
+                      : hasOnlineSelection
+                        ? "Payer"
+                        : "Confirmer la commande"}
                   </Button>
                 )}
               </div>

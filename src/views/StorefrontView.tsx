@@ -9,6 +9,12 @@ import React, {
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { highlightSegments, normalizeSearchTerm } from "@/utils/search";
 import dynamic from "next/dynamic";
+
+// Chargé uniquement au moment du paiement (pay-first) : le SDK FeexPay et sa
+// feuille de style injectée ne pèsent pas sur la page d'accueil.
+const FeexPayWidget = dynamic(() => import("@/components/payments/FeexPayWidget"), {
+  ssr: false,
+});
 import Image from "next/image";
 import { ProductSkeleton } from "@/components/Skeleton";
 import { ShoppingCart, Search, Store, MapPin, ChevronLeft, Star, X, CheckCircle2, User, ShieldCheck, Zap, ArrowRight, Loader2, ChevronRight, ShoppingBasketIcon, AlertCircle, RotateCcw, Mail, MailCheck, AlertTriangle } from "lucide-react";
@@ -23,10 +29,16 @@ import {
 import { generateProductSlug } from "@/utils/slug";
 import { MAIN_CATEGORIES, verticalOfProduct } from "@/constants";
 import { buildHomeSections } from "@/lib/home-sections";
+import { DEFAULT_HOMEPAGE_LAYOUT, type HomepageLayout } from "@/lib/homepage-layout";
 import { formatCurrency, formatNumber, formatPhoneNumber, isValidPhoneNumber, formatPhoneSN, isValidPhoneSN, playSuccessSound, maskName } from "@/utils";
 import { detectCountryAction } from "@/app/actions/geo";
 import { fetchStorePaymentMethodsAction } from "@/app/actions/storePayments";
-import type { StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
+import { quoteCheckoutAction } from "@/app/actions/checkout";
+import { useKkiapay } from "@/hooks/useKkiapay";
+import { useFedapay } from "@/hooks/useFedapay";
+import type { FeexPayWidgetAttempt } from "@/components/payments/FeexPayWidget";
+import { widgetErrorReason } from "@/lib/widget-errors";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { getTierUnitPrice } from "@/utils/wholesale";
 import { PRODUCT_BLUR_DATA_URL } from "../components/ProductImage";
@@ -165,7 +177,7 @@ export type CheckoutPaymentMethodOption = {
     instructions?: string;
     ussdCode?: string;
     publicKey?: string;
-    env?: "sandbox" | "live";
+    env?: "live";
   };
 };
 
@@ -230,6 +242,8 @@ const saveRecentSearch = (term: string): string[] => {
 
 interface StorefrontViewProps {
   stores: StoreData[];
+  /** Mise en page de l'accueil choisie par l'admin (défauts = tout visible). */
+  homepageLayout?: HomepageLayout;
   initialCategory?: string;
   initialStoreId?: string;
   onMarketplaceCheckout: (
@@ -237,13 +251,19 @@ interface StorefrontViewProps {
     customerData: CheckoutCustomerDraft,
     /** Clé d'idempotence : évite qu'un rejeu ne duplique la commande. */
     idempotencyKey?: string,
+    /**
+     * Flux « paiement avant commande » : justificatifs confirmés par le
+     * fournisseur pour chaque boutique réglée en ligne. Quand ces preuves sont
+     * fournies, le serveur crée les commandes directement en PAID.
+     */
+    prepaidProofs?: Array<{ storeId: string; provider: string; reference: string }>,
   ) => Promise<{
     success: boolean;
     error?: string | undefined;
     /** Références des commandes créées, renvoyées par l'action serveur. */
     orderId?: string;
     orderIds?: string[];
-    /** Paiements par boutique (guichets en ligne, USSD, COD). */
+    /** Paiements par boutique (en ligne, COD). */
     payments?: StoreCheckoutPaymentView[];
     /**
      * Montants et lignes canoniques calculés par le serveur. Ils font foi pour
@@ -293,6 +313,7 @@ function categoryToSlug(cat: string): string {
 
 export const StorefrontView: React.FC<StorefrontViewProps> = ({
   stores,
+  homepageLayout = DEFAULT_HOMEPAGE_LAYOUT,
   initialCategory,
   initialStoreId,
   onMarketplaceCheckout,
@@ -336,6 +357,44 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
    */
   const cartRef = useRef(cart);
   cartRef.current = cart;
+
+  /**
+   * Panier mono-boutique : toute tentative d'ajout d'un article d'une autre
+   * boutique est interceptée et confirmée (garder son panier, ou le vider
+   * pour adopter la nouvelle boutique).
+   */
+  const [pendingStoreSwitch, setPendingStoreSwitch] = useState<{
+    currentStore: string;
+    targetStore: string;
+    apply: () => void;
+  } | null>(null);
+
+  const gateStoreSwitch = useCallback(
+    (
+      targetStoreId: string | undefined,
+      targetStoreName: string | undefined,
+      apply: () => void,
+    ) => {
+      const other = targetStoreId
+        ? cartRef.current.find(
+            (i) => i.product.storeId && i.product.storeId !== targetStoreId,
+          )
+        : undefined;
+      if (other) {
+        setPendingStoreSwitch({
+          currentStore: other.product.storeName || "une autre boutique",
+          targetStore: targetStoreName || "cette boutique",
+          apply: () => {
+            setCart([]);
+            apply();
+          },
+        });
+        return;
+      }
+      apply();
+    },
+    [],
+  );
 
   /**
    * Ajouts de panier demandés depuis une autre vue (espace client, bouton
@@ -736,6 +795,10 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
       }
     };
   }, [cart, isMounted]);
+
+  const kkiapay = useKkiapay();
+  const fedapay = useFedapay();
+  const [feexpayAttempt, setFeexpayAttempt] = useState<FeexPayWidgetAttempt | null>(null);
 
   const [checkoutStage, setCheckoutStage] = useState<
     "cart" | "shipping" | "payment" | "success" | "blocked"
@@ -1378,7 +1441,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
   const [showAllProductReviews, setShowAllProductReviews] = useState(false);
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // 📳 Pull-to-refresh (accueil + boutiques)
@@ -1726,7 +1788,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // Track product views - only increment once per product per session
   React.useEffect(() => {
     if (!selectedProductId || !selectedProductDetails) return;
-    setIsDescriptionExpanded(false); // Reset expansion on new product
     setSelectedDetailImage(null); // Reset selected image on new product
     setProductSwipeIdx(0);
     // Compté une seule fois par session : le composant est remonté à chaque
@@ -1937,8 +1998,18 @@ const WHOLESALE_FILTER = "wholesale";
    * catégorie, avec un aperçu de six produits triés et diversifiés.
    */
   const homeSections = useMemo(
-    () => buildHomeSections(allProducts),
-    [allProducts],
+    () =>
+      buildHomeSections(allProducts, undefined, {
+        editorial: {
+          bestSellers: homepageLayout.bestSellers,
+          promotions: homepageLayout.promotions,
+          newArrivals: homepageLayout.newArrivals,
+        },
+        categoriesEnabled: homepageLayout.categoriesEnabled,
+        categoryHidden: homepageLayout.categoryHidden,
+        categoryOrder: homepageLayout.categoryOrder,
+      }),
+    [allProducts, homepageLayout],
   );
 
   // Un terme de recherche « actif » est un terme d'au moins 2 caractères :
@@ -2178,7 +2249,8 @@ const WHOLESALE_FILTER = "wholesale";
         return;
       }
     }
-    setCart((prev) => {
+    const applyAdd = () => {
+      setCart((prev) => {
       const vid = variantId || null;
 
       const existing = prev.find(
@@ -2214,12 +2286,15 @@ const WHOLESALE_FILTER = "wholesale";
       variantId && product.variants
         ? product.variants.find((v) => v.id === variantId)
         : null;
-    setLastAddedProduct(
-      addedVariant ? { ...product, price: addedVariant.price } : product,
-    );
-    buzz();
-    showCartNotif();
-    onNotifyCartInterest(product.storeId, product.name);
+      setLastAddedProduct(
+        addedVariant ? { ...product, price: addedVariant.price } : product,
+      );
+      buzz();
+      showCartNotif();
+      onNotifyCartInterest(product.storeId, product.name);
+    };
+    // Une seule boutique par panier : toute autre boutique est interceptée et confirmée.
+    gateStoreSwitch(product.storeId, product.storeName, applyAdd);
   };
 
   const buyNow = (
@@ -2278,6 +2353,7 @@ const WHOLESALE_FILTER = "wholesale";
       return;
     }
     const effectiveQty = qty;
+    const applyAdd = () => {
     setCart((prev) => {
       const lineKey = (item: CartItem) =>
         `${item.product.id}::${item.product.storeId}::${item.variantId ?? 'base'}::${JSON.stringify(item.selectedOptions ?? {})}`;
@@ -2309,6 +2385,8 @@ const WHOLESALE_FILTER = "wholesale";
     setCheckoutStage("cart"); // Go straight to cart to see savings
     // Alert the store owner
     onNotifyCartInterest(product.storeId, product.name);
+    };
+    gateStoreSwitch(product.storeId, product.storeName, applyAdd);
   };
 
   const handleBulkAddToCart = useCallback(
@@ -2327,40 +2405,67 @@ const WHOLESALE_FILTER = "wholesale";
           `Quantité limitée pour « ${firstClipped.product.name} » : ${stock} restant${(stock ?? 0) > 1 ? "s" : ""}.`,
         );
       }
-      setCart((prev) => {
-        const next = [...prev];
-        for (const item of clippedItems) {
-          if (item.quantity <= 0) continue;
-          const sp = item.product as StorefrontProduct;
-          const idx = next.findIndex(
-            (i) =>
-              i.product.id === sp.id &&
-              i.product.storeId === sp.storeId &&
-              !i.variantId,
-          );
-          if (idx >= 0) {
-            next[idx] = {
-              ...next[idx],
-              quantity: Math.min(next[idx].quantity + item.quantity, getStockFor(sp) ?? Infinity),
-            };
-          } else {
-            next.push({
-              product: sp,
-              quantity: item.quantity,
-            });
-          }
-        }
-        return next;
-      });
-      if (items.length > 0) {
-        setLastAddedProduct(items[0].product as StorefrontProduct);
-        buzz();
-        showCartNotif();
+      // Une seule boutique par panier : on ne fusionne que la boutique
+      // la plus représentée des articles bulk (les autres sont écartées).
+      const storeCounts = new Map<string, number>();
+      for (const item of clippedItems) {
+        const sid = item.product.storeId;
+        if (sid) storeCounts.set(sid, (storeCounts.get(sid) ?? 0) + 1);
       }
+      let dominantStoreId: string | undefined;
+      let dominantCount = 0;
+      for (const [sid, n] of storeCounts) {
+        if (n > dominantCount) {
+          dominantCount = n;
+          dominantStoreId = sid;
+        }
+      }
+      const scoped = dominantStoreId
+        ? clippedItems.filter((item) => item.product.storeId === dominantStoreId)
+        : clippedItems;
+      if (scoped.length !== clippedItems.length) {
+        showStockNotice(
+          "Une seule boutique par panier — les articles des autres boutiques ont été ignorés.",
+        );
+      }
+      const dominantStoreName = scoped[0]?.product.storeName;
+      const applyBulk = () => {
+        setCart((prev) => {
+          const next = [...prev];
+          for (const item of scoped) {
+            if (item.quantity <= 0) continue;
+            const sp = item.product as StorefrontProduct;
+            const idx = next.findIndex(
+              (i) =>
+                i.product.id === sp.id &&
+                i.product.storeId === sp.storeId &&
+                !i.variantId,
+            );
+            if (idx >= 0) {
+              next[idx] = {
+                ...next[idx],
+                quantity: Math.min(next[idx].quantity + item.quantity, getStockFor(sp) ?? Infinity),
+              };
+            } else {
+              next.push({
+                product: sp,
+                quantity: item.quantity,
+              });
+            }
+          }
+          return next;
+        });
+        if (items.length > 0) {
+          setLastAddedProduct(items[0].product as StorefrontProduct);
+          buzz();
+          showCartNotif();
+        }
+      };
+      gateStoreSwitch(dominantStoreId, dominantStoreName, applyBulk);
     },
     // `showStockNotice` est utilisé dans la branche d'alerte de stock : sans
     // lui, une fermeture de `showCartNotif` obsolète restait capturée.
-    [buzz, showCartNotif, showStockNotice],
+    [buzz, showCartNotif, showStockNotice, gateStoreSwitch],
   );
 
   const removeFromCart = (
@@ -2624,24 +2729,220 @@ const WHOLESALE_FILTER = "wholesale";
         storeOrder.paymentMethod = storePaymentSelections[storeId] || "cod";
       });
 
+      // ------------------------------------------------------------------
+      // Flux « paiement avant commande »
+      // Un panier 100 % paiement à la livraison part tel quel. Si au moins
+      // une boutique est réglée en ligne, le client paie AVANT la création :
+      // devis serveur (montants canoniques), widgets fournisseurs, puis envoi
+      // des preuves revérifiées côté serveur avant toute écriture. Rien
+      // n'est enregistré si un paiement échoue ou est annulé.
+      // ------------------------------------------------------------------
+      // Motif concret d'échec du guichet, remonté tel quel dans le message
+      // affiché (sans lui, l'acheteur ne voit qu'un message générique).
+      let widgetFailureReason: string | null = null;
+      const widgetProviders = new Set(["kkiapay", "fedapay", "feexpay"]);
+      const onlineStoreIds = Object.keys(ordersData).filter((storeId) =>
+        widgetProviders.has(storePaymentSelections[storeId] || "cod"),
+      );
+      const customerPayload = {
+        ...customerInfo,
+        phone: (customerInfo.phone || "").replace(/\s/g, ""),
+        address: [customerInfo.address, customerInfo.city]
+          .filter(Boolean)
+          .join(", "),
+      };
+      const widgetEmail = (user?.email || "").trim() || "client@posmarket.com";
+      const widgetNameParts = (customerInfo.name || "").trim().split(/\s+/).filter(Boolean);
+      const widgetFirstName = widgetNameParts[0] || "Client";
+      const widgetLastName = widgetNameParts.slice(1).join(" ") || "PosMarket";
+
+      const openProviderWidget = (
+        storeQuote: {
+          provider: string;
+          amount: number;
+          publicKey: string;
+          shopId?: string;
+          env?: "sandbox" | "live";
+        },
+        partnerId: string,
+      ): Promise<string | null> =>
+        new Promise((resolve) => {
+          if (storeQuote.provider === "kkiapay") {
+            kkiapay.openWidget({
+              amount: storeQuote.amount,
+              key: storeQuote.publicKey,
+              sandbox: storeQuote.env === "sandbox",
+              partnerId,
+              name: (customerInfo.name || "").trim() || "Client PosMarket",
+              email: widgetEmail,
+              phone: customerPayload.phone,
+              onSuccess: (transactionId) =>
+                resolve(String(transactionId || "").trim() || null),
+              onFailed: (err) => {
+                widgetFailureReason = widgetErrorReason(
+                  err,
+                  "Paiement Kkiapay non finalisé — aucune commande n'a été créée.",
+                );
+                resolve(null);
+              },
+            });
+            return;
+          }
+          if (storeQuote.provider === "fedapay") {
+            fedapay.openWidget({
+              publicKey: storeQuote.publicKey,
+              amount: storeQuote.amount,
+              description: "Commande PosMarket",
+              environment: storeQuote.env === "sandbox" ? "sandbox" : "live",
+              customer: {
+                email: widgetEmail,
+                firstname: widgetFirstName,
+                lastname: widgetLastName,
+              },
+              onSuccess: (tx) => {
+                const reference = tx?.id
+                  ? String(tx.id)
+                  : String(tx?.reference || "");
+                resolve(reference.trim() || null);
+              },
+              onFailed: (err) => {
+                widgetFailureReason = widgetErrorReason(
+                  err,
+                  "Paiement FedaPay non finalisé — aucune commande n'a été créée.",
+                );
+                resolve(null);
+              },
+            });
+            return;
+          }
+          if (storeQuote.provider === "feexpay") {
+            // Monté hors écran, le guichet s'ouvre via l'événement
+            // `feexpay:trigger` (React SDK officiel v2 : l'hôte suit le mode —
+            // sandbox-api.feexpay.me en SANDBOX, api-v2.feexpay.me en LIVE).
+            setFeexpayAttempt({
+              key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              shopId: storeQuote.shopId || "",
+              token: storeQuote.publicKey,
+              amount: storeQuote.amount,
+              mode: storeQuote.env === "sandbox" ? "SANDBOX" : "LIVE",
+              description: "Commande PosMarket",
+              callbackInfo: partnerId,
+              firstName: widgetFirstName,
+              email: widgetEmail,
+              onSettled: (reference, reason) => {
+                // Laisser le SDK refermer ses fenêtres avant de le démonter :
+                // le désinstaller en plein setState interne casse l'écran.
+                window.setTimeout(() => setFeexpayAttempt(null), 120);
+                if (!reference) {
+                  if (reason === "dismissed") {
+                    widgetFailureReason =
+                      "Paiement FeexPay annulé — aucune commande n'a été créée.";
+                  } else if (reason === "open_timeout") {
+                    widgetFailureReason =
+                      "Impossible d'ouvrir le guichet FeexPay — vérifiez l'identifiant boutique et la clé API (et leur mode LIVE/SANDBOX).";
+                  } else {
+                    widgetFailureReason = reason
+                      ? `Paiement FeexPay non abouti — ${reason}`
+                      : "Paiement FeexPay non finalisé — aucune commande n'a été créée.";
+                  }
+                }
+                resolve(reference);
+              },
+            });
+            return;
+          }
+          resolve(null);
+        });
+
       (async () => {
           // Tant que l'appel serveur n'a pas rendu la main, le bouton de
           // confirmation reste en chargement : sans cela le client pouvait
           // appuyer plusieurs fois et ne voir aucun retour.
           setIsCheckoutSubmitting(true);
           try {
-            const response = await onMarketplaceCheckout(ordersData, {
-              ...customerInfo,
-              phone: (customerInfo.phone || "").replace(/\s/g, ""),
-              address: [customerInfo.address, customerInfo.city]
-                .filter(Boolean)
-                .join(", "),
-            }, checkoutIdempotencyKey);
-            if (response?.success) {
-              playSuccessSound();
-              setStorePayments(
-                Array.isArray(response.payments) ? response.payments : [],
+            let response: Awaited<ReturnType<typeof onMarketplaceCheckout>>;
+            if (onlineStoreIds.length > 0) {
+              // Le module du fournisseur doit être chargé AVANT d'ouvrir le
+              // widget : sinon il ne s'ouvre pas et le paiement échoue en silence.
+              const needsKkiapay = onlineStoreIds.some(
+                (storeId) =>
+                  (storePaymentSelections[storeId] || "cod") === "kkiapay" &&
+                  !kkiapay.ready,
               );
+              const needsFedapay = onlineStoreIds.some(
+                (storeId) =>
+                  (storePaymentSelections[storeId] || "cod") === "fedapay" &&
+                  !fedapay.ready,
+              );
+              if (needsKkiapay || needsFedapay) {
+                localNotify(
+                  "Le module de paiement se charge encore. Réessayez dans un instant.",
+                  "error",
+                );
+                return;
+              }
+              // Devis serveur : montants canoniques et clés publiques, sans
+              // aucune écriture. C'est exactement ce devis qui est facturé.
+              const quote = await quoteCheckoutAction(
+                ordersData,
+                customerPayload,
+                checkoutIdempotencyKey,
+              );
+              if (!quote?.success) {
+                localNotify(
+                  quote?.error || "Impossible de préparer le paiement.",
+                  "error",
+                );
+                return;
+              }
+              const proofs: Array<{
+                storeId: string;
+                provider: string;
+                reference: string;
+              }> = [];
+              for (const storeQuote of quote.stores) {
+                const reference = await openProviderWidget(
+                  storeQuote,
+                  quote.partnerId || checkoutIdempotencyKey,
+                );
+                if (!reference) {
+                  // Aucun enregistrement n'a eu lieu : le panier est conservé.
+                  localNotify(
+                    widgetFailureReason ||
+                      "Paiement non finalisé — aucune commande n'a été créée.",
+                    "error",
+                  );
+                  return;
+                }
+                proofs.push({
+                  storeId: storeQuote.storeId,
+                  provider: storeQuote.provider,
+                  reference,
+                });
+              }
+              // Les preuves sont renvoyées puis revérifiées côté serveur
+              // (fournisseur, montant, référence) AVANT la moindre écriture :
+              // en cas d'échec, aucune commande n'est créée.
+              response = await onMarketplaceCheckout(
+                ordersData,
+                customerPayload,
+                checkoutIdempotencyKey,
+                proofs,
+              );
+            } else {
+              response = await onMarketplaceCheckout(
+                ordersData,
+                customerPayload,
+                checkoutIdempotencyKey,
+              );
+            }
+            if (response?.success) {
+              const serverPayments: StoreCheckoutPaymentView[] = Array.isArray(
+                response.payments,
+              )
+                ? response.payments
+                : [];
+              setStorePayments(serverPayments);
 
               const serverOrders =
                 Array.isArray(response.orders) && response.orders.length > 0
@@ -2734,6 +3035,10 @@ const WHOLESALE_FILTER = "wholesale";
               }
               setPromoApplied(null);
               setPromoCodeInput("");
+              // Tout est confirmé à ce stade (paiement en ligne vérifié avant
+              // création, COD constaté à la livraison) : on passe directement
+              // à la confirmation.
+              playSuccessSound();
               setCheckoutStage("success");
               setCart([]);
               onNotifyPostCheckout(ordersData);
@@ -3076,8 +3381,6 @@ const WHOLESALE_FILTER = "wholesale";
       safeNavigate={safeNavigate}
       setSelectedCategory={setSelectedCategory}
       addWholesaleToCart={addWholesaleToCart}
-      isDescriptionExpanded={isDescriptionExpanded}
-      setIsDescriptionExpanded={setIsDescriptionExpanded}
       stores={stores}
       cartItemsCount={cartItemsCount}
       cartTotal={cartTotal}
@@ -3761,7 +4064,7 @@ const WHOLESALE_FILTER = "wholesale";
       )}
 
       <main
-        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar && !isMarketplaceHomePath ? "pb-28 md:pb-8" : ""}`}
+        className={`container mx-auto ${selectedProductId ? "px-0" : isCartView ? "px-2 md:px-4" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar && !isMarketplaceHomePath ? "pb-28 md:pb-8" : ""}`}
       >
         <Routes>
           <Route
@@ -3770,7 +4073,7 @@ const WHOLESALE_FILTER = "wholesale";
               <>
                 <h1 className="sr-only">PosMarket — acheter et vendre en ligne</h1>
 
-                {!searchTerm && selectedCategory === "all" && (
+                {!searchTerm && selectedCategory === "all" && homepageLayout.hero && (
                   <div
                     className="mb-6 mt-1 md:mb-10 md:mt-6 relative group overflow-hidden border border-brand-tint rounded-[24px] md:rounded-[32px]"
                     style={{ touchAction: "pan-y" }}
@@ -3858,6 +4161,7 @@ const WHOLESALE_FILTER = "wholesale";
                 {/* Partners */}
                 {!searchTerm &&
                   selectedCategory === "all" &&
+                  homepageLayout.partners &&
                   partnerStores.length > 0 && (
                     <div className="mb-7 md:mb-12">
                       <div className="mb-3 flex items-center gap-2.5 md:mb-5">
@@ -3972,8 +4276,8 @@ const WHOLESALE_FILTER = "wholesale";
                           <div className="h-4 w-32 skeleton rounded" />
                           <div className="flex-grow h-px skeleton" />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
+                          {[1, 2, 3, 4, 5, 6].map((i) => (
                             <div
                               key={i}
                               className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-64 flex flex-col"
@@ -3997,7 +4301,7 @@ const WHOLESALE_FILTER = "wholesale";
                   /* Recherche en cours : on montre des squelettes pour ne pas
                      laisser un écran vide ni afficher un faux « aucun produit ». */
                   <div
-                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3"
+                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3"
                     role="status"
                     aria-live="polite"
                     aria-label="Recherche en cours"
@@ -4072,7 +4376,7 @@ const WHOLESALE_FILTER = "wholesale";
                           selectedCategory === WHOLESALE_FILTER ? (
                           /* Grille simple : recherche, categorie, vente en gros */
                           <>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
                               {pagedProducts.map(renderCard)}
                             </div>
                             {!isInitialLoading && pagedProducts.length === 0 && (
@@ -4367,8 +4671,13 @@ const WHOLESALE_FILTER = "wholesale";
                             // La verticale entre dans la clef : une section ne doit jamais
                           // regrouper un plat et un produit de commerce sous la
                           // meme categorie.
-                          const groups: Record<string, typeof pagedProducts> = {};
-                          pagedProducts.forEach((p) => {
+                          // Toute la liste filtrée est groupée (pas seulement
+                          // le premier lot de 20 de la pagination paresseuse) :
+                          // sinon certaines sections n'affichaient un seul
+                          // produit tant que l'utilisateur ne défilait pas.
+                          // Chaque section reste plafonnée à SECTION_PREVIEW_COUNT.
+                          const groups: Record<string, typeof filteredProducts> = {};
+                          filteredProducts.forEach((p) => {
                             const cat = p.mainCategory || p.category || "Autre";
                             const key = `${verticalOfProduct(p)}::${cat}`;
                             if (!groups[key]) groups[key] = [];
@@ -4587,18 +4896,7 @@ const WHOLESALE_FILTER = "wholesale";
                               className="w-full bg-white p-4 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md"
                             >
                               <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-orange-50 text-brand flex items-center justify-center font-bold text-xs border border-orange-100 flex-shrink-0 overflow-hidden">
-                                    {review.avatarUrl ? (
-                                      <img
-                                        src={review.avatarUrl}
-                                        alt=""
-                                        className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                                    ) : (
-                                      review.author?.[0]?.toUpperCase() || "A"
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 overflow-hidden">
+                                <div className="min-w-0 overflow-hidden">
                                     <p className="font-bold text-gray-900 text-xs leading-none mb-1 truncate max-w-[120px]">
                                       {maskName(review.author)}
                                     </p>
@@ -4620,7 +4918,6 @@ const WHOLESALE_FILTER = "wholesale";
                                         />
                                       ))}
                                     </div>
-                                  </div>
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
                                   <span className="text-[9px] font-semibold text-gray-400">
@@ -5104,6 +5401,63 @@ const WHOLESALE_FILTER = "wholesale";
           )}
         </div>
       </BottomSheet>
+
+      {/* Confirmation : panier mono-boutique */}
+      {pendingStoreSwitch && (
+        <div
+          className="fixed inset-0 z-[4000] flex items-end justify-center md:items-center md:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="store-switch-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-black/45 backdrop-blur-[2px]"
+            aria-label="Fermer"
+            onClick={() => setPendingStoreSwitch(null)}
+          />
+          <div className="relative w-full rounded-t-3xl bg-white px-5 pb-[calc(16px+env(safe-area-inset-bottom))] pt-4 shadow-2xl md:max-w-sm md:rounded-3xl md:pb-5">
+            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-gray-200 md:hidden" aria-hidden="true" />
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-2 grid h-12 w-12 place-items-center rounded-full bg-orange-50 text-brand">
+                <Store size={22} />
+              </div>
+              <h3 id="store-switch-title" className="text-base font-extrabold text-gray-900">
+                Une seule boutique par panier
+              </h3>
+              <p className="mt-1 text-[12px] font-medium leading-snug text-gray-500">
+                Votre panier contient déjà des articles de la boutique{" "}
+                <span className="font-bold text-gray-800">{pendingStoreSwitch.currentStore}</span>.
+                Le vider pour ajouter des articles de{" "}
+                <span className="font-bold text-gray-800">{pendingStoreSwitch.targetStore}</span> ?
+              </p>
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const apply = pendingStoreSwitch.apply;
+                  setPendingStoreSwitch(null);
+                  apply();
+                }}
+                className="h-11 w-full rounded-2xl bg-brand text-[13px] font-extrabold uppercase tracking-wide text-white transition-all hover:bg-[#e55a1d] active:scale-[0.98]"
+              >
+                Vider et ajouter
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingStoreSwitch(null)}
+                className="h-11 w-full rounded-2xl border border-gray-200 bg-white text-[13px] font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98]"
+              >
+                Garder mon panier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guichet FeexPay v2 — monté hors écran, s'auto-ouvre (pay-first). */}
+      {feexpayAttempt && <FeexPayWidget attempt={feexpayAttempt} />}
 
     </div>
   );

@@ -147,22 +147,10 @@ export default function AdminReviewsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 font-bold flex-shrink-0 overflow-hidden">
-                        {r.author_avatar ? (
-                          <img
-                            src={r.author_avatar}
-                            alt=""
-                            className="w-full h-full object-cover rounded-xl" loading="lazy" decoding="async" />
-                        ) : (
-                          r.author_name?.[0]?.toUpperCase() || 'A'
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-gray-900">{maskName(r.author_name)}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {renderStars(r.rating)}
-                        </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">{maskName(r.author_name)}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {renderStars(r.rating)}
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-0.5">

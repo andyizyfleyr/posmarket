@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import {
@@ -9,39 +9,77 @@ import {
 } from '@/db/schema';
 import { decryptPaymentSecret, encryptPaymentSecret } from '@/lib/payment-secrets';
 import { publicSaspayError } from '@/lib/saspay';
+import { refreshTag } from '@/lib/revalidate';
 
 /**
  * Moyens de paiement par boutique.
  *
  * Ce module est strictement serveur : il déchiffre les secrets des vendeurs et
  * appelle les API des fournisseurs. Les seules données renvoyées au navigateur
- * sont les clés publiques, le code USSD et les instructions d'encaissement.
+ * sont les clés publiques et les instructions d'encaissement.
+ *
+ * Moyens proposés aux boutiques : COD, Kkiapay, FedaPay, FeexPay. SasPay et
+ * USSD ont été retirés pour les nouvelles configurations ; les lignes
+ * historiques (commandes déjà passées) restent lisibles et réconciliables.
  */
 
-export type StorePaymentProvider = 'cod' | 'kkiapay' | 'fedapay' | 'saspay' | 'ussd';
+export type StorePaymentProvider =
+  | 'cod'
+  | 'kkiapay'
+  | 'fedapay'
+  | 'feexpay'
+  | 'saspay'
+  | 'ussd';
 
 export const STORE_PAYMENT_PROVIDERS: StorePaymentProvider[] = [
   'cod',
   'kkiapay',
   'fedapay',
+  'feexpay',
   'saspay',
   'ussd',
 ];
 
 export const STORE_PAYMENT_LABELS: Record<StorePaymentProvider, string> = {
   cod: 'Paiement à la livraison',
-  kkiapay: 'Kkiapay (Mobile Money / carte)',
-  fedapay: 'FedaPay (Mobile Money / carte)',
+  kkiapay: 'Kkiapay',
+  fedapay: 'FedaPay',
+  feexpay: 'FeexPay',
   saspay: 'SasPay (Mobile Money)',
   ussd: 'Paiement USSD',
 };
 
-const ONLINE_PROVIDERS = new Set<StorePaymentProvider>(['kkiapay', 'fedapay', 'saspay']);
+const ONLINE_PROVIDERS = new Set<StorePaymentProvider>(['kkiapay', 'fedapay', 'feexpay', 'saspay']);
+
+/** Moyens réellement proposés aux boutiques (SasPay / USSD retirés). */
+export const SUPPORTED_STORE_PROVIDERS: StorePaymentProvider[] = [
+  'cod',
+  'kkiapay',
+  'fedapay',
+  'feexpay',
+];
+const SUPPORTED_SET = new Set<string>(SUPPORTED_STORE_PROVIDERS);
+
+export function isSupportedStoreProvider(value: unknown): value is StorePaymentProvider {
+  return typeof value === 'string' && SUPPORTED_SET.has(value);
+}
+
+// Aligné sur src/db/api.ts (isCancelledOrderStatus) — dupliqué ici pour
+// garder ce module autonome.
+const CANCELLED_ORDER_STATUSES = new Set(['CANCELLED', 'ANNULEE']);
+const isCancelledOrderStatus = (status?: string | null): boolean =>
+  CANCELLED_ORDER_STATUSES.has(String(status || '').toUpperCase());
 
 export type PublicStorePaymentConfig = {
   instructions?: string;
   ussdCode?: string;
   publicKey?: string;
+  /** Identifiant public de la boutique FeexPay (affiché au SDK officiel). */
+  shopId?: string;
+  /**
+   * Environnement choisi par la boutique dans sa configuration
+   * (« live » par défaut, « sandbox » au choix pour les tests).
+   */
   env?: 'sandbox' | 'live';
 };
 
@@ -70,6 +108,48 @@ export type CheckoutPaymentMethod = {
 
 const PROVIDER_SET = new Set<string>(STORE_PAYMENT_PROVIDERS);
 
+/**
+ * En mode production (défaut), toute clé qui ressemble à une clé de test /
+ * sandbox est refusée. Le test porte sur le mot entier (délimité par des
+ * non-alphanumériques ou des bords) pour ne pas rejeter une clé aléatoire
+ * contenant « test » par hasard de façon trop agressive, tout en attrapant
+ * pk_test_…, sk_test_…, sk_sandbox_…, my_demo_key, etc.
+ * sk_sandbox_…, my_demo_key, etc.
+ */
+export function looksLikeSandboxKey(value: unknown): boolean {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return false;
+  return /(^|[^a-z0-9])(test|sandbox|demo)([^a-z]|$)/.test(v);
+}
+
+/**
+ * Miroir de `looksLikeSandboxKey` pour le mode Sandbox : une clé qui porte
+ * le marqueur « live » (pk_live_…, sk_live_…, wh_live_…) y est refusée afin
+ * qu'aucune vraie transaction ne parte avec une configuration de test.
+ */
+export function looksLikeLiveKey(value: unknown): boolean {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return false;
+  return /(^|[^a-z0-9])live([^a-z]|$)/.test(v);
+}
+
+/** Environnement normalisé d'une configuration publique (défaut : live). */
+export function publicConfigEnv(config: { env?: 'sandbox' | 'live' } | null | undefined): 'sandbox' | 'live' {
+  return config?.env === 'sandbox' ? 'sandbox' : 'live';
+}
+
+/**
+ * FeexPay : une clé live commence par `fp_`, une clé de test par `test_`.
+ * (Contrairement à Kkiapay/FedaPay, le mode n'est pas porté par l'hôte mais
+ * par la clé elle-même — `https://api-v2.feexpay.me` sert les deux.)
+ */
+export function looksLikeFeexpayLiveKey(value: unknown): boolean {
+  return /^fp_/i.test(String(value || '').trim());
+}
+export function looksLikeFeexpaySandboxKey(value: unknown): boolean {
+  return /^test_/i.test(String(value || '').trim());
+}
+
 export function isStorePaymentProvider(value: unknown): value is StorePaymentProvider {
   return typeof value === 'string' && PROVIDER_SET.has(value);
 }
@@ -85,8 +165,8 @@ export function normalizeStorePaymentProvider(value: unknown): StorePaymentProvi
   if (raw === 'especes' || raw === 'espèces' || raw === 'cash' || raw === 'cod') return 'cod';
   if (raw === 'kkiapay') return 'kkiapay';
   if (raw === 'fedapay') return 'fedapay';
-  if (raw === 'saspay') return 'saspay';
-  if (raw === 'ussd') return 'ussd';
+  if (raw === 'feexpay') return 'feexpay';
+  // SasPay / USSD : retirés pour les nouvelles commandes.
   return null;
 }
 
@@ -101,17 +181,23 @@ export function paymentMethodDisplayLabel(provider: string): string {
   return provider || 'Paiement';
 }
 
-function pickPublicConfig(raw: unknown): PublicStorePaymentConfig {
+/**
+ * Assainit la configuration publique d'un moyen de paiement. `env` est
+ * conservé tel que choisi par la boutique ; toute valeur absente ou inconnue
+ * retombe sur « live » (production).
+ */
+export function pickPublicConfig(raw: unknown): PublicStorePaymentConfig {
   const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const config: PublicStorePaymentConfig = {};
   const instructions = String(value.instructions || '').trim();
   const ussdCode = String(value.ussdCode || value.ussd_code || '').trim();
   const publicKey = String(value.publicKey || value.public_key || '').trim();
-  const env = value.env === 'live' ? 'live' : value.env === 'sandbox' ? 'sandbox' : undefined;
+  const shopId = String(value.shopId || value.shop_id || '').trim();
   if (instructions) config.instructions = instructions.slice(0, 500);
   if (ussdCode) config.ussdCode = ussdCode.slice(0, 80);
   if (publicKey) config.publicKey = publicKey.slice(0, 200);
-  if (env) config.env = env;
+  if (shopId) config.shopId = shopId.slice(0, 120);
+  config.env = String(value.env || '').trim().toLowerCase() === 'sandbox' ? 'sandbox' : 'live';
   return config;
 }
 
@@ -147,7 +233,7 @@ export async function getEnabledStorePaymentMethods(
 
   for (const id of ids) result[id] = [];
   for (const row of rows) {
-    if (!isStorePaymentProvider(row.provider)) continue;
+    if (!isSupportedStoreProvider(row.provider)) continue;
     result[row.storeId]?.push({
       provider: row.provider,
       label: STORE_PAYMENT_LABELS[row.provider],
@@ -186,7 +272,7 @@ export async function listStorePaymentMethods(storeId: string): Promise<StorePay
   const methodMap = new Map(methods.map((row) => [row.provider, row]));
   const credentialMap = new Map(credentials.map((row) => [row.provider, row]));
 
-  return STORE_PAYMENT_PROVIDERS.map((provider) => {
+  return SUPPORTED_STORE_PROVIDERS.map((provider) => {
     const row = methodMap.get(provider);
     const credential = credentialMap.get(provider);
     return {
@@ -223,13 +309,9 @@ export async function loadStorePaymentCredential(
   }
 }
 
-function keyHintFor(provider: StorePaymentProvider, payload: StorePaymentSecretPayload): string | null {
+function keyHintFor(_provider: StorePaymentProvider, payload: StorePaymentSecretPayload): string | null {
   const value = payload.apiKey || payload.secretKey || payload.privateKey || '';
   if (!value) return null;
-  if (provider === 'saspay') {
-    const match = /^sk_(?:test|live)_(.+)$/.exec(value);
-    if (match?.[1]) return `…${match[1].slice(-4)}`;
-  }
   return `…${value.slice(-4)}`;
 }
 
@@ -244,32 +326,89 @@ export async function saveStorePaymentMethod(
   provider: StorePaymentProvider,
   input: SaveStorePaymentMethodInput,
 ): Promise<{ success: boolean; error?: string }> {
+  if (!isSupportedStoreProvider(provider)) {
+    return {
+      success: false,
+      error: 'Ce moyen de paiement n’est plus pris en charge pour les boutiques.',
+    };
+  }
   const enabled = Boolean(input.enabled);
   const config = pickPublicConfig(input.config);
   const nextSecrets = pickSecretPayload(input.secrets);
   const hasNewSecret = Object.keys(nextSecrets).length > 0;
   const existingSecret = await loadStorePaymentCredential(storeId, provider);
+  // Fusion champ à champ : un champ laissé vide conserve le secret déjà
+  // enregistré (« Laisser vide pour conserver ») au lieu d'écraser toute la
+  // ligne avec les seuls champs nouvellement saisis.
+  const mergedSecrets: StorePaymentSecretPayload = hasNewSecret
+    ? { ...(existingSecret ?? {}), ...nextSecrets }
+    : (existingSecret ?? {});
 
   if (enabled) {
     if (provider === 'kkiapay') {
       if (!config.publicKey) return { success: false, error: 'Renseignez la clé publique Kkiapay.' };
-      if (!hasNewSecret && !existingSecret?.privateKey) {
+      if (!mergedSecrets.privateKey || !mergedSecrets.secretKey) {
         return { success: false, error: 'Renseignez les clés privée et secrète Kkiapay.' };
       }
     }
     if (provider === 'fedapay') {
       if (!config.publicKey) return { success: false, error: 'Renseignez la clé publique FedaPay.' };
-      if (!hasNewSecret && !existingSecret?.secretKey) {
+      if (!mergedSecrets.secretKey) {
         return { success: false, error: 'Renseignez la clé secrète FedaPay.' };
       }
     }
-    if (provider === 'saspay') {
-      if (!hasNewSecret && !existingSecret?.apiKey) {
-        return { success: false, error: 'Renseignez la clé API SasPay.' };
+    if (provider === 'feexpay') {
+      if (!config.shopId) return { success: false, error: 'Renseignez l’identifiant de votre boutique FeexPay.' };
+      if (!mergedSecrets.apiKey) {
+        return { success: false, error: 'Renseignez la clé API FeexPay.' };
       }
     }
-    if (provider === 'ussd' && !config.ussdCode) {
-      return { success: false, error: 'Renseignez le code USSD à composer.' };
+    // Cohérence mode ↔ clés : en production, toute clé ressemblant à une
+    // clé de test est refusée ; en Sandbox, toute clé live est refusée.
+    // S'applique aussi aux clés conservées depuis un enregistrement antérieur.
+    if (isOnlineStorePayment(provider)) {
+      const env = publicConfigEnv(config);
+      const candidates: Array<[string, string | undefined]> = [
+        ['clé publique', config.publicKey],
+        ['clé privée', mergedSecrets.privateKey],
+        ['clé secrète', mergedSecrets.secretKey],
+        ['clé API', mergedSecrets.apiKey],
+        ['secret webhook', mergedSecrets.webhookSecret],
+      ];
+      for (const [label, value] of candidates) {
+        if (!value) continue;
+        // FeexPay : seule la clé API porte un préfixe déterministe
+        // (fp_ = live, test_ = sandbox). L'identifiant boutique et le
+        // secret webhook sont des chaînes libres.
+        if (provider === 'feexpay') {
+          if (label !== 'clé API') continue;
+          if (env === 'live' && looksLikeFeexpaySandboxKey(value)) {
+            return {
+              success: false,
+              error: 'La clé API ressemble à une clé de test. Les paiements boutiques fonctionnent en mode production par défaut ; utilisez votre clé fp_ (ou basculez en Sandbox pour tester).',
+            };
+          }
+          if (env === 'sandbox' && looksLikeFeexpayLiveKey(value)) {
+            return {
+              success: false,
+              error: 'La clé API ressemble à une clé de production (fp_). En mode Sandbox, utilisez votre clé test_.',
+            };
+          }
+          continue;
+        }
+        if (env === 'live' && looksLikeSandboxKey(value)) {
+          return {
+            success: false,
+            error: `La ${label} ressemble à une clé de test. Les paiements boutiques fonctionnent en mode production par défaut ; utilisez vos clés live (ou basculez en Sandbox pour tester).`,
+          };
+        }
+        if (env === 'sandbox' && looksLikeLiveKey(value)) {
+          return {
+            success: false,
+            error: `La ${label} ressemble à une clé de production. En mode Sandbox, utilisez vos clés de test.`,
+          };
+        }
+      }
     }
   }
 
@@ -284,7 +423,9 @@ export async function saveStorePaymentMethod(
   if (hasNewSecret) {
     let encrypted: string;
     try {
-      encrypted = encryptPaymentSecret(nextSecrets);
+      // On persiste la fusion complète : les clés conservées ne sont jamais
+      // perdues lorsque seule une partie est réenregistrée.
+      encrypted = encryptPaymentSecret(mergedSecrets);
     } catch (error) {
       return {
         success: false,
@@ -297,7 +438,7 @@ export async function saveStorePaymentMethod(
         storeId,
         provider,
         payload: encrypted,
-        keyHint: keyHintFor(provider, nextSecrets),
+        keyHint: keyHintFor(provider, mergedSecrets),
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -332,6 +473,7 @@ export async function initializeStorePayment(input: {
 }): Promise<{
   ok: boolean;
   publicKey?: string;
+  shopId?: string;
   env?: 'sandbox' | 'live';
   checkoutUrl?: string;
   instructions?: string;
@@ -358,6 +500,41 @@ export async function initializeStorePayment(input: {
     };
   }
 
+  if (input.provider === 'feexpay') {
+    const [row] = await db
+      .select({ config: storePaymentMethods.config })
+      .from(storePaymentMethods)
+      .where(
+        and(
+          eq(storePaymentMethods.storeId, input.storeId),
+          eq(storePaymentMethods.provider, 'feexpay'),
+        ),
+      )
+      .limit(1);
+    const config = pickPublicConfig(row?.config);
+    const secrets = await loadStorePaymentCredential(input.storeId, 'feexpay');
+    const env = publicConfigEnv(config);
+    if (!config.shopId || !secrets?.apiKey) {
+      return { ok: false, error: 'Le paiement FeexPay de cette boutique est mal configuré.' };
+    }
+    if (env === 'live' && looksLikeFeexpaySandboxKey(secrets.apiKey)) {
+      return {
+        ok: false,
+        error: 'La clé API de cette boutique est une clé de test. Le mode production est requis (ou basculez la boutique en Sandbox pour tester).',
+      };
+    }
+    if (env === 'sandbox' && looksLikeFeexpayLiveKey(secrets.apiKey)) {
+      return {
+        ok: false,
+        error: 'La clé API de cette boutique est une clé de production (fp_). En mode Sandbox, utilisez votre clé test_.',
+      };
+    }
+    // Le SDK FeexPay officiel attend la clé API côté navigateur (comme le
+    // guichet d'abonnement de la plateforme) : c'est le jeton du guichet,
+    // pas un secret serveur supplémentaire.
+    return { ok: true, publicKey: secrets.apiKey, shopId: config.shopId, env };
+  }
+
   if (input.provider === 'kkiapay' || input.provider === 'fedapay') {
     const [row] = await db
       .select({ config: storePaymentMethods.config })
@@ -371,17 +548,25 @@ export async function initializeStorePayment(input: {
       .limit(1);
     const config = pickPublicConfig(row?.config);
     const secrets = await loadStorePaymentCredential(input.storeId, input.provider);
+    const env = publicConfigEnv(config);
     if (!config.publicKey || !secrets) {
       return { ok: false, error: 'Le paiement en ligne de cette boutique est mal configuré.' };
     }
-    const env =
-      config.env ||
-      (config.publicKey.startsWith('pk_live') ||
-      config.publicKey.startsWith('live') ||
-      secrets.secretKey?.startsWith('sk_live') ||
-      secrets.privateKey?.startsWith('live')
-        ? 'live'
-        : 'sandbox');
+    // Cohérence mode ↔ clés : une boutique en production refuse les clés de
+    // test (aucun widget ne s'ouvre), et une boutique en Sandbox refuse les
+    // clés live (aucune vraie transaction ne part par erreur).
+    if (env === 'live' && (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey))) {
+      return {
+        ok: false,
+        error: 'Les clés de cette boutique ressemblent à des clés de test. Le mode production est requis (ou basculez la boutique en Sandbox pour tester).',
+      };
+    }
+    if (env === 'sandbox' && (looksLikeLiveKey(config.publicKey) || Object.values(secrets).some(looksLikeLiveKey))) {
+      return {
+        ok: false,
+        error: 'Les clés de cette boutique ressemblent à des clés de production. En mode Sandbox, utilisez vos clés de test.',
+      };
+    }
     return { ok: true, publicKey: config.publicKey, env };
   }
 
@@ -389,6 +574,12 @@ export async function initializeStorePayment(input: {
   const secrets = await loadStorePaymentCredential(input.storeId, 'saspay');
   if (!secrets?.apiKey) {
     return { ok: false, error: 'La clé API SasPay de cette boutique est absente.' };
+  }
+  if (looksLikeSandboxKey(secrets.apiKey)) {
+    return {
+      ok: false,
+      error: 'La clé API SasPay de cette boutique ressemble à une clé de test. Le mode production est requis.',
+    };
   }
   try {
     const { createSaspayStoreCheckout, saspayStoreReturnUrl } = await import('@/lib/saspay');
@@ -427,14 +618,20 @@ type KkiapayStatusResponse = {
   reason?: string;
 };
 
+// Hôtes fournisseurs selon l'environnement choisi par la boutique.
+const KKIAPAY_API_BASE_LIVE = 'https://api.kkiapay.me';
+const KKIAPAY_API_BASE_SANDBOX = 'https://api-sandbox.kkiapay.me';
+const FEDAPAY_API_BASE_LIVE = 'https://api.fedapay.com/v1';
+const FEDAPAY_API_BASE_SANDBOX = 'https://sandbox-api.fedapay.com/v1';
+
 async function verifyKkiapayWithCredentials(
   secrets: StorePaymentSecretPayload,
   publicKey: string,
   transactionId: string,
-  env: 'sandbox' | 'live',
+  env: 'sandbox' | 'live' = 'live',
 ): Promise<KkiapayStatusResponse> {
-  const base = env === 'live' ? 'https://api.kkiapay.me' : 'https://api-sandbox.kkiapay.me';
-  const res = await fetch(`${base}/api/v1/transactions/status`, {
+  const apiBase = env === 'sandbox' ? KKIAPAY_API_BASE_SANDBOX : KKIAPAY_API_BASE_LIVE;
+  const res = await fetch(`${apiBase}/api/v1/transactions/status`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -470,11 +667,11 @@ type FedapayStatusResponse = {
 async function verifyFedapayWithCredentials(
   secrets: StorePaymentSecretPayload,
   transactionId: string,
+  env: 'sandbox' | 'live' = 'live',
 ): Promise<FedapayStatusResponse> {
   const secret = secrets.secretKey || '';
   if (!secret) throw new Error('Clé secrète FedaPay absente.');
-  const isLive = secret.startsWith('sk_live');
-  const base = isLive ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1';
+  const base = env === 'sandbox' ? FEDAPAY_API_BASE_SANDBOX : FEDAPAY_API_BASE_LIVE;
   const res = await fetch(`${base}/transactions/${encodeURIComponent(transactionId)}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
@@ -499,6 +696,109 @@ async function verifyFedapayWithCredentials(
   };
 }
 
+// FeexPay : deux hôtes distincts — production et sandbox (doc « Environnement
+// sandbox », 2026-10). Le mode n'est PAS porté par la clé seule : l'API de
+// statut n'existe que sur l'hôte correspondant à l'environnement.
+const FEEXPAY_API_BASE_LIVE = 'https://api-v2.feexpay.me';
+const FEEXPAY_API_BASE_SANDBOX = 'https://sandbox-api.feexpay.me';
+
+type FeexpayStatusResponse = {
+  reference?: string;
+  amount?: number;
+  status?: string;
+  callback_info?: string | null;
+  reason?: string;
+  responsemsg?: string;
+};
+
+async function verifyFeexpayWithCredentials(
+  secrets: StorePaymentSecretPayload,
+  reference: string,
+  env: 'sandbox' | 'live' = 'live',
+): Promise<FeexpayStatusResponse> {
+  const apiKey = secrets.apiKey || '';
+  if (!apiKey) throw new Error('Clé API FeexPay absente.');
+  const apiBase = env === 'sandbox' ? FEEXPAY_API_BASE_SANDBOX : FEEXPAY_API_BASE_LIVE;
+  const res = await fetch(
+    `${apiBase}/api/transactions/public/single/status/${encodeURIComponent(reference)}`,
+    {
+      method: 'GET',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${apiKey}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  const text = await res.text();
+  let body: unknown = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = null;
+  }
+  if (!res.ok) {
+    const reason =
+      (body as { message?: string; reason?: string } | null)?.message ||
+      (body as { reason?: string } | null)?.reason ||
+      `HTTP ${res.status}`;
+    throw new Error(`FeexPay API ${res.status} : ${reason}`);
+  }
+  // La réponse v2 expose soit la transaction à plat, soit sous `transaction`.
+  const raw = (body || {}) as Record<string, unknown>;
+  const tx = (raw.transaction || raw.data || raw) as Record<string, unknown>;
+  // callback_info est une chaîne (ancien SDK) ou un objet du type
+  // `{ partnerId }` (React SDK v2, utilisé par le guichet PosMarket) : on
+  // normalise vers l'identifiant de rapprochement à plat.
+  const cb = tx.callback_info ?? raw.callback_info ?? null;
+  let callbackInfo: string | null = null;
+  if (cb && typeof cb === 'object') {
+    const rec = cb as Record<string, unknown>;
+    callbackInfo = String(rec.partnerId ?? rec.reference ?? '').trim() || null;
+  } else if (cb !== null && cb !== undefined) {
+    callbackInfo = String(cb).trim() || null;
+  }
+  return {
+    reference: String(tx.reference ?? raw.reference ?? reference),
+    amount: Number(tx.amount ?? raw.amount ?? 0),
+    status: String(tx.status ?? raw.status ?? '').toLowerCase(),
+    callback_info: callbackInfo == null ? null : String(callbackInfo),
+    reason: String(tx.reason ?? raw.reason ?? ''),
+    responsemsg: String(tx.responsemsg ?? raw.responsemsg ?? ''),
+  };
+}
+
+/** Statuts FeexPay considérés comme encaissés. */
+const isFeexpayApproved = (status: string): boolean =>
+  ['successful', 'success', 'approved', 'completed', 'paid', 'transferred'].includes(
+    String(status || '').trim().toLowerCase(),
+  );
+
+const safeEqualSecret = (a: string, b: string): boolean => {
+  const ba = Buffer.from(String(a || ''));
+  const bb = Buffer.from(String(b || ''));
+  return ba.length > 0 && bb.length > 0 && ba.length === bb.length && timingSafeEqual(ba, bb);
+};
+
+/**
+ * Vérifie l'en-tête `x-feexpay-signature` d'un webhook boutique contre le
+ * secret configuré par le vendeur (SHA-256 brut du corps, HMAC-SHA256 du
+ * corps, ou le secret lui-même). Sans secret configuré, la revérification
+ * serveur auprès de l'API FeexPay fait foi — même posture que Kkiapay.
+ */
+export function verifyFeexpayStoreWebhookSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+  secret: string | undefined,
+): boolean {
+  if (!secret) return true;
+  const header = String(signatureHeader || '').trim();
+  if (!header) return false;
+  const sha256 = createHash('sha256').update(rawBody).digest('hex');
+  const hmac = createHmac('sha256', secret).update(rawBody).digest('hex');
+  return (
+    safeEqualSecret(header, sha256) || safeEqualSecret(header, hmac) || safeEqualSecret(header, secret)
+  );
+}
+
 export type StorePaymentRow = typeof orderPayments.$inferSelect;
 
 async function markStorePaymentPaid(row: StorePaymentRow, reference: string): Promise<void> {
@@ -521,6 +821,8 @@ async function markStorePaymentPaid(row: StorePaymentRow, reference: string): Pr
       paymentProvider: row.provider,
     })
     .where(eq(orders.id, row.orderId));
+  // Le vendeur doit voir « Payé » sans attendre l'expiration des caches.
+  refreshTag(`orders:${row.storeId}`);
 }
 
 export async function markStorePaymentFailed(
@@ -537,7 +839,7 @@ export async function markStorePaymentFailed(
     .where(and(eq(orderPayments.id, paymentId), eq(orderPayments.status, 'PENDING')));
 
   const [row] = await db
-    .select({ orderId: orderPayments.orderId })
+    .select({ orderId: orderPayments.orderId, storeId: orderPayments.storeId })
     .from(orderPayments)
     .where(eq(orderPayments.id, paymentId))
     .limit(1);
@@ -546,12 +848,8 @@ export async function markStorePaymentFailed(
       .update(orders)
       .set({ paymentStatus: 'FAILED' })
       .where(eq(orders.id, row.orderId));
+    refreshTag(`orders:${row.storeId}`);
   }
-}
-
-async function loadPaymentById(paymentId: string): Promise<StorePaymentRow | null> {
-  const [row] = await db.select().from(orderPayments).where(eq(orderPayments.id, paymentId)).limit(1);
-  return row || null;
 }
 
 async function loadPaymentByToken(token: string): Promise<StorePaymentRow | null> {
@@ -571,9 +869,109 @@ async function loadPaymentMethodConfig(storeId: string, provider: StorePaymentPr
 }
 
 /**
+ * Vérifie un paiement en ligne PRÉ-ENCAISSÉ (flux « paiement avant commande ») :
+ * statut succès, montant exact, partenaire concordant. N'écrit RIEN — la
+ * décision d'insérer la commande revient à l'appelant.
+ */
+export async function verifyPrepaidStorePayment(input: {
+  storeId: string;
+  provider: StorePaymentProvider;
+  amount: number;
+  reference: string;
+  partnerId?: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const provider = input.provider;
+  const reference = String(input.reference || '').trim();
+  const expectedAmount = Math.round(Number(input.amount));
+  if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+    return { ok: false, error: 'Montant invalide.' };
+  }
+  if (!reference) return { ok: false, error: 'Référence de paiement manquante.' };
+  if (provider === 'cod') return { ok: true };
+  const secrets = await loadStorePaymentCredential(input.storeId, provider);
+
+  if (provider === 'kkiapay') {
+    const { config } = await loadPaymentMethodConfig(input.storeId, provider);
+    if (!config.publicKey || !secrets) {
+      return { ok: false, error: 'Le paiement Kkiapay de cette boutique est indisponible.' };
+    }
+    const env = publicConfigEnv(config);
+    if (env === 'live' && (looksLikeSandboxKey(config.publicKey) || Object.values(secrets).some(looksLikeSandboxKey))) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de test.' };
+    }
+    if (env === 'sandbox' && (looksLikeLiveKey(config.publicKey) || Object.values(secrets).some(looksLikeLiveKey))) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de production.' };
+    }
+    const tx = await verifyKkiapayWithCredentials(secrets, config.publicKey, reference, env);
+    if (String(tx.status || '').toUpperCase() !== 'SUCCESS') {
+      return { ok: false, error: tx.failureMessage || tx.reason || 'Paiement non abouti.' };
+    }
+    if (Number(tx.amount) !== expectedAmount) {
+      return { ok: false, error: 'Le montant payé ne correspond pas à la commande.' };
+    }
+    if (tx.partnerId && input.partnerId && String(tx.partnerId) !== input.partnerId) {
+      return { ok: false, error: 'Référence de transaction non concordante.' };
+    }
+    return { ok: true };
+  }
+
+  if (provider === 'fedapay') {
+    const { config } = await loadPaymentMethodConfig(input.storeId, provider);
+    const env = publicConfigEnv(config);
+    if (!secrets?.secretKey) {
+      return { ok: false, error: 'Le paiement FedaPay de cette boutique est indisponible.' };
+    }
+    if (env === 'live' && Object.values(secrets).some(looksLikeSandboxKey)) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de test.' };
+    }
+    if (env === 'sandbox' && (looksLikeLiveKey(secrets.secretKey) || looksLikeLiveKey(config.publicKey))) {
+      return { ok: false, error: 'Les clés de cette boutique ressemblent à des clés de production.' };
+    }
+    const tx = await verifyFedapayWithCredentials(secrets, reference, env);
+    const status = String(tx.status || '').toLowerCase();
+    if (!['approved', 'success', 'transferred', 'completed'].includes(status)) {
+      return { ok: false, error: `Paiement non abouti (statut : ${status || 'inconnu'}).` };
+    }
+    if (Number(tx.amount) !== expectedAmount) {
+      return { ok: false, error: 'Le montant payé ne correspond pas à la commande.' };
+    }
+    return { ok: true };
+  }
+
+  if (provider === 'feexpay') {
+    const { config } = await loadPaymentMethodConfig(input.storeId, provider);
+    const env = publicConfigEnv(config);
+    if (!secrets?.apiKey) {
+      return { ok: false, error: 'Le paiement FeexPay de cette boutique est indisponible.' };
+    }
+    if (env === 'live' && looksLikeFeexpaySandboxKey(secrets.apiKey)) {
+      return { ok: false, error: 'La clé API de cette boutique est une clé de test.' };
+    }
+    if (env === 'sandbox' && looksLikeFeexpayLiveKey(secrets.apiKey)) {
+      return { ok: false, error: 'La clé API de cette boutique est une clé de production (fp_).' };
+    }
+    const tx = await verifyFeexpayWithCredentials(secrets, reference, env);
+    if (!isFeexpayApproved(tx.status || '')) {
+      return { ok: false, error: tx.responsemsg || tx.reason || 'Paiement non abouti.' };
+    }
+    if (Number(tx.amount) !== expectedAmount) {
+      return { ok: false, error: 'Le montant payé ne correspond pas à la commande.' };
+    }
+    // callback_info porte l'identifiant de rapprochement (jeton idempotent) :
+    // on le vérifie quand FeexPay le renvoie.
+    if (tx.callback_info && input.partnerId && String(tx.callback_info) !== input.partnerId) {
+      return { ok: false, error: 'Référence de transaction non concordante.' };
+    }
+    return { ok: true };
+  }
+
+  return { ok: false, error: 'Moyen de paiement inconnu.' };
+}
+
+/**
  * Vérifie un paiement auprès du fournisseur puis marque la commande payée.
  * `reference` est l'identifiant de transaction fourni par le widget (Kkiapay,
- * FedaPay) ; SasPay s'appuie sur la session créée côté serveur.
+ * FedaPay, FeexPay) ; SasPay s'appuie sur la session créée côté serveur.
  */
 export async function confirmStorePayment(input: {
   orderId: string;
@@ -592,11 +990,28 @@ export async function confirmStorePayment(input: {
   const provider = isStorePaymentProvider(row.provider) ? row.provider : null;
   if (!provider) return { success: false, error: 'Moyen de paiement inconnu.' };
 
+  // Une commande annulée ne doit plus encaisser : on ferme le paiement
+  // (FAILED) plutôt que de laisser le client payer une commande morte.
+  try {
+    const [orderRow] = await db
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, row.orderId))
+      .limit(1);
+    if (orderRow && isCancelledOrderStatus(orderRow.status)) {
+      await markStorePaymentFailed(row.id, 'Commande annulée.');
+      return { success: false, error: 'Cette commande a été annulée.' };
+    }
+  } catch (error) {
+    console.error('[store-payments] vérification statut commande:', error);
+  }
+
   try {
     if (provider === 'kkiapay') {
       const reference = String(input.reference || '').trim();
       if (!reference) return { success: false, error: 'Référence Kkiapay manquante.' };
       const { config } = await loadPaymentMethodConfig(row.storeId, provider);
+      const env = publicConfigEnv(config);
       const secrets = await loadStorePaymentCredential(row.storeId, provider);
       if (!config.publicKey || !secrets) {
         return { success: false, error: 'Le paiement Kkiapay de cette boutique est indisponible.' };
@@ -605,7 +1020,7 @@ export async function confirmStorePayment(input: {
         secrets,
         config.publicKey,
         reference,
-        config.env || 'sandbox',
+        env,
       );
       if (String(tx.status || '').toUpperCase() !== 'SUCCESS') {
         return { success: false, error: tx.failureMessage || tx.reason || 'Paiement non abouti.' };
@@ -623,17 +1038,48 @@ export async function confirmStorePayment(input: {
     if (provider === 'fedapay') {
       const reference = String(input.reference || '').trim();
       if (!reference) return { success: false, error: 'Référence FedaPay manquante.' };
+      const { config } = await loadPaymentMethodConfig(row.storeId, provider);
+      const env = publicConfigEnv(config);
       const secrets = await loadStorePaymentCredential(row.storeId, provider);
       if (!secrets?.secretKey) {
         return { success: false, error: 'Le paiement FedaPay de cette boutique est indisponible.' };
       }
-      const tx = await verifyFedapayWithCredentials(secrets, reference);
+      const tx = await verifyFedapayWithCredentials(secrets, reference, env);
       const status = String(tx.status || '').toLowerCase();
       if (!['approved', 'success', 'transferred', 'completed'].includes(status)) {
         return { success: false, error: `Paiement non abouti (statut : ${status || 'inconnu'}).` };
       }
       if (Number(tx.amount) !== Math.round(Number(row.amount))) {
         return { success: false, error: 'Le montant payé ne correspond pas à la commande.' };
+      }
+      await markStorePaymentPaid(row, reference);
+      return { success: true, status: 'PAID' };
+    }
+
+    if (provider === 'feexpay') {
+      const reference = String(input.reference || '').trim();
+      if (!reference) return { success: false, error: 'Référence FeexPay manquante.' };
+      const { config } = await loadPaymentMethodConfig(row.storeId, provider);
+      const env = publicConfigEnv(config);
+      const secrets = await loadStorePaymentCredential(row.storeId, provider);
+      if (!secrets?.apiKey) {
+        return { success: false, error: 'Le paiement FeexPay de cette boutique est indisponible.' };
+      }
+      if (env === 'live' && looksLikeFeexpaySandboxKey(secrets.apiKey)) {
+        return { success: false, error: 'La clé API de cette boutique est une clé de test.' };
+      }
+      if (env === 'sandbox' && looksLikeFeexpayLiveKey(secrets.apiKey)) {
+        return { success: false, error: 'La clé API de cette boutique est une clé de production (fp_).' };
+      }
+      const tx = await verifyFeexpayWithCredentials(secrets, reference, env);
+      if (!isFeexpayApproved(tx.status || '')) {
+        return { success: false, error: tx.responsemsg || tx.reason || 'Paiement non abouti.' };
+      }
+      if (Number(tx.amount) !== Math.round(Number(row.amount))) {
+        return { success: false, error: 'Le montant payé ne correspond pas à la commande.' };
+      }
+      if (tx.callback_info && String(tx.callback_info) !== row.token) {
+        return { success: false, error: 'Référence de transaction non concordante.' };
       }
       await markStorePaymentPaid(row, reference);
       return { success: true, status: 'PAID' };
@@ -679,6 +1125,40 @@ export async function confirmStorePayment(input: {
           : 'La vérification du paiement a échoué. Réessayez.',
     };
   }
+}
+
+/**
+ * Encaissement hors ligne (COD / USSD) marqué payé lorsque le vendeur mène
+ * la commande à son terme : l'argent est encaissé en main propre. Les
+ * paiements en ligne (Kkiapay / FedaPay / FeexPay / SasPay) sont
+ * volontairement exclus — seul le serveur les marque PAID, après vérification.
+ */
+export async function markOfflineStorePaymentCollected(orderId: string): Promise<void> {
+  const cleanOrderId = String(orderId || '').trim();
+  if (!cleanOrderId) return;
+  const rows = await db
+    .update(orderPayments)
+    .set({ status: 'PAID', paidAt: new Date(), updatedAt: new Date(), failureReason: null })
+    .where(
+      and(
+        eq(orderPayments.orderId, cleanOrderId),
+        eq(orderPayments.status, 'PENDING'),
+        inArray(orderPayments.provider, ['cod', 'ussd']),
+      ),
+    )
+    .returning({ storeId: orderPayments.storeId });
+  if (rows.length === 0) return;
+  await db
+    .update(orders)
+    .set({ paymentStatus: 'PAID' })
+    .where(
+      and(
+        eq(orders.id, cleanOrderId),
+        eq(orders.paymentStatus, 'PENDING'),
+        inArray(orders.paymentProvider, ['cod', 'ussd']),
+      ),
+    );
+  for (const row of rows) refreshTag(`orders:${row.storeId}`);
 }
 
 /** Rapprochement côté webhook : retrouve le paiement par jeton ou référence. */
@@ -735,6 +1215,8 @@ export type StorePaymentClientView = {
   token: string;
   checkoutUrl: string | null;
   publicKey: string | null;
+  /** Identifiant public de la boutique FeexPay (guichet SDK). */
+  shopId: string | null;
   env: 'sandbox' | 'live';
   ussdCode: string | null;
   instructions: string | null;
@@ -748,16 +1230,18 @@ export async function describeStorePaymentForClient(
 ): Promise<StorePaymentClientView> {
   const provider = isStorePaymentProvider(row.provider) ? row.provider : 'cod';
   const { config } = await loadPaymentMethodConfig(row.storeId, provider);
-  const secrets = isOnlineStorePayment(provider)
-    ? await loadStorePaymentCredential(row.storeId, provider)
-    : null;
-  const env: 'sandbox' | 'live' =
-    config.env ||
-    (config.publicKey?.startsWith('pk_live') ||
-    secrets?.secretKey?.startsWith('sk_live') ||
-    secrets?.privateKey?.startsWith('live')
-      ? 'live'
-      : 'sandbox');
+  const env = publicConfigEnv(config);
+  let publicKey: string | null = config.publicKey || null;
+  if (provider === 'feexpay') {
+    // La clé API n'est exposée au navigateur que pour un paiement encore
+    // PENDING (guichet à réouvrir) ; jamais une fois réglé.
+    if (row.status === 'PENDING') {
+      const secrets = await loadStorePaymentCredential(row.storeId, provider);
+      publicKey = secrets?.apiKey || null;
+    } else {
+      publicKey = null;
+    }
+  }
   return {
     id: row.id,
     orderId: row.orderId,
@@ -769,7 +1253,8 @@ export async function describeStorePaymentForClient(
     status: row.status,
     token: row.token,
     checkoutUrl: row.checkoutUrl || null,
-    publicKey: config.publicKey || null,
+    publicKey,
+    shopId: config.shopId || null,
     env,
     ussdCode: config.ussdCode || null,
     instructions: config.instructions || null,

@@ -42,9 +42,8 @@ function SellerShell() {
   const [storeIdToDelete, setStoreIdToDelete] = useState<string | null>(null);
   const [savingVerification, setSavingVerification] = useState(false);
 
-  // Un vendeur n'a pas accès aux réglages ni aux rapports.
-  const restricted =
-    seller.role === 'SELLER' && (currentView === 'settings' || currentView === 'reports');
+  // Un vendeur n'a pas accès aux réglages.
+  const restricted = seller.role === 'SELLER' && currentView === 'settings';
 
   const handleStoreChange = useCallback(
     (id: string) => {

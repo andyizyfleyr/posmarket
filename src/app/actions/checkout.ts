@@ -32,6 +32,7 @@ import {
   listStorePaymentsForOrders,
   normalizeStorePaymentProvider,
   orderPaymentMethodLabel,
+  verifyPrepaidStorePayment,
   STORE_PAYMENT_LABELS,
   type StorePaymentClientView,
   type StorePaymentProvider,
@@ -262,10 +263,415 @@ const loadCheckoutPayments = async (orderIds: string[]): Promise<StorePaymentCli
   return Promise.all(rows.map((row) => describeStorePaymentForClient(row)))
 }
 
+/**
+ * Validation complète du panier (lecture seule, AUCUNE écriture) : prix,
+ * stocks, variantes, minimums de gros, coupons — la même logique qui précède
+ * l'insertion. Partagée par la cotation préalable (« paiement avant commande »)
+ * et la création elle-même.
+ */
+type ValidatedMarketplaceCheckout = {
+  storeCheckouts: StoreCheckout[]
+  customerName: string
+  phone: string
+  buyerEmail: string | null
+  buyerPhone: string | null
+  address: string | null
+}
+
+const buildMarketplaceCheckout = async (
+  validatedOrder: Record<string, CheckoutStoreOrder>,
+  validatedCustomer: CheckoutCustomer | undefined,
+  user: { id?: string; email?: string | null } | null | undefined,
+): Promise<ValidatedMarketplaceCheckout> => {
+  const customer = validatedCustomer || {}
+  const ordersData =
+    validatedOrder && typeof validatedOrder === 'object' && !Array.isArray(validatedOrder)
+      ? validatedOrder
+      : {}
+  const storeEntries = Object.entries(ordersData).filter(([, value]) => Boolean(value))
+if (storeEntries.length === 0) {
+  reject('Votre panier est vide.')
+}
+if (storeEntries.length > MAX_STORES) {
+  reject(`Une commande ne peut pas contenir plus de ${MAX_STORES} boutiques.`)
+}
+
+let totalItemCount = 0
+for (const [storeId, storeOrder] of storeEntries) {
+  if (!storeId || typeof storeId !== 'string') reject('Boutique invalide.')
+  const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
+  if (items.length === 0) continue
+  totalItemCount += items.length
+  const paymentMethod = normalizeStorePaymentProvider(storeOrder.paymentMethod)
+  if (!paymentMethod) {
+    reject('Mode de paiement non disponible pour cette boutique.')
+  }
+}
+if (totalItemCount === 0) reject('Votre panier est vide.')
+if (totalItemCount > MAX_ITEMS) {
+  reject(`Une commande ne peut pas contenir plus de ${MAX_ITEMS} articles.`)
+}
+
+const storeIds = storeEntries.map(([storeId]) => storeId)
+const storeRows = await db
+  .select({
+    id: stores.id,
+    name: stores.name,
+    businessType: stores.businessType,
+    status: stores.status,
+    settings: stores.settings,
+  })
+  .from(stores)
+  .where(inArray(stores.id, storeIds))
+const storeMap = new Map(storeRows.map((row) => [row.id, row]))
+
+// Moyens réellement activés par chaque boutique. Le client ne peut choisir
+// qu'un moyen présent dans cette liste ; une boutique non configurée garde
+// le paiement à la livraison.
+const enabledMethodsByStore = await getEnabledStorePaymentMethods(storeIds)
+const paymentSelection = new Map<string, StorePaymentProvider>()
+for (const [storeId, storeOrder] of storeEntries) {
+  const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
+  if (items.length === 0) continue
+  const requested = normalizeStorePaymentProvider(storeOrder.paymentMethod) || 'cod'
+  const available = enabledMethodsByStore[storeId] || []
+  if (!available.some((method) => method.provider === requested)) {
+    reject(
+      `Le moyen de paiement choisi n'est pas disponible pour « ${
+        storeMap.get(storeId)?.name || 'cette boutique'
+      } ».`,
+    )
+  }
+  paymentSelection.set(storeId, requested)
+}
+
+for (const storeId of storeIds) {
+  const store = storeMap.get(storeId)
+  if (!store) throw new CheckoutValidationError('Une boutique de votre panier n’existe plus.')
+  if (store.status !== 'APPROVED') {
+    throw new CheckoutValidationError(
+      `La boutique « ${store.name} » n’accepte pas encore les commandes.`,
+    )
+  }
+}
+
+const allProductIds = Array.from(
+  new Set(
+    storeEntries.flatMap(([, storeOrder]) =>
+      (Array.isArray(storeOrder.items) ? storeOrder.items : [])
+        .map((item) => String(item?.product?.id || ''))
+        .filter(Boolean),
+    ),
+  ),
+)
+if (allProductIds.length === 0) reject('Aucun article valide dans votre panier.')
+if (allProductIds.length > MAX_ITEMS) reject('Trop d’articles dans votre panier.')
+
+const productRows = await db
+  .select({
+    id: products.id,
+    storeId: products.storeId,
+    name: products.name,
+    unit: products.unit,
+    image: products.image,
+    price: products.price,
+    stock: products.stock,
+    isOnline: products.isOnline,
+    businessType: products.businessType,
+    options: products.options,
+    variants: products.variants,
+    wholesalePrice: products.wholesalePrice,
+    wholesaleMinQty: products.wholesaleMinQty,
+    wholesaleTiers: products.wholesaleTiers,
+  })
+  .from(products)
+  .where(inArray(products.id, allProductIds))
+const catalog = new Map(productRows.map((row) => [row.id, row]))
+
+const customerName = toText(
+  customer.name || user?.email?.split('@')[0] || 'Client',
+  120,
+) || 'Client'
+const phone = String(customer.phone || '').replace(/\D/g, '').slice(0, 20)
+if (phone && (phone.length < 6 || phone.length > 20)) {
+  reject('Le numéro de téléphone est invalide.')
+}
+const email = toText(customer.email || user?.email || '', 190)
+if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  reject('L’adresse e-mail est invalide.')
+}
+const address = toText(customer.address, 300) || null
+const buyerEmail = email || null
+const buyerPhone = phone || null
+
+const storeCheckouts: StoreCheckout[] = []
+
+for (const [storeId, storeOrder] of storeEntries) {
+  const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
+  if (items.length === 0) continue
+
+  const store = storeMap.get(storeId)
+  if (!store) throw new CheckoutValidationError('Boutique introuvable.')
+
+  const settings =
+    store.settings && typeof store.settings === 'object'
+      ? (store.settings as Record<string, unknown>)
+      : {}
+  const wholesaleEnabled = settings.wholesaleEnabled !== false
+  const wholesaleMinOrderAmount = Math.max(
+    0,
+    Number(settings.wholesaleMinOrderAmount) || 0,
+  )
+  const wholesaleAllowed =
+    store.businessType === 'shopping' && wholesaleEnabled
+
+  const pricedItems: PricedLine[] = []
+  for (const item of items) {
+    const productId = String(item?.product?.id || '')
+    const row = catalog.get(productId)
+    if (!row) {
+      throw new CheckoutValidationError(
+        'Un article de votre commande n’existe plus. Actualisez votre panier.',
+      )
+    }
+    if (row.storeId !== storeId) {
+      throw new CheckoutValidationError(
+        'Un article de votre commande ne provient pas de cette boutique.',
+      )
+    }
+    if (!row.isOnline) {
+      reject(`« ${row.name} » n’est plus disponible à la vente.`)
+    }
+    if (row.businessType !== 'shopping' && row.businessType !== 'food') {
+      reject(`La catégorie de « ${row.name} » n’est pas supportée.`)
+    }
+
+    const quantity = Math.floor(Number(item?.quantity) || 0)
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      reject(`Quantité invalide pour « ${row.name} ».`)
+    }
+    if (quantity > MAX_QUANTITY) {
+      reject(`La quantité de « ${row.name} » dépasse la limite autorisée.`)
+    }
+
+    const options = toOptions(row.options)
+    const variants = Array.isArray(row.variants)
+      ? (row.variants as Array<{
+          id?: string
+          name?: string
+          price?: number
+          stock?: number
+          sku?: string
+          optionValues?: Record<string, string>
+          enabled?: boolean
+        }>)
+      : []
+
+    const variantId = item?.variantId ? String(item.variantId) : ''
+    const variant = variantId ? variants.find((v) => String(v.id) === variantId) : undefined
+
+    if (variants.length > 0 && options.length === 0) {
+      reject(`« ${row.name} » a des variantes mais aucune option configurée. Contactez le vendeur.`)
+    }
+    if (variants.length > 0 && !variant) {
+      reject(`Choisissez les options de « ${row.name} » avant de valider.`)
+    }
+    if (variant && variant.enabled === false) {
+      reject(`La variante choisie pour « ${row.name} » n’est plus disponible.`)
+    }
+
+    let basePrice: number
+    let expectedStock: number
+    let variantLabel: string | null = null
+    let variantSku: string | null = null
+    let variantOptionValues: Record<string, string> = {}
+    let effectiveVariantId: string | null = null
+
+    if (variant) {
+      basePrice = Number(variant.price)
+      expectedStock = Number(variant.stock)
+      effectiveVariantId = String(variant.id)
+      variantLabel = variant.name ? String(variant.name) : null
+      variantSku = variant.sku ? String(variant.sku) : null
+      variantOptionValues =
+        variant.optionValues && typeof variant.optionValues === 'object'
+          ? variant.optionValues
+          : {}
+    } else if (options.length > 0) {
+      const selected =
+        item?.selectedOptions && typeof item.selectedOptions === 'object'
+          ? item.selectedOptions
+          : {}
+      const missing = options.filter((option) => {
+        const value = selected[option.id]
+        return !value || !option.values.includes(String(value))
+      })
+      if (missing.length > 0) {
+        reject(`Choisissez toutes les options de « ${row.name} » avant de valider.`)
+      }
+      variantLabel = options.map((option) => String(selected[option.id])).join(' / ')
+      variantOptionValues = Object.fromEntries(
+        options.map((option) => [option.id, String(selected[option.id])]),
+      )
+      basePrice = Number(row.price)
+      expectedStock = Number(row.stock)
+    } else {
+      basePrice = Number(row.price)
+      expectedStock = Number(row.stock)
+    }
+
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+      reject(`Le prix de « ${row.name} » est invalide.`)
+    }
+    if (!Number.isFinite(expectedStock) || expectedStock < quantity) {
+      const detail = variantLabel ? ` (${variantLabel})` : ''
+      reject(
+        `Stock insuffisant pour « ${row.name}${detail} » : ${Math.max(
+          0,
+          Number.isFinite(expectedStock) ? expectedStock : 0,
+        )} disponible(s).`,
+      )
+    }
+
+    const tiers = wholesaleAllowed ? toWholesaleTiers(row.wholesaleTiers) : []
+    const legacyWholesalePrice =
+      row.wholesalePrice != null ? Number(row.wholesalePrice) : null
+    const legacyWholesaleMinQty =
+      row.wholesaleMinQty != null ? Number(row.wholesaleMinQty) : null
+
+    const syntheticProduct = {
+      price: basePrice,
+      wholesalePrice:
+        wholesaleAllowed && Number.isFinite(legacyWholesalePrice || NaN)
+          ? (legacyWholesalePrice as number)
+          : undefined,
+      wholesaleMinQty:
+        wholesaleAllowed && Number.isFinite(legacyWholesaleMinQty || NaN)
+          ? (legacyWholesaleMinQty as number)
+          : undefined,
+      wholesaleTiers: tiers,
+    } as unknown as Product
+
+    const wholesaleUnitPrice = getEffectiveWholesaleUnitPrice(
+      syntheticProduct,
+      quantity,
+      basePrice,
+    )
+    const unitPrice =
+      Number.isFinite(wholesaleUnitPrice) && wholesaleUnitPrice > 0
+        ? wholesaleUnitPrice
+        : basePrice
+
+    pricedItems.push({
+      productId,
+      storeId,
+      quantity,
+      unitPrice,
+      expectedPrice: basePrice,
+      expectedStock,
+      variantId: effectiveVariantId,
+      variantLabel,
+      variantSku,
+      variantOptionValues,
+      productName: row.name,
+      productUnit: row.unit,
+      productImage: row.image,
+      productOptions: options,
+      wholesaleApplied: unitPrice < basePrice - 0.005,
+      wholesaleTiers: tiers,
+      wholesalePrice: legacyWholesalePrice,
+      wholesaleMinQty: legacyWholesaleMinQty,
+    })
+  }
+
+  const subtotal = roundMoney(
+    pricedItems.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
+  )
+  const hasWholesaleLine = pricedItems.some((line) => line.wholesaleApplied)
+  if (
+    hasWholesaleLine &&
+    wholesaleMinOrderAmount > 0 &&
+    subtotal < wholesaleMinOrderAmount
+  ) {
+    reject(
+      `Le minimum de commande en gros est de ${new Intl.NumberFormat('fr-FR').format(
+        wholesaleMinOrderAmount,
+      )} FCFA pour « ${store.name} ». Ajoutez des articles ou repassez au prix de détail.`,
+    )
+  }
+
+  const requestedPromoCode = toText(storeOrder.promoCode, 64)
+  let promoLabel: string | null = null
+  let discount = 0
+  if (requestedPromoCode) {
+    const [coupon] = await db
+      .select({
+        code: coupons.code,
+        discountPct: coupons.discountPct,
+        active: coupons.active,
+        expiresAt: coupons.expiresAt,
+      })
+      .from(coupons)
+      .where(and(eq(coupons.storeId, storeId), eq(coupons.code, requestedPromoCode)))
+      .limit(1)
+    const usable =
+      coupon &&
+      coupon.active &&
+      (!coupon.expiresAt || new Date(coupon.expiresAt).getTime() > Date.now())
+    if (usable && coupon) {
+      const pct = Math.max(0, Math.min(Number(coupon.discountPct) || 0, 100))
+      discount = roundMoney(Math.min((subtotal * pct) / 100, subtotal))
+      promoLabel = coupon.code
+    }
+  }
+
+  // Les frais de livraison ne sont pas encore configurables par boutique.
+  // On ignore donc toute valeur envoyée par le client (0 par défaut).
+  const shipping = 0
+  const total = roundMoney(Math.max(0, subtotal - discount + shipping))
+
+  const [existingCustomer] = phone
+    ? await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(and(eq(customers.storeId, storeId), eq(customers.phone, phone)))
+        .limit(1)
+    : [undefined]
+
+  storeCheckouts.push({
+    storeId,
+    storeName: store.name,
+    storeBusinessType: store.businessType,
+    orderId: randomUUID(),
+    items: pricedItems,
+    subtotal,
+    discount,
+    shipping,
+    total,
+    promoCode: promoLabel,
+    paymentProvider: paymentSelection.get(storeId) || 'cod',
+    paymentToken: createOrderPaymentToken(),
+    paymentId: randomUUID(),
+    customerCreated: Boolean(phone) && !existingCustomer,
+  })
+}
+
+  if (storeCheckouts.length === 0) reject('Aucune commande n’a pu être enregistrée.')
+  return { storeCheckouts, customerName, phone, buyerEmail, buyerPhone, address }
+}
+
+/** Preuve de paiement pré-encaissé (flux « paiement avant commande »). */
+export type PrepaidStorePaymentProof = {
+  storeId: string
+  provider: string
+  reference: string
+}
+
 export async function submitCheckoutAction(
   order: Record<string, CheckoutStoreOrder> = {},
   customerData?: CheckoutCustomer,
   idempotencyKey?: string,
+  prepaidProofs?: PrepaidStorePaymentProof[],
 ) {
   // Validation Zod de l'entrée : le web comme le mobile passent par ici, on ne
   // fait donc confiance à aucun champ pour continuer le traitement.
@@ -363,379 +769,62 @@ export async function submitCheckoutAction(
       ownsKey = true
     }
 
-    const ordersData =
-      validatedOrder && typeof validatedOrder === 'object' && !Array.isArray(validatedOrder)
-        ? validatedOrder
-        : {}
-    const storeEntries = Object.entries(ordersData).filter(([, value]) => Boolean(value))
-    if (storeEntries.length === 0) {
-      reject('Votre panier est vide.')
-    }
-    if (storeEntries.length > MAX_STORES) {
-      reject(`Une commande ne peut pas contenir plus de ${MAX_STORES} boutiques.`)
-    }
+    const { storeCheckouts, customerName, phone, buyerEmail, buyerPhone, address } =
+      await buildMarketplaceCheckout(validatedOrder, validatedCustomer, user)
 
-    let totalItemCount = 0
-    for (const [storeId, storeOrder] of storeEntries) {
-      if (!storeId || typeof storeId !== 'string') reject('Boutique invalide.')
-      const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
-      if (items.length === 0) continue
-      totalItemCount += items.length
-      const paymentMethod = normalizeStorePaymentProvider(storeOrder.paymentMethod)
-      if (!paymentMethod) {
-        reject('Mode de paiement non disponible pour cette boutique.')
-      }
-    }
-    if (totalItemCount === 0) reject('Votre panier est vide.')
-    if (totalItemCount > MAX_ITEMS) {
-      reject(`Une commande ne peut pas contenir plus de ${MAX_ITEMS} articles.`)
-    }
-
-    const storeIds = storeEntries.map(([storeId]) => storeId)
-    const storeRows = await db
-      .select({
-        id: stores.id,
-        name: stores.name,
-        businessType: stores.businessType,
-        status: stores.status,
-        settings: stores.settings,
-      })
-      .from(stores)
-      .where(inArray(stores.id, storeIds))
-    const storeMap = new Map(storeRows.map((row) => [row.id, row]))
-
-    // Moyens réellement activés par chaque boutique. Le client ne peut choisir
-    // qu'un moyen présent dans cette liste ; une boutique non configurée garde
-    // le paiement à la livraison.
-    const enabledMethodsByStore = await getEnabledStorePaymentMethods(storeIds)
-    const paymentSelection = new Map<string, StorePaymentProvider>()
-    for (const [storeId, storeOrder] of storeEntries) {
-      const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
-      if (items.length === 0) continue
-      const requested = normalizeStorePaymentProvider(storeOrder.paymentMethod) || 'cod'
-      const available = enabledMethodsByStore[storeId] || []
-      if (!available.some((method) => method.provider === requested)) {
-        reject(
-          `Le moyen de paiement choisi n'est pas disponible pour « ${
-            storeMap.get(storeId)?.name || 'cette boutique'
-          } ».`,
-        )
-      }
-      paymentSelection.set(storeId, requested)
-    }
-
-    for (const storeId of storeIds) {
-      const store = storeMap.get(storeId)
-      if (!store) throw new CheckoutValidationError('Une boutique de votre panier n’existe plus.')
-      if (store.status !== 'APPROVED') {
-        throw new CheckoutValidationError(
-          `La boutique « ${store.name} » n’accepte pas encore les commandes.`,
-        )
-      }
-    }
-
-    const allProductIds = Array.from(
-      new Set(
-        storeEntries.flatMap(([, storeOrder]) =>
-          (Array.isArray(storeOrder.items) ? storeOrder.items : [])
-            .map((item) => String(item?.product?.id || ''))
-            .filter(Boolean),
-        ),
-      ),
+    // ---------------------------------------------------------------------
+    // Flux « paiement avant commande » : chaque boutique réglée en ligne est
+    // vérifiée auprès du fournisseur AVANT la moindre écriture. Si une seule
+    // vérification échoue, AUCUNE commande n'est créée.
+    // ---------------------------------------------------------------------
+    const prepaidAmounts = new Map<string, { reference: string }>()
+    const onlineCheckouts = storeCheckouts.filter((sc) =>
+      isOnlineStorePayment(sc.paymentProvider),
     )
-    if (allProductIds.length === 0) reject('Aucun article valide dans votre panier.')
-    if (allProductIds.length > MAX_ITEMS) reject('Trop d’articles dans votre panier.')
-
-    const productRows = await db
-      .select({
-        id: products.id,
-        storeId: products.storeId,
-        name: products.name,
-        unit: products.unit,
-        image: products.image,
-        price: products.price,
-        stock: products.stock,
-        isOnline: products.isOnline,
-        businessType: products.businessType,
-        options: products.options,
-        variants: products.variants,
-        wholesalePrice: products.wholesalePrice,
-        wholesaleMinQty: products.wholesaleMinQty,
-        wholesaleTiers: products.wholesaleTiers,
-      })
-      .from(products)
-      .where(inArray(products.id, allProductIds))
-    const catalog = new Map(productRows.map((row) => [row.id, row]))
-
-    const customerName = toText(
-      customer.name || user?.email?.split('@')[0] || 'Client',
-      120,
-    ) || 'Client'
-    const phone = String(customer.phone || '').replace(/\D/g, '').slice(0, 20)
-    if (phone && (phone.length < 6 || phone.length > 20)) {
-      reject('Le numéro de téléphone est invalide.')
-    }
-    const email = toText(customer.email || user?.email || '', 190)
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      reject('L’adresse e-mail est invalide.')
-    }
-    const address = toText(customer.address, 300) || null
-    const buyerEmail = email || null
-    const buyerPhone = phone || null
-
-    const storeCheckouts: StoreCheckout[] = []
-
-    for (const [storeId, storeOrder] of storeEntries) {
-      const items = Array.isArray(storeOrder.items) ? storeOrder.items : []
-      if (items.length === 0) continue
-
-      const store = storeMap.get(storeId)
-      if (!store) throw new CheckoutValidationError('Boutique introuvable.')
-
-      const settings =
-        store.settings && typeof store.settings === 'object'
-          ? (store.settings as Record<string, unknown>)
-          : {}
-      const wholesaleEnabled = settings.wholesaleEnabled !== false
-      const wholesaleMinOrderAmount = Math.max(
-        0,
-        Number(settings.wholesaleMinOrderAmount) || 0,
-      )
-      const wholesaleAllowed =
-        store.businessType === 'shopping' && wholesaleEnabled
-
-      const pricedItems: PricedLine[] = []
-      for (const item of items) {
-        const productId = String(item?.product?.id || '')
-        const row = catalog.get(productId)
-        if (!row) {
+    if (Array.isArray(prepaidProofs) && prepaidProofs.length > 0) {
+      const proofs = new Map<string, { provider: StorePaymentProvider; reference: string }>()
+      for (const raw of prepaidProofs.slice(0, MAX_STORES)) {
+        const storeId = String(raw?.storeId || '').trim()
+        const provider = normalizeStorePaymentProvider(raw?.provider)
+        const reference = toText(raw?.reference, 200)
+        if (storeId && provider && reference) proofs.set(storeId, { provider, reference })
+      }
+      for (const sc of onlineCheckouts) {
+        const proof = proofs.get(sc.storeId)
+        if (!proof) {
           throw new CheckoutValidationError(
-            'Un article de votre commande n’existe plus. Actualisez votre panier.',
+            `Paiement manquant pour « ${sc.storeName} » : la commande n’a pas été créée.`,
           )
         }
-        if (row.storeId !== storeId) {
+        if (proof.provider !== sc.paymentProvider) {
           throw new CheckoutValidationError(
-            'Un article de votre commande ne provient pas de cette boutique.',
+            `Moyen de paiement incohérent pour « ${sc.storeName} ».`,
           )
         }
-        if (!row.isOnline) {
-          reject(`« ${row.name} » n’est plus disponible à la vente.`)
-        }
-        if (row.businessType !== 'shopping' && row.businessType !== 'food') {
-          reject(`La catégorie de « ${row.name} » n’est pas supportée.`)
-        }
-
-        const quantity = Math.floor(Number(item?.quantity) || 0)
-        if (!Number.isFinite(quantity) || quantity < 1) {
-          reject(`Quantité invalide pour « ${row.name} ».`)
-        }
-        if (quantity > MAX_QUANTITY) {
-          reject(`La quantité de « ${row.name} » dépasse la limite autorisée.`)
-        }
-
-        const options = toOptions(row.options)
-        const variants = Array.isArray(row.variants)
-          ? (row.variants as Array<{
-              id?: string
-              name?: string
-              price?: number
-              stock?: number
-              sku?: string
-              optionValues?: Record<string, string>
-              enabled?: boolean
-            }>)
-          : []
-
-        const variantId = item?.variantId ? String(item.variantId) : ''
-        const variant = variantId ? variants.find((v) => String(v.id) === variantId) : undefined
-
-        if (variants.length > 0 && options.length === 0) {
-          reject(`« ${row.name} » a des variantes mais aucune option configurée. Contactez le vendeur.`)
-        }
-        if (variants.length > 0 && !variant) {
-          reject(`Choisissez les options de « ${row.name} » avant de valider.`)
-        }
-        if (variant && variant.enabled === false) {
-          reject(`La variante choisie pour « ${row.name} » n’est plus disponible.`)
-        }
-
-        let basePrice: number
-        let expectedStock: number
-        let variantLabel: string | null = null
-        let variantSku: string | null = null
-        let variantOptionValues: Record<string, string> = {}
-        let effectiveVariantId: string | null = null
-
-        if (variant) {
-          basePrice = Number(variant.price)
-          expectedStock = Number(variant.stock)
-          effectiveVariantId = String(variant.id)
-          variantLabel = variant.name ? String(variant.name) : null
-          variantSku = variant.sku ? String(variant.sku) : null
-          variantOptionValues =
-            variant.optionValues && typeof variant.optionValues === 'object'
-              ? variant.optionValues
-              : {}
-        } else if (options.length > 0) {
-          const selected =
-            item?.selectedOptions && typeof item.selectedOptions === 'object'
-              ? item.selectedOptions
-              : {}
-          const missing = options.filter((option) => {
-            const value = selected[option.id]
-            return !value || !option.values.includes(String(value))
-          })
-          if (missing.length > 0) {
-            reject(`Choisissez toutes les options de « ${row.name} » avant de valider.`)
-          }
-          variantLabel = options.map((option) => String(selected[option.id])).join(' / ')
-          variantOptionValues = Object.fromEntries(
-            options.map((option) => [option.id, String(selected[option.id])]),
-          )
-          basePrice = Number(row.price)
-          expectedStock = Number(row.stock)
-        } else {
-          basePrice = Number(row.price)
-          expectedStock = Number(row.stock)
-        }
-
-        if (!Number.isFinite(basePrice) || basePrice <= 0) {
-          reject(`Le prix de « ${row.name} » est invalide.`)
-        }
-        if (!Number.isFinite(expectedStock) || expectedStock < quantity) {
-          const detail = variantLabel ? ` (${variantLabel})` : ''
-          reject(
-            `Stock insuffisant pour « ${row.name}${detail} » : ${Math.max(
-              0,
-              Number.isFinite(expectedStock) ? expectedStock : 0,
-            )} disponible(s).`,
-          )
-        }
-
-        const tiers = wholesaleAllowed ? toWholesaleTiers(row.wholesaleTiers) : []
-        const legacyWholesalePrice =
-          row.wholesalePrice != null ? Number(row.wholesalePrice) : null
-        const legacyWholesaleMinQty =
-          row.wholesaleMinQty != null ? Number(row.wholesaleMinQty) : null
-
-        const syntheticProduct = {
-          price: basePrice,
-          wholesalePrice:
-            wholesaleAllowed && Number.isFinite(legacyWholesalePrice || NaN)
-              ? (legacyWholesalePrice as number)
-              : undefined,
-          wholesaleMinQty:
-            wholesaleAllowed && Number.isFinite(legacyWholesaleMinQty || NaN)
-              ? (legacyWholesaleMinQty as number)
-              : undefined,
-          wholesaleTiers: tiers,
-        } as unknown as Product
-
-        const wholesaleUnitPrice = getEffectiveWholesaleUnitPrice(
-          syntheticProduct,
-          quantity,
-          basePrice,
-        )
-        const unitPrice =
-          Number.isFinite(wholesaleUnitPrice) && wholesaleUnitPrice > 0
-            ? wholesaleUnitPrice
-            : basePrice
-
-        pricedItems.push({
-          productId,
-          storeId,
-          quantity,
-          unitPrice,
-          expectedPrice: basePrice,
-          expectedStock,
-          variantId: effectiveVariantId,
-          variantLabel,
-          variantSku,
-          variantOptionValues,
-          productName: row.name,
-          productUnit: row.unit,
-          productImage: row.image,
-          productOptions: options,
-          wholesaleApplied: unitPrice < basePrice - 0.005,
-          wholesaleTiers: tiers,
-          wholesalePrice: legacyWholesalePrice,
-          wholesaleMinQty: legacyWholesaleMinQty,
+        const verification = await verifyPrepaidStorePayment({
+          storeId: sc.storeId,
+          provider: proof.provider,
+          amount: Math.round(sc.total),
+          reference: proof.reference,
+          partnerId: key,
         })
-      }
-
-      const subtotal = roundMoney(
-        pricedItems.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
-      )
-      const hasWholesaleLine = pricedItems.some((line) => line.wholesaleApplied)
-      if (
-        hasWholesaleLine &&
-        wholesaleMinOrderAmount > 0 &&
-        subtotal < wholesaleMinOrderAmount
-      ) {
-        reject(
-          `Le minimum de commande en gros est de ${new Intl.NumberFormat('fr-FR').format(
-            wholesaleMinOrderAmount,
-          )} FCFA pour « ${store.name} ». Ajoutez des articles ou repassez au prix de détail.`,
-        )
-      }
-
-      const requestedPromoCode = toText(storeOrder.promoCode, 64)
-      let promoLabel: string | null = null
-      let discount = 0
-      if (requestedPromoCode) {
-        const [coupon] = await db
-          .select({
-            code: coupons.code,
-            discountPct: coupons.discountPct,
-            active: coupons.active,
-            expiresAt: coupons.expiresAt,
-          })
-          .from(coupons)
-          .where(and(eq(coupons.storeId, storeId), eq(coupons.code, requestedPromoCode)))
-          .limit(1)
-        const usable =
-          coupon &&
-          coupon.active &&
-          (!coupon.expiresAt || new Date(coupon.expiresAt).getTime() > Date.now())
-        if (usable && coupon) {
-          const pct = Math.max(0, Math.min(Number(coupon.discountPct) || 0, 100))
-          discount = roundMoney(Math.min((subtotal * pct) / 100, subtotal))
-          promoLabel = coupon.code
+        if (!verification.ok) {
+          console.error(
+            `[checkout] paiement pré-encaissé non vérifié (boutique ${sc.storeId}, réf ${proof.reference}) : ${verification.error}`,
+          )
+          throw new CheckoutValidationError(
+            `${verification.error} Si votre montant a été débité, contactez le support avec la référence ${proof.reference}.`,
+          )
         }
+        prepaidAmounts.set(sc.storeId, { reference: proof.reference })
       }
-
-      // Les frais de livraison ne sont pas encore configurables par boutique.
-      // On ignore donc toute valeur envoyée par le client (0 par défaut).
-      const shipping = 0
-      const total = roundMoney(Math.max(0, subtotal - discount + shipping))
-
-      const [existingCustomer] = phone
-        ? await db
-            .select({ id: customers.id })
-            .from(customers)
-            .where(and(eq(customers.storeId, storeId), eq(customers.phone, phone)))
-            .limit(1)
-        : [undefined]
-
-      storeCheckouts.push({
-        storeId,
-        storeName: store.name,
-        storeBusinessType: store.businessType,
-        orderId: randomUUID(),
-        items: pricedItems,
-        subtotal,
-        discount,
-        shipping,
-        total,
-        promoCode: promoLabel,
-        paymentProvider: paymentSelection.get(storeId) || 'cod',
-        paymentToken: createOrderPaymentToken(),
-        paymentId: randomUUID(),
-        customerCreated: Boolean(phone) && !existingCustomer,
-      })
+      // Les preuves étrangères aux boutiques réglées sont ignorées.
+    } else if (onlineCheckouts.length > 0 && !prepaidProofs) {
+      // Compatibilité mobile : sans preuves, la commande est créée puis le
+      // guichet fournisseur est ouvert (flux historique). Le web envoie
+      // toujours les preuves lorsque la sélection contient un moyen en ligne.
     }
 
-    if (storeCheckouts.length === 0) reject('Aucune commande n’a pu être enregistrée.')
 
     // ---------------------------------------------------------------------
     // Écriture atomique : toutes les boutiques, lignes, stocks et compteurs
@@ -832,7 +921,7 @@ export async function submitCheckoutAction(
         ),
         db.execute(
           sql`INSERT INTO customers (id, store_id, name, phone, email, address)
-              SELECT ${customerId}::uuid, ${sc.storeId}::uuid, ${customerName}, ${phone}, ${email || null}, ${address}
+              SELECT ${customerId}::uuid, ${sc.storeId}::uuid, ${customerName}, ${phone}, ${buyerEmail}, ${address}
               WHERE NOT EXISTS (
                 SELECT 1 FROM customers
                 WHERE store_id = ${sc.storeId}::uuid AND phone = ${phone}
@@ -962,6 +1051,7 @@ export async function submitCheckoutAction(
     }
 
     for (const sc of storeCheckouts) {
+      const isPrepaid = prepaidAmounts.has(sc.storeId)
       const customerIdSql = phone
         ? sql`(SELECT id FROM customers WHERE store_id = ${sc.storeId} AND phone = ${phone} ORDER BY created_at ASC LIMIT 1)`
         : null
@@ -976,7 +1066,7 @@ export async function submitCheckoutAction(
               ) VALUES (
                 ${sc.orderId}::uuid, ${sc.storeId}::uuid, ${customerIdSql}, ${user?.id || null}::uuid, ${buyerEmail}, ${buyerPhone},
                 ${sc.total}, ${sc.subtotal}, ${sc.discount}, ${sc.promoCode}, ${orderPaymentMethodLabel(sc.paymentProvider)},
-                'PENDING', ${sc.paymentProvider},
+                ${isPrepaid ? 'PAID' : 'PENDING'}, ${sc.paymentProvider},
                 'PENDING', 'ONLINE', ${new Date()}
               )`,
         ),
@@ -990,7 +1080,9 @@ export async function submitCheckoutAction(
           provider: sc.paymentProvider,
           amount: String(roundMoney(sc.total)),
           currency: 'XOF',
-          status: 'PENDING',
+          status: isPrepaid ? 'PAID' : 'PENDING',
+          reference: isPrepaid ? (prepaidAmounts.get(sc.storeId)?.reference ?? null) : null,
+          paidAt: isPrepaid ? new Date() : null,
           token: sc.paymentToken,
           updatedAt: new Date(),
         }),
@@ -1069,6 +1161,7 @@ export async function submitCheckoutAction(
     const paymentErrors = new Map<string, string>()
     for (const sc of storeCheckouts) {
       if (!isOnlineStorePayment(sc.paymentProvider)) continue
+      if (prepaidAmounts.has(sc.storeId)) continue // déjà payé avant la commande
       const init = await initializeStorePayment({
         paymentId: sc.paymentId,
         orderId: sc.orderId,
@@ -1131,11 +1224,11 @@ export async function submitCheckoutAction(
           }
         }
 
-        if (phone || email || user?.id) {
+        if (phone || buyerEmail || user?.id) {
           await notify({
             userId: user?.id || null,
             phone,
-            email,
+            email: buyerEmail || '',
             eventType: 'CONFIRMATION_COMMANDE',
             title: 'Commande confirmée',
             body: `Votre commande ${shortId} chez ${sc.storeName} est confirmée. Total : ${totalStr} FCFA.`,
@@ -1158,11 +1251,27 @@ export async function submitCheckoutAction(
           new Set(sc.items.map((line) => line.productId)),
         )
         if (requestedProductIds.length > 0) {
+          // Seuil par défaut de la boutique (12 unités historiques = 10),
+          // surchargeable par produit ; les variantes suivent le seuil du produit.
+          const [storeSettingsRow] = await db
+            .select({ settings: stores.settings })
+            .from(stores)
+            .where(eq(stores.id, sc.storeId))
+            .limit(1)
+          const rawStoreThreshold = Number(
+            (storeSettingsRow?.settings as { lowStockThreshold?: unknown } | null)?.lowStockThreshold,
+          )
+          const storeThreshold =
+            Number.isFinite(rawStoreThreshold) && rawStoreThreshold >= 0
+              ? Math.floor(rawStoreThreshold)
+              : 10
+
           const lowProducts = await db
             .select({
               id: products.id,
               name: products.name,
               stock: products.stock,
+              lowStockThreshold: products.lowStockThreshold,
               options: products.options,
               variants: products.variants,
             })
@@ -1170,6 +1279,10 @@ export async function submitCheckoutAction(
             .where(inArray(products.id, requestedProductIds))
 
           for (const p of lowProducts) {
+            const threshold =
+              typeof p.lowStockThreshold === 'number' && p.lowStockThreshold >= 0
+                ? p.lowStockThreshold
+                : storeThreshold
             const rawVariants = Array.isArray(p.variants)
               ? (p.variants as Array<{ name?: string; stock?: number; enabled?: boolean }>)
               : []
@@ -1182,7 +1295,7 @@ export async function submitCheckoutAction(
                   name: String(v.name || 'Variante'),
                   stock: Math.max(0, Number(v.stock) || 0),
                 }))
-                .filter((v) => v.stock <= 10)
+                .filter((v) => v.stock <= threshold)
               if (lowVariants.length === 0 || !storeInfo) continue
 
               const ruptures = lowVariants.filter((v) => v.stock === 0)
@@ -1209,7 +1322,7 @@ export async function submitCheckoutAction(
               })
             } else {
               const stock = Math.max(0, Number(p.stock) || 0)
-              if (stock > 10 || !storeInfo) continue
+              if (stock > threshold || !storeInfo) continue
               await notify({
                 userId: storeInfo.ownerId,
                 phone: storeInfo.phone,
@@ -1276,6 +1389,107 @@ export async function submitCheckoutAction(
         .delete(checkoutIdempotency)
         .where(eq(checkoutIdempotency.key, key))
         .catch(() => undefined)
+    }
+  }
+}
+/**
+ * Devis lecture seule pour le flux « paiement avant commande ».
+ *
+ * Calcule les montants canoniques (prix serveur, coupon, livraison) et les
+ * clés PUBLIQUES des boutiques réglables en ligne, SANS RIEN ÉCRIRE : ni
+ * réservation d'idempotence, ni commande, ni stock. Le client enchaîne ensuite
+ * les widgets fournisseurs et appelle `submitCheckoutAction` avec les preuves,
+ * qui revérifie tout côté serveur avant la moindre écriture.
+ *
+ * Aucune clé secrète n'est exposée : la réponse ne contient que les clés
+ * publiques et les montants arrondis que le fournisseur doit encaisser.
+ */
+export async function quoteCheckoutAction(
+  order: Record<string, CheckoutStoreOrder> = {},
+  customerData?: CheckoutCustomer,
+  idempotencyKey?: string,
+) {
+  const parsed = checkoutActionSchema.safeParse({
+    order: order ?? {},
+    customer: customerData ?? undefined,
+    idempotencyKey: idempotencyKey ?? undefined,
+  })
+  if (!parsed.success) {
+    return { success: false as const, error: 'Données de commande invalides.' }
+  }
+  const validatedOrder = parsed.data.order as Record<string, CheckoutStoreOrder>
+  const validatedCustomer = parsed.data.customer as CheckoutCustomer | undefined
+
+  const ip = await getClientIp()
+  const limit = rateLimit(`checkout-quote:${ip}`, 24, 60_000)
+  if (!limit.ok) {
+    return { success: false as const, error: rateLimitMessage(limit.retryAfterSeconds) }
+  }
+
+  const countryGate = await detectClientCountry()
+  if (countryGate.detected && countryGate.code && !isCountryAllowed(countryGate.code)) {
+    return {
+      success: false as const,
+      error: `Commande impossible : nous livrons actuellement uniquement au ${getSupportedCountriesLabel()}. Votre connexion indique un autre pays.`,
+    }
+  }
+
+  const { user } = await getCurrentSession()
+
+  try {
+    const { storeCheckouts } = await buildMarketplaceCheckout(validatedOrder, validatedCustomer, user)
+    const rawKey = typeof idempotencyKey === 'string' ? idempotencyKey.trim() : ''
+    const partnerId = rawKey.slice(0, 128) || null
+    const storesQuote: Array<{
+      storeId: string
+      provider: StorePaymentProvider
+      amount: number
+      publicKey: string
+      /** Identifiant public de la boutique FeexPay (SDK officiel). */
+      shopId?: string
+      env: 'sandbox' | 'live'
+    }> = []
+    for (const sc of storeCheckouts) {
+      // Uniquement les moyens facturés AVANT la commande, avec widget
+      // (Kkiapay, FedaPay, FeexPay). Les autres sont réglés à la remise (COD).
+      if (!isOnlineStorePayment(sc.paymentProvider)) continue
+      // initializeStorePayment ne fait AUCUNE écriture : il relit la
+      // configuration publique et les identifiants, puis renvoie les
+      // identifiants du guichet (ou une erreur si mal configurée / sandbox).
+      const init = await initializeStorePayment({
+        paymentId: sc.paymentId,
+        orderId: sc.orderId,
+        storeId: sc.storeId,
+        provider: sc.paymentProvider,
+        amount: Math.round(sc.total),
+        customer: { name: undefined, email: undefined, phone: undefined },
+      })
+      if (!init.ok || !init.publicKey) {
+        return {
+          success: false as const,
+          error:
+            init.error ||
+            'Le paiement en ligne de cette boutique est indisponible pour le moment.',
+        }
+      }
+      storesQuote.push({
+        storeId: sc.storeId,
+        provider: sc.paymentProvider,
+        amount: Math.round(sc.total),
+        publicKey: init.publicKey,
+        shopId: init.shopId,
+        env: init.env === 'sandbox' ? 'sandbox' : 'live',
+      })
+    }
+    return { success: true as const, stores: storesQuote, partnerId, error: undefined }
+  } catch (error) {
+    if (error instanceof CheckoutValidationError) {
+      return { success: false as const, error: error.message }
+    }
+    console.error('[checkout] quote error:', error)
+    return {
+      success: false as const,
+      error: 'Impossible de préparer le paiement. Merci de réessayer.',
     }
   }
 }

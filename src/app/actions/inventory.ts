@@ -34,6 +34,8 @@ type ProductInput = {
   deliveryTime?: string;
   preparationTime?: string;
   stock?: number;
+  lowStockThreshold?: number;
+  barcode?: string;
   mainCategory?: string;
   main_category?: string;
   description?: string | null;
@@ -307,6 +309,18 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       deliveryTime: product.deliveryTime || null,
       preparationTime: product.preparationTime || null,
       stock: stockValue,
+      lowStockThreshold:
+        typeof product.lowStockThreshold === 'number' &&
+        Number.isFinite(product.lowStockThreshold) &&
+        product.lowStockThreshold >= 0
+          ? Math.floor(product.lowStockThreshold)
+          : null,
+      barcode: (() => {
+        const code = String(product.barcode || '').trim()
+        // Les douchettes ne tapent que des caractères lisibles : on nettoie les
+        // espaces parasites et on refuse un code plus long qu'un CODE-128 étendu.
+        return code ? code.slice(0, 64) : null
+      })(),
       mainCategory: product.mainCategory || product.main_category,
       description: product.description,
       isOnline: product.isOnline !== undefined ? product.isOnline : true,

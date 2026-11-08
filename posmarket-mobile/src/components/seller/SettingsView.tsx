@@ -46,6 +46,7 @@ import {
   User,
   Users,
   X,
+  Package,
   Zap,
 } from 'lucide-react-native';
 import { useToast } from '@/components/ToastProvider';
@@ -663,6 +664,44 @@ export function SellerSettingsView({
                   </Text>
                 </View>
               ) : null}
+            </View>
+
+            {/* Alerte de stock bas */}
+            <View style={styles.b2bBlock}>
+              <SectionHeader
+                title="Alerte de stock bas"
+                Icon={Package}
+              />
+              <View style={styles.b2bMinCard}>
+                <Text style={styles.b2bMinLabel}>Seuil d&apos;alerte stock bas (unités)</Text>
+                <View style={styles.b2bMinWrap}>
+                  <TextInput
+                    value={
+                      localSettings.lowStockThreshold !== undefined
+                        ? String(localSettings.lowStockThreshold)
+                        : ''
+                    }
+                    onChangeText={(text) =>
+                      updateSetting(
+                        'lowStockThreshold',
+                        text === ''
+                          ? undefined
+                          : Math.max(0, Math.floor(Number(text.replace(/\D/g, '')) || 0)),
+                      )
+                    }
+                    keyboardType="number-pad"
+                    placeholder="10 (défaut)"
+                    placeholderTextColor="#9CA3AF"
+                    style={styles.b2bMinInput}
+                  />
+                  <Text style={styles.b2bSuffix}>unités</Text>
+                </View>
+                <Text style={styles.b2bHelp}>
+                  Sous ce nombre d&apos;unités, un produit est signalé « stock bas » dans vos
+                  notifications et le POS. Modifiable produit par produit depuis la fiche
+                  produit. Vide = 10 unités.
+                </Text>
+              </View>
             </View>
           </View>
         ) : null}

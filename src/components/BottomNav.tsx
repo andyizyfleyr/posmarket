@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingBasket, Package, Users, BarChart3, LayoutDashboard, ShoppingBag, MoreHorizontal } from 'lucide-react';
+import { ShoppingBasket, Package, Users, LayoutDashboard, ShoppingBag, MoreHorizontal } from 'lucide-react';
 import { ViewType, StaffRole } from '@/types';
 
 interface BottomNavItemProps {
@@ -90,10 +90,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, userRo
   ];
 
   // Overflow items (hidden behind "More" button)
+  // Plus d'éléments débordant dans « Plus » depuis la suppression de la page Rapports.
   const overflowItems: { id?: string; icon: React.ReactNode; label: string; view: ViewType }[] = [];
-  if (!isSeller) {
-    overflowItems.push({ icon: <BarChart3 size={18} />, label: 'Rapports', view: 'reports' });
-  }
 
   // If there are overflow items and we'd have 6+ total, show max 4 primary + More
   const showOverflowButton = overflowItems.length > 0;
