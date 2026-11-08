@@ -591,6 +591,16 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
   isVariantInCart,
 } = props;
   const product = selectedProductDetails;
+  // Verrou anti double activation : sur certains gestes tactiles le même
+  // appui déclenche deux bascules (déplie puis replie aussitôt). 400 ms de
+  // verrou global du bouton rendent l'aller-retour parasite impossible.
+  const descriptionToggleLockRef = React.useRef(0);
+  const toggleDescription = (expand: boolean) => {
+    const now = Date.now();
+    if (now - descriptionToggleLockRef.current < 400) return;
+    descriptionToggleLockRef.current = now;
+    setIsDescriptionExpanded(expand);
+  };
   const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
     // Similaires = STRICTEMENT les autres produits de la même boutique :
     // jamais de produit d'une autre boutique en bas de page. À l'intérieur de
@@ -1674,7 +1684,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   (!isDescriptionExpanded ? (
                     <button
                       type="button"
-                      onClick={() => setIsDescriptionExpanded(true)}
+                      onClick={() => toggleDescription(true)}
                       className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors touch-manipulation select-none ${accentText}`}
                     >
                       Lire la suite
@@ -1683,7 +1693,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setIsDescriptionExpanded(false)}
+                      onClick={() => toggleDescription(false)}
                       className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors touch-manipulation select-none ${accentText}`}
                     >
                       Réduire
@@ -1721,7 +1731,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             (!isDescriptionExpanded ? (
               <button
                 type="button"
-                onClick={() => setIsDescriptionExpanded(true)}
+                onClick={() => toggleDescription(true)}
                 className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
               >
                 Lire la suite
@@ -1730,7 +1740,7 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             ) : (
               <button
                 type="button"
-                onClick={() => setIsDescriptionExpanded(false)}
+                onClick={() => toggleDescription(false)}
                 className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
               >
                 Réduire

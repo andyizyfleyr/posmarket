@@ -135,6 +135,15 @@ export default function ProductDetailScreen() {
     minQty: number;
   } | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  // Verrou anti double activation : le même appui tactile peut déclencher
+  // deux bascules (déplie puis replie aussitôt). 400 ms de verrou global.
+  const descToggleLockRef = useRef(0);
+  const toggleDescription = useCallback((expand: boolean) => {
+    const now = Date.now();
+    if (now - descToggleLockRef.current < 400) return;
+    descToggleLockRef.current = now;
+    setIsDescriptionExpanded(expand);
+  }, []);
   const [descriptionContentHeight, setDescriptionContentHeight] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -1128,7 +1137,7 @@ export default function ProductDetailScreen() {
           {hasMoreContent ? (
             <Pressable
               style={styles.readMorePill}
-              onPress={() => setIsDescriptionExpanded((v) => !v)}
+              onPress={() => toggleDescription(!isDescriptionExpanded)}
               accessibilityRole="button"
               accessibilityState={{ expanded: isDescriptionExpanded }}
               accessibilityLabel={
