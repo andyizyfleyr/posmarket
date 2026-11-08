@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { profiles, stores, storeStaff } from '@/db/schema';
 import { createClient } from '@/utils/supabase/server';
 import { getAdminSession, type AdminSession } from '@/app/actions/admin-auth';
+import { getAccountAccess } from '@/lib/request-cache';
 
 /**
  * Garde-fous d'autorisation partagés par les server actions.
