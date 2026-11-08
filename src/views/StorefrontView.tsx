@@ -3992,7 +3992,7 @@ const WHOLESALE_FILTER = "wholesale";
       )}
 
       <main
-        className={`container mx-auto ${selectedProductId ? "px-0" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar && !isMarketplaceHomePath ? "pb-28 md:pb-8" : ""}`}
+        className={`container mx-auto ${selectedProductId ? "px-0" : isCartView ? "px-2 md:px-4" : "px-4"} ${selectedStoreParam || selectedProductId ? "pt-0 pb-4" : "py-4"} md:py-8 ${showStickyCartBar && !isMarketplaceHomePath ? "pb-28 md:pb-8" : ""}`}
       >
         <Routes>
           <Route

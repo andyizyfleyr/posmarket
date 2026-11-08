@@ -65,7 +65,7 @@ import type { CartItem } from '@/types';
 const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(', ');
 
 /** Hauteur minimale de l'écran de succès (min-h-[60vh] du web). */
-const SUCCESS_MIN_HEIGHT = Dimensions.get('window').height * 0.5;
+const SUCCESS_MIN_HEIGHT = Dimensions.get('window').height * 0.45;
 const SUCCESS_LOTTIE = require('../assets/lottie/success.json');
 
 type CheckoutStage = 'shipping' | 'payment' | 'success' | 'blocked';
@@ -653,7 +653,7 @@ export default function CheckoutScreen() {
 
               {stage === 'payment' && (
                 <View style={styles.paymentCard}>
-                  <Truck size={20} color={COLORS.brand} />
+                  <Truck size={18} color={COLORS.brand} />
                   <Text style={styles.paymentLabel}>Paiement à la livraison</Text>
                 </View>
               )}
@@ -867,8 +867,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   page: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   cardShadow: {
     borderRadius: 16,
@@ -928,8 +928,8 @@ const styles = StyleSheet.create({
   // Indicateur d'étapes
   stepsBar: {
     backgroundColor: 'rgba(249,250,251,0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -943,9 +943,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -999,14 +999,14 @@ const styles = StyleSheet.create({
   // Contenu
   content: {
     backgroundColor: 'rgba(249,250,251,0.5)',
-    padding: 8,
+    padding: 6,
   },
 
   // Formulaire « Contact à livrer »
   formCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     elevation: 1,
@@ -1018,13 +1018,13 @@ const styles = StyleSheet.create({
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
+    gap: 6,
+    marginBottom: 10,
   },
   formBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1043,10 +1043,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   fields: {
-    gap: 14,
+    gap: 10,
   },
   fieldGroup: {
-    gap: 5,
+    gap: 4,
   },
   fieldLabel: {
     fontSize: 10,
@@ -1058,9 +1058,9 @@ const styles = StyleSheet.create({
   nameField: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 46,
-    paddingLeft: 12,
-    paddingRight: 12,
+    minHeight: 42,
+    paddingLeft: 10,
+    paddingRight: 10,
     backgroundColor: 'rgba(249,250,251,0.5)',
     borderWidth: 1,
     borderColor: '#F3F4F6',
@@ -1070,15 +1070,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingLeft: 14,
-    paddingVertical: 10,
-    fontSize: 14,
+    paddingVertical: 8,
+    fontSize: 13,
     fontWeight: '600',
     color: '#374151',
   },
 
   // Paiement à la livraison
   paymentCard: {
-    padding: 12,
+    padding: 10,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: COLORS.brand,
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
   blockedWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 64,
+    paddingVertical: 40,
     paddingHorizontal: 16,
   },
   blockedIconOuter: {
@@ -1112,9 +1112,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   blockedIconBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#FDE68A',
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   blockedTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#111827',
   },
@@ -1155,15 +1155,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: SUCCESS_MIN_HEIGHT,
-    paddingVertical: 26,
+    paddingVertical: 18,
     paddingHorizontal: 16,
   },
   successLottie: {
-    width: 130,
-    height: 130,
+    width: 112,
+    height: 112,
   },
   successTitle: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '800',
     color: '#111827',
     textAlign: 'center',
@@ -1198,11 +1198,11 @@ const styles = StyleSheet.create({
   successActions: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 34,
+    marginTop: 22,
   },
   successButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     width: '100%',
     maxWidth: 384,
   },
@@ -1212,9 +1212,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 13,
     elevation: 2,
   },
   successBtnHome: {
@@ -1377,11 +1377,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingTop: 6,
   },
   cta: {
-    height: 48,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: 13,
     backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1401,7 +1401,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   ctaText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
     textTransform: 'uppercase',

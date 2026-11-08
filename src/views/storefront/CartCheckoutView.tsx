@@ -230,9 +230,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
   };
 
   return (
-﻿      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col">
-        <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
-          <h2 className="text-sm md:text-lg font-bold flex items-center gap-2 leading-tight min-w-0">
+﻿      <div className="max-w-4xl mx-auto bg-white w-full rounded-2xl shadow-md md:shadow-xl border border-gray-100 md:border-0 overflow-hidden flex flex-col">
+        <div className="px-2 py-1.5 md:px-3 md:py-2 border-b border-gray-100 flex items-center justify-between bg-white text-gray-900 z-10 shrink-0">
+          <h2 className="text-[12px] md:text-sm font-bold flex items-center gap-1.5 leading-tight min-w-0">
             {checkoutStage === "cart" ? (
               <ShoppingCart className="text-brand shrink-0" size={16} />
             ) : (
@@ -267,7 +267,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 },
               });
             }}
-            className="px-3 py-2 -mr-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-bold text-[10px] uppercase tracking-tight flex items-center gap-1 whitespace-nowrap"
+            className="px-2 py-1 md:px-3 md:py-1.5 -mr-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500 font-bold text-[9px] uppercase tracking-tight flex items-center gap-1 whitespace-nowrap"
           >
             <ChevronLeft size={12} /> Continuer les achats
           </button>
@@ -275,7 +275,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
 
         {/* Step Indicator */}
         {checkoutStage !== "success" && (
-          <div className="bg-gray-50/50 px-4 md:px-8 py-2 border-b border-gray-100">
+          <div className="bg-gray-50/50 px-2 md:px-6 py-1 border-b border-gray-100">
             <div className="flex items-center justify-between max-w-2xl mx-auto">
               {[
                 { id: "cart", label: cartWord, icon: ShoppingCart },
@@ -290,7 +290,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   <React.Fragment key={stage.id}>
                     <div className="flex flex-col items-center gap-1 shrink-0">
                       <div
-                        className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-brand text-white shadow-lg shadow-orange-100 scale-110" : isPast ? "bg-green-100 text-green-600" : "bg-white border-2 border-gray-100 text-gray-500"}`}
+                        className={`w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-brand text-white shadow-lg shadow-orange-100 scale-110" : isPast ? "bg-green-100 text-green-600" : "bg-white border-2 border-gray-100 text-gray-500"}`}
                       >
                         {isPast ? (
                           <CheckCircle2 size={15} />
@@ -318,11 +318,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
           </div>
         )}
 
-        <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-2.5 sm:p-3 md:p-8">
+        <div className="flex-grow overflow-y-auto custom-scrollbar bg-gray-50/50 p-1.5 sm:p-2 md:p-4">
           {(checkoutStage === "cart" && cart.length > 0) && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Réassurance */}
-              <div className="flex items-center justify-center gap-5 py-2 bg-white rounded-full border border-gray-100 shadow-sm text-[9px] font-bold uppercase tracking-widest text-gray-500">
+              <div className="flex items-center justify-center gap-4 py-1 bg-white rounded-full border border-gray-100 shadow-sm text-[8px] font-bold uppercase tracking-widest text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck size={13} className="text-green-500" />
                   Paiement sécurisé
@@ -371,9 +371,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 return (
                   <div
                     key={storeId}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
                   >
-                    <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50/70 border-b border-gray-100">
+                    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-gray-50/70 border-b border-gray-100">
                       <div className="flex items-center gap-2 min-w-0">
                         <Store size={12} className="text-brand shrink-0" />
                         <span className="text-[9px] md:text-[11px] font-bold text-gray-900 truncate">
@@ -430,7 +430,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                 </div>
                                 {/* Contenu glissant */}
                                 <div
-                                  className="relative p-2 md:p-2.5 flex gap-2 bg-white"
+                                  className="relative p-1.5 flex gap-1.5 bg-white"
                                   style={{ transform: `translateX(${swipeDx}px)`, transition: swipeDx !== 0 ? 'none' : 'transform 0.25s ease' }}
                                   onTouchStart={(e) => {
                                     swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -449,11 +449,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     swipeStartRef.current = null;
                                   }}
                                 >
-                            <div className="w-14 h-14 shrink-0">
+                            <div className="w-12 h-12 md:w-14 md:h-14 shrink-0">
                               <ProductImage
                                 src={item.product.image}
                                 alt={item.product.name || "Product Image"}
-                                containerClassName="rounded-xl border border-gray-100 shadow-sm"
+                                containerClassName="rounded-lg border border-gray-100 shadow-sm"
                                 showZoomEffect={false}
                               />
                             </div>
@@ -468,7 +468,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     )
                                   }
                                   disabled={!item.product.id}
-                                  className="text-left text-[12px] font-semibold text-gray-900 leading-tight line-clamp-1 hover:underline decoration-dotted underline-offset-4 transition-all"
+                                  className="text-left text-[11px] md:text-[12px] font-semibold text-gray-900 leading-tight line-clamp-1 hover:underline decoration-dotted underline-offset-4 transition-all"
                                 >
                                   {item.product.name || "Unknown Product"}
                                 </button>
@@ -481,9 +481,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     )
                                   }
                                   aria-label={`Retirer ${item.product.name || "le produit"} du ${cartWordLower}`}
-                                  className="shrink-0 p-2 -m-1 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
+                                  className="shrink-0 p-1.5 -m-0.5 text-gray-300 hover:text-red-500 active:text-red-500 transition-colors"
                                 >
-                                  <Trash2 size={15} />
+                                  <Trash2 size={13} />
                                 </button>
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-h-[18px]">
@@ -506,7 +506,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                   )}
                               </div>
                               <div className="mt-auto pt-1.5 flex items-end justify-between gap-3">
-                                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-full p-0.5">
+                                <div className="flex items-center bg-gray-100/70 border border-gray-200/80 rounded-full p-[2px]">
                                   <button
                                     onClick={() =>
                                       updateQuantity(
@@ -517,11 +517,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                       )
                                     }
                                     aria-label="Diminuer la quantité"
-                                    className="w-8 h-8 md:w-6 md:h-6 grid place-items-center rounded-full font-bold text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
+                                    className="w-6 h-6 grid place-items-center rounded-full font-bold text-[13px] leading-none text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
                                   >
                                     −
                                   </button>
-                                  <span className="w-6 text-center text-[11px] font-bold text-gray-900 tabular-nums">
+                                  <span className="w-5 text-center text-[10px] font-bold text-gray-900 tabular-nums">
                                     {qty}
                                   </span>
                                   <button
@@ -534,18 +534,18 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                       )
                                     }
                                     aria-label="Augmenter la quantité"
-                                    className="w-8 h-8 md:w-6 md:h-6 grid place-items-center rounded-full font-bold text-brand hover:bg-orange-50 active:bg-orange-100 transition-all"
+                                    className="w-6 h-6 grid place-items-center rounded-full font-bold text-[13px] leading-none text-brand hover:bg-orange-50 active:bg-orange-100 transition-all"
                                   >
                                     +
                                   </button>
                                 </div>
                                 <div className="flex flex-col items-end gap-0.5">
-                                  <span className="text-[11px] md:text-xs font-bold text-gray-900 whitespace-nowrap tabular-nums">
+                                  <span className="text-[11px] font-bold text-gray-900 whitespace-nowrap tabular-nums">
                                     {formatCurrency(unitPrice * qty)}
                                   </span>
                                   {hasWholesale && (
                                     <span
-                                      className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-brand"}`}
+                                      className={`flex items-center gap-1 text-[8px] font-bold uppercase tracking-wide ${wholesaleActive ? "text-green-600" : "text-brand"}`}
                                     >
                                       {wholesaleActive ? (
                                         <>
@@ -578,7 +578,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                           })
                         }
                         aria-expanded={isStoreExpanded}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 border-t border-gray-50 text-[10px] font-bold uppercase tracking-widest text-brand hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
+                        className="w-full flex items-center justify-center gap-1 py-1.5 border-t border-gray-50 text-[9px] font-bold uppercase tracking-widest text-brand hover:bg-orange-50/50 active:bg-orange-100/60 transition-colors"
                       >
                         {isStoreExpanded ? (
                           <>
@@ -595,8 +595,8 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
 
                     {/* Alerte Minimum de Commande B2B */}
                     {isBelowMinOrder && (
-                      <div className="p-3 bg-amber-50 border-t border-amber-200/60 flex items-start gap-2.5">
-                        <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div className="p-2 bg-amber-50 border-t border-amber-200/60 flex items-start gap-2">
+                        <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
                         <div className="text-[11px] text-amber-800 leading-tight">
                           <span className="font-semibold">Minimum de commande de gros :</span> {formatCurrency(storeMinOrder)}.
                           <span className="block text-amber-700 mt-0.5">
@@ -607,7 +607,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     )}
 
                     {/* Total Boutique */}
-                    <div className="px-3 py-2 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between gap-2">
+                    <div className="px-2.5 py-1.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between gap-2">
                       <span className="text-[11px] font-semibold text-gray-500">
                         Total {storeName} : <strong className="text-gray-900">{formatCurrency(storeSubtotal)}</strong>
                       </span>
@@ -618,11 +618,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             </div>
           )}
           {(checkoutStage === "cart" && cart.length === 0) && (
-            <div className="h-full flex flex-col items-center justify-center py-10 px-4 text-center">
+            <div className="h-full flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="relative mb-5">
                 <div className="absolute inset-0 bg-orange-100 rounded-full blur-2xl opacity-60 scale-125" />
-                <div className="relative w-20 h-20 bg-white border border-gray-100 rounded-3xl grid place-items-center shadow-sm">
-                  <ShoppingCart size={30} className="text-brand/60" />
+                <div className="relative w-16 h-16 bg-white border border-gray-100 rounded-2xl grid place-items-center shadow-sm">
+                  <ShoppingCart size={26} className="text-brand/60" />
                 </div>
               </div>
               <p className="text-lg font-bold text-gray-900">
@@ -646,7 +646,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             </div>
           )}
           {checkoutStage === "blocked" && (
-            <div className="h-full flex flex-col items-center justify-center py-10 px-4 text-center">
+            <div className="h-full flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="relative mb-5">
                 <div className="absolute inset-0 bg-amber-100 rounded-full blur-2xl opacity-60 scale-125" />
                 <div className="relative w-20 h-20 bg-white border border-amber-200 rounded-3xl grid place-items-center shadow-sm">
@@ -695,24 +695,24 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
               {checkoutStage === "shipping" && (
                 <div className="space-y-3">
                   {/* Section 1: Informations Personnelles */}
-                  <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg bg-orange-50 text-brand flex items-center justify-center font-bold text-xs">
+                  <div className="bg-white rounded-2xl p-3 md:p-4 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <div className="w-6 h-6 rounded-md bg-orange-50 text-brand flex items-center justify-center font-bold text-[10px]">
                         1
                       </div>
-                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
+                      <h3 className="text-[11px] md:text-xs font-bold text-gray-900 uppercase tracking-widest">
                         Contact à livrer
                       </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-600 uppercase ml-1">
+                    <div className="grid grid-cols-1 min-[520px]:grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-gray-500 uppercase ml-0.5">
                           Nom Complet
                         </label>
                         <div className="relative group">
-                          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-brand transition-colors">
-                            <User size={16} />
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-brand transition-colors">
+                            <User size={14} />
                           </div>
                           <input
                             required
@@ -725,12 +725,12 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                 name: e.target.value,
                               })
                             }
-                            className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50/50 border border-gray-100 rounded-xl text-sm font-semibold text-gray-700 focus:bg-white transition-all no-global-border placeholder-gray-400"
+                            className="w-full h-10 md:h-11 pl-9 pr-3 text-[13px] md:text-sm bg-gray-50/50 border border-gray-100 rounded-xl font-semibold text-gray-700 focus:bg-white transition-all no-global-border placeholder-gray-400"
                           />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-600 uppercase ml-1">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-gray-500 uppercase ml-0.5">
                           Téléphone Mobile
                         </label>
                         <PhoneInput
@@ -774,7 +774,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     return (
                       <div key={storeId} className="bg-white rounded-2xl p-3.5 md:p-4 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-2 mb-3">
-                          <Store size={14} className="text-brand" />
+                          <Store size={12} className="text-brand" />
                           <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
                             Paiement · {storeName}
                           </h3>
@@ -796,11 +796,11 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     setStorePaymentSelection(storeId, method.provider);
                                   }
                                 }}
-                                className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"}`}
+                                className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? "border-brand bg-orange-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"}`}
                               >
                                 <div className="flex items-center gap-3">
                                   {logo ? (
-                                    <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white px-2 shadow-sm">
+                                    <span className="flex h-8 w-14 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white px-2 shadow-sm">
                                       {/* Logo officiel du fournisseur (assets locaux) */}
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img
@@ -812,23 +812,23 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                                     </span>
                                   ) : (
                                     <span
-                                      className={`flex h-9 w-16 shrink-0 items-center justify-center rounded-xl border transition-colors ${isSelected ? "border-orange-200 bg-orange-100 text-brand" : "border-gray-100 bg-gray-50 text-gray-500"}`}
+                                      className={`flex h-8 w-14 shrink-0 items-center justify-center rounded-lg border transition-colors ${isSelected ? "border-orange-200 bg-orange-100 text-brand" : "border-gray-100 bg-gray-50 text-gray-500"}`}
                                     >
-                                      <Truck size={20} strokeWidth={2} />
+                                      <Truck size={17} strokeWidth={2} />
                                     </span>
                                   )}
                                   <div className="min-w-0">
-                                    <div className="font-bold text-sm text-gray-900">
+                                    <div className="font-bold text-[12px] text-gray-900">
                                       {method.label}
                                     </div>
                                     {method.isOnline && (
-                                      <div className="text-[11px] font-semibold leading-snug text-gray-500">
+                                      <div className="text-[9px] font-semibold leading-snug text-gray-500">
                                         Paiement depuis votre mobile money ou votre carte de crédit.
                                       </div>
                                     )}
                                   </div>
                                   <span
-                                    className={`ml-auto w-5 h-5 rounded-full border-2 grid place-items-center shrink-0 ${isSelected ? "border-brand bg-brand text-white" : "border-gray-200"}`}
+                                    className={`ml-auto w-4 h-4 rounded-full border-2 grid place-items-center shrink-0 ${isSelected ? "border-brand bg-brand text-white" : "border-gray-200"}`}
                                   >
                                     {isSelected && <Check size={12} />}
                                   </span>
@@ -848,17 +848,17 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
             const referenceCommande =
               completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() || null;
             return (
-            <div className="relative flex min-h-[50vh] flex-col items-center justify-center px-4 py-6 text-center md:py-10">
+            <div className="relative flex min-h-[40vh] flex-col items-center justify-center px-4 py-4 text-center md:py-8">
               {/* Halo décoratif derrière l'animation */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute left-1/2 top-16 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.18)_0%,rgba(34,197,94,0)_70%)] md:h-80 md:w-80"
+                className="pointer-events-none absolute left-1/2 top-12 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.18)_0%,rgba(34,197,94,0)_70%)] md:h-56 md:w-56"
               />
 
               {/* Animation de confirmation — Lottie, jouée une fois */}
-              <SuccessCheckLottie className="relative h-28 w-28 md:h-36 md:w-36" />
+              <SuccessCheckLottie className="relative h-24 w-24 md:h-28 md:w-28" />
 
-              <h3 className="relative mt-1 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+              <h3 className="relative mt-1 text-xl md:text-2xl font-extrabold tracking-tight text-gray-900">
                 Commande réussie&nbsp;!
               </h3>
               <p className="relative mt-1 text-xs font-semibold text-gray-500 md:text-sm">
@@ -881,7 +881,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 </button>
               )}
 
-              <div className="relative mt-6 flex w-full max-w-xs gap-3 sm:max-w-sm">
+              <div className="relative mt-4 flex w-full max-w-xs gap-2 sm:max-w-sm">
                   <Button
                     onClick={() => safeNavigate("/")}
                     loading={isNavigating}
@@ -954,10 +954,10 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
         </div>
         {checkoutStage !== "success" && cart.length > 0 && (
           <>
-            <div className="p-3 md:p-4 bg-white border-t border-gray-100 pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-4">
+            <div className="px-2 pt-2 pb-[calc(60px+env(safe-area-inset-bottom))] md:px-3 md:pt-3 md:pb-3 bg-white border-t border-gray-100">
               {/* Récapitulatif */}
-              <div className="rounded-2xl bg-gray-50/80 border border-gray-100 p-2.5 space-y-1 mb-3">
-                <div className="flex justify-between items-center text-xs font-semibold text-gray-500">
+              <div className="rounded-xl bg-gray-50/80 border border-gray-100 px-2.5 py-2 space-y-0.5 mb-2">
+                <div className="flex justify-between items-center text-[10px] md:text-[11px] font-semibold text-gray-500">
                   <span>
                     Sous-total · {cartItemsCount} article
                     {cartItemsCount > 1 ? "s" : ""}
@@ -967,7 +967,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </span>
                 </div>
                 {wholesaleSavings > 0 && (
-                  <div className="flex justify-between items-center text-xs font-semibold text-green-600">
+                  <div className="flex justify-between items-center text-[10px] md:text-[11px] font-semibold text-green-600">
                     <span>Économies prix de gros</span>
                     <span className="tabular-nums">
                       -{formatCurrency(wholesaleSavings)}
@@ -975,7 +975,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   </div>
                 )}
                 {promoApplied && (
-                  <div className="flex justify-between items-center text-xs font-semibold text-green-600">
+                  <div className="flex justify-between items-center text-[10px] md:text-[11px] font-semibold text-green-600">
                     <span className="flex items-center gap-1">
                       <CheckCircle2 size={11} /> Code {promoApplied.code}
                     </span>
@@ -984,7 +984,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-1.5 border-t border-gray-200/70 text-base font-bold text-gray-900">
+                <div className="flex justify-between items-center pt-1 border-t border-gray-200/70 text-[13px] md:text-sm font-bold text-gray-900">
                   <span>Total</span>
                   <span className="text-brand tabular-nums">
                     {formatCurrency(Number(cartTotal) || 0)}
@@ -997,7 +997,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 <div className="mb-2.5">
                   {isPromoOpen ? (
                     <div>
-                      <div className="flex items-center h-[52px] bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
+                      <div className="flex items-center h-11 bg-gray-50/70 border border-gray-200/80 rounded-2xl overflow-hidden focus-within:bg-white focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
                         <Tag size={14} className="ml-4 shrink-0 text-gray-400" />
                         <input
                           type="text"
@@ -1010,10 +1010,10 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                         <button
                           onClick={handlePromoApply}
                           disabled={!promoCodeInput.trim() || isApplyingPromo}
-                          className="m-1.5 flex items-center justify-center w-[40px] h-[40px] shrink-0 rounded-xl bg-brand text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="m-1.5 flex items-center justify-center w-9 h-9 shrink-0 rounded-lg bg-brand text-white shadow-sm hover:bg-[#e55a1d] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                           aria-label="Appliquer le code promo"
                         >
-                          {isApplyingPromo ? <Loader2 size={17} className="animate-spin spinner-always" /> : <Check size={17} />}
+                          {isApplyingPromo ? <Loader2 size={15} className="animate-spin spinner-always" /> : <Check size={15} />}
                         </button>
                       </div>
                       {!isApplyingPromo && (
@@ -1028,9 +1028,9 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                   ) : (
                     <button
                       onClick={() => setIsPromoOpen(true)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-brand hover:border-brand/40 hover:bg-orange-50/30 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gray-300/80 bg-gray-50/50 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-brand hover:border-brand/40 hover:bg-orange-50/30 transition-colors"
                     >
-                      <Tag size={13} /> Ajouter un code promo
+                      <Tag size={11} /> Ajouter un code promo
                     </button>
                   )}
                 </div>
@@ -1119,7 +1119,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 bottom: keyboardOffset || 0,
               }}
             >
-              <div className="px-3 pt-2.5">
+              <div className="px-2.5 pt-2">
                 {checkoutStage === "cart" && (
                   <Button
                     onClick={handleProceedToShipping}

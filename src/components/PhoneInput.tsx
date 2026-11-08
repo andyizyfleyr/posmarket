@@ -131,7 +131,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   return (
     <div className={`relative ${className}`}>
       <div
-        className={`flex items-center h-11 md:h-12 w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
+        className={`flex items-center h-10 md:h-11 w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
           hasError
             ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
             : 'border-gray-200/80 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15'
@@ -146,7 +146,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           aria-label="Choisir le pays"
           title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
         >
-          <span className="text-lg leading-none">{selectedCountry.flag}</span>
+          <span className="text-base leading-none">{selectedCountry.flag}</span>
           <ChevronDown
             size={14}
             className={`text-gray-400 transition-transform duration-200 ${

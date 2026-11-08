@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
+    height: 42,
     width: '100%',
     backgroundColor: 'rgba(249,250,251,0.7)',
     borderWidth: 1,
