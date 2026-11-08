@@ -9,7 +9,7 @@ import { refreshTag } from '@/lib/revalidate'
 
 /**
  * Factures vendeur — équivalent serveur de `saveInvoice` (`src/supabase-api.ts`)
- * et des écritures Supabase faites directement par `InvoicesView` sur le web.
+ * et des écritures Supabase historiquement faites par la page Factures web (supprimée).
  *
  * Le web écrit via le client Supabase public ; ici les écritures passent par
  * ces actions autorisées (`requireStoreAccess`), appelées par les routes de

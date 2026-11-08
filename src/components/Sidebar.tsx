@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShoppingBasket, Package, Users, BarChart3, Settings, LogOut, LayoutDashboard, FileText, CreditCard, ShoppingBag } from 'lucide-react';
+import { ShoppingBasket, Package, Users, Settings, LogOut, LayoutDashboard, CreditCard, ShoppingBag } from 'lucide-react';
 import { ViewType, StaffRole } from '@/types';
 
 interface SidebarItemProps {
@@ -79,29 +79,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout, 
         />
         {!isSeller && (
           <SidebarItem
-            id="tour-sidebar-reports"
-            icon={<BarChart3 size={22} />}
-            label="Rapports"
-            active={currentView === 'reports'}
-            onClick={() => onViewChange('reports')}
-          />
-        )}
-        {!isSeller && (
-          <SidebarItem
             id="tour-sidebar-subscription"
             icon={<CreditCard size={22} />}
             label="Abonnement"
             active={currentView === 'subscription'}
             onClick={() => onViewChange('subscription')}
-          />
-        )}
-        {!isSeller && (
-          <SidebarItem
-            id="tour-sidebar-invoices"
-            icon={<FileText size={22} />}
-            label="Factures"
-            active={currentView === 'invoices'}
-            onClick={() => onViewChange('invoices')}
           />
         )}
       </div>

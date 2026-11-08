@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Link } from "@/components/RouterPolyfill";
-import { Store, CreditCard, Users, FileText, Settings, BarChart, LayoutDashboard, ArrowRight } from "lucide-react";
+import { Store, CreditCard, Users, Settings, LayoutDashboard, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Guide Vendeur — PosMarket",
@@ -327,22 +327,10 @@ export default function VendeurPage() {
               route: "/customers",
             },
             {
-              icon: FileText,
-              title: "Factures",
-              desc: "Créez des factures formelles (brouillon → payée). Impression PDF ou ticket 80mm. Plan Pro et Entreprise.",
-              route: "/invoices",
-            },
-            {
               icon: Settings,
               title: "Paramètres",
               desc: "Logo, thème, codes promo, personnel (staff), création et suppression de boutiques.",
               route: "/settings",
-            },
-            {
-              icon: BarChart,
-              title: "Rapports",
-              desc: "Chiffre d'affaires et revenus par période. Plan Pro et Entreprise uniquement.",
-              route: "/reports",
             },
             {
               icon: LayoutDashboard,

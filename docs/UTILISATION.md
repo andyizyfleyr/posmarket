@@ -80,9 +80,7 @@ Tous les prix sont en **FCFA (XOF)**.
 | Commandes | Statuts En attente → Prête → Validée. Recherche | `/orders` |
 | Point de Vente | Caisse en magasin ou Click & Collect, reçu imprimable | `/pos` |
 | Clients | Fichier trié par dépense. Créés à chaque commande | `/customers` |
-| Factures | Brouillon → payée. Impression PDF ou ticket 80mm | `/invoices` |
 | Paramètres | Logo, thème, codes promo, staff, multi-boutiques | `/settings` |
-| Rapports | CA et revenus par période (Pro et Entreprise) | `/reports` |
 | Images produits | Toutes les photos du catalogue (ou de la sélection) dans une archive ZIP | `/inventory` → « Images » |
 | Abonnement | Changer de plan ou de durée, effet immédiat | `/subscription` |
 

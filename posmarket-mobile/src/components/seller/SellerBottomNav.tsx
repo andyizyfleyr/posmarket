@@ -4,8 +4,7 @@
  * pastille active orange.
  *
  * Le bouton « Plus » du web n'est pas repris : il masquait l'onglet « Clients »
- * (4 onglets + menu). Les 5 onglets restent donc visibles en permanence et
- * « Rapports » reste accessible depuis le menu profil de la navbar.
+ * (4 onglets + menu). Les 5 onglets restent donc visibles en permanence.
  */
 
 import React from 'react';
@@ -27,8 +26,6 @@ export type SellerView =
   | 'orders'
   | 'inventory'
   | 'customers'
-  | 'invoices'
-  | 'reports'
   | 'settings'
   | 'subscription';
 

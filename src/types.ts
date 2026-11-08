@@ -144,7 +144,7 @@ export interface Invoice {
   notes?: string;
 }
 
-export type ViewType = 'dashboard' | 'pos' | 'orders' | 'inventory' | 'customers' | 'reports' | 'invoices' | 'settings' | 'storefront' | 'subscription' | 'admin'; // Core application views
+export type ViewType = 'dashboard' | 'pos' | 'orders' | 'inventory' | 'customers' | 'settings' | 'storefront' | 'subscription' | 'admin'; // Core application views
 
 export interface StoreSettings {
    businessType?: BusinessVertical;

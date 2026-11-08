@@ -15,7 +15,7 @@ import SellerLoginForm from './SellerLoginForm';
  * page vendeur à un acheteur. L'espace vendeur reste protégé par son propre
  * layout — on évite seulement l'aller-retour inutile.
  */
-const SELLER_LANDING = /^\/(dashboard|pos|orders|inventory|customers|invoices|reports|settings|subscription)(\/|$)/;
+const SELLER_LANDING = /^\/(dashboard|pos|orders|inventory|customers|settings|subscription)(\/|$)/;
 
 function sanitizeNext(raw: string | string[] | undefined): string | null {
   const value = Array.isArray(raw) ? raw[0] : raw;
