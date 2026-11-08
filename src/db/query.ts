@@ -125,7 +125,11 @@ async function runRpc(name: string, argsRaw: unknown): Promise<QueryResult> {
           .set({ views: sql`${schema.products.views} + 1` })
           .where(eq(schema.products.id, pId));
       }
-      revalidateCatalog('products');
+      // Compteur de visibilité uniquement : ne PAS invalider le catalogue
+      // public. Rafraîchir le catalogue à chaque page vue interdisait toute
+      // mise en cache réelle et renvoyait chaque visiteur en base — le site
+      // « rechargeait » tout à chaque navigation. Le compteur est lu dans
+      // les vues agrégées et affiché avec la fraîcheur ISR normale.
       return { data: null, error: null };
     }
 
@@ -137,7 +141,8 @@ async function runRpc(name: string, argsRaw: unknown): Promise<QueryResult> {
           .set({ views: sql`${schema.stores.views} + 1` })
           .where(eq(schema.stores.id, pId));
       }
-      revalidateCatalog('stores');
+      // Compteur de visibilité uniquement — même règle que pour les produits :
+      // aucune invalidation de catalogue pour un simple compteur.
       return { data: null, error: null };
     }
 
