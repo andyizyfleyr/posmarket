@@ -17,7 +17,7 @@ interface OrdersViewProps {
     currentStoreId?: string;
     permissions?: StaffPermissions;
     userRole?: StaffRole;
-    store?: { id: string; name?: string | null; settings?: { [key: string]: unknown } | null } | null;
+    store?: { id: string; name?: string | null; business_type?: string | null; settings?: { [key: string]: unknown } | null } | null;
 }
 
 /** Libellés des moyens d'encaissement propres à une boutique. */
@@ -61,6 +61,7 @@ const PaymentStatusBadge: React.FC<{ status?: string | null; provider?: string |
 const OrdersView: React.FC<OrdersViewProps> = ({ 
     orders: initialOrders, 
     currentStoreId,
+    store,
 }) => {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +76,13 @@ const OrdersView: React.FC<OrdersViewProps> = ({
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'READY'>('ALL');
     const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
     const [isExportingCsv, setIsExportingCsv] = useState(false);
+    // Verticale bloquante de la boutique courante : une boutique « shop »
+    // ne doit pas proposer le filtre « Resto » (et inversement).
+    const storeVertical = store?.business_type === 'food'
+        ? 'food' as const
+        : store?.business_type === 'shopping'
+            ? 'shopping' as const
+            : null;
     const [selectedVertical, setSelectedVertical] = useState<'all' | 'shopping' | 'food'>('all');
     const [isSearching, setIsSearching] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' | null }>({ message: '', type: null });
@@ -326,7 +334,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({
                                 { id: 'all' as const, label: 'Toutes', icon: Package, color: 'gray' },
                                 { id: 'shopping' as const, label: 'Shop', icon: ShoppingBag, color: 'orange' },
                                 { id: 'food' as const, label: 'Resto', icon: Zap, color: 'yellow' }
-                            ].map(v => (
+                            ].filter(v => v.id === 'all' || !storeVertical || v.id === storeVertical).map(v => (
                                 <button
                                     key={v.id}
                                     onClick={() => setSelectedVertical(v.id)}
