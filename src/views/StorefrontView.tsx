@@ -4808,11 +4808,7 @@ const WHOLESALE_FILTER = "wholesale";
                               className="w-full bg-white p-4 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md"
                             >
                               <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-orange-50 text-brand flex items-center justify-center font-bold text-xs border border-orange-100 flex-shrink-0">
-                                    {review.author?.[0]?.toUpperCase() || "A"}
-                                  </div>
-                                  <div className="min-w-0 overflow-hidden">
+                                <div className="min-w-0 overflow-hidden">
                                     <p className="font-bold text-gray-900 text-xs leading-none mb-1 truncate max-w-[120px]">
                                       {maskName(review.author)}
                                     </p>
@@ -4834,7 +4830,6 @@ const WHOLESALE_FILTER = "wholesale";
                                         />
                                       ))}
                                     </div>
-                                  </div>
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
                                   <span className="text-[9px] font-semibold text-gray-400">

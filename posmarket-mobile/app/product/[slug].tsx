@@ -98,12 +98,6 @@ const formatGrouped = (v: number) =>
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-const AVATAR_TONES = [
-  { bg: '#ffedd5', fg: '#c2410c' },
-  { bg: '#fef3c7', fg: '#b45309' },
-  { bg: '#ffe4e6', fg: '#e11d48' },
-];
-
 export default function ProductDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -662,14 +656,8 @@ export default function ProductDetailScreen() {
   const prepTime = isFood ? product.preparationTime : undefined;
 
   const renderReview = (review: Review, idx: number, compact = false) => {
-    const tone = AVATAR_TONES[idx % AVATAR_TONES.length];
     return (
-      <View key={review.id ?? String(idx)} style={styles.reviewCard}>
-        <View style={[styles.reviewAvatar, { backgroundColor: tone.bg }]}>
-          <Text style={[styles.reviewAvatarText, { color: tone.fg }]}>
-            {review.author?.[0]?.toUpperCase() || 'A'}
-          </Text>
-        </View>
+      <View key={review.id ?? `review-${idx}`} style={styles.reviewCard}>
         <View style={styles.reviewBody}>
           <View style={styles.reviewTopRow}>
             <View style={styles.reviewHead}>
@@ -2500,18 +2488,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#f3f4f6',
-  },
-  reviewAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  reviewAvatarText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   reviewBody: {
     flex: 1,

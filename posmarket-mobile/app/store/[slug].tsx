@@ -390,11 +390,6 @@ export default function StoreScreen() {
       <View key={review.id} style={styles.reviewCard}>
         <View style={styles.reviewHeadRow}>
           <View style={styles.reviewAuthorRow}>
-            <View style={styles.reviewAvatar}>
-              <Text style={styles.reviewAvatarText}>
-                {review.author?.[0]?.toUpperCase() || 'A'}
-              </Text>
-            </View>
             <View style={styles.reviewAuthorCol}>
               <Text style={styles.reviewAuthorName} numberOfLines={1}>
                 {maskName(review.author)}
@@ -1368,22 +1363,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flexShrink: 1,
-  },
-  reviewAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  reviewAvatarText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.brand,
   },
   reviewAuthorCol: {
     flexShrink: 1,
