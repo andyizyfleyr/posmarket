@@ -33,6 +33,30 @@ if (typeof document !== 'undefined') {
     '[data-feexpay-portal] .max-w-md > .border-b { flex: 0 0 auto !important; min-height: 44px !important; }',
   ].join('\n');
   document.head.appendChild(guard);
+  // La feuille du SDK (préflight Tailwind v3 + utilitaires) est ajoutée en
+  // FIN de <head> : elle écrase silencieusement nos utilitaires Tailwind v4
+  // par-dessus lesquels elle se retrouve, pour toute la session. On l'étiquette
+  // pour pouvoir la neutraliser dès que le guichet se referme — tout en
+  // permettant sa réactivation au prochain paiement (l'import dynamique est
+  // mis en cache : elle ne sera pas réinjectée).
+  document.head.querySelectorAll('style').forEach((style) => {
+    const text = style.textContent || '';
+    if (
+      text.includes('--tw-border-spacing-x') &&
+      !style.hasAttribute('data-feexpay-sdk-style')
+    ) {
+      style.setAttribute('data-feexpay-sdk-style', '');
+    }
+  });
+}
+
+/** Active/neutralise la feuille globale du SDK FeexPay. */
+function setFeexpaySdkStylesEnabled(enabled: boolean) {
+  document
+    .querySelectorAll<HTMLStyleElement>('style[data-feexpay-sdk-style]')
+    .forEach((style) => {
+      style.disabled = !enabled;
+    });
 }
 
 /**
@@ -87,9 +111,14 @@ export default function FeexPayWidget({ attempt }: { attempt: FeexPayWidgetAttem
     if (settledRef.current) return;
     settledRef.current = true;
     attemptRef.current.onSettled(reference, reason);
+    // L'écran de confirmation doit retrouver le CSS d'origine : on neutralise
+    // la feuille globale du SDK juste après la clôture, le SDK étant lui-même
+    // démonté à cet instant (aucune réinjection possible sans re-import).
+    window.setTimeout(() => setFeexpaySdkStylesEnabled(false), 500);
   }, []);
 
   useEffect(() => {
+    setFeexpaySdkStylesEnabled(true);
     startedAtRef.current = Date.now();
     const host = rootRef.current?.firstElementChild as HTMLElement | null;
     // Le conteneur interne du SDK écoute `feexpay:trigger` pour ouvrir la modale.

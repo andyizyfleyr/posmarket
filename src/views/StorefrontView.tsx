@@ -2746,7 +2746,9 @@ const WHOLESALE_FILTER = "wholesale";
               firstName: widgetFirstName,
               email: widgetEmail,
               onSettled: (reference, reason) => {
-                setFeexpayAttempt(null);
+                // Laisser le SDK refermer ses fenêtres avant de le démonter :
+                // le désinstaller en plein setState interne casse l'écran.
+                window.setTimeout(() => setFeexpayAttempt(null), 120);
                 if (!reference) {
                   if (reason === "dismissed") {
                     widgetFailureReason =

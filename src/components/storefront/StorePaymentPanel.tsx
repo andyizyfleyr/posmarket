@@ -190,7 +190,7 @@ function PaymentCard({
       firstName: customer.name || undefined,
       email: customer.email || undefined,
       onSettled: async (reference, reason) => {
-        setFeexpayAttempt(null);
+        window.setTimeout(() => setFeexpayAttempt(null), 120);
         try {
           if (!reference) {
             setError(
