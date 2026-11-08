@@ -1399,7 +1399,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   const [loadingStoreReviews, setLoadingStoreReviews] = useState(false);
   const [showAllProductReviews, setShowAllProductReviews] = useState(false);
   const [showAllStoreReviews, setShowAllStoreReviews] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // 📳 Pull-to-refresh (accueil + boutiques)
@@ -1747,7 +1746,6 @@ const [selectedDetailImage, setSelectedDetailImage] = useState<string | null>(
   // Track product views - only increment once per product per session
   React.useEffect(() => {
     if (!selectedProductId || !selectedProductDetails) return;
-    setIsDescriptionExpanded(false); // Reset expansion on new product
     setSelectedDetailImage(null); // Reset selected image on new product
     setProductSwipeIdx(0);
     // Compté une seule fois par session : le composant est remonté à chaque
@@ -3297,8 +3295,6 @@ const WHOLESALE_FILTER = "wholesale";
       safeNavigate={safeNavigate}
       setSelectedCategory={setSelectedCategory}
       addWholesaleToCart={addWholesaleToCart}
-      isDescriptionExpanded={isDescriptionExpanded}
-      setIsDescriptionExpanded={setIsDescriptionExpanded}
       stores={stores}
       cartItemsCount={cartItemsCount}
       cartTotal={cartTotal}

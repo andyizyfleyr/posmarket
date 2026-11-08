@@ -5,8 +5,7 @@ import Button from "@/components/Button";
 import ProductCard from "@/components/ProductCard";
 import { formatCurrency, formatNumber, maskName } from "@/utils";
 import { getNormalizedWholesaleTiers } from "@/utils/wholesale";
-import { RichDescription, AutoHighlights } from "@/components/storefront/RichDescription";
-import { extractDescriptionHighlights } from "@/utils/product-description";
+import { ExpandableDescription } from "@/components/storefront/ExpandableDescription";
 import { generateProductSlug } from "@/utils/slug";
 import { needsNoOptimization } from "@/lib/imageOptimizer";
 import {
@@ -70,8 +69,6 @@ type ProductDetailsProps = {
   safeNavigate: (path: string, options?: { action?: () => void }) => void;
   setSelectedCategory: (category: string) => void;
   addWholesaleToCart: (product: StorefrontProduct, minQty?: number, variantId?: string | null) => void;
-  isDescriptionExpanded: boolean;
-  setIsDescriptionExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   stores?: StoreData[];
   cartItemsCount: number;
   /**
@@ -585,22 +582,10 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
     safeNavigate,
     setSelectedCategory,
     addWholesaleToCart,
-    isDescriptionExpanded,
-    setIsDescriptionExpanded,
   cartItemsCount,
   isVariantInCart,
 } = props;
   const product = selectedProductDetails;
-  // Verrou anti double activation : sur certains gestes tactiles le même
-  // appui déclenche deux bascules (déplie puis replie aussitôt). 400 ms de
-  // verrou global du bouton rendent l'aller-retour parasite impossible.
-  const descriptionToggleLockRef = React.useRef(0);
-  const toggleDescription = (expand: boolean) => {
-    const now = Date.now();
-    if (now - descriptionToggleLockRef.current < 400) return;
-    descriptionToggleLockRef.current = now;
-    setIsDescriptionExpanded(expand);
-  };
   const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
     // Similaires = STRICTEMENT les autres produits de la même boutique :
     // jamais de produit d'une autre boutique en bas de page. À l'intérieur de
@@ -840,9 +825,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             : "Ajouter au panier";
 
     // --- Description enrichie (auto, sans action du vendeur) ---
-    const autoHighlights = extractDescriptionHighlights(descriptionText);
-    const hasMoreContent =
-      descriptionText.length > 180 || autoHighlights.length > 0;
 
     // --- Gallery ---
     const galleryImages = [
@@ -1670,36 +1652,11 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
                     {isFood ? 'Détails du plat' : 'Description produit'}
                   </h3>
                 </div>
-                <div
-                  className={`relative ${
-                    !isDescriptionExpanded
-                      ? "max-h-32 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
-                      : ""
-                  }`}
-                >
-                  <RichDescription text={descriptionText} accentClass={accentText} />
-                  <AutoHighlights items={autoHighlights} accentClass={accentText} />
-                </div>
-                {hasMoreContent &&
-                  (!isDescriptionExpanded ? (
-                    <button
-                      type="button"
-                      onClick={() => toggleDescription(true)}
-                      className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors touch-manipulation select-none ${accentText}`}
-                    >
-                      Lire la suite
-                      <ChevronRight size={10} className="rotate-90 transition-transform duration-300" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => toggleDescription(false)}
-                      className={`mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:brightness-95 transition-colors touch-manipulation select-none ${accentText}`}
-                    >
-                      Réduire
-                      <ChevronRight size={10} className="-rotate-90 transition-transform duration-300" />
-                    </button>
-                  ))}
+                <ExpandableDescription
+                  key={product?.id ? `m-desc-${product.id}` : undefined}
+                  text={descriptionText}
+                  accentClass={accentText}
+                />
               </div>
             </div>
           </div>
@@ -1716,37 +1673,12 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
             </div>
           </div>
 
-          <div
-            className={`relative ${
-              !isDescriptionExpanded
-                ? "max-h-56 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
-                : ""
-            }`}
-          >
-            <RichDescription text={descriptionText} accentClass={accentText} />
-            <AutoHighlights items={autoHighlights} accentClass={accentText} />
-          </div>
-
-          {hasMoreContent &&
-            (!isDescriptionExpanded ? (
-              <button
-                type="button"
-                onClick={() => toggleDescription(true)}
-                className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
-              >
-                Lire la suite
-                <ChevronRight size={10} className="rotate-90 transition-transform duration-300" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => toggleDescription(false)}
-                className="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
-              >
-                Réduire
-                <ChevronRight size={10} className="-rotate-90 transition-transform duration-300" />
-              </button>
-            ))}
+          <ExpandableDescription
+            key={product?.id ? `d-desc-${product.id}` : undefined}
+            text={descriptionText}
+            accentClass={accentText}
+            buttonClassName="mt-2 font-semibold text-[10px] uppercase tracking-wider flex items-center gap-0.5 active:scale-95 transition-transform touch-manipulation select-none text-brand"
+          />
         </section>
         {/* ================= AVIS (CARD-BASED) ================= */}
         <section
