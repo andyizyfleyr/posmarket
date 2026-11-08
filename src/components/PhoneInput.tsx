@@ -131,7 +131,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   return (
     <div className={`relative ${className}`}>
       <div
-        className={`flex items-center h-[52px] w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
+        className={`flex items-center h-11 md:h-12 w-full bg-gray-50/70 hover:bg-gray-100/80 border rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white ${
           hasError
             ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
             : 'border-gray-200/80 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15'
@@ -142,7 +142,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-1 pl-3.5 pr-1 h-full shrink-0 cursor-pointer select-none transition-colors disabled:opacity-50"
+          className="flex items-center gap-1 pl-3 pr-1 h-full shrink-0 cursor-pointer select-none transition-colors disabled:opacity-50"
           aria-label="Choisir le pays"
           title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
         >
@@ -167,7 +167,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           value={nationalDigits}
           onChange={handleInputChange}
           placeholder={placeholder || 'Numéro de téléphone'}
-          className={`flex-1 min-w-0 px-3 pr-4 bg-transparent text-[15px] font-semibold text-gray-900 placeholder-gray-300 placeholder:font-normal placeholder:text-gray-300 outline-none no-global-border ${inputClassName}`}
+          className={`flex-1 min-w-0 px-3 pr-4 bg-transparent text-[14px] font-semibold text-gray-900 placeholder-gray-300 placeholder:font-normal placeholder:text-gray-300 outline-none no-global-border ${inputClassName}`}
         />
       </div>
 

@@ -65,7 +65,7 @@ import type { CartItem } from '@/types';
 const SUPPORTED_COUNTRIES_LABEL = COUNTRIES.map((c) => c.name).join(', ');
 
 /** Hauteur minimale de l'écran de succès (min-h-[60vh] du web). */
-const SUCCESS_MIN_HEIGHT = Dimensions.get('window').height * 0.6;
+const SUCCESS_MIN_HEIGHT = Dimensions.get('window').height * 0.5;
 const SUCCESS_LOTTIE = require('../assets/lottie/success.json');
 
 type CheckoutStage = 'shipping' | 'payment' | 'success' | 'blocked';
@@ -653,7 +653,7 @@ export default function CheckoutScreen() {
 
               {stage === 'payment' && (
                 <View style={styles.paymentCard}>
-                  <Truck size={24} color={COLORS.brand} />
+                  <Truck size={20} color={COLORS.brand} />
                   <Text style={styles.paymentLabel}>Paiement à la livraison</Text>
                 </View>
               )}
@@ -867,20 +867,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   page: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   cardShadow: {
-    borderRadius: 24,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    elevation: 8,
+    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 20,
+    shadowRadius: 14,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
@@ -928,8 +928,8 @@ const styles = StyleSheet.create({
   // Indicateur d'étapes
   stepsBar: {
     backgroundColor: 'rgba(249,250,251,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -940,12 +940,12 @@ const styles = StyleSheet.create({
   },
   step: {
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -999,14 +999,14 @@ const styles = StyleSheet.create({
   // Contenu
   content: {
     backgroundColor: 'rgba(249,250,251,0.5)',
-    padding: 10,
+    padding: 8,
   },
 
   // Formulaire « Contact à livrer »
   formCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 18,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     elevation: 1,
@@ -1018,13 +1018,13 @@ const styles = StyleSheet.create({
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 32,
+    gap: 8,
+    marginBottom: 14,
   },
   formBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1043,10 +1043,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   fields: {
-    gap: 24,
+    gap: 14,
   },
   fieldGroup: {
-    gap: 8,
+    gap: 5,
   },
   fieldLabel: {
     fontSize: 10,
@@ -1058,35 +1058,35 @@ const styles = StyleSheet.create({
   nameField: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 52,
-    paddingLeft: 16,
-    paddingRight: 16,
+    minHeight: 46,
+    paddingLeft: 12,
+    paddingRight: 12,
     backgroundColor: 'rgba(249,250,251,0.5)',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 16,
+    borderRadius: 14,
   },
   nameInput: {
     flex: 1,
     minWidth: 0,
     paddingLeft: 14,
-    paddingVertical: 14,
-    fontSize: 15,
+    paddingVertical: 10,
+    fontSize: 14,
     fontWeight: '600',
     color: '#374151',
   },
 
   // Paiement à la livraison
   paymentCard: {
-    padding: 16,
+    padding: 12,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: COLORS.brand,
     backgroundColor: '#FFF7ED',
   },
   paymentLabel: {
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: 6,
+    fontSize: 13,
     fontWeight: '700',
     color: '#111827',
   },
@@ -1155,39 +1155,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: SUCCESS_MIN_HEIGHT,
-    paddingVertical: 48,
+    paddingVertical: 26,
     paddingHorizontal: 16,
   },
   successLottie: {
-    width: 170,
-    height: 170,
+    width: 130,
+    height: 130,
   },
   successTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
     color: '#111827',
     textAlign: 'center',
     letterSpacing: -0.5,
-    marginTop: 8,
+    marginTop: 4,
   },
   successText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   refPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 18,
+    marginTop: 10,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   refPillText: {
     fontSize: 11,
@@ -1377,11 +1377,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingTop: 8,
   },
   cta: {
-    height: 52,
-    borderRadius: 16,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: COLORS.brand,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1401,7 +1401,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   ctaText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
     textTransform: 'uppercase',
