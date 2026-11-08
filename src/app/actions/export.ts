@@ -108,6 +108,13 @@ export async function exportOrdersCsvAction(storeId: string): Promise<CsvExportR
       FAILED: 'Échec paiement',
       CANCELLED: 'Remboursée/Annulée',
     }
+    const METHOD_LABELS: Record<string, string> = {
+      CASH: 'Espèces',
+      MOBILE_MONEY: 'Mobile Money',
+      CARD: 'Carte bancaire',
+      BANK_TRANSFER: 'Virement bancaire',
+      OTHER: 'Autre',
+    }
     const TYPE_LABELS: Record<string, string> = {
       IN_STORE: 'Magasin',
       ONLINE: 'En ligne',
@@ -122,7 +129,7 @@ export async function exportOrdersCsvAction(storeId: string): Promise<CsvExportR
       Number(order.total).toLocaleString('fr-FR'),
       order.status,
       PAYMENT_STATUS[String(order.paymentStatus || '').toUpperCase()] || order.paymentStatus || '',
-      order.paymentProvider || order.paymentMethod || '',
+      order.paymentProvider || METHOD_LABELS[String(order.paymentMethod || '').toUpperCase()] || order.paymentMethod || '',
       TYPE_LABELS[order.type] || order.type,
       order.promoCode || '',
     ])

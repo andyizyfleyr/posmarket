@@ -13,7 +13,7 @@ import {
   Mail,
   Calendar
 } from 'lucide-react';
-import { formatCurrency } from '@/utils';
+import { formatCurrency, formatPaymentMethod } from '@/utils';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   PENDING: { label: 'En attente', color: 'bg-yellow-50 text-yellow-600 border-yellow-100' },
@@ -96,7 +96,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 {order.paymentMethod === 'CARD' ? <CreditCard size={14} /> : <Banknote size={14} />}
                 Mode de paiement
               </span>
-              <span className="font-bold text-gray-900 uppercase">{order.paymentMethod || '—'}</span>
+              <span className="font-bold text-gray-900 uppercase">{formatPaymentMethod(order.paymentMethod)}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400 font-semibold">Sous-total</span>

@@ -20,6 +20,28 @@ export const formatCurrency = (amount: number): string => {
   return Math.floor(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
 };
 
+/** Libellé français d'un moyen de paiement (enum interne ou valeur libre). */
+export const formatPaymentMethod = (method?: string | null): string => {
+  const m = String(method || '').trim().toUpperCase();
+  switch (m) {
+    case 'CASH':
+    case 'ESPECES':
+      return 'Espèces';
+    case 'MOBILE_MONEY':
+    case 'MOBILE MONEY':
+      return 'Mobile Money';
+    case 'CARD':
+    case 'CARTE':
+      return 'Carte bancaire';
+    case 'BANK_TRANSFER':
+      return 'Virement bancaire';
+    case 'OTHER':
+      return 'Autre';
+    default:
+      return method ? String(method) : '—';
+  }
+};
+
 /** Note affichée à la française : 4,8 (et non 4.8). */
 export const formatRating = (rating: number): string =>
   (Number.isFinite(rating) ? rating : 0).toFixed(1).replace('.', ',');
