@@ -121,7 +121,7 @@ async function getProductSeoUncached(
 
 export const getProductSeo = unstable_cache(getProductSeoUncached, ["product-seo"], {
     tags: ["marketplace"],
-    revalidate: 300,
+    revalidate: 3600,
 });
 
 /** Lightweight single-store query with its online products (SEO/JSON-LD). */
@@ -187,5 +187,5 @@ async function getStoreSeoUncached(slugOrId: string) {
 
 export const getStoreSeo = unstable_cache(getStoreSeoUncached, ["store-seo"], {
     tags: ["marketplace"],
-    revalidate: 300,
+    revalidate: 3600,
 });

@@ -190,7 +190,7 @@ async function loadHomepageLayout(): Promise<HomepageLayout> {
 
 const cached = unstable_cache(loadHomepageLayout, ['homepage-layout'], {
   tags: [HOMEPAGE_LAYOUT_TAG],
-  revalidate: 300,
+  revalidate: 3600,
 });
 
 /** Lecture publique (ISR/cache, tag `homepage-layout`). */
