@@ -1117,27 +1117,6 @@ function ProductDetailsContent(props: ProductDetailsProps & { selectedProductDet
           </span>
         </nav>
 
-        {/* ================= MOBILE APP-BAR (M3 style) =================
-            Bouton de retour uniquement. Le panier vit dans la barre du bas :
-            le dupliquer ici affichait deux boutons pointant vers la meme
-            destination sur le meme ecran. */}
-        {/* ================= TOPBAR MOBILE =================
-            Nom de boutique cliquable (vitrine de la boutique), centré, sur
-            deux lignes si le nom est long (pas d'ellipse). Espace du haut
-            toujours visible : safe-area iOS + 12px minimum. */}
-        <div
-          className="lg:hidden sticky top-0 z-[100] -mx-4 bg-white/95 backdrop-blur-md border-b border-gray-100/70 px-5 pb-3 flex flex-col items-center gap-1"
-          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
-        >
-          <Link
-            to={`/store/${product.storeSlug || product.storeId}`}
-            className="max-w-full text-center text-[15px] font-bold leading-snug text-gray-900 break-words line-clamp-2 transition-colors hover:text-brand active:text-brand"
-          >
-            {product.storeName}
-          </Link>
-          <span className="h-[3px] w-7 rounded-full bg-brand" aria-hidden="true" />
-        </div>
-
         {/* ================= PRODUIT ================= */}
         <div id="pd-produit" className="scroll-mt-14">
           <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr] gap-6 lg:gap-8 items-start">
