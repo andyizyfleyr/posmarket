@@ -4204,8 +4204,8 @@ const WHOLESALE_FILTER = "wholesale";
                           <div className="h-4 w-32 skeleton rounded" />
                           <div className="flex-grow h-px skeleton" />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
+                          {[1, 2, 3, 4, 5, 6].map((i) => (
                             <div
                               key={i}
                               className="bg-white rounded-2xl border border-gray-100 overflow-hidden h-64 flex flex-col"
@@ -4229,7 +4229,7 @@ const WHOLESALE_FILTER = "wholesale";
                   /* Recherche en cours : on montre des squelettes pour ne pas
                      laisser un écran vide ni afficher un faux « aucun produit ». */
                   <div
-                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3"
+                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3"
                     role="status"
                     aria-live="polite"
                     aria-label="Recherche en cours"
@@ -4304,7 +4304,7 @@ const WHOLESALE_FILTER = "wholesale";
                           selectedCategory === WHOLESALE_FILTER ? (
                           /* Grille simple : recherche, categorie, vente en gros */
                           <>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
                               {pagedProducts.map(renderCard)}
                             </div>
                             {!isInitialLoading && pagedProducts.length === 0 && (
