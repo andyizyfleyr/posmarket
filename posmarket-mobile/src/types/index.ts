@@ -98,6 +98,8 @@ export interface StoreSettings {
 }
 
 export interface StoreData {
+  /** Badge « vérifiée » distribué par l'admin PosMarket. */
+  isVerified?: boolean;
   id: string;
   slug?: string;
   name?: string;

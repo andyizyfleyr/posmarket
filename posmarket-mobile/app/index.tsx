@@ -456,10 +456,12 @@ function PartnersRow({
               >
                 <View style={[styles.partnerBubble, styles.partnerBubbleLarge]} />
                 <View style={[styles.partnerBubble, styles.partnerBubbleSmall]} />
-                <View style={styles.partnerBadge}>
-                  <Text style={styles.partnerBadgeText}>Vérifié</Text>
-                  <BadgeCheck size={9} color="#22C55E" strokeWidth={2.5} />
-                </View>
+                {store.isVerified === true && (
+                  <View style={styles.partnerBadge}>
+                    <Text style={styles.partnerBadgeText}>Vérifié</Text>
+                    <BadgeCheck size={9} color="#22C55E" strokeWidth={2.5} />
+                  </View>
+                )}
               </LinearGradient>
 
               <View style={styles.partnerBody}>
@@ -478,9 +480,11 @@ function PartnersRow({
                       <Text style={styles.partnerLogoInitials}>{initials}</Text>
                     )}
                   </View>
-                  <View style={styles.partnerVerified}>
-                    <Check size={7} strokeWidth={4} color="#FFF" />
-                  </View>
+                  {store.isVerified === true && (
+                    <View style={styles.partnerVerified}>
+                      <Check size={7} strokeWidth={4} color="#FFF" />
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.partnerNameRow}>

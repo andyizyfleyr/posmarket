@@ -195,12 +195,14 @@ function ProductSeller({
           <span className="text-[13px] font-semibold text-gray-800 truncate min-w-0 group-hover/vendor:text-brand transition-colors">
             {product.storeName}
           </span>
-          <CheckCircle2
-            size={13}
-            role="img"
-            aria-label="Boutique vérifiée"
-            className="text-brand flex-shrink-0"
-          />
+          {product.storeVerified === true && (
+            <CheckCircle2
+              size={13}
+              role="img"
+              aria-label="Boutique vérifiée"
+              className="text-brand flex-shrink-0"
+            />
+          )}
         </Link>
       </div>
     </div>

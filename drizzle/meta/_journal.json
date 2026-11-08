@@ -209,6 +209,13 @@
       "when": 1794072086285,
       "tag": "0035_feexpay_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794073000000,
+      "tag": "0036_store_verified",
+      "breakpoints": true
     }
   ]
 }

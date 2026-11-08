@@ -50,6 +50,8 @@ export interface Product {
   preparationTime?: string;
   /** Date de publication ISO — sert au classement « Nouveautés ». */
   createdAt?: string;
+  /** La boutique qui vend ce produit a été vérifiée par l'admin. */
+  storeVerified?: boolean;
 }
 
 export interface ProductOption {
@@ -163,6 +165,8 @@ export interface StoreSettings {
 // GiftCard interface removed as the feature is being deleted
 
 export interface StoreData {
+  /** Badge « vérifiée » distribué par l'admin (/pam/stores). Absent/faux = jamais de badge. */
+  isVerified?: boolean;
   id: string;
   slug?: string;
   name?: string;
