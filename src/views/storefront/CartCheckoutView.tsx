@@ -1,5 +1,5 @@
 import React from "react";
-import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, Bell, AlertTriangle, Loader2, Globe, Copy } from "lucide-react";
+import { ShoppingCart, ShieldCheck, ChevronLeft, Store, MapPin, CreditCard, User, Truck, Zap, CheckCircle2, ArrowRight, X, Check, ChevronUp, ChevronDown, Trash2, Tag, AlertTriangle, Loader2, Globe, Copy } from "lucide-react";
 import SuccessCheckLottie from "@/components/storefront/SuccessCheckLottie";
 import { PAYMENT_PROVIDER_LOGOS } from "@/lib/payment-logos";
 import { StorePaymentPanel, isOnlineProvider, type StoreCheckoutPaymentView } from "@/components/storefront/StorePaymentPanel";
@@ -10,7 +10,6 @@ import { isValidPhoneNumber } from "@/utils";
 import { COUNTRIES, parsePhoneNumber } from "@/constants/countries";
 import { generateProductSlug } from "@/utils/slug";
 import { cartNoun, cartNounLower, verticalOfProduct } from "@/constants";
-import { isPushSupported, enablePushNotifications } from "@/utils/push";
 import type { Coupon, NotificationType, StoreData } from "@/types";
 import type { StorefrontProduct } from "../StorefrontView";
 
@@ -848,64 +847,40 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
           {checkoutStage === "success" && (() => {
             const referenceCommande =
               completedOrderStores[0]?.orderId?.slice(0, 8).toUpperCase() || null;
-            const prenomClient = (customerInfo.name || "").trim().split(/\s+/)[0] || null;
-            const articlesLabel = `${completedOrderItems.length} article${
-              completedOrderItems.length > 1 ? "s" : ""
-            }`;
             return (
-            <div className="relative flex min-h-[56vh] flex-col items-center justify-center overflow-y-auto px-4 py-10 text-center">
+            <div className="relative flex min-h-[56vh] flex-col items-center justify-center px-4 py-8">
+              <div className="relative flex w-full max-w-md flex-col items-center rounded-3xl border border-gray-100 bg-white px-6 py-9 text-center shadow-sm md:py-10">
               {/* Halo décoratif derrière l'animation */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute left-1/2 top-28 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.16)_0%,rgba(34,197,94,0)_70%)]"
+                className="pointer-events-none absolute left-1/2 top-20 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.18)_0%,rgba(34,197,94,0)_70%)]"
               />
 
               {/* Animation de confirmation — Lottie, jouée une fois */}
-              <SuccessCheckLottie className="relative h-36 w-36 md:h-40 md:w-40" />
+              <SuccessCheckLottie className="relative h-40 w-40 md:h-44 md:w-44" />
 
-              <h3 className="relative mt-5 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl leading-tight">
-                Commande <span className="text-green-600">réussie&nbsp;!</span>
+              <h3 className="relative mt-3 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+                Commande réussie&nbsp;!
               </h3>
-
-              <p className="relative mt-2 max-w-sm text-sm font-semibold leading-relaxed text-gray-500">
-                Merci pour votre achat
-                {prenomClient ? (
-                  <>
-                    ,&nbsp;<span className="text-gray-800">{prenomClient}</span>
-                  </>
-                ) : null}
-                &nbsp;! Le vendeur prépare votre commande — vous serez prévenu dès qu&apos;elle part.
+              <p className="relative mt-1.5 text-sm font-semibold text-gray-500">
+                Merci pour votre achat&nbsp;!
               </p>
 
-              {/* Référence de commande + récapitulatif rapide */}
-              <div className="relative mt-4 flex flex-wrap items-center justify-center gap-2">
-                {referenceCommande && (
-                  <button
-                    type="button"
-                    onClick={() => copierReferenceCommande(referenceCommande)}
-                    title="Copier la référence"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2 shadow-sm transition-all hover:border-green-300 hover:shadow active:scale-[0.98]"
-                  >
-                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                      Réf. commande
-                    </span>
-                    <span className="text-sm font-extrabold tabular-nums tracking-[0.08em] text-gray-900">
-                      {referenceCommande}
-                    </span>
-                    {referenceCopiee ? (
-                      <Check size={14} strokeWidth={3} className="text-green-600" />
-                    ) : (
-                      <Copy size={14} className="text-gray-400" />
-                    )}
-                  </button>
-                )}
-                <span className="inline-flex items-center gap-1.5 rounded-2xl bg-gray-50 px-3 py-2 text-[11px] font-semibold text-gray-500">
-                  {articlesLabel} ·{" "}
-                  <span className="font-bold tabular-nums text-gray-800">
-                    {formatCurrency(completedOrderTotal)}
-                  </span>
-                </span>
-              </div>
+              {referenceCommande && (
+                <button
+                  type="button"
+                  onClick={() => copierReferenceCommande(referenceCommande)}
+                  title="Copier la référence"
+                  className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-gray-100/80 px-3.5 py-1.5 text-[10px] font-bold tabular-nums tracking-[0.14em] text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-800 active:scale-[0.98]"
+                >
+                  RÉF. {referenceCommande}
+                  {referenceCopiee ? (
+                    <Check size={12} strokeWidth={3} className="text-green-600" />
+                  ) : (
+                    <Copy size={12} className="text-gray-400" />
+                  )}
+                </button>
+              )}
 
               <StorePaymentPanel
                 payments={storePayments}
@@ -914,8 +889,7 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                 notify={localNotify}
               />
 
-              <div className="relative mt-8 flex w-full flex-col items-center">
-                <div className="flex w-full max-w-sm gap-3">
+              <div className="relative mt-8 flex w-full gap-3">
                   <Button
                     onClick={() => safeNavigate("/")}
                     loading={isNavigating}
@@ -982,20 +956,6 @@ export function CartCheckoutView(props: CartCheckoutViewBundle) {
                     return null;
                   })()}
                 </div>
-                {isPushSupported() && (
-                  <button
-                    onClick={async () => {
-                      const r = await enablePushNotifications();
-                      localNotify(
-                        r.ok ? "Notifications activées" : r.reason === "denied" ? "Notifications refusées" : "Notifications indisponibles",
-                        r.ok ? "success" : "info",
-                      );
-                    }}
-                    className="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-brand transition-colors"
-                  >
-                    <Bell size={12} className="inline -mt-0.5" /> M&apos;alerter de ma commande
-                  </button>
-                )}
               </div>
             </div>
             );
