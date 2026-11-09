@@ -1,7 +1,7 @@
 'use server'
 
 import { refreshTag } from '@/lib/revalidate'
-import { toClientProducts } from '@/lib/product-image-url'
+import { toClientProduct, toClientProducts } from '@/lib/product-image-url'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
@@ -264,6 +264,37 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     }
     const primaryWholesaleTier = wholesaleTiers[0];
 
+    // Le formulaire d'édition reçoit des URLs `/api/products/{id}/image` (les
+    // images base64 ne sont plus envoyées au client). S'il enregistre sans
+    // toucher aux images, il renvoie ces URLs : on les remplace par les
+    // valeurs d'origine pour ne pas persister une URL qui boucle sur elle-même.
+    const INTERNAL_PRODUCT_IMAGE_RE = /^\/api\/products\/[0-9a-f-]+\/image(?:\?|$)/i;
+    let existingProductImage: string | null = null;
+    let existingProductImages: string[] = [];
+    if (product.id && !product.id.startsWith('temp-')) {
+      const [existingImageRow] = await db
+        .select({ image: products.image, images: products.images })
+        .from(products)
+        .where(and(eq(products.id, product.id), eq(products.storeId, storeId)))
+        .limit(1);
+      existingProductImage = existingImageRow?.image ?? null;
+      existingProductImages = Array.isArray(existingImageRow?.images)
+        ? existingImageRow.images.filter(
+            (img): img is string => typeof img === 'string' && !!img,
+          )
+        : [];
+    }
+    const resolveInternalImage = (value: string): string => {
+      if (!INTERNAL_PRODUCT_IMAGE_RE.test(value)) return value;
+      const indexMatch = /[?&]i=(\d+)/.exec(value);
+      const index = indexMatch ? Number(indexMatch[1]) : null;
+      const resolved =
+        index !== null
+          ? existingProductImages[index] ?? (index === 0 ? existingProductImage : null)
+          : existingProductImage ?? existingProductImages[0] ?? null;
+      return resolved && !INTERNAL_PRODUCT_IMAGE_RE.test(resolved) ? resolved : '';
+    };
+
     const uploadCache = new Map<string, string>();
     const resolveImage = async (img: string): Promise<string> => {
       if (!img.startsWith('data:')) return img;
@@ -281,10 +312,14 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
         : product.image
           ? [product.image]
           : []
-    ).filter((img): img is string => typeof img === 'string' && !!img);
+    )
+      .filter((img): img is string => typeof img === 'string' && !!img)
+      .map(resolveInternalImage)
+      .filter(Boolean);
 
-    if (product.image && !sourceImages.includes(product.image)) {
-      sourceImages.unshift(product.image);
+    const primaryImage = product.image ? resolveInternalImage(product.image) : '';
+    if (primaryImage && !sourceImages.includes(primaryImage)) {
+      sourceImages.unshift(primaryImage);
     }
 
     const imagesValue: string[] = [];
@@ -294,8 +329,8 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
     }
 
     let imageValue: string | null = imagesValue[0] ?? null;
-    if (!imageValue && product.image) {
-      imageValue = await resolveImage(product.image);
+    if (!imageValue && primaryImage) {
+      imageValue = await resolveImage(primaryImage);
     }
 
     const dataToSave = {
@@ -389,7 +424,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       createdAt: savedProduct.createdAt?.toISOString?.() || null,
     };
 
-    return { success: true, product: safe, warnings };
+    return { success: true, product: toClientProduct(safe), warnings };
   } catch (error: unknown) {
     console.error('Error saving product with Drizzle:', error);
     let errorMessage = 'Unknown error';
