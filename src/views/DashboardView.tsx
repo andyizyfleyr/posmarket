@@ -52,9 +52,9 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, trendVal
   <div className={`bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-100/20 hover:scale-[1.02] transition-all duration-500 group cursor-default
     ${compact ? 'p-2 md:p-6' : 'p-4 md:p-6'}`}>
     <div className={`flex items-center justify-between ${compact ? 'mb-1.5 md:mb-5' : 'mb-3 md:mb-5'}`}>
-      <div className={`rounded-xl md:rounded-2xl ${color} text-white shadow-lg ${color.replace('bg-', 'shadow-')}/20 group-hover:rotate-6 transition-transform duration-500 
-        ${compact ? 'p-1.5 md:p-3.5' : 'p-2.5 md:p-3.5'}`}>
-        {React.cloneElement(icon, { className: compact ? "w-3.5 h-3.5 md:w-6 md:h-6" : "w-4 h-4 md:w-6 md:h-6" })}
+      <div className={`rounded-xl md:rounded-2xl ${color} shadow-xs group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300 flex items-center justify-center
+        ${compact ? 'p-1.5 md:p-3' : 'p-2.5 md:p-3.5'}`}>
+        {React.cloneElement(icon, { className: compact ? "w-3.5 h-3.5 md:w-5 md:h-5 stroke-[1.8]" : "w-4 h-4 md:w-5 md:h-5 stroke-[1.8]" })}
       </div>
       {trend && (
         <div className={`flex items-center gap-0.5 md:gap-1 font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full 
@@ -485,7 +485,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<DollarSign size={14} />}
           trend={filteredMetrics.revenue.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.revenue.pct}%`}
-          color="bg-brand"
+          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
           compact={true}
         />
         <StatCard
@@ -494,7 +494,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<ShoppingBag size={14} />}
           trend={filteredMetrics.orders.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.orders.pct}%`}
-          color="bg-purple-600"
+          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
           compact={true}
         />
         <StatCard
@@ -503,7 +503,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<Zap size={14} />}
           trend={filteredMetrics.basket.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.basket.pct}%`}
-          color="bg-blue-600"
+          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
           compact={true}
         />
         <StatCard
@@ -512,7 +512,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<Eye size={14} />}
           trend={filteredMetrics.traffic.trend as unknown as 'up' | 'down' | undefined}
           trendValue={filteredMetrics.traffic.pct}
-          color="bg-orange-600"
+          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
           compact={true}
         />
       </div>

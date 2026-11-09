@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { storeStaff, stores } from '@/db/schema';
 import { getCurrentSession } from '@/app/actions/session';
 import { getStoreCookie } from '@/utils/store-cookie';
 import {
@@ -84,17 +81,8 @@ export async function resolveMobileStoreId(
   const candidate = requested || (await getStoreCookie());
   if (candidate) return candidate;
 
-  const [owned] = await db
-    .select({ id: stores.id })
-    .from(stores)
-    .where(eq(stores.userId, userId))
-    .limit(1);
-  if (owned?.id) return owned.id;
-
-  const [staff] = await db
-    .select({ storeId: storeStaff.storeId })
-    .from(storeStaff)
-    .where(eq(storeStaff.userId, userId))
-    .limit(1);
-  return staff?.storeId || null;
+  const access = await resolveAccountAccess(userId);
+  if (access.ownedStores[0]?.id) return access.ownedStores[0].id;
+  if (access.staffStores[0]?.id) return access.staffStores[0].id;
+  return null;
 }

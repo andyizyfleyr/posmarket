@@ -2,11 +2,9 @@
 
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { profiles } from '@/db/schema';
 import { auth, signIn, signOut } from '@/auth';
 import { getMobileSessionUserId } from '@/lib/mobile-session';
+import { getProfileById } from '@/lib/profile-by-id';
 import {
   serializeProfile,
   setAuthIntentCookie,
@@ -33,12 +31,7 @@ export async function getCurrentSession() {
   if (!uid) uid = await getMobileSessionUserId();
   if (!uid) return { user: null };
 
-  const [profile] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.id, String(uid)))
-    .limit(1)
-    .catch(() => []);
+  const profile = await getProfileById(String(uid)).catch(() => null);
   if (!profile) return { user: null };
 
   return { user: serializeProfile(profile) };
