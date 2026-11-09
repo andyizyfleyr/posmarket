@@ -102,7 +102,17 @@ async function fetchMarketplaceDataUncached(): Promise<StoreData[]> {
           image: sql<
             string | null
           >`CASE WHEN ${products.image} LIKE 'data:%' THEN NULL ELSE ${products.image} END`,
-          images: products.images,
+          images: sql<unknown>`
+            CASE 
+              WHEN ${products.images} IS NOT NULL AND jsonb_typeof(${products.images}) = 'array' AND jsonb_array_length(${products.images}) > 0
+              THEN (
+                SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+                FROM jsonb_array_elements(${products.images}) AS elem
+                WHERE elem#>>'{}' NOT LIKE 'data:%'
+              )
+              ELSE '[]'::jsonb 
+            END
+          `,
           unit: products.unit,
           deliveryTime: products.deliveryTime,
           preparationTime: products.preparationTime,

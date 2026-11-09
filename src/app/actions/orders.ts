@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath, revalidateTag } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { refreshTag } from '@/lib/revalidate'
 import { db } from '@/db'
 import { orders, orderItems, customers } from '@/db/schema'
@@ -417,6 +417,81 @@ export async function bulkUpdateOrderStatusAction(orderIds: string[], status: st
     }
 }
 
+const fetchCachedOrders = (
+    storeId: string,
+    offset: number,
+    limit: number,
+    search: string,
+    filterStatus: string
+) =>
+    unstable_cache(
+        async () => {
+            const conditions = [eq(orders.storeId, storeId)];
+            const statusFilter = String(filterStatus || '').toUpperCase();
+
+            if (statusFilter && statusFilter !== 'ALL') {
+                conditions.push(eq(orders.status, statusFilter));
+            }
+
+            const term = String(search || '').trim();
+            const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+            const searchClause = term
+                ? or(
+                    ilike(orders.id, `%${term}%`),
+                    ilike(orders.promoCode, `%${term}%`),
+                    ilike(customers.name, `%${term}%`),
+                    ilike(customers.phone, `%${term}%`)
+                )
+                : undefined;
+
+            const query = searchClause ? and(whereClause, searchClause) : whereClause;
+
+            const [ordersList, [{ count: totalCount }]] = await Promise.all([
+                db.select({
+                    order: orders,
+                    customerName: customers.name,
+                    customerEmail: customers.email,
+                    customerPhone: customers.phone,
+                    customerAddress: customers.address,
+                })
+                    .from(orders)
+                    .leftJoin(customers, eq(orders.customerId, customers.id))
+                    .where(query)
+                    .orderBy(desc(orders.date))
+                    .limit(limit)
+                    .offset(offset),
+                db.select({ count: sql<number>`count(*)` })
+                    .from(orders)
+                    .leftJoin(customers, eq(orders.customerId, customers.id))
+                    .where(query)
+            ]);
+
+            const total = Number(totalCount) || 0;
+            return {
+                orders: (ordersList || []).map(({ order: o, customerName, customerEmail, customerPhone, customerAddress }) => ({
+                    ...o,
+                    date: o.date ? new Date(o.date).toISOString() : new Date().toISOString(),
+                    total: parseFloat(o.total ?? '') || 0,
+                    subtotal: parseFloat(o.subtotal ?? '') || 0,
+                    discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
+                    customer: o.customerId
+                        ? {
+                            id: o.customerId,
+                            name: customerName,
+                            email: customerEmail || '',
+                            phone: customerPhone || '',
+                            address: customerAddress || '',
+                        }
+                        : undefined,
+                })),
+                total,
+            };
+        },
+        ['action-orders-page', storeId, String(offset), String(limit), search, filterStatus],
+        { tags: [`orders:${storeId}`], revalidate: 60 }
+    )();
+
 export async function getOrdersAction(
     storeId: string, 
     offset: number = 0, 
@@ -428,71 +503,15 @@ export async function getOrdersAction(
         const access = await requireStoreAccess(storeId);
         if (!access.ok) return { success: false, error: access.error };
 
-        const conditions = [eq(orders.storeId, storeId)];
-        const statusFilter = String(filterStatus || '').toUpperCase();
-
-        if (statusFilter && statusFilter !== 'ALL') {
-            conditions.push(eq(orders.status, statusFilter));
-        }
-
-        const term = String(search || '').trim();
-
-        const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
-
-        // La recherche porte sur la référence de commande, le code promo et le
-        // nom/téléphone du client : le nom du client vit dans une autre table,
-        // d'où le LEFT JOIN et le `or(...)`.
-        const searchClause = term
-            ? or(
-                ilike(orders.id, `%${term}%`),
-                ilike(orders.promoCode, `%${term}%`),
-                ilike(customers.name, `%${term}%`),
-                ilike(customers.phone, `%${term}%`)
-            )
-            : undefined;
-
-        const query = searchClause ? and(whereClause, searchClause) : whereClause;
-
-        const [ordersList, [{ count: totalCount }]] = await Promise.all([
-            db.select({
-                order: orders,
-                customerName: customers.name,
-                customerEmail: customers.email,
-                customerPhone: customers.phone,
-                customerAddress: customers.address,
-            })
-                .from(orders)
-                .leftJoin(customers, eq(orders.customerId, customers.id))
-                .where(query)
-                .orderBy(desc(orders.date))
-                .limit(limit)
-                .offset(offset),
-            db.select({ count: sql<number>`count(*)` })
-                .from(orders)
-                .leftJoin(customers, eq(orders.customerId, customers.id))
-                .where(query)
-        ]);
-
-        const total = Number(totalCount) || 0;
+        const { orders: cachedOrders, total } = await fetchCachedOrders(storeId, offset, limit, search, filterStatus);
 
         return { 
             success: true, 
-            orders: (ordersList || []).map(({ order: o, customerName, customerEmail, customerPhone, customerAddress }) => ({
+            orders: cachedOrders.map((o) => ({
                 ...o,
-                total: parseFloat(o.total ?? '') || 0,
-                subtotal: parseFloat(o.subtotal ?? '') || 0,
-                discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
-                customer: o.customerId
-                    ? {
-                        id: o.customerId,
-                        name: customerName,
-                        email: customerEmail || '',
-                        phone: customerPhone || '',
-                        address: customerAddress || '',
-                    }
-                    : undefined,
+                date: new Date(o.date),
             })),
-            hasMore: total > (offset + ordersList.length),
+            hasMore: total > (offset + cachedOrders.length),
             total
         };
     } catch (error: unknown) {

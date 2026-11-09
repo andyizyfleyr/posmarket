@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 import { refreshTag } from '@/lib/revalidate'
 import { db } from '@/db'
 import { customers } from '@/db/schema'
@@ -121,48 +121,65 @@ try {
     }
 }
 
+const fetchCachedCustomers = (storeId: string, offset: number, limit: number, search: string) =>
+  unstable_cache(
+    async () => {
+      const conditions = [eq(customers.storeId, storeId)];
+
+      if (search) {
+        conditions.push(
+          or(
+            sql`${customers.name} ILIKE ${`%${search}%`}`,
+            sql`${customers.phone} ILIKE ${`%${search}%`}`
+          )!
+        );
+      }
+
+      const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+      const [customersList, [{ count: totalCount }]] = await Promise.all([
+        db
+          .select()
+          .from(customers)
+          .where(whereClause)
+          .orderBy(desc(customers.totalSpent))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(customers)
+          .where(whereClause),
+      ]);
+
+      const total = Number(totalCount) || 0;
+      return {
+        customers: (customersList || []).map((c) => ({
+          ...c,
+          totalSpent: parseFloat(c.totalSpent ?? '') || 0,
+          ordersCount: Number(c.ordersCount) || 0,
+        })),
+        total,
+      };
+    },
+    ['action-customers-page', storeId, String(offset), String(limit), search],
+    { tags: [`customers:${storeId}`], revalidate: 120 }
+  )();
+
 export async function getCustomersAction(storeId: string, offset: number = 0, limit: number = 10, search: string = '') {
-try {
-            const access = await requireStoreAccess(storeId);
-            if (!access.ok) return { success: false, error: access.error };
+  try {
+    const access = await requireStoreAccess(storeId);
+    if (!access.ok) return { success: false, error: access.error };
 
-            const conditions = [eq(customers.storeId, storeId)];
+    const { customers: cachedCustomers, total } = await fetchCachedCustomers(storeId, offset, limit, search);
 
-        if (search) {
-            conditions.push(or(
-                sql`${customers.name} ILIKE ${`%${search}%`}`,
-                sql`${customers.phone} ILIKE ${`%${search}%`}`
-            )!);
-        }
-
-        const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
-
-        const [customersList, [{ count: totalCount }]] = await Promise.all([
-            db.select()
-                .from(customers)
-                .where(whereClause)
-                .orderBy(desc(customers.totalSpent))
-                .limit(limit)
-                .offset(offset),
-            db.select({ count: sql<number>`count(*)` })
-                .from(customers)
-                .where(whereClause)
-        ]);
-
-        const total = Number(totalCount) || 0;
-
-        return { 
-            success: true, 
-            customers: (customersList || []).map((c) => ({
-                ...c,
-                totalSpent: parseFloat(c.totalSpent ?? '') || 0,
-                ordersCount: Number(c.ordersCount) || 0,
-            })), 
-            hasMore: total > (offset + customersList.length),
-            total
-        };
-    } catch (error: unknown) {
-        console.error('Error fetching customers with Drizzle:', error);
-        return { success: false, error: error instanceof Error ? error.message : String(error), customers: [], total: 0 };
-    }
+    return { 
+      success: true, 
+      customers: cachedCustomers, 
+      hasMore: total > (offset + cachedCustomers.length),
+      total,
+    };
+  } catch (error: unknown) {
+    console.error('Error fetching customers with Drizzle:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error), customers: [], total: 0 };
+  }
 }

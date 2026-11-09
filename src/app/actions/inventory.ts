@@ -6,6 +6,7 @@ import { toClientProduct, toClientProducts } from '@/lib/product-image-url'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
+import { lightweightProductFields } from '@/db/lightweight-product'
 import { eq, and, sql, inArray, desc } from 'drizzle-orm'
 import { createClient } from '@/utils/supabase/server'
 import { normalizeOptions, normalizeVariants, buildVariantMatrix, sanitizeOptions, sanitizeVariants, sanitizeStringArray, sanitizeWholesaleTiers, MAX_VARIANT_OPTIONS, MAX_VALUES_PER_OPTION, MAX_VARIANTS, type ProductVariantDef } from '@/utils/variants'
@@ -727,7 +728,7 @@ export async function getProductsAction(
     const whereClause = and(...conditions);
 
     const [productsList, [{ count: totalCount }]] = await Promise.all([
-      db.select()
+      db.select(lightweightProductFields)
         .from(products)
         .where(whereClause)
         .orderBy(desc(products.createdAt))
@@ -949,7 +950,7 @@ export async function exportStoreProductsAction(
     }
 
     const rows = await db
-      .select()
+      .select(lightweightProductFields)
       .from(products)
       .where(and(...conditions))
       .orderBy(desc(products.createdAt));

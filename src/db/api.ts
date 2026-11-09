@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { db } from './index';
 import { products, customers, orders, orderItems, stores, profiles, productStats, invoices } from './schema';
+import { lightweightProductFields } from './lightweight-product';
 import { eq, desc, inArray, sql, and } from 'drizzle-orm';
 import { resyncVariantsFromJson } from './variants';
 import { Product, Customer } from '@/types';
@@ -120,7 +121,11 @@ type ProductsBundle = {
 };
 
 async function fetchProductsBundle(storeId: string, withStats: boolean, limit: number): Promise<ProductsBundle> {
-  const productsSel = db.select().from(products).where(eq(products.storeId, storeId)).limit(limit);
+  const productsSel = db
+    .select(lightweightProductFields)
+    .from(products)
+    .where(eq(products.storeId, storeId))
+    .limit(limit) as unknown as Promise<ProductRow[]>;
   const totalSel = db
     .select({ count: sql<number>`count(*)::int` })
     .from(products)
