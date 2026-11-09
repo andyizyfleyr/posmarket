@@ -1,6 +1,7 @@
 'use server'
 
 import { refreshTag } from '@/lib/revalidate'
+import { toClientProducts } from '@/lib/product-image-url'
 import { uploadDataUriToR2 } from '@/lib/r2'
 import { db } from '@/db'
 import { products, profiles, stores, storeStaff, categories, productCategories } from '@/db/schema'
@@ -710,7 +711,7 @@ export async function getProductsAction(
 
     return {
       success: true,
-      products: (productsList || []).map((p) => {
+      products: toClientProducts((productsList || []).map((p) => {
         // Nettoyage à la lecture : d'anciennes fiches stockaient des objets
         // `{}` ou des variantes orphelines, l'éditeurvendeur ne doit jamais les
         // récupérer tels quels.
@@ -729,7 +730,7 @@ export async function getProductsAction(
           images: sanitizeStringArray(p.images),
           wholesaleTiers: sanitizeWholesaleTiers(p.wholesaleTiers)
         };
-      }),
+      })),
       hasMore: total > (offset + productsList.length),
       total
     };

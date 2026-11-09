@@ -7,6 +7,7 @@ import { FULL_PERMISSIONS } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 import { Product, Customer, StaffPermissions, StoreSettings } from '@/types';
 import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
+import { toClientProducts } from '@/lib/product-image-url';
 
 export default async function POSPage() {
   // La boutique courante est dédupliquée par requête : le layout a déjà
@@ -26,9 +27,13 @@ export default async function POSPage() {
   ]);
   const { permissions } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
+  // Le POS recevait les 141 produits avec toutes leurs images base64 :
+  // 22,5 Mo de HTML. On ne transmet plus que des URLs.
+  const clientProducts = toClientProducts(products as unknown as Product[]);
+
   return (
     <POSView 
-      products={products as unknown as Product[]} 
+      products={clientProducts} 
       customers={customers as unknown as Customer[]} 
       currentStoreId={storeId}
       storeSettings={(store?.settings || {}) as StoreSettings}

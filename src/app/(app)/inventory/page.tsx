@@ -4,6 +4,7 @@ import { FULL_PERMISSIONS } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 import { BusinessVertical, Product, StaffRole, StaffPermissions } from '@/types';
 import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
+import { toClientProducts } from '@/lib/product-image-url';
 
 export default async function InventoryPage() {
   // La boutique courante est dédupliquée par requête : le layout a déjà
@@ -17,9 +18,12 @@ export default async function InventoryPage() {
   const settings = store?.settings as { lowStockThreshold?: number } | undefined;
   const threshold = typeof settings?.lowStockThreshold === 'number' ? settings.lowStockThreshold : undefined;
 
+  // Évite d'injecter les data URLs base64 des produits dans le HTML.
+  const clientProducts = toClientProducts(products as unknown as Product[]);
+
   return (
     <InventoryView 
-      products={products as unknown as Product[]} 
+      products={clientProducts} 
       permissions={permissions as unknown as StaffPermissions}
       userRole={role as unknown as StaffRole}
       currentStoreId={storeId}

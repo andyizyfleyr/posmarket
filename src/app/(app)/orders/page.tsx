@@ -5,6 +5,7 @@ import { FULL_PERMISSIONS } from '@/utils/permissions';
 import NoStoreFound from '@/components/NoStoreFound';
 import { Order, StaffRole, StaffPermissions } from '@/types';
 import { resolveCurrentStoreId, resolveStorePermissions } from '@/lib/current-store';
+import { toClientOrders } from '@/lib/product-image-url';
 
 export default async function OrdersPage() {
   // La boutique courante est dédupliquée par requête : le layout a déjà
@@ -20,9 +21,13 @@ export default async function OrdersPage() {
   const { store } = storeData;
   const { permissions, role } = await resolveStorePermissions(storeId, FULL_PERMISSIONS);
 
+  // Les lignes de commande embarquent l'image du produit : on la remplace par
+  // l'endpoint d'image pour ne pas sérialiser de base64 dans la page.
+  const clientOrders = toClientOrders(orders as unknown as Order[]);
+
   return (
     <OrdersView 
-      orders={orders as unknown as Order[]} 
+      orders={clientOrders} 
       permissions={permissions as unknown as StaffPermissions}
       userRole={role as unknown as StaffRole}
       currentStoreId={storeId}
