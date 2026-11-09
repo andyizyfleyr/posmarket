@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import LayoutClientWrapper from '@/components/LayoutClientWrapper';
 import { StoreData, SubscriptionTier, SubscriptionDuration, StaffRole, UserSubscription } from '@/types';
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
+import { toIsoDateString } from '@/utils';
 import { canAccessSellerSpace, landingPathFor } from '@/utils/account-access';
 import { getStoreCookie } from '@/utils/store-cookie';
 import { getAccountAccess, getSessionUser } from '@/lib/request-cache';
@@ -49,8 +50,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const userSubscription: UserSubscription = {
     tier: (profile?.subscriptionTier as SubscriptionTier) || 'NONE',
     duration: (profile?.subscriptionDuration as SubscriptionDuration) || 'monthly',
-    startDate: profile?.subscriptionStartDate?.toISOString() || new Date().toISOString(),
-    endDate: profile?.subscriptionEndDate?.toISOString() || new Date().toISOString(),
+    startDate: toIsoDateString(profile?.subscriptionStartDate, new Date().toISOString()),
+    endDate: toIsoDateString(profile?.subscriptionEndDate, new Date().toISOString()),
     status: (profile?.subscriptionStatus as UserSubscription['status']) || 'NONE'
   };
 

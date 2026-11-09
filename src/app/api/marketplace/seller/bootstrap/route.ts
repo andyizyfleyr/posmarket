@@ -7,6 +7,7 @@ import { getPermissionsForUser } from '@/utils/permissions';
 import { parseQuery } from '@/lib/validation';
 import { bootstrapQuerySchema } from '@/lib/schemas';
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants';
+import { toIsoDateString } from '@/utils';
 import type { StaffRole, SubscriptionDuration, SubscriptionTier, UserSubscription } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -98,8 +99,8 @@ export async function GET(req: NextRequest) {
     const subscription: UserSubscription = {
       tier: (profile.subscriptionTier as SubscriptionTier) || 'NONE',
       duration: (profile.subscriptionDuration as SubscriptionDuration) || 'monthly',
-      startDate: profile.subscriptionStartDate?.toISOString() || new Date().toISOString(),
-      endDate: profile.subscriptionEndDate?.toISOString() || new Date().toISOString(),
+      startDate: toIsoDateString(profile.subscriptionStartDate, new Date().toISOString()),
+      endDate: toIsoDateString(profile.subscriptionEndDate, new Date().toISOString()),
       status: (profile.subscriptionStatus as UserSubscription['status']) || 'NONE',
     };
 

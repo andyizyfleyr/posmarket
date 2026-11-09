@@ -422,7 +422,7 @@ export async function saveProductAction(product: ProductInput, storeId: string) 
       businessType: savedProduct.businessType,
       options: sanitizeOptions(savedProduct.options),
       variants: sanitizeVariants(savedProduct.variants),
-      createdAt: savedProduct.createdAt?.toISOString?.() || null,
+      createdAt: savedProduct.createdAt ? (savedProduct.createdAt instanceof Date ? savedProduct.createdAt.toISOString() : String(savedProduct.createdAt)) : null,
     };
 
     return { success: true, product: toClientProduct(safe), warnings };

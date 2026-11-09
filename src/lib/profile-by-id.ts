@@ -30,10 +30,38 @@ const getCachedProfile = (userId: string) =>
     }
   )();
 
+function hydrateProfileDates(profile: typeof profiles.$inferSelect | null) {
+  if (!profile) return null;
+  return {
+    ...profile,
+    createdAt: profile.createdAt
+      ? profile.createdAt instanceof Date
+        ? profile.createdAt
+        : new Date(profile.createdAt)
+      : profile.createdAt,
+    subscriptionStartDate: profile.subscriptionStartDate
+      ? profile.subscriptionStartDate instanceof Date
+        ? profile.subscriptionStartDate
+        : new Date(profile.subscriptionStartDate)
+      : null,
+    subscriptionEndDate: profile.subscriptionEndDate
+      ? profile.subscriptionEndDate instanceof Date
+        ? profile.subscriptionEndDate
+        : new Date(profile.subscriptionEndDate)
+      : null,
+    emailVerified: profile.emailVerified
+      ? profile.emailVerified instanceof Date
+        ? profile.emailVerified
+        : new Date(profile.emailVerified)
+      : null,
+  };
+}
+
 /**
  * Lecture du profil mémoïsée par requête et adossée au cache Next.js.
  */
 export const getProfileById = cache(async (userId: string) => {
   if (!userId) return null;
-  return getCachedProfile(userId);
+  const profile = await getCachedProfile(userId);
+  return hydrateProfileDates(profile);
 });

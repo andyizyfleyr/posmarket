@@ -196,6 +196,26 @@ export const getDaysRemaining = (end: string): number => {
   return Math.max(0, diffDays);
 };
 
+/**
+ * Convertit en toute sécurité une date (Date, string ISO, timestamp ou null)
+ * en chaîne ISO sans risquer de TypeError si la valeur est déjà sérialisée en string
+ * (par ex. suite à un passage dans unstable_cache ou JSON).
+ */
+export const toIsoDateString = (val: unknown, fallback?: string): string => {
+  if (!val) return fallback || '';
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? (fallback || '') : val.toISOString();
+  }
+  if (typeof val === 'string') {
+    return val;
+  }
+  if (typeof val === 'number') {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? (fallback || '') : d.toISOString();
+  }
+  return fallback || '';
+};
+
 export const generateSlug = (text: string): string => {
   return text
     .toString()

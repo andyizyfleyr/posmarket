@@ -8,6 +8,7 @@ import { stores, profiles } from '@/db/schema'
 import { eq, count, inArray } from 'drizzle-orm'
 import { SubscriptionTier, SubscriptionDuration, SubscriptionTierStatus } from '@/types'
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from '@/constants'
+import { toIsoDateString } from '@/utils'
 import { createClient } from '@/utils/supabase/server'
 import { requireStoreAccess, authorizeSeller } from '@/lib/authorization'
 
@@ -50,8 +51,8 @@ export async function fetchStoreData(storeId: string, ownerId?: string, fields?:
         tier: (data.profile.subscriptionTier || 'NONE') as SubscriptionTier,
         duration: (data.profile.subscriptionDuration || 'monthly') as SubscriptionDuration,
         status: (data.profile.subscriptionStatus || 'NONE') as SubscriptionTierStatus,
-        startDate: (data.profile.subscriptionStartDate || new Date()).toISOString(),
-        endDate: (data.profile.subscriptionEndDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)).toISOString()
+        startDate: toIsoDateString(data.profile.subscriptionStartDate, new Date().toISOString()),
+        endDate: toIsoDateString(data.profile.subscriptionEndDate, new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString())
       } : null,
       errors: {
         products: null,

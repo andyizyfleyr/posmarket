@@ -45,7 +45,7 @@ export default async function POSPage() {
         discount_pct: Number(c.discountPct) || 0,
         active: c.active !== false,
         store_id: c.storeId,
-        created_at: c.createdAt ? c.createdAt.toISOString() : undefined,
+        created_at: c.createdAt ? (c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt)) : undefined,
       }))}
     />
   );

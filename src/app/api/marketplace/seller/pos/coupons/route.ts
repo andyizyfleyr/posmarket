@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
         discount_pct: Number(row.discountPct) || 0,
         active: row.active,
         store_id: row.storeId,
-        created_at: row.createdAt?.toISOString(),
+        created_at: row.createdAt ? (row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt)) : undefined,
       })),
     });
   } catch (error) {

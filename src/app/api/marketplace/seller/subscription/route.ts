@@ -23,6 +23,7 @@ import {
 } from '@/lib/feexpay';
 import { notify, getProfileEmail, getProfilePhone } from '@/lib/notifications';
 import { SUBSCRIPTION_PLANS } from '@/constants';
+import { toIsoDateString } from '@/utils';
 import { refreshTag } from '@/lib/revalidate';
 import type { SubscriptionDuration, SubscriptionTier } from '@/types';
 
@@ -69,9 +70,9 @@ export async function GET() {
       tier: profile?.subscriptionTier || 'NONE',
       duration: profile?.subscriptionDuration || 'monthly',
       startDate:
-        profile?.subscriptionStartDate?.toISOString() || new Date().toISOString(),
+        toIsoDateString(profile?.subscriptionStartDate, new Date().toISOString()),
       endDate:
-        profile?.subscriptionEndDate?.toISOString() || new Date().toISOString(),
+        toIsoDateString(profile?.subscriptionEndDate, new Date().toISOString()),
       status: profile?.subscriptionStatus || 'NONE',
     };
 
