@@ -6,12 +6,13 @@ import {
   RotateCcw, 
   Home, 
   ShoppingBag, 
-  AlertTriangle, 
-  MessageCircle, 
-  ChevronRight, 
-  HelpCircle,
-  Sparkles,
-  ArrowLeft
+  AlertCircle, 
+  ArrowLeft,
+  CheckCircle2,
+  Copy,
+  Check,
+  ChevronDown,
+  MessageSquare
 } from 'lucide-react';
 
 interface ErrorProps {
@@ -21,10 +22,10 @@ interface ErrorProps {
 
 export default function GlobalErrorPage({ error, reset }: ErrorProps) {
   const [isRetrying, setIsRetrying] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   useEffect(() => {
-    // Log error in monitoring if in production
     console.error('Unhandled Application Error:', error);
   }, [error]);
 
@@ -38,19 +39,30 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
     setTimeout(() => setIsRetrying(false), 1500);
   };
 
+  const copyIncidentCode = async () => {
+    if (!error?.digest) return;
+    try {
+      await navigator.clipboard.writeText(error.digest);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignore clipboard write failures
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fffaf7] via-white to-[#f8fafc] flex flex-col justify-between selection:bg-brand/20 selection:text-brand">
-      {/* Top Brand Bar */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-brand/15 selection:text-brand">
+      {/* Top Navigation */}
+      <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-[#ff8c42] flex items-center justify-center text-white shadow-lg shadow-brand/25 group-hover:scale-105 transition-transform duration-300">
-            <ShoppingBag className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-xs group-hover:opacity-90 transition-opacity">
+            <ShoppingBag className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-xl tracking-tight text-gray-950 flex items-center gap-1">
+            <span className="font-bold text-lg tracking-tight text-slate-900 leading-none">
               Pos<span className="text-brand">Market</span>
             </span>
-            <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest -mt-1">
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">
               Express Marketplace
             </span>
           </div>
@@ -58,118 +70,140 @@ export default function GlobalErrorPage({ error, reset }: ErrorProps) {
 
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white/80 hover:bg-white border border-gray-200/80 rounded-full shadow-sm backdrop-blur-sm transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200/90 rounded-lg shadow-xs hover:border-slate-300 transition-colors"
         >
-          <Home className="w-3.5 h-3.5" />
+          <Home className="w-3.5 h-3.5 text-slate-500" />
           <span>Accueil</span>
         </Link>
       </header>
 
-      {/* Main Error Content */}
-      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 py-10">
-        <div className="w-full max-w-lg mx-auto">
-          {/* Main Card */}
-          <div className="relative bg-white rounded-3xl border border-orange-100/80 shadow-brand/10 p-6 sm:p-10 text-center overflow-hidden">
-            {/* Ambient Background Glow */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-200/30 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Glowing Icon Badge */}
-            <div className="relative mx-auto w-20 h-20 mb-6 flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-[#fb923c]/40 rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
-              <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-orange-50 to-orange-100/80 border-2 border-orange-200/60 flex items-center justify-center shadow-inner">
-                <AlertTriangle className="w-9 h-9 text-brand animate-bounce" style={{ animationDuration: '2.5s' }} />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white border border-orange-200 shadow-sm flex items-center justify-center">
-                <Sparkles className="w-3.5 h-3.5 text-brand" />
-              </div>
+      {/* Main Content */}
+      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 py-12">
+        <div className="w-full max-w-md mx-auto">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] p-7 sm:p-9 text-center">
+            
+            {/* Status Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand mx-auto mb-5 shadow-xs">
+              <AlertCircle className="w-7 h-7 stroke-[1.75]" />
             </div>
 
-            {/* Heading */}
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2">
-              Une petite interruption technique
+            {/* Title & Description */}
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mb-2">
+              Page temporairement indisponible
             </h1>
 
-            {/* Subtext */}
-            <p className="text-sm sm:text-base text-gray-600 font-normal leading-relaxed max-w-md mx-auto mb-8">
-              La page n&apos;a pas pu se charger correctement. Vos données et votre panier sont conservés en toute sécurité.
+            <p className="text-sm text-slate-500 leading-relaxed max-w-sm mx-auto mb-4">
+              Un problème est survenu lors du chargement de cette page. Veuillez réessayer ou retourner à l&apos;accueil.
             </p>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+            {/* Reassurance Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/60 text-slate-600 text-xs font-medium mb-6">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Vos commandes et votre panier restent sauvegardés</span>
+            </div>
+
+            {/* Main Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 mb-6">
               <button
                 type="button"
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-brand to-[#ff7d3b] hover:from-[#e45a19] hover:to-brand text-white text-sm font-bold rounded-2xl shadow-lg shadow-brand/30 hover:shadow-xl hover:shadow-brand/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all disabled:opacity-70 cursor-pointer"
+                className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
               >
-                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin spinner-always' : ''}`} />
-                <span>{isRetrying ? 'Rechargement...' : 'Recharger la page'}</span>
+                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+                <span>{isRetrying ? 'Rechargement...' : 'Réessayer'}</span>
               </button>
 
               <Link
                 href="/"
-                className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-800 text-sm font-bold rounded-2xl border border-gray-200/80 hover:border-gray-300 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
+                className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-sm font-semibold rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
               >
-                <Home className="w-4 h-4 text-gray-500" />
-                <span>Retour à l&apos;accueil</span>
+                <Home className="w-4 h-4 text-slate-400" />
+                <span>Accueil</span>
               </Link>
             </div>
 
-            {/* Secondary Help Actions */}
-            <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            {/* Navigation & Help Links */}
+            <div className="pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <button
                 type="button"
                 onClick={() => {
-                  if (window.history.length > 1) {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
                     window.history.back();
                   } else {
                     window.location.href = '/';
                   }
                 }}
-                className="inline-flex items-center gap-1 font-semibold text-gray-500 hover:text-gray-900 transition-colors"
+                className="inline-flex items-center gap-1 hover:text-slate-900 font-medium transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Page précédente</span>
               </button>
 
               <a
-                href="https://wa.me/221781234567?text=Bonjour,%20j'ai%20rencontré%20un%20souci%20sur%20PosMarket"
+                href="https://wa.me/?text=Bonjour%2C%20j%27ai%20rencontr%C3%A9%20une%20erreur%20sur%20PosMarket"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-semibold text-brand hover:text-[#d55a20] transition-colors"
+                className="inline-flex items-center gap-1 text-slate-600 hover:text-brand font-medium transition-colors"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>Assistance WhatsApp</span>
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Assistance</span>
               </a>
             </div>
 
-            {/* Error Details for Debugging (Collapsible) */}
+            {/* Incident Code & Debug details */}
             {error?.digest && (
-              <div className="mt-6 pt-4 border-t border-dashed border-gray-100 text-left">
+              <div className="mt-5 pt-4 border-t border-slate-100 text-left">
+                <div className="flex items-center justify-between bg-slate-50 border border-slate-200/70 rounded-lg px-3 py-2 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-500 truncate">
+                    <span className="text-[11px] font-medium text-slate-400">Incident :</span>
+                    <code className="font-mono text-[11px] text-slate-700 select-all font-semibold">{error.digest}</code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyIncidentCode}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-slate-800 transition-colors ml-2 shrink-0 cursor-pointer"
+                    title="Copier le code incident"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span className="text-emerald-600 font-semibold">Copié</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copier</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Collapsible stack details in dev or when toggled */}
                 <button
                   type="button"
                   onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                 >
-                  <HelpCircle className="w-3 h-3" />
-                  <span>Détails techniques (Code: {error.digest})</span>
-                  <ChevronRight className={`w-3 h-3 transition-transform ${showTechnicalDetails ? 'rotate-90' : ''}`} />
+                  <span>Détails techniques</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showTechnicalDetails ? 'rotate-180' : ''}`} />
                 </button>
+
                 {showTechnicalDetails && (
-                  <div className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-xl text-[10px] font-mono overflow-x-auto">
-                    <p className="text-orange-400 font-semibold mb-1">Erreur Référence : {error.digest}</p>
-                    <p className="text-gray-300">{error.message || 'Erreur non spécifiée'}</p>
+                  <div className="mt-2 p-3 bg-slate-900 text-slate-200 rounded-lg text-[11px] font-mono overflow-x-auto leading-relaxed">
+                    <p className="text-orange-400 font-semibold mb-1">Réf: {error.digest}</p>
+                    <p className="text-slate-300 break-words">{error.message || 'Erreur non spécifiée'}</p>
                   </div>
                 )}
               </div>
             )}
+
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 py-6 text-center text-xs font-medium text-gray-400">
+      <footer className="w-full max-w-5xl mx-auto px-4 py-6 text-center text-xs text-slate-400 font-medium">
         © {new Date().getFullYear()} PosMarket. Tous droits réservés.
       </footer>
     </div>

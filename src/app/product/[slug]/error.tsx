@@ -27,18 +27,18 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fffaf7] via-white to-[#f8fafc] flex flex-col justify-between selection:bg-brand/20 selection:text-brand">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-brand/15 selection:text-brand">
       {/* Header */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
+      <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand to-[#ff8c42] flex items-center justify-center text-white shadow-lg shadow-brand/25 group-hover:scale-105 transition-transform duration-300">
-            <ShoppingBag className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-xs group-hover:opacity-90 transition-opacity">
+            <ShoppingBag className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-xl tracking-tight text-gray-950 flex items-center gap-1">
+            <span className="font-bold text-lg tracking-tight text-slate-900 leading-none">
               Pos<span className="text-brand">Market</span>
             </span>
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest -mt-1">
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">
               Express Marketplace
             </span>
           </div>
@@ -46,72 +46,70 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
 
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white border border-gray-200/80 rounded-full shadow-sm transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200/90 rounded-lg shadow-xs hover:border-slate-300 transition-colors"
         >
-          <Home className="w-3.5 h-3.5" />
+          <Home className="w-3.5 h-3.5 text-slate-500" />
           <span>Accueil</span>
         </Link>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 py-10">
-        <div className="w-full max-w-md mx-auto text-center">
-          <div className="relative bg-white rounded-3xl border border-orange-100/90 shadow-brand/10 p-6 sm:p-8 overflow-hidden">
-            {/* Ambient Background Glow */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-orange-100/50 rounded-full blur-3xl pointer-events-none" />
-
+      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 py-12">
+        <div className="w-full max-w-md mx-auto">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] p-7 sm:p-9 text-center">
+            
             {/* Icon */}
-            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-tr from-orange-50 to-orange-100 border border-orange-200 flex items-center justify-center text-brand shadow-inner">
-              <PackageX className="w-9 h-9" />
+            <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand shadow-xs">
+              <PackageX className="w-7 h-7 stroke-[1.75]" />
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mb-2">
               Impossible d&apos;afficher cet article
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500 font-normal leading-relaxed max-w-sm mx-auto mb-6">
-              Une anomalie passagère est survenue lors du chargement des détails du produit. Vous pouvez recharger la fiche ou explorer les autres boutiques.
+            <p className="text-sm text-slate-500 leading-relaxed max-w-sm mx-auto mb-6">
+              Une anomalie passagère est survenue lors du chargement de la fiche produit. Vous pouvez réactualiser ou découvrir d&apos;autres articles.
             </p>
 
             {/* Actions */}
-            <div className="flex flex-col gap-2.5 mb-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 mb-6">
               <button
                 type="button"
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-brand to-[#ff7d3b] hover:from-[#e45a19] hover:to-brand text-white text-xs sm:text-sm font-bold rounded-2xl shadow-md shadow-brand/25 hover:shadow-lg transition-all cursor-pointer disabled:opacity-70"
+                className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
               >
-                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin spinner-always' : ''}`} />
+                <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
                 <span>{isRetrying ? 'Rechargement...' : 'Réessayer'}</span>
               </button>
 
               <Link
                 href="/"
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs sm:text-sm font-semibold rounded-2xl border border-gray-200/80 transition-all cursor-pointer"
+                className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-sm font-semibold rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
               >
-                <Search className="w-4 h-4 text-gray-400" />
-                <span>Explorer le marketplace</span>
+                <Search className="w-4 h-4 text-slate-400" />
+                <span>Explorer</span>
               </Link>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+            <div className="pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <button
                 type="button"
                 onClick={() => {
-                  if (window.history.length > 1) {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
                     window.history.back();
                   } else {
                     window.location.href = '/';
                   }
                 }}
-                className="inline-flex items-center gap-1 font-semibold hover:text-gray-900 transition-colors"
+                className="inline-flex items-center gap-1 hover:text-slate-900 font-medium transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Retour</span>
+                <span>Page précédente</span>
               </button>
 
               {error?.digest && (
-                <span className="text-[10px] font-mono text-gray-300">
-                  Réf: {error.digest.slice(0, 8)}
+                <span className="text-[11px] font-mono text-slate-400">
+                  Réf: {error.digest.slice(0, 10)}
                 </span>
               )}
             </div>
@@ -120,8 +118,8 @@ export default function ProductErrorPage({ error, reset }: ProductErrorProps) {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 py-6 text-center text-xs font-medium text-gray-400">
-        © {new Date().getFullYear()} PosMarket
+      <footer className="w-full max-w-5xl mx-auto px-4 py-6 text-center text-xs text-slate-400 font-medium">
+        © {new Date().getFullYear()} PosMarket. Tous droits réservés.
       </footer>
     </div>
   );
