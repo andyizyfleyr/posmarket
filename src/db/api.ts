@@ -543,15 +543,29 @@ export async function dbFetchStoreData(storeId: string, ownerId?: string, fields
       { tags: [`customers:${storeIdInner}`], revalidate: CUSTOMERS_BUNDLE_REVALIDATE_S },
     )();
 
+  const getCachedStore = (id: string) =>
+    unstable_cache(
+      () => db.select().from(stores).where(eq(stores.id, id)).limit(1),
+      ['store-by-id', id],
+      { tags: [`store:${id}`], revalidate: 300 },
+    )();
+
+  const getCachedInvoices = (id: string) =>
+    unstable_cache(
+      () => db.select().from(invoices).where(eq(invoices.storeId, id)).limit(100).catch(() => [] as InvoiceRow[]),
+      ['store-invoices', id],
+      { tags: [`invoices:${id}`], revalidate: 300 },
+    )();
+
   const emptyBundle: ProductsBundle = { productsRows: [], statsRows: [], salesRows: [], total: 0 };
   const tasks = [
-    db.select().from(stores).where(eq(stores.id, storeId)).limit(1),
+    getCachedStore(storeId),
     needs.products
       ? getCachedProductsBundle(storeId, needs.productStats, productsLimit)
       : Promise.resolve(emptyBundle),
     needs.orders ? getOrdersForStore(storeId, ordersLimit) : Promise.resolve({ ordersRes: [], itemsByOrder: {} }),
     needs.customers ? getCachedCustomersBundle(storeId, customersLimit) : Promise.resolve([]),
-    needs.invoices ? db.select().from(invoices).where(eq(invoices.storeId, storeId)).limit(100).catch(() => []) : Promise.resolve([]),
+    needs.invoices ? getCachedInvoices(storeId) : Promise.resolve([]),
     ownerId ? db.select().from(profiles).where(eq(profiles.id, ownerId)).limit(1) : Promise.resolve([])
   ];
 

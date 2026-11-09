@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchMarketplaceData } from '@/app/actions/marketplace';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 /**

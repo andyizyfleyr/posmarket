@@ -454,7 +454,13 @@ export async function getOrdersAction(
         const query = searchClause ? and(whereClause, searchClause) : whereClause;
 
         const [ordersList, [{ count: totalCount }]] = await Promise.all([
-            db.select({ order: orders, customerName: customers.name, customerPhone: customers.phone })
+            db.select({
+                order: orders,
+                customerName: customers.name,
+                customerEmail: customers.email,
+                customerPhone: customers.phone,
+                customerAddress: customers.address,
+            })
                 .from(orders)
                 .leftJoin(customers, eq(orders.customerId, customers.id))
                 .where(query)
@@ -469,36 +475,23 @@ export async function getOrdersAction(
 
         const total = Number(totalCount) || 0;
 
-        const orderIds = (ordersList || []).map((row) => row.order.id);
-        let customersMap: Record<string, (typeof customers.$inferSelect)> = {};
-        if (orderIds.length > 0) {
-            const customerIds = [...new Set((ordersList || []).map((row) => row.order.customerId).filter((x): x is string => Boolean(x)))];
-            if (customerIds.length > 0) {
-                const customerRows = await db.select().from(customers).where(inArray(customers.id, customerIds));
-                customersMap = Object.fromEntries(customerRows.map((c) => [c.id, c]));
-            }
-        }
-
         return { 
             success: true, 
-            orders: (ordersList || []).map(({ order: o }) => {
-                const customer = o.customerId ? customersMap[o.customerId] : undefined;
-                return {
-                    ...o,
-                    total: parseFloat(o.total ?? '') || 0,
-                    subtotal: parseFloat(o.subtotal ?? '') || 0,
-                    discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
-                    customer: customer
-                        ? {
-                            id: customer.id,
-                            name: customer.name,
-                            email: customer.email || '',
-                            phone: customer.phone || '',
-                            address: customer.address || '',
-                        }
-                        : undefined,
-                };
-            }),
+            orders: (ordersList || []).map(({ order: o, customerName, customerEmail, customerPhone, customerAddress }) => ({
+                ...o,
+                total: parseFloat(o.total ?? '') || 0,
+                subtotal: parseFloat(o.subtotal ?? '') || 0,
+                discountAmount: o.discountAmount ? parseFloat(o.discountAmount) : 0,
+                customer: o.customerId
+                    ? {
+                        id: o.customerId,
+                        name: customerName,
+                        email: customerEmail || '',
+                        phone: customerPhone || '',
+                        address: customerAddress || '',
+                    }
+                    : undefined,
+            })),
             hasMore: total > (offset + ordersList.length),
             total
         };

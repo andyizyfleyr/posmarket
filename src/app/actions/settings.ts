@@ -54,6 +54,7 @@ export async function updateStoreSettingsAction(storeId: string, settings: Store
 
         revalidatePath('/settings');
         refreshTag('marketplace');
+        refreshTag(`store:${storeId}`);
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating store settings with Drizzle:', error);
@@ -98,6 +99,7 @@ export async function deleteStoreAction(id: string) {
         await db.delete(stores).where(eq(stores.id, id));
         revalidatePath('/settings');
         refreshTag('marketplace');
+        refreshTag(`store:${id}`);
         return { success: true };
     } catch (error: unknown) {
         console.error('Error deleting store with Drizzle:', error);
@@ -137,6 +139,7 @@ export async function updateProfileSettingsAction(userId: string, data: { fullNa
         revalidatePath('/settings');
         revalidatePath('/mon-compte');
         refreshTag('marketplace');
+        refreshTag(`profile:${userId}`);
         return { success: true };
     } catch (error: unknown) {
         console.error('Error updating profile with Drizzle:', error);

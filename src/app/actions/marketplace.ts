@@ -566,6 +566,8 @@ export async function saveProductReviewAction(
       });
 
     refreshTag(CATALOG_TAG);
+    refreshTag(`reviews:${productId}`);
+    refreshTag(`store-reviews:${storeId}`);
 
     try {
       const storeInfo = await getStorePhone(storeId);
@@ -598,30 +600,26 @@ export async function saveProductReviewAction(
   * pas de photo et conservent l'affichage par initiale côté client.
   * Les avis boostés fournissent `author_avatar` depuis le pool admin.
   */
-export async function fetchProductReviewsAction(productId: string) {
-  if (!productId) return { success: false, error: 'Produit invalide', reviews: [] };
+const getCachedProductReviews = (productId: string) =>
+  unstable_cache(
+    async () => {
+      const rows = await db
+        .select({
+          id: productReviews.id,
+          rating: productReviews.rating,
+          comment: productReviews.comment,
+          createdAt: productReviews.createdAt,
+          authorName: productReviews.authorName,
+          avatarUrl: profiles.avatarUrl,
+          authorAvatar: productReviews.authorAvatar,
+          sellerReply: productReviews.sellerReply,
+        })
+        .from(productReviews)
+        .leftJoin(profiles, eq(productReviews.userId, profiles.id))
+        .where(eq(productReviews.productId, productId))
+        .orderBy(desc(productReviews.createdAt));
 
-  try {
-    const rows = await db
-      .select({
-        id: productReviews.id,
-        rating: productReviews.rating,
-        comment: productReviews.comment,
-        createdAt: productReviews.createdAt,
-        authorName: productReviews.authorName,
-        avatarUrl: profiles.avatarUrl,
-        authorAvatar: productReviews.authorAvatar,
-        sellerReply: productReviews.sellerReply,
-      })
-      .from(productReviews)
-      .leftJoin(profiles, eq(productReviews.userId, profiles.id))
-      .where(eq(productReviews.productId, productId))
-      .orderBy(desc(productReviews.createdAt));
-
-    return {
-      success: true,
-      error: undefined,
-      reviews: rows.map((r) => ({
+      return rows.map((r) => ({
         id: r.id,
         author: r.authorName || 'Anonyme',
         avatarUrl: r.avatarUrl || r.authorAvatar || null,
@@ -630,7 +628,24 @@ export async function fetchProductReviewsAction(productId: string) {
         date: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt || ''),
         productId,
         sellerReply: r.sellerReply || null,
-      })),
+      }));
+    },
+    ['product-reviews', productId],
+    {
+      tags: [`reviews:${productId}`, CATALOG_TAG],
+      revalidate: 3600,
+    }
+  )();
+
+export async function fetchProductReviewsAction(productId: string) {
+  if (!productId) return { success: false, error: 'Produit invalide', reviews: [] };
+
+  try {
+    const reviews = await getCachedProductReviews(productId);
+    return {
+      success: true,
+      error: undefined,
+      reviews,
     };
   } catch (error) {
     console.error('Error fetching product reviews:', error);
@@ -639,39 +654,30 @@ export async function fetchProductReviewsAction(productId: string) {
   }
 }
 
-/**
- * Avis d'une boutique (tous ses produits) avec la photo de chaque auteur.
- * Même jointure externe que `fetchProductReviewsAction`.
- * Les avis boostés fournissent `author_avatar` depuis le pool admin.
- */
-export async function fetchStoreReviewsAction(storeId: string) {
-  if (!storeId) return { success: false, error: 'Boutique invalide', reviews: [] };
+const getCachedStoreReviews = (storeId: string) =>
+  unstable_cache(
+    async () => {
+      const rows = await db
+        .select({
+          id: productReviews.id,
+          rating: productReviews.rating,
+          comment: productReviews.comment,
+          createdAt: productReviews.createdAt,
+          authorName: productReviews.authorName,
+          productId: productReviews.productId,
+          productName: products.name,
+          productImage: products.image,
+          avatarUrl: profiles.avatarUrl,
+          authorAvatar: productReviews.authorAvatar,
+          sellerReply: productReviews.sellerReply,
+        })
+        .from(productReviews)
+        .leftJoin(profiles, eq(productReviews.userId, profiles.id))
+        .leftJoin(products, eq(productReviews.productId, products.id))
+        .where(eq(productReviews.storeId, storeId))
+        .orderBy(desc(productReviews.createdAt));
 
-  try {
-    const rows = await db
-      .select({
-        id: productReviews.id,
-        rating: productReviews.rating,
-        comment: productReviews.comment,
-        createdAt: productReviews.createdAt,
-        authorName: productReviews.authorName,
-        productId: productReviews.productId,
-        productName: products.name,
-        productImage: products.image,
-        avatarUrl: profiles.avatarUrl,
-        authorAvatar: productReviews.authorAvatar,
-        sellerReply: productReviews.sellerReply,
-      })
-      .from(productReviews)
-      .leftJoin(profiles, eq(productReviews.userId, profiles.id))
-      .leftJoin(products, eq(productReviews.productId, products.id))
-      .where(eq(productReviews.storeId, storeId))
-      .orderBy(desc(productReviews.createdAt));
-
-    return {
-      success: true,
-      error: undefined,
-      reviews: rows.map((r) => ({
+      return rows.map((r) => ({
         id: r.id,
         author: r.authorName || 'Anonyme',
         avatarUrl: r.avatarUrl || r.authorAvatar || null,
@@ -683,7 +689,29 @@ export async function fetchStoreReviewsAction(storeId: string) {
         productImage: normalizeImageUrl(r.productImage),
         storeId,
         sellerReply: r.sellerReply || null,
-      })),
+      }));
+    },
+    ['store-reviews', storeId],
+    {
+      tags: [`store-reviews:${storeId}`, CATALOG_TAG],
+      revalidate: 3600,
+    }
+  )();
+
+/**
+ * Avis d'une boutique (tous ses produits) avec la photo de chaque auteur.
+ * Même jointure externe que `fetchProductReviewsAction`.
+ * Les avis boostés fournissent `author_avatar` depuis le pool admin.
+ */
+export async function fetchStoreReviewsAction(storeId: string) {
+  if (!storeId) return { success: false, error: 'Boutique invalide', reviews: [] };
+
+  try {
+    const reviews = await getCachedStoreReviews(storeId);
+    return {
+      success: true,
+      error: undefined,
+      reviews,
     };
   } catch (error) {
     console.error('Error fetching store reviews:', error);
@@ -691,6 +719,33 @@ export async function fetchStoreReviewsAction(storeId: string) {
     return { success: false, error: message, reviews: [] };
   }
 }
+
+const getCachedActiveCoupons = (key: string, ids: string[]) =>
+  unstable_cache(
+    async () => {
+      const rows = await db
+        .select()
+        .from(coupons)
+        .where(and(inArray(coupons.storeId, ids), eq(coupons.active, true)));
+
+      return rows.map((c) => ({
+        id: c.id,
+        code: c.code,
+        discount_pct: Number(c.discountPct) || 0,
+        active: c.active,
+        store_id: c.storeId,
+        created_at:
+          c.createdAt instanceof Date
+            ? c.createdAt.toISOString()
+            : String(c.createdAt || ''),
+      }));
+    },
+    ['active-coupons', key],
+    {
+      tags: ['coupons', CATALOG_TAG],
+      revalidate: 300,
+    }
+  )();
 
 /**
  * Codes promo actifs des boutiques demandées.
@@ -704,26 +759,13 @@ export async function fetchActiveCouponsAction(storeIds: string[]) {
   const ids = Array.isArray(storeIds) ? storeIds.filter(Boolean) : [];
   if (ids.length === 0) return { success: true, error: undefined, coupons: [] };
 
+  const key = [...ids].sort().join(',');
   try {
-    const rows = await db
-      .select()
-      .from(coupons)
-      .where(and(inArray(coupons.storeId, ids), eq(coupons.active, true)));
-
+    const coupons = await getCachedActiveCoupons(key, ids);
     return {
       success: true,
       error: undefined,
-      coupons: rows.map((c) => ({
-        id: c.id,
-        code: c.code,
-        discount_pct: Number(c.discountPct) || 0,
-        active: c.active,
-        store_id: c.storeId,
-        created_at:
-          c.createdAt instanceof Date
-            ? c.createdAt.toISOString()
-            : String(c.createdAt || ''),
-      })),
+      coupons,
     };
   } catch (error) {
     console.error('Error fetching coupons:', error);
@@ -1154,6 +1196,124 @@ export async function fetchBuyerProfileAction(fallbackIdOrEmail?: string) {
   };
 }
 
+const getCachedSearchProducts = (normalized: string, limit: number) =>
+  unstable_cache(
+    async () => {
+      const rows = await db.execute(sql`
+        WITH ranked AS (
+          SELECT
+            p.id,
+            p.name,
+            p.price,
+            p.original_price,
+            CASE WHEN p.image LIKE 'data:%' THEN NULL ELSE p.image END AS image,
+            (p.image IS NOT NULL) AS has_image,
+            p.stock,
+            p.main_category,
+            p.store_id,
+            p.is_online,
+            p.business_type,
+            p.wholesale_price,
+            p.wholesale_min_qty,
+            p.wholesale_tiers,
+            p.unit,
+            p.options,
+            p.variants,
+            p.created_at,
+            p.views,
+            s.name          AS store_name,
+            s.slug          AS store_slug,
+            COALESCE(ps.total_sales, 0)     AS total_sales,
+            COALESCE(ps.average_rating, 0)  AS average_rating,
+            COALESCE(ps.review_count, 0)    AS review_count,
+            (
+              -- 1. FTS relevance (unaccented — uses GIN index on search_vector)
+              ts_rank(p.search_vector, websearch_to_tsquery('french', immutable_unaccent(${normalized}))) * 2.0
+
+              -- 2. Trigram on unaccented name (typo tolerance)
+              + similarity(immutable_unaccent(p.name), immutable_unaccent(${normalized})) * 1.5
+
+              -- 3. Trigram on unaccented description (wider fuzzy surface)
+              + similarity(immutable_unaccent(coalesce(p.description, '')), immutable_unaccent(${normalized})) * 0.3
+
+              -- 4. Prefix bonus: query is a prefix of the product name → immediate match
+              + CASE
+                  WHEN lower(immutable_unaccent(p.name)) LIKE lower(immutable_unaccent(${normalized})) || '%'
+                  THEN 0.5 ELSE 0
+                END
+
+              -- 5. Store name match: brand/store searches surface relevant products
+              + similarity(immutable_unaccent(s.name), immutable_unaccent(${normalized})) * 0.8
+            )
+            -- Popularity boost: log-damped so viral products don't bury fresh ones
+            * (1.0 + ln(1.0 + COALESCE(ps.total_sales, 0)::float * 3
+                            + p.views::float * 0.1))
+            AS rank_score
+          FROM products p
+          JOIN stores s ON s.id = p.store_id
+          LEFT JOIN product_stats ps ON ps.product_id = p.id
+          WHERE
+            p.is_online = true
+            AND (
+              -- FTS match (unaccented)
+              p.search_vector @@ websearch_to_tsquery('french', immutable_unaccent(${normalized}))
+              -- Trigram fuzzy on name
+              OR immutable_unaccent(p.name) % immutable_unaccent(${normalized})
+              -- Trigram fuzzy on description
+              OR immutable_unaccent(coalesce(p.description, '')) % immutable_unaccent(${normalized})
+              -- ILIKE fallback (prefix / partial)
+              OR p.name ILIKE ${'%' + normalized + '%'}
+              -- Store name match
+              OR s.name ILIKE ${'%' + normalized + '%'}
+            )
+        )
+        SELECT * FROM ranked
+        WHERE rank_score > 0.08
+        ORDER BY rank_score DESC
+        LIMIT ${limit}
+      `);
+
+      return (rows.rows as Record<string, unknown>[]).map((p) => ({
+        id: p.id as string,
+        name: p.name as string,
+        price: Number(p.price),
+        originalPrice: p.original_price ? Number(p.original_price) : undefined,
+        image:
+          (p.image as string) ||
+          (p.has_image ? `/api/image/${p.id as string}` : ''),
+        stock: Number(p.stock) || 0,
+        category: (p.main_category as string) || 'Autre',
+        mainCategory: (p.main_category as string) || '',
+        storeId: p.store_id as string,
+        storeName: (p.store_name as string) || '',
+        storeSlug: (p.store_slug as string) || undefined,
+        isOnline: p.is_online !== false,
+        businessType: ((p.business_type as string) || 'shopping') as BusinessVertical,
+        wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
+        wholesaleMinQty: p.wholesale_min_qty
+          ? Number(p.wholesale_min_qty)
+          : undefined,
+        wholesaleTiers: Array.isArray(p.wholesale_tiers) ? (p.wholesale_tiers as WholesaleTier[]) : [],
+        unit: (p.unit as string) || undefined,
+        options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
+        variants: Array.isArray(p.variants) ? (p.variants as ProductVariant[]) : [],
+        createdAt: p.created_at
+          ? new Date(p.created_at as string).toISOString()
+          : undefined,
+        views: Number(p.views) || 0,
+        salesCount: Number(p.total_sales) || 0,
+        rating: Number(p.average_rating) || 0,
+        reviewCount: Number(p.review_count) || 0,
+        rankScore: Number(p.rank_score) || 0,
+      }));
+    },
+    ['search-products', normalized, String(limit)],
+    {
+      tags: ['search', CATALOG_TAG],
+      revalidate: 300,
+    }
+  )();
+
 export async function searchProductsAction(query: string, limit: number = 30) {
   // Normalize: trim, collapse spaces (accent handling done in SQL via unaccent)
   const normalized = query.trim().replace(/\s+/g, ' ');
@@ -1162,122 +1322,7 @@ export async function searchProductsAction(query: string, limit: number = 30) {
   }
 
   try {
-    // Advanced CTE with 5 relevance layers:
-    //  1. FTS ts_rank on search_vector (accent-insensitive via immutable_unaccent)   × 2.0
-    //  2. pg_trgm similarity on unaccented name (typo tolerance)                     × 1.5
-    //  3. pg_trgm similarity on unaccented description                               × 0.3
-    //  4. Prefix bonus: name starts with query term                                  + 0.5
-    //  5. Store name match (brand search: "Nike" → all Nike products)                × 0.8
-    //  All multiplied by a log-damped popularity boost from product_stats
-    //  Final filter: rank_score > 0.08 (eliminates garbage results)
-    const rows = await db.execute(sql`
-      WITH ranked AS (
-        SELECT
-          p.id,
-          p.name,
-          p.price,
-          p.original_price,
-          CASE WHEN p.image LIKE 'data:%' THEN NULL ELSE p.image END AS image,
-          (p.image IS NOT NULL) AS has_image,
-          p.stock,
-          p.main_category,
-          p.store_id,
-          p.is_online,
-          p.business_type,
-          p.wholesale_price,
-          p.wholesale_min_qty,
-          p.wholesale_tiers,
-          p.unit,
-          p.options,
-          p.variants,
-          p.created_at,
-          p.views,
-          s.name          AS store_name,
-          s.slug          AS store_slug,
-          COALESCE(ps.total_sales, 0)     AS total_sales,
-          COALESCE(ps.average_rating, 0)  AS average_rating,
-          COALESCE(ps.review_count, 0)    AS review_count,
-          (
-            -- 1. FTS relevance (unaccented — uses GIN index on search_vector)
-            ts_rank(p.search_vector, websearch_to_tsquery('french', immutable_unaccent(${normalized}))) * 2.0
-
-            -- 2. Trigram on unaccented name (typo tolerance)
-            + similarity(immutable_unaccent(p.name), immutable_unaccent(${normalized})) * 1.5
-
-            -- 3. Trigram on unaccented description (wider fuzzy surface)
-            + similarity(immutable_unaccent(coalesce(p.description, '')), immutable_unaccent(${normalized})) * 0.3
-
-            -- 4. Prefix bonus: query is a prefix of the product name → immediate match
-            + CASE
-                WHEN lower(immutable_unaccent(p.name)) LIKE lower(immutable_unaccent(${normalized})) || '%'
-                THEN 0.5 ELSE 0
-              END
-
-            -- 5. Store name match: brand/store searches surface relevant products
-            + similarity(immutable_unaccent(s.name), immutable_unaccent(${normalized})) * 0.8
-          )
-          -- Popularity boost: log-damped so viral products don't bury fresh ones
-          * (1.0 + ln(1.0 + COALESCE(ps.total_sales, 0)::float * 3
-                          + p.views::float * 0.1))
-          AS rank_score
-        FROM products p
-        JOIN stores s ON s.id = p.store_id
-        LEFT JOIN product_stats ps ON ps.product_id = p.id
-        WHERE
-          p.is_online = true
-          AND (
-            -- FTS match (unaccented)
-            p.search_vector @@ websearch_to_tsquery('french', immutable_unaccent(${normalized}))
-            -- Trigram fuzzy on name
-            OR immutable_unaccent(p.name) % immutable_unaccent(${normalized})
-            -- Trigram fuzzy on description
-            OR immutable_unaccent(coalesce(p.description, '')) % immutable_unaccent(${normalized})
-            -- ILIKE fallback (prefix / partial)
-            OR p.name ILIKE ${'%' + normalized + '%'}
-            -- Store name match
-            OR s.name ILIKE ${'%' + normalized + '%'}
-          )
-      )
-      SELECT * FROM ranked
-      WHERE rank_score > 0.08
-      ORDER BY rank_score DESC
-      LIMIT ${limit}
-    `);
-
-    const products = (rows.rows as Record<string, unknown>[]).map((p) => ({
-      id: p.id as string,
-      name: p.name as string,
-      price: Number(p.price),
-      originalPrice: p.original_price ? Number(p.original_price) : undefined,
-      image:
-        (p.image as string) ||
-        (p.has_image ? `/api/image/${p.id as string}` : ''),
-      stock: Number(p.stock) || 0,
-      category: (p.main_category as string) || 'Autre',
-      mainCategory: (p.main_category as string) || '',
-      storeId: p.store_id as string,
-      storeName: (p.store_name as string) || '',
-      storeSlug: (p.store_slug as string) || undefined,
-      isOnline: p.is_online !== false,
-      businessType: ((p.business_type as string) || 'shopping') as BusinessVertical,
-      wholesalePrice: p.wholesale_price ? Number(p.wholesale_price) : undefined,
-      wholesaleMinQty: p.wholesale_min_qty
-        ? Number(p.wholesale_min_qty)
-        : undefined,
-      wholesaleTiers: Array.isArray(p.wholesale_tiers) ? (p.wholesale_tiers as WholesaleTier[]) : [],
-      unit: (p.unit as string) || undefined,
-      options: Array.isArray(p.options) ? (p.options as ProductOption[]) : [],
-      variants: Array.isArray(p.variants) ? (p.variants as ProductVariant[]) : [],
-      createdAt: p.created_at
-        ? new Date(p.created_at as string).toISOString()
-        : undefined,
-      views: Number(p.views) || 0,
-      salesCount: Number(p.total_sales) || 0,
-      rating: Number(p.average_rating) || 0,
-      reviewCount: Number(p.review_count) || 0,
-      rankScore: Number(p.rank_score) || 0,
-    }));
-
+    const products = await getCachedSearchProducts(normalized, limit);
     return { success: true, error: undefined, products };
   } catch (error) {
     console.error('[searchProductsAction] error:', error);
@@ -1285,6 +1330,43 @@ export async function searchProductsAction(query: string, limit: number = 30) {
     return { success: false, error: message, products: [] };
   }
 }
+
+const getCachedSearchSuggestions = (normalized: string) =>
+  unstable_cache(
+    async () => {
+      const rows = await db.execute(sql`
+        SELECT DISTINCT ON (lower(immutable_unaccent(p.name)))
+          p.id,
+          p.name,
+          p.main_category,
+          s.name AS store_name,
+          similarity(immutable_unaccent(p.name), immutable_unaccent(${normalized})) AS sim
+        FROM products p
+        JOIN stores s ON s.id = p.store_id
+        WHERE
+          p.is_online = true
+          AND (
+            immutable_unaccent(p.name) % immutable_unaccent(${normalized})
+            OR p.name ILIKE ${normalized + '%'}
+            OR p.name ILIKE ${'%' + normalized + '%'}
+          )
+        ORDER BY lower(immutable_unaccent(p.name)), sim DESC
+        LIMIT 5
+      `);
+
+      return (rows.rows as Record<string, unknown>[]).map((r) => ({
+        id: r.id as string,
+        name: r.name as string,
+        category: (r.main_category as string) || '',
+        storeName: (r.store_name as string) || '',
+      }));
+    },
+    ['search-suggestions', normalized],
+    {
+      tags: ['search', CATALOG_TAG],
+      revalidate: 600,
+    }
+  )();
 
 /** Lightweight autocomplete — returns up to 5 product name suggestions in < 50ms.
  *  Uses only pg_trgm + ILIKE (no JOIN to product_stats) for maximum speed. */
@@ -1295,33 +1377,7 @@ export async function searchSuggestionsAction(query: string) {
   }
 
   try {
-    const rows = await db.execute(sql`
-      SELECT DISTINCT ON (lower(immutable_unaccent(p.name)))
-        p.id,
-        p.name,
-        p.main_category,
-        s.name AS store_name,
-        similarity(immutable_unaccent(p.name), immutable_unaccent(${normalized})) AS sim
-      FROM products p
-      JOIN stores s ON s.id = p.store_id
-      WHERE
-        p.is_online = true
-        AND (
-          immutable_unaccent(p.name) % immutable_unaccent(${normalized})
-          OR p.name ILIKE ${normalized + '%'}
-          OR p.name ILIKE ${'%' + normalized + '%'}
-        )
-      ORDER BY lower(immutable_unaccent(p.name)), sim DESC
-      LIMIT 5
-    `);
-
-    const suggestions = (rows.rows as Record<string, unknown>[]).map((r) => ({
-      id: r.id as string,
-      name: r.name as string,
-      category: (r.main_category as string) || '',
-      storeName: (r.store_name as string) || '',
-    }));
-
+    const suggestions = await getCachedSearchSuggestions(normalized);
     return { success: true, suggestions };
   } catch (error) {
     console.error('[searchSuggestionsAction] error:', error);

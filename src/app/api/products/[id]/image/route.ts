@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_cache } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { products } from '@/db/schema';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const revalidate = 86400;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +56,23 @@ function parseDataImage(value: string) {
  * Public : les images produits sont déjà visibles sur la vitrine, et
  * l'optimiseur `next/image` les récupère sans cookie de session.
  */
+const getCachedProductImageRow = (id: string) =>
+  unstable_cache(
+    async () => {
+      const [row] = await db
+        .select({ image: products.image, images: products.images })
+        .from(products)
+        .where(eq(products.id, id))
+        .limit(1);
+      return row || null;
+    },
+    ['api-product-image-row', id],
+    {
+      tags: [`product:${id}`],
+      revalidate: 86400,
+    }
+  )();
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -65,11 +83,7 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 });
   }
 
-  const [row] = await db
-    .select({ image: products.image, images: products.images })
-    .from(products)
-    .where(eq(products.id, id))
-    .limit(1);
+  const row = await getCachedProductImageRow(id);
 
   if (!row) {
     return new NextResponse('Not found', { status: 404 });

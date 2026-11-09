@@ -1,30 +1,39 @@
 import 'server-only';
 
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { profiles } from '@/db/schema';
 
 /**
- * Lecture du profil mémoïsée par requête.
- *
- * Le callback `jwt` d'Auth.js relit le profil à chaque lecture de session pour
- * rafraîchir les claims, puis `resolveAccountAccess` le relisait une seconde
- * fois. `cache()` partage la même promesse : une seule requête `profiles` par
- * rendu (ou par server action), quel que soit le nombre d'appelants.
- *
- * Le cache ne survit pas à la requête : aucune donnée d'un utilisateur ne peut
- * être servie à un autre.
+ * Lecture du profil en cache de données (tags: profile:<userId>, TTL 300s).
+ * Réduit drastiquement les allers-retours vers Neon lors de la navigation
+ * sur le dashboard / POS / inventaire.
+ */
+const getCachedProfile = (userId: string) =>
+  unstable_cache(
+    async () => {
+      const [profile] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.id, userId))
+        .limit(1);
+
+      return profile ?? null;
+    },
+    ['user-profile', userId],
+    {
+      tags: [`profile:${userId}`],
+      revalidate: 300,
+    }
+  )();
+
+/**
+ * Lecture du profil mémoïsée par requête et adossée au cache Next.js.
  */
 export const getProfileById = cache(async (userId: string) => {
   if (!userId) return null;
-
-  const [profile] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.id, userId))
-    .limit(1);
-
-  return profile ?? null;
+  return getCachedProfile(userId);
 });

@@ -1,9 +1,35 @@
 import 'server-only';
 
+import { unstable_cache } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { profiles, stores, storeStaff } from '@/db/schema';
 import { getProfileById } from '@/lib/profile-by-id';
+
+/**
+ * Cache des boutiques et rôles staff par utilisateur (TTL 300s).
+ * Évite 2 requêtes Neon par navigation dans l'espace connecté.
+ */
+const getCachedUserStoresAndStaff = (userId: string) =>
+  unstable_cache(
+    async () => {
+      const [ownedStores, staffRows] = await Promise.all([
+        db.select().from(stores).where(eq(stores.userId, userId)).catch(() => []),
+        db
+          .select({ entry: storeStaff, store: stores })
+          .from(storeStaff)
+          .innerJoin(stores, eq(storeStaff.storeId, stores.id))
+          .where(eq(storeStaff.userId, userId))
+          .catch(() => []),
+      ]);
+      return { ownedStores, staffRows };
+    },
+    ['user-stores-and-staff', userId],
+    {
+      tags: [`profile:${userId}`, `stores:${userId}`],
+      revalidate: 300,
+    }
+  )();
 
 /**
  * Résolution d'accès shared par l'espace vendeur (`(app)`) et l'espace compte
@@ -45,20 +71,11 @@ export async function resolveAccountAccess(userId: string | null | undefined): P
   if (!userId) return empty;
 
   try {
-    // Une seule vague : profil, boutiques possédées et boutiques d'équipe
-    // (jointure store_staff ⋈ stores) partent en parallèle. L'ancienne version
-    // enchaînait quatre allers-retours vers Neon sur le chemin de CHAQUE page.
-    // `getProfileById` est mémoïsé : le callback `jwt` d'Auth.js a déjà lu ce
-    // profil pendant la même requête, cette vague ne le relit donc pas.
-    const [profile, ownedStores, staffRows] = await Promise.all([
+    // Profil, boutiques possédées et rôles d'équipe sont servis depuis le cache
+    // de données (ou mémoïsés) pour ne plus surcharger Neon lors de la navigation.
+    const [profile, { ownedStores, staffRows }] = await Promise.all([
       getProfileById(userId),
-      db.select().from(stores).where(eq(stores.userId, userId)).catch(() => []),
-      db
-        .select({ entry: storeStaff, store: stores })
-        .from(storeStaff)
-        .innerJoin(stores, eq(storeStaff.storeId, stores.id))
-        .where(eq(storeStaff.userId, userId))
-        .catch(() => []),
+      getCachedUserStoresAndStaff(userId),
     ]);
 
     if (!profile) return empty;

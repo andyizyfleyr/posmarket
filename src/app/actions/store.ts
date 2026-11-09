@@ -107,6 +107,8 @@ export async function quickCreateStoreAction(name: string, businessType: string)
 
     revalidatePath('/dashboard');
     refreshTag('marketplace');
+    refreshTag(`stores:${user.id}`);
+    refreshTag(`profile:${user.id}`);
     return { success: true, store: newStore };
   } catch (error: unknown) {
     console.error('Error creating store with Drizzle:', error);
@@ -140,6 +142,9 @@ export async function quickDeleteStoreAction(storeId: string) {
 
     revalidatePath('/dashboard');
     refreshTag('marketplace');
+    refreshTag(`store:${storeId}`);
+    refreshTag(`stores:${store.userId}`);
+    refreshTag(`profile:${store.userId}`);
     return { success: true };
   } catch (error: unknown) {
     console.error('Error deleting store with Drizzle:', error);

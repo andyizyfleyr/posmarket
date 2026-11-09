@@ -114,35 +114,75 @@ function revalidateCatalog(table: string) {
   }
 }
 
+// Buffer mémoire pour regrouper les incréments de vues (produits / boutiques)
+// et éviter d'inonder Neon de requêtes UPDATE à chaque clic utilisateur.
+const productViewsBuffer = new Map<string, number>();
+const storeViewsBuffer = new Map<string, number>();
+let isFlushingViews = false;
+let lastFlushTime = Date.now();
+const FLUSH_INTERVAL_MS = 60_000;
+const MAX_BUFFER_SIZE = 50;
+
+async function flushViewsBuffer() {
+  if (isFlushingViews) return;
+  isFlushingViews = true;
+  try {
+    if (productViewsBuffer.size > 0) {
+      const pEntries = Array.from(productViewsBuffer.entries());
+      productViewsBuffer.clear();
+      for (const [id, count] of pEntries) {
+        try {
+          await db
+            .update(schema.products)
+            .set({ views: sql`${schema.products.views} + ${count}` })
+            .where(eq(schema.products.id, id));
+        } catch {
+          // ignore
+        }
+      }
+    }
+    if (storeViewsBuffer.size > 0) {
+      const sEntries = Array.from(storeViewsBuffer.entries());
+      storeViewsBuffer.clear();
+      for (const [id, count] of sEntries) {
+        try {
+          await db
+            .update(schema.stores)
+            .set({ views: sql`${schema.stores.views} + ${count}` })
+            .where(eq(schema.stores.id, id));
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } finally {
+    isFlushingViews = false;
+    lastFlushTime = Date.now();
+  }
+}
+
 async function runRpc(name: string, argsRaw: unknown): Promise<QueryResult> {
   const args = (argsRaw && typeof argsRaw === 'object' ? argsRaw : {}) as Record<string, unknown>;
   try {
     if (name === 'increment_product_views') {
       const pId = args.p_id ? String(args.p_id) : undefined;
       if (pId) {
-        await db
-          .update(schema.products)
-          .set({ views: sql`${schema.products.views} + 1` })
-          .where(eq(schema.products.id, pId));
+        productViewsBuffer.set(pId, (productViewsBuffer.get(pId) || 0) + 1);
+        if (productViewsBuffer.size >= MAX_BUFFER_SIZE || Date.now() - lastFlushTime > FLUSH_INTERVAL_MS) {
+          void flushViewsBuffer();
+        }
       }
-      // Compteur de visibilité uniquement : ne PAS invalider le catalogue
-      // public. Rafraîchir le catalogue à chaque page vue interdisait toute
-      // mise en cache réelle et renvoyait chaque visiteur en base — le site
-      // « rechargeait » tout à chaque navigation. Le compteur est lu dans
-      // les vues agrégées et affiché avec la fraîcheur ISR normale.
       return { data: null, error: null };
     }
 
     if (name === 'increment_store_views') {
       const pId = args.p_id ? String(args.p_id) : undefined;
       if (pId) {
-        await db
-          .update(schema.stores)
-          .set({ views: sql`${schema.stores.views} + 1` })
-          .where(eq(schema.stores.id, pId));
+        storeViewsBuffer.set(pId, (storeViewsBuffer.get(pId) || 0) + 1);
+        if (storeViewsBuffer.size >= MAX_BUFFER_SIZE || Date.now() - lastFlushTime > FLUSH_INTERVAL_MS) {
+          void flushViewsBuffer();
+        }
       }
-      // Compteur de visibilité uniquement — même règle que pour les produits :
-      // aucune invalidation de catalogue pour un simple compteur.
       return { data: null, error: null };
     }
 

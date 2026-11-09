@@ -1,5 +1,6 @@
 'use server'
 
+import { unstable_cache } from 'next/cache'
 import { refreshTag } from '@/lib/revalidate'
 import { toClientProduct, toClientProducts } from '@/lib/product-image-url'
 import { uploadDataUriToR2 } from '@/lib/r2'
@@ -713,14 +714,9 @@ export async function getProductsAction(
     }
 
     // Garde-fou : la liste d'une boutique ne montre que ses produits. Le type
-    // vient de la boutique, pas du client.
+    // vient de la boutique, mis en cache pour ne pas requêter `stores` à chaque filtre.
     {
-      const [storeRow] = await db
-        .select({ businessType: stores.businessType })
-        .from(stores)
-        .where(eq(stores.id, storeId))
-        .limit(1);
-      const storeVertical = storeRow?.businessType === 'food' ? 'food' : 'shopping';
+      const storeVertical = await getCachedStoreVertical(storeId);
       conditions.push(eq(products.businessType, storeVertical));
     }
 
@@ -775,38 +771,65 @@ export async function getProductsAction(
   }
 }
 
-export async function getStockCountsAction(storeId: string): Promise<{ ok: boolean; stock?: Record<string, number>; error?: string }> {
-    try {
-      const access = await requireStoreAccess(storeId);
-      if (!access.ok) return { ok: false, error: access.error };
+const getCachedStoreVertical = (storeId: string) =>
+  unstable_cache(
+    async () => {
+      const [storeRow] = await db
+        .select({ businessType: stores.businessType })
+        .from(stores)
+        .where(eq(stores.id, storeId))
+        .limit(1);
+      return storeRow?.businessType === 'food' ? 'food' : 'shopping';
+    },
+    ['store-vertical', storeId],
+    {
+      tags: [`store:${storeId}`],
+      revalidate: 86400,
+    }
+  )();
 
-      // Un produit à variantes est stocké par variante : le compteur doit
-        // refléter la somme des variantes (comme le POS et la liste Stocks),
-        // sinon la colonne `products.stock` peut être en retard d'une édition.
-        const rows = await db
-            .select({
-                id: products.id,
-                stock: products.stock,
-                options: products.options,
-                variants: products.variants,
-            })
-            .from(products)
-            .where(eq(products.storeId, storeId));
-        const stock: Record<string, number> = {};
-        for (const r of rows) {
-            const options = normalizeOptions(r.options);
-            if (options.length > 0) {
-                const variants = normalizeVariants(r.variants, options);
-                stock[r.id] = variants.reduce(
-                    (total, variant) =>
-                        total + Math.max(0, Math.round(Number(variant.stock) || 0)),
-                    0,
-                );
-                continue;
-            }
-            stock[r.id] = Number(r.stock ?? 0);
+const fetchCachedStockCounts = (storeId: string) =>
+  unstable_cache(
+    async () => {
+      const rows = await db
+        .select({
+          id: products.id,
+          stock: products.stock,
+          options: products.options,
+          variants: products.variants,
+        })
+        .from(products)
+        .where(eq(products.storeId, storeId));
+      const stock: Record<string, number> = {};
+      for (const r of rows) {
+        const options = normalizeOptions(r.options);
+        if (options.length > 0) {
+          const variants = normalizeVariants(r.variants, options);
+          stock[r.id] = variants.reduce(
+            (total, variant) =>
+              total + Math.max(0, Math.round(Number(variant.stock) || 0)),
+            0,
+          );
+          continue;
         }
-        return { ok: true, stock };
+        stock[r.id] = Number(r.stock ?? 0);
+      }
+      return stock;
+    },
+    ['store-stock-counts', storeId],
+    {
+      tags: [`products:${storeId}`],
+      revalidate: 120,
+    }
+  )();
+
+export async function getStockCountsAction(storeId: string): Promise<{ ok: boolean; stock?: Record<string, number>; error?: string }> {
+  try {
+    const access = await requireStoreAccess(storeId);
+    if (!access.ok) return { ok: false, error: access.error };
+
+    const stock = await fetchCachedStockCounts(storeId);
+    return { ok: true, stock };
   } catch (error: unknown) {
     console.error('Error fetching stock counts with Drizzle:', error);
     return { ok: false, error: error instanceof Error ? error.message : String(error) };

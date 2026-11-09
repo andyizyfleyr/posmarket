@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { products, stores } from '@/db/schema';
@@ -49,13 +50,23 @@ async function getImageSource(id: string): Promise<string | null | undefined> {
   return row?.image;
 }
 
+const getCachedImageSource = (id: string) =>
+  unstable_cache(
+    async () => getImageSource(id),
+    ['api-image-source', id],
+    {
+      tags: id.startsWith('s') ? [`store:${id.slice(1)}`] : [`product:${id}`],
+      revalidate: 86400,
+    }
+  )();
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const source = await getImageSource(id);
+    const source = await getCachedImageSource(id);
 
     if (!source) {
       return new Response('Not found', { status: 404 });

@@ -3,7 +3,7 @@
 import { db } from '@/db';
 import { productCategories, products } from '@/db/schema';
 import { eq, and, isNull, isNotNull, sql, asc, ne, inArray } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { refreshTag } from '@/lib/revalidate';
 import { getAdminSession } from '@/app/actions/admin-auth';
 
@@ -125,30 +125,41 @@ function buildTree(rows: ProductCategoryRow[], counts: Record<string, number>): 
 // Lecture
 // ---------------------------------------------------------------------------
 
+const getCachedProductCategoryTree = (businessType: string) =>
+  unstable_cache(
+    async () => {
+      const vertical = businessType === 'food' ? 'food' : 'shopping';
+      const rows = await db
+        .select()
+        .from(productCategories)
+        .where(and(eq(productCategories.isActive, true), eq(productCategories.businessType, vertical)))
+        .orderBy(asc(productCategories.position));
+
+      // Les produits sont rangés par nom de catégorie (colonne texte) : le compte
+      // doit donc être restreint à la même verticale, sinon un produit d'une
+      // autre boutiqueurerait le total d'une catégorie.
+      const names = rows.map((r) => r.name);
+      const counts = await countProductsByCategoryNames(names, vertical);
+      return buildTree(rows, counts);
+    },
+    ['product-category-tree', businessType === 'food' ? 'food' : 'shopping'],
+    {
+      tags: ['categories', 'marketplace'],
+      revalidate: 3600,
+    }
+  )();
+
 /** Catégories actives, arborescence — usage vendeur / storefront. */
 /**
- * Arbre des.categories pour une verticale.
+ * Arbre des categories pour une verticale (mis en cache ISR).
  *
  * Le paramètre est obligatoire : les catégories sont typées
  * (`shopping` / `food`) et une boutique ne doit jamais voir les catégories de
- * l'autre type. Sans filtre, un resto voyait les catégories de commerce et
- * inversement, et pouvait y ranger ses produits.
+ * l'autre type.
  */
 export async function getProductCategoryTree(businessType: string): Promise<ProductCategoryNode[]> {
   try {
-    const vertical = businessType === 'food' ? 'food' : 'shopping';
-    const rows = await db
-      .select()
-      .from(productCategories)
-      .where(and(eq(productCategories.isActive, true), eq(productCategories.businessType, vertical)))
-      .orderBy(asc(productCategories.position));
-
-    // Les produits sont rangés par nom de catégorie (colonne texte) : le compte
-    // doit donc être restreint à la même verticale, sinon un produit d'une
-    // autre boutiqueurerait le total d'une catégorie.
-    const names = rows.map((r) => r.name);
-    const counts = await countProductsByCategoryNames(names, vertical);
-    return buildTree(rows, counts);
+    return await getCachedProductCategoryTree(businessType);
   } catch (error: unknown) {
     console.error('Error fetching product categories:', error);
     return [];
@@ -256,6 +267,7 @@ async function resolveParentId(
 function revalidateCategoryViews() {
   revalidatePath('/pam/categories');
   revalidatePath('/inventory');
+  refreshTag('categories');
   refreshTag('marketplace');
 }
 
