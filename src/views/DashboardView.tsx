@@ -485,7 +485,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<DollarSign size={14} />}
           trend={filteredMetrics.revenue.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.revenue.pct}%`}
-          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
+          color="bg-gradient-to-b from-slate-50 via-zinc-100 to-slate-100 text-slate-800 border border-slate-200/90 shadow-xs group-hover:border-slate-300 group-hover:text-slate-950"
           compact={true}
         />
         <StatCard
@@ -494,7 +494,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<ShoppingBag size={14} />}
           trend={filteredMetrics.orders.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.orders.pct}%`}
-          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
+          color="bg-gradient-to-b from-slate-50 via-zinc-100 to-slate-100 text-slate-800 border border-slate-200/90 shadow-xs group-hover:border-slate-300 group-hover:text-slate-950"
           compact={true}
         />
         <StatCard
@@ -503,7 +503,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<Zap size={14} />}
           trend={filteredMetrics.basket.trend as 'up' | 'down' | undefined}
           trendValue={`${filteredMetrics.basket.pct}%`}
-          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
+          color="bg-gradient-to-b from-slate-50 via-zinc-100 to-slate-100 text-slate-800 border border-slate-200/90 shadow-xs group-hover:border-slate-300 group-hover:text-slate-950"
           compact={true}
         />
         <StatCard
@@ -512,7 +512,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ orders, products, permiss
           icon={<Eye size={14} />}
           trend={filteredMetrics.traffic.trend as unknown as 'up' | 'down' | undefined}
           trendValue={filteredMetrics.traffic.pct}
-          color="bg-gradient-to-br from-zinc-800 to-zinc-950 text-white border border-zinc-700/60 shadow-xs"
+          color="bg-gradient-to-b from-slate-50 via-zinc-100 to-slate-100 text-slate-800 border border-slate-200/90 shadow-xs group-hover:border-slate-300 group-hover:text-slate-950"
           compact={true}
         />
       </div>

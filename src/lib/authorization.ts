@@ -1,6 +1,3 @@
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { profiles, stores, storeStaff } from '@/db/schema';
 import { getAdminSession, type AdminSession } from '@/app/actions/admin-auth';
 import { getAccountAccess, getSessionUser } from '@/lib/request-cache';
 
@@ -38,13 +35,13 @@ export async function getPamAdmin(): Promise<AdminSession | null> {
   }
 }
 
-/** Boutiques que l'utilisateur peut gérer : propriétaire ou membre d'équipe. */
+/** Boutiques que l'utilisateur peut gérer : propriétaire ou membre d'équipe (servies depuis le cache). */
 export async function getManageableStoreIds(userId: string): Promise<string[]> {
-  const [owned, staff] = await Promise.all([
-    db.select({ id: stores.id }).from(stores).where(eq(stores.userId, userId)),
-    db.select({ storeId: storeStaff.storeId }).from(storeStaff).where(eq(storeStaff.userId, userId)),
-  ]);
-  return Array.from(new Set<string>([...owned.map((r) => r.id), ...staff.map((r) => r.storeId)]));
+  const access = await getAccountAccess(userId);
+  return Array.from(new Set<string>([
+    ...access.ownedStores.map((s) => s.id),
+    ...access.staffEntries.map((e) => e.storeId),
+  ]));
 }
 
 /**
@@ -91,12 +88,8 @@ export async function requireSelfOrAdmin(userId: string): Promise<AccessResult> 
   const caller = await getAuthUserId();
   if (!caller) return { ok: false, error: 'Non authentifié' };
   if (caller !== userId) {
-    const [profile] = await db
-      .select({ isSuperAdmin: profiles.isSuperAdmin })
-      .from(profiles)
-      .where(eq(profiles.id, caller))
-      .limit(1);
-    if (!profile?.isSuperAdmin) return { ok: false, error: ACCES_REFUSE };
+    const access = await getAccountAccess(caller);
+    if (!access.profile?.isSuperAdmin) return { ok: false, error: ACCES_REFUSE };
     return { ok: true, userId: caller, isSuperAdmin: true, storeIds: await getManageableStoreIds(caller) };
   }
   return { ok: true, userId: caller, isSuperAdmin: false, storeIds: await getManageableStoreIds(caller) };
