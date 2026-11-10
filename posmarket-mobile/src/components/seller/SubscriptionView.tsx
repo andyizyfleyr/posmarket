@@ -72,31 +72,25 @@ const PLAN_ICONS = {
   ENTERPRISE: { Icon: Zap, color: '#9333EA', background: '#FAF5FF' },
 } as const;
 
-type PlanFeature = { label: string; included: boolean };
-
 /**
- * Fonctionnalités réellement disponibles, identiques au web. Les lignes
- * grisées dépendent de la boutique en ligne ou du nombre de boutiques.
+ * Fonctionnalités disponibles dans toutes les formules, identiques au web :
+ * aucun verrou de plan n'est appliqué dessus. Seules les limites de boutiques
+ * et de produits changent.
  */
-const getPlanFeatures = (plan: SubscriptionPlan): PlanFeature[] => {
-  const storefront = plan.features.enableStorefront;
-  const multiStore = plan.features.maxStores > 1;
-
-  return [
-    { label: 'Caisse POS & reçus (80 mm ou PDF)', included: true },
-    { label: 'Scan des codes-barres', included: true },
-    { label: 'Stocks, variantes & alertes de rupture', included: true },
-    { label: 'Import / export du catalogue', included: true },
-    { label: 'Clients & historique d’achats', included: true },
-    { label: 'Commandes & export CSV', included: true },
-    { label: 'Tableau de bord des ventes', included: true },
-    { label: 'Équipe, rôles & permissions', included: true },
-    { label: 'Boutique en ligne 24h/24', included: storefront },
-    { label: 'Paiement Mobile Money & à la livraison', included: storefront },
-    { label: 'Codes promo', included: storefront },
-    { label: 'Transferts entre boutiques', included: multiStore },
-  ];
-};
+const PLAN_FEATURES = [
+  'Caisse POS & reçus (80 mm ou PDF)',
+  'Scan des codes-barres',
+  'Stocks, variantes & alertes de rupture',
+  'Import / export du catalogue',
+  'Clients & historique d’achats',
+  'Commandes & export CSV',
+  'Tableau de bord des ventes',
+  'Équipe, rôles & permissions',
+  'Boutique en ligne 24h/24',
+  'Paiement Mobile Money & à la livraison',
+  'Codes promo',
+  'Transferts entre boutiques',
+] as const;
 
 const PROVIDER_NAMES: Record<PaymentProvider, string> = {
   kkiapay: 'Kkiapay',
@@ -719,7 +713,8 @@ export function SellerSubscriptionView({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Choisissez votre formule</Text>
           <Text style={styles.headerSubtitle}>
-            Des fonctionnalités adaptées à la taille de votre commerce.
+            Toutes les fonctionnalités sont incluses dans chaque formule. Seules
+            les limites de boutiques et de produits changent.
           </Text>
 
           {isSeller ? (
@@ -865,21 +860,10 @@ export function SellerSubscriptionView({
                 </View>
 
                 <View style={styles.featuresBlock}>
-                  {getPlanFeatures(plan).map((feature) => (
-                    <View key={feature.label} style={styles.featureRow}>
-                      {feature.included ? (
-                        <Check size={12} color="#22C55E" />
-                      ) : (
-                        <X size={12} color="#CBD5E1" />
-                      )}
-                      <Text
-                        style={[
-                          styles.featureText,
-                          !feature.included && styles.featureTextMuted,
-                        ]}
-                      >
-                        {feature.label}
-                      </Text>
+                  {PLAN_FEATURES.map((feature) => (
+                    <View key={feature} style={styles.featureRow}>
+                      <Check size={12} color="#22C55E" />
+                      <Text style={styles.featureText}>{feature}</Text>
                     </View>
                   ))}
                 </View>
@@ -1170,7 +1154,6 @@ const styles = StyleSheet.create({
   featuresBlock: { gap: 8, marginBottom: 20, flexGrow: 1 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   featureText: { fontSize: 11, color: '#475569' },
-  featureTextMuted: { color: '#CBD5E1' },
 
   ctaBtn: {
     width: '100%',

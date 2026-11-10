@@ -23,32 +23,25 @@ const SUBSCRIPTION_PLAN_LIST = [
     SUBSCRIPTION_PLANS.ENTERPRISE,
 ];
 
-type PlanFeature = { label: string; included: boolean };
-
 /**
- * Fonctionnalités réellement disponibles dans le produit. Les lignes grisées
- * correspondent aux fonctions qui nécessitent une boutique en ligne ou
- * plusieurs boutiques, seuls vrais verrous des formules actuelles.
+ * Fonctionnalités disponibles dans toutes les formules : le code n'applique
+ * aucun verrou de plan dessus. Seules les limites de boutiques et de produits
+ * changent d'une formule à l'autre.
  */
-const getPlanFeatures = (plan: SubscriptionPlan): PlanFeature[] => {
-    const storefront = plan.features.enableStorefront;
-    const multiStore = plan.features.maxStores > 1;
-
-    return [
-        { label: 'Caisse POS & reçus (80 mm ou PDF)', included: true },
-        { label: 'Scan des codes-barres', included: true },
-        { label: 'Stocks, variantes & alertes de rupture', included: true },
-        { label: 'Import / export du catalogue', included: true },
-        { label: 'Clients & historique d’achats', included: true },
-        { label: 'Commandes & export CSV', included: true },
-        { label: 'Tableau de bord des ventes', included: true },
-        { label: 'Équipe, rôles & permissions', included: true },
-        { label: 'Boutique en ligne 24h/24', included: storefront },
-        { label: 'Paiement Mobile Money & à la livraison', included: storefront },
-        { label: 'Codes promo', included: storefront },
-        { label: 'Transferts entre boutiques', included: multiStore },
-    ];
-};
+const PLAN_FEATURES = [
+    'Caisse POS & reçus (80 mm ou PDF)',
+    'Scan des codes-barres',
+    'Stocks, variantes & alertes de rupture',
+    'Import / export du catalogue',
+    'Clients & historique d’achats',
+    'Commandes & export CSV',
+    'Tableau de bord des ventes',
+    'Équipe, rôles & permissions',
+    'Boutique en ligne 24h/24',
+    'Paiement Mobile Money & à la livraison',
+    'Codes promo',
+    'Transferts entre boutiques',
+] as const;
 
 export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onPay, notify, userRole, saspayDirect = false }) => {
     const router = useRouter();
@@ -196,7 +189,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
                     Choisissez votre formule
                 </h1>
                 <p className="text-slate-500 text-sm md:text-base">
-                    Des fonctionnalités adaptées à la taille de votre commerce.
+                    Toutes les fonctionnalités sont incluses dans chaque formule. Seules les limites de boutiques et de produits changent.
                 </p>
 
                 {isSeller && (
@@ -315,15 +308,11 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
                             {/* Features */}
                             <div className="space-y-2 mb-5 md:mb-6 flex-grow">
-                                {getPlanFeatures(plan).map((feature) => (
-                                    <div key={feature.label} className="flex items-center gap-2">
-                                        {feature.included ? (
-                                            <Check size={12} className="text-green-500 shrink-0" />
-                                        ) : (
-                                            <XIcon size={12} className="text-slate-300 shrink-0" />
-                                        )}
-                                        <span className={`text-[11px] md:text-xs ${feature.included ? 'text-slate-600 font-normal' : 'text-slate-300'}`}>
-                                            {feature.label}
+                                {PLAN_FEATURES.map((feature) => (
+                                    <div key={feature} className="flex items-center gap-2">
+                                        <Check size={12} className="text-green-500 shrink-0" />
+                                        <span className="text-[11px] md:text-xs text-slate-600 font-normal">
+                                            {feature}
                                         </span>
                                     </div>
                                 ))}
