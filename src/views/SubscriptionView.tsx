@@ -23,6 +23,33 @@ const SUBSCRIPTION_PLAN_LIST = [
     SUBSCRIPTION_PLANS.ENTERPRISE,
 ];
 
+type PlanFeature = { label: string; included: boolean };
+
+/**
+ * Fonctionnalités réellement disponibles dans le produit. Les lignes grisées
+ * correspondent aux fonctions qui nécessitent une boutique en ligne ou
+ * plusieurs boutiques, seuls vrais verrous des formules actuelles.
+ */
+const getPlanFeatures = (plan: SubscriptionPlan): PlanFeature[] => {
+    const storefront = plan.features.enableStorefront;
+    const multiStore = plan.features.maxStores > 1;
+
+    return [
+        { label: 'Caisse POS & reçus (80 mm ou PDF)', included: true },
+        { label: 'Scan des codes-barres', included: true },
+        { label: 'Stocks, variantes & alertes de rupture', included: true },
+        { label: 'Import / export du catalogue', included: true },
+        { label: 'Clients & historique d’achats', included: true },
+        { label: 'Commandes & export CSV', included: true },
+        { label: 'Tableau de bord des ventes', included: true },
+        { label: 'Équipe, rôles & permissions', included: true },
+        { label: 'Boutique en ligne 24h/24', included: storefront },
+        { label: 'Paiement Mobile Money & à la livraison', included: storefront },
+        { label: 'Codes promo', included: storefront },
+        { label: 'Transferts entre boutiques', included: multiStore },
+    ];
+};
+
 export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubscription, onUpdateSubscription, onPay, notify, userRole, saspayDirect = false }) => {
     const router = useRouter();
     const isSeller = userRole === 'SELLER';
@@ -288,12 +315,8 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({ currentSubsc
 
                             {/* Features */}
                             <div className="space-y-2 mb-5 md:mb-6 flex-grow">
-                                {[
-                                    { label: 'Point de Vente (POS)', included: true },
-                                    { label: 'Gestion stocks & clients', included: true },
-                                    { label: 'Boutique en ligne', included: plan.features.enableStorefront },
-                                ].map((feature, i) => (
-                                    <div key={i} className="flex items-center gap-2">
+                                {getPlanFeatures(plan).map((feature) => (
+                                    <div key={feature.label} className="flex items-center gap-2">
                                         {feature.included ? (
                                             <Check size={12} className="text-green-500 shrink-0" />
                                         ) : (

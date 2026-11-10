@@ -72,6 +72,32 @@ const PLAN_ICONS = {
   ENTERPRISE: { Icon: Zap, color: '#9333EA', background: '#FAF5FF' },
 } as const;
 
+type PlanFeature = { label: string; included: boolean };
+
+/**
+ * Fonctionnalités réellement disponibles, identiques au web. Les lignes
+ * grisées dépendent de la boutique en ligne ou du nombre de boutiques.
+ */
+const getPlanFeatures = (plan: SubscriptionPlan): PlanFeature[] => {
+  const storefront = plan.features.enableStorefront;
+  const multiStore = plan.features.maxStores > 1;
+
+  return [
+    { label: 'Caisse POS & reçus (80 mm ou PDF)', included: true },
+    { label: 'Scan des codes-barres', included: true },
+    { label: 'Stocks, variantes & alertes de rupture', included: true },
+    { label: 'Import / export du catalogue', included: true },
+    { label: 'Clients & historique d’achats', included: true },
+    { label: 'Commandes & export CSV', included: true },
+    { label: 'Tableau de bord des ventes', included: true },
+    { label: 'Équipe, rôles & permissions', included: true },
+    { label: 'Boutique en ligne 24h/24', included: storefront },
+    { label: 'Paiement Mobile Money & à la livraison', included: storefront },
+    { label: 'Codes promo', included: storefront },
+    { label: 'Transferts entre boutiques', included: multiStore },
+  ];
+};
+
 const PROVIDER_NAMES: Record<PaymentProvider, string> = {
   kkiapay: 'Kkiapay',
   fedapay: 'FedaPay',
@@ -839,11 +865,7 @@ export function SellerSubscriptionView({
                 </View>
 
                 <View style={styles.featuresBlock}>
-                  {[
-                    { label: 'Point de Vente (POS)', included: true },
-                    { label: 'Gestion stocks & clients', included: true },
-                    { label: 'Boutique en ligne', included: plan.features.enableStorefront },
-                  ].map((feature) => (
+                  {getPlanFeatures(plan).map((feature) => (
                     <View key={feature.label} style={styles.featureRow}>
                       {feature.included ? (
                         <Check size={12} color="#22C55E" />
